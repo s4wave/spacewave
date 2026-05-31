@@ -35,6 +35,16 @@ export interface V86fsAdapter {
     name: string,
     reply: (status: number, root_inode_id: number, mode: number) => void,
   ): void
+  onLookup(
+    parent_id: number,
+    name: string,
+    reply: (
+      status: number,
+      inode_id: number,
+      mode: number,
+      size: number,
+    ) => void,
+  ): void
   onOpen(
     inode_id: number,
     flags: number,

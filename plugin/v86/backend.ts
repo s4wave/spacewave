@@ -73,13 +73,52 @@ async function resolveAssetPath(
   return srcPath
 }
 
-// readV86fsMountRoot mounts a named v86fs mount and reads the entire
-// root inode contents. Used to load kernel/BIOS images from UnixFS
-// objects linked via graph edges on the VmV86 world object.
-function readV86fsMountRoot(
+const S_IFMT = 0o170000
+const S_IFDIR = 0o040000
+
+function isDirectoryMode(mode: number): boolean {
+  return (mode & S_IFMT) === S_IFDIR
+}
+
+// readV86fsMountFile mounts a named v86fs asset and reads the binary file.
+// Imported V86Image single-file assets are FS_NODE directories containing the
+// original filename; direct file roots remain supported for per-VM overrides.
+function readV86fsMountFile(
   adapter: V86fsAdapter,
   mountName: string,
+  fileName: string,
 ): Promise<Uint8Array> {
+  const readInode = (inodeId: number, size: number) =>
+    new Promise<Uint8Array>((resolve, reject) => {
+      adapter.onOpen(inodeId, 0, (status: number, handleId: number) => {
+        if (status !== 0) {
+          reject(
+            new Error(
+              'v86fs open "' + mountName + '" failed: status ' + status,
+            ),
+          )
+          return
+        }
+        adapter.onRead(
+          handleId,
+          0,
+          size,
+          (status: number, data: Uint8Array) => {
+            adapter.onClose(handleId, () => {})
+            if (status !== 0) {
+              reject(
+                new Error(
+                  'v86fs read "' + mountName + '" failed: status ' + status,
+                ),
+              )
+              return
+            }
+            resolve(data)
+          },
+        )
+      })
+    })
+
   return new Promise((resolve, reject) => {
     adapter.onMount(mountName, (status: number, rootInodeId: number) => {
       if (status !== 0) {
@@ -92,28 +131,44 @@ function readV86fsMountRoot(
         rootInodeId,
         (status: number, _mode: number, size: number) => {
           if (status !== 0) {
-            reject(new Error('v86fs getattr failed: status ' + status))
+            reject(
+              new Error(
+                'v86fs getattr "' + mountName + '" failed: status ' + status,
+              ),
+            )
             return
           }
-          adapter.onOpen(rootInodeId, 0, (status: number, handleId: number) => {
-            if (status !== 0) {
-              reject(new Error('v86fs open failed: status ' + status))
-              return
-            }
-            adapter.onRead(
-              handleId,
-              0,
-              size,
-              (status: number, data: Uint8Array) => {
-                adapter.onClose(handleId, () => {})
-                if (status !== 0) {
-                  reject(new Error('v86fs read failed: status ' + status))
-                  return
-                }
-                resolve(data)
-              },
-            )
-          })
+
+          if (!isDirectoryMode(_mode)) {
+            readInode(rootInodeId, size).then(resolve, reject)
+            return
+          }
+
+          adapter.onLookup(
+            rootInodeId,
+            fileName,
+            (
+              status: number,
+              inodeId: number,
+              _mode: number,
+              fileSize: number,
+            ) => {
+              if (status !== 0) {
+                reject(
+                  new Error(
+                    'v86fs lookup "' +
+                      mountName +
+                      '/' +
+                      fileName +
+                      '" failed: status ' +
+                      status,
+                  ),
+                )
+                return
+              }
+              readInode(inodeId, fileSize).then(resolve, reject)
+            },
+          )
         },
       )
     })
@@ -199,10 +254,10 @@ export default async function main(
     // through the VmV86 -> V86Image graph edges. The rootfs mount is resolved
     // by the guest kernel itself at init time via MOUNT("") once v86 boots.
     const [wasmBuf, biosBuf, vgaBiosBuf, kernelBuf] = await Promise.all([
-      readV86fsMountRoot(v86fsBridge.adapter, 'wasm'),
-      readV86fsMountRoot(v86fsBridge.adapter, 'seabios'),
-      readV86fsMountRoot(v86fsBridge.adapter, 'vgabios'),
-      readV86fsMountRoot(v86fsBridge.adapter, 'kernel'),
+      readV86fsMountFile(v86fsBridge.adapter, 'wasm', 'v86.wasm'),
+      readV86fsMountFile(v86fsBridge.adapter, 'seabios', 'seabios.bin'),
+      readV86fsMountFile(v86fsBridge.adapter, 'vgabios', 'vgabios.bin'),
+      readV86fsMountFile(v86fsBridge.adapter, 'kernel', 'bzImage'),
     ])
 
     console.log(

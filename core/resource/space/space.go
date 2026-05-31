@@ -335,11 +335,20 @@ func (r *SpaceResource) MountSpaceContents(
 		HostPluginId:  hostPluginID,
 	}
 
+	r.le.WithField("space-id", spaceID).Debug("mount space contents: adding resource")
 	id, err := resourceCtx.AddResource(contentsResource.GetMux(), contentsResource.Release)
 	if err != nil {
 		return nil, err
 	}
+	r.le.
+		WithField("space-id", spaceID).
+		WithField("resource-id", id).
+		Debug("mount space contents: resource added")
 	contentsResource.StartController(conf)
+	r.le.
+		WithField("space-id", spaceID).
+		WithField("resource-id", id).
+		Debug("mount space contents: controller started")
 
 	return &s4wave_space.MountSpaceContentsResponse{ResourceId: id}, nil
 }

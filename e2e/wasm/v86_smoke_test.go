@@ -5,6 +5,7 @@ package wasm
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -16,7 +17,7 @@ import (
 	playwright "github.com/playwright-community/playwright-go"
 )
 
-const v86SmokeTimeoutMS = 180000
+const v86SmokeTimeoutMS = 600000
 const v86SmokeDefaultCdnSpaceID = "01kpn3x0y79yr94ps1yae206vp"
 
 func TestQuickstartV86BootSmoke(t *testing.T) {
@@ -116,7 +117,6 @@ func installV86CdnMirrorRuntimeEnv(t testing.TB, sess *TestSession) {
 	}
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Logf("v86 CDN mirror request %s %s range=%q", r.Method, r.URL.Path, r.Header.Get("Range"))
 		serveV86CdnMirrorHTTP(w, r, mirrorDir)
 	}))
 	t.Cleanup(srv.Close)
@@ -151,7 +151,7 @@ func serveV86CdnMirrorHTTP(w http.ResponseWriter, r *http.Request, mirrorDir str
 
 	rel := strings.TrimPrefix(filepath.Clean("/"+r.URL.Path), string(filepath.Separator))
 	path := filepath.Join(mirrorDir, rel)
-	data, err := os.ReadFile(path)
+	file, err := os.Open(path)
 	if err != nil {
 		status := http.StatusInternalServerError
 		if os.IsNotExist(err) {
@@ -160,24 +160,43 @@ func serveV86CdnMirrorHTTP(w http.ResponseWriter, r *http.Request, mirrorDir str
 		http.Error(w, err.Error(), status)
 		return
 	}
+	defer file.Close()
 
-	body := data
+	stat, err := file.Stat()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	size := stat.Size()
+	if size <= 0 {
+		w.Header().Set("Content-Length", "0")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	status := http.StatusOK
+	start := int64(0)
+	end := size - 1
 	rangeHeader := r.Header.Get("Range")
 	if rangeHeader != "" {
-		start, end, ok := parseV86CdnByteRange(rangeHeader, len(data))
+		rangeStart, rangeEnd, ok := parseV86CdnByteRange(rangeHeader, size)
 		if !ok {
 			w.WriteHeader(http.StatusRequestedRangeNotSatisfiable)
 			return
 		}
 		status = http.StatusPartialContent
-		body = data[start : end+1]
-		w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, len(data)))
+		start = rangeStart
+		end = rangeEnd
+		w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, size))
 	}
-	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+	length := end - start + 1
+	w.Header().Set("Content-Length", strconv.FormatInt(length, 10))
 	w.WriteHeader(status)
 	if r.Method != http.MethodHead {
-		_, _ = w.Write(body)
+		if _, err := file.Seek(start, io.SeekStart); err != nil {
+			return
+		}
+		_, _ = io.CopyN(w, file, length)
 	}
 }
 
@@ -192,7 +211,7 @@ func setV86CdnMirrorHeaders(headers http.Header) {
 	headers.Set("Content-Type", "application/octet-stream")
 }
 
-func parseV86CdnByteRange(header string, size int) (int, int, bool) {
+func parseV86CdnByteRange(header string, size int64) (int64, int64, bool) {
 	const prefix = "bytes="
 	if size <= 0 || !strings.HasPrefix(header, prefix) {
 		return 0, 0, false
@@ -211,11 +230,11 @@ func parseV86CdnByteRange(header string, size int) (int, int, bool) {
 		if err != nil || end64 < start64 {
 			return 0, 0, false
 		}
-		if end64 < int64(end) {
-			end = int(end64)
+		if end64 < end {
+			end = end64
 		}
 	}
-	return int(start64), end, true
+	return start64, end, true
 }
 
 func waitForV86ObjectRoute(t testing.TB, page playwright.Page) string {

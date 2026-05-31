@@ -527,10 +527,13 @@ func (c *Controller) runProcess(ctx context.Context, ws world.WorldState, object
 			}
 			return errors.Wrap(err, "process stream")
 		}
-		c.GetLogger().
+		le := c.GetLogger().
 			WithField("object-key", objectKey).
-			WithField("state", status.GetState().String()).
-			Debug("process status update")
+			WithField("state", status.GetState().String())
+		if errMsg := status.GetError(); errMsg != "" {
+			le = le.WithField("error", errMsg)
+		}
+		le.Debug("process status update")
 	}
 }
 

@@ -215,7 +215,7 @@ func (t *pluginInstance) newDirectFetchHandler(hosts *pluginHostSet) directive.R
 			}
 		}
 
-		if current != nil && (best == nil || current.ref.GetMeta().GetRev() >= best.ref.GetMeta().GetRev()) {
+		if current != nil && directFetchCandidateShouldRemainCurrent(current, best) {
 			best = current
 		}
 
@@ -296,6 +296,33 @@ func directFetchCandidateBetter(candidate, current *directFetchCandidate) bool {
 	}
 
 	return candidate.host.GetPlatformId() > current.host.GetPlatformId()
+}
+
+func directFetchCandidateShouldRemainCurrent(current, best *directFetchCandidate) bool {
+	if current == nil {
+		return false
+	}
+	if best == nil {
+		return true
+	}
+
+	currentRank := platformPreferenceRank(current.host.GetPlatformId())
+	bestRank := platformPreferenceRank(best.host.GetPlatformId())
+	if currentRank != bestRank {
+		return currentRank > bestRank
+	}
+
+	currentRev := current.ref.GetMeta().GetRev()
+	bestRev := best.ref.GetMeta().GetRev()
+	if currentRev != bestRev {
+		return currentRev > bestRev
+	}
+
+	if current.host.GetPlatformId() == best.host.GetPlatformId() {
+		return true
+	}
+
+	return !directFetchCandidateBetter(best, current)
 }
 
 func platformPreferenceRank(platformID string) int {

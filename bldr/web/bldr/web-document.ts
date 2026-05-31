@@ -340,7 +340,9 @@ class WebDocumentWebWorker {
       // ignored
     }
 
-    if (this.worker) {
+    if (this.worker && !this.ready) {
+      this.worker.terminate()
+    } else if (this.worker) {
       await new Promise<void>((resolve) => {
         globalThis.setTimeout(() => {
           try {

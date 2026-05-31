@@ -67,6 +67,7 @@ function bootAssets(): V86BootAssets {
 
 describe('browser V86 runner contract', () => {
   afterEach(() => {
+    vi.restoreAllMocks()
     vi.unstubAllGlobals()
   })
 
@@ -115,8 +116,12 @@ describe('browser V86 runner contract', () => {
     expect(h.constructors).toHaveLength(1)
     expect(h.constructors[0]).toEqual(
       expect.objectContaining({
+        wasm_fn: expect.any(Function),
         virtio_v86fs: true,
         virtio_v86fs_adapter: adapter,
+        disable_keyboard: true,
+        disable_mouse: true,
+        disable_speaker: true,
         autostart: true,
       }),
     )
@@ -133,6 +138,36 @@ describe('browser V86 runner contract', () => {
     expect(channel?.close).toHaveBeenCalledTimes(1)
     expect(h.instances[0]?.stop).toHaveBeenCalledTimes(1)
     expect(h.instances[0]?.destroy).toHaveBeenCalledTimes(1)
+  })
+
+  it('pre-grows the imported v86 wasm memory before instantiation', async () => {
+    vi.stubGlobal('BroadcastChannel', FakeBroadcastChannel)
+    const instantiate = vi
+      .spyOn(WebAssembly, 'instantiate')
+      .mockResolvedValue({ instance: { exports: {} } } as never)
+
+    await startBrowserV86Runtime(
+      {
+        assets: bootAssets(),
+        instanceKey: 'vm/v86/test',
+        v86fsAdapter: {} as never,
+      },
+      () => Promise.resolve({ V86: FakeV86 }),
+    )
+
+    const wasmFn = h.constructors[0]?.wasm_fn as (args: {
+      env: WebAssembly.ModuleImports
+    }) => Promise<WebAssembly.Exports>
+    const memory = new WebAssembly.Memory({ initial: 256, maximum: 8192 })
+
+    await wasmFn({ env: { memory } })
+
+    expect(memory.buffer.byteLength).toBeGreaterThanOrEqual(
+      274 * 1024 * 1024,
+    )
+    expect(instantiate).toHaveBeenCalledWith(bootAssets().wasm.buffer, {
+      env: { memory },
+    })
   })
 
   it('does not import V86 until the serial bridge environment is available', async () => {

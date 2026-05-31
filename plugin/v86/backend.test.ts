@@ -23,6 +23,7 @@ const h = vi.hoisted(() => ({
   }>,
   v86fsBridges: [] as Array<{
     adapter: Record<string, unknown>
+    rpc: unknown
     service?: string
     close: ReturnType<typeof vi.fn>
     [Symbol.dispose](): void
@@ -41,7 +42,10 @@ const h = vi.hoisted(() => ({
 
 vi.mock('starpc', () => ({
   Client: class {
+    public stream: unknown
+
     constructor(stream: unknown) {
+      this.stream = stream
       h.buildPluginOpenStream(stream)
     }
   },
@@ -72,7 +76,7 @@ vi.mock('@s4wave/sdk/viewer/registry/registry_srpc.pb.js', () => ({
 }))
 
 vi.mock('./v86fs-bridge.js', () => ({
-  createV86fsSrpcAdapter: vi.fn((_rpc: unknown, opts?: { service?: string }) => {
+  createV86fsSrpcAdapter: vi.fn((rpc: unknown, opts?: { service?: string }) => {
     const adapter = {
       onMount(
         name: string,
@@ -108,6 +112,7 @@ vi.mock('./v86fs-bridge.js', () => ({
     }
     const bridge = {
       adapter,
+      rpc,
       service: opts?.service,
       close: vi.fn(),
       [Symbol.dispose]() {
@@ -186,9 +191,10 @@ class FakeBroadcastChannel {
 }
 
 function buildApi(pluginId: string, instanceKey = '') {
+  const client = {}
   return {
     startInfo: { pluginId, instanceKey },
-    client: {},
+    client,
     buildPluginOpenStream: vi.fn((target: string) => target),
     utils: {
       pluginAssetHttpPath: h.pluginAssetHttpPath,
@@ -239,23 +245,28 @@ describe('v86 backend registration', () => {
   it('boots an instanced runtime through the plugin-owned V86 bridge and serial channel', async () => {
     vi.stubGlobal('BroadcastChannel', FakeBroadcastChannel)
     const abort = new AbortController()
+    const api = buildApi('spacewave-v86', 'vm/v86/test')
 
-    const running = main(
-      buildApi('spacewave-v86', 'vm/v86/test') as never,
-      abort.signal,
-    )
+    const running = main(api as never, abort.signal)
     await waitForV86Boot()
 
     expect(h.v86fsBridges[0]?.service).toBe(
       'vm/v86-runtime/v86fs/vm/v86/test/unixfs.v86fs.V86fsService',
+    )
+    expect(h.v86fsBridges[0]?.rpc).toEqual(
+      expect.objectContaining({ stream: 'spacewave-core' }),
     )
     expect(h.retainedRefs.map((entry) => entry.resourceId)).toEqual([1])
     expect(h.mountNames).toEqual(['wasm', 'seabios', 'vgabios', 'kernel'])
     expect(h.v86Constructors).toHaveLength(1)
     expect(h.v86Constructors[0]).toEqual(
       expect.objectContaining({
+        wasm_fn: expect.any(Function),
         virtio_v86fs: true,
         virtio_v86fs_adapter: h.v86fsBridges[0]?.adapter,
+        disable_keyboard: true,
+        disable_mouse: true,
+        disable_speaker: true,
         autostart: true,
       }),
     )

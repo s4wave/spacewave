@@ -15,6 +15,7 @@ import { writeBrowserBootStatus } from './boot-status.js'
 declare global {
   var __swDeferBoot: boolean | undefined
   var __swBoot: ((hash: string) => void) | undefined
+  var __swReady: Promise<void> | undefined
   var __swBootStatus:
     | {
         phase: string
@@ -123,14 +124,21 @@ if (typeof BLDR_STARTUP_JS === 'string') {
   bldrRootProps.children = <BldrWebStartupContainer />
 }
 
-function resolveDeferredBootReady() {
-  markStartupBoundary('shell.deferred-boot-ready', { source: 'browser' })
+function resolveBootReady(label: string) {
+  markStartupBoundary(label, { source: 'browser' })
   const resolve = globalThis.__swReadyResolve
   if (!resolve) {
     return
   }
   globalThis.__swReadyResolve = undefined
   resolve()
+}
+
+function resolveImmediateBootReady() {
+  globalThis.__swDeferBoot = undefined
+  setBrowserBootStatus('ready', 'Application ready.')
+  resolveBootReady('shell.immediate-boot-ready')
+  globalThis.__swReady = undefined
 }
 
 function waitForWebRuntime(webDocument: BldrWebDocument) {
@@ -141,7 +149,7 @@ function waitForWebRuntime(webDocument: BldrWebDocument) {
     .then(() => {
       markStartupBoundary('runtime.wait-ready', { source: 'browser' })
       setBrowserBootStatus('ready', 'Application ready.')
-      resolveDeferredBootReady()
+      resolveBootReady('shell.deferred-boot-ready')
     })
     .catch((err: unknown) => {
       const detail = err instanceof Error ? err.message : String(err)
@@ -199,7 +207,9 @@ if (container && deferBoot) {
 } else if (container?.hasAttribute('data-prerendered')) {
   container.removeAttribute('data-prerendered')
   hydrateRoot(container, <BldrRoot {...bldrRootProps} />)
+  resolveImmediateBootReady()
 } else {
   const root = createRoot(container!)
   root.render(<BldrRoot {...bldrRootProps} />)
+  resolveImmediateBootReady()
 }

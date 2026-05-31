@@ -54,6 +54,11 @@ export type StartBrowserV86RuntimeOptions = {
   v86fsAdapter: V86fsAdapter
 }
 
+const wasmPageBytes = 64 * 1024
+const v86GuestMemoryBytes = 256 * 1024 * 1024
+const v86VgaMemoryBytes = 2 * 1024 * 1024
+const v86WasmMemoryHeadroomBytes = 16 * 1024 * 1024
+
 function defaultV86ModuleLoader(): Promise<V86Module> {
   return import('@aptre/v86')
 }
@@ -125,6 +130,30 @@ function viewBuffer(data: Uint8Array): ArrayBuffer {
   return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
 }
 
+function preGrowV86WasmMemory(
+  imports: WebAssembly.Imports,
+  minimumBytes: number,
+): void {
+  const env = (imports as { env?: { memory?: WebAssembly.Memory } }).env
+  const memory = env?.memory
+  if (!(memory instanceof WebAssembly.Memory)) return
+
+  const currentBytes = memory.buffer.byteLength
+  if (currentBytes >= minimumBytes) return
+
+  memory.grow(Math.ceil((minimumBytes - currentBytes) / wasmPageBytes))
+}
+
+async function instantiateV86Wasm(
+  wasm: Uint8Array,
+  imports: WebAssembly.Imports,
+  minimumMemoryBytes: number,
+): Promise<WebAssembly.Exports> {
+  preGrowV86WasmMemory(imports, minimumMemoryBytes)
+  const { instance } = await WebAssembly.instantiate(viewBuffer(wasm), imports)
+  return instance.exports
+}
+
 export async function startBrowserV86Runtime(
   options: StartBrowserV86RuntimeOptions,
   loadModule: V86ModuleLoader = defaultV86ModuleLoader,
@@ -144,10 +173,14 @@ export async function startBrowserV86Runtime(
   let emulator: V86Emulator | undefined
 
   try {
+    const minimumWasmMemoryBytes =
+      v86GuestMemoryBytes + v86VgaMemoryBytes + v86WasmMemoryHeadroomBytes
+
     emulator = new V86({
-      wasm: { buffer: viewBuffer(options.assets.wasm) },
-      memory_size: 256 * 1024 * 1024,
-      vga_memory_size: 2 * 1024 * 1024,
+      wasm_fn: ({ env }: { env: WebAssembly.ModuleImports }) =>
+        instantiateV86Wasm(options.assets.wasm, { env }, minimumWasmMemoryBytes),
+      memory_size: v86GuestMemoryBytes,
+      vga_memory_size: v86VgaMemoryBytes,
       bios: { buffer: viewBuffer(options.assets.bios) },
       vga_bios: { buffer: viewBuffer(options.assets.vgaBios) },
       bzimage: { buffer: viewBuffer(options.assets.kernel) },
@@ -155,6 +188,9 @@ export async function startBrowserV86Runtime(
         'rw init=/usr/bin/bash root=v86fs rootfstype=v86fs console=ttyS0',
       virtio_v86fs: true,
       virtio_v86fs_adapter: options.v86fsAdapter,
+      disable_keyboard: true,
+      disable_mouse: true,
+      disable_speaker: true,
       autostart: true,
     })
 

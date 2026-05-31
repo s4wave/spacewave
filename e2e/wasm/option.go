@@ -7,7 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aperturerobotics/util/enabled"
 	"github.com/pkg/errors"
+	manifest_build "github.com/s4wave/spacewave/bldr/manifest/build"
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
@@ -48,6 +50,12 @@ var (
 		"spacewave-web",
 		"spacewave-app",
 		"web",
+	}
+	goScriptUnsupportedGoPkgs = []string{
+		"./core/space/http/export",
+	}
+	goScriptUnsupportedConfigKeys = []string{
+		"export",
 	}
 )
 
@@ -333,6 +341,11 @@ func ConfigureGoScriptBrowserStartup(conf *bldr_project.ProjectConfig) error {
 	if err := applyBuildManifestOverride(conf, "release-web-e2e", "spacewave-launcher"); err != nil {
 		return err
 	}
+	build := conf.GetBuild()["release-web-e2e"]
+	build.BuildPolicy = build.GetBuildPolicy().Merge(manifest_build.NewBuildPolicy(
+		enabled.Enabled_ENABLE,
+		enabled.Enabled_DISABLE,
+	))
 	for _, manifestID := range goScriptBrowserGoManifests {
 		if err := ConfigureGoScriptForManifest(manifestID)(conf); err != nil {
 			return err
@@ -352,6 +365,9 @@ func ConfigureCompilerModeForManifest(
 		setWebCompilerMode(goConf, mode)
 		removeDebugTraceConfig(goConf)
 		removeSessionHarnessWebRTCConfig(goConf)
+		if mode == bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT {
+			removeGoScriptUnsupportedConfig(goConf)
+		}
 		return nil
 	})
 }
@@ -447,6 +463,24 @@ func removeDebugTraceConfig(goConf *bldr_plugin_compiler_go.Config) {
 func removeSessionHarnessWebRTCConfig(goConf *bldr_plugin_compiler_go.Config) {
 	goConf.GoPkgs = removeGoPkg(goConf.GetGoPkgs(), "github.com/s4wave/spacewave/net/transport/webrtc")
 	delete(goConf.ConfigSet, "e2e-session-harness-webrtc")
+}
+
+func removeGoScriptUnsupportedConfig(goConf *bldr_plugin_compiler_go.Config) {
+	if goConf == nil {
+		return
+	}
+	for _, pkg := range goScriptUnsupportedGoPkgs {
+		goConf.GoPkgs = removeGoPkg(goConf.GetGoPkgs(), pkg)
+	}
+	for _, key := range goScriptUnsupportedConfigKeys {
+		delete(goConf.ConfigSet, key)
+	}
+	for _, buildTypeConf := range goConf.GetBuildTypes() {
+		removeGoScriptUnsupportedConfig(buildTypeConf)
+	}
+	for _, platformConf := range goConf.GetPlatformTypes() {
+		removeGoScriptUnsupportedConfig(platformConf)
+	}
 }
 
 func removeGoPkg(pkgs []string, remove string) []string {

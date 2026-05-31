@@ -42,7 +42,7 @@ func newV86Resource(objectKey string, ws world.WorldState, b bus.Bus, v86fsServe
 //
 // Reads the requested state from the VmV86 block and reconciles the plugin
 // lifecycle to match:
-//   - STARTING / RUNNING: verify the rootfs mount resolves, load the plugin
+//   - STARTING / RUNNING: verify boot mounts resolve, load the plugin
 //     SharedWorker, emit RUNNING. Mount or plugin load failure emits ERROR and
 //     leaves the handler idle until the stored state changes again.
 //   - STOPPED / STOPPING / ERROR: release any held plugin ref, emit the matching
@@ -135,7 +135,7 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 				if err := emit(s4wave_process.ExecutionState_ExecutionState_STARTING, ""); err != nil {
 					return err
 				}
-				if mountErr := r.verifyRootfsMount(ctx); mountErr != nil {
+				if mountErr := r.verifyBootMounts(ctx); mountErr != nil {
 					if err := emit(s4wave_process.ExecutionState_ExecutionState_ERROR, mountErr.Error()); err != nil {
 						return err
 					}
@@ -235,6 +235,13 @@ func (r *v86Resource) exposeV86fsToRuntimePlugin(ctx context.Context, pluginID s
 	}
 	pluginServerID := bldr_plugin.PluginServerID(pluginID, "")
 	workerServerID := "web-worker/" + bldr_plugin.PluginServerID(pluginID, r.objectKey)
+	logrus.WithFields(logrus.Fields{
+		"object-key":       r.objectKey,
+		"plugin-id":        pluginID,
+		"service-prefix":   servicePrefix,
+		"plugin-server-id": pluginServerID,
+		"worker-server-id": workerServerID,
+	}).Debug("v86fs runtime route exposing")
 	rpcServiceCtrl := bifrost_rpc.NewRpcServiceController(
 		controller.NewInfo(
 			"sdk/vm/world/v86/"+r.objectKey+"/v86fs-runtime-route",
@@ -254,7 +261,13 @@ func (r *v86Resource) exposeV86fsToRuntimePlugin(ctx context.Context, pluginID s
 	if err != nil {
 		return nil, err
 	}
-	return release, nil
+	return func() {
+		logrus.WithFields(logrus.Fields{
+			"object-key":     r.objectKey,
+			"service-prefix": servicePrefix,
+		}).Debug("v86fs runtime route releasing")
+		release()
+	}, nil
 }
 
 type v86fsRuntimeRouteInvoker struct {
@@ -271,15 +284,37 @@ func (i v86fsRuntimeRouteInvoker) InvokeMethod(serviceID, methodID string, strm 
 	return ok, err
 }
 
-// verifyRootfsMount confirms the rootfs asset (empty mount name) resolves
-// through the V86Image or override edge before the plugin is loaded. Any
+// verifyBootMounts confirms the assets required before v86 can start resolve
+// through the V86Image or override edges before the plugin is loaded. Any
 // failure here is treated as an ERROR state for the handler.
-func (r *v86Resource) verifyRootfsMount(ctx context.Context) error {
-	fsh, err := resolveV86Mount(ctx, r.ws, r.objectKey, "")
-	if err != nil {
-		return err
+func (r *v86Resource) verifyBootMounts(ctx context.Context) error {
+	for _, mountName := range []string{"", "wasm", "seabios", "vgabios", "kernel"} {
+		fsh, err := resolveV86Mount(ctx, r.ws, r.objectKey, mountName)
+		if err != nil {
+			displayName := mountName
+			if displayName == "" {
+				displayName = "rootfs"
+			}
+			return errors.Wrapf(err, "verify v86 boot mount %q", displayName)
+		}
+		if _, err := fsh.GetNodeType(ctx); err != nil {
+			displayName := mountName
+			if displayName == "" {
+				displayName = "rootfs"
+			}
+			fsh.Release()
+			return errors.Wrapf(err, "verify v86 boot mount %q node type", displayName)
+		}
+		if _, err := fsh.GetPermissions(ctx); err != nil {
+			displayName := mountName
+			if displayName == "" {
+				displayName = "rootfs"
+			}
+			fsh.Release()
+			return errors.Wrapf(err, "verify v86 boot mount %q permissions", displayName)
+		}
+		fsh.Release()
 	}
-	fsh.Release()
 	return nil
 }
 

@@ -40,7 +40,7 @@ func TestProjectOwnedStartupPluginsEmpty(t *testing.T) {
 func TestProjectOwnedStartupManifestPreflightsSelectBuilderPlatforms(t *testing.T) {
 	projectConfig := &bldr_project.ProjectConfig{
 		Start: &bldr_project.StartConfig{
-			Plugins: []string{"web", "spacewave-web", "spacewave-app", "spacewave-core", "external"},
+			Plugins: []string{"web", "spacewave-web", "spacewave-app", "spacewave-core", "spacewave-v86", "external"},
 		},
 		Manifests: map[string]*bldr_project.ManifestConfig{
 			"web": {
@@ -55,6 +55,9 @@ func TestProjectOwnedStartupManifestPreflightsSelectBuilderPlatforms(t *testing.
 			"spacewave-core": {
 				Builder: &configset_proto.ControllerConfig{Id: bldr_plugin_compiler_go.ConfigID},
 			},
+			"spacewave-v86": {
+				Builder: &configset_proto.ControllerConfig{Id: bldr_plugin_compiler_js.ConfigID},
+			},
 		},
 	}
 
@@ -64,6 +67,7 @@ func TestProjectOwnedStartupManifestPreflightsSelectBuilderPlatforms(t *testing.
 		{PluginID: "spacewave-web", PlatformIDs: []string{"js"}},
 		{PluginID: "spacewave-app", PlatformIDs: []string{"js"}},
 		{PluginID: "spacewave-core", PlatformIDs: []string{"web/js/wasm"}},
+		{PluginID: "spacewave-v86", PlatformIDs: []string{"js", "web/js/wasm"}},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("ProjectOwnedStartupManifestPreflights() = %#v, want %#v", got, want)

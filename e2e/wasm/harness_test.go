@@ -948,6 +948,10 @@ func TestQuickstartDriveRoute(t *testing.T) {
 // directly into the Drive quickstart route.
 func TestQuickstartDriveDirectRouteStartup(t *testing.T) {
 	sess := testHarness.NewCleanBlankSession(t)
+	script := "globalThis.__s4waveLogQuickstartTiming = true;"
+	if err := sess.BrowserContext().AddInitScript(playwright.Script{Content: &script}); err != nil {
+		t.Fatalf("install quickstart timing init script: %v", err)
+	}
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 	defer func() {

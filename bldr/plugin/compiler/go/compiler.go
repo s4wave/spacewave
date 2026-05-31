@@ -878,6 +878,12 @@ func (c *Controller) BuildPlugin(
 			}
 			outScriptPath := filepath.Join(outDistPath, pluginID+".mjs")
 			timeStart := time.Now()
+			// Raw GoScript browser plugin bundles can be hundreds of megabytes
+			// before Oxc compaction. Keep dev FetchManifest output runnable by
+			// always serving the minified entrypoint; the generated package tree
+			// remains in dist/@goscript for source-level inspection.
+			goScriptJSMinification := true
+			goScriptJSSourcemaps := false
 			webRuntimeSrcFiles, err = web_runtime_goscript_build.BuildWebGoScriptPluginScript(
 				ctx,
 				le,
@@ -886,8 +892,8 @@ func (c *Controller) BuildPlugin(
 				outDistPath,
 				outScriptPath,
 				mainPackagePath,
-				jsMinification,
-				jsSourcemaps,
+				goScriptJSMinification,
+				goScriptJSSourcemaps,
 			)
 			if err != nil {
 				return err

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { WebDocumentToClient } from '../runtime/runtime.js'
 import {
   WebWorkerGenerationState,
+  WebWorkerMode,
   WebWorkerType,
 } from '../document/document.pb.js'
 import {
@@ -48,6 +49,13 @@ type TestWebDocument = {
     openStream: () => Promise<unknown>
     waitConn?: () => Promise<unknown>
   }
+  sharedWorkerPath: string
+  forceDedicatedWorkers: boolean
+  firstWorkerCreationMarked: boolean
+  workerCommsDetect: Promise<{
+    config: 'A' | 'B' | 'C' | 'F'
+    caps: Record<string, boolean>
+  }>
 }
 
 function buildTestWebDocument(hidden = false): TestWebDocument {
@@ -76,6 +84,19 @@ function buildTestWebDocument(hidden = false): TestWebDocument {
       snapshot: Promise.resolve(null),
     },
     eventHandlers: {},
+    sharedWorkerPath: '/shw.mjs',
+    forceDedicatedWorkers: true,
+    firstWorkerCreationMarked: false,
+    workerCommsDetect: Promise.resolve({
+      config: 'B',
+      caps: {
+        crossOriginIsolated: true,
+        sabAvailable: true,
+        opfsAvailable: false,
+        webLocksAvailable: true,
+        broadcastChannelAvailable: true,
+      },
+    }),
   })
   return doc
 }
@@ -115,6 +136,36 @@ function buildTestWorker(port: MessagePort = {} as MessagePort): Record<
     },
     close: vi.fn().mockResolvedValue(undefined),
   }
+}
+
+function installFakeDedicatedWorker() {
+  const workers: Array<{
+    url: string
+    messages: unknown[]
+    terminate: ReturnType<typeof vi.fn>
+    postMessage: ReturnType<typeof vi.fn>
+  }> = []
+
+  class FakeWorker {
+    public onerror: ((ev: ErrorEvent) => void) | null = null
+    public readonly messages: unknown[] = []
+    public readonly terminate = vi.fn()
+
+    constructor(
+      public readonly url: string,
+      _opts?: WorkerOptions,
+    ) {
+      workers.push(this)
+    }
+
+    public postMessage(message: unknown) {
+      this.messages.push(message)
+    }
+  }
+
+  vi.stubGlobal('Worker', FakeWorker)
+  vi.stubGlobal('SharedWorker', undefined)
+  return workers
 }
 
 describe('registerUpdatedServiceWorker', () => {
@@ -774,6 +825,69 @@ describe('WebDocument plugin generation state', () => {
       undefined,
       WebWorkerGenerationState.NORMAL_STOP,
     )
+  })
+
+  it('terminates unready dedicated workers immediately on replacement', async () => {
+    vi.useFakeTimers()
+    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout')
+    const workers = installFakeDedicatedWorker()
+    const doc = buildTestWebDocument()
+
+    await WebDocument.prototype.createWebWorker.call(doc, {
+      id: 'worker-1',
+      path: '/b/pd/web/web.mjs',
+      initData: new Uint8Array([1]),
+      workerMode: WebWorkerMode.WORKER_MODE_DEDICATED,
+    })
+    await WebDocument.prototype.createWebWorker.call(doc, {
+      id: 'worker-1',
+      path: '/b/pd/web/web.mjs',
+      initData: new Uint8Array([2]),
+      workerMode: WebWorkerMode.WORKER_MODE_DEDICATED,
+    })
+
+    expect(workers).toHaveLength(2)
+    expect(workers[0].terminate).toHaveBeenCalledOnce()
+    expect(setTimeoutSpy).not.toHaveBeenCalledWith(
+      expect.any(Function),
+      1000,
+    )
+  })
+
+  it('keeps the dedicated worker shutdown grace after startup is ready', async () => {
+    vi.useFakeTimers()
+    const workers = installFakeDedicatedWorker()
+    const doc = buildTestWebDocument()
+
+    await WebDocument.prototype.createWebWorker.call(doc, {
+      id: 'worker-1',
+      path: '/b/pd/web/web.mjs',
+      initData: new Uint8Array([1]),
+      workerMode: WebWorkerMode.WORKER_MODE_DEDICATED,
+    })
+    doc.onWebWorkerMessage('worker-1', {
+      data: {
+        from: 'worker-1',
+        ready: true,
+      },
+    } as MessageEvent)
+
+    const replacement = WebDocument.prototype.createWebWorker.call(doc, {
+      id: 'worker-1',
+      path: '/b/pd/web/web.mjs',
+      initData: new Uint8Array([2]),
+      workerMode: WebWorkerMode.WORKER_MODE_DEDICATED,
+    })
+    await Promise.resolve()
+
+    expect(workers).toHaveLength(1)
+    expect(workers[0].terminate).not.toHaveBeenCalled()
+
+    await vi.advanceTimersByTimeAsync(1000)
+    await replacement
+
+    expect(workers).toHaveLength(2)
+    expect(workers[0].terminate).toHaveBeenCalledOnce()
   })
 
   it('includes generation state and failure classification in status snapshots', async () => {

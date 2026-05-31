@@ -11,6 +11,7 @@ import (
 	"time"
 
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/aperturerobotics/util/enabled"
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
@@ -134,10 +135,12 @@ func TestConfigureTinyGoForManifestRemovesDebugTrace(t *testing.T) {
 			"dev": {
 				GoPkgs: []string{
 					"./core/debug/trace",
+					"./core/space/http/export",
 					"./core/plugin/space",
 				},
 				ConfigSet: map[string]*configset_proto.ControllerConfig{
 					"debug-trace": {Id: "debug/trace"},
+					"export":      {Id: "space/http/export"},
 					"space":       {Id: "plugin/space"},
 				},
 			},
@@ -300,6 +303,12 @@ func TestConfigureGoScriptForManifestRemovesSeedRuntimeConfig(t *testing.T) {
 	if _, ok := got.GetConfigSet()["e2e-session-harness"]; !ok {
 		t.Fatal("expected session harness controller config to remain")
 	}
+	if slices.Contains(devConf.GetGoPkgs(), "./core/space/http/export") {
+		t.Fatal("GoScript config still includes ./core/space/http/export")
+	}
+	if _, ok := devConf.GetConfigSet()["export"]; ok {
+		t.Fatal("GoScript config still includes export config")
+	}
 }
 
 func TestConfigureGoScriptBrowserStartupUsesLauncherAndCore(t *testing.T) {
@@ -313,7 +322,14 @@ func TestConfigureGoScriptBrowserStartupUsesLauncherAndCore(t *testing.T) {
 		},
 	})
 	coreStatic := mustMarshalGoPluginConfig(t, &bldr_plugin_compiler_go.Config{
-		GoPkgs: []string{"./core/plugin/space"},
+		GoPkgs: []string{
+			"./core/plugin/space",
+			"./core/space/http/export",
+		},
+		ConfigSet: map[string]*configset_proto.ControllerConfig{
+			"export":        {Id: "space/http/export"},
+			"root-resource": {Id: "resource/root"},
+		},
 	})
 	conf := &bldr_project.ProjectConfig{
 		Start: &bldr_project.StartConfig{
@@ -351,6 +367,13 @@ func TestConfigureGoScriptBrowserStartupUsesLauncherAndCore(t *testing.T) {
 	if got := conf.GetStart().GetPlugins(); !slices.Equal(got, goScriptBrowserStartPlugins) {
 		t.Fatalf("startup plugins = %v, want %v", got, goScriptBrowserStartPlugins)
 	}
+	buildPolicy := conf.GetBuild()["release-web-e2e"].GetBuildPolicy()
+	if got := buildPolicy.GetJsMinification(); got != enabled.Enabled_ENABLE {
+		t.Fatalf("js minification = %s, want ENABLE", got)
+	}
+	if got := buildPolicy.GetJsSourcemaps(); got != enabled.Enabled_DISABLE {
+		t.Fatalf("js sourcemaps = %s, want DISABLE", got)
+	}
 
 	launcher := &bldr_plugin_compiler_go.Config{}
 	if err := launcher.UnmarshalJSON(conf.GetManifests()["spacewave-launcher"].GetBuilder().GetConfig()); err != nil {
@@ -371,6 +394,15 @@ func TestConfigureGoScriptBrowserStartupUsesLauncherAndCore(t *testing.T) {
 	coreWeb := core.GetPlatformTypes()["web"]
 	if coreWeb == nil || coreWeb.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT {
 		t.Fatalf("core web GoScript config missing: %#v", coreWeb)
+	}
+	if slices.Contains(core.GetGoPkgs(), "./core/space/http/export") {
+		t.Fatalf("core GoScript startup config still includes ./core/space/http/export: %v", core.GetGoPkgs())
+	}
+	if _, ok := core.GetConfigSet()["export"]; ok {
+		t.Fatal("core GoScript startup config still includes export config")
+	}
+	if _, ok := core.GetConfigSet()["root-resource"]; !ok {
+		t.Fatal("core GoScript startup config removed root-resource")
 	}
 }
 

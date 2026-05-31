@@ -30,6 +30,7 @@ import {
   type Rollup,
 } from 'vite'
 import { buildGoAliases, goTsResolver } from './go-ts-resolver.js'
+import { createWorkerSafeModulePreloadPlugin } from './module-preload.js'
 
 // verboseDebug is the verbose debugging flag
 const verboseDebug = process.env.BLDR_VITE_VERBOSE === 'true'
@@ -157,6 +158,12 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
     if (!mergedConfig.build) {
       mergedConfig.build = {}
     }
+    // Bldr plugin bundles can execute in Web Workers. Vite's modulepreload
+    // helper assumes a document and fails before worker dynamic imports run.
+    mergedConfig.build.modulePreload = {
+      polyfill: false,
+      resolveDependencies: () => [],
+    }
     mergedConfig.customLogger = createSilentViteLogger()
     mergedConfig.build.outDir = outDir
     mergedConfig.build.minify = jsMinification ? 'oxc' : false
@@ -244,6 +251,7 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
       mergedConfig.plugins = []
     }
     mergedConfig.plugins.push(
+      createWorkerSafeModulePreloadPlugin(),
       createWebPkgRemapPlugin({
         webPkgIDs,
         addWebPkgRoot: (webPkgID, webPkgRoot) => {
@@ -520,6 +528,7 @@ async function buildWebPkg(
       // Also remap non-BldrExternal sibling web packages to /b/pkg/ URLs.
       plugins: [
         goTsResolver(projectRoot, distRoot),
+        createWorkerSafeModulePreloadPlugin(),
         ...(allExternal.length > 0
           ? [
               esmExternalRequirePlugin({
@@ -548,6 +557,10 @@ async function buildWebPkg(
       build: {
         outDir,
         emptyOutDir: true,
+        modulePreload: {
+          polyfill: false,
+          resolveDependencies: () => [],
+        },
         manifest: true,
         cssCodeSplit: true,
         minify: jsMinification ? 'oxc' : false,

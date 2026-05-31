@@ -227,6 +227,44 @@ func TestDirectFetchCandidateBetterPrefersNativePlatform(t *testing.T) {
 	}
 }
 
+func TestDirectFetchHandlerSwitchesCurrentFallbackToPreferredPlatform(t *testing.T) {
+	le := logrus.NewEntry(logrus.New())
+	jsHost := &testPluginHost{id: "js"}
+	webHost := &testPluginHost{id: "web/js/wasm"}
+	pi := &pluginInstance{
+		c: &Controller{
+			conf: webPlatformAllowlistConfig("spacewave-v86"),
+		},
+		le:                      le,
+		pluginID:                "spacewave-v86",
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+	handler := pi.newDirectFetchHandler(&pluginHostSet{
+		pluginHosts: []bldr_plugin_host.PluginHost{jsHost, webHost},
+	})
+
+	jsVal := bldr_manifest.NewFetchManifestValue([]*bldr_manifest.ManifestRef{
+		newTestManifestRef("spacewave-v86", "js", 7, "bucket-js"),
+	})
+	handler.HandleValueAdded(nil, directive.NewAttachedValue(1, jsVal))
+
+	execState := pi.executePluginRoutine.GetState()
+	if execState == nil || execState.pluginHost != jsHost {
+		t.Fatal("expected js fallback while native browser manifest is still missing")
+	}
+
+	webVal := bldr_manifest.NewFetchManifestValue([]*bldr_manifest.ManifestRef{
+		newTestManifestRef("spacewave-v86", "web/js/wasm", 7, "bucket-web"),
+	})
+	handler.HandleValueAdded(nil, directive.NewAttachedValue(2, webVal))
+
+	execState = pi.executePluginRoutine.GetState()
+	if execState == nil || execState.pluginHost != webHost {
+		t.Fatal("expected native browser manifest to replace current js fallback")
+	}
+}
+
 func TestFilterPluginPlatformIDsHonorsPlatformPolicy(t *testing.T) {
 	conf := webPlatformAllowlistConfig("spacewave-v86")
 	got := conf.FilterPluginPlatformIDs("spacewave-core", []string{

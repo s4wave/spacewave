@@ -633,6 +633,7 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 	if goscriptE2EReleaseWebConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT {
 		t.Fatalf("GoScript release-web e2e spacewave-core compilerMode: got %s, want COMPILER_MODE_GOSCRIPT", goscriptE2EReleaseWebConf.GetCompilerMode())
 	}
+	assertGoConfigOmitsHTTPExport(t, "GoScript release-web e2e spacewave-core", goscriptE2EReleaseWebConf)
 	goscriptE2EReleaseLauncherOverride := goscriptE2EReleaseBuild.GetManifestOverrides()["spacewave-launcher"]
 	if goscriptE2EReleaseLauncherOverride == nil {
 		t.Fatal("spacewave-launcher GoScript release-web e2e override not found")
@@ -717,6 +718,25 @@ func assertGoConfigOmitsDesktopStatusProjector(
 	for key, cfg := range conf.GetConfigSet() {
 		if cfg.GetId() == "resource/desktop/status-projector" {
 			t.Fatalf("%s unexpectedly contains status projector config %q", name, key)
+		}
+	}
+}
+
+func assertGoConfigOmitsHTTPExport(
+	t *testing.T,
+	name string,
+	conf *bldr_plugin_compiler_go.Config,
+) {
+	t.Helper()
+	if slices.Contains(conf.GetGoPkgs(), "./core/space/http/export") {
+		t.Fatalf("%s unexpectedly contains HTTP export package: %v", name, conf.GetGoPkgs())
+	}
+	if got := conf.GetConfigSet()["export"]; got != nil {
+		t.Fatalf("%s unexpectedly contains export config: %v", name, got)
+	}
+	for key, cfg := range conf.GetConfigSet() {
+		if cfg.GetId() == "space/http/export" {
+			t.Fatalf("%s unexpectedly contains HTTP export config %q", name, key)
 		}
 	}
 }

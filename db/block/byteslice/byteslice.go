@@ -65,6 +65,17 @@ func (b *ByteSlice) GetBytes() []byte {
 	return *b.sl
 }
 
+// CloneBlock clones the byte slice block without sharing the backing slice.
+func (b *ByteSlice) CloneBlock() (block.Block, error) {
+	if b == nil || b.sl == nil {
+		return &ByteSlice{}, nil
+	}
+	sl := *b.sl
+	clone := make([]byte, len(sl))
+	copy(clone, sl)
+	return &ByteSlice{sl: &clone}, nil
+}
+
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (b *ByteSlice) MarshalBlock() ([]byte, error) {
@@ -92,6 +103,7 @@ func (b *ByteSlice) UnmarshalBlock(data []byte) error {
 
 // _ is a type assertion
 var (
-	_ block.Block    = ((*ByteSlice)(nil))
-	_ block.SubBlock = ((*ByteSlice)(nil))
+	_ block.Block          = ((*ByteSlice)(nil))
+	_ block.BlockWithClone = ((*ByteSlice)(nil))
+	_ block.SubBlock       = ((*ByteSlice)(nil))
 )

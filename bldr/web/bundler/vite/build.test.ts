@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import { analyzeManifest, buildConfig } from './build.js'
+import { makeModulePreloadHelperWorkerSafe } from './module-preload.js'
 import { promises as fs } from 'fs'
 import path from 'path'
 import os from 'os'
@@ -478,6 +479,43 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
       expect(mockChunk.moduleIds).toContain('/root/transitive.tsx')
       expect(mockChunk.moduleIds.length).toBeGreaterThanOrEqual(3)
     })
+  })
+})
+
+describe('makeModulePreloadHelperWorkerSafe', () => {
+  it('guards the generated preload helper for worker imports', () => {
+    const code = `//#region \\0vite/preload-helper.js
+var __vitePreload = function preload(baseModule, deps) {
+  if (deps && deps.length > 0) {
+    const links = document.getElementsByTagName("link");
+  }
+  function handlePreloadError(err) {
+    window.dispatchEvent(err)
+  }
+};`
+
+    const got = makeModulePreloadHelperWorkerSafe(code)
+
+    expect(got).toContain(
+      'typeof document !== "undefined" && deps && deps.length > 0',
+    )
+    expect(got).toContain(
+      'typeof window !== "undefined" && window.dispatchEvent(err)',
+    )
+  })
+
+  it('guards minified preload helpers too', () => {
+    const code =
+      '//#region \\0vite/preload-helper.js\nvar r=function(r,i){if(i&&i.length>0){const s=document.getElementsByTagName("link")}function s(e){window.dispatchEvent(e)}};'
+
+    const got = makeModulePreloadHelperWorkerSafe(code)
+
+    expect(got).toContain(
+      'typeof document !== "undefined" && i && i.length > 0',
+    )
+    expect(got).toContain(
+      'typeof window !== "undefined" && window.dispatchEvent(e)',
+    )
   })
 })
 

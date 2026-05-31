@@ -6,6 +6,11 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/blob"
+	"github.com/s4wave/spacewave/db/block/byteslice"
+	block_file "github.com/s4wave/spacewave/db/block/file"
+	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
+	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_vm "github.com/s4wave/spacewave/sdk/vm"
@@ -110,7 +115,15 @@ func ensureCopiedWorldObject(ctx context.Context, src, dst world.WorldState, obj
 			return errors.Errorf("source object %q not found", objectKey)
 		}
 
+		rootCtor, err := lookupCopyRootCtor(ctx, src, objectKey)
+		if err != nil {
+			return err
+		}
+
 		_, _, err = world.AccessObjectState(ctx, srcObj, false, func(srcCursor *block.Cursor) error {
+			if err := loadCursorDAG(ctx, srcCursor, rootCtor); err != nil {
+				return err
+			}
 			_, _, createErr := world.CreateWorldObject(ctx, dst, objectKey, func(dstCursor *block.Cursor) error {
 				srcCursor.CopyToRecursive(dstCursor, true, true)
 				return nil
@@ -123,6 +136,122 @@ func ensureCopiedWorldObject(ctx context.Context, src, dst world.WorldState, obj
 	}
 
 	return ensureCopiedObjectType(ctx, src, dst, objectKey)
+}
+
+func lookupCopyRootCtor(ctx context.Context, src world.WorldState, objectKey string) (block.Ctor, error) {
+	fsType, _, err := unixfs_world.LookupFsType(ctx, src, objectKey)
+	if err == nil {
+		ctor, _, err := unixfs_world.GetFSRootWithType(fsType)
+		return ctor, err
+	}
+
+	typeID, typeErr := world_types.GetObjectType(ctx, src, objectKey)
+	if typeErr != nil {
+		return nil, errors.Wrap(typeErr, "get source object type")
+	}
+	if typeID != "" {
+		return nil, errors.Wrapf(err, "get unixfs root constructor for object type %q", typeID)
+	}
+	return nil, nil
+}
+
+func loadCursorDAG(ctx context.Context, srcCursor *block.Cursor, rootCtor block.Ctor) error {
+	rootRef := srcCursor.GetRef()
+	if rootRef == nil || rootRef.GetEmpty() {
+		return nil
+	}
+
+	visited := make(map[string]bool)
+	return loadUnixFSAssetCursor(ctx, srcCursor, rootCtor, visited)
+}
+
+func loadUnixFSAssetCursor(
+	ctx context.Context,
+	cursor *block.Cursor,
+	ctor block.Ctor,
+	visited map[string]bool,
+) error {
+	if cursor == nil {
+		return nil
+	}
+	if ref := cursor.GetRef(); ref != nil && !ref.GetEmpty() {
+		refStr := ref.MarshalString()
+		if visited[refStr] {
+			return nil
+		}
+		visited[refStr] = true
+	}
+
+	blk := getKnownUnixFSAssetBlock(ctx, cursor, ctor)
+	if blk == nil {
+		return nil
+	}
+	return followUnixFSAssetBlock(ctx, cursor, blk, visited)
+}
+
+func getKnownUnixFSAssetBlock(ctx context.Context, cursor *block.Cursor, preferred block.Ctor) any {
+	if blk, _ := cursor.GetBlock(); blk != nil {
+		return blk
+	}
+	for _, ctor := range unixFSAssetBlockCtors(preferred) {
+		if ctor == nil {
+			continue
+		}
+		blk, err := cursor.Unmarshal(ctx, ctor)
+		if err == nil && blk != nil {
+			return blk
+		}
+	}
+	return nil
+}
+
+func unixFSAssetBlockCtors(preferred block.Ctor) []block.Ctor {
+	return []block.Ctor{
+		preferred,
+		unixfs_block.NewFSNodeBlock,
+		unixfs_block.NewFSObjectBlock,
+		block_file.NewFileBlock,
+		blob.NewBlobBlock,
+		blob.NewChunkIndexBlock,
+		blob.NewChunkBlock,
+		byteslice.NewByteSliceBlock,
+	}
+}
+
+func followUnixFSAssetBlock(
+	ctx context.Context,
+	cursor *block.Cursor,
+	blk any,
+	visited map[string]bool,
+) error {
+	if withRefs, ok := blk.(block.BlockWithRefs); ok {
+		refs, err := withRefs.GetBlockRefs()
+		if err != nil {
+			return errors.Wrap(err, "get block refs")
+		}
+		for id, childRef := range refs {
+			if childRef == nil || childRef.GetEmpty() {
+				continue
+			}
+			childCursor := cursor.FollowRef(id, childRef)
+			if err := loadUnixFSAssetCursor(ctx, childCursor, withRefs.GetBlockRefCtor(id), visited); err != nil {
+				return err
+			}
+		}
+	}
+
+	if withSubBlocks, ok := blk.(block.BlockWithSubBlocks); ok {
+		for id, sub := range withSubBlocks.GetSubBlocks() {
+			if sub == nil || sub.IsNil() {
+				continue
+			}
+			subCursor := cursor.FollowSubBlock(id)
+			if err := followUnixFSAssetBlock(ctx, subCursor, sub, visited); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func ensureCopiedObjectType(ctx context.Context, src, dst world.WorldState, objectKey string) error {

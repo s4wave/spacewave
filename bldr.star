@@ -20,6 +20,13 @@ CORE_GO_PKGS = [
     "github.com/s4wave/spacewave/db/object/peer",
 ]
 
+def core_go_pkgs(include_export=True):
+    pkgs = []
+    for pkg in CORE_GO_PKGS:
+        if include_export or pkg != "./core/space/http/export":
+            pkgs.append(pkg)
+    return pkgs
+
 # Shared encryption key for peer object store
 PEER_ENCRYPTION_KEY = "KY8Lo3c7L+bXa8BFZcU/YFfHysRdl4aZqmDd9TeZ+p4="
 
@@ -42,8 +49,8 @@ E2E_RELEASE_WASM_INIT_DIST_CONFIG = "QnF9fgszS28jFAMjKER3ciABGzwDZkg7BRMvIixUcVE
 E2E_RELEASE_WASM_DIST_PEER_ID = "12D3KooWMkaFstnFSvNbN9MVcncTqQZ6nqXu8daU6Nanopm7ZSbg"
 
 # Core configSet shared between Go plugin and CLI manifests.
-def core_config_set(listener_path="git:.spacewave/spacewave.sock"):
-    return {
+def core_config_set(listener_path="git:.spacewave/spacewave.sock", include_export=True):
+    configs = {
         "store-peer": config_entry("object/peer", 1, {
             "objectStoreId": "s4wave-peer",
             "volumeId": "plugin-host",
@@ -69,11 +76,13 @@ def core_config_set(listener_path="git:.spacewave/spacewave.sock"):
         "space-world-ops": config_entry("space/world/ops", 1),
         "blocktype": config_entry("db/blocktype", 1),
         "download": config_entry("space/http/download", 1),
-        "export": config_entry("space/http/export", 1),
         "resource-listener": config_entry("resource/listener", 1, {
             "listenerSocketPath": listener_path,
         }),
     }
+    if include_export:
+        configs["export"] = config_entry("space/http/export", 1)
+    return configs
 
 def desktop_status_projector_config_set():
     return {
@@ -81,6 +90,7 @@ def desktop_status_projector_config_set():
     }
 
 def spacewave_core_config(web_compiler_mode=None):
+    include_export = web_compiler_mode != "COMPILER_MODE_GOSCRIPT"
     platform_types = {
         "desktop": {
             "goPkgs": ["./core/resource/desktop/statusprojector"],
@@ -92,8 +102,8 @@ def spacewave_core_config(web_compiler_mode=None):
             "compilerMode": web_compiler_mode,
         }
     return {
-        "goPkgs": CORE_GO_PKGS,
-        "configSet": core_config_set(),
+        "goPkgs": core_go_pkgs(include_export=include_export),
+        "configSet": core_config_set(include_export=include_export),
         "buildTypes": {
             "dev": {
                 "goPkgs": ["./core/debug/trace"],
