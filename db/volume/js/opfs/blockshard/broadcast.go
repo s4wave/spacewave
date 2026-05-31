@@ -4,9 +4,9 @@ package blockshard
 
 import (
 	"encoding/binary"
-	"sync"
 	"syscall/js"
 
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/db/opfs"
 )
 
@@ -67,10 +67,58 @@ func (b *Broadcaster) Close() {
 // Listener receives shard generation invalidation messages.
 type Listener struct {
 	channel js.Value
-	mu      sync.Mutex
-	pending map[uint16]uint64
-	notify  chan struct{}
+	queue   *invalidationQueue
 	cleanup js.Func
+}
+
+type invalidationQueue struct {
+	bcast   broadcast.Broadcast
+	pending map[uint16]uint64
+}
+
+func newInvalidationQueue() *invalidationQueue {
+	return &invalidationQueue{
+		pending: make(map[uint16]uint64),
+	}
+}
+
+func (q *invalidationQueue) record(msg InvalidationMsg) {
+	q.bcast.HoldLock(func(wake func(), _ func() <-chan struct{}) {
+		if msg.Generation <= q.pending[msg.ShardID] {
+			return
+		}
+		q.pending[msg.ShardID] = msg.Generation
+		wake()
+	})
+}
+
+func (q *invalidationQueue) notify() <-chan struct{} {
+	var waitCh <-chan struct{}
+	q.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		if len(q.pending) != 0 {
+			ready := make(chan struct{})
+			close(ready)
+			waitCh = ready
+			return
+		}
+		waitCh = getWaitCh()
+	})
+	return waitCh
+}
+
+func (q *invalidationQueue) drainPending() []InvalidationMsg {
+	var msgs []InvalidationMsg
+	q.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		msgs = make([]InvalidationMsg, 0, len(q.pending))
+		for shardID, generation := range q.pending {
+			msgs = append(msgs, InvalidationMsg{
+				ShardID:    shardID,
+				Generation: generation,
+			})
+		}
+		clear(q.pending)
+	})
+	return msgs
 }
 
 // NewListener creates a BroadcastChannel listener for invalidation messages.
@@ -78,8 +126,7 @@ func NewListener(scope string) *Listener {
 	ch, _ := opfs.NewBroadcastChannel(scopedBroadcastChannelName(scope))
 	l := &Listener{
 		channel: ch,
-		pending: make(map[uint16]uint64),
-		notify:  make(chan struct{}, 1),
+		queue:   newInvalidationQueue(),
 	}
 	l.cleanup = js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) == 0 {
@@ -96,7 +143,7 @@ func NewListener(scope string) *Listener {
 		if length < 10 {
 			return nil
 		}
-		msg := &InvalidationMsg{
+		msg := InvalidationMsg{
 			ShardID: uint16(byte(payload.Index(0).Int()))<<8 |
 				uint16(byte(payload.Index(1).Int())),
 			Generation: uint64(byte(payload.Index(2).Int()))<<56 |
@@ -108,15 +155,7 @@ func NewListener(scope string) *Listener {
 				uint64(byte(payload.Index(8).Int()))<<8 |
 				uint64(byte(payload.Index(9).Int())),
 		}
-		l.mu.Lock()
-		if msg.Generation > l.pending[msg.ShardID] {
-			l.pending[msg.ShardID] = msg.Generation
-		}
-		l.mu.Unlock()
-		select {
-		case l.notify <- struct{}{}:
-		default:
-		}
+		l.queue.record(msg)
 		return nil
 	})
 	ch.Set("onmessage", l.cleanup)
@@ -139,23 +178,12 @@ func invalidationPayloadBytes(data js.Value) (js.Value, int, bool) {
 
 // Notify returns the wakeup channel for invalidation processing.
 func (l *Listener) Notify() <-chan struct{} {
-	return l.notify
+	return l.queue.notify()
 }
 
 // DrainPending returns the latest pending generation per shard and clears it.
 func (l *Listener) DrainPending() []InvalidationMsg {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	msgs := make([]InvalidationMsg, 0, len(l.pending))
-	for shardID, generation := range l.pending {
-		msgs = append(msgs, InvalidationMsg{
-			ShardID:    shardID,
-			Generation: generation,
-		})
-	}
-	clear(l.pending)
-	return msgs
+	return l.queue.drainPending()
 }
 
 // Close closes the BroadcastChannel listener.

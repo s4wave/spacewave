@@ -80,6 +80,55 @@ func compactShard(t testing.TB, s *Shard) {
 	}
 }
 
+func TestInvalidationQueueCoalescesMaxGeneration(t *testing.T) {
+	q := newInvalidationQueue()
+	q.record(InvalidationMsg{ShardID: 2, Generation: 4})
+	q.record(InvalidationMsg{ShardID: 2, Generation: 9})
+	q.record(InvalidationMsg{ShardID: 2, Generation: 7})
+	q.record(InvalidationMsg{ShardID: 5, Generation: 3})
+
+	got := make(map[uint16]uint64)
+	for _, msg := range q.drainPending() {
+		got[msg.ShardID] = msg.Generation
+	}
+	if len(got) != 2 || got[2] != 9 || got[5] != 3 {
+		t.Fatalf("pending generations = %#v, want shard 2 -> 9 and shard 5 -> 3", got)
+	}
+	if msgs := q.drainPending(); len(msgs) != 0 {
+		t.Fatalf("second drain returned %d messages, want none", len(msgs))
+	}
+}
+
+func TestInvalidationQueueNotifyCoversBeforeAndAfterWait(t *testing.T) {
+	q := newInvalidationQueue()
+
+	q.record(InvalidationMsg{ShardID: 1, Generation: 2})
+	select {
+	case <-q.notify():
+	default:
+		t.Fatal("notify did not wake for pending generation recorded before wait")
+	}
+	if msgs := q.drainPending(); len(msgs) != 1 || msgs[0].ShardID != 1 || msgs[0].Generation != 2 {
+		t.Fatalf("first drain = %+v, want shard 1 generation 2", msgs)
+	}
+
+	waitCh := q.notify()
+	select {
+	case <-waitCh:
+		t.Fatal("notify woke without pending generation")
+	default:
+	}
+	q.record(InvalidationMsg{ShardID: 1, Generation: 3})
+	select {
+	case <-waitCh:
+	case <-time.After(time.Second):
+		t.Fatal("notify did not wake after pending generation was recorded")
+	}
+	if msgs := q.drainPending(); len(msgs) != 1 || msgs[0].ShardID != 1 || msgs[0].Generation != 3 {
+		t.Fatalf("second drain = %+v, want shard 1 generation 3", msgs)
+	}
+}
+
 func TestBroadcastChannelInvalidationUsesTypedArrayPayload(t *testing.T) {
 	b := NewBroadcaster("test-typed-array")
 	defer b.Close()
