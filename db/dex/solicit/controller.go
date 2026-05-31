@@ -15,7 +15,6 @@ import (
 	"github.com/s4wave/spacewave/db/dex"
 	link_solicit "github.com/s4wave/spacewave/net/link/solicit"
 	"github.com/s4wave/spacewave/net/protocol"
-	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
 	"github.com/sirupsen/logrus"
 )
 
@@ -108,13 +107,11 @@ func (c *Controller) handleSolicitedStream(ctx context.Context, sms link_solicit
 	remotePeer := ms.GetPeerID().String()
 	le := c.le.WithField("remote-peer", remotePeer)
 
-	sess := &peerSession{
-		c:       c,
-		le:      le,
-		ms:      ms,
-		sess:    stream_packet.NewSession(ms.GetStream(), maxMessageSize),
-		pending: make(map[uint32]chan *DexMessage),
-	}
+	var sess *peerSession
+	sess = newPeerSession(c, le, ms, func() {
+		c.removeSessionIfCurrent(remotePeer, sess)
+		le.Debug("dex peer session ended")
+	})
 
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		// Replace existing session if any.
@@ -126,12 +123,7 @@ func (c *Controller) handleSolicitedStream(ctx context.Context, sms link_solicit
 	})
 
 	le.Debug("dex peer session started")
-
-	go func() {
-		sess.run(ctx)
-		c.removeSessionIfCurrent(remotePeer, sess)
-		le.Debug("dex peer session ended")
-	}()
+	sess.start(ctx)
 }
 
 func (c *Controller) removeSessionIfCurrent(remotePeer string, sess *peerSession) {

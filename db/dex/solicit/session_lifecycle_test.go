@@ -71,11 +71,56 @@ func TestControllerSamePeerReplacementWakesOldPendingAndKeepsNewSession(t *testi
 	default:
 	}
 
-	c.removeSessionIfCurrent(remote.String(), first)
+	if err := first.waitExited(ctx); err != nil {
+		t.Fatal("old session exit:", err)
+	}
 	if current := getTestDexSession(c, remote); current != second {
 		t.Fatalf("stale cleanup removed replacement session: got %p, want %p", current, second)
 	}
 	_ = secondRemote.Close()
+}
+
+func TestPeerSessionCloseWakesPendingRequestsWithoutRunLoop(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	c := newTestDexSolicitController()
+	ref := testDexBlockRef(t, "close")
+	sess, remote, cleanup := newTestPeerSessionPair(c, peer.ID("close-peer"))
+	defer cleanup()
+
+	remoteReq := make(chan *DexMessage, 1)
+	remoteErr := make(chan error, 1)
+	go func() {
+		var req DexMessage
+		if err := remote.RecvMsg(&req); err != nil {
+			remoteErr <- err
+			return
+		}
+		remoteReq <- &req
+	}()
+
+	requestDone := make(chan error, 1)
+	go func() {
+		_, _, err := sess.requestBlock(ctx, ref, 0)
+		requestDone <- err
+	}()
+
+	req := recvTestDexValue(t, remoteReq, "request before close")
+	if req.GetRequestId() == 0 {
+		t.Fatal("request id was not assigned")
+	}
+
+	sess.close()
+	err := recvTestDexValue(t, requestDone, "pending request close result")
+	if err == nil || !strings.Contains(err.Error(), "session closed") {
+		t.Fatalf("close err = %v, want session closed", err)
+	}
+	select {
+	case err := <-remoteErr:
+		t.Fatalf("remote read failed before close: %v", err)
+	default:
+	}
 }
 
 func TestLookupResolverQueryPeersCancelsLosersAfterFirstSuccess(t *testing.T) {
@@ -88,8 +133,8 @@ func TestLookupResolverQueryPeersCancelsLosersAfterFirstSuccess(t *testing.T) {
 	defer fastCleanup()
 	slow, slowRemote, slowCleanup := newTestPeerSessionPair(c, peer.ID("slow"))
 	defer slowCleanup()
-	go fast.run(ctx)
-	go slow.run(ctx)
+	fast.start(ctx)
+	slow.start(ctx)
 
 	slowReceived := make(chan struct{})
 	go func() {
@@ -144,7 +189,7 @@ func TestControllerForwardToPeersExcludesOrigin(t *testing.T) {
 	ref := testDexBlockRef(t, "forward")
 	origin, originRemote, originCleanup := newTestPeerSessionPair(c, peer.ID("origin"))
 	defer originCleanup()
-	go origin.run(ctx)
+	origin.start(ctx)
 
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		c.sessions["origin"] = origin
@@ -183,8 +228,8 @@ func TestControllerForwardToPeersCancelsLosersAfterFirstSuccess(t *testing.T) {
 	defer fastCleanup()
 	slow, slowRemote, slowCleanup := newTestPeerSessionPair(c, peer.ID("slow"))
 	defer slowCleanup()
-	go fast.run(ctx)
-	go slow.run(ctx)
+	fast.start(ctx)
+	slow.start(ctx)
 
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		c.sessions["fast"] = fast
@@ -317,13 +362,7 @@ func newTestDexMountedStreamPair(remote peer.ID) (*testDexMountedStream, *stream
 
 func newTestPeerSessionPair(c *Controller, remote peer.ID) (*peerSession, *stream_packet.Session, func()) {
 	ms, remoteSess, cleanup := newTestDexMountedStreamPair(remote)
-	sess := &peerSession{
-		c:       c,
-		le:      c.le.WithField("remote-peer", remote.String()),
-		ms:      ms,
-		sess:    stream_packet.NewSession(ms.stream, maxMessageSize),
-		pending: make(map[uint32]chan *DexMessage),
-	}
+	sess := newPeerSession(c, c.le.WithField("remote-peer", remote.String()), ms, nil)
 	return sess, remoteSess, func() {
 		sess.close()
 		cleanup()

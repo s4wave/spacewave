@@ -6,6 +6,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -21,13 +22,48 @@ type peerSession struct {
 	le *logrus.Entry
 	ms link.MountedStream
 
-	sess   *stream_packet.Session
-	nextID atomic.Uint32
-	closed atomic.Bool
+	sess       *stream_packet.Session
+	runRoutine *routine.RoutineContainer
+	onExit     func()
+	nextID     atomic.Uint32
+	closed     atomic.Bool
 
 	// mtx guards pending map and serializes SendMsg writes.
 	mtx     sync.Mutex
 	pending map[uint32]chan *DexMessage
+}
+
+func newPeerSession(
+	c *Controller,
+	le *logrus.Entry,
+	ms link.MountedStream,
+	onExit func(),
+) *peerSession {
+	s := &peerSession{
+		c:       c,
+		le:      le,
+		ms:      ms,
+		sess:    stream_packet.NewSession(ms.GetStream(), maxMessageSize),
+		onExit:  onExit,
+		pending: make(map[uint32]chan *DexMessage),
+	}
+	s.runRoutine = routine.NewRoutineContainer()
+	_, _ = s.runRoutine.SetRoutine(func(ctx context.Context) error {
+		s.run(ctx)
+		if s.onExit != nil {
+			s.onExit()
+		}
+		return nil
+	})
+	return s
+}
+
+func (s *peerSession) start(ctx context.Context) {
+	s.runRoutine.SetContext(ctx, false)
+}
+
+func (s *peerSession) waitExited(ctx context.Context) error {
+	return s.runRoutine.WaitExited(ctx, true, nil)
 }
 
 // run starts the session, reading messages in a loop and dispatching
@@ -36,16 +72,7 @@ func (s *peerSession) run(ctx context.Context) {
 	defer func() {
 		s.closed.Store(true)
 		s.sess.Close()
-		// Wake any pending requests.
-		s.mtx.Lock()
-		for id, ch := range s.pending {
-			select {
-			case ch <- nil:
-			default:
-			}
-			delete(s.pending, id)
-		}
-		s.mtx.Unlock()
+		s.wakePending()
 	}()
 
 	for {
@@ -146,6 +173,10 @@ func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hop
 	id := s.nextID.Add(1)
 	ch := make(chan *DexMessage, 1)
 	s.mtx.Lock()
+	if s.closed.Load() {
+		s.mtx.Unlock()
+		return nil, false, errors.New("session closed")
+	}
 	s.pending[id] = ch
 	s.mtx.Unlock()
 	defer func() {
@@ -190,5 +221,18 @@ func (s *peerSession) close() {
 		if s.sess != nil {
 			s.sess.Close()
 		}
+		s.wakePending()
+	}
+}
+
+func (s *peerSession) wakePending() {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	for id, ch := range s.pending {
+		select {
+		case ch <- nil:
+		default:
+		}
+		delete(s.pending, id)
 	}
 }
