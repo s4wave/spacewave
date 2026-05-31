@@ -18,7 +18,7 @@ export const V86_WIZARD_TARGET_KEY_PREFIX = 'vm/v86/'
 
 export const V86_USER_IMAGE_OBJECT_KEY = 'vm-image/default'
 export const V86_DEFAULT_CDN_IMAGE_OBJECT_KEY =
-  'v86image-01kqx490m1sghtcw99sj1wzad9'
+  'v86image-01kszf4rsev1s7zkq2ms2y5r0w'
 
 export const DEFAULT_V86_MEMORY_MB = 256
 export const DEFAULT_V86_VGA_MEMORY_MB = 8

@@ -6,11 +6,11 @@ import {
 import type { ResourceService } from './resource_srpc.pb.js'
 import type { ResourceAttachRequest } from './resource.pb.js'
 import {
-  buildRpcStreamOpenStream,
   Client as SRPCClient,
   Server,
   StreamConn,
   combineUint8ArrayListTransform,
+  openRpcStream,
 } from 'starpc'
 import type { LookupMethod } from 'starpc'
 import { pushable } from 'it-pushable'
@@ -64,6 +64,36 @@ const resourceAttachClientNotFound = 'client not found'
 const resourceClientInitTimeoutMS = 30000
 const resourceClientInitTimeoutMessage =
   'ResourceClient stream did not initialize before timeout'
+
+function withResourceClientInitTimeout<T>(promise: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let settled = false
+    const timeout = setTimeout(() => {
+      if (settled) return
+      settled = true
+      reject(
+        new ResourceClientError(
+          resourceClientInitTimeoutMessage,
+          'CONNECTION_FAILED',
+        ),
+      )
+    }, resourceClientInitTimeoutMS)
+
+    promise
+      .then((value) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timeout)
+        resolve(value)
+      })
+      .catch((error) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timeout)
+        reject(error)
+      })
+  })
+}
 
 /**
  * A reference to a remote resource that can be used to communicate with it.
@@ -188,11 +218,15 @@ function createResourceRef(
   let srpcClient: SRPCClient | null = null
   const getSrpcClient = (): SRPCClient => {
     if (!srpcClient) {
-      const stream = buildRpcStreamOpenStream(
-        id.toString(),
-        client.service.ResourceRpc.bind(client.service),
-      )
-      srpcClient = new SRPCClient(stream)
+      srpcClient = new SRPCClient(async () => {
+        return withResourceClientInitTimeout(
+          openRpcStream(
+            id.toString(),
+            client.service.ResourceRpc.bind(client.service),
+            false,
+          ),
+        )
+      })
     }
     return srpcClient
   }

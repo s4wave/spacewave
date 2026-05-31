@@ -57,7 +57,7 @@ func TestQuickstartV86BootSmoke(t *testing.T) {
 	if err := page.Locator("input[placeholder='e.g. debian-lab']").First().WaitFor(wait); err != nil {
 		t.Fatalf("wait for v86 wizard name input: %v", err)
 	}
-	if err := page.Locator("text=/Will copy from CDN: (Aperture Linux|v86image-01kqx490m1sghtcw99sj1wzad9)/").First().WaitFor(wait); err != nil {
+	if err := page.Locator("text=/Will copy from CDN: (Aperture Linux|v86image-01kszf4rsev1s7zkq2ms2y5r0w)/").First().WaitFor(wait); err != nil {
 		t.Fatalf("wait for selected CDN V86Image: %v\n%s", err, readV86WizardDebug(page))
 	}
 	if err := page.Locator("input[placeholder='e.g. debian-lab']").First().Fill("v86 smoke"); err != nil {
@@ -347,7 +347,7 @@ func probeV86CdnMount(page playwright.Page) string {
 			out.error = 'missing debug root'
 			return JSON.stringify(out, null, 2)
 		}
-		const signal = AbortSignal.timeout(15000)
+		const signal = AbortSignal.timeout(600000)
 		let cdn
 		let space
 		let world
@@ -378,7 +378,7 @@ func probeV86CdnMount(page playwright.Page) string {
 			}
 			out.stage = 'listObjectsWithType'
 			out.v86ImageKeys = await world.listObjectsWithType('vm/image/v86', signal)
-			const defaultKey = 'v86image-01kqx490m1sghtcw99sj1wzad9'
+			const defaultKey = 'v86image-01kszf4rsev1s7zkq2ms2y5r0w'
 			out.defaultV86ImageObjectKey = defaultKey
 			out.stage = 'defaultV86Image'
 			using defaultObj = await world.getObject(defaultKey, signal)

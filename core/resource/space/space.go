@@ -299,8 +299,10 @@ func (r *SpaceResource) MountSpaceContents(
 	ctx context.Context,
 	req *s4wave_space.MountSpaceContentsRequest,
 ) (*s4wave_space.MountSpaceContentsResponse, error) {
+	r.le.Info("quickstart mount space contents handler start")
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
+		r.le.WithError(err).Info("quickstart mount space contents missing client context")
 		return nil, err
 	}
 
@@ -336,8 +338,10 @@ func (r *SpaceResource) MountSpaceContents(
 	}
 
 	r.le.WithField("space-id", spaceID).Debug("mount space contents: adding resource")
+	r.le.WithField("space-id", spaceID).Info("quickstart mount space contents add resource")
 	id, err := resourceCtx.AddResource(contentsResource.GetMux(), contentsResource.Release)
 	if err != nil {
+		r.le.WithError(err).Info("quickstart mount space contents add resource failed")
 		return nil, err
 	}
 	r.le.
@@ -349,6 +353,10 @@ func (r *SpaceResource) MountSpaceContents(
 		WithField("space-id", spaceID).
 		WithField("resource-id", id).
 		Debug("mount space contents: controller started")
+	r.le.
+		WithField("space-id", spaceID).
+		WithField("resource-id", id).
+		Info("quickstart mount space contents return")
 
 	return &s4wave_space.MountSpaceContentsResponse{ResourceId: id}, nil
 }

@@ -304,7 +304,7 @@ manifest("spacewave",
 
 manifest("spacewave-web",
     builder="bldr/plugin/compiler/js",
-    rev=11,
+    rev=12,
     config={
         "webPluginId": "web",
         "modules": [
@@ -338,7 +338,7 @@ def js_plugin(name, rev, modules, extra_web_pkgs=None):
         },
     )
 
-js_plugin("spacewave-app", rev=223, modules=[
+js_plugin("spacewave-app", rev=224, modules=[
     js_module("JS_MODULE_KIND_FRONTEND", "./app/App.tsx",
               entrypoint=True,
               webViewParentId={"empty": True}),

@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
+import { Packet } from 'starpc'
+import type { RpcStreamPacket } from 'starpc'
 
 import type { ResourceClientResponse } from './resource.pb.js'
 import type { ResourceService } from './resource_srpc.pb.js'
@@ -190,6 +192,75 @@ describe('ResourceClient', () => {
     expect(Reflect.get(client, 'connectionController')).toBe(null)
     expect(Reflect.get(client, 'initState')).toBe(null)
     expect(Reflect.get(client, 'initPromise')).toBe(null)
+  })
+
+  it('delivers ResourceRpc call data after stream ack', async () => {
+    const service = buildUnusedService()
+    let resourceRpcCalls = 0
+    service.ResourceRpc = async function* (request) {
+      resourceRpcCalls++
+      const incoming = request[Symbol.asyncIterator]()
+      const initPacket = await readResourceRpcPacket(incoming)
+
+      expect(initPacket.body).toEqual({
+        case: 'init',
+        value: { componentId: '51' },
+      })
+
+      yield {
+        body: {
+          case: 'ack' as const,
+          value: {},
+        },
+      }
+
+      const dataPacket = await readResourceRpcPacket(incoming)
+      expect(dataPacket.body?.case).toBe('data')
+      if (dataPacket.body?.case !== 'data') {
+        throw new Error('expected ResourceRpc data packet')
+      }
+
+      const callStart = Packet.fromBinary(dataPacket.body.value)
+      expect(callStart.body?.case).toBe('callStart')
+      if (callStart.body?.case !== 'callStart') {
+        throw new Error('expected nested SRPC call start')
+      }
+      expect(callStart.body.value.rpcService).toBe(
+        's4wave.space.SpaceResourceService',
+      )
+      expect(callStart.body.value.rpcMethod).toBe('MountSpaceContents')
+      expect(callStart.body.value.data?.length ?? 0).toBe(0)
+      expect(callStart.body.value.dataIsZero).toBe(true)
+
+      yield {
+        body: {
+          case: 'data' as const,
+          value: Packet.toBinary({
+            body: {
+              case: 'callData',
+              value: {
+                data: new Uint8Array([7]),
+                complete: true,
+              },
+            },
+          }),
+        },
+      }
+    }
+
+    const client = new Client(service, new AbortController().signal)
+    Reflect.set(client, 'initState', { clientHandleId: 7, rootResourceId: 1 })
+
+    const result = await client
+      .createResourceReference(51)
+      .client.request(
+        's4wave.space.SpaceResourceService',
+        'MountSpaceContents',
+        new Uint8Array(0),
+      )
+
+    expect([...result]).toEqual([7])
+    expect(resourceRpcCalls).toBe(1)
   })
 
   it('retries ResourceClient streams that close after init', async () => {
@@ -513,6 +584,21 @@ function getPendingResourceReleases(client: Client) {
     throw new Error('expected pendingResourceReleases map')
   }
   return pending
+}
+
+async function readResourceRpcPacket(
+  incoming: AsyncIterator<RpcStreamPacket>,
+): Promise<RpcStreamPacket> {
+  const next = await Promise.race([
+    incoming.next(),
+    new Promise<IteratorResult<RpcStreamPacket>>((_, reject) => {
+      setTimeout(() => reject(new Error('timed out waiting for packet')), 1000)
+    }),
+  ])
+  if (next.done) {
+    throw new Error('ResourceRpc stream closed before packet')
+  }
+  return next.value
 }
 
 function buildAttachSession() {

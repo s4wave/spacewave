@@ -14,9 +14,19 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-function resolveBldrAliasPath(...segments: string[]) {
-  const distPath = resolve(__dirname, '.bldr/src', ...segments)
-  if (existsSync(distPath)) {
+const bldrDistRoot =
+  process.env['BLDR_DIST_ROOT'] || resolve(__dirname, '.bldr/src')
+
+function resolveBldrSourcePath(...segments: string[]) {
+  const isPatternReplacement = segments.some((segment) =>
+    segment.includes('$'),
+  )
+  const monorepoPath = resolve(bldrDistRoot, 'bldr', ...segments)
+  if (existsSync(monorepoPath)) {
+    return monorepoPath
+  }
+  const distPath = resolve(bldrDistRoot, ...segments)
+  if (isPatternReplacement || existsSync(distPath)) {
     return distPath
   }
   return resolve(__dirname, 'bldr', ...segments)
@@ -42,15 +52,19 @@ export default defineConfig({
       ...buildGoAliases(__dirname),
       {
         find: '@aptre/bldr',
-        replacement: resolveBldrAliasPath('web/bldr/index.js'),
+        replacement: resolveBldrSourcePath('web/bldr/index.js'),
       },
       {
         find: '@aptre/bldr-react',
-        replacement: resolveBldrAliasPath('web/bldr-react/index.js'),
+        replacement: resolveBldrSourcePath('web/bldr-react/index.js'),
+      },
+      {
+        find: /^@aptre\/bldr-sdk$/,
+        replacement: resolveBldrSourcePath('sdk/plugin.ts'),
       },
       {
         find: /^@aptre\/bldr-sdk\/(.*)$/,
-        replacement: resolve(__dirname, './.bldr/src/sdk/$1'),
+        replacement: resolveBldrSourcePath('sdk/$1'),
       },
       {
         find: /^@s4wave\/app\/(.*)$/,

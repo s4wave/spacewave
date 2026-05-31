@@ -80,19 +80,6 @@ import {
   releaseQuickstartSharedObjectHandoff,
 } from '@s4wave/app/quickstart/session-handoff.js'
 
-function logQuickstartSpaceDiagnostic(
-  message: string,
-  fields: Record<string, unknown>,
-): void {
-  if (
-    !(globalThis as { __s4waveLogQuickstartTiming?: boolean })
-      .__s4waveLogQuickstartTiming
-  ) {
-    return
-  }
-  console.log(message + ': ' + JSON.stringify(fields))
-}
-
 // SpaceContainer renders a space shared object body.
 export function SpaceContainer() {
   const rootResource = RootContext.useContext()
@@ -132,21 +119,11 @@ export function SpaceContainer() {
         sharedObjectId,
       )
       if (handoff) {
-        logQuickstartSpaceDiagnostic('quickstart route using space handoff', {
-          sharedObjectId,
-          spaceResourceId: handoff.id,
-          released: handoff.released,
-        })
         return Promise.resolve(cleanup(handoff))
       }
       const space = new Space(
         parentSharedObjectBody.resourceRef.createRef(parentSharedObjectBody.id),
       )
-      logQuickstartSpaceDiagnostic('quickstart space resource created', {
-        sharedObjectId,
-        bodyResourceId: parentSharedObjectBody.id,
-        spaceResourceId: space.id,
-      })
       return Promise.resolve(cleanup(space))
     },
     [sessionIndex, sharedObjectId],
@@ -164,27 +141,9 @@ export function SpaceContainer() {
         sharedObjectId,
       )
       if (handoff) {
-        logQuickstartSpaceDiagnostic(
-          'quickstart route using space world handoff',
-          {
-            sharedObjectId,
-            engineResourceId: handoff.getEngine().id,
-            released: handoff.getEngine().released,
-          },
-        )
         return cleanup(handoff)
       }
-      logQuickstartSpaceDiagnostic('quickstart access world start', {
-        sharedObjectId,
-        spaceResourceId: space.id,
-        released: space.released,
-      })
       const state = await space.accessWorldState(true, signal)
-      logQuickstartSpaceDiagnostic('quickstart access world finish', {
-        sharedObjectId,
-        spaceResourceId: space.id,
-        released: space.released,
-      })
       return cleanup(state)
     },
     [sessionIndex, sharedObjectId],
@@ -217,28 +176,9 @@ export function SpaceContainer() {
         sharedObjectId,
       )
       if (handoff) {
-        logQuickstartSpaceDiagnostic(
-          'quickstart route using space contents handoff',
-          {
-            sharedObjectId,
-            contentsResourceId: handoff.id,
-            released: handoff.released,
-          },
-        )
         return cleanup(handoff)
       }
-      logQuickstartSpaceDiagnostic('quickstart mount contents start', {
-        sharedObjectId,
-        spaceResourceId: space.id,
-        released: space.released,
-      })
       const contents = await space.mountSpaceContents(signal)
-      logQuickstartSpaceDiagnostic('quickstart mount contents finish', {
-        sharedObjectId,
-        spaceResourceId: space.id,
-        released: space.released,
-        contentsResourceId: contents.id,
-      })
       return cleanup(contents)
     },
     [sessionIndex, sharedObjectId],
