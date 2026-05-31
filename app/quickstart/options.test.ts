@@ -1,12 +1,22 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  EXPERIMENTAL_CREATORS_STORAGE_KEY,
+  areExperimentalCreatorsEnabled,
+  setExperimentalCreatorsEnabled,
+} from '../creator-visibility.js'
+import {
   getPublicQuickstartOptions,
   getQuickstartOption,
   getVisibleQuickstartOptions,
   isQuickstartOptionPublic,
   isQuickstartOptionVisible,
 } from './options.js'
+import { afterEach } from 'vitest'
+
+afterEach(() => {
+  localStorage.removeItem(EXPERIMENTAL_CREATORS_STORAGE_KEY)
+})
 
 describe('quickstart options', () => {
   it('keeps supported quickstarts visible in release', () => {
@@ -77,5 +87,18 @@ describe('quickstart options', () => {
     expect(
       getVisibleQuickstartOptions(true).map((option) => option.id),
     ).toContain('device')
+  })
+
+  it('lets release runtime visibility include experimental quickstarts without changing public release pages', () => {
+    setExperimentalCreatorsEnabled(true)
+    const runtimeEnabled = areExperimentalCreatorsEnabled(false)
+
+    expect(runtimeEnabled).toBe(true)
+    expect(
+      getVisibleQuickstartOptions(runtimeEnabled).map((option) => option.id),
+    ).toContain('device')
+    expect(
+      getPublicQuickstartOptions(false).map((option) => option.id),
+    ).toEqual(['space', 'drive', 'git', 'canvas'])
   })
 })

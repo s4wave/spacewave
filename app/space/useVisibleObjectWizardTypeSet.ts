@@ -3,12 +3,14 @@ import { useCallback, useMemo } from 'react'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { SpaceContext } from '@s4wave/web/contexts/contexts.js'
 
+import { useExperimentalCreatorsEnabled } from '../creator-visibility.js'
 import { normalizeObjectWizards } from './object-wizards.js'
 
 // useVisibleObjectWizardTypeSet returns the set of creatable object type IDs
-// visible for the current build mode.
+// visible for the current browser.
 export function useVisibleObjectWizardTypeSet(): Set<string> {
   const spaceResource = SpaceContext.useContext()
+  const experimentalCreatorsEnabled = useExperimentalCreatorsEnabled()
   const wizardState = useStreamingResource(
     spaceResource,
     useCallback((space, signal) => space.watchWizards(signal), []),
@@ -18,10 +20,11 @@ export function useVisibleObjectWizardTypeSet(): Set<string> {
   return useMemo(
     () =>
       new Set(
-        normalizeObjectWizards(wizardState.value?.wizards ?? []).map(
-          (wizard) => wizard.typeId ?? '',
-        ),
+        normalizeObjectWizards(
+          wizardState.value?.wizards ?? [],
+          experimentalCreatorsEnabled,
+        ).map((wizard) => wizard.typeId ?? ''),
       ),
-    [wizardState.value?.wizards],
+    [experimentalCreatorsEnabled, wizardState.value?.wizards],
   )
 }

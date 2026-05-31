@@ -9,11 +9,15 @@ import {
   WatchQuickstartsResponse,
 } from '@s4wave/sdk/quickstart/registry/registry.pb.js'
 
-import { VISIBLE_QUICKSTART_OPTIONS, type QuickstartOption } from './options.js'
+import { useExperimentalCreatorsEnabled } from '../creator-visibility.js'
+import {
+  getVisibleQuickstartOptions,
+  type QuickstartOption,
+} from './options.js'
 import { mergeQuickstartOptions } from './dynamic-options.js'
 
 const QuickstartOptionsContext = createContext<QuickstartOption[]>(
-  VISIBLE_QUICKSTART_OPTIONS,
+  getVisibleQuickstartOptions(),
 )
 
 interface QuickstartOptionsProviderProps {
@@ -57,6 +61,7 @@ const passRegistration = <T>(reg: T): T => reg
 function useMergedQuickstartOptions(
   rootResource: Resource<Root>,
 ): QuickstartOption[] {
+  const experimentalCreatorsEnabled = useExperimentalCreatorsEnabled()
   const dynamicRegistrations = useDynamicRegistrations(
     rootResource.value,
     quickstartCreateStream,
@@ -66,12 +71,17 @@ function useMergedQuickstartOptions(
     quickstartGetRegs,
     passRegistration,
   )
+  const staticOptions = useMemo(
+    () => getVisibleQuickstartOptions(experimentalCreatorsEnabled),
+    [experimentalCreatorsEnabled],
+  )
   return useMemo(
     () =>
       mergeQuickstartOptions(
-        [...VISIBLE_QUICKSTART_OPTIONS],
+        staticOptions,
         dynamicRegistrations,
+        experimentalCreatorsEnabled,
       ),
-    [dynamicRegistrations],
+    [dynamicRegistrations, experimentalCreatorsEnabled, staticOptions],
   )
 }

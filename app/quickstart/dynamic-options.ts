@@ -39,7 +39,7 @@ export function getDynamicQuickstartIcon(
 // dynamicQuickstartRegistrationToOption converts a registry entry into app metadata.
 export function dynamicQuickstartRegistrationToOption(
   reg: QuickstartRegistration,
-  isDev = !!import.meta.env?.DEV,
+  experimentalCreatorsEnabled = !!import.meta.env?.DEV,
 ): QuickstartOption | null {
   const id = reg.quickstartId ?? ''
   const name = reg.name ?? ''
@@ -61,7 +61,9 @@ export function dynamicQuickstartRegistrationToOption(
     spaceName: reg.spaceName || name,
     requiredPluginIds: reg.requiredPluginIds ?? [],
   }
-  if (!isQuickstartOptionVisible(option, isDev)) return null
+  if (!isQuickstartOptionVisible(option, experimentalCreatorsEnabled)) {
+    return null
+  }
   return option
 }
 
@@ -69,12 +71,15 @@ export function dynamicQuickstartRegistrationToOption(
 export function mergeQuickstartOptions(
   staticOptions: QuickstartOption[],
   dynamicRegistrations: QuickstartRegistration[],
-  isDev = !!import.meta.env?.DEV,
+  experimentalCreatorsEnabled = !!import.meta.env?.DEV,
 ): QuickstartOption[] {
   const seen = new Set(staticOptions.map((option) => option.id))
   const dynamicOptions: QuickstartOption[] = []
   for (const reg of dynamicRegistrations) {
-    const option = dynamicQuickstartRegistrationToOption(reg, isDev)
+    const option = dynamicQuickstartRegistrationToOption(
+      reg,
+      experimentalCreatorsEnabled,
+    )
     if (!option || seen.has(option.id)) continue
     seen.add(option.id)
     dynamicOptions.push(option)
