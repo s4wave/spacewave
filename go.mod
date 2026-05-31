@@ -26,7 +26,7 @@ require (
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.14.1-0.20260514195440-32d3c8730ab2 // latest
 	github.com/aperturerobotics/cli v1.1.0 // latest
-	github.com/aperturerobotics/common v0.33.1-0.20260516193515-675cfc5a0c12 // latest
+	github.com/aperturerobotics/common v0.33.1-0.20260531062830-4591052ba51d // latest
 	github.com/aperturerobotics/controllerbus v0.53.3 // latest
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
@@ -40,14 +40,14 @@ require (
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0 // indirect
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 // indirect
 	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.0
-	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260522152758-b187f2b431ff
+	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260530012506-6bf78593427c
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6
 	github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.14.0 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
-	github.com/aperturerobotics/starpc v0.49.16-0.20260528143940-9eed94e2b09a // latest
+	github.com/aperturerobotics/starpc v0.49.16 // latest
 	github.com/aperturerobotics/util v1.34.7-0.20260530185007-da6d29f33ebf // latest
 )
 
@@ -73,7 +73,7 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.31.1
 	gotest.tools/v3 v3.5.2
-	modernc.org/sqlite v1.50.1
+	modernc.org/sqlite v1.51.0
 )
 
 require (
@@ -99,9 +99,9 @@ require (
 	github.com/mattn/go-isatty v0.0.22
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mr-tron/base58 v1.3.0
-	github.com/ncruces/go-sqlite3 v0.34.2
+	github.com/ncruces/go-sqlite3 v0.34.3
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/pierrec/lz4/v4 v4.1.26
+	github.com/pierrec/lz4/v4 v4.1.27
 	github.com/pion/datachannel v1.6.0
 	github.com/pion/sdp/v3 v3.0.18
 	github.com/pion/webrtc/v4 v4.2.13
@@ -115,7 +115,7 @@ require (
 	github.com/sirupsen/logrus v1.9.5-0.20260508084601-d4a50659cfd6
 	github.com/spf13/afero v1.15.0
 	github.com/spf13/cast v1.10.0
-	github.com/tetratelabs/wazero v1.11.0
+	github.com/tetratelabs/wazero v1.12.0
 	github.com/tidwall/btree v1.8.1
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	github.com/whilp/git-urls v1.0.0
@@ -155,7 +155,7 @@ require (
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/multiformats/go-multihash v0.2.3 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
-	github.com/ncruces/go-sqlite3-wasm/v2 v2.4.35301 // indirect
+	github.com/ncruces/go-sqlite3-wasm/v2 v2.5.35301 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
 	github.com/petermattis/goid v0.0.0-20250813065127-a731cc31b4fe // indirect

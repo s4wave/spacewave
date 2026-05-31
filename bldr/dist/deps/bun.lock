@@ -5,7 +5,7 @@
     "": {
       "name": "@aperturerobotics/bldr",
       "dependencies": {
-        "@aptre/protobuf-es-lite": "1.0.2",
+        "@aptre/protobuf-es-lite": "1.1.0",
         "react": "^19.2.5",
         "react-dom": "^19.2.5",
         "ulid": "^3.0.2",
@@ -14,7 +14,7 @@
     },
   },
   "packages": {
-    "@aptre/protobuf-es-lite": ["@aptre/protobuf-es-lite@1.0.2", "", { "dependencies": { "@typescript/vfs": "^1.5.0", "lz-string": "^1.5.0" }, "bin": { "protoc-gen-es-lite": "bin/protoc-gen-es-lite" } }, "sha512-bada/GPR59Qdlf+2Df1n/f5f1UxjrucdGJUPx4K9rDnJptnd2uZR0tfsqurHLlIAR6/I7oPuSnATF2FGlZ17AA=="],
+    "@aptre/protobuf-es-lite": ["@aptre/protobuf-es-lite@1.1.0", "", { "dependencies": { "@typescript/vfs": "^1.5.0", "lz-string": "^1.5.0" }, "bin": { "protoc-gen-es-lite": "bin/protoc-gen-es-lite" } }, "sha512-lVtuSH9Ah7fdd5FNfoxRcLbeABwWTn2XU2DCSukW/EN0xl8gWAOXM9MJL4lLvxCaxADIKCvW9gshKd43BlVTfw=="],
 
     "@types/trusted-types": ["@types/trusted-types@2.0.7", "", {}, "sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw=="],
 
