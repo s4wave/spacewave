@@ -4,11 +4,11 @@ package coord
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	bdb "github.com/aperturerobotics/bbolt"
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -110,22 +110,22 @@ func (c *Coordinator) Run(ctx context.Context) error {
 		return errors.Wrap(err, "register participant")
 	}
 
-	// Start background goroutines. On exit: close mesh (unblocks Serve),
-	// cancel context (unblocks watcher + heartbeat), wait for all, then cleanup.
-	var wg sync.WaitGroup
 	bgCtx, bgCancel := context.WithCancel(ctx)
+	background := []*routine.RoutineContainer{
+		startCoordinatorRoutine(bgCtx, c.mesh.Serve),
+		startCoordinatorRoutine(bgCtx, c.watcher.Run),
+		startCoordinatorRoutine(bgCtx, func(ctx context.Context) error {
+			c.registry.RunHeartbeat(ctx, 500*time.Millisecond)
+			return nil
+		}),
+	}
 	defer func() {
 		c.mesh.Close()
 		bgCancel()
-		wg.Wait()
+		stopCoordinatorRoutines(background...)
 		_ = c.election.ReleaseLease()
 		_ = c.registry.Deregister()
 	}()
-
-	wg.Add(3)
-	go func() { defer wg.Done(); c.mesh.Serve(bgCtx) }()
-	go func() { defer wg.Done(); c.watcher.Run(bgCtx) }()
-	go func() { defer wg.Done(); c.registry.RunHeartbeat(bgCtx, 500*time.Millisecond) }()
 
 	// Try initial leader claim.
 	claimed, err := c.election.TryClaimLeadership()
@@ -158,18 +158,13 @@ func (c *Coordinator) runAsLeader(ctx context.Context) error {
 
 	leaderCtx, leaderCancel := context.WithCancel(ctx)
 	defer leaderCancel()
-
-	// Start role handler.
-	handlerDone := make(chan error, 1)
-	go func() {
-		handlerDone <- c.handler.OnBecomeLeader(leaderCtx)
-	}()
+	handlerRoutine := startCoordinatorRoutine(leaderCtx, c.handler.OnBecomeLeader)
 
 	// Run lease renewal. Returns when ctx cancelled or lease lost.
 	renewErr := c.election.RunLeaseRenewal(ctx)
 
 	leaderCancel()
-	<-handlerDone
+	stopCoordinatorRoutines(handlerRoutine)
 
 	if renewErr != nil {
 		return renewErr
@@ -212,15 +207,19 @@ func (c *Coordinator) runAsFollower(ctx context.Context) error {
 		c.le.WithField("leader-socket", socketPath).Info("following leader")
 
 		followerCtx, followerCancel := context.WithCancel(ctx)
-		handlerDone := make(chan error, 1)
-		go func() {
-			handlerDone <- c.handler.OnBecomeFollower(followerCtx, socketPath)
-		}()
+		handlerRoutine := startCoordinatorRoutine(followerCtx, func(ctx context.Context) error {
+			return c.handler.OnBecomeFollower(ctx, socketPath)
+		})
 
 		// cancelFollower cancels the follower context and waits for the handler.
+		followerCanceled := false
 		cancelFollower := func() {
+			if followerCanceled {
+				return
+			}
+			followerCanceled = true
 			followerCancel()
-			<-handlerDone
+			stopCoordinatorRoutines(handlerRoutine)
 		}
 
 		// Wait for commit counter changes (leader lease renewal, participant changes, etc.)
@@ -296,4 +295,25 @@ func (c *Coordinator) setRole(role ParticipantRole) {
 		c.role = role
 		broadcast()
 	})
+}
+
+func startCoordinatorRoutine(ctx context.Context, fn routine.Routine) *routine.RoutineContainer {
+	rc := routine.NewRoutineContainer()
+	_, _ = rc.SetRoutine(fn)
+	rc.SetContext(ctx, false)
+	return rc
+}
+
+func stopCoordinatorRoutines(routines ...*routine.RoutineContainer) {
+	waitChs := make([]<-chan struct{}, 0, len(routines))
+	for _, rc := range routines {
+		waitCh, _ := rc.SetRoutine(nil)
+		rc.ClearContext()
+		if waitCh != nil {
+			waitChs = append(waitChs, waitCh)
+		}
+	}
+	for _, waitCh := range waitChs {
+		<-waitCh
+	}
 }
