@@ -519,6 +519,62 @@ describe('plugin-wasm generation lifecycle', () => {
     source.end()
   })
 
+  it('delivers small and large TinyGo inbound payloads', async () => {
+    goProcessState.start.mockReturnValue(new Promise<void>(() => {}))
+
+    const api = buildBackendAPI()
+    const { default: main } = await import('./plugin-wasm.js')
+    await main(api)
+
+    const messageExport = vi.fn()
+    const memory = new WebAssembly.Memory({ initial: 4 })
+    const gojs = installTinyGoStreamImports({
+      memory,
+      go_scheduler: vi.fn(),
+      BLDR_PLUGIN_STREAM_ACCEPT: vi.fn(),
+      BLDR_PLUGIN_STREAM_MESSAGE: messageExport,
+      BLDR_PLUGIN_STREAM_CLOSE: vi.fn(),
+    })
+    getGoImport(gojs, 'bldr.plugin.setAcceptStreams')(1)
+
+    const source = pushable<Uint8Array>({ objectMode: true })
+    void api.handleStreamCtr.handleStreamFunc({
+      source,
+      sink: vi.fn(async () => {}),
+    })
+    await waitForGoCallbackQueue()
+
+    const takeBytes = getGoNumberImport(gojs, 'bldr.plugin.streamTakeBytes')
+    const messageHandled = getGoImport(
+      gojs,
+      'bldr.plugin.streamMessageHandled',
+    )
+
+    source.push(new Uint8Array([5, 6, 7]))
+    await waitForGoCallbackQueue()
+    expect(messageExport).toHaveBeenCalledTimes(1)
+    const smallBytesID = messageExport.mock.calls[0][1]
+    expect(messageExport.mock.calls[0][2]).toBe(3)
+    expect(takeBytes(smallBytesID, 16, 3)).toBe(1)
+    expect(Array.from(new Uint8Array(memory.buffer, 16, 3))).toEqual([5, 6, 7])
+    messageHandled(smallBytesID, 1)
+
+    const largePayload = Uint8Array.from(
+      { length: 128 * 1024 },
+      (_value, index) => index % 251,
+    )
+    source.push(largePayload)
+    await waitForGoCallbackQueue()
+    expect(messageExport).toHaveBeenCalledTimes(2)
+    const largeBytesID = messageExport.mock.calls[1][1]
+    expect(messageExport.mock.calls[1][2]).toBe(largePayload.byteLength)
+    expect(takeBytes(largeBytesID, 64, largePayload.byteLength)).toBe(1)
+    const copied = new Uint8Array(memory.buffer, 64, largePayload.byteLength)
+    expect(Array.from(copied)).toEqual(Array.from(largePayload))
+    messageHandled(largeBytesID, 1)
+    source.end()
+  })
+
   it('resolves pending TinyGo packet deliveries when a stream is released', async () => {
     goProcessState.start.mockReturnValue(new Promise<void>(() => {}))
 
