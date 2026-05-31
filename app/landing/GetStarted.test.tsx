@@ -3,6 +3,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import { renderToString } from 'react-dom/server'
 
+import {
+  EXPERIMENTAL_CREATORS_STORAGE_KEY,
+  setExperimentalCreatorsEnabled,
+} from '../creator-visibility.js'
 import GetStarted from './GetStarted.js'
 
 const mockUseSessionMetadata = vi.hoisted(() => vi.fn())
@@ -94,9 +98,11 @@ vi.mock('@s4wave/web/ui/command.js', () => ({
 
 afterEach(() => {
   cleanup()
+  vi.unstubAllEnvs()
   vi.clearAllMocks()
   mockUseIsStaticMode.mockReturnValue(false)
   globalThis.__swStaticHandoffLinks = undefined
+  localStorage.removeItem(EXPERIMENTAL_CREATORS_STORAGE_KEY)
 })
 
 describe('GetStarted', () => {
@@ -183,6 +189,30 @@ describe('GetStarted', () => {
     screen.getByRole('button', { name: /open a local state root/i }).click()
 
     expect(mockAddSpaceRootAlias).toHaveBeenCalledTimes(1)
+  })
+
+  it('uses the runtime preference for interactive experimental quickstarts', () => {
+    vi.stubEnv('DEV', false)
+    render(<GetStarted />)
+
+    expect(screen.queryByRole('button', { name: /add a device/i })).toBeNull()
+
+    cleanup()
+    setExperimentalCreatorsEnabled(true)
+    render(<GetStarted />)
+
+    expect(screen.getByRole('button', { name: /add a device/i })).toBeTruthy()
+  })
+
+  it('keeps static quickstart links on the build-time public inventory', () => {
+    vi.stubEnv('DEV', false)
+    mockUseIsStaticMode.mockReturnValue(true)
+    setExperimentalCreatorsEnabled(true)
+
+    render(<GetStarted />)
+
+    expect(screen.queryByRole('link', { name: /add a device/i })).toBeNull()
+    expect(screen.getByRole('link', { name: /create a drive/i })).toBeTruthy()
   })
 
   it('places the local state root action third in the account group', () => {

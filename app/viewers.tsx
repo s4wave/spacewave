@@ -56,6 +56,23 @@ import {
   ChatMessageViewer,
   ChatMessageTypeID,
 } from '@s4wave/app/chat/ChatMessageViewer.js'
+import { DeviceViewer, DeviceTypeID } from '@s4wave/app/device/DeviceViewer.js'
+import {
+  SshHostViewer,
+  SshHostTypeID,
+} from '@s4wave/app/device/SshHostViewer.js'
+import {
+  ComputersDashboardViewer,
+  ComputersDashboardTypeID,
+} from '@s4wave/app/device/ComputersDashboardViewer.js'
+import {
+  AddDeviceWizardViewer,
+  AddDeviceWizardTypeID,
+} from '@s4wave/app/device/AddDeviceWizardViewer.js'
+import {
+  TerminalViewer,
+  TerminalTypeID,
+} from '@s4wave/app/terminal/TerminalViewer.js'
 import { OrgViewer, OrganizationTypeID } from '@s4wave/app/org/OrgViewer.js'
 import {
   WizardViewer,
@@ -203,6 +220,42 @@ const staticViewers: ObjectViewerComponent[] = [
     name: 'Organization',
     category: 'Management',
     component: OrgViewer,
+  },
+  {
+    componentID: 'spacewave.device.viewer',
+    typeID: DeviceTypeID,
+    name: 'Device',
+    category: 'Devices',
+    component: DeviceViewer,
+  },
+  {
+    componentID: 'spacewave.ssh-host.viewer',
+    typeID: SshHostTypeID,
+    name: 'SSH Host',
+    category: 'Devices',
+    component: SshHostViewer,
+  },
+  {
+    componentID: 'spacewave.computers.viewer',
+    typeID: ComputersDashboardTypeID,
+    name: 'Computers',
+    category: 'Devices',
+    component: ComputersDashboardViewer,
+  },
+  {
+    componentID: 'spacewave.terminal.viewer',
+    typeID: TerminalTypeID,
+    name: 'Terminal',
+    category: 'Devices',
+    component: TerminalViewer,
+  },
+  {
+    componentID: 'spacewave.wizard.add-device',
+    typeID: AddDeviceWizardTypeID,
+    name: 'Add Device',
+    category: 'Devices',
+    requiresObjectState: false,
+    component: AddDeviceWizardViewer,
   },
   {
     componentID: 'spacewave.wizard.forge-job',

@@ -1,11 +1,20 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
+import {
+  EXPERIMENTAL_CREATORS_STORAGE_KEY,
+  areExperimentalCreatorsEnabled,
+  setExperimentalCreatorsEnabled,
+} from '../creator-visibility.js'
 import { getVisibleQuickstartOptions } from './options.js'
 import {
   dynamicQuickstartRegistrationToOption,
   getDynamicQuickstartIcon,
   mergeQuickstartOptions,
 } from './dynamic-options.js'
+
+afterEach(() => {
+  localStorage.removeItem(EXPERIMENTAL_CREATORS_STORAGE_KEY)
+})
 
 describe('dynamic quickstart options', () => {
   it('converts plugin registrations to app-only options', () => {
@@ -105,6 +114,26 @@ describe('dynamic quickstart options', () => {
     expect(merged.find((option) => option.id === 'drive')?.name).toBe(
       'Create a Drive',
     )
+  })
+
+  it('uses release runtime visibility for experimental dynamic registrations', () => {
+    setExperimentalCreatorsEnabled(true)
+    const merged = mergeQuickstartOptions(
+      getVisibleQuickstartOptions(false),
+      [
+        {
+          quickstartId: 'experimental',
+          pluginId: 'plugin',
+          name: 'Experimental',
+          description: 'Experimental workspace',
+          category: 'tools',
+          experimental: true,
+        },
+      ],
+      areExperimentalCreatorsEnabled(false),
+    )
+
+    expect(merged.map((option) => option.id)).toContain('experimental')
   })
 
   it('falls back to the box icon for unknown dynamic icon names', () => {

@@ -75,6 +75,62 @@ func TestCreateSecretStoresPayloadOnlyInNestedSharedObject(t *testing.T) {
 	}
 }
 
+func TestSSHSecretContractStoresCredentialPayloadOnlyInNestedSharedObject(t *testing.T) {
+	ctx := t.Context()
+	tb, soProvider, release := setupSecretTest(ctx, t)
+	defer release()
+
+	privateKey := []byte("-----BEGIN OPENSSH PRIVATE KEY-----\nspacewave-secret\n-----END OPENSSH PRIVATE KEY-----")
+	payload := s4wave_secret.NewSSHPrivateKeyPayload(privateKey, time.Unix(150, 0))
+	if payload.GetContentType() != s4wave_secret.SSHPrivateKeyContentType {
+		t.Fatalf("content type = %q, want %q", payload.GetContentType(), s4wave_secret.SSHPrivateKeyContentType)
+	}
+	if !bytes.Equal(payload.GetValue(), privateKey) {
+		t.Fatal("private key payload value mismatch")
+	}
+
+	secret, err := s4wave_secret.CreateSecret(ctx, tb.Bus, soProvider, tb.BusEngine, s4wave_secret.CreateSecretOptions{
+		ObjectKey:   "secrets/ssh/private-key",
+		DisplayName: "SSH private key",
+		Kind:        s4wave_secret.SecretKindSSHPrivateKey,
+		ContentType: s4wave_secret.SSHPrivateKeyContentType,
+		Value:       privateKey,
+		Timestamp:   time.Unix(150, 0),
+	})
+	if err != nil {
+		t.Fatalf("CreateSecret: %v", err)
+	}
+
+	parent := readParentSecret(ctx, t, tb.WorldState, "secrets/ssh/private-key")
+	parentData, err := parent.MarshalVT()
+	if err != nil {
+		t.Fatalf("marshal parent: %v", err)
+	}
+	if bytes.Contains(parentData, privateKey) {
+		t.Fatal("parent Secret block contains raw SSH private key bytes")
+	}
+
+	readPrivateKey, err := s4wave_secret.ReadSSHCredentialPayload(ctx, tb.Bus, secret, s4wave_secret.SecretKindSSHPrivateKey)
+	if err != nil {
+		t.Fatalf("ReadSSHCredentialPayload: %v", err)
+	}
+	if !bytes.Equal(readPrivateKey, privateKey) {
+		t.Fatal("read private key payload mismatch")
+	}
+	if _, err := s4wave_secret.ReadSSHCredentialPayload(ctx, tb.Bus, secret, s4wave_secret.SecretKindSSHPassword); !errors.Is(err, s4wave_secret.ErrSecretKindMismatch) {
+		t.Fatalf("expected SSH kind mismatch, got %v", err)
+	}
+
+	passwordPayload := s4wave_secret.NewSSHPasswordPayload("hunter2", time.Unix(151, 0))
+	if passwordPayload.GetContentType() != s4wave_secret.SSHTextCredentialContentType {
+		t.Fatalf("password content type = %q", passwordPayload.GetContentType())
+	}
+	passphrasePayload := s4wave_secret.NewSSHPassphrasePayload("key-passphrase", time.Unix(152, 0))
+	if passphrasePayload.GetContentType() != s4wave_secret.SSHTextCredentialContentType {
+		t.Fatalf("passphrase content type = %q", passphrasePayload.GetContentType())
+	}
+}
+
 func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 	ctx := t.Context()
 	tb, soProvider, release := setupSecretTest(ctx, t)

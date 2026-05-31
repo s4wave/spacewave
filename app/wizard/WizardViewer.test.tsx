@@ -5,8 +5,13 @@ import userEvent from '@testing-library/user-event'
 
 import { CanvasInitOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { ClusterCreateOp } from '@go/github.com/s4wave/spacewave/forge/cluster/cluster.pb.js'
+import type { ObjectWizard } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { SpaceContext } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
+import {
+  EXPERIMENTAL_CREATORS_STORAGE_KEY,
+  setExperimentalCreatorsEnabled,
+} from '../creator-visibility.js'
 
 const mocks = vi.hoisted(() => ({
   navigateToObjects: vi.fn(),
@@ -26,7 +31,7 @@ let currentState = {
   name: 'Demo Canvas',
 }
 
-let currentWizards = [
+let currentWizards: ObjectWizard[] = [
   {
     typeId: 'canvas',
     displayName: 'Canvas',
@@ -157,6 +162,8 @@ describe('WizardViewer', () => {
 
   afterEach(() => {
     cleanup()
+    vi.unstubAllEnvs()
+    localStorage.removeItem(EXPERIMENTAL_CREATORS_STORAGE_KEY)
   })
 
   it('keeps the wizard name local while editing and persists before create', async () => {
@@ -239,6 +246,47 @@ describe('WizardViewer', () => {
     expect(mocks.deleteObject).toHaveBeenCalledWith('wizard/test-canvas')
     expect(mocks.navigateToObjects).toHaveBeenCalledWith([decoded.clusterKey])
     expect(mocks.toastSuccess).toHaveBeenCalledWith('Created Test Cluster')
+  })
+
+  it('does not finalize an experimental target wizard before browser opt-in', async () => {
+    vi.stubEnv('DEV', false)
+    const user = userEvent.setup()
+    currentWizards = [
+      {
+        typeId: 'canvas',
+        displayName: 'Canvas',
+        createOpId: 'space/world/init-canvas',
+        keyPrefix: 'canvas/',
+        experimental: true,
+      },
+    ]
+
+    renderViewer()
+
+    await user.click(screen.getByRole('button', { name: /create/i }))
+
+    expect(mocks.applyWorldOp).not.toHaveBeenCalled()
+  })
+
+  it('finalizes an experimental target wizard after browser opt-in', async () => {
+    vi.stubEnv('DEV', false)
+    const user = userEvent.setup()
+    setExperimentalCreatorsEnabled(true)
+    currentWizards = [
+      {
+        typeId: 'canvas',
+        displayName: 'Canvas',
+        createOpId: 'space/world/init-canvas',
+        keyPrefix: 'canvas/',
+        experimental: true,
+      },
+    ]
+
+    renderViewer()
+
+    await user.click(screen.getByRole('button', { name: /create/i }))
+
+    expect(mocks.applyWorldOp).toHaveBeenCalledTimes(1)
   })
 
   it('cancels by deleting the wizard object without reopening the creation drawer', async () => {

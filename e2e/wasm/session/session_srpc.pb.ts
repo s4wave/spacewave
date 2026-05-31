@@ -110,7 +110,9 @@ export interface EstablishLinkResourceService {
 export const EstablishLinkResourceServiceServiceName =
   EstablishLinkResourceServiceDefinition.typeName
 
-export class EstablishLinkResourceServiceClient implements EstablishLinkResourceService {
+export class EstablishLinkResourceServiceClient
+  implements EstablishLinkResourceService
+{
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {

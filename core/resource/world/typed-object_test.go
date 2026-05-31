@@ -21,6 +21,8 @@ import (
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+	s4wave_device_world "github.com/s4wave/spacewave/sdk/device/world"
 	s4wave_git "github.com/s4wave/spacewave/sdk/git"
 	s4wave_git_world "github.com/s4wave/spacewave/sdk/git/world"
 	s4wave_layout_world "github.com/s4wave/spacewave/sdk/layout/world"
@@ -580,6 +582,7 @@ func setupWorldResourceClientWithObjectTypes(ctx context.Context, t *testing.T, 
 		s4wave_layout_world.ObjectLayoutTypeID: s4wave_layout_world.ObjectLayoutType,
 		s4wave_git_world.GitRepoTypeID:         s4wave_git_world.GitRepoType,
 		s4wave_unixfs_world.UnixFSTypeID:       s4wave_unixfs_world.UnixFSType,
+		s4wave_device.DeviceTypeID:             s4wave_device_world.DeviceType,
 	}
 	lookupFunc := func(ctx context.Context, typeID string) (objecttype.ObjectType, error) {
 		return objectTypes[typeID], nil

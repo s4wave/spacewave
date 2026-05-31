@@ -10,6 +10,21 @@ export const SecretTypeID = 'spacewave/secret'
 // SecretKindMatrixAccessToken is the kind for Matrix access tokens.
 export const SecretKindMatrixAccessToken = 'matrix_access_token'
 
+// SecretKindSSHPrivateKey is the kind for SSH private-key credentials.
+export const SecretKindSSHPrivateKey = 'ssh_private_key'
+
+// SecretKindSSHPassword is the kind for SSH password credentials.
+export const SecretKindSSHPassword = 'ssh_password'
+
+// SecretKindSSHPassphrase is the kind for SSH private-key passphrases.
+export const SecretKindSSHPassphrase = 'ssh_passphrase'
+
+// SSHPrivateKeyContentType is the content type for SSH private-key payloads.
+export const SSHPrivateKeyContentType = 'application/x-pem-file'
+
+// SSHTextCredentialContentType is the content type for text SSH credentials.
+export const SSHTextCredentialContentType = 'text/plain; charset=utf-8'
+
 // SecretHandle represents a redacted Secret resource.
 export class SecretHandle extends Resource {
   private service: SecretResourceServiceClient

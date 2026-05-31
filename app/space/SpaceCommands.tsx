@@ -18,6 +18,7 @@ import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import type { SubItemsCallback } from '@s4wave/web/command/CommandContext.js'
+import { useExperimentalCreatorsEnabled } from '../creator-visibility.js'
 import { normalizeObjectWizards } from './object-wizards.js'
 import {
   lookupCreateOpBuilder,
@@ -45,14 +46,19 @@ export function SpaceCommands({
   const { spaceState, spaceWorld, navigateToObjects } =
     SpaceContainerContext.useContext()
   const spaceResource = SpaceContext.useContext()
+  const experimentalCreatorsEnabled = useExperimentalCreatorsEnabled()
   const wizardState = useStreamingResource(
     spaceResource,
     useCallback((space, signal) => space.watchWizards(signal), []),
     [],
   )
   const wizards = useMemo(
-    () => normalizeObjectWizards(wizardState.value?.wizards ?? []),
-    [wizardState.value?.wizards],
+    () =>
+      normalizeObjectWizards(
+        wizardState.value?.wizards ?? [],
+        experimentalCreatorsEnabled,
+      ),
+    [experimentalCreatorsEnabled, wizardState.value?.wizards],
   )
   const existingObjectKeys = useMemo(
     () =>

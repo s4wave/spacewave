@@ -1,0 +1,146 @@
+syntax = "proto3";
+package s4wave.terminal;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/terminal;s4wave_terminal";
+
+// TerminalSessionState is the user-visible lifecycle for a Terminal object.
+enum TerminalSessionState {
+  // TERMINAL_SESSION_STATE_UNKNOWN is unset.
+  TERMINAL_SESSION_STATE_UNKNOWN = 0;
+  // TERMINAL_SESSION_STATE_CONNECTING means a remote shell stream is opening.
+  TERMINAL_SESSION_STATE_CONNECTING = 1;
+  // TERMINAL_SESSION_STATE_ACTIVE means the PTY stream is active.
+  TERMINAL_SESSION_STATE_ACTIVE = 2;
+  // TERMINAL_SESSION_STATE_DISCONNECTED means the stream ended.
+  TERMINAL_SESSION_STATE_DISCONNECTED = 3;
+  // TERMINAL_SESSION_STATE_FAILED means opening or running the stream failed.
+  TERMINAL_SESSION_STATE_FAILED = 4;
+  // TERMINAL_SESSION_STATE_CLOSED means the user closed the terminal.
+  TERMINAL_SESSION_STATE_CLOSED = 5;
+}
+
+// TerminalFrameKind is the frame type for terminal Resource and Bifrost streams.
+enum TerminalFrameKind {
+  // TERMINAL_FRAME_KIND_UNKNOWN is unset.
+  TERMINAL_FRAME_KIND_UNKNOWN = 0;
+  // TERMINAL_FRAME_KIND_OPEN carries the initial command and terminal size.
+  TERMINAL_FRAME_KIND_OPEN = 1;
+  // TERMINAL_FRAME_KIND_READY means the PTY is attached.
+  TERMINAL_FRAME_KIND_READY = 2;
+  // TERMINAL_FRAME_KIND_INPUT carries bytes from the viewer to the PTY.
+  TERMINAL_FRAME_KIND_INPUT = 3;
+  // TERMINAL_FRAME_KIND_OUTPUT carries bytes from the PTY to the viewer.
+  TERMINAL_FRAME_KIND_OUTPUT = 4;
+  // TERMINAL_FRAME_KIND_RESIZE carries terminal dimensions.
+  TERMINAL_FRAME_KIND_RESIZE = 5;
+  // TERMINAL_FRAME_KIND_CLOSE requests a clean close.
+  TERMINAL_FRAME_KIND_CLOSE = 6;
+  // TERMINAL_FRAME_KIND_EXIT reports process exit.
+  TERMINAL_FRAME_KIND_EXIT = 7;
+  // TERMINAL_FRAME_KIND_ERROR reports a terminal stream error.
+  TERMINAL_FRAME_KIND_ERROR = 8;
+}
+
+// TerminalTargetKind selects the owner that opens the live terminal session.
+enum TerminalTargetKind {
+  // TERMINAL_TARGET_KIND_UNKNOWN preserves old Device terminals when Device fields are set.
+  TERMINAL_TARGET_KIND_UNKNOWN = 0;
+  // TERMINAL_TARGET_KIND_DEVICE opens a Spacewave-managed Device remote shell.
+  TERMINAL_TARGET_KIND_DEVICE = 1;
+  // TERMINAL_TARGET_KIND_SSH_HOST opens an SSH-only Host session.
+  TERMINAL_TARGET_KIND_SSH_HOST = 2;
+}
+
+// Terminal is the world-block state for a durable remote shell tab.
+message Terminal {
+  // Name is the display name for this terminal.
+  string name = 1;
+  // DeviceObjectKey is the linked Spacewave-managed Device object key.
+  string device_object_key = 2;
+  // DevicePeerId is the DEVICE session peer id to open the shell stream to.
+  string device_peer_id = 3;
+  // Command is the optional command to run; empty opens the default shell.
+  string command = 4;
+  // Environment contains optional KEY=VALUE entries for the shell process.
+  repeated string environment = 5;
+  // Cols is the requested terminal column count.
+  uint32 cols = 6;
+  // Rows is the requested terminal row count.
+  uint32 rows = 7;
+  // State is the current user-visible session state.
+  TerminalSessionState state = 8;
+  // Status is a short operator-visible status.
+  string status = 9;
+  // Error is the last terminal error, if any.
+  string error = 10;
+  // CreatedAt is when this Terminal object was created.
+  .google.protobuf.Timestamp created_at = 11;
+  // UpdatedAt is when this Terminal object was last updated.
+  .google.protobuf.Timestamp updated_at = 12;
+  // TargetKind selects the terminal session owner.
+  TerminalTargetKind target_kind = 13;
+  // SshHostObjectKey is the linked SSH Host object key for SSH Host terminals.
+  string ssh_host_object_key = 14;
+}
+
+// TerminalFrame carries terminal data and control frames.
+message TerminalFrame {
+  // Kind is the frame type.
+  TerminalFrameKind kind = 1;
+  // Data carries input or output bytes.
+  bytes data = 2;
+  // Cols is the terminal column count for OPEN or RESIZE.
+  uint32 cols = 3;
+  // Rows is the terminal row count for OPEN or RESIZE.
+  uint32 rows = 4;
+  // Command is the optional command for OPEN.
+  string command = 5;
+  // Environment carries optional KEY=VALUE entries for OPEN.
+  repeated string environment = 6;
+  // Error is the error message for ERROR.
+  string error = 7;
+  // ExitCode is the process exit code for EXIT.
+  int32 exit_code = 8;
+}
+
+// CreateTerminalOp creates a Terminal world object.
+message CreateTerminalOp {
+  // ObjectKey is the key to create the Terminal at.
+  string object_key = 1;
+  // Name is the Terminal display name.
+  string name = 2;
+  // DeviceObjectKey is the linked Device object key.
+  string device_object_key = 3;
+  // DevicePeerId is the linked DEVICE session peer id.
+  string device_peer_id = 4;
+  // Command is the optional command to run.
+  string command = 5;
+  // Environment carries optional KEY=VALUE entries.
+  repeated string environment = 6;
+  // Cols is the initial column count.
+  uint32 cols = 7;
+  // Rows is the initial row count.
+  uint32 rows = 8;
+  // Timestamp is the creation timestamp.
+  .google.protobuf.Timestamp timestamp = 9;
+  // TargetKind selects the terminal session owner.
+  TerminalTargetKind target_kind = 10;
+  // SshHostObjectKey is the linked SSH Host object key for SSH Host terminals.
+  string ssh_host_object_key = 11;
+}
+
+service TerminalResourceService {
+  rpc WatchTerminalState(WatchTerminalStateRequest) returns (stream WatchTerminalStateResponse);
+  rpc ConnectTerminal(stream TerminalFrame) returns (stream TerminalFrame);
+}
+
+// WatchTerminalStateRequest is a request to watch Terminal state.
+message WatchTerminalStateRequest {}
+
+// WatchTerminalStateResponse contains the current Terminal state.
+message WatchTerminalStateResponse {
+  // State is the current Terminal block state.
+  Terminal state = 1;
+}

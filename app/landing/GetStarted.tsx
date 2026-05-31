@@ -8,10 +8,12 @@ import { useSessionMetadata } from '@s4wave/app/hooks/useSessionMetadata.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import {
+  getVisibleQuickstartOptions,
   getQuickstartPath,
   isQuickstartOptionPublic,
-  VISIBLE_QUICKSTART_OPTIONS,
+  type QuickstartOption,
 } from '../quickstart/options.js'
+import { useExperimentalCreatorsEnabled } from '../creator-visibility.js'
 import {
   Command,
   CommandEmpty,
@@ -26,16 +28,14 @@ declare global {
   var __swStaticHandoffLinks: boolean | undefined
 }
 
-const COMMAND_ITEMS = [...VISIBLE_QUICKSTART_OPTIONS]
-
-const CATEGORIES = [...new Set(COMMAND_ITEMS.map((item) => item.category))]
+const BUILD_COMMAND_ITEMS = getVisibleQuickstartOptions(false)
 
 function shouldUseStaticHandoffLinks(): boolean {
   return globalThis.__swStaticHandoffLinks === true
 }
 
 function getStaticQuickstartHref(
-  item: (typeof COMMAND_ITEMS)[number],
+  item: QuickstartOption,
   useHandoffLinks: boolean,
 ): string {
   const path = getQuickstartPath(item)
@@ -43,7 +43,7 @@ function getStaticQuickstartHref(
   return isQuickstartOptionPublic(item, false) ? path : `#${path}`
 }
 
-const GetStartedItem = ({ item }: { item: (typeof COMMAND_ITEMS)[number] }) => {
+const GetStartedItem = ({ item }: { item: QuickstartOption }) => {
   const navigate = useNavigate()
   const handleClick = useCallback(() => {
     const path = getQuickstartPath(item)
@@ -143,9 +143,12 @@ interface GetStartedProps {
 function StaticGetStarted({ className }: { className?: string }) {
   const useHandoffLinks = shouldUseStaticHandoffLinks()
   const itemsByCategory = useMemo(() => {
-    return CATEGORIES.map((category) => ({
+    const categories = [
+      ...new Set(BUILD_COMMAND_ITEMS.map((item) => item.category)),
+    ]
+    return categories.map((category) => ({
       category,
-      items: COMMAND_ITEMS.filter((item) => item.category === category),
+      items: BUILD_COMMAND_ITEMS.filter((item) => item.category === category),
     }))
   }, [])
 
@@ -198,13 +201,16 @@ function StaticGetStarted({ className }: { className?: string }) {
 
 const GetStarted = ({ className, sessions }: GetStartedProps) => {
   const isStatic = useIsStaticMode()
+  const experimentalCreatorsEnabled = useExperimentalCreatorsEnabled()
   const inputRef = useRef<HTMLInputElement>(null)
   const itemsByCategory = useMemo(() => {
-    return CATEGORIES.map((category) => ({
+    const items = getVisibleQuickstartOptions(experimentalCreatorsEnabled)
+    const categories = [...new Set(items.map((item) => item.category))]
+    return categories.map((category) => ({
       category,
-      items: COMMAND_ITEMS.filter((item) => item.category === category),
+      items: items.filter((item) => item.category === category),
     }))
-  }, [])
+  }, [experimentalCreatorsEnabled])
 
   // Set up global event listener for Shift+Tab from nav links back to command input
   useEffect(() => {

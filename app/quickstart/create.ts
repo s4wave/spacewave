@@ -43,6 +43,9 @@ import {
   INIT_CHAT_DEMO_OP_ID,
   CHAT_DEMO_CHANNEL_KEY,
 } from '@s4wave/sdk/chat/init-chat-demo.js'
+import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
+import { CreateComputersDashboardOp } from '@s4wave/sdk/device/device.pb.js'
+import { CREATE_COMPUTERS_DASHBOARD_OP_ID } from '@s4wave/sdk/device/computers/create-computers-dashboard.js'
 import { V86WizardConfig } from '@s4wave/sdk/vm/v86-wizard.pb.js'
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
@@ -63,6 +66,11 @@ import {
   DriveIntroTargetTypeID,
   DriveIntroWizardTypeID,
 } from '@s4wave/app/wizard/drive-intro.js'
+import {
+  AddDeviceDefaultName,
+  AddDeviceWizardTargetKeyPrefix,
+  AddDeviceWizardTypeID,
+} from '@s4wave/app/device/add-device-wizard.js'
 
 import { type QuickstartSpaceCreateId } from './options.js'
 
@@ -76,6 +84,7 @@ const QUICKSTART_RECOVER_LOCAL_SESSION_TIMEOUT_MS = import.meta.env?.DEV
   ? 60000
   : 15000
 const DRIVE_STARTER_GUIDE_NAME = 'getting-started.md'
+const DEVICE_QUICKSTART_DASHBOARD_KEY = 'computers'
 const DRIVE_STARTER_GUIDE_CONTENT = `# Getting Started
 
 Welcome to your new drive! This starter guide is written by the Drive
@@ -345,6 +354,8 @@ export function getQuickstartSpaceName(
       return 'My Blog'
     case 'v86':
       return 'My V86 VM'
+    case 'device':
+      return 'My Computers'
     case 'forge':
       return 'My Forge Dashboard'
   }
@@ -659,6 +670,8 @@ export function getQuickstartInitialObjectKey(
       return CHAT_DEMO_CHANNEL_KEY
     case 'forge':
       return 'forge'
+    case 'device':
+      return ''
     case 'space':
     case 'git':
     case 'notebook':
@@ -688,6 +701,7 @@ export function getQuickstartInitialObjectType(
     case 'chat':
     case 'v86':
     case 'forge':
+    case 'device':
       return ''
     default: {
       const _exhaustive: never = quickstartId
@@ -1061,6 +1075,9 @@ export async function populateSpace(
     case 'v86':
       await initV86Quickstart(setup, abortSignal)
       break
+    case 'device':
+      await initDeviceQuickstart(setup, abortSignal, timing)
+      break
     case 'forge':
       await initForgeQuickstart(setup, abortSignal)
       break
@@ -1267,6 +1284,54 @@ async function initV86Quickstart(
     abortSignal,
   )
   await createSpaceSettingsObject(setup.spaceWorld, abortSignal, wizardKey)
+}
+
+async function initDeviceQuickstart(
+  setup: QuickstartSetup,
+  abortSignal?: AbortSignal,
+  timing?: QuickstartSetupTiming,
+): Promise<void> {
+  const now = new Date()
+  const wizardKey = buildWizardObjectKey(
+    'Add Device ' + now.getTime().toString(36),
+  )
+  await applyQuickstartWorldOp(
+    setup.spaceWorld,
+    CREATE_COMPUTERS_DASHBOARD_OP_ID,
+    CreateComputersDashboardOp.toBinary({
+      objectKey: DEVICE_QUICKSTART_DASHBOARD_KEY,
+      name: 'Computers',
+      timestamp: now,
+    }),
+    '',
+    abortSignal,
+    timing,
+    'create-device-dashboard',
+  )
+  await applyQuickstartWorldOp(
+    setup.spaceWorld,
+    CREATE_WIZARD_OBJECT_OP_ID,
+    CreateWizardObjectOp.toBinary({
+      objectKey: wizardKey,
+      wizardTypeId: AddDeviceWizardTypeID,
+      targetTypeId: DeviceTypeID,
+      targetKeyPrefix: AddDeviceWizardTargetKeyPrefix,
+      name: AddDeviceDefaultName,
+      timestamp: now,
+    }),
+    '',
+    abortSignal,
+    timing,
+    'create-device-wizard',
+  )
+  await createSpaceSettingsObject(
+    setup.spaceWorld,
+    abortSignal,
+    wizardKey,
+    undefined,
+    timing,
+    'create-device-settings',
+  )
 }
 
 // initForgeQuickstart creates a complete Forge environment in the space:

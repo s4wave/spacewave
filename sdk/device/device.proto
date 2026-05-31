@@ -1,0 +1,225 @@
+syntax = "proto3";
+package s4wave.device;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/device;s4wave_device";
+
+// DeviceSetupState is the Space-visible setup lifecycle for a managed Device.
+enum DeviceSetupState {
+  // DEVICE_SETUP_STATE_UNKNOWN is unset.
+  DEVICE_SETUP_STATE_UNKNOWN = 0;
+  // DEVICE_SETUP_STATE_WAITING_FOR_COMPLETION means a SpaceLink ticket is pending approval.
+  DEVICE_SETUP_STATE_WAITING_FOR_COMPLETION = 1;
+  // DEVICE_SETUP_STATE_COMPLETION_IMPORTED means approval was imported locally.
+  DEVICE_SETUP_STATE_COMPLETION_IMPORTED = 2;
+  // DEVICE_SETUP_STATE_DEVICE_SESSION_READY means the approved DEVICE session mounted.
+  DEVICE_SETUP_STATE_DEVICE_SESSION_READY = 3;
+  // DEVICE_SETUP_STATE_FAILED means setup stopped in a retryable failure state.
+  DEVICE_SETUP_STATE_FAILED = 4;
+}
+
+// DeviceUpdateState is the durable update lifecycle projection for the daemon.
+enum DeviceUpdateState {
+  // DEVICE_UPDATE_STATE_UNKNOWN is unset.
+  DEVICE_UPDATE_STATE_UNKNOWN = 0;
+  // DEVICE_UPDATE_STATE_IDLE means no update is pending.
+  DEVICE_UPDATE_STATE_IDLE = 1;
+  // DEVICE_UPDATE_STATE_READY means an update is ready to stage or apply.
+  DEVICE_UPDATE_STATE_READY = 2;
+  // DEVICE_UPDATE_STATE_STAGING means update assets are being staged.
+  DEVICE_UPDATE_STATE_STAGING = 3;
+  // DEVICE_UPDATE_STATE_APPLYING means the daemon is applying an update.
+  DEVICE_UPDATE_STATE_APPLYING = 4;
+  // DEVICE_UPDATE_STATE_UPDATED means the last update completed.
+  DEVICE_UPDATE_STATE_UPDATED = 5;
+  // DEVICE_UPDATE_STATE_FAILED means the last update attempt failed.
+  DEVICE_UPDATE_STATE_FAILED = 6;
+}
+
+// DeviceLiveness is durable liveness as last reported by the daemon.
+enum DeviceLiveness {
+  // DEVICE_LIVENESS_UNKNOWN is unset.
+  DEVICE_LIVENESS_UNKNOWN = 0;
+  // DEVICE_LIVENESS_ONLINE means the daemon last reported itself reachable.
+  DEVICE_LIVENESS_ONLINE = 1;
+  // DEVICE_LIVENESS_DEGRADED means the daemon last reported partial service.
+  DEVICE_LIVENESS_DEGRADED = 2;
+  // DEVICE_LIVENESS_OFFLINE means the daemon last reported a shutdown/offline state.
+  DEVICE_LIVENESS_OFFLINE = 3;
+}
+
+// DeviceCapabilityState is the declared capability state projection.
+enum DeviceCapabilityState {
+  // DEVICE_CAPABILITY_STATE_UNKNOWN is unset.
+  DEVICE_CAPABILITY_STATE_UNKNOWN = 0;
+  // DEVICE_CAPABILITY_STATE_DECLARED means the daemon advertises this capability.
+  DEVICE_CAPABILITY_STATE_DECLARED = 1;
+  // DEVICE_CAPABILITY_STATE_DISABLED means local policy disables this capability.
+  DEVICE_CAPABILITY_STATE_DISABLED = 2;
+  // DEVICE_CAPABILITY_STATE_GRANT_BLOCKED means Space grants block this capability.
+  DEVICE_CAPABILITY_STATE_GRANT_BLOCKED = 3;
+  // DEVICE_CAPABILITY_STATE_AVAILABLE means the capability can be used.
+  DEVICE_CAPABILITY_STATE_AVAILABLE = 4;
+  // DEVICE_CAPABILITY_STATE_ACTIVE means the capability currently has active work.
+  DEVICE_CAPABILITY_STATE_ACTIVE = 5;
+}
+
+// DeviceCapabilityLocalState is the daemon-local allowlist state.
+enum DeviceCapabilityLocalState {
+  // DEVICE_CAPABILITY_LOCAL_STATE_UNKNOWN is unset.
+  DEVICE_CAPABILITY_LOCAL_STATE_UNKNOWN = 0;
+  // DEVICE_CAPABILITY_LOCAL_STATE_ENABLED means daemon-local policy allows the capability.
+  DEVICE_CAPABILITY_LOCAL_STATE_ENABLED = 1;
+  // DEVICE_CAPABILITY_LOCAL_STATE_DISABLED means daemon-local policy disables the capability.
+  DEVICE_CAPABILITY_LOCAL_STATE_DISABLED = 2;
+}
+
+// DeviceCapabilityGrantState is the Space grant projection for a capability.
+enum DeviceCapabilityGrantState {
+  // DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN is unset.
+  DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN = 0;
+  // DEVICE_CAPABILITY_GRANT_STATE_ALLOWED means Space policy currently allows the capability.
+  DEVICE_CAPABILITY_GRANT_STATE_ALLOWED = 1;
+  // DEVICE_CAPABILITY_GRANT_STATE_BLOCKED means Space policy currently blocks the capability.
+  DEVICE_CAPABILITY_GRANT_STATE_BLOCKED = 2;
+}
+
+// DevicePlatform summarizes the daemon runtime platform.
+message DevicePlatform {
+  // Os is the daemon operating system.
+  string os = 1;
+  // Arch is the daemon architecture.
+  string arch = 2;
+}
+
+// DeviceStatus is the durable last status summary authored by the daemon.
+message DeviceStatus {
+  // Liveness is the last reported durable liveness.
+  DeviceLiveness liveness = 1;
+  // Message is a short operator-visible status.
+  string message = 2;
+  // Error is the last reported error, if any.
+  string error = 3;
+  // ObservedAt is when the daemon observed this status.
+  .google.protobuf.Timestamp observed_at = 4;
+}
+
+// DeviceCapability is a declared capability summary, not the capability owner.
+message DeviceCapability {
+  // Id is the stable capability identifier.
+  string id = 1;
+  // Kind is the capability family, such as filesystem or forge-worker.
+  string kind = 2;
+  // Label is the operator-visible capability label.
+  string label = 3;
+  // State is the projected capability state.
+  DeviceCapabilityState state = 4;
+  // Detail is a short status or policy note.
+  string detail = 5;
+  // Link points at the owner that executes the capability.
+  DeviceCapabilityLink link = 6;
+  // Policy records the local and Space policy refs used for the effective state.
+  DeviceCapabilityPolicy policy = 7;
+}
+
+// DeviceCapabilityLink points at the capability execution owner.
+message DeviceCapabilityLink {
+  // ObjectKey is the linked owner object, such as a UnixFS root or Forge Worker.
+  string object_key = 1;
+  // TypeId is the ObjectType id for ObjectKey when ObjectKey is set.
+  string type_id = 2;
+  // ProtocolId is the post-registration Bifrost protocol id for stream-backed adapters.
+  string protocol_id = 3;
+}
+
+// DeviceCapabilityPolicy records inputs to the effective capability state.
+message DeviceCapabilityPolicy {
+  // LocalPolicyRef identifies the daemon-local policy entry.
+  string local_policy_ref = 1;
+  // GrantPolicyRef identifies the Space grant or policy entry.
+  string grant_policy_ref = 2;
+  // LocalState is the daemon-local allowlist state.
+  DeviceCapabilityLocalState local_state = 3;
+  // GrantState is the current Space grant projection.
+  DeviceCapabilityGrantState grant_state = 4;
+}
+
+// Device is the world-block state for a Spacewave-managed Device object.
+message Device {
+  // PeerId is the daemon DEVICE session peer ID.
+  string peer_id = 1;
+  // Label is the operator-visible Device label.
+  string label = 2;
+  // Platform summarizes the daemon runtime platform.
+  DevicePlatform platform = 3;
+  // DaemonVersion is the daemon entrypoint version label.
+  string daemon_version = 4;
+  // SetupState is the setup lifecycle projection.
+  DeviceSetupState setup_state = 5;
+  // UpdateState is the daemon update lifecycle projection.
+  DeviceUpdateState update_state = 6;
+  // LastStatus is the last durable daemon-authored status.
+  DeviceStatus last_status = 7;
+  // Capabilities are declared capability summaries.
+  repeated DeviceCapability capabilities = 8;
+  // CreatedAt is when this Device object was first created.
+  .google.protobuf.Timestamp created_at = 9;
+  // UpdatedAt is when this Device object was last updated.
+  .google.protobuf.Timestamp updated_at = 10;
+}
+
+// ComputersDashboard is the Space-local dashboard for managed Devices and
+// future host entries.
+message ComputersDashboard {
+  // Name is the display name of this dashboard.
+  string name = 1;
+  // CreatedAt is the time this dashboard was created.
+  .google.protobuf.Timestamp created_at = 2;
+}
+
+// CreateComputersDashboardOp creates a ComputersDashboard world object.
+message CreateComputersDashboardOp {
+  // ObjectKey is the key to create the dashboard at.
+  string object_key = 1;
+  // Name is the display name of the dashboard.
+  string name = 2;
+  // Timestamp is the creation timestamp.
+  .google.protobuf.Timestamp timestamp = 3;
+}
+
+service DeviceResourceService {
+  rpc WatchDeviceState(WatchDeviceStateRequest) returns (stream WatchDeviceStateResponse);
+  rpc ReportDeviceStatus(ReportDeviceStatusRequest) returns (ReportDeviceStatusResponse);
+}
+
+// WatchDeviceStateRequest is a request to watch Device state.
+message WatchDeviceStateRequest {}
+
+// WatchDeviceStateResponse contains the current Device state.
+message WatchDeviceStateResponse {
+  // State is the current Device block state.
+  Device state = 1;
+}
+
+// ReportDeviceStatusRequest updates daemon-owned Device status fields.
+message ReportDeviceStatusRequest {
+  // PeerId must match the Device peer_id.
+  string peer_id = 1;
+  // SetupState updates setup state when not UNKNOWN.
+  DeviceSetupState setup_state = 2;
+  // UpdateState updates update state when not UNKNOWN.
+  DeviceUpdateState update_state = 3;
+  // LastStatus replaces the durable last status when present.
+  DeviceStatus last_status = 4;
+  // Capabilities replaces capability summaries when replace_capabilities is true.
+  repeated DeviceCapability capabilities = 5;
+  // ReplaceCapabilities enables capability replacement.
+  bool replace_capabilities = 6;
+}
+
+// ReportDeviceStatusResponse contains the updated Device state.
+message ReportDeviceStatusResponse {
+  // State is the updated Device block state.
+  Device state = 1;
+}

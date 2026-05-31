@@ -1,0 +1,109 @@
+syntax = "proto3";
+package s4wave.sshhost;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/sshhost;s4wave_sshhost";
+
+// SshHostProbeState is the last observed SSH reachability state.
+enum SshHostProbeState {
+  // SSH_HOST_PROBE_STATE_UNKNOWN is unset or not yet probed.
+  SSH_HOST_PROBE_STATE_UNKNOWN = 0;
+  // SSH_HOST_PROBE_STATE_READY means the host was reachable with trusted keys.
+  SSH_HOST_PROBE_STATE_READY = 1;
+  // SSH_HOST_PROBE_STATE_FAILED means the last SSH probe failed.
+  SSH_HOST_PROBE_STATE_FAILED = 2;
+}
+
+// SshHostEndpoint describes the SSH endpoint without private credentials.
+message SshHostEndpoint {
+  // Host is the DNS name, IP address, or SSH config host alias.
+  string host = 1;
+  // Port is the SSH port. Zero is normalized to 22 by create paths.
+  uint32 port = 2;
+  // Username is the SSH login user.
+  string username = 3;
+}
+
+// SshHostCredentialRefs points at Secret objects containing credential payloads.
+message SshHostCredentialRefs {
+  // PrivateKeySecretObjectKey points at a Secret containing a PEM private key.
+  string private_key_secret_object_key = 1;
+  // PasswordSecretObjectKey points at a Secret containing an SSH password.
+  string password_secret_object_key = 2;
+  // PassphraseSecretObjectKey points at a Secret containing a private-key passphrase.
+  string passphrase_secret_object_key = 3;
+}
+
+// SshHostKeyPin records the host key the user accepted for this SSH Host.
+message SshHostKeyPin {
+  // Algorithm is the SSH host key algorithm, such as ssh-ed25519.
+  string algorithm = 1;
+  // PublicKey is the accepted host public key in authorized-key format.
+  string public_key = 2;
+  // Sha256Fingerprint is the accepted host key SHA256 fingerprint.
+  string sha256_fingerprint = 3;
+  // AcceptedAt is when this key was accepted.
+  .google.protobuf.Timestamp accepted_at = 4;
+  // AcceptedByPeerId is the peer that accepted this trust decision.
+  string accepted_by_peer_id = 5;
+}
+
+// SshHostStatus is redacted operator-visible SSH Host status.
+message SshHostStatus {
+  // State is the last observed SSH probe state.
+  SshHostProbeState state = 1;
+  // Message is a short status message.
+  string message = 2;
+  // Error is the last redacted SSH error, if any.
+  string error = 3;
+  // ObservedAt is when this status was observed.
+  .google.protobuf.Timestamp observed_at = 4;
+}
+
+// SshHost is the world-block state for an SSH-only Host.
+message SshHost {
+  // Label is the operator-visible Host label.
+  string label = 1;
+  // Endpoint is the SSH endpoint and username.
+  SshHostEndpoint endpoint = 2;
+  // Credentials contains Secret object refs, never raw credential bytes.
+  SshHostCredentialRefs credentials = 3;
+  // HostKeyPins are the accepted SSH host keys for trust verification.
+  repeated SshHostKeyPin host_key_pins = 4;
+  // LastStatus is the last redacted SSH reachability state.
+  SshHostStatus last_status = 5;
+  // CreatedAt is when this SSH Host object was created.
+  .google.protobuf.Timestamp created_at = 6;
+  // UpdatedAt is when this SSH Host object was last updated.
+  .google.protobuf.Timestamp updated_at = 7;
+}
+
+// CreateSshHostOp creates an SSH Host world object.
+message CreateSshHostOp {
+  // ObjectKey is the key to create the SSH Host at.
+  string object_key = 1;
+  // Label is the operator-visible Host label.
+  string label = 2;
+  // Endpoint is the SSH endpoint and username.
+  SshHostEndpoint endpoint = 3;
+  // Credentials contains Secret object refs, never raw credential bytes.
+  SshHostCredentialRefs credentials = 4;
+  // HostKeyPins are the accepted SSH host keys for trust verification.
+  repeated SshHostKeyPin host_key_pins = 5;
+  // Timestamp is the creation timestamp.
+  .google.protobuf.Timestamp timestamp = 6;
+}
+
+service SshHostResourceService {
+  rpc WatchSshHostState(WatchSshHostStateRequest) returns (stream WatchSshHostStateResponse);
+}
+
+// WatchSshHostStateRequest is a request to watch SSH Host state.
+message WatchSshHostStateRequest {}
+
+// WatchSshHostStateResponse contains the current SSH Host state.
+message WatchSshHostStateResponse {
+  // State is the current SSH Host block state.
+  SshHost state = 1;
+}

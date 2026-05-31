@@ -26,7 +26,7 @@ export interface QuickstartOption {
   icon: React.ComponentType<{ className?: string }>
   path?: string
   hidden?: boolean
-  // experimental marks options only shown in dev builds (not release).
+  // experimental marks options only shown when experimental creators are enabled.
   experimental?: boolean
   // dynamic marks plugin-registered app-only Quickstarts.
   dynamic?: boolean
@@ -150,6 +150,16 @@ export const QUICKSTART_OPTIONS = [
     experimental: true,
   },
   {
+    id: 'device',
+    name: 'Add a Device',
+    description: 'Experimental managed Device setup',
+    seoDescription:
+      'Create an experimental Spacewave Devices workspace for SpaceLink-backed managed Device setup.',
+    category: 'compute',
+    icon: LuMonitor,
+    experimental: true,
+  },
+  {
     id: 'forge',
     name: 'Create Forge Dashboard',
     description: 'Task orchestration dashboard',
@@ -165,11 +175,14 @@ export const QUICKSTART_OPTIONS = [
 // the running app.
 export function isQuickstartOptionVisible(
   option: QuickstartOption,
-  isDev = !!import.meta.env?.DEV,
+  experimentalCreatorsEnabled = !!import.meta.env?.DEV,
 ): boolean {
   return (
     !(option.hidden ?? false) &&
-    isExperimentalCreatorVisible(option.experimental, isDev)
+    isExperimentalCreatorVisible(
+      option.experimental,
+      experimentalCreatorsEnabled,
+    )
   )
 }
 
@@ -177,42 +190,42 @@ export function isQuickstartOptionVisible(
 // prerendered /quickstart/{id} page.
 export function isQuickstartOptionPublic(
   option: QuickstartOption,
-  isDev = !!import.meta.env?.DEV,
+  experimentalCreatorsEnabled = !!import.meta.env?.DEV,
 ): boolean {
   return (
     !(option.dynamic ?? false) &&
     !option.path &&
-    isQuickstartOptionVisible(option, isDev)
+    isQuickstartOptionVisible(option, experimentalCreatorsEnabled)
   )
 }
 
 // getVisibleQuickstartOptions returns the in-app quickstart inventory for the
-// given build mode.
+// current experimental creator visibility.
 export function getVisibleQuickstartOptions(
-  isDev = !!import.meta.env?.DEV,
+  experimentalCreatorsEnabled = !!import.meta.env?.DEV,
 ): QuickstartOption[] {
   return QUICKSTART_OPTIONS.filter((option) =>
-    isQuickstartOptionVisible(option, isDev),
+    isQuickstartOptionVisible(option, experimentalCreatorsEnabled),
   )
 }
 
 // getPublicQuickstartOptions returns the public prerender quickstarts for the
-// given build mode.
+// build-mode public policy.
 export function getPublicQuickstartOptions(
-  isDev = !!import.meta.env?.DEV,
+  experimentalCreatorsEnabled = !!import.meta.env?.DEV,
 ): QuickstartOption[] {
   return QUICKSTART_OPTIONS.filter((option) =>
-    isQuickstartOptionPublic(option, isDev),
+    isQuickstartOptionPublic(option, experimentalCreatorsEnabled),
   )
 }
 
-// VISIBLE_QUICKSTART_OPTIONS filters out hidden and experimental options for
-// display in the running app.
+// VISIBLE_QUICKSTART_OPTIONS is a module-load fallback. Runtime app surfaces
+// should call getVisibleQuickstartOptions with the current visibility value.
 export const VISIBLE_QUICKSTART_OPTIONS = getVisibleQuickstartOptions()
 
 // PUBLIC_QUICKSTART_OPTIONS is the release-visible quickstart inventory that
 // receives prerendered /quickstart/{id} pages.
-export const PUBLIC_QUICKSTART_OPTIONS = getPublicQuickstartOptions()
+export const PUBLIC_QUICKSTART_OPTIONS = getPublicQuickstartOptions(false)
 
 export type QuickstartId = (typeof QUICKSTART_OPTIONS)[number]['id']
 

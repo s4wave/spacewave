@@ -983,12 +983,10 @@ func (m *InputManifestMeta) CloneVT() *InputManifestMeta {
 		return (*InputManifestMeta)(nil)
 	}
 	r := new(InputManifestMeta)
+	r.DevInfo = m.DevInfo.CloneVT()
 	r.ViteDisableProjectConfig = m.ViteDisableProjectConfig
 	r.CompilerMode = m.CompilerMode
 	r.GoscriptAllDependencies = m.GoscriptAllDependencies
-	if rhs := m.DevInfo; rhs != nil {
-		r.DevInfo = rhs.CloneVT()
-	}
 	if rhs := m.WebPkgRefs; rhs != nil {
 		r.WebPkgRefs = make([]*pkg.WebPkgRef, len(rhs))
 		for k, v := range rhs {

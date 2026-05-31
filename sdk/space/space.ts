@@ -18,6 +18,8 @@ import type {
   WatchWizardsResponse,
 } from '../world/wizard/wizard.pb.js'
 import {
+  CreateSecretRequest,
+  CreateSecretResponse,
   SpaceSharingState,
   SpaceState,
   WatchSpaceSharingStateRequest,
@@ -73,6 +75,15 @@ export class Space extends Resource {
       response.resourceId ?? 0,
       SpaceContents,
     )
+  }
+
+  // createSecret creates a redacted Secret world object plus its nested
+  // payload SharedObject through the mounted Space resource.
+  public async createSecret(
+    request: CreateSecretRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CreateSecretResponse> {
+    return await this.service.CreateSecret(request, abortSignal)
   }
 
   // accessWorldState accesses the Engine as a WorldState-like interface.

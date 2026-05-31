@@ -138,6 +138,32 @@ pub struct LoginWithEntityKeyResponse {
     #[prost(message, optional, tag="1")]
     pub session_list_entry: ::core::option::Option<super::super::super::session::SessionListEntry>,
 }
+/// MountLinkedDeviceSessionRequest mounts a SpaceLink-approved DEVICE session.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MountLinkedDeviceSessionRequest {
+    /// AccountId is the Spacewave Cloud account ID returned by approval.
+    #[prost(string, tag="1")]
+    pub account_id: ::prost::alloc::string::String,
+    /// SessionId is the stable local provider resource ID for this Device session.
+    #[prost(string, tag="2")]
+    pub session_id: ::prost::alloc::string::String,
+    /// Label is the operator-visible Device label.
+    #[prost(string, tag="3")]
+    pub label: ::prost::alloc::string::String,
+    /// SessionPemPrivateKey is the approved Device session private key in PEM form.
+    #[prost(bytes="vec", tag="4")]
+    pub session_pem_private_key: ::prost::alloc::vec::Vec<u8>,
+    /// SessionPeerId is the expected peer ID derived from SessionPemPrivateKey.
+    #[prost(string, tag="5")]
+    pub session_peer_id: ::prost::alloc::string::String,
+}
+/// MountLinkedDeviceSessionResponse returns the mounted Device session entry.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MountLinkedDeviceSessionResponse {
+    /// SessionListEntry is the created or existing Device session entry.
+    #[prost(message, optional, tag="1")]
+    pub session_list_entry: ::core::option::Option<super::super::super::session::SessionListEntry>,
+}
 /// GenerateAuthKeypairsRequest requests new auth key material.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GenerateAuthKeypairsRequest {
@@ -2553,6 +2579,9 @@ pub struct SpaceLinkAuthRequest {
     /// TargetHint is an optional suggested target Space resource ID.
     #[prost(bytes="vec", tag="9")]
     pub target_hint: ::prost::alloc::vec::Vec<u8>,
+    /// CompletionMode is how the external actor expects approval completion.
+    #[prost(enumeration="SpaceLinkCompletionMode", tag="10")]
+    pub completion_mode: i32,
 }
 /// SpaceLinkAuthTicket is the signed SpaceLink ticket envelope.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -2598,6 +2627,9 @@ pub struct PreviewSpaceLinkResponse {
     /// CallbackUrl is the verified callback target.
     #[prost(string, tag="8")]
     pub callback_url: ::prost::alloc::string::String,
+    /// CompletionMode is the verified completion mode.
+    #[prost(enumeration="SpaceLinkCompletionMode", tag="9")]
+    pub completion_mode: i32,
 }
 /// ApproveSpaceLinkRequest is the request for ApproveSpaceLink.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -2627,6 +2659,39 @@ pub struct ApproveSpaceLinkResponse {
     /// CallbackUrl is the re-verified callback target.
     #[prost(string, tag="5")]
     pub callback_url: ::prost::alloc::string::String,
+    /// CompletionMode is the re-verified completion mode.
+    #[prost(enumeration="SpaceLinkCompletionMode", tag="6")]
+    pub completion_mode: i32,
+    /// Completion is the generic callback/completion payload.
+    #[prost(message, optional, tag="7")]
+    pub completion: ::core::option::Option<SpaceLinkCallback>,
+}
+/// SpaceLinkCallback is the generic approval result payload. Browser callback
+/// mode can encode it into the verified callback URL; CLI mode can transport the
+/// same binary payload directly for import.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SpaceLinkCallback {
+    /// Status is the approval result.
+    #[prost(enumeration="SpaceLinkCallbackStatus", tag="1")]
+    pub status: i32,
+    /// Nonce is echoed from the verified ticket.
+    #[prost(bytes="vec", tag="2")]
+    pub nonce: ::prost::alloc::vec::Vec<u8>,
+    /// AccountId is the linked external actor cloud account ID for successful
+    /// approval.
+    #[prost(string, tag="3")]
+    pub account_id: ::prost::alloc::string::String,
+    /// ResourceId is the target Space shared object ID for successful approval.
+    #[prost(bytes="vec", tag="4")]
+    pub resource_id: ::prost::alloc::vec::Vec<u8>,
+    /// SessionPeerId is the linked external actor session peer ID for successful
+    /// approval.
+    #[prost(bytes="vec", tag="5")]
+    pub session_peer_id: ::prost::alloc::vec::Vec<u8>,
+    /// ErrorMessage describes deny, expiry, or approval failure details when
+    /// status is not OK.
+    #[prost(string, tag="6")]
+    pub error_message: ::prost::alloc::string::String,
 }
 /// PasskeyPrfWrapAlgorithm identifies the passkey PRF wrapping algorithm.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -2922,6 +2987,83 @@ impl TargetedInvitePurpose {
             "TARGETED_INVITE_PURPOSE_UNSPECIFIED" => Some(Self::Unspecified),
             "TARGETED_INVITE_PURPOSE_SPACE" => Some(Self::Space),
             "TARGETED_INVITE_PURPOSE_ORGANIZATION" => Some(Self::Organization),
+            _ => None,
+        }
+    }
+}
+/// SpaceLinkCompletionMode describes how the external actor receives approval
+/// completion data after consent.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SpaceLinkCompletionMode {
+    /// SpaceLinkCompletionMode_UNKNOWN means completion mode was not specified.
+    Unknown = 0,
+    /// SpaceLinkCompletionMode_BROWSER_CALLBACK returns completion through the
+    /// verified callback URL.
+    BrowserCallback = 1,
+    /// SpaceLinkCompletionMode_CLI returns completion for CLI-mediated import.
+    Cli = 2,
+}
+impl SpaceLinkCompletionMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unknown => "SpaceLinkCompletionMode_UNKNOWN",
+            Self::BrowserCallback => "SpaceLinkCompletionMode_BROWSER_CALLBACK",
+            Self::Cli => "SpaceLinkCompletionMode_CLI",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SpaceLinkCompletionMode_UNKNOWN" => Some(Self::Unknown),
+            "SpaceLinkCompletionMode_BROWSER_CALLBACK" => Some(Self::BrowserCallback),
+            "SpaceLinkCompletionMode_CLI" => Some(Self::Cli),
+            _ => None,
+        }
+    }
+}
+/// SpaceLinkCallbackStatus describes the result carried by a SpaceLink callback
+/// or CLI-mediated completion payload.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SpaceLinkCallbackStatus {
+    /// SpaceLinkCallbackStatus_UNKNOWN means the result is not specified.
+    Unknown = 0,
+    /// SpaceLinkCallbackStatus_OK means approval completed successfully.
+    Ok = 1,
+    /// SpaceLinkCallbackStatus_DENIED means the user denied approval.
+    Denied = 2,
+    /// SpaceLinkCallbackStatus_EXPIRED means the ticket expired before approval.
+    Expired = 3,
+    /// SpaceLinkCallbackStatus_ERROR means approval failed for another reason.
+    Error = 4,
+}
+impl SpaceLinkCallbackStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unknown => "SpaceLinkCallbackStatus_UNKNOWN",
+            Self::Ok => "SpaceLinkCallbackStatus_OK",
+            Self::Denied => "SpaceLinkCallbackStatus_DENIED",
+            Self::Expired => "SpaceLinkCallbackStatus_EXPIRED",
+            Self::Error => "SpaceLinkCallbackStatus_ERROR",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SpaceLinkCallbackStatus_UNKNOWN" => Some(Self::Unknown),
+            "SpaceLinkCallbackStatus_OK" => Some(Self::Ok),
+            "SpaceLinkCallbackStatus_DENIED" => Some(Self::Denied),
+            "SpaceLinkCallbackStatus_EXPIRED" => Some(Self::Expired),
+            "SpaceLinkCallbackStatus_ERROR" => Some(Self::Error),
             _ => None,
         }
     }

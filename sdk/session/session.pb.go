@@ -2654,11 +2654,9 @@ func (m *GetSessionInfoResponse) CloneVT() *GetSessionInfoResponse {
 		return (*GetSessionInfoResponse)(nil)
 	}
 	r := new(GetSessionInfoResponse)
+	r.SessionRef = m.SessionRef.CloneVT()
 	r.PeerId = m.PeerId
 	r.CryptoInfo = m.CryptoInfo.CloneVT()
-	if rhs := m.SessionRef; rhs != nil {
-		r.SessionRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2748,15 +2746,11 @@ func (m *CreateSpaceResponse) CloneVT() *CreateSpaceResponse {
 		return (*CreateSpaceResponse)(nil)
 	}
 	r := new(CreateSpaceResponse)
+	r.SharedObjectRef = m.SharedObjectRef.CloneVT()
+	r.SharedObjectMeta = m.SharedObjectMeta.CloneVT()
 	r.MountedSharedObject = m.MountedSharedObject.CloneVT()
 	r.SharedObjectBodyResourceId = m.SharedObjectBodyResourceId
 	r.SpaceWorldResourceId = m.SpaceWorldResourceId
-	if rhs := m.SharedObjectRef; rhs != nil {
-		r.SharedObjectRef = rhs.CloneVT()
-	}
-	if rhs := m.SharedObjectMeta; rhs != nil {
-		r.SharedObjectMeta = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2852,13 +2846,11 @@ func (m *MountSharedObjectResponse) CloneVT() *MountSharedObjectResponse {
 	}
 	r := new(MountSharedObjectResponse)
 	r.ResourceId = m.ResourceId
+	r.SharedObjectMeta = m.SharedObjectMeta.CloneVT()
 	r.PeerId = m.PeerId
 	r.SharedObjectId = m.SharedObjectId
 	r.BlockStoreId = m.BlockStoreId
 	r.HashType = m.HashType
-	if rhs := m.SharedObjectMeta; rhs != nil {
-		r.SharedObjectMeta = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2890,9 +2882,7 @@ func (m *WatchSharedObjectHealthResponse) CloneVT() *WatchSharedObjectHealthResp
 		return (*WatchSharedObjectHealthResponse)(nil)
 	}
 	r := new(WatchSharedObjectHealthResponse)
-	if rhs := m.Health; rhs != nil {
-		r.Health = rhs.CloneVT()
-	}
+	r.Health = m.Health.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3536,9 +3526,7 @@ func (m *WatchTransferProgressResponse) CloneVT() *WatchTransferProgressResponse
 		return (*WatchTransferProgressResponse)(nil)
 	}
 	r := new(WatchTransferProgressResponse)
-	if rhs := m.State; rhs != nil {
-		r.State = rhs.CloneVT()
-	}
+	r.State = m.State.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3713,10 +3701,8 @@ func (m *CreateSpaceInviteResponse) CloneVT() *CreateSpaceInviteResponse {
 		return (*CreateSpaceInviteResponse)(nil)
 	}
 	r := new(CreateSpaceInviteResponse)
+	r.InviteMessage = m.InviteMessage.CloneVT()
 	r.ShortCode = m.ShortCode
-	if rhs := m.InviteMessage; rhs != nil {
-		r.InviteMessage = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3871,9 +3857,7 @@ func (m *JoinSpaceViaInviteRequest) CloneVT() *JoinSpaceViaInviteRequest {
 		return (*JoinSpaceViaInviteRequest)(nil)
 	}
 	r := new(JoinSpaceViaInviteRequest)
-	if rhs := m.InviteMessage; rhs != nil {
-		r.InviteMessage = rhs.CloneVT()
-	}
+	r.InviteMessage = m.InviteMessage.CloneVT()
 	if rhs := m.TargetedInvitationEnvelope; rhs != nil {
 		r.TargetedInvitationEnvelope = slices.Clone(rhs)
 	}
@@ -3926,9 +3910,7 @@ func (m *GetTransferStatusResponse) CloneVT() *GetTransferStatusResponse {
 	r := new(GetTransferStatusResponse)
 	r.Active = m.Active
 	r.HasCheckpoint = m.HasCheckpoint
-	if rhs := m.State; rhs != nil {
-		r.State = rhs.CloneVT()
-	}
+	r.State = m.State.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

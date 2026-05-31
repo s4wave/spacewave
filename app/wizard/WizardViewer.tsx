@@ -11,6 +11,7 @@ import {
   lookupCreateOpBuilder,
   buildObjectKey,
 } from '../space/create-op-builders.js'
+import { useExperimentalCreatorsEnabled } from '../creator-visibility.js'
 import { normalizeObjectWizards } from '../space/object-wizards.js'
 
 import { useWizardState } from './useWizardState.js'
@@ -21,6 +22,7 @@ export const WizardTypePrefix = 'wizard/'
 export function WizardViewer(props: ObjectViewerComponentProps) {
   const spaceResource = SpaceContext.useContext()
   const space = useResourceValue(spaceResource)
+  const experimentalCreatorsEnabled = useExperimentalCreatorsEnabled()
   const { data: wizards } = usePromise(
     useCallback((signal) => space?.listWizards(signal), [space]),
   )
@@ -38,10 +40,10 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
 
   const targetWizard = useMemo(
     () =>
-      normalizeObjectWizards(wizards ?? []).find(
+      normalizeObjectWizards(wizards ?? [], experimentalCreatorsEnabled).find(
         (w) => w.typeId === state?.targetTypeId,
       ),
-    [wizards, state?.targetTypeId],
+    [experimentalCreatorsEnabled, wizards, state?.targetTypeId],
   )
 
   const handleFinalize = useCallback(async () => {

@@ -21,23 +21,26 @@ function isWizardCreatable(wizard: ObjectWizard): boolean {
 }
 
 // isObjectWizardVisible returns true when the wizard should be shown for the
-// given build mode.
+// current experimental creator visibility.
 export function isObjectWizardVisible(
   wizard: ObjectWizard,
-  isDev = !!import.meta.env?.DEV,
+  experimentalCreatorsEnabled = !!import.meta.env?.DEV,
 ): boolean {
-  return isExperimentalCreatorVisible(wizard.experimental, isDev)
+  return isExperimentalCreatorVisible(
+    wizard.experimental,
+    experimentalCreatorsEnabled,
+  )
 }
 
 // normalizeObjectWizards filters malformed wizard entries and deduplicates
 // them by type ID so the drawer and command palette render stable lists.
 export function normalizeObjectWizards(
   wizards: ObjectWizard[],
-  isDev = !!import.meta.env?.DEV,
+  experimentalCreatorsEnabled = !!import.meta.env?.DEV,
 ): ObjectWizard[] {
   const deduped = new Map<string, ObjectWizard>()
   for (const wizard of wizards) {
-    if (!isObjectWizardVisible(wizard, isDev)) continue
+    if (!isObjectWizardVisible(wizard, experimentalCreatorsEnabled)) continue
     if (!isWizardCreatable(wizard)) continue
     const typeId = wizard.typeId ?? ''
     const existing = deduped.get(typeId)

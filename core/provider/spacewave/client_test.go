@@ -941,6 +941,105 @@ func TestRegisterSessionDirect_Success(t *testing.T) {
 	}
 }
 
+func TestRegisterSessionWithRequest_SendsRequestShape(t *testing.T) {
+	priv, pid := generateTestKeypair(t)
+	_, sessionPID := generateTestKeypair(t)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/account/session/register" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		if got := r.Header.Get("X-Turnstile-Token"); got != "turnstile-token" {
+			t.Errorf("unexpected turnstile token header: %s", got)
+		}
+		if got := r.Header.Get("X-Device-Type"); got != "desktop" {
+			t.Errorf("unexpected device type header: %s", got)
+		}
+
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("read request body: %v", err)
+		}
+		reqMsg := &api.RegisterSessionRequest{}
+		if err := reqMsg.UnmarshalVT(body); err != nil {
+			t.Fatalf("unmarshal request: %v", err)
+		}
+		if reqMsg.GetSessionPeerId() != sessionPID.String() {
+			t.Errorf("unexpected session_peer_id: %s", reqMsg.GetSessionPeerId())
+		}
+		if reqMsg.GetDeviceInfo() != "device-info" {
+			t.Errorf("unexpected device_info: %s", reqMsg.GetDeviceInfo())
+		}
+		if reqMsg.GetEntityId() != "entity-id" {
+			t.Errorf("unexpected entity_id: %s", reqMsg.GetEntityId())
+		}
+		if reqMsg.GetType() != session.SessionType_SESSION_TYPE_DEVICE {
+			t.Errorf("unexpected type: %v", reqMsg.GetType())
+		}
+		if reqMsg.GetLabel() != "Lab Mac mini" {
+			t.Errorf("unexpected label: %s", reqMsg.GetLabel())
+		}
+
+		resp := &api.RegisterSessionResponse{
+			PeerId:    sessionPID.String(),
+			AccountId: "acct-789",
+			EntityId:  "entity-id",
+			Created:   true,
+		}
+		data, err := resp.MarshalVT()
+		if err != nil {
+			t.Fatalf("marshal response: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(data)
+	}))
+	defer srv.Close()
+
+	cli := NewEntityClientDirect(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid)
+	resp, err := cli.RegisterSessionWithRequest(context.Background(), &api.RegisterSessionRequest{
+		SessionPeerId: sessionPID.String(),
+		DeviceInfo:    "device-info",
+		EntityId:      "entity-id",
+		Type:          session.SessionType_SESSION_TYPE_DEVICE,
+		Label:         "Lab Mac mini",
+	}, "turnstile-token")
+	if err != nil {
+		t.Fatalf("RegisterSessionWithRequest: %v", err)
+	}
+	if !resp.GetCreated() {
+		t.Fatalf("expected created=true")
+	}
+	if resp.GetAccountId() != "acct-789" {
+		t.Fatalf("unexpected account_id: %s", resp.GetAccountId())
+	}
+}
+
+func TestRollbackSessionRegistration_Success(t *testing.T) {
+	priv, pid := generateTestKeypair(t)
+	_, sessionPID := generateTestKeypair(t)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Errorf("expected DELETE, got %s", r.Method)
+		}
+		expectedPath := "/api/account/session/" + sessionPID.String() + "/registration"
+		if r.URL.Path != expectedPath {
+			t.Errorf("unexpected path: got %s, want %s", r.URL.Path, expectedPath)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	cli := NewEntityClientDirect(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid)
+	if err := cli.RollbackSessionRegistration(context.Background(), sessionPID.String()); err != nil {
+		t.Fatalf("RollbackSessionRegistration: %v", err)
+	}
+}
+
 // TestIsBlockedCloudError verifies isBlockedCloudError returns true for dmca_blocked.
 func TestIsBlockedCloudError(t *testing.T) {
 	tests := []struct {

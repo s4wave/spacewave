@@ -55,6 +55,56 @@ describe('getObjectViewersForType', () => {
     ).toEqual(['Drive Intro', 'Wizard', 'Debug Viewer'])
   })
 
+  it('registers the Device viewer as a typed Space object surface', () => {
+    expect(
+      getObjectViewersForType('spacewave/device').map((viewer) => [
+        viewer.name,
+        viewer.category,
+      ]),
+    ).toEqual([
+      ['Device', 'Devices'],
+      ['Debug Viewer', 'Developer'],
+    ])
+  })
+
+  it('registers Computers, Terminal, and Add Device as typed Device setup surfaces', () => {
+    expect(
+      getObjectViewersForType('spacewave/computers').map((viewer) => [
+        viewer.name,
+        viewer.category,
+      ]),
+    ).toEqual([
+      ['Computers', 'Devices'],
+      ['Debug Viewer', 'Developer'],
+    ])
+    expect(
+      getObjectViewersForType('spacewave/ssh-host').map((viewer) => [
+        viewer.name,
+        viewer.category,
+      ]),
+    ).toEqual([
+      ['SSH Host', 'Devices'],
+      ['Debug Viewer', 'Developer'],
+    ])
+    expect(
+      getObjectViewersForType('spacewave/terminal').map((viewer) => [
+        viewer.name,
+        viewer.category,
+      ]),
+    ).toEqual([
+      ['Terminal', 'Devices'],
+      ['Debug Viewer', 'Developer'],
+    ])
+    expect(
+      getObjectViewersForType('wizard/device/add')
+        .filter((viewer) => viewer.typeID.startsWith('wizard/'))
+        .map((viewer) => [viewer.name, viewer.requiresObjectState]),
+    ).toEqual([
+      ['Add Device', false],
+      ['Wizard', false],
+    ])
+  })
+
   it('lets wizard viewers open through their typed resource handle', () => {
     expect(
       getObjectViewersForType('wizard/drive/intro')

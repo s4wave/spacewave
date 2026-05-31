@@ -12,6 +12,10 @@ import {
   SpaceContext,
 } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
+import {
+  EXPERIMENTAL_CREATORS_STORAGE_KEY,
+  setExperimentalCreatorsEnabled,
+} from '../creator-visibility.js'
 import { SpaceCommands } from './SpaceCommands.js'
 
 interface RegisteredCommand {
@@ -210,6 +214,8 @@ describe('SpaceCommands', () => {
 
   afterEach(() => {
     registeredCommands.length = 0
+    vi.unstubAllEnvs()
+    localStorage.removeItem(EXPERIMENTAL_CREATORS_STORAGE_KEY)
     vi.clearAllMocks()
   })
 
@@ -419,5 +425,60 @@ describe('SpaceCommands', () => {
     expect(decoded.targetKeyPrefix).toBe('glados/workfront/')
     expect(decoded.name).toBe('Workfront')
     expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
+  })
+
+  it('hides experimental create-object subitems until the browser opts in', async () => {
+    vi.stubEnv('DEV', false)
+    h.wizards = [
+      {
+        typeId: 'git/repo',
+        displayName: 'Git Repository',
+        category: 'Files',
+        createOpId: 'spacewave/git/repo/create',
+        keyPrefix: 'git/repo/',
+        persistent: true,
+        wizardTypeId: 'wizard/git/repo',
+      },
+      {
+        typeId: 'forge/task',
+        displayName: 'Forge Task',
+        category: 'Forge',
+        createOpId: 'spacewave/forge/task/create',
+        keyPrefix: 'forge/task/',
+        persistent: true,
+        wizardTypeId: 'wizard/forge/task',
+        experimental: true,
+      },
+    ]
+    renderCommands()
+
+    const { subItems } = getCreateObjectCommandHandlers()
+    const items = await subItems('', new AbortController().signal)
+
+    expect(items.map((item) => item.id)).toContain('git/repo')
+    expect(items.map((item) => item.id)).not.toContain('forge/task')
+  })
+
+  it('shows experimental create-object subitems when the browser opts in', async () => {
+    vi.stubEnv('DEV', false)
+    setExperimentalCreatorsEnabled(true)
+    h.wizards = [
+      {
+        typeId: 'forge/task',
+        displayName: 'Forge Task',
+        category: 'Forge',
+        createOpId: 'spacewave/forge/task/create',
+        keyPrefix: 'forge/task/',
+        persistent: true,
+        wizardTypeId: 'wizard/forge/task',
+        experimental: true,
+      },
+    ]
+    renderCommands()
+
+    const { subItems } = getCreateObjectCommandHandlers()
+    const items = await subItems('', new AbortController().signal)
+
+    expect(items.map((item) => item.id)).toContain('forge/task')
   })
 })

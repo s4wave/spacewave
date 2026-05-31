@@ -414,6 +414,101 @@ export const TargetedInvitePurpose_Enum = createEnumType(
 )
 
 /**
+ * SpaceLinkCompletionMode describes how the external actor receives approval
+ * completion data after consent.
+ *
+ * @generated from enum s4wave.provider.spacewave.SpaceLinkCompletionMode
+ */
+export enum SpaceLinkCompletionMode {
+  /**
+   * SpaceLinkCompletionMode_UNKNOWN means completion mode was not specified.
+   *
+   * @generated from enum value: SpaceLinkCompletionMode_UNKNOWN = 0;
+   */
+  SpaceLinkCompletionMode_UNKNOWN = 0,
+
+  /**
+   * SpaceLinkCompletionMode_BROWSER_CALLBACK returns completion through the
+   * verified callback URL.
+   *
+   * @generated from enum value: SpaceLinkCompletionMode_BROWSER_CALLBACK = 1;
+   */
+  SpaceLinkCompletionMode_BROWSER_CALLBACK = 1,
+
+  /**
+   * SpaceLinkCompletionMode_CLI returns completion for CLI-mediated import.
+   *
+   * @generated from enum value: SpaceLinkCompletionMode_CLI = 2;
+   */
+  SpaceLinkCompletionMode_CLI = 2,
+}
+
+// SpaceLinkCompletionMode_Enum is the enum type for SpaceLinkCompletionMode.
+export const SpaceLinkCompletionMode_Enum = createEnumType(
+  's4wave.provider.spacewave.SpaceLinkCompletionMode',
+  [
+    { no: 0, name: 'SpaceLinkCompletionMode_UNKNOWN' },
+    { no: 1, name: 'SpaceLinkCompletionMode_BROWSER_CALLBACK' },
+    { no: 2, name: 'SpaceLinkCompletionMode_CLI' },
+  ],
+)
+
+/**
+ * SpaceLinkCallbackStatus describes the result carried by a SpaceLink callback
+ * or CLI-mediated completion payload.
+ *
+ * @generated from enum s4wave.provider.spacewave.SpaceLinkCallbackStatus
+ */
+export enum SpaceLinkCallbackStatus {
+  /**
+   * SpaceLinkCallbackStatus_UNKNOWN means the result is not specified.
+   *
+   * @generated from enum value: SpaceLinkCallbackStatus_UNKNOWN = 0;
+   */
+  SpaceLinkCallbackStatus_UNKNOWN = 0,
+
+  /**
+   * SpaceLinkCallbackStatus_OK means approval completed successfully.
+   *
+   * @generated from enum value: SpaceLinkCallbackStatus_OK = 1;
+   */
+  SpaceLinkCallbackStatus_OK = 1,
+
+  /**
+   * SpaceLinkCallbackStatus_DENIED means the user denied approval.
+   *
+   * @generated from enum value: SpaceLinkCallbackStatus_DENIED = 2;
+   */
+  SpaceLinkCallbackStatus_DENIED = 2,
+
+  /**
+   * SpaceLinkCallbackStatus_EXPIRED means the ticket expired before approval.
+   *
+   * @generated from enum value: SpaceLinkCallbackStatus_EXPIRED = 3;
+   */
+  SpaceLinkCallbackStatus_EXPIRED = 3,
+
+  /**
+   * SpaceLinkCallbackStatus_ERROR means approval failed for another reason.
+   *
+   * @generated from enum value: SpaceLinkCallbackStatus_ERROR = 4;
+   */
+  SpaceLinkCallbackStatus_ERROR = 4,
+}
+
+// SpaceLinkCallbackStatus_Enum is the enum type for SpaceLinkCallbackStatus.
+export const SpaceLinkCallbackStatus_Enum = createEnumType(
+  's4wave.provider.spacewave.SpaceLinkCallbackStatus',
+  [
+    { no: 0, name: 'SpaceLinkCallbackStatus_UNKNOWN' },
+    { no: 1, name: 'SpaceLinkCallbackStatus_OK' },
+    { no: 2, name: 'SpaceLinkCallbackStatus_DENIED' },
+    { no: 3, name: 'SpaceLinkCallbackStatus_EXPIRED' },
+    { no: 4, name: 'SpaceLinkCallbackStatus_ERROR' },
+  ],
+)
+
+/**
  * PasswordCredential derives an entity keypair from a password.
  *
  * @generated from message s4wave.provider.spacewave.PasswordCredential
@@ -866,6 +961,92 @@ export interface LoginWithEntityKeyResponse {
 export const LoginWithEntityKeyResponse: MessageType<LoginWithEntityKeyResponse> =
   createMessageType({
     typeName: 's4wave.provider.spacewave.LoginWithEntityKeyResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'session_list_entry',
+        kind: 'message',
+        T: () => SessionListEntry,
+      },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * MountLinkedDeviceSessionRequest mounts a SpaceLink-approved DEVICE session.
+ *
+ * @generated from message s4wave.provider.spacewave.MountLinkedDeviceSessionRequest
+ */
+export interface MountLinkedDeviceSessionRequest {
+  /**
+   * AccountId is the Spacewave Cloud account ID returned by approval.
+   *
+   * @generated from field: string account_id = 1;
+   */
+  accountId?: string
+  /**
+   * SessionId is the stable local provider resource ID for this Device session.
+   *
+   * @generated from field: string session_id = 2;
+   */
+  sessionId?: string
+  /**
+   * Label is the operator-visible Device label.
+   *
+   * @generated from field: string label = 3;
+   */
+  label?: string
+  /**
+   * SessionPemPrivateKey is the approved Device session private key in PEM form.
+   *
+   * @generated from field: bytes session_pem_private_key = 4;
+   */
+  sessionPemPrivateKey?: Uint8Array
+  /**
+   * SessionPeerId is the expected peer ID derived from SessionPemPrivateKey.
+   *
+   * @generated from field: string session_peer_id = 5;
+   */
+  sessionPeerId?: string
+}
+
+// MountLinkedDeviceSessionRequest contains the message type declaration for MountLinkedDeviceSessionRequest.
+export const MountLinkedDeviceSessionRequest: MessageType<MountLinkedDeviceSessionRequest> =
+  createMessageType({
+    typeName: 's4wave.provider.spacewave.MountLinkedDeviceSessionRequest',
+    fields: [
+      { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'session_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'label', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 4,
+        name: 'session_pem_private_key',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+      { no: 5, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * MountLinkedDeviceSessionResponse returns the mounted Device session entry.
+ *
+ * @generated from message s4wave.provider.spacewave.MountLinkedDeviceSessionResponse
+ */
+export interface MountLinkedDeviceSessionResponse {
+  /**
+   * SessionListEntry is the created or existing Device session entry.
+   *
+   * @generated from field: session.SessionListEntry session_list_entry = 1;
+   */
+  sessionListEntry?: SessionListEntry
+}
+
+// MountLinkedDeviceSessionResponse contains the message type declaration for MountLinkedDeviceSessionResponse.
+export const MountLinkedDeviceSessionResponse: MessageType<MountLinkedDeviceSessionResponse> =
+  createMessageType({
+    typeName: 's4wave.provider.spacewave.MountLinkedDeviceSessionResponse',
     fields: [
       {
         no: 1,
@@ -8571,6 +8752,12 @@ export interface SpaceLinkAuthRequest {
    * @generated from field: bytes target_hint = 9;
    */
   targetHint?: Uint8Array
+  /**
+   * CompletionMode is how the external actor expects approval completion.
+   *
+   * @generated from field: s4wave.provider.spacewave.SpaceLinkCompletionMode completion_mode = 10;
+   */
+  completionMode?: SpaceLinkCompletionMode
 }
 
 // SpaceLinkAuthRequest contains the message type declaration for SpaceLinkAuthRequest.
@@ -8592,6 +8779,12 @@ export const SpaceLinkAuthRequest: MessageType<SpaceLinkAuthRequest> =
       { no: 7, name: 'nonce', kind: 'scalar', T: ScalarType.BYTES },
       { no: 8, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
       { no: 9, name: 'target_hint', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 10,
+        name: 'completion_mode',
+        kind: 'enum',
+        T: SpaceLinkCompletionMode_Enum,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -8705,6 +8898,12 @@ export interface PreviewSpaceLinkResponse {
    * @generated from field: string callback_url = 8;
    */
   callbackUrl?: string
+  /**
+   * CompletionMode is the verified completion mode.
+   *
+   * @generated from field: s4wave.provider.spacewave.SpaceLinkCompletionMode completion_mode = 9;
+   */
+  completionMode?: SpaceLinkCompletionMode
 }
 
 // PreviewSpaceLinkResponse contains the message type declaration for PreviewSpaceLinkResponse.
@@ -8725,6 +8924,12 @@ export const PreviewSpaceLinkResponse: MessageType<PreviewSpaceLinkResponse> =
       { no: 6, name: 'nonce', kind: 'scalar', T: ScalarType.BYTES },
       { no: 7, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
       { no: 8, name: 'callback_url', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 9,
+        name: 'completion_mode',
+        kind: 'enum',
+        T: SpaceLinkCompletionMode_Enum,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -8756,6 +8961,70 @@ export const ApproveSpaceLinkRequest: MessageType<ApproveSpaceLinkRequest> =
     fields: [
       { no: 1, name: 'ticket', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'resource_id', kind: 'scalar', T: ScalarType.BYTES },
+    ] as readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SpaceLinkCallback is the generic approval result payload. Browser callback
+ * mode can encode it into the verified callback URL; CLI mode can transport the
+ * same binary payload directly for import.
+ *
+ * @generated from message s4wave.provider.spacewave.SpaceLinkCallback
+ */
+export interface SpaceLinkCallback {
+  /**
+   * Status is the approval result.
+   *
+   * @generated from field: s4wave.provider.spacewave.SpaceLinkCallbackStatus status = 1;
+   */
+  status?: SpaceLinkCallbackStatus
+  /**
+   * Nonce is echoed from the verified ticket.
+   *
+   * @generated from field: bytes nonce = 2;
+   */
+  nonce?: Uint8Array
+  /**
+   * AccountId is the linked external actor cloud account ID for successful
+   * approval.
+   *
+   * @generated from field: string account_id = 3;
+   */
+  accountId?: string
+  /**
+   * ResourceId is the target Space shared object ID for successful approval.
+   *
+   * @generated from field: bytes resource_id = 4;
+   */
+  resourceId?: Uint8Array
+  /**
+   * SessionPeerId is the linked external actor session peer ID for successful
+   * approval.
+   *
+   * @generated from field: bytes session_peer_id = 5;
+   */
+  sessionPeerId?: Uint8Array
+  /**
+   * ErrorMessage describes deny, expiry, or approval failure details when
+   * status is not OK.
+   *
+   * @generated from field: string error_message = 6;
+   */
+  errorMessage?: string
+}
+
+// SpaceLinkCallback contains the message type declaration for SpaceLinkCallback.
+export const SpaceLinkCallback: MessageType<SpaceLinkCallback> =
+  createMessageType({
+    typeName: 's4wave.provider.spacewave.SpaceLinkCallback',
+    fields: [
+      { no: 1, name: 'status', kind: 'enum', T: SpaceLinkCallbackStatus_Enum },
+      { no: 2, name: 'nonce', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 3, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'resource_id', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 5, name: 'session_peer_id', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 6, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -8796,6 +9065,18 @@ export interface ApproveSpaceLinkResponse {
    * @generated from field: string callback_url = 5;
    */
   callbackUrl?: string
+  /**
+   * CompletionMode is the re-verified completion mode.
+   *
+   * @generated from field: s4wave.provider.spacewave.SpaceLinkCompletionMode completion_mode = 6;
+   */
+  completionMode?: SpaceLinkCompletionMode
+  /**
+   * Completion is the generic callback/completion payload.
+   *
+   * @generated from field: s4wave.provider.spacewave.SpaceLinkCallback completion = 7;
+   */
+  completion?: SpaceLinkCallback
 }
 
 // ApproveSpaceLinkResponse contains the message type declaration for ApproveSpaceLinkResponse.
@@ -8808,6 +9089,18 @@ export const ApproveSpaceLinkResponse: MessageType<ApproveSpaceLinkResponse> =
       { no: 3, name: 'session_peer_id', kind: 'scalar', T: ScalarType.BYTES },
       { no: 4, name: 'nonce', kind: 'scalar', T: ScalarType.BYTES },
       { no: 5, name: 'callback_url', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 6,
+        name: 'completion_mode',
+        kind: 'enum',
+        T: SpaceLinkCompletionMode_Enum,
+      },
+      {
+        no: 7,
+        name: 'completion',
+        kind: 'message',
+        T: () => SpaceLinkCallback,
+      },
     ] as readonly PartialFieldInfo[],
     packedByDefault: true,
   })

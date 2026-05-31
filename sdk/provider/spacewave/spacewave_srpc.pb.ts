@@ -23,6 +23,8 @@ import {
   LoginOrCreateAccountResponse,
   LoginWithEntityKeyRequest,
   LoginWithEntityKeyResponse,
+  MountLinkedDeviceSessionRequest,
+  MountLinkedDeviceSessionResponse,
   PasskeyAuthOptionsRequest,
   PasskeyAuthOptionsResponse,
   PasskeyAuthVerifyRequest,
@@ -211,6 +213,17 @@ export const SpacewaveProviderResourceServiceDefinition = {
       name: 'ReauthenticateSession',
       I: ReauthenticateSessionRequest,
       O: ReauthenticateSessionResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * MountLinkedDeviceSession mounts a SpaceLink-approved DEVICE session.
+     *
+     * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.MountLinkedDeviceSession
+     */
+    MountLinkedDeviceSession: {
+      name: 'MountLinkedDeviceSession',
+      I: MountLinkedDeviceSessionRequest,
+      O: MountLinkedDeviceSessionResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -527,6 +540,16 @@ export interface SpacewaveProviderResourceService {
   ): Promise<ReauthenticateSessionResponse>
 
   /**
+   * MountLinkedDeviceSession mounts a SpaceLink-approved DEVICE session.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.MountLinkedDeviceSession
+   */
+  MountLinkedDeviceSession(
+    request: MountLinkedDeviceSessionRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<MountLinkedDeviceSessionResponse>
+
+  /**
    * StartBrowserHandoff starts the external browser auth handoff flow.
    *
    * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.StartBrowserHandoff
@@ -709,6 +732,7 @@ export class SpacewaveProviderResourceServiceClient implements SpacewaveProvider
     this.LoginOrCreateAccount = this.LoginOrCreateAccount.bind(this)
     this.LoginWithEntityKey = this.LoginWithEntityKey.bind(this)
     this.ReauthenticateSession = this.ReauthenticateSession.bind(this)
+    this.MountLinkedDeviceSession = this.MountLinkedDeviceSession.bind(this)
     this.StartBrowserHandoff = this.StartBrowserHandoff.bind(this)
     this.SSOCodeExchange = this.SSOCodeExchange.bind(this)
     this.SSONonceExchange = this.SSONonceExchange.bind(this)
@@ -980,6 +1004,26 @@ export class SpacewaveProviderResourceServiceClient implements SpacewaveProvider
       abortSignal || undefined,
     )
     return ReauthenticateSessionResponse.fromBinary(result)
+  }
+
+  /**
+   * MountLinkedDeviceSession mounts a SpaceLink-approved DEVICE session.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.MountLinkedDeviceSession
+   */
+  async MountLinkedDeviceSession(
+    request: MountLinkedDeviceSessionRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<MountLinkedDeviceSessionResponse> {
+    const requestMsg = MountLinkedDeviceSessionRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpacewaveProviderResourceServiceDefinition.methods
+        .MountLinkedDeviceSession.name,
+      MountLinkedDeviceSessionRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return MountLinkedDeviceSessionResponse.fromBinary(result)
   }
 
   /**

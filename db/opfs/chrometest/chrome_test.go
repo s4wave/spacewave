@@ -1732,7 +1732,7 @@ func wasmFeatureEvidence(ctx context.Context, wasmPath string) string {
 	}
 	var features []string
 	inTargetFeatures := false
-	for _, line := range strings.Split(string(data), "\n") {
+	for line := range strings.SplitSeq(string(data), "\n") {
 		line = strings.TrimSpace(line)
 		if strings.Contains(line, `name: "target_features"`) {
 			inTargetFeatures = true

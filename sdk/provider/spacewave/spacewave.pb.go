@@ -368,6 +368,97 @@ func (x TargetedInvitePurpose) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// SpaceLinkCompletionMode describes how the external actor receives approval
+// completion data after consent.
+type SpaceLinkCompletionMode int32
+
+const (
+	// SpaceLinkCompletionMode_UNKNOWN means completion mode was not specified.
+	SpaceLinkCompletionMode_SpaceLinkCompletionMode_UNKNOWN SpaceLinkCompletionMode = 0
+	// SpaceLinkCompletionMode_BROWSER_CALLBACK returns completion through the
+	// verified callback URL.
+	SpaceLinkCompletionMode_SpaceLinkCompletionMode_BROWSER_CALLBACK SpaceLinkCompletionMode = 1
+	// SpaceLinkCompletionMode_CLI returns completion for CLI-mediated import.
+	SpaceLinkCompletionMode_SpaceLinkCompletionMode_CLI SpaceLinkCompletionMode = 2
+)
+
+// Enum value maps for SpaceLinkCompletionMode.
+var (
+	SpaceLinkCompletionMode_name = map[int32]string{
+		0: "SpaceLinkCompletionMode_UNKNOWN",
+		1: "SpaceLinkCompletionMode_BROWSER_CALLBACK",
+		2: "SpaceLinkCompletionMode_CLI",
+	}
+	SpaceLinkCompletionMode_value = map[string]int32{
+		"SpaceLinkCompletionMode_UNKNOWN":          0,
+		"SpaceLinkCompletionMode_BROWSER_CALLBACK": 1,
+		"SpaceLinkCompletionMode_CLI":              2,
+	}
+)
+
+func (x SpaceLinkCompletionMode) Enum() *SpaceLinkCompletionMode {
+	p := new(SpaceLinkCompletionMode)
+	*p = x
+	return p
+}
+
+func (x SpaceLinkCompletionMode) String() string {
+	name, valid := SpaceLinkCompletionMode_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// SpaceLinkCallbackStatus describes the result carried by a SpaceLink callback
+// or CLI-mediated completion payload.
+type SpaceLinkCallbackStatus int32
+
+const (
+	// SpaceLinkCallbackStatus_UNKNOWN means the result is not specified.
+	SpaceLinkCallbackStatus_SpaceLinkCallbackStatus_UNKNOWN SpaceLinkCallbackStatus = 0
+	// SpaceLinkCallbackStatus_OK means approval completed successfully.
+	SpaceLinkCallbackStatus_SpaceLinkCallbackStatus_OK SpaceLinkCallbackStatus = 1
+	// SpaceLinkCallbackStatus_DENIED means the user denied approval.
+	SpaceLinkCallbackStatus_SpaceLinkCallbackStatus_DENIED SpaceLinkCallbackStatus = 2
+	// SpaceLinkCallbackStatus_EXPIRED means the ticket expired before approval.
+	SpaceLinkCallbackStatus_SpaceLinkCallbackStatus_EXPIRED SpaceLinkCallbackStatus = 3
+	// SpaceLinkCallbackStatus_ERROR means approval failed for another reason.
+	SpaceLinkCallbackStatus_SpaceLinkCallbackStatus_ERROR SpaceLinkCallbackStatus = 4
+)
+
+// Enum value maps for SpaceLinkCallbackStatus.
+var (
+	SpaceLinkCallbackStatus_name = map[int32]string{
+		0: "SpaceLinkCallbackStatus_UNKNOWN",
+		1: "SpaceLinkCallbackStatus_OK",
+		2: "SpaceLinkCallbackStatus_DENIED",
+		3: "SpaceLinkCallbackStatus_EXPIRED",
+		4: "SpaceLinkCallbackStatus_ERROR",
+	}
+	SpaceLinkCallbackStatus_value = map[string]int32{
+		"SpaceLinkCallbackStatus_UNKNOWN": 0,
+		"SpaceLinkCallbackStatus_OK":      1,
+		"SpaceLinkCallbackStatus_DENIED":  2,
+		"SpaceLinkCallbackStatus_EXPIRED": 3,
+		"SpaceLinkCallbackStatus_ERROR":   4,
+	}
+)
+
+func (x SpaceLinkCallbackStatus) Enum() *SpaceLinkCallbackStatus {
+	p := new(SpaceLinkCallbackStatus)
+	*p = x
+	return p
+}
+
+func (x SpaceLinkCallbackStatus) String() string {
+	name, valid := SpaceLinkCallbackStatus_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // PasswordCredential derives an entity keypair from a password.
 type PasswordCredential struct {
 	unknownFields []byte
@@ -787,6 +878,82 @@ func (x *LoginWithEntityKeyResponse) Reset() {
 func (*LoginWithEntityKeyResponse) ProtoMessage() {}
 
 func (x *LoginWithEntityKeyResponse) GetSessionListEntry() *session.SessionListEntry {
+	if x != nil {
+		return x.SessionListEntry
+	}
+	return nil
+}
+
+// MountLinkedDeviceSessionRequest mounts a SpaceLink-approved DEVICE session.
+type MountLinkedDeviceSessionRequest struct {
+	unknownFields []byte
+	// AccountId is the Spacewave Cloud account ID returned by approval.
+	AccountId string `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"accountId,omitempty"`
+	// SessionId is the stable local provider resource ID for this Device session.
+	SessionId string `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"sessionId,omitempty"`
+	// Label is the operator-visible Device label.
+	Label string `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
+	// SessionPemPrivateKey is the approved Device session private key in PEM form.
+	SessionPemPrivateKey []byte `protobuf:"bytes,4,opt,name=session_pem_private_key,json=sessionPemPrivateKey,proto3" json:"sessionPemPrivateKey,omitempty"`
+	// SessionPeerId is the expected peer ID derived from SessionPemPrivateKey.
+	SessionPeerId string `protobuf:"bytes,5,opt,name=session_peer_id,json=sessionPeerId,proto3" json:"sessionPeerId,omitempty"`
+}
+
+func (x *MountLinkedDeviceSessionRequest) Reset() {
+	*x = MountLinkedDeviceSessionRequest{}
+}
+
+func (*MountLinkedDeviceSessionRequest) ProtoMessage() {}
+
+func (x *MountLinkedDeviceSessionRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *MountLinkedDeviceSessionRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *MountLinkedDeviceSessionRequest) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *MountLinkedDeviceSessionRequest) GetSessionPemPrivateKey() []byte {
+	if x != nil {
+		return x.SessionPemPrivateKey
+	}
+	return nil
+}
+
+func (x *MountLinkedDeviceSessionRequest) GetSessionPeerId() string {
+	if x != nil {
+		return x.SessionPeerId
+	}
+	return ""
+}
+
+// MountLinkedDeviceSessionResponse returns the mounted Device session entry.
+type MountLinkedDeviceSessionResponse struct {
+	unknownFields []byte
+	// SessionListEntry is the created or existing Device session entry.
+	SessionListEntry *session.SessionListEntry `protobuf:"bytes,1,opt,name=session_list_entry,json=sessionListEntry,proto3" json:"sessionListEntry,omitempty"`
+}
+
+func (x *MountLinkedDeviceSessionResponse) Reset() {
+	*x = MountLinkedDeviceSessionResponse{}
+}
+
+func (*MountLinkedDeviceSessionResponse) ProtoMessage() {}
+
+func (x *MountLinkedDeviceSessionResponse) GetSessionListEntry() *session.SessionListEntry {
 	if x != nil {
 		return x.SessionListEntry
 	}
@@ -7601,6 +7768,8 @@ type SpaceLinkAuthRequest struct {
 	ExpiresAt int64 `protobuf:"varint,8,opt,name=expires_at,json=expiresAt,proto3" json:"expiresAt,omitempty"`
 	// TargetHint is an optional suggested target Space resource ID.
 	TargetHint []byte `protobuf:"bytes,9,opt,name=target_hint,json=targetHint,proto3" json:"targetHint,omitempty"`
+	// CompletionMode is how the external actor expects approval completion.
+	CompletionMode SpaceLinkCompletionMode `protobuf:"varint,10,opt,name=completion_mode,json=completionMode,proto3" json:"completionMode,omitempty"`
 }
 
 func (x *SpaceLinkAuthRequest) Reset() {
@@ -7672,6 +7841,13 @@ func (x *SpaceLinkAuthRequest) GetTargetHint() []byte {
 	return nil
 }
 
+func (x *SpaceLinkAuthRequest) GetCompletionMode() SpaceLinkCompletionMode {
+	if x != nil {
+		return x.CompletionMode
+	}
+	return SpaceLinkCompletionMode_SpaceLinkCompletionMode_UNKNOWN
+}
+
 // SpaceLinkAuthTicket is the signed SpaceLink ticket envelope.
 type SpaceLinkAuthTicket struct {
 	unknownFields []byte
@@ -7740,6 +7916,8 @@ type PreviewSpaceLinkResponse struct {
 	ExpiresAt int64 `protobuf:"varint,7,opt,name=expires_at,json=expiresAt,proto3" json:"expiresAt,omitempty"`
 	// CallbackUrl is the verified callback target.
 	CallbackUrl string `protobuf:"bytes,8,opt,name=callback_url,json=callbackUrl,proto3" json:"callbackUrl,omitempty"`
+	// CompletionMode is the verified completion mode.
+	CompletionMode SpaceLinkCompletionMode `protobuf:"varint,9,opt,name=completion_mode,json=completionMode,proto3" json:"completionMode,omitempty"`
 }
 
 func (x *PreviewSpaceLinkResponse) Reset() {
@@ -7804,6 +7982,13 @@ func (x *PreviewSpaceLinkResponse) GetCallbackUrl() string {
 	return ""
 }
 
+func (x *PreviewSpaceLinkResponse) GetCompletionMode() SpaceLinkCompletionMode {
+	if x != nil {
+		return x.CompletionMode
+	}
+	return SpaceLinkCompletionMode_SpaceLinkCompletionMode_UNKNOWN
+}
+
 // ApproveSpaceLinkRequest is the request for ApproveSpaceLink.
 type ApproveSpaceLinkRequest struct {
 	unknownFields []byte
@@ -7846,6 +8031,10 @@ type ApproveSpaceLinkResponse struct {
 	Nonce []byte `protobuf:"bytes,4,opt,name=nonce,proto3" json:"nonce,omitempty"`
 	// CallbackUrl is the re-verified callback target.
 	CallbackUrl string `protobuf:"bytes,5,opt,name=callback_url,json=callbackUrl,proto3" json:"callbackUrl,omitempty"`
+	// CompletionMode is the re-verified completion mode.
+	CompletionMode SpaceLinkCompletionMode `protobuf:"varint,6,opt,name=completion_mode,json=completionMode,proto3" json:"completionMode,omitempty"`
+	// Completion is the generic callback/completion payload.
+	Completion *SpaceLinkCallback `protobuf:"bytes,7,opt,name=completion,proto3" json:"completion,omitempty"`
 }
 
 func (x *ApproveSpaceLinkResponse) Reset() {
@@ -7885,6 +8074,90 @@ func (x *ApproveSpaceLinkResponse) GetNonce() []byte {
 func (x *ApproveSpaceLinkResponse) GetCallbackUrl() string {
 	if x != nil {
 		return x.CallbackUrl
+	}
+	return ""
+}
+
+func (x *ApproveSpaceLinkResponse) GetCompletionMode() SpaceLinkCompletionMode {
+	if x != nil {
+		return x.CompletionMode
+	}
+	return SpaceLinkCompletionMode_SpaceLinkCompletionMode_UNKNOWN
+}
+
+func (x *ApproveSpaceLinkResponse) GetCompletion() *SpaceLinkCallback {
+	if x != nil {
+		return x.Completion
+	}
+	return nil
+}
+
+// SpaceLinkCallback is the generic approval result payload. Browser callback
+// mode can encode it into the verified callback URL; CLI mode can transport the
+// same binary payload directly for import.
+type SpaceLinkCallback struct {
+	unknownFields []byte
+	// Status is the approval result.
+	Status SpaceLinkCallbackStatus `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
+	// Nonce is echoed from the verified ticket.
+	Nonce []byte `protobuf:"bytes,2,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	// AccountId is the linked external actor cloud account ID for successful
+	// approval.
+	AccountId string `protobuf:"bytes,3,opt,name=account_id,json=accountId,proto3" json:"accountId,omitempty"`
+	// ResourceId is the target Space shared object ID for successful approval.
+	ResourceId []byte `protobuf:"bytes,4,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
+	// SessionPeerId is the linked external actor session peer ID for successful
+	// approval.
+	SessionPeerId []byte `protobuf:"bytes,5,opt,name=session_peer_id,json=sessionPeerId,proto3" json:"sessionPeerId,omitempty"`
+	// ErrorMessage describes deny, expiry, or approval failure details when
+	// status is not OK.
+	ErrorMessage string `protobuf:"bytes,6,opt,name=error_message,json=errorMessage,proto3" json:"errorMessage,omitempty"`
+}
+
+func (x *SpaceLinkCallback) Reset() {
+	*x = SpaceLinkCallback{}
+}
+
+func (*SpaceLinkCallback) ProtoMessage() {}
+
+func (x *SpaceLinkCallback) GetStatus() SpaceLinkCallbackStatus {
+	if x != nil {
+		return x.Status
+	}
+	return SpaceLinkCallbackStatus_SpaceLinkCallbackStatus_UNKNOWN
+}
+
+func (x *SpaceLinkCallback) GetNonce() []byte {
+	if x != nil {
+		return x.Nonce
+	}
+	return nil
+}
+
+func (x *SpaceLinkCallback) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *SpaceLinkCallback) GetResourceId() []byte {
+	if x != nil {
+		return x.ResourceId
+	}
+	return nil
+}
+
+func (x *SpaceLinkCallback) GetSessionPeerId() []byte {
+	if x != nil {
+		return x.SessionPeerId
+	}
+	return nil
+}
+
+func (x *SpaceLinkCallback) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
 	}
 	return ""
 }
@@ -8201,6 +8474,44 @@ func (m *LoginWithEntityKeyResponse) CloneVT() *LoginWithEntityKeyResponse {
 }
 
 func (m *LoginWithEntityKeyResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *MountLinkedDeviceSessionRequest) CloneVT() *MountLinkedDeviceSessionRequest {
+	if m == nil {
+		return (*MountLinkedDeviceSessionRequest)(nil)
+	}
+	r := new(MountLinkedDeviceSessionRequest)
+	r.AccountId = m.AccountId
+	r.SessionId = m.SessionId
+	r.Label = m.Label
+	r.SessionPeerId = m.SessionPeerId
+	if rhs := m.SessionPemPrivateKey; rhs != nil {
+		r.SessionPemPrivateKey = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *MountLinkedDeviceSessionRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *MountLinkedDeviceSessionResponse) CloneVT() *MountLinkedDeviceSessionResponse {
+	if m == nil {
+		return (*MountLinkedDeviceSessionResponse)(nil)
+	}
+	r := new(MountLinkedDeviceSessionResponse)
+	r.SessionListEntry = m.SessionListEntry.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *MountLinkedDeviceSessionResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -12092,6 +12403,7 @@ func (m *SpaceLinkAuthRequest) CloneVT() *SpaceLinkAuthRequest {
 	r.CallbackUrl = m.CallbackUrl
 	r.RequestedRole = m.RequestedRole
 	r.ExpiresAt = m.ExpiresAt
+	r.CompletionMode = m.CompletionMode
 	if rhs := m.AgentPeerId; rhs != nil {
 		r.AgentPeerId = slices.Clone(rhs)
 	}
@@ -12160,6 +12472,7 @@ func (m *PreviewSpaceLinkResponse) CloneVT() *PreviewSpaceLinkResponse {
 	r.RequestedRole = m.RequestedRole
 	r.ExpiresAt = m.ExpiresAt
 	r.CallbackUrl = m.CallbackUrl
+	r.CompletionMode = m.CompletionMode
 	if rhs := m.AgentPeerId; rhs != nil {
 		r.AgentPeerId = slices.Clone(rhs)
 	}
@@ -12207,6 +12520,8 @@ func (m *ApproveSpaceLinkResponse) CloneVT() *ApproveSpaceLinkResponse {
 	r := new(ApproveSpaceLinkResponse)
 	r.AccountId = m.AccountId
 	r.CallbackUrl = m.CallbackUrl
+	r.CompletionMode = m.CompletionMode
+	r.Completion = m.Completion.CloneVT()
 	if rhs := m.ResourceId; rhs != nil {
 		r.ResourceId = slices.Clone(rhs)
 	}
@@ -12223,6 +12538,33 @@ func (m *ApproveSpaceLinkResponse) CloneVT() *ApproveSpaceLinkResponse {
 }
 
 func (m *ApproveSpaceLinkResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SpaceLinkCallback) CloneVT() *SpaceLinkCallback {
+	if m == nil {
+		return (*SpaceLinkCallback)(nil)
+	}
+	r := new(SpaceLinkCallback)
+	r.Status = m.Status
+	r.AccountId = m.AccountId
+	r.ErrorMessage = m.ErrorMessage
+	if rhs := m.Nonce; rhs != nil {
+		r.Nonce = slices.Clone(rhs)
+	}
+	if rhs := m.ResourceId; rhs != nil {
+		r.ResourceId = slices.Clone(rhs)
+	}
+	if rhs := m.SessionPeerId; rhs != nil {
+		r.SessionPeerId = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SpaceLinkCallback) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -12694,6 +13036,58 @@ func (this *LoginWithEntityKeyResponse) EqualVT(that *LoginWithEntityKeyResponse
 
 func (this *LoginWithEntityKeyResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*LoginWithEntityKeyResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *MountLinkedDeviceSessionRequest) EqualVT(that *MountLinkedDeviceSessionRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.AccountId != that.AccountId {
+		return false
+	}
+	if this.SessionId != that.SessionId {
+		return false
+	}
+	if this.Label != that.Label {
+		return false
+	}
+	if string(this.SessionPemPrivateKey) != string(that.SessionPemPrivateKey) {
+		return false
+	}
+	if this.SessionPeerId != that.SessionPeerId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MountLinkedDeviceSessionRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*MountLinkedDeviceSessionRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *MountLinkedDeviceSessionResponse) EqualVT(that *MountLinkedDeviceSessionResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.SessionListEntry.EqualVT(that.SessionListEntry) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MountLinkedDeviceSessionResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*MountLinkedDeviceSessionResponse)
 	if !ok {
 		return false
 	}
@@ -18216,6 +18610,9 @@ func (this *SpaceLinkAuthRequest) EqualVT(that *SpaceLinkAuthRequest) bool {
 	if string(this.TargetHint) != string(that.TargetHint) {
 		return false
 	}
+	if this.CompletionMode != that.CompletionMode {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -18300,6 +18697,9 @@ func (this *PreviewSpaceLinkResponse) EqualVT(that *PreviewSpaceLinkResponse) bo
 	if this.CallbackUrl != that.CallbackUrl {
 		return false
 	}
+	if this.CompletionMode != that.CompletionMode {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -18355,11 +18755,52 @@ func (this *ApproveSpaceLinkResponse) EqualVT(that *ApproveSpaceLinkResponse) bo
 	if this.CallbackUrl != that.CallbackUrl {
 		return false
 	}
+	if this.CompletionMode != that.CompletionMode {
+		return false
+	}
+	if !this.Completion.EqualVT(that.Completion) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *ApproveSpaceLinkResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ApproveSpaceLinkResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SpaceLinkCallback) EqualVT(that *SpaceLinkCallback) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Status != that.Status {
+		return false
+	}
+	if string(this.Nonce) != string(that.Nonce) {
+		return false
+	}
+	if this.AccountId != that.AccountId {
+		return false
+	}
+	if string(this.ResourceId) != string(that.ResourceId) {
+		return false
+	}
+	if string(this.SessionPeerId) != string(that.SessionPeerId) {
+		return false
+	}
+	if this.ErrorMessage != that.ErrorMessage {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SpaceLinkCallback) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SpaceLinkCallback)
 	if !ok {
 		return false
 	}
@@ -18643,6 +19084,86 @@ func (x *TargetedInvitePurpose) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the TargetedInvitePurpose from JSON.
 func (x *TargetedInvitePurpose) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceLinkCompletionMode to JSON.
+func (x SpaceLinkCompletionMode) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SpaceLinkCompletionMode_name)
+}
+
+// MarshalText marshals the SpaceLinkCompletionMode to text.
+func (x SpaceLinkCompletionMode) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SpaceLinkCompletionMode_name)), nil
+}
+
+// MarshalJSON marshals the SpaceLinkCompletionMode to JSON.
+func (x SpaceLinkCompletionMode) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceLinkCompletionMode from JSON.
+func (x *SpaceLinkCompletionMode) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SpaceLinkCompletionMode_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SpaceLinkCompletionMode enum: %v", err)
+		return
+	}
+	*x = SpaceLinkCompletionMode(v)
+}
+
+// UnmarshalText unmarshals the SpaceLinkCompletionMode from text.
+func (x *SpaceLinkCompletionMode) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SpaceLinkCompletionMode_value)
+	if err != nil {
+		return err
+	}
+	*x = SpaceLinkCompletionMode(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SpaceLinkCompletionMode from JSON.
+func (x *SpaceLinkCompletionMode) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceLinkCallbackStatus to JSON.
+func (x SpaceLinkCallbackStatus) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SpaceLinkCallbackStatus_name)
+}
+
+// MarshalText marshals the SpaceLinkCallbackStatus to text.
+func (x SpaceLinkCallbackStatus) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SpaceLinkCallbackStatus_name)), nil
+}
+
+// MarshalJSON marshals the SpaceLinkCallbackStatus to JSON.
+func (x SpaceLinkCallbackStatus) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceLinkCallbackStatus from JSON.
+func (x *SpaceLinkCallbackStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SpaceLinkCallbackStatus_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SpaceLinkCallbackStatus enum: %v", err)
+		return
+	}
+	*x = SpaceLinkCallbackStatus(v)
+}
+
+// UnmarshalText unmarshals the SpaceLinkCallbackStatus from text.
+func (x *SpaceLinkCallbackStatus) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SpaceLinkCallbackStatus_value)
+	if err != nil {
+		return err
+	}
+	*x = SpaceLinkCallbackStatus(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SpaceLinkCallbackStatus from JSON.
+func (x *SpaceLinkCallbackStatus) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -19262,6 +19783,126 @@ func (x *LoginWithEntityKeyResponse) UnmarshalProtoJSON(s *json.UnmarshalState) 
 
 // UnmarshalJSON unmarshals the LoginWithEntityKeyResponse from JSON.
 func (x *LoginWithEntityKeyResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the MountLinkedDeviceSessionRequest message to JSON.
+func (x *MountLinkedDeviceSessionRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.AccountId != "" || s.HasField("accountId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("accountId")
+		s.WriteString(x.AccountId)
+	}
+	if x.SessionId != "" || s.HasField("sessionId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sessionId")
+		s.WriteString(x.SessionId)
+	}
+	if x.Label != "" || s.HasField("label") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("label")
+		s.WriteString(x.Label)
+	}
+	if len(x.SessionPemPrivateKey) > 0 || s.HasField("sessionPemPrivateKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sessionPemPrivateKey")
+		s.WriteBytes(x.SessionPemPrivateKey)
+	}
+	if x.SessionPeerId != "" || s.HasField("sessionPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sessionPeerId")
+		s.WriteString(x.SessionPeerId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the MountLinkedDeviceSessionRequest to JSON.
+func (x *MountLinkedDeviceSessionRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the MountLinkedDeviceSessionRequest message from JSON.
+func (x *MountLinkedDeviceSessionRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "account_id", "accountId":
+			s.AddField("account_id")
+			x.AccountId = s.ReadString()
+		case "session_id", "sessionId":
+			s.AddField("session_id")
+			x.SessionId = s.ReadString()
+		case "label":
+			s.AddField("label")
+			x.Label = s.ReadString()
+		case "session_pem_private_key", "sessionPemPrivateKey":
+			s.AddField("session_pem_private_key")
+			x.SessionPemPrivateKey = s.ReadBytes()
+		case "session_peer_id", "sessionPeerId":
+			s.AddField("session_peer_id")
+			x.SessionPeerId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the MountLinkedDeviceSessionRequest from JSON.
+func (x *MountLinkedDeviceSessionRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the MountLinkedDeviceSessionResponse message to JSON.
+func (x *MountLinkedDeviceSessionResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SessionListEntry != nil || s.HasField("sessionListEntry") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sessionListEntry")
+		x.SessionListEntry.MarshalProtoJSON(s.WithField("sessionListEntry"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the MountLinkedDeviceSessionResponse to JSON.
+func (x *MountLinkedDeviceSessionResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the MountLinkedDeviceSessionResponse message from JSON.
+func (x *MountLinkedDeviceSessionResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "session_list_entry", "sessionListEntry":
+			if s.ReadNil() {
+				x.SessionListEntry = nil
+				return
+			}
+			x.SessionListEntry = &session.SessionListEntry{}
+			x.SessionListEntry.UnmarshalProtoJSON(s.WithField("session_list_entry", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the MountLinkedDeviceSessionResponse from JSON.
+func (x *MountLinkedDeviceSessionResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -30678,6 +31319,11 @@ func (x *SpaceLinkAuthRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("targetHint")
 		s.WriteBytes(x.TargetHint)
 	}
+	if x.CompletionMode != 0 || s.HasField("completionMode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("completionMode")
+		x.CompletionMode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -30722,6 +31368,9 @@ func (x *SpaceLinkAuthRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "target_hint", "targetHint":
 			s.AddField("target_hint")
 			x.TargetHint = s.ReadBytes()
+		case "completion_mode", "completionMode":
+			s.AddField("completion_mode")
+			x.CompletionMode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -30871,6 +31520,11 @@ func (x *PreviewSpaceLinkResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("callbackUrl")
 		s.WriteString(x.CallbackUrl)
 	}
+	if x.CompletionMode != 0 || s.HasField("completionMode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("completionMode")
+		x.CompletionMode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -30912,6 +31566,9 @@ func (x *PreviewSpaceLinkResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "callback_url", "callbackUrl":
 			s.AddField("callback_url")
 			x.CallbackUrl = s.ReadString()
+		case "completion_mode", "completionMode":
+			s.AddField("completion_mode")
+			x.CompletionMode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -31004,6 +31661,16 @@ func (x *ApproveSpaceLinkResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("callbackUrl")
 		s.WriteString(x.CallbackUrl)
 	}
+	if x.CompletionMode != 0 || s.HasField("completionMode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("completionMode")
+		x.CompletionMode.MarshalProtoJSON(s)
+	}
+	if x.Completion != nil || s.HasField("completion") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("completion")
+		x.Completion.MarshalProtoJSON(s.WithField("completion"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -31036,12 +31703,104 @@ func (x *ApproveSpaceLinkResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "callback_url", "callbackUrl":
 			s.AddField("callback_url")
 			x.CallbackUrl = s.ReadString()
+		case "completion_mode", "completionMode":
+			s.AddField("completion_mode")
+			x.CompletionMode.UnmarshalProtoJSON(s)
+		case "completion":
+			if s.ReadNil() {
+				x.Completion = nil
+				return
+			}
+			x.Completion = &SpaceLinkCallback{}
+			x.Completion.UnmarshalProtoJSON(s.WithField("completion", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the ApproveSpaceLinkResponse from JSON.
 func (x *ApproveSpaceLinkResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceLinkCallback message to JSON.
+func (x *SpaceLinkCallback) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Status != 0 || s.HasField("status") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("status")
+		x.Status.MarshalProtoJSON(s)
+	}
+	if len(x.Nonce) > 0 || s.HasField("nonce") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nonce")
+		s.WriteBytes(x.Nonce)
+	}
+	if x.AccountId != "" || s.HasField("accountId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("accountId")
+		s.WriteString(x.AccountId)
+	}
+	if len(x.ResourceId) > 0 || s.HasField("resourceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("resourceId")
+		s.WriteBytes(x.ResourceId)
+	}
+	if len(x.SessionPeerId) > 0 || s.HasField("sessionPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sessionPeerId")
+		s.WriteBytes(x.SessionPeerId)
+	}
+	if x.ErrorMessage != "" || s.HasField("errorMessage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("errorMessage")
+		s.WriteString(x.ErrorMessage)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SpaceLinkCallback to JSON.
+func (x *SpaceLinkCallback) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceLinkCallback message from JSON.
+func (x *SpaceLinkCallback) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "status":
+			s.AddField("status")
+			x.Status.UnmarshalProtoJSON(s)
+		case "nonce":
+			s.AddField("nonce")
+			x.Nonce = s.ReadBytes()
+		case "account_id", "accountId":
+			s.AddField("account_id")
+			x.AccountId = s.ReadString()
+		case "resource_id", "resourceId":
+			s.AddField("resource_id")
+			x.ResourceId = s.ReadBytes()
+		case "session_peer_id", "sessionPeerId":
+			s.AddField("session_peer_id")
+			x.SessionPeerId = s.ReadBytes()
+		case "error_message", "errorMessage":
+			s.AddField("error_message")
+			x.ErrorMessage = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SpaceLinkCallback from JSON.
+func (x *SpaceLinkCallback) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -31722,6 +32481,117 @@ func (m *LoginWithEntityKeyResponse) MarshalToVT(dAtA []byte) (int, error) {
 }
 
 func (m *LoginWithEntityKeyResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.SessionListEntry != nil {
+		size, err := m.SessionListEntry.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MountLinkedDeviceSessionRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MountLinkedDeviceSessionRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MountLinkedDeviceSessionRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.SessionPeerId) > 0 {
+		i -= len(m.SessionPeerId)
+		copy(dAtA[i:], m.SessionPeerId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SessionPeerId)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.SessionPemPrivateKey) > 0 {
+		i -= len(m.SessionPemPrivateKey)
+		copy(dAtA[i:], m.SessionPemPrivateKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SessionPemPrivateKey)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Label) > 0 {
+		i -= len(m.Label)
+		copy(dAtA[i:], m.Label)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Label)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.SessionId) > 0 {
+		i -= len(m.SessionId)
+		copy(dAtA[i:], m.SessionId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SessionId)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.AccountId) > 0 {
+		i -= len(m.AccountId)
+		copy(dAtA[i:], m.AccountId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.AccountId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MountLinkedDeviceSessionResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MountLinkedDeviceSessionResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MountLinkedDeviceSessionResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -42444,6 +43314,11 @@ func (m *SpaceLinkAuthRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.CompletionMode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CompletionMode))
+		i--
+		dAtA[i] = 0x50
+	}
 	if len(m.TargetHint) > 0 {
 		i -= len(m.TargetHint)
 		copy(dAtA[i:], m.TargetHint)
@@ -42619,6 +43494,11 @@ func (m *PreviewSpaceLinkResponse) MarshalToSizedBufferVT(dAtA []byte) (int, err
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.CompletionMode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CompletionMode))
+		i--
+		dAtA[i] = 0x48
+	}
 	if len(m.CallbackUrl) > 0 {
 		i -= len(m.CallbackUrl)
 		copy(dAtA[i:], m.CallbackUrl)
@@ -42749,6 +43629,21 @@ func (m *ApproveSpaceLinkResponse) MarshalToSizedBufferVT(dAtA []byte) (int, err
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Completion != nil {
+		size, err := m.Completion.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if m.CompletionMode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CompletionMode))
+		i--
+		dAtA[i] = 0x30
+	}
 	if len(m.CallbackUrl) > 0 {
 		i -= len(m.CallbackUrl)
 		copy(dAtA[i:], m.CallbackUrl)
@@ -42783,6 +43678,79 @@ func (m *ApproveSpaceLinkResponse) MarshalToSizedBufferVT(dAtA []byte) (int, err
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.AccountId)))
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceLinkCallback) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SpaceLinkCallback) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceLinkCallback) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ErrorMessage) > 0 {
+		i -= len(m.ErrorMessage)
+		copy(dAtA[i:], m.ErrorMessage)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ErrorMessage)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.SessionPeerId) > 0 {
+		i -= len(m.SessionPeerId)
+		copy(dAtA[i:], m.SessionPeerId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SessionPeerId)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.ResourceId) > 0 {
+		i -= len(m.ResourceId)
+		copy(dAtA[i:], m.ResourceId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ResourceId)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.AccountId) > 0 {
+		i -= len(m.AccountId)
+		copy(dAtA[i:], m.AccountId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.AccountId)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Nonce) > 0 {
+		i -= len(m.Nonce)
+		copy(dAtA[i:], m.Nonce)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Nonce)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Status != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Status))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -43074,6 +44042,50 @@ func (m *LoginWithEntityKeyRequest) SizeVT() (n int) {
 }
 
 func (m *LoginWithEntityKeyResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.SessionListEntry != nil {
+		l = m.SessionListEntry.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *MountLinkedDeviceSessionRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.AccountId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SessionId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Label)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SessionPemPrivateKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SessionPeerId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *MountLinkedDeviceSessionResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -47141,6 +48153,9 @@ func (m *SpaceLinkAuthRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.CompletionMode != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.CompletionMode))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -47212,6 +48227,9 @@ func (m *PreviewSpaceLinkResponse) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.CompletionMode != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.CompletionMode))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -47260,6 +48278,46 @@ func (m *ApproveSpaceLinkResponse) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.CompletionMode != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.CompletionMode))
+	}
+	if m.Completion != nil {
+		l = m.Completion.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SpaceLinkCallback) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Status != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Status))
+	}
+	l = len(m.Nonce)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.AccountId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ResourceId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SessionPeerId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ErrorMessage)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -47289,6 +48347,14 @@ func (x SelfEnrollmentGateState) MarshalProtoText() string {
 }
 
 func (x TargetedInvitePurpose) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x SpaceLinkCompletionMode) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x SpaceLinkCallbackStatus) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -47590,6 +48656,72 @@ func (x *LoginWithEntityKeyResponse) MarshalProtoText() string {
 }
 
 func (x *LoginWithEntityKeyResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *MountLinkedDeviceSessionRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("MountLinkedDeviceSessionRequest {")
+	if x.AccountId != "" {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("account_id: ")
+		sb.WriteString(strconv.Quote(x.AccountId))
+	}
+	if x.SessionId != "" {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("session_id: ")
+		sb.WriteString(strconv.Quote(x.SessionId))
+	}
+	if x.Label != "" {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("label: ")
+		sb.WriteString(strconv.Quote(x.Label))
+	}
+	if x.SessionPemPrivateKey != nil {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("session_pem_private_key: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.SessionPemPrivateKey))
+		sb.WriteString("\"")
+	}
+	if x.SessionPeerId != "" {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("session_peer_id: ")
+		sb.WriteString(strconv.Quote(x.SessionPeerId))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *MountLinkedDeviceSessionRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *MountLinkedDeviceSessionResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("MountLinkedDeviceSessionResponse {")
+	if x.SessionListEntry != nil {
+		if sb.Len() > 34 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("session_list_entry: ")
+		sb.WriteString(x.SessionListEntry.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *MountLinkedDeviceSessionResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -53514,6 +54646,15 @@ func (x *SpaceLinkAuthRequest) MarshalProtoText() string {
 		sb.WriteString(base64.StdEncoding.EncodeToString(x.TargetHint))
 		sb.WriteString("\"")
 	}
+	if x.CompletionMode != 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("completion_mode: ")
+		sb.WriteString("\"")
+		sb.WriteString(SpaceLinkCompletionMode(x.CompletionMode).String())
+		sb.WriteString("\"")
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
@@ -53640,6 +54781,15 @@ func (x *PreviewSpaceLinkResponse) MarshalProtoText() string {
 		sb.WriteString("callback_url: ")
 		sb.WriteString(strconv.Quote(x.CallbackUrl))
 	}
+	if x.CompletionMode != 0 {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("completion_mode: ")
+		sb.WriteString("\"")
+		sb.WriteString(SpaceLinkCompletionMode(x.CompletionMode).String())
+		sb.WriteString("\"")
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
@@ -53721,11 +54871,88 @@ func (x *ApproveSpaceLinkResponse) MarshalProtoText() string {
 		sb.WriteString("callback_url: ")
 		sb.WriteString(strconv.Quote(x.CallbackUrl))
 	}
+	if x.CompletionMode != 0 {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("completion_mode: ")
+		sb.WriteString("\"")
+		sb.WriteString(SpaceLinkCompletionMode(x.CompletionMode).String())
+		sb.WriteString("\"")
+	}
+	if x.Completion != nil {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("completion: ")
+		sb.WriteString(x.Completion.MarshalProtoText())
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
 
 func (x *ApproveSpaceLinkResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SpaceLinkCallback) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("SpaceLinkCallback {")
+	if x.Status != 0 {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("status: ")
+		sb.WriteString("\"")
+		sb.WriteString(SpaceLinkCallbackStatus(x.Status).String())
+		sb.WriteString("\"")
+	}
+	if x.Nonce != nil {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("nonce: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.Nonce))
+		sb.WriteString("\"")
+	}
+	if x.AccountId != "" {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("account_id: ")
+		sb.WriteString(strconv.Quote(x.AccountId))
+	}
+	if x.ResourceId != nil {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("resource_id: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.ResourceId))
+		sb.WriteString("\"")
+	}
+	if x.SessionPeerId != nil {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("session_peer_id: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.SessionPeerId))
+		sb.WriteString("\"")
+	}
+	if x.ErrorMessage != "" {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("error_message: ")
+		sb.WriteString(strconv.Quote(x.ErrorMessage))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *SpaceLinkCallback) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -54739,6 +55966,234 @@ func (m *LoginWithEntityKeyResponse) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: LoginWithEntityKeyResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SessionListEntry", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.SessionListEntry == nil {
+				m.SessionListEntry = &session.SessionListEntry{}
+			}
+			if err := m.SessionListEntry.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *MountLinkedDeviceSessionRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MountLinkedDeviceSessionRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MountLinkedDeviceSessionRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AccountId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AccountId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SessionId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SessionId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Label", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Label = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SessionPemPrivateKey", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SessionPemPrivateKey = append(m.SessionPemPrivateKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.SessionPemPrivateKey == nil {
+				m.SessionPemPrivateKey = []byte{}
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SessionPeerId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SessionPeerId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *MountLinkedDeviceSessionResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MountLinkedDeviceSessionResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MountLinkedDeviceSessionResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -73352,6 +74807,17 @@ func (m *SpaceLinkAuthRequest) UnmarshalVT(dAtA []byte) error {
 				m.TargetHint = []byte{}
 			}
 			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CompletionMode", wireType)
+			}
+			m.CompletionMode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.CompletionMode = SpaceLinkCompletionMode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -73712,6 +75178,17 @@ func (m *PreviewSpaceLinkResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			m.CallbackUrl = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CompletionMode", wireType)
+			}
+			m.CompletionMode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.CompletionMode = SpaceLinkCompletionMode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -73971,6 +75448,221 @@ func (m *ApproveSpaceLinkResponse) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.CallbackUrl = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CompletionMode", wireType)
+			}
+			m.CompletionMode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.CompletionMode = SpaceLinkCompletionMode(_v)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Completion", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Completion == nil {
+				m.Completion = &SpaceLinkCallback{}
+			}
+			if err := m.Completion.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SpaceLinkCallback) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SpaceLinkCallback: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SpaceLinkCallback: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			m.Status = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Status = SpaceLinkCallbackStatus(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Nonce", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Nonce = append(m.Nonce[:0], dAtA[iNdEx:postIndex]...)
+			if m.Nonce == nil {
+				m.Nonce = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AccountId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AccountId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResourceId", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ResourceId = append(m.ResourceId[:0], dAtA[iNdEx:postIndex]...)
+			if m.ResourceId == nil {
+				m.ResourceId = []byte{}
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SessionPeerId", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SessionPeerId = append(m.SessionPeerId[:0], dAtA[iNdEx:postIndex]...)
+			if m.SessionPeerId == nil {
+				m.SessionPeerId = []byte{}
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ErrorMessage", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ErrorMessage = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
