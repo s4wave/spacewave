@@ -25,7 +25,7 @@ import (
 var (
 	signalingServerID string = "12D3KooWNyn6cNNxHnLc5Nw8b7XkVaAWKB9vbfe921LuysEoY1Cz" // Signaling server peer ID
 	signalingAddr     string = "ws://127.0.0.1:2253/bifrost-ws"
-	targetAddr        string = "http://127.0.0.1:8080"
+	targetAddr        string = "http://127.0.0.1:5593"
 	protocolID        string = "webrtc-browser-http/v1"
 )
 

@@ -15,7 +15,7 @@ const rootDir = join(__dirname, '..')
 const startScript = process.env.SPACEWAVE_WEB_START_SCRIPT || 'start:web:wasm'
 const browserProfile = process.env.SPACEWAVE_WEB_BROWSER_PROFILE || 'playwright'
 const userDataDir = join(rootDir, '.bldr', 'browser-state', browserProfile)
-const serverUrl = process.env.SPACEWAVE_WEB_SERVER_URL || 'http://127.0.0.1:8080'
+const serverUrl = process.env.SPACEWAVE_WEB_SERVER_URL || 'http://127.0.0.1:5593'
 const readyPath = process.env.SPACEWAVE_WEB_READY_PATH || '/entrypoint/runtime.wasm'
 const readyUrl = new URL(readyPath, serverUrl).toString()
 

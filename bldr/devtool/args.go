@@ -133,7 +133,7 @@ func (a *DevtoolArgs) FillDefaults() {
 	a.BuildType = "dev"
 	a.Remote = "devtool"
 	a.UseGitRoot = true
-	a.WebListenAddr = "127.0.0.1:8080"
+	a.WebListenAddr = "127.0.0.1:5593"
 	a.MinifyEntrypoint = true
 	a.JSMinification = "default"
 	a.JSSourcemaps = "default"

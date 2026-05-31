@@ -13,7 +13,7 @@ import { chromium } from 'playwright'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const rootDir = join(__dirname, '..')
 const userDataDir = join(rootDir, '.bldr', 'browser-state', 'playwright')
-const serverUrl = 'http://127.0.0.1:8080'
+const serverUrl = 'http://127.0.0.1:5593'
 const wasmUrl = `${serverUrl}/entrypoint/runtime.wasm`
 
 async function waitForServer(timeout = 120000) {
