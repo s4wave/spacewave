@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const port = Number.parseInt(process.env.E2E_PORT ?? '', 10) || 8080
+const port = Number.parseInt(process.env.E2E_PORT ?? '', 10) || 5593
 const url = `http://localhost:${port}`
 
 export default defineConfig({
@@ -27,6 +27,10 @@ export default defineConfig({
   webServer: {
     command: `bun run start:web:wasm`,
     cwd: '..',
+    env: {
+      ...process.env,
+      BLDR_WEB_LISTEN: `127.0.0.1:${port}`,
+    },
     url,
     reuseExistingServer: true,
     timeout: 600_000,

@@ -97,7 +97,7 @@ test.describe('WebRTC bridge bootstrap', () => {
 
 test.describe('cross-browser bridge bootstrap', () => {
   test('Chromium and Firefox both bootstrap bridge', async () => {
-    const port = Number.parseInt(process.env.E2E_PORT ?? '', 10) || 8080
+    const port = Number.parseInt(process.env.E2E_PORT ?? '', 10) || 5593
     const url = `http://localhost:${port}/#/`
 
     // Launch two separate browser instances.

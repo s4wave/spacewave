@@ -493,6 +493,9 @@ func (l *LocalSOHost) localOperationInner(
 // Any other error returns 0, false, error
 func (l *LocalSOHost) WaitOperation(ctx context.Context, localID string) (uint64, bool, error) {
 	if seqno, rejected, err, resolved := l.localOpResultOutcome(ctx, localID); err != nil || resolved {
+		if err == nil && resolved && !rejected {
+			seqno, err = l.waitForRootSeqno(ctx, seqno)
+		}
 		return seqno, rejected, err
 	}
 
@@ -542,6 +545,9 @@ func (l *LocalSOHost) WaitOperation(ctx context.Context, localID string) (uint64
 
 		// Check if there is a local op result.
 		if seqno, rejected, err, resolved := l.localOpResultOutcome(ctx, localID); err != nil || resolved {
+			if err == nil && resolved && !rejected {
+				seqno, err = l.waitForRootSeqno(ctx, seqno)
+			}
 			return seqno, rejected, err
 		}
 
@@ -588,6 +594,46 @@ func (l *LocalSOHost) WaitOperation(ctx context.Context, localID string) (uint64
 			return 0, false, errors.New("root inner state is nil")
 		}
 		return rootInner.GetSeqno(), false, nil
+	}
+}
+
+func (l *LocalSOHost) waitForRootSeqno(ctx context.Context, minSeqno uint64) (uint64, error) {
+	ctx, ctxCancel := context.WithCancel(ctx)
+	defer ctxCancel()
+
+	soStateCtr, relSoStateCtr, err := l.soHost.GetSOStateCtr(ctx, ctxCancel)
+	if err != nil {
+		return 0, err
+	}
+	defer relSoStateCtr()
+
+	var current *sobject.SOState
+	for {
+		next, err := soStateCtr.WaitValueChange(ctx, current, nil)
+		if err != nil {
+			return 0, err
+		}
+		current = next
+		if current.GetRoot().GetInnerSeqno() < minSeqno {
+			continue
+		}
+
+		snap := sobject.NewSOStateParticipantHandle(
+			l.le,
+			l.sfs,
+			l.sharedObjectID,
+			current,
+			l.privKey,
+			l.peerID,
+		)
+		rootInner, err := snap.GetRootInner(ctx)
+		if err != nil {
+			return 0, err
+		}
+		if rootInner == nil {
+			return 0, errors.New("root inner state is nil")
+		}
+		return rootInner.GetSeqno(), nil
 	}
 }
 
