@@ -9,7 +9,7 @@ import tailwindcss from '@tailwindcss/vite'
 import {
   buildGoAliases,
   goTsResolver,
-} from '../../.bldr/src/web/bundler/vite/go-ts-resolver.js'
+} from '../../bldr/web/bundler/vite/go-ts-resolver.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(__dirname, '../../')
