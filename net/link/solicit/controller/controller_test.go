@@ -3,6 +3,7 @@ package link_solicit_controller
 import (
 	"bytes"
 	"context"
+	"net"
 	"slices"
 	"testing"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/protocol"
 	"github.com/s4wave/spacewave/net/stream"
+	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
 	"github.com/s4wave/spacewave/net/testbed"
 	"github.com/s4wave/spacewave/net/transport/common/dialer"
 	transport_controller "github.com/s4wave/spacewave/net/transport/controller"
@@ -535,6 +537,120 @@ func TestEvaluateMatchesSuppressesDuplicateOpens(t *testing.T) {
 	}
 	assertNoTestValue(t, ls.ml.(*testMountedLink).openCh, "duplicate opened protocol")
 	assertNoTestValue(t, handler.values, "duplicate solicit value")
+}
+
+func TestEvaluateMatchesHigherPeerDoesNotOpenStream(t *testing.T) {
+	ctx := t.Context()
+
+	c := newTestSolicitController(t)
+	ls := newTestLinkState(peer.ID("b"), peer.ID("a"))
+	handler := newTestResolverHandler()
+	entry := link_solicit.SolicitEntry{
+		ProtocolID: protocol.ID("test/higher"),
+		Context:    []byte("ctx"),
+	}
+	hashes := link_solicit.ComputeProtocolHashes(ls.sessionID, []link_solicit.SolicitEntry{entry})
+	ss := &solicitState{
+		dir:     link_solicit.NewSolicitProtocol(entry.ProtocolID, entry.Context, "", 0),
+		handler: handler,
+	}
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.links[ls.ml.GetLinkUUID()] = ls
+		c.solicitations[ss] = struct{}{}
+		broadcast()
+	})
+
+	c.evaluateMatches(ctx, ls, hashes, hashes)
+	if len(ls.matched) != 1 {
+		t.Fatalf("matched count = %d, want 1", len(ls.matched))
+	}
+	assertNoTestValue(t, ls.ml.(*testMountedLink).openCh, "higher-peer opened protocol")
+	assertNoTestValue(t, handler.values, "higher-peer solicit value")
+}
+
+func TestControlStreamSendsFullHashSetAfterLocalChange(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	c := newTestSolicitController(t)
+	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.links[ls.ml.GetLinkUUID()] = ls
+		broadcast()
+	})
+
+	localConn, remoteConn := net.Pipe()
+	defer localConn.Close()
+	defer remoteConn.Close()
+
+	localSess := stream_packet.NewSession(localConn, maxMessageSize)
+	remoteSess := stream_packet.NewSession(remoteConn, maxMessageSize)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		c.runControlStream(ctx, ls, localSess)
+	}()
+
+	first := &solicitState{
+		dir: link_solicit.NewSolicitProtocol(protocol.ID("test/full-a"), []byte("a"), "", 0),
+	}
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.solicitations[first] = struct{}{}
+		broadcast()
+	})
+	firstMsg := recvSolicitationExchange(t, remoteSess)
+	firstExpected := link_solicit.ComputeProtocolHashes(
+		ls.sessionID,
+		[]link_solicit.SolicitEntry{{
+			ProtocolID: protocol.ID("test/full-a"),
+			Context:    []byte("a"),
+		}},
+	)
+	if !slices.EqualFunc(firstMsg.GetProtocolHashes(), firstExpected, bytes.Equal) {
+		t.Fatalf("first exchange hashes = %x, want %x", firstMsg.GetProtocolHashes(), firstExpected)
+	}
+
+	second := &solicitState{
+		dir: link_solicit.NewSolicitProtocol(protocol.ID("test/full-b"), []byte("b"), "", 0),
+	}
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.solicitations[second] = struct{}{}
+		broadcast()
+	})
+	secondMsg := recvSolicitationExchange(t, remoteSess)
+	secondExpected := link_solicit.ComputeProtocolHashes(
+		ls.sessionID,
+		[]link_solicit.SolicitEntry{
+			{ProtocolID: protocol.ID("test/full-a"), Context: []byte("a")},
+			{ProtocolID: protocol.ID("test/full-b"), Context: []byte("b")},
+		},
+	)
+	if !slices.EqualFunc(secondMsg.GetProtocolHashes(), secondExpected, bytes.Equal) {
+		t.Fatalf("second exchange hashes = %x, want %x", secondMsg.GetProtocolHashes(), secondExpected)
+	}
+
+	cancel()
+	<-done
+}
+
+func recvSolicitationExchange(t *testing.T, sess *stream_packet.Session) *link_solicit.SolicitationExchange {
+	t.Helper()
+
+	done := make(chan error, 1)
+	msg := &link_solicit.SolicitationExchange{}
+	go func() {
+		done <- sess.RecvMsg(msg)
+	}()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("RecvMsg: %v", err)
+		}
+		return msg
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for solicitation exchange")
+	}
+	return nil
 }
 
 // TestSolicitProtocolMatch tests that two peers both soliciting the same

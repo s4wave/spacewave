@@ -41,6 +41,45 @@ func (h *testRoleHandler) OnBecomeFollower(ctx context.Context, leaderSocketPath
 // _ is a type assertion.
 var _ RoleChangeHandler = (*testRoleHandler)(nil)
 
+type blockingLeaderRoleHandler struct {
+	leaderCh       chan struct{}
+	leaderCancelCh chan struct{}
+	releaseLeader  chan struct{}
+	leaderDone     chan struct{}
+}
+
+func newBlockingLeaderRoleHandler() *blockingLeaderRoleHandler {
+	return &blockingLeaderRoleHandler{
+		leaderCh:       make(chan struct{}, 1),
+		leaderCancelCh: make(chan struct{}, 1),
+		releaseLeader:  make(chan struct{}),
+		leaderDone:     make(chan struct{}),
+	}
+}
+
+func (h *blockingLeaderRoleHandler) OnBecomeLeader(ctx context.Context) error {
+	defer close(h.leaderDone)
+	select {
+	case h.leaderCh <- struct{}{}:
+	default:
+	}
+	<-ctx.Done()
+	select {
+	case h.leaderCancelCh <- struct{}{}:
+	default:
+	}
+	<-h.releaseLeader
+	return nil
+}
+
+func (h *blockingLeaderRoleHandler) OnBecomeFollower(ctx context.Context, leaderSocketPath string) error {
+	<-ctx.Done()
+	return nil
+}
+
+// _ is a type assertion.
+var _ RoleChangeHandler = (*blockingLeaderRoleHandler)(nil)
+
 // shortTempDir creates a short temp directory suitable for Unix sockets
 // (macOS has a 104-byte path limit for sun_path).
 func shortTempDir(t *testing.T) string {
@@ -68,7 +107,7 @@ func TestCoordinatorLifecycle(t *testing.T) {
 	handler := newTestRoleHandler()
 	coordinator := NewCoordinator(le, db, dir, []string{"test"}, handler)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 
 	// Run coordinator in background.
@@ -184,6 +223,82 @@ func TestCoordinatorLifecycle(t *testing.T) {
 	// Socket file should be cleaned up.
 	if _, err := os.Stat(socketPath); !os.IsNotExist(err) {
 		t.Fatal("socket file should be removed after shutdown")
+	}
+}
+
+func TestCoordinatorShutdownWaitsForLeaderHandlerBeforeLeaseRelease(t *testing.T) {
+	dir := shortTempDir(t)
+	dbPath := filepath.Join(dir, "test.db")
+	db, err := bdb.Open(dbPath, 0o600, &bdb.Options{Timeout: 5 * time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	le := logrus.NewEntry(logrus.New())
+	le.Logger.SetLevel(logrus.DebugLevel)
+
+	handler := newBlockingLeaderRoleHandler()
+	coordinator := NewCoordinator(le, db, dir, []string{"test"}, handler)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	coordDone := make(chan error, 1)
+	go func() {
+		coordDone <- coordinator.Run(ctx)
+	}()
+
+	select {
+	case <-handler.leaderCh:
+	case err := <-coordDone:
+		t.Fatal("coordinator exited early:", err)
+	case <-ctx.Done():
+		t.Fatal("timed out waiting for leader")
+	}
+
+	cancel()
+	select {
+	case <-handler.leaderCancelCh:
+	case <-time.After(5 * time.Second):
+		t.Fatal("leader handler was not canceled")
+	}
+
+	select {
+	case err := <-coordDone:
+		t.Fatalf("coordinator returned before leader handler exited: %v", err)
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	lease, err := coordinator.GetElection().CurrentLeader()
+	if err != nil {
+		t.Fatal("CurrentLeader:", err)
+	}
+	if lease == nil {
+		t.Fatal("lease released before leader handler exited")
+	}
+
+	close(handler.releaseLeader)
+	select {
+	case <-handler.leaderDone:
+	case <-time.After(5 * time.Second):
+		t.Fatal("leader handler did not exit")
+	}
+	select {
+	case err := <-coordDone:
+		if err != nil && err != context.Canceled {
+			t.Fatal("coordinator run:", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("coordinator did not shut down")
+	}
+
+	lease, err = coordinator.GetElection().CurrentLeader()
+	if err != nil {
+		t.Fatal("CurrentLeader after shutdown:", err)
+	}
+	if lease != nil {
+		t.Fatal("lease should be released after leader handler exits")
 	}
 }
 

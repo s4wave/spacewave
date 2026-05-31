@@ -129,14 +129,18 @@ func (c *Controller) handleSolicitedStream(ctx context.Context, sms link_solicit
 
 	go func() {
 		sess.run(ctx)
-		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			if cur, ok := c.sessions[remotePeer]; ok && cur == sess {
-				delete(c.sessions, remotePeer)
-				broadcast()
-			}
-		})
+		c.removeSessionIfCurrent(remotePeer, sess)
 		le.Debug("dex peer session ended")
 	}()
+}
+
+func (c *Controller) removeSessionIfCurrent(remotePeer string, sess *peerSession) {
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if cur, ok := c.sessions[remotePeer]; ok && cur == sess {
+			delete(c.sessions, remotePeer)
+			broadcast()
+		}
+	})
 }
 
 // forwardToPeers forwards a block request to other connected peers,

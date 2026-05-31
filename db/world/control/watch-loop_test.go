@@ -134,3 +134,175 @@ func TestWatchLoopWakeBeforeWaitIsSticky(t *testing.T) {
 		}
 	}
 }
+
+func TestWatchLoopWakeAfterWaitClearIsSticky(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	events := make(chan struct{}, 4)
+	release := make(chan struct{})
+	loop := world_control.NewWatchLoop(
+		tb.Logger,
+		"",
+		world_control.NewWaitForStateHandler(func(
+			ctx context.Context,
+			_ world.WorldState,
+			_ world.ObjectState,
+			_ *block.Cursor,
+			_ uint64,
+		) (bool, error) {
+			events <- struct{}{}
+			select {
+			case <-release:
+				return true, nil
+			case <-ctx.Done():
+				return false, ctx.Err()
+			}
+		}),
+	)
+	done := make(chan error, 1)
+	go func() {
+		done <- loop.Execute(ctx, tb.WorldState)
+	}()
+
+	recvWatchLoopEvent(t, events, "initial handler")
+	release <- struct{}{}
+
+	if _, err := tb.WorldState.CreateObject(ctx, "wake-after-clear", nil); err != nil {
+		t.Fatal(err.Error())
+	}
+	recvWatchLoopEvent(t, events, "world-change handler")
+
+	loop.Wake()
+	release <- struct{}{}
+	recvWatchLoopEvent(t, events, "sticky wake handler")
+
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("watch loop did not exit")
+	}
+}
+
+func TestWatchLoopReportsObjectDeletion(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	objKey := "delete-object"
+	if _, err := tb.WorldState.CreateObject(ctx, objKey, nil); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	foundCh := make(chan bool, 4)
+	loop := world_control.NewWatchLoop(
+		tb.Logger,
+		objKey,
+		world_control.NewWaitForStateHandler(func(
+			_ context.Context,
+			_ world.WorldState,
+			obj world.ObjectState,
+			_ *block.Cursor,
+			_ uint64,
+		) (bool, error) {
+			foundCh <- obj != nil
+			return true, nil
+		}),
+	)
+	done := make(chan error, 1)
+	go func() {
+		done <- loop.Execute(ctx, tb.WorldState)
+	}()
+
+	if found := recvWatchLoopValue(t, foundCh, "initial object state"); !found {
+		t.Fatal("expected initial object state")
+	}
+	deleted, err := tb.WorldState.DeleteObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !deleted {
+		t.Fatal("object was not deleted")
+	}
+	if found := recvWatchLoopValue(t, foundCh, "deleted object state"); found {
+		t.Fatal("expected deleted object state")
+	}
+
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("watch loop did not exit")
+	}
+}
+
+func TestWatchLoopCancellationDuringWait(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	events := make(chan struct{}, 1)
+	loop := world_control.NewWatchLoop(
+		tb.Logger,
+		"",
+		world_control.NewWaitForStateHandler(func(
+			_ context.Context,
+			_ world.WorldState,
+			_ world.ObjectState,
+			_ *block.Cursor,
+			_ uint64,
+		) (bool, error) {
+			events <- struct{}{}
+			return true, nil
+		}),
+	)
+	done := make(chan error, 1)
+	go func() {
+		done <- loop.Execute(ctx, tb.WorldState)
+	}()
+
+	recvWatchLoopEvent(t, events, "initial handler")
+	cancel()
+	select {
+	case err := <-done:
+		if err != context.Canceled {
+			t.Fatalf("Execute err = %v, want context.Canceled", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("watch loop did not exit")
+	}
+}
+
+func recvWatchLoopEvent(t *testing.T, ch <-chan struct{}, name string) {
+	t.Helper()
+	select {
+	case <-ch:
+	case <-time.After(time.Second):
+		t.Fatalf("timed out waiting for %s", name)
+	}
+}
+
+func recvWatchLoopValue[T any](t *testing.T, ch <-chan T, name string) T {
+	t.Helper()
+	select {
+	case val := <-ch:
+		return val
+	case <-time.After(time.Second):
+		t.Fatalf("timed out waiting for %s", name)
+	}
+	var zero T
+	return zero
+}
