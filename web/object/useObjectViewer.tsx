@@ -27,6 +27,7 @@ import type { BottomBarContextMenuItem } from '@s4wave/web/frame/bottom-bar-cont
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { buildSpaceObjectActionTargets } from '@s4wave/web/space/object-tree.js'
 import { createSpaceObjectNavigationActions } from '@s4wave/web/space/space-object-navigation-actions.js'
+import { useObjectTypeMetadata } from '@s4wave/web/hooks/useObjectTypeMetadata.js'
 import { useTabContext } from './TabContext.js'
 import {
   hasObjectViewerSwitchOwner,
@@ -179,6 +180,7 @@ export function useObjectViewer({
   const isUnixfs = infoCase === 'unixfsObjectInfo'
   const rootResource = RootContext.useContext()
   const allViewers = useAllViewers(rootResource)
+  const objectTypeMetadataById = useObjectTypeMetadata(rootResource)
 
   const unixfsComponents = useMemo(() => {
     if (!isUnixfs) return []
@@ -258,8 +260,9 @@ export function useObjectViewer({
     () =>
       buildSpaceObjectActionTargets(
         spaceContext?.spaceState.worldContents?.objects ?? [],
+        objectTypeMetadataById,
       ),
-    [spaceContext?.spaceState.worldContents?.objects],
+    [spaceContext?.spaceState.worldContents?.objects, objectTypeMetadataById],
   )
   const handleOpenObject = useCallback(
     (target: { objectKey: string }) => {

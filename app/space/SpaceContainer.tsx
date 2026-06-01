@@ -72,6 +72,7 @@ import { CreateObjectButton } from './CreateObjectButton.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { buildSpaceObjectActionTargets } from '@s4wave/web/space/object-tree.js'
 import { createSpaceObjectNavigationActions } from '@s4wave/web/space/space-object-navigation-actions.js'
+import { useObjectTypeMetadata } from '@s4wave/web/hooks/useObjectTypeMetadata.js'
 import { downloadURL } from '@s4wave/web/download.js'
 import { canRenameSpace } from './permissions.js'
 import {
@@ -473,12 +474,14 @@ export function SpaceContainer() {
     }
     return spaceState
   }, [canRenderBody, objectKey, spaceState])
+  const objectTypeMetadataById = useObjectTypeMetadata(rootResource)
   const spaceObjectTargets = useMemo(
     () =>
       buildSpaceObjectActionTargets(
         routeSpaceState?.worldContents?.objects ?? [],
+        objectTypeMetadataById,
       ),
-    [routeSpaceState?.worldContents?.objects],
+    [routeSpaceState?.worldContents?.objects, objectTypeMetadataById],
   )
   const objectCount = spaceObjectTargets.length
 
