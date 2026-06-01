@@ -272,7 +272,7 @@ func TestReleaseMetadataRoutineRetriesUntilReleaseWorldMounted(t *testing.T) {
 		"release/manifests/native",
 		src,
 		nativeEntrypointManifestID,
-		"desktop/darwin/arm64",
+		nativeTestPlatformID(),
 		1,
 	)
 	metadata := testReleaseMetadata("stable", nativeTestPlatformID(), manifestRef.GetManifestRef().GetRootRef())
