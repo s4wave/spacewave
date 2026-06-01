@@ -197,23 +197,7 @@ func TestQuickstartDriveUploadBudgetProfiles(t *testing.T) {
 	})
 
 	recordProfile("large-overwrite-and-readback", func() {
-		first := playwright.InputFile{
-			Name:     "budget-overwrite.bin",
-			MimeType: "application/octet-stream",
-			Buffer:   uploadPatternBytes(2 * 1024 * 1024),
-		}
-		second := playwright.InputFile{
-			Name:     first.Name,
-			MimeType: first.MimeType,
-			Buffer:   uploadPatternBytes(3 * 1024 * 1024),
-		}
-		UploadViaPicker(t, page, []playwright.InputFile{first})
-		waitForDriveUploadSummary(t, page, "1/1 uploaded")
-		verifyUploadedFile(t, scenario, page, first)
-		clearDriveUploadDone(t, page)
-		UploadViaPicker(t, page, []playwright.InputFile{second})
-		waitForDriveUploadSummary(t, page, "1/1 uploaded")
-		verifyUploadedFile(t, scenario, page, second)
+		exerciseDriveUploadOverwriteAndReadback(t, scenario, page)
 	})
 
 	recordProfile("text-preview-pressure", func() {
@@ -262,6 +246,36 @@ func TestQuickstartDriveUploadBudgetProfiles(t *testing.T) {
 	}
 	if report.HasExitedGoLoop() {
 		t.Fatalf("unexpected exited-Go loop after budget profiles: %+v", report)
+	}
+}
+
+func TestQuickstartDriveUploadOverwriteBudgetProfile(t *testing.T) {
+	sess := testHarness.NewCleanSession(t)
+	console, stopConsole := sess.WatchConsole()
+	defer stopConsole()
+
+	scenario := CreateDriveScenario(t, testHarness, sess)
+	page := scenario.GetSession().Page()
+	WaitForDriveReady(t, testHarness, page)
+
+	before, ok := captureTinyGoBudgetSnapshot(t, sess)
+	if !ok {
+		t.Fatal("TinyGo browser budget report unavailable before overwrite profile")
+	}
+	exerciseDriveUploadOverwriteAndReadback(t, scenario, page)
+	after, ok := captureTinyGoBudgetSnapshot(t, sess)
+	if !ok {
+		t.Fatal("TinyGo browser budget report unavailable after overwrite profile")
+	}
+	assertTinyGoBudgetSnapshot(t, "overwrite profile before", before)
+	assertTinyGoBudgetSnapshot(t, "overwrite profile after", after)
+
+	report := DrainCrashReport(console)
+	if report.HasCrash() {
+		t.Fatalf("unexpected browser/WASM crash report after overwrite profile: %+v", report)
+	}
+	if report.HasExitedGoLoop() {
+		t.Fatalf("unexpected exited-Go loop after overwrite profile: %+v", report)
 	}
 }
 
@@ -494,6 +508,28 @@ func driveUploadMediumProfileFiles() []playwright.InputFile {
 	return files
 }
 
+func exerciseDriveUploadOverwriteAndReadback(t testing.TB, scenario *DriveScenario, page playwright.Page) {
+	t.Helper()
+
+	first := playwright.InputFile{
+		Name:     "budget-overwrite.bin",
+		MimeType: "application/octet-stream",
+		Buffer:   uploadPatternBytes(2 * 1024 * 1024),
+	}
+	second := playwright.InputFile{
+		Name:     first.Name,
+		MimeType: first.MimeType,
+		Buffer:   uploadPatternBytes(3 * 1024 * 1024),
+	}
+	UploadViaPicker(t, page, []playwright.InputFile{first})
+	waitForDriveUploadSummary(t, page, "1/1 uploaded")
+	verifyUploadedFile(t, scenario, page, first)
+	clearDriveUploadDone(t, page)
+	UploadViaPicker(t, page, []playwright.InputFile{second})
+	waitForDriveUploadSummary(t, page, "1/1 uploaded")
+	verifyUploadedFile(t, scenario, page, second)
+}
+
 func cancelDriveUploads(t testing.TB, page playwright.Page) bool {
 	t.Helper()
 
@@ -512,7 +548,8 @@ func waitForDriveUploadSummary(t testing.TB, page playwright.Page, text string) 
 	if err := page.Locator("button:has-text('" + text + "')").Last().WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(120000)},
 	); err != nil {
-		t.Fatalf("wait for upload summary %q: %v", text, err)
+		t.Logf("upload diagnostics while waiting for %q: %s", text, captureUploadDiagnostics(page))
+		failWithPageBody(t, page, "wait for upload summary "+text, err)
 	}
 }
 
