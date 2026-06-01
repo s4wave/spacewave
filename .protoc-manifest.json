@@ -4226,7 +4226,7 @@
       "protoFiles": ["sdk/sshhost/sshhost.proto"]
     },
     "github.com/s4wave/spacewave/sdk/status": {
-      "hash": "883b969302e2ae9a66b9eb2f217ba2263c3401144d389bfc71eccba900bdf250",
+      "hash": "3532177da9d63a0dca496af375bb0639e32158ca0e06b298d31269017dfe077f",
       "generatedFiles": [
         "sdk/status/status.pb.cc",
         "sdk/status/status.pb.go",

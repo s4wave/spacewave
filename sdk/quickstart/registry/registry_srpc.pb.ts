@@ -14,7 +14,7 @@ import {
   WatchQuickstartsRequest,
   WatchQuickstartsResponse,
 } from './registry.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 
 /**

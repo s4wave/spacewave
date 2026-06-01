@@ -130,7 +130,7 @@ import {
   WatchSubscriptionStatusRequest,
   WatchSubscriptionStatusResponse,
 } from '../provider/spacewave/spacewave.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
 import {
   MountSharedObjectSelfEnrollmentRequest,
   MountSharedObjectSelfEnrollmentResponse,

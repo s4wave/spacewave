@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import { V86fsMessage } from './v86fs.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,

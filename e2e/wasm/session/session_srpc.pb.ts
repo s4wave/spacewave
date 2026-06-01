@@ -9,7 +9,7 @@ import {
   WatchStateRequest,
   WatchStateResponse,
 } from './session.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,

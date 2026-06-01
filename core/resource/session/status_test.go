@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus/inmem"
 	cdc "github.com/aperturerobotics/controllerbus/directive/controller"
 	"github.com/s4wave/spacewave/core/provider"
+	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/session"
 	s4wave_status "github.com/s4wave/spacewave/sdk/status"
 	"github.com/sirupsen/logrus"
@@ -120,5 +121,97 @@ func TestReportRecoveryStatusReplacesRendererSnapshot(t *testing.T) {
 	if status.GetRuntimeAsset().GetStatus() != "not-reported" ||
 		status.GetRuntimeAsset().GetScriptPath() != "" {
 		t.Fatalf("runtime asset status was not cleared: %#v", status.GetRuntimeAsset())
+	}
+}
+
+func TestBuildLauncherRecoveryStatusIncludesEntrypointFacts(t *testing.T) {
+	status := buildLauncherRecoveryStatus(
+		&spacewave_launcher.LauncherInfo{
+			DistConfig: &spacewave_launcher.DistConfig{
+				ProjectId:  "spacewave",
+				Rev:        42,
+				ChannelKey: "staging",
+			},
+			UpdateState: &spacewave_launcher.UpdateState{
+				Phase:      spacewave_launcher.UpdatePhase_UpdatePhase_STAGED,
+				Version:    "0.2.0",
+				StagedPath: "/var/folders/spacewave/Spacewave.app",
+			},
+		},
+		&spacewave_launcher.FetchStatus{
+			SelectedConfigRev:             42,
+			SelectedConfigSource:          "endpoint:https://release.example",
+			FetchedConfigRev:              43,
+			FetchedConfigSource:           "endpoint:https://release.example",
+			ReleaseMetadataOutcome:        "staged",
+			ReleaseWorldHeadRef:           "release-world-head",
+			SelectedEntrypointManifestID:  "spacewave-dist",
+			SelectedEntrypointPlatformID:  "desktop/darwin/arm64",
+			SelectedEntrypointManifestRev: 7,
+			SelectedEntrypointManifestRef: "manifest-ref",
+		},
+	)
+
+	if status.GetSelectedChannelKey() != "staging" ||
+		status.GetSelectedConfigRev() != 42 ||
+		status.GetReleaseMetadataOutcome() != "staged" ||
+		status.GetReleaseWorldHeadRef() != "release-world-head" {
+		t.Fatalf("unexpected release status: %#v", status)
+	}
+	if status.GetSelectedEntrypointManifestId() != "spacewave-dist" ||
+		status.GetSelectedEntrypointPlatformId() != "desktop/darwin/arm64" ||
+		status.GetSelectedEntrypointManifestRev() != 7 ||
+		status.GetSelectedEntrypointManifestRef() != "manifest-ref" {
+		t.Fatalf("unexpected selected entrypoint status: %#v", status)
+	}
+	if status.GetUpdatePhase() != "staged" ||
+		status.GetUpdateVersion() != "0.2.0" ||
+		status.GetStagedPath() != "/var/folders/spacewave/Spacewave.app" {
+		t.Fatalf("unexpected update status: %#v", status)
+	}
+}
+
+func TestRecoveryStatusKeepsEntrypointAndPluginFactsSeparate(t *testing.T) {
+	status := &s4wave_status.RecoveryStatus{
+		Launcher: buildLauncherRecoveryStatus(
+			&spacewave_launcher.LauncherInfo{
+				DistConfig: &spacewave_launcher.DistConfig{
+					ProjectId:  "spacewave",
+					Rev:        42,
+					ChannelKey: "stable",
+				},
+				UpdateState: &spacewave_launcher.UpdateState{
+					Phase:      spacewave_launcher.UpdatePhase_UpdatePhase_STAGED,
+					StagedPath: "/tmp/Spacewave.app",
+				},
+			},
+			&spacewave_launcher.FetchStatus{
+				SelectedEntrypointManifestID:  "spacewave-dist",
+				SelectedEntrypointPlatformID:  "desktop/darwin/arm64",
+				SelectedEntrypointManifestRef: "entrypoint-ref",
+			},
+		),
+		Plugins: []*s4wave_status.PluginManifestRecoveryStatus{{
+			PluginId:            "spacewave-app",
+			ExecuteManifestRef:  "plugin-exec-ref",
+			DownloadManifestRef: "plugin-download-ref",
+		}},
+		NativePackages: []*s4wave_status.NativePackageRecoveryStatus{{
+			PluginId:     "spacewave-app",
+			DistDir:      "/tmp/p/d/spacewave-app",
+			Materialized: true,
+			LastAction:   "materialized",
+		}},
+	}
+
+	if status.GetLauncher().GetSelectedEntrypointManifestRef() != "entrypoint-ref" {
+		t.Fatalf("launcher entrypoint ref missing: %#v", status.GetLauncher())
+	}
+	if status.GetPlugins()[0].GetExecuteManifestRef() != "plugin-exec-ref" ||
+		status.GetNativePackages()[0].GetDistDir() != "/tmp/p/d/spacewave-app" {
+		t.Fatalf("plugin-owned status missing: %#v", status)
+	}
+	if status.GetLauncher().GetSelectedEntrypointManifestRef() == status.GetPlugins()[0].GetExecuteManifestRef() {
+		t.Fatalf("entrypoint and plugin refs were conflated: %#v", status)
 	}
 }

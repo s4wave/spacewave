@@ -122,12 +122,22 @@ func (x *PluginInfo) GetState() string {
 
 // LauncherRecoveryStatus reports launcher-owned release/config recovery facts.
 type LauncherRecoveryStatus struct {
-	unknownFields          []byte
-	SelectedConfigRev      uint64 `protobuf:"varint,1,opt,name=selected_config_rev,json=selectedConfigRev,proto3" json:"selectedConfigRev,omitempty"`
-	SelectedConfigSource   string `protobuf:"bytes,2,opt,name=selected_config_source,json=selectedConfigSource,proto3" json:"selectedConfigSource,omitempty"`
-	FetchedConfigRev       uint64 `protobuf:"varint,3,opt,name=fetched_config_rev,json=fetchedConfigRev,proto3" json:"fetchedConfigRev,omitempty"`
-	FetchedConfigSource    string `protobuf:"bytes,4,opt,name=fetched_config_source,json=fetchedConfigSource,proto3" json:"fetchedConfigSource,omitempty"`
-	ReleaseMetadataOutcome string `protobuf:"bytes,5,opt,name=release_metadata_outcome,json=releaseMetadataOutcome,proto3" json:"releaseMetadataOutcome,omitempty"`
+	unknownFields                 []byte
+	SelectedConfigRev             uint64 `protobuf:"varint,1,opt,name=selected_config_rev,json=selectedConfigRev,proto3" json:"selectedConfigRev,omitempty"`
+	SelectedConfigSource          string `protobuf:"bytes,2,opt,name=selected_config_source,json=selectedConfigSource,proto3" json:"selectedConfigSource,omitempty"`
+	FetchedConfigRev              uint64 `protobuf:"varint,3,opt,name=fetched_config_rev,json=fetchedConfigRev,proto3" json:"fetchedConfigRev,omitempty"`
+	FetchedConfigSource           string `protobuf:"bytes,4,opt,name=fetched_config_source,json=fetchedConfigSource,proto3" json:"fetchedConfigSource,omitempty"`
+	ReleaseMetadataOutcome        string `protobuf:"bytes,5,opt,name=release_metadata_outcome,json=releaseMetadataOutcome,proto3" json:"releaseMetadataOutcome,omitempty"`
+	ReleaseWorldHeadRef           string `protobuf:"bytes,6,opt,name=release_world_head_ref,json=releaseWorldHeadRef,proto3" json:"releaseWorldHeadRef,omitempty"`
+	SelectedChannelKey            string `protobuf:"bytes,7,opt,name=selected_channel_key,json=selectedChannelKey,proto3" json:"selectedChannelKey,omitempty"`
+	SelectedEntrypointManifestId  string `protobuf:"bytes,8,opt,name=selected_entrypoint_manifest_id,json=selectedEntrypointManifestId,proto3" json:"selectedEntrypointManifestId,omitempty"`
+	SelectedEntrypointPlatformId  string `protobuf:"bytes,9,opt,name=selected_entrypoint_platform_id,json=selectedEntrypointPlatformId,proto3" json:"selectedEntrypointPlatformId,omitempty"`
+	SelectedEntrypointManifestRev uint64 `protobuf:"varint,10,opt,name=selected_entrypoint_manifest_rev,json=selectedEntrypointManifestRev,proto3" json:"selectedEntrypointManifestRev,omitempty"`
+	SelectedEntrypointManifestRef string `protobuf:"bytes,11,opt,name=selected_entrypoint_manifest_ref,json=selectedEntrypointManifestRef,proto3" json:"selectedEntrypointManifestRef,omitempty"`
+	UpdatePhase                   string `protobuf:"bytes,12,opt,name=update_phase,json=updatePhase,proto3" json:"updatePhase,omitempty"`
+	UpdateVersion                 string `protobuf:"bytes,13,opt,name=update_version,json=updateVersion,proto3" json:"updateVersion,omitempty"`
+	StagedPath                    string `protobuf:"bytes,14,opt,name=staged_path,json=stagedPath,proto3" json:"stagedPath,omitempty"`
+	UpdateError                   string `protobuf:"bytes,15,opt,name=update_error,json=updateError,proto3" json:"updateError,omitempty"`
 }
 
 func (x *LauncherRecoveryStatus) Reset() {
@@ -167,6 +177,76 @@ func (x *LauncherRecoveryStatus) GetFetchedConfigSource() string {
 func (x *LauncherRecoveryStatus) GetReleaseMetadataOutcome() string {
 	if x != nil {
 		return x.ReleaseMetadataOutcome
+	}
+	return ""
+}
+
+func (x *LauncherRecoveryStatus) GetReleaseWorldHeadRef() string {
+	if x != nil {
+		return x.ReleaseWorldHeadRef
+	}
+	return ""
+}
+
+func (x *LauncherRecoveryStatus) GetSelectedChannelKey() string {
+	if x != nil {
+		return x.SelectedChannelKey
+	}
+	return ""
+}
+
+func (x *LauncherRecoveryStatus) GetSelectedEntrypointManifestId() string {
+	if x != nil {
+		return x.SelectedEntrypointManifestId
+	}
+	return ""
+}
+
+func (x *LauncherRecoveryStatus) GetSelectedEntrypointPlatformId() string {
+	if x != nil {
+		return x.SelectedEntrypointPlatformId
+	}
+	return ""
+}
+
+func (x *LauncherRecoveryStatus) GetSelectedEntrypointManifestRev() uint64 {
+	if x != nil {
+		return x.SelectedEntrypointManifestRev
+	}
+	return 0
+}
+
+func (x *LauncherRecoveryStatus) GetSelectedEntrypointManifestRef() string {
+	if x != nil {
+		return x.SelectedEntrypointManifestRef
+	}
+	return ""
+}
+
+func (x *LauncherRecoveryStatus) GetUpdatePhase() string {
+	if x != nil {
+		return x.UpdatePhase
+	}
+	return ""
+}
+
+func (x *LauncherRecoveryStatus) GetUpdateVersion() string {
+	if x != nil {
+		return x.UpdateVersion
+	}
+	return ""
+}
+
+func (x *LauncherRecoveryStatus) GetStagedPath() string {
+	if x != nil {
+		return x.StagedPath
+	}
+	return ""
+}
+
+func (x *LauncherRecoveryStatus) GetUpdateError() string {
+	if x != nil {
+		return x.UpdateError
 	}
 	return ""
 }
@@ -759,6 +839,16 @@ func (m *LauncherRecoveryStatus) CloneVT() *LauncherRecoveryStatus {
 	r.FetchedConfigRev = m.FetchedConfigRev
 	r.FetchedConfigSource = m.FetchedConfigSource
 	r.ReleaseMetadataOutcome = m.ReleaseMetadataOutcome
+	r.ReleaseWorldHeadRef = m.ReleaseWorldHeadRef
+	r.SelectedChannelKey = m.SelectedChannelKey
+	r.SelectedEntrypointManifestId = m.SelectedEntrypointManifestId
+	r.SelectedEntrypointPlatformId = m.SelectedEntrypointPlatformId
+	r.SelectedEntrypointManifestRev = m.SelectedEntrypointManifestRev
+	r.SelectedEntrypointManifestRef = m.SelectedEntrypointManifestRef
+	r.UpdatePhase = m.UpdatePhase
+	r.UpdateVersion = m.UpdateVersion
+	r.StagedPath = m.StagedPath
+	r.UpdateError = m.UpdateError
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1157,6 +1247,36 @@ func (this *LauncherRecoveryStatus) EqualVT(that *LauncherRecoveryStatus) bool {
 		return false
 	}
 	if this.ReleaseMetadataOutcome != that.ReleaseMetadataOutcome {
+		return false
+	}
+	if this.ReleaseWorldHeadRef != that.ReleaseWorldHeadRef {
+		return false
+	}
+	if this.SelectedChannelKey != that.SelectedChannelKey {
+		return false
+	}
+	if this.SelectedEntrypointManifestId != that.SelectedEntrypointManifestId {
+		return false
+	}
+	if this.SelectedEntrypointPlatformId != that.SelectedEntrypointPlatformId {
+		return false
+	}
+	if this.SelectedEntrypointManifestRev != that.SelectedEntrypointManifestRev {
+		return false
+	}
+	if this.SelectedEntrypointManifestRef != that.SelectedEntrypointManifestRef {
+		return false
+	}
+	if this.UpdatePhase != that.UpdatePhase {
+		return false
+	}
+	if this.UpdateVersion != that.UpdateVersion {
+		return false
+	}
+	if this.StagedPath != that.StagedPath {
+		return false
+	}
+	if this.UpdateError != that.UpdateError {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1826,6 +1946,56 @@ func (x *LauncherRecoveryStatus) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("releaseMetadataOutcome")
 		s.WriteString(x.ReleaseMetadataOutcome)
 	}
+	if x.ReleaseWorldHeadRef != "" || s.HasField("releaseWorldHeadRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("releaseWorldHeadRef")
+		s.WriteString(x.ReleaseWorldHeadRef)
+	}
+	if x.SelectedChannelKey != "" || s.HasField("selectedChannelKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("selectedChannelKey")
+		s.WriteString(x.SelectedChannelKey)
+	}
+	if x.SelectedEntrypointManifestId != "" || s.HasField("selectedEntrypointManifestId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("selectedEntrypointManifestId")
+		s.WriteString(x.SelectedEntrypointManifestId)
+	}
+	if x.SelectedEntrypointPlatformId != "" || s.HasField("selectedEntrypointPlatformId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("selectedEntrypointPlatformId")
+		s.WriteString(x.SelectedEntrypointPlatformId)
+	}
+	if x.SelectedEntrypointManifestRev != 0 || s.HasField("selectedEntrypointManifestRev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("selectedEntrypointManifestRev")
+		s.WriteUint64(x.SelectedEntrypointManifestRev)
+	}
+	if x.SelectedEntrypointManifestRef != "" || s.HasField("selectedEntrypointManifestRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("selectedEntrypointManifestRef")
+		s.WriteString(x.SelectedEntrypointManifestRef)
+	}
+	if x.UpdatePhase != "" || s.HasField("updatePhase") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("updatePhase")
+		s.WriteString(x.UpdatePhase)
+	}
+	if x.UpdateVersion != "" || s.HasField("updateVersion") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("updateVersion")
+		s.WriteString(x.UpdateVersion)
+	}
+	if x.StagedPath != "" || s.HasField("stagedPath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("stagedPath")
+		s.WriteString(x.StagedPath)
+	}
+	if x.UpdateError != "" || s.HasField("updateError") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("updateError")
+		s.WriteString(x.UpdateError)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1858,6 +2028,36 @@ func (x *LauncherRecoveryStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "release_metadata_outcome", "releaseMetadataOutcome":
 			s.AddField("release_metadata_outcome")
 			x.ReleaseMetadataOutcome = s.ReadString()
+		case "release_world_head_ref", "releaseWorldHeadRef":
+			s.AddField("release_world_head_ref")
+			x.ReleaseWorldHeadRef = s.ReadString()
+		case "selected_channel_key", "selectedChannelKey":
+			s.AddField("selected_channel_key")
+			x.SelectedChannelKey = s.ReadString()
+		case "selected_entrypoint_manifest_id", "selectedEntrypointManifestId":
+			s.AddField("selected_entrypoint_manifest_id")
+			x.SelectedEntrypointManifestId = s.ReadString()
+		case "selected_entrypoint_platform_id", "selectedEntrypointPlatformId":
+			s.AddField("selected_entrypoint_platform_id")
+			x.SelectedEntrypointPlatformId = s.ReadString()
+		case "selected_entrypoint_manifest_rev", "selectedEntrypointManifestRev":
+			s.AddField("selected_entrypoint_manifest_rev")
+			x.SelectedEntrypointManifestRev = s.ReadUint64()
+		case "selected_entrypoint_manifest_ref", "selectedEntrypointManifestRef":
+			s.AddField("selected_entrypoint_manifest_ref")
+			x.SelectedEntrypointManifestRef = s.ReadString()
+		case "update_phase", "updatePhase":
+			s.AddField("update_phase")
+			x.UpdatePhase = s.ReadString()
+		case "update_version", "updateVersion":
+			s.AddField("update_version")
+			x.UpdateVersion = s.ReadString()
+		case "staged_path", "stagedPath":
+			s.AddField("staged_path")
+			x.StagedPath = s.ReadString()
+		case "update_error", "updateError":
+			s.AddField("update_error")
+			x.UpdateError = s.ReadString()
 		}
 	})
 }
@@ -3023,6 +3223,74 @@ func (m *LauncherRecoveryStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.UpdateError) > 0 {
+		i -= len(m.UpdateError)
+		copy(dAtA[i:], m.UpdateError)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.UpdateError)))
+		i--
+		dAtA[i] = 0x7a
+	}
+	if len(m.StagedPath) > 0 {
+		i -= len(m.StagedPath)
+		copy(dAtA[i:], m.StagedPath)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.StagedPath)))
+		i--
+		dAtA[i] = 0x72
+	}
+	if len(m.UpdateVersion) > 0 {
+		i -= len(m.UpdateVersion)
+		copy(dAtA[i:], m.UpdateVersion)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.UpdateVersion)))
+		i--
+		dAtA[i] = 0x6a
+	}
+	if len(m.UpdatePhase) > 0 {
+		i -= len(m.UpdatePhase)
+		copy(dAtA[i:], m.UpdatePhase)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.UpdatePhase)))
+		i--
+		dAtA[i] = 0x62
+	}
+	if len(m.SelectedEntrypointManifestRef) > 0 {
+		i -= len(m.SelectedEntrypointManifestRef)
+		copy(dAtA[i:], m.SelectedEntrypointManifestRef)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SelectedEntrypointManifestRef)))
+		i--
+		dAtA[i] = 0x5a
+	}
+	if m.SelectedEntrypointManifestRev != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.SelectedEntrypointManifestRev))
+		i--
+		dAtA[i] = 0x50
+	}
+	if len(m.SelectedEntrypointPlatformId) > 0 {
+		i -= len(m.SelectedEntrypointPlatformId)
+		copy(dAtA[i:], m.SelectedEntrypointPlatformId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SelectedEntrypointPlatformId)))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if len(m.SelectedEntrypointManifestId) > 0 {
+		i -= len(m.SelectedEntrypointManifestId)
+		copy(dAtA[i:], m.SelectedEntrypointManifestId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SelectedEntrypointManifestId)))
+		i--
+		dAtA[i] = 0x42
+	}
+	if len(m.SelectedChannelKey) > 0 {
+		i -= len(m.SelectedChannelKey)
+		copy(dAtA[i:], m.SelectedChannelKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SelectedChannelKey)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.ReleaseWorldHeadRef) > 0 {
+		i -= len(m.ReleaseWorldHeadRef)
+		copy(dAtA[i:], m.ReleaseWorldHeadRef)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ReleaseWorldHeadRef)))
+		i--
+		dAtA[i] = 0x32
+	}
 	if len(m.ReleaseMetadataOutcome) > 0 {
 		i -= len(m.ReleaseMetadataOutcome)
 		copy(dAtA[i:], m.ReleaseMetadataOutcome)
@@ -3984,6 +4252,45 @@ func (m *LauncherRecoveryStatus) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	l = len(m.ReleaseWorldHeadRef)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SelectedChannelKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SelectedEntrypointManifestId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SelectedEntrypointPlatformId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.SelectedEntrypointManifestRev != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.SelectedEntrypointManifestRev))
+	}
+	l = len(m.SelectedEntrypointManifestRef)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.UpdatePhase)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.UpdateVersion)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.StagedPath)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.UpdateError)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -4440,6 +4747,76 @@ func (x *LauncherRecoveryStatus) MarshalProtoText() string {
 		}
 		sb.WriteString("release_metadata_outcome: ")
 		sb.WriteString(strconv.Quote(x.ReleaseMetadataOutcome))
+	}
+	if x.ReleaseWorldHeadRef != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("release_world_head_ref: ")
+		sb.WriteString(strconv.Quote(x.ReleaseWorldHeadRef))
+	}
+	if x.SelectedChannelKey != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("selected_channel_key: ")
+		sb.WriteString(strconv.Quote(x.SelectedChannelKey))
+	}
+	if x.SelectedEntrypointManifestId != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("selected_entrypoint_manifest_id: ")
+		sb.WriteString(strconv.Quote(x.SelectedEntrypointManifestId))
+	}
+	if x.SelectedEntrypointPlatformId != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("selected_entrypoint_platform_id: ")
+		sb.WriteString(strconv.Quote(x.SelectedEntrypointPlatformId))
+	}
+	if x.SelectedEntrypointManifestRev != 0 {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("selected_entrypoint_manifest_rev: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.SelectedEntrypointManifestRev), 10))
+	}
+	if x.SelectedEntrypointManifestRef != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("selected_entrypoint_manifest_ref: ")
+		sb.WriteString(strconv.Quote(x.SelectedEntrypointManifestRef))
+	}
+	if x.UpdatePhase != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("update_phase: ")
+		sb.WriteString(strconv.Quote(x.UpdatePhase))
+	}
+	if x.UpdateVersion != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("update_version: ")
+		sb.WriteString(strconv.Quote(x.UpdateVersion))
+	}
+	if x.StagedPath != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("staged_path: ")
+		sb.WriteString(strconv.Quote(x.StagedPath))
+	}
+	if x.UpdateError != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("update_error: ")
+		sb.WriteString(strconv.Quote(x.UpdateError))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -5380,6 +5757,213 @@ func (m *LauncherRecoveryStatus) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ReleaseMetadataOutcome = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReleaseWorldHeadRef", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ReleaseWorldHeadRef = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SelectedChannelKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SelectedChannelKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SelectedEntrypointManifestId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SelectedEntrypointManifestId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SelectedEntrypointPlatformId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SelectedEntrypointPlatformId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SelectedEntrypointManifestRev", wireType)
+			}
+			m.SelectedEntrypointManifestRev = 0
+			m.SelectedEntrypointManifestRev, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SelectedEntrypointManifestRef", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SelectedEntrypointManifestRef = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UpdatePhase", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.UpdatePhase = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UpdateVersion", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.UpdateVersion = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StagedPath", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.StagedPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 15:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UpdateError", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.UpdateError = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

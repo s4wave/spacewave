@@ -49,6 +49,26 @@ pub struct LauncherRecoveryStatus {
     pub fetched_config_source: ::prost::alloc::string::String,
     #[prost(string, tag="5")]
     pub release_metadata_outcome: ::prost::alloc::string::String,
+    #[prost(string, tag="6")]
+    pub release_world_head_ref: ::prost::alloc::string::String,
+    #[prost(string, tag="7")]
+    pub selected_channel_key: ::prost::alloc::string::String,
+    #[prost(string, tag="8")]
+    pub selected_entrypoint_manifest_id: ::prost::alloc::string::String,
+    #[prost(string, tag="9")]
+    pub selected_entrypoint_platform_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag="10")]
+    pub selected_entrypoint_manifest_rev: u64,
+    #[prost(string, tag="11")]
+    pub selected_entrypoint_manifest_ref: ::prost::alloc::string::String,
+    #[prost(string, tag="12")]
+    pub update_phase: ::prost::alloc::string::String,
+    #[prost(string, tag="13")]
+    pub update_version: ::prost::alloc::string::String,
+    #[prost(string, tag="14")]
+    pub staged_path: ::prost::alloc::string::String,
+    #[prost(string, tag="15")]
+    pub update_error: ::prost::alloc::string::String,
 }
 /// PluginManifestRecoveryStatus reports scheduler-owned Manifest recovery facts.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

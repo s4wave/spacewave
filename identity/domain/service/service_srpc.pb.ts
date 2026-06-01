@@ -4,7 +4,7 @@
 
 import { SignedMsg } from '@go/github.com/s4wave/spacewave/net/peer/peer.pb.js'
 import { LookupEntityResp } from './service.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
 import { ProtoRpc } from 'starpc'
 
 /**

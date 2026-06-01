@@ -16,8 +16,10 @@ import (
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	spacewave_release "github.com/s4wave/spacewave/core/release"
 	"github.com/s4wave/spacewave/db/block"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/sirupsen/logrus"
 )
 
@@ -45,6 +47,7 @@ func (c *Controller) refreshReleaseMetadataStatus(ctx context.Context, distConf 
 	}
 	c.setReleaseMetadataOutcome("resolving")
 	c.setSelectedEntrypointManifestRef(nil)
+	c.setReleaseWorldHeadRef("")
 	metadata, err := c.resolveReleaseMetadata(ctx, distConf.ResolvedChannelKey())
 	if err != nil {
 		c.setUpdateError(err)
@@ -83,12 +86,11 @@ func (c *Controller) resolveReleaseMetadata(
 		return nil, errors.New("release world not mounted")
 	}
 	defer ref.Release()
-	var metadata *spacewave_release.ReleaseMetadata
-	err = world.ExecTransaction(ctx, eng, false, func(ctx context.Context, wtx world.WorldState) error {
-		var readErr error
-		metadata, readErr = readSelectedReleaseMetadata(ctx, wtx, channelKey)
-		return readErr
-	})
+	metadata, headRef, err := readReleaseMetadataSnapshot(ctx, c.le, eng, channelKey)
+	if err != nil {
+		return nil, err
+	}
+	c.setReleaseWorldHeadRef(headRef)
 	return metadata, err
 }
 
@@ -176,6 +178,12 @@ func (c *Controller) setReleaseMetadataOutcome(outcome string) {
 	})
 }
 
+func (c *Controller) setReleaseWorldHeadRef(ref string) {
+	c.updateFetchStatus(func(next *spacewave_launcher.FetchStatus) {
+		next.ReleaseWorldHeadRef = ref
+	})
+}
+
 func (c *Controller) setSelectedEntrypointManifestRef(ref *bldr_manifest.ManifestRef) {
 	c.updateFetchStatus(func(next *spacewave_launcher.FetchStatus) {
 		next.SelectedEntrypointManifestID = ""
@@ -238,6 +246,37 @@ func (c *Controller) verifyDarwinInstalledAppStagedEntrypoint(
 	}
 	_ = os.RemoveAll(stageRoot)
 	return errors.New("darwin installed-app update must stage a signed .app bundle")
+}
+
+func readReleaseMetadataSnapshot(
+	ctx context.Context,
+	le *logrus.Entry,
+	eng world.Engine,
+	channelKey string,
+) (*spacewave_release.ReleaseMetadata, string, error) {
+	var metadata *spacewave_release.ReleaseMetadata
+	var headRef string
+	err := eng.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
+		headRef = root.GetRef().MarshalString()
+		ws, err := world_block.BuildWorldStateFromCursor(
+			ctx,
+			le,
+			false,
+			root,
+			eng,
+			bldr_manifest_world.LookupOp,
+			false,
+		)
+		if err != nil {
+			return err
+		}
+		metadata, err = readSelectedReleaseMetadata(ctx, ws, channelKey)
+		return err
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	return metadata, headRef, nil
 }
 
 func readSelectedReleaseMetadata(

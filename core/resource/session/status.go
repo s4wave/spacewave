@@ -258,21 +258,40 @@ func (r *StatusResource) watchRecoveryOwnerChanges(ctx context.Context, notify f
 }
 
 func (r *StatusResource) watchRecoveryLauncherChanges(ctx context.Context, notify func()) {
-	ctr := r.findLauncherFetchStatusCtr()
-	if ctr == nil {
+	ctrl := spacewave_launcher_controller.FindControllerOnBus(r.b)
+	if ctrl == nil {
 		return
 	}
-	current := ctr.GetValue()
-	_ = ccontainer.WatchChanges(
-		ctx,
-		current,
-		ctr,
-		func(*spacewave_launcher.FetchStatus) error {
-			notify()
-			return nil
-		},
-		nil,
-	)
+	if ctr := ctrl.GetFetchStatusCtr(); ctr != nil {
+		current := ctr.GetValue()
+		go func() {
+			_ = ccontainer.WatchChanges(
+				ctx,
+				current,
+				ctr,
+				func(*spacewave_launcher.FetchStatus) error {
+					notify()
+					return nil
+				},
+				nil,
+			)
+		}()
+	}
+	if ctr := ctrl.GetLauncherInfoCtr(); ctr != nil {
+		current := ctr.GetValue()
+		go func() {
+			_ = ccontainer.WatchChanges(
+				ctx,
+				current,
+				ctr,
+				func(*spacewave_launcher.LauncherInfo) error {
+					notify()
+					return nil
+				},
+				nil,
+			)
+		}()
+	}
 }
 
 func (r *StatusResource) watchRecoveryPluginChanges(ctx context.Context, notify func()) {
@@ -305,14 +324,6 @@ func (r *StatusResource) watchRecoveryRendererChanges(ctx context.Context, notif
 		},
 		nil,
 	)
-}
-
-func (r *StatusResource) findLauncherFetchStatusCtr() ccontainer.Watchable[*spacewave_launcher.FetchStatus] {
-	ctrl := spacewave_launcher_controller.FindControllerOnBus(r.b)
-	if ctrl == nil {
-		return nil
-	}
-	return ctrl.GetFetchStatusCtr()
 }
 
 func rendererRecoveryStatusEqual(
@@ -397,19 +408,65 @@ func (r *StatusResource) buildRecoveryStatus() *s4wave_status.RecoveryStatus {
 
 func (r *StatusResource) buildLauncherRecoveryStatus() *s4wave_status.LauncherRecoveryStatus {
 	ctrl := spacewave_launcher_controller.FindControllerOnBus(r.b)
-	if ctrl == nil || ctrl.GetFetchStatusCtr() == nil {
+	if ctrl == nil {
 		return nil
 	}
-	status := ctrl.GetFetchStatusCtr().GetValue()
-	if status == nil {
+	var info *spacewave_launcher.LauncherInfo
+	if infoCtr := ctrl.GetLauncherInfoCtr(); infoCtr != nil {
+		info = infoCtr.GetValue()
+	}
+	var status *spacewave_launcher.FetchStatus
+	if statusCtr := ctrl.GetFetchStatusCtr(); statusCtr != nil {
+		status = statusCtr.GetValue()
+	}
+	return buildLauncherRecoveryStatus(info, status)
+}
+
+func buildLauncherRecoveryStatus(
+	info *spacewave_launcher.LauncherInfo,
+	status *spacewave_launcher.FetchStatus,
+) *s4wave_status.LauncherRecoveryStatus {
+	if info == nil && status == nil {
 		return nil
 	}
-	return &s4wave_status.LauncherRecoveryStatus{
-		SelectedConfigRev:      status.SelectedConfigRev,
-		SelectedConfigSource:   status.SelectedConfigSource,
-		FetchedConfigRev:       status.FetchedConfigRev,
-		FetchedConfigSource:    status.FetchedConfigSource,
-		ReleaseMetadataOutcome: status.ReleaseMetadataOutcome,
+	out := &s4wave_status.LauncherRecoveryStatus{}
+	if status != nil {
+		out.SelectedConfigRev = status.SelectedConfigRev
+		out.SelectedConfigSource = status.SelectedConfigSource
+		out.FetchedConfigRev = status.FetchedConfigRev
+		out.FetchedConfigSource = status.FetchedConfigSource
+		out.ReleaseMetadataOutcome = status.ReleaseMetadataOutcome
+		out.ReleaseWorldHeadRef = status.ReleaseWorldHeadRef
+		out.SelectedEntrypointManifestId = status.SelectedEntrypointManifestID
+		out.SelectedEntrypointPlatformId = status.SelectedEntrypointPlatformID
+		out.SelectedEntrypointManifestRev = status.SelectedEntrypointManifestRev
+		out.SelectedEntrypointManifestRef = status.SelectedEntrypointManifestRef
+	}
+	if info != nil {
+		out.SelectedChannelKey = info.GetDistConfig().ResolvedChannelKey()
+		state := info.GetUpdateState()
+		out.UpdatePhase = launcherUpdatePhaseString(state.GetPhase())
+		out.UpdateVersion = state.GetVersion()
+		out.StagedPath = state.GetStagedPath()
+		out.UpdateError = state.GetErrorMessage()
+	}
+	return out
+}
+
+func launcherUpdatePhaseString(phase spacewave_launcher.UpdatePhase) string {
+	switch phase {
+	case spacewave_launcher.UpdatePhase_UpdatePhase_IDLE:
+		return "idle"
+	case spacewave_launcher.UpdatePhase_UpdatePhase_DOWNLOADING:
+		return "downloading"
+	case spacewave_launcher.UpdatePhase_UpdatePhase_STAGED:
+		return "staged"
+	case spacewave_launcher.UpdatePhase_UpdatePhase_APPLYING:
+		return "applying"
+	case spacewave_launcher.UpdatePhase_UpdatePhase_ERROR:
+		return "error"
+	default:
+		return "unknown"
 	}
 }
 

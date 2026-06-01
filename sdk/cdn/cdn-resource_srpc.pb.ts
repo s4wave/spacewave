@@ -10,7 +10,7 @@ import {
   MountCdnSpaceRequest,
   MountCdnSpaceResponse,
 } from './cdn-resource.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
 import { ProtoRpc } from 'starpc'
 
 /**

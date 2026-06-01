@@ -27,6 +27,9 @@ type FetchStatus struct {
 	// ReleaseMetadataOutcome describes the latest release metadata resolution
 	// result for the selected DistConfig.
 	ReleaseMetadataOutcome string
+	// ReleaseWorldHeadRef is the Release World root ref used for the latest
+	// metadata resolution.
+	ReleaseWorldHeadRef string
 	// SelectedEntrypointManifestID is the native entrypoint manifest selected
 	// from release metadata for staging.
 	SelectedEntrypointManifestID string

@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import { CreateAccountRequest, CreateAccountResponse } from './local.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite'
+import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
 import { ProtoRpc } from 'starpc'
 
 /**

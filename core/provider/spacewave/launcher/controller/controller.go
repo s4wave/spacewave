@@ -127,6 +127,11 @@ func (c *Controller) GetFetchStatusCtr() ccontainer.Watchable[*spacewave_launche
 	return c.fetchStatusCtr
 }
 
+// GetLauncherInfoCtr returns launcher-owned entrypoint update state.
+func (c *Controller) GetLauncherInfoCtr() ccontainer.Watchable[*spacewave_launcher.LauncherInfo] {
+	return c.launcherInfoCtr
+}
+
 // FindControllerOnBus returns the first launcher controller on b.
 func FindControllerOnBus(b bus.Bus) *Controller {
 	for _, ctrl := range b.GetControllers() {

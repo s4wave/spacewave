@@ -303,8 +303,36 @@ inline constexpr LauncherRecoveryStatus::Impl_::Impl_(
         release_metadata_outcome_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        release_world_head_ref_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        selected_channel_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        selected_entrypoint_manifest_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        selected_entrypoint_platform_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        selected_entrypoint_manifest_ref_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        update_phase_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        update_version_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        staged_path_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        update_error_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         selected_config_rev_{::uint64_t{0u}},
-        fetched_config_rev_{::uint64_t{0u}} {}
+        fetched_config_rev_{::uint64_t{0u}},
+        selected_entrypoint_manifest_rev_{::uint64_t{0u}} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR LauncherRecoveryStatus::LauncherRecoveryStatus(::_pbi::ConstantInitialized)
@@ -615,17 +643,37 @@ const ::uint32_t
         2,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::status::LauncherRecoveryStatus, _impl_._has_bits_),
-        8, // hasbit index offset
+        18, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::status::LauncherRecoveryStatus, _impl_.selected_config_rev_),
         PROTOBUF_FIELD_OFFSET(::s4wave::status::LauncherRecoveryStatus, _impl_.selected_config_source_),
         PROTOBUF_FIELD_OFFSET(::s4wave::status::LauncherRecoveryStatus, _impl_.fetched_config_rev_),
         PROTOBUF_FIELD_OFFSET(::s4wave::status::LauncherRecoveryStatus, _impl_.fetched_config_source_),
         PROTOBUF_FIELD_OFFSET(::s4wave::status::LauncherRecoveryStatus, _impl_.release_metadata_outcome_),
-        3,
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::LauncherRecoveryStatus, _impl_.release_world_head_ref_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::LauncherRecoveryStatus, _impl_.selected_channel_key_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::LauncherRecoveryStatus, _impl_.selected_entrypoint_manifest_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::LauncherRecoveryStatus, _impl_.selected_entrypoint_platform_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::LauncherRecoveryStatus, _impl_.selected_entrypoint_manifest_rev_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::LauncherRecoveryStatus, _impl_.selected_entrypoint_manifest_ref_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::LauncherRecoveryStatus, _impl_.update_phase_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::LauncherRecoveryStatus, _impl_.update_version_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::LauncherRecoveryStatus, _impl_.staged_path_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::LauncherRecoveryStatus, _impl_.update_error_),
+        12,
         0,
-        4,
+        13,
         1,
         2,
+        3,
+        4,
+        5,
+        6,
+        14,
+        7,
+        8,
+        9,
+        10,
+        11,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::status::PluginManifestRecoveryStatus, _impl_._has_bits_),
         13, // hasbit index offset
@@ -757,21 +805,21 @@ static const ::_pbi::MigrationSchema
         {9, sizeof(::s4wave::status::DirectiveInfo)},
         {16, sizeof(::s4wave::status::PluginInfo)},
         {25, sizeof(::s4wave::status::LauncherRecoveryStatus)},
-        {38, sizeof(::s4wave::status::PluginManifestRecoveryStatus)},
-        {61, sizeof(::s4wave::status::NativePackageRecoveryStatus)},
-        {78, sizeof(::s4wave::status::BrowserBootRecoveryStatus)},
-        {87, sizeof(::s4wave::status::RuntimeAssetRecoveryStatus)},
-        {110, sizeof(::s4wave::status::RecoveryStatus)},
-        {123, sizeof(::s4wave::status::WatchControllersRequest)},
-        {124, sizeof(::s4wave::status::WatchControllersResponse)},
-        {131, sizeof(::s4wave::status::WatchDirectivesRequest)},
-        {132, sizeof(::s4wave::status::WatchDirectivesResponse)},
-        {139, sizeof(::s4wave::status::WatchPluginsRequest)},
-        {140, sizeof(::s4wave::status::WatchPluginsResponse)},
-        {147, sizeof(::s4wave::status::WatchRecoveryStatusRequest)},
-        {148, sizeof(::s4wave::status::ReportRecoveryStatusRequest)},
-        {155, sizeof(::s4wave::status::ReportRecoveryStatusResponse)},
-        {156, sizeof(::s4wave::status::WatchRecoveryStatusResponse)},
+        {58, sizeof(::s4wave::status::PluginManifestRecoveryStatus)},
+        {81, sizeof(::s4wave::status::NativePackageRecoveryStatus)},
+        {98, sizeof(::s4wave::status::BrowserBootRecoveryStatus)},
+        {107, sizeof(::s4wave::status::RuntimeAssetRecoveryStatus)},
+        {130, sizeof(::s4wave::status::RecoveryStatus)},
+        {143, sizeof(::s4wave::status::WatchControllersRequest)},
+        {144, sizeof(::s4wave::status::WatchControllersResponse)},
+        {151, sizeof(::s4wave::status::WatchDirectivesRequest)},
+        {152, sizeof(::s4wave::status::WatchDirectivesResponse)},
+        {159, sizeof(::s4wave::status::WatchPluginsRequest)},
+        {160, sizeof(::s4wave::status::WatchPluginsResponse)},
+        {167, sizeof(::s4wave::status::WatchRecoveryStatusRequest)},
+        {168, sizeof(::s4wave::status::ReportRecoveryStatusRequest)},
+        {175, sizeof(::s4wave::status::ReportRecoveryStatusResponse)},
+        {176, sizeof(::s4wave::status::WatchRecoveryStatusResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::status::_ControllerInfo_default_instance_._instance,
@@ -802,79 +850,87 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fs
     "escription\030\003 \001(\t\",\n\rDirectiveInfo\022\014\n\004nam"
     "e\030\001 \001(\t\022\r\n\005ident\030\002 \001(\t\"=\n\nPluginInfo\022\n\n\002"
     "id\030\001 \001(\t\022\024\n\014instance_key\030\002 \001(\t\022\r\n\005state\030"
-    "\003 \001(\t\"\262\001\n\026LauncherRecoveryStatus\022\033\n\023sele"
+    "\003 \001(\t\"\357\003\n\026LauncherRecoveryStatus\022\033\n\023sele"
     "cted_config_rev\030\001 \001(\004\022\036\n\026selected_config"
     "_source\030\002 \001(\t\022\032\n\022fetched_config_rev\030\003 \001("
     "\004\022\035\n\025fetched_config_source\030\004 \001(\t\022 \n\030rele"
-    "ase_metadata_outcome\030\005 \001(\t\"\330\002\n\034PluginMan"
-    "ifestRecoveryStatus\022\021\n\tplugin_id\030\001 \001(\t\022\024"
-    "\n\014instance_key\030\002 \001(\t\022\034\n\024execute_manifest"
-    "_ref\030\003 \001(\t\022\035\n\025download_manifest_ref\030\004 \001("
-    "\t\022\037\n\027skipped_candidate_count\030\005 \001(\r\022!\n\031sk"
-    "ipped_candidate_summary\030\006 \001(\t\022\037\n\027ignored"
-    "_candidate_count\030\007 \001(\r\022!\n\031ignored_candid"
-    "ate_summary\030\010 \001(\t\022#\n\033quarantined_candida"
-    "te_count\030\t \001(\r\022%\n\035quarantined_candidate_"
-    "summary\030\n \001(\t\"\252\001\n\033NativePackageRecoveryS"
-    "tatus\022\021\n\tplugin_id\030\001 \001(\t\022\020\n\010dist_dir\030\002 \001"
-    "(\t\022\024\n\014materialized\030\003 \001(\010\022\023\n\013invalidated\030"
-    "\004 \001(\010\022\023\n\013last_action\030\005 \001(\t\022\022\n\nlast_error"
-    "\030\006 \001(\t\022\022\n\nupdated_at\030\007 \001(\t\"g\n\031BrowserBoo"
-    "tRecoveryStatus\022\035\n\025compatibility_version"
-    "\030\001 \001(\t\022\033\n\023last_reset_decision\030\002 \001(\t\022\016\n\006s"
-    "tatus\030\003 \001(\t\"\357\001\n\032RuntimeAssetRecoveryStat"
-    "us\022\023\n\013script_path\030\001 \001(\t\022\023\n\013status_code\030\002"
-    " \001(\r\022\n\n\002ok\030\003 \001(\010\022\026\n\016classification\030\004 \001(\t"
-    "\022\024\n\014fetch_source\030\005 \001(\t\022\025\n\rruntime_error\030"
-    "\006 \001(\t\022\033\n\023plugin_asset_result\030\007 \001(\t\022\024\n\014co"
-    "ntent_type\030\010 \001(\t\022\023\n\013body_prefix\030\t \001(\t\022\016\n"
-    "\006status\030\n \001(\t\"\306\002\n\016RecoveryStatus\0227\n\010laun"
-    "cher\030\001 \001(\0132%.s4wave.status.LauncherRecov"
-    "eryStatus\022<\n\007plugins\030\002 \003(\0132+.s4wave.stat"
-    "us.PluginManifestRecoveryStatus\022C\n\017nativ"
-    "e_packages\030\003 \003(\0132*.s4wave.status.NativeP"
-    "ackageRecoveryStatus\0226\n\004boot\030\004 \001(\0132(.s4w"
-    "ave.status.BrowserBootRecoveryStatus\022@\n\r"
-    "runtime_asset\030\005 \001(\0132).s4wave.status.Runt"
-    "imeAssetRecoveryStatus\"\031\n\027WatchControlle"
-    "rsRequest\"h\n\030WatchControllersResponse\0222\n"
-    "\013controllers\030\001 \003(\0132\035.s4wave.status.Contr"
-    "ollerInfo\022\030\n\020controller_count\030\002 \001(\r\"\030\n\026W"
-    "atchDirectivesRequest\"d\n\027WatchDirectives"
-    "Response\0220\n\ndirectives\030\001 \003(\0132\034.s4wave.st"
-    "atus.DirectiveInfo\022\027\n\017directive_count\030\002 "
-    "\001(\r\"\025\n\023WatchPluginsRequest\"X\n\024WatchPlugi"
-    "nsResponse\022*\n\007plugins\030\001 \003(\0132\031.s4wave.sta"
-    "tus.PluginInfo\022\024\n\014plugin_count\030\002 \001(\r\"\034\n\032"
-    "WatchRecoveryStatusRequest\"\227\001\n\033ReportRec"
-    "overyStatusRequest\0226\n\004boot\030\001 \001(\0132(.s4wav"
-    "e.status.BrowserBootRecoveryStatus\022@\n\rru"
-    "ntime_asset\030\002 \001(\0132).s4wave.status.Runtim"
-    "eAssetRecoveryStatus\"\036\n\034ReportRecoverySt"
-    "atusResponse\"L\n\033WatchRecoveryStatusRespo"
-    "nse\022-\n\006status\030\001 \001(\0132\035.s4wave.status.Reco"
-    "veryStatus2\234\004\n\023SystemStatusService\022e\n\020Wa"
-    "tchControllers\022&.s4wave.status.WatchCont"
-    "rollersRequest\032\'.s4wave.status.WatchCont"
-    "rollersResponse0\001\022b\n\017WatchDirectives\022%.s"
-    "4wave.status.WatchDirectivesRequest\032&.s4"
-    "wave.status.WatchDirectivesResponse0\001\022Y\n"
-    "\014WatchPlugins\022\".s4wave.status.WatchPlugi"
-    "nsRequest\032#.s4wave.status.WatchPluginsRe"
-    "sponse0\001\022o\n\024ReportRecoveryStatus\022*.s4wav"
-    "e.status.ReportRecoveryStatusRequest\032+.s"
-    "4wave.status.ReportRecoveryStatusRespons"
-    "e\022n\n\023WatchRecoveryStatus\022).s4wave.status"
-    ".WatchRecoveryStatusRequest\032*.s4wave.sta"
-    "tus.WatchRecoveryStatusResponse0\001B6Z4git"
-    "hub.com/s4wave/spacewave/sdk/status;s4wa"
-    "ve_statusb\006proto3"
+    "ase_metadata_outcome\030\005 \001(\t\022\036\n\026release_wo"
+    "rld_head_ref\030\006 \001(\t\022\034\n\024selected_channel_k"
+    "ey\030\007 \001(\t\022\'\n\037selected_entrypoint_manifest"
+    "_id\030\010 \001(\t\022\'\n\037selected_entrypoint_platfor"
+    "m_id\030\t \001(\t\022(\n selected_entrypoint_manife"
+    "st_rev\030\n \001(\004\022(\n selected_entrypoint_mani"
+    "fest_ref\030\013 \001(\t\022\024\n\014update_phase\030\014 \001(\t\022\026\n\016"
+    "update_version\030\r \001(\t\022\023\n\013staged_path\030\016 \001("
+    "\t\022\024\n\014update_error\030\017 \001(\t\"\330\002\n\034PluginManife"
+    "stRecoveryStatus\022\021\n\tplugin_id\030\001 \001(\t\022\024\n\014i"
+    "nstance_key\030\002 \001(\t\022\034\n\024execute_manifest_re"
+    "f\030\003 \001(\t\022\035\n\025download_manifest_ref\030\004 \001(\t\022\037"
+    "\n\027skipped_candidate_count\030\005 \001(\r\022!\n\031skipp"
+    "ed_candidate_summary\030\006 \001(\t\022\037\n\027ignored_ca"
+    "ndidate_count\030\007 \001(\r\022!\n\031ignored_candidate"
+    "_summary\030\010 \001(\t\022#\n\033quarantined_candidate_"
+    "count\030\t \001(\r\022%\n\035quarantined_candidate_sum"
+    "mary\030\n \001(\t\"\252\001\n\033NativePackageRecoveryStat"
+    "us\022\021\n\tplugin_id\030\001 \001(\t\022\020\n\010dist_dir\030\002 \001(\t\022"
+    "\024\n\014materialized\030\003 \001(\010\022\023\n\013invalidated\030\004 \001"
+    "(\010\022\023\n\013last_action\030\005 \001(\t\022\022\n\nlast_error\030\006 "
+    "\001(\t\022\022\n\nupdated_at\030\007 \001(\t\"g\n\031BrowserBootRe"
+    "coveryStatus\022\035\n\025compatibility_version\030\001 "
+    "\001(\t\022\033\n\023last_reset_decision\030\002 \001(\t\022\016\n\006stat"
+    "us\030\003 \001(\t\"\357\001\n\032RuntimeAssetRecoveryStatus\022"
+    "\023\n\013script_path\030\001 \001(\t\022\023\n\013status_code\030\002 \001("
+    "\r\022\n\n\002ok\030\003 \001(\010\022\026\n\016classification\030\004 \001(\t\022\024\n"
+    "\014fetch_source\030\005 \001(\t\022\025\n\rruntime_error\030\006 \001"
+    "(\t\022\033\n\023plugin_asset_result\030\007 \001(\t\022\024\n\014conte"
+    "nt_type\030\010 \001(\t\022\023\n\013body_prefix\030\t \001(\t\022\016\n\006st"
+    "atus\030\n \001(\t\"\306\002\n\016RecoveryStatus\0227\n\010launche"
+    "r\030\001 \001(\0132%.s4wave.status.LauncherRecovery"
+    "Status\022<\n\007plugins\030\002 \003(\0132+.s4wave.status."
+    "PluginManifestRecoveryStatus\022C\n\017native_p"
+    "ackages\030\003 \003(\0132*.s4wave.status.NativePack"
+    "ageRecoveryStatus\0226\n\004boot\030\004 \001(\0132(.s4wave"
+    ".status.BrowserBootRecoveryStatus\022@\n\rrun"
+    "time_asset\030\005 \001(\0132).s4wave.status.Runtime"
+    "AssetRecoveryStatus\"\031\n\027WatchControllersR"
+    "equest\"h\n\030WatchControllersResponse\0222\n\013co"
+    "ntrollers\030\001 \003(\0132\035.s4wave.status.Controll"
+    "erInfo\022\030\n\020controller_count\030\002 \001(\r\"\030\n\026Watc"
+    "hDirectivesRequest\"d\n\027WatchDirectivesRes"
+    "ponse\0220\n\ndirectives\030\001 \003(\0132\034.s4wave.statu"
+    "s.DirectiveInfo\022\027\n\017directive_count\030\002 \001(\r"
+    "\"\025\n\023WatchPluginsRequest\"X\n\024WatchPluginsR"
+    "esponse\022*\n\007plugins\030\001 \003(\0132\031.s4wave.status"
+    ".PluginInfo\022\024\n\014plugin_count\030\002 \001(\r\"\034\n\032Wat"
+    "chRecoveryStatusRequest\"\227\001\n\033ReportRecove"
+    "ryStatusRequest\0226\n\004boot\030\001 \001(\0132(.s4wave.s"
+    "tatus.BrowserBootRecoveryStatus\022@\n\rrunti"
+    "me_asset\030\002 \001(\0132).s4wave.status.RuntimeAs"
+    "setRecoveryStatus\"\036\n\034ReportRecoveryStatu"
+    "sResponse\"L\n\033WatchRecoveryStatusResponse"
+    "\022-\n\006status\030\001 \001(\0132\035.s4wave.status.Recover"
+    "yStatus2\234\004\n\023SystemStatusService\022e\n\020Watch"
+    "Controllers\022&.s4wave.status.WatchControl"
+    "lersRequest\032\'.s4wave.status.WatchControl"
+    "lersResponse0\001\022b\n\017WatchDirectives\022%.s4wa"
+    "ve.status.WatchDirectivesRequest\032&.s4wav"
+    "e.status.WatchDirectivesResponse0\001\022Y\n\014Wa"
+    "tchPlugins\022\".s4wave.status.WatchPluginsR"
+    "equest\032#.s4wave.status.WatchPluginsRespo"
+    "nse0\001\022o\n\024ReportRecoveryStatus\022*.s4wave.s"
+    "tatus.ReportRecoveryStatusRequest\032+.s4wa"
+    "ve.status.ReportRecoveryStatusResponse\022n"
+    "\n\023WatchRecoveryStatus\022).s4wave.status.Wa"
+    "tchRecoveryStatusRequest\032*.s4wave.status"
+    ".WatchRecoveryStatusResponse0\001B6Z4github"
+    ".com/s4wave/spacewave/sdk/status;s4wave_"
+    "statusb\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto = {
     false,
     false,
-    2897,
+    3214,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto,
     "github.com/s4wave/spacewave/sdk/status/status.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto_once,
@@ -1958,7 +2014,16 @@ PROTOBUF_NDEBUG_INLINE LauncherRecoveryStatus::Impl_::Impl_(
         _cached_size_{0},
         selected_config_source_(arena, from.selected_config_source_),
         fetched_config_source_(arena, from.fetched_config_source_),
-        release_metadata_outcome_(arena, from.release_metadata_outcome_) {}
+        release_metadata_outcome_(arena, from.release_metadata_outcome_),
+        release_world_head_ref_(arena, from.release_world_head_ref_),
+        selected_channel_key_(arena, from.selected_channel_key_),
+        selected_entrypoint_manifest_id_(arena, from.selected_entrypoint_manifest_id_),
+        selected_entrypoint_platform_id_(arena, from.selected_entrypoint_platform_id_),
+        selected_entrypoint_manifest_ref_(arena, from.selected_entrypoint_manifest_ref_),
+        update_phase_(arena, from.update_phase_),
+        update_version_(arena, from.update_version_),
+        staged_path_(arena, from.staged_path_),
+        update_error_(arena, from.update_error_) {}
 
 LauncherRecoveryStatus::LauncherRecoveryStatus(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -1977,9 +2042,9 @@ LauncherRecoveryStatus::LauncherRecoveryStatus(
                offsetof(Impl_, selected_config_rev_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, selected_config_rev_),
-           offsetof(Impl_, fetched_config_rev_) -
+           offsetof(Impl_, selected_entrypoint_manifest_rev_) -
                offsetof(Impl_, selected_config_rev_) +
-               sizeof(Impl_::fetched_config_rev_));
+               sizeof(Impl_::selected_entrypoint_manifest_rev_));
 
   // @@protoc_insertion_point(copy_constructor:s4wave.status.LauncherRecoveryStatus)
 }
@@ -1989,16 +2054,25 @@ PROTOBUF_NDEBUG_INLINE LauncherRecoveryStatus::Impl_::Impl_(
       : _cached_size_{0},
         selected_config_source_(arena),
         fetched_config_source_(arena),
-        release_metadata_outcome_(arena) {}
+        release_metadata_outcome_(arena),
+        release_world_head_ref_(arena),
+        selected_channel_key_(arena),
+        selected_entrypoint_manifest_id_(arena),
+        selected_entrypoint_platform_id_(arena),
+        selected_entrypoint_manifest_ref_(arena),
+        update_phase_(arena),
+        update_version_(arena),
+        staged_path_(arena),
+        update_error_(arena) {}
 
 inline void LauncherRecoveryStatus::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, selected_config_rev_),
            0,
-           offsetof(Impl_, fetched_config_rev_) -
+           offsetof(Impl_, selected_entrypoint_manifest_rev_) -
                offsetof(Impl_, selected_config_rev_) +
-               sizeof(Impl_::fetched_config_rev_));
+               sizeof(Impl_::selected_entrypoint_manifest_rev_));
 }
 LauncherRecoveryStatus::~LauncherRecoveryStatus() {
   // @@protoc_insertion_point(destructor:s4wave.status.LauncherRecoveryStatus)
@@ -2014,6 +2088,15 @@ inline void LauncherRecoveryStatus::SharedDtor(MessageLite& self) {
   this_._impl_.selected_config_source_.Destroy();
   this_._impl_.fetched_config_source_.Destroy();
   this_._impl_.release_metadata_outcome_.Destroy();
+  this_._impl_.release_world_head_ref_.Destroy();
+  this_._impl_.selected_channel_key_.Destroy();
+  this_._impl_.selected_entrypoint_manifest_id_.Destroy();
+  this_._impl_.selected_entrypoint_platform_id_.Destroy();
+  this_._impl_.selected_entrypoint_manifest_ref_.Destroy();
+  this_._impl_.update_phase_.Destroy();
+  this_._impl_.update_version_.Destroy();
+  this_._impl_.staged_path_.Destroy();
+  this_._impl_.update_error_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -2060,16 +2143,16 @@ LauncherRecoveryStatus::GetClassData() const {
   return LauncherRecoveryStatus_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 5, 0, 112, 2>
+const ::_pbi::TcParseTable<4, 15, 0, 305, 2>
 LauncherRecoveryStatus::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_._has_bits_),
     0, // no _extensions_
-    5, 56,  // max_field_number, fast_idx_mask
+    15, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967264,  // skipmap
+    4294934528,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    5,  // num_field_entries
+    15,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     LauncherRecoveryStatus_class_data_.base(),
@@ -2081,16 +2164,16 @@ LauncherRecoveryStatus::_table_ = {
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
     // uint64 selected_config_rev = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(LauncherRecoveryStatus, _impl_.selected_config_rev_), 3>(),
-     {8, 3, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(LauncherRecoveryStatus, _impl_.selected_config_rev_), 12>(),
+     {8, 12, 0,
       PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.selected_config_rev_)}},
     // string selected_config_source = 2;
     {::_pbi::TcParser::FastUS1,
      {18, 0, 0,
       PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.selected_config_source_)}},
     // uint64 fetched_config_rev = 3;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(LauncherRecoveryStatus, _impl_.fetched_config_rev_), 4>(),
-     {24, 4, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(LauncherRecoveryStatus, _impl_.fetched_config_rev_), 13>(),
+     {24, 13, 0,
       PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.fetched_config_rev_)}},
     // string fetched_config_source = 4;
     {::_pbi::TcParser::FastUS1,
@@ -2100,29 +2183,96 @@ LauncherRecoveryStatus::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {42, 2, 0,
       PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.release_metadata_outcome_)}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // string release_world_head_ref = 6;
+    {::_pbi::TcParser::FastUS1,
+     {50, 3, 0,
+      PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.release_world_head_ref_)}},
+    // string selected_channel_key = 7;
+    {::_pbi::TcParser::FastUS1,
+     {58, 4, 0,
+      PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.selected_channel_key_)}},
+    // string selected_entrypoint_manifest_id = 8;
+    {::_pbi::TcParser::FastUS1,
+     {66, 5, 0,
+      PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.selected_entrypoint_manifest_id_)}},
+    // string selected_entrypoint_platform_id = 9;
+    {::_pbi::TcParser::FastUS1,
+     {74, 6, 0,
+      PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.selected_entrypoint_platform_id_)}},
+    // uint64 selected_entrypoint_manifest_rev = 10;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(LauncherRecoveryStatus, _impl_.selected_entrypoint_manifest_rev_), 14>(),
+     {80, 14, 0,
+      PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.selected_entrypoint_manifest_rev_)}},
+    // string selected_entrypoint_manifest_ref = 11;
+    {::_pbi::TcParser::FastUS1,
+     {90, 7, 0,
+      PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.selected_entrypoint_manifest_ref_)}},
+    // string update_phase = 12;
+    {::_pbi::TcParser::FastUS1,
+     {98, 8, 0,
+      PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.update_phase_)}},
+    // string update_version = 13;
+    {::_pbi::TcParser::FastUS1,
+     {106, 9, 0,
+      PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.update_version_)}},
+    // string staged_path = 14;
+    {::_pbi::TcParser::FastUS1,
+     {114, 10, 0,
+      PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.staged_path_)}},
+    // string update_error = 15;
+    {::_pbi::TcParser::FastUS1,
+     {122, 11, 0,
+      PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.update_error_)}},
   }}, {{
     65535, 65535
   }}, {{
     // uint64 selected_config_rev = 1;
-    {PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.selected_config_rev_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.selected_config_rev_), _Internal::kHasBitsOffset + 12, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // string selected_config_source = 2;
     {PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.selected_config_source_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // uint64 fetched_config_rev = 3;
-    {PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.fetched_config_rev_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.fetched_config_rev_), _Internal::kHasBitsOffset + 13, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // string fetched_config_source = 4;
     {PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.fetched_config_source_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string release_metadata_outcome = 5;
     {PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.release_metadata_outcome_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string release_world_head_ref = 6;
+    {PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.release_world_head_ref_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string selected_channel_key = 7;
+    {PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.selected_channel_key_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string selected_entrypoint_manifest_id = 8;
+    {PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.selected_entrypoint_manifest_id_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string selected_entrypoint_platform_id = 9;
+    {PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.selected_entrypoint_platform_id_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint64 selected_entrypoint_manifest_rev = 10;
+    {PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.selected_entrypoint_manifest_rev_), _Internal::kHasBitsOffset + 14, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // string selected_entrypoint_manifest_ref = 11;
+    {PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.selected_entrypoint_manifest_ref_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string update_phase = 12;
+    {PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.update_phase_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string update_version = 13;
+    {PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.update_version_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string staged_path = 14;
+    {PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.staged_path_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string update_error = 15;
+    {PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.update_error_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\44\0\26\0\25\30\0\0"
+    "\44\0\26\0\25\30\26\24\37\37\0\40\14\16\13\14"
     "s4wave.status.LauncherRecoveryStatus"
     "selected_config_source"
     "fetched_config_source"
     "release_metadata_outcome"
+    "release_world_head_ref"
+    "selected_channel_key"
+    "selected_entrypoint_manifest_id"
+    "selected_entrypoint_platform_id"
+    "selected_entrypoint_manifest_ref"
+    "update_phase"
+    "update_version"
+    "staged_path"
+    "update_error"
   }},
 };
 PROTOBUF_NOINLINE void LauncherRecoveryStatus::Clear() {
@@ -2133,7 +2283,7 @@ PROTOBUF_NOINLINE void LauncherRecoveryStatus::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.selected_config_source_.ClearNonDefaultToEmpty();
     }
@@ -2143,11 +2293,40 @@ PROTOBUF_NOINLINE void LauncherRecoveryStatus::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       _impl_.release_metadata_outcome_.ClearNonDefaultToEmpty();
     }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.release_world_head_ref_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.selected_channel_key_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      _impl_.selected_entrypoint_manifest_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      _impl_.selected_entrypoint_platform_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      _impl_.selected_entrypoint_manifest_ref_.ClearNonDefaultToEmpty();
+    }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000018U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      _impl_.update_phase_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      _impl_.update_version_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      _impl_.staged_path_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      _impl_.update_error_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00007000U)) {
     ::memset(&_impl_.selected_config_rev_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.fetched_config_rev_) -
-        reinterpret_cast<char*>(&_impl_.selected_config_rev_)) + sizeof(_impl_.fetched_config_rev_));
+        reinterpret_cast<char*>(&_impl_.selected_entrypoint_manifest_rev_) -
+        reinterpret_cast<char*>(&_impl_.selected_config_rev_)) + sizeof(_impl_.selected_entrypoint_manifest_rev_));
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -2173,7 +2352,7 @@ PROTOBUF_NOINLINE void LauncherRecoveryStatus::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // uint64 selected_config_rev = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00001000U)) {
     if (this_._internal_selected_config_rev() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -2192,7 +2371,7 @@ PROTOBUF_NOINLINE void LauncherRecoveryStatus::Clear() {
   }
 
   // uint64 fetched_config_rev = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00002000U)) {
     if (this_._internal_fetched_config_rev() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -2217,6 +2396,105 @@ PROTOBUF_NOINLINE void LauncherRecoveryStatus::Clear() {
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
           _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.status.LauncherRecoveryStatus.release_metadata_outcome");
       target = stream->WriteStringMaybeAliased(5, _s, target);
+    }
+  }
+
+  // string release_world_head_ref = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_release_world_head_ref().empty()) {
+      const ::std::string& _s = this_._internal_release_world_head_ref();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.status.LauncherRecoveryStatus.release_world_head_ref");
+      target = stream->WriteStringMaybeAliased(6, _s, target);
+    }
+  }
+
+  // string selected_channel_key = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_selected_channel_key().empty()) {
+      const ::std::string& _s = this_._internal_selected_channel_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.status.LauncherRecoveryStatus.selected_channel_key");
+      target = stream->WriteStringMaybeAliased(7, _s, target);
+    }
+  }
+
+  // string selected_entrypoint_manifest_id = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (!this_._internal_selected_entrypoint_manifest_id().empty()) {
+      const ::std::string& _s = this_._internal_selected_entrypoint_manifest_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.status.LauncherRecoveryStatus.selected_entrypoint_manifest_id");
+      target = stream->WriteStringMaybeAliased(8, _s, target);
+    }
+  }
+
+  // string selected_entrypoint_platform_id = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (!this_._internal_selected_entrypoint_platform_id().empty()) {
+      const ::std::string& _s = this_._internal_selected_entrypoint_platform_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.status.LauncherRecoveryStatus.selected_entrypoint_platform_id");
+      target = stream->WriteStringMaybeAliased(9, _s, target);
+    }
+  }
+
+  // uint64 selected_entrypoint_manifest_rev = 10;
+  if (CheckHasBit(cached_has_bits, 0x00004000U)) {
+    if (this_._internal_selected_entrypoint_manifest_rev() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          10, this_._internal_selected_entrypoint_manifest_rev(), target);
+    }
+  }
+
+  // string selected_entrypoint_manifest_ref = 11;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (!this_._internal_selected_entrypoint_manifest_ref().empty()) {
+      const ::std::string& _s = this_._internal_selected_entrypoint_manifest_ref();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.status.LauncherRecoveryStatus.selected_entrypoint_manifest_ref");
+      target = stream->WriteStringMaybeAliased(11, _s, target);
+    }
+  }
+
+  // string update_phase = 12;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (!this_._internal_update_phase().empty()) {
+      const ::std::string& _s = this_._internal_update_phase();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.status.LauncherRecoveryStatus.update_phase");
+      target = stream->WriteStringMaybeAliased(12, _s, target);
+    }
+  }
+
+  // string update_version = 13;
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (!this_._internal_update_version().empty()) {
+      const ::std::string& _s = this_._internal_update_version();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.status.LauncherRecoveryStatus.update_version");
+      target = stream->WriteStringMaybeAliased(13, _s, target);
+    }
+  }
+
+  // string staged_path = 14;
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (!this_._internal_staged_path().empty()) {
+      const ::std::string& _s = this_._internal_staged_path();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.status.LauncherRecoveryStatus.staged_path");
+      target = stream->WriteStringMaybeAliased(14, _s, target);
+    }
+  }
+
+  // string update_error = 15;
+  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+    if (!this_._internal_update_error().empty()) {
+      const ::std::string& _s = this_._internal_update_error();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.status.LauncherRecoveryStatus.update_error");
+      target = stream->WriteStringMaybeAliased(15, _s, target);
     }
   }
 
@@ -2245,7 +2523,7 @@ PROTOBUF_NOINLINE void LauncherRecoveryStatus::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     // string selected_config_source = 2;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_selected_config_source().empty()) {
@@ -2267,18 +2545,90 @@ PROTOBUF_NOINLINE void LauncherRecoveryStatus::Clear() {
                                         this_._internal_release_metadata_outcome());
       }
     }
-    // uint64 selected_config_rev = 1;
+    // string release_world_head_ref = 6;
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_release_world_head_ref().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_release_world_head_ref());
+      }
+    }
+    // string selected_channel_key = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_selected_channel_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_selected_channel_key());
+      }
+    }
+    // string selected_entrypoint_manifest_id = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!this_._internal_selected_entrypoint_manifest_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_selected_entrypoint_manifest_id());
+      }
+    }
+    // string selected_entrypoint_platform_id = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (!this_._internal_selected_entrypoint_platform_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_selected_entrypoint_platform_id());
+      }
+    }
+    // string selected_entrypoint_manifest_ref = 11;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (!this_._internal_selected_entrypoint_manifest_ref().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_selected_entrypoint_manifest_ref());
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00007f00U)) {
+    // string update_phase = 12;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (!this_._internal_update_phase().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_update_phase());
+      }
+    }
+    // string update_version = 13;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (!this_._internal_update_version().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_update_version());
+      }
+    }
+    // string staged_path = 14;
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (!this_._internal_staged_path().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_staged_path());
+      }
+    }
+    // string update_error = 15;
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      if (!this_._internal_update_error().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_update_error());
+      }
+    }
+    // uint64 selected_config_rev = 1;
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
       if (this_._internal_selected_config_rev() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
             this_._internal_selected_config_rev());
       }
     }
     // uint64 fetched_config_rev = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
       if (this_._internal_fetched_config_rev() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
             this_._internal_fetched_config_rev());
+      }
+    }
+    // uint64 selected_entrypoint_manifest_rev = 10;
+    if (CheckHasBit(cached_has_bits, 0x00004000U)) {
+      if (this_._internal_selected_entrypoint_manifest_rev() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_selected_entrypoint_manifest_rev());
       }
     }
   }
@@ -2300,7 +2650,7 @@ void LauncherRecoveryStatus::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_selected_config_source().empty()) {
         _this->_internal_set_selected_config_source(from._internal_selected_config_source());
@@ -2329,13 +2679,101 @@ void LauncherRecoveryStatus::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_release_world_head_ref().empty()) {
+        _this->_internal_set_release_world_head_ref(from._internal_release_world_head_ref());
+      } else {
+        if (_this->_impl_.release_world_head_ref_.IsDefault()) {
+          _this->_internal_set_release_world_head_ref("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_selected_channel_key().empty()) {
+        _this->_internal_set_selected_channel_key(from._internal_selected_channel_key());
+      } else {
+        if (_this->_impl_.selected_channel_key_.IsDefault()) {
+          _this->_internal_set_selected_channel_key("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!from._internal_selected_entrypoint_manifest_id().empty()) {
+        _this->_internal_set_selected_entrypoint_manifest_id(from._internal_selected_entrypoint_manifest_id());
+      } else {
+        if (_this->_impl_.selected_entrypoint_manifest_id_.IsDefault()) {
+          _this->_internal_set_selected_entrypoint_manifest_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (!from._internal_selected_entrypoint_platform_id().empty()) {
+        _this->_internal_set_selected_entrypoint_platform_id(from._internal_selected_entrypoint_platform_id());
+      } else {
+        if (_this->_impl_.selected_entrypoint_platform_id_.IsDefault()) {
+          _this->_internal_set_selected_entrypoint_platform_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (!from._internal_selected_entrypoint_manifest_ref().empty()) {
+        _this->_internal_set_selected_entrypoint_manifest_ref(from._internal_selected_entrypoint_manifest_ref());
+      } else {
+        if (_this->_impl_.selected_entrypoint_manifest_ref_.IsDefault()) {
+          _this->_internal_set_selected_entrypoint_manifest_ref("");
+        }
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00007f00U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (!from._internal_update_phase().empty()) {
+        _this->_internal_set_update_phase(from._internal_update_phase());
+      } else {
+        if (_this->_impl_.update_phase_.IsDefault()) {
+          _this->_internal_set_update_phase("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (!from._internal_update_version().empty()) {
+        _this->_internal_set_update_version(from._internal_update_version());
+      } else {
+        if (_this->_impl_.update_version_.IsDefault()) {
+          _this->_internal_set_update_version("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (!from._internal_staged_path().empty()) {
+        _this->_internal_set_staged_path(from._internal_staged_path());
+      } else {
+        if (_this->_impl_.staged_path_.IsDefault()) {
+          _this->_internal_set_staged_path("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      if (!from._internal_update_error().empty()) {
+        _this->_internal_set_update_error(from._internal_update_error());
+      } else {
+        if (_this->_impl_.update_error_.IsDefault()) {
+          _this->_internal_set_update_error("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
       if (from._internal_selected_config_rev() != 0) {
         _this->_impl_.selected_config_rev_ = from._impl_.selected_config_rev_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
       if (from._internal_fetched_config_rev() != 0) {
         _this->_impl_.fetched_config_rev_ = from._impl_.fetched_config_rev_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00004000U)) {
+      if (from._internal_selected_entrypoint_manifest_rev() != 0) {
+        _this->_impl_.selected_entrypoint_manifest_rev_ = from._impl_.selected_entrypoint_manifest_rev_;
       }
     }
   }
@@ -2361,9 +2799,18 @@ void LauncherRecoveryStatus::InternalSwap(LauncherRecoveryStatus* PROTOBUF_RESTR
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.selected_config_source_, &other->_impl_.selected_config_source_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.fetched_config_source_, &other->_impl_.fetched_config_source_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.release_metadata_outcome_, &other->_impl_.release_metadata_outcome_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.release_world_head_ref_, &other->_impl_.release_world_head_ref_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.selected_channel_key_, &other->_impl_.selected_channel_key_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.selected_entrypoint_manifest_id_, &other->_impl_.selected_entrypoint_manifest_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.selected_entrypoint_platform_id_, &other->_impl_.selected_entrypoint_platform_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.selected_entrypoint_manifest_ref_, &other->_impl_.selected_entrypoint_manifest_ref_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.update_phase_, &other->_impl_.update_phase_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.update_version_, &other->_impl_.update_version_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.staged_path_, &other->_impl_.staged_path_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.update_error_, &other->_impl_.update_error_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.fetched_config_rev_)
-      + sizeof(LauncherRecoveryStatus::_impl_.fetched_config_rev_)
+      PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.selected_entrypoint_manifest_rev_)
+      + sizeof(LauncherRecoveryStatus::_impl_.selected_entrypoint_manifest_rev_)
       - PROTOBUF_FIELD_OFFSET(LauncherRecoveryStatus, _impl_.selected_config_rev_)>(
           reinterpret_cast<char*>(&_impl_.selected_config_rev_),
           reinterpret_cast<char*>(&other->_impl_.selected_config_rev_));

@@ -142,6 +142,46 @@ export interface LauncherRecoveryStatus {
    * @generated from field: string release_metadata_outcome = 5;
    */
   releaseMetadataOutcome?: string
+  /**
+   * @generated from field: string release_world_head_ref = 6;
+   */
+  releaseWorldHeadRef?: string
+  /**
+   * @generated from field: string selected_channel_key = 7;
+   */
+  selectedChannelKey?: string
+  /**
+   * @generated from field: string selected_entrypoint_manifest_id = 8;
+   */
+  selectedEntrypointManifestId?: string
+  /**
+   * @generated from field: string selected_entrypoint_platform_id = 9;
+   */
+  selectedEntrypointPlatformId?: string
+  /**
+   * @generated from field: uint64 selected_entrypoint_manifest_rev = 10;
+   */
+  selectedEntrypointManifestRev?: bigint
+  /**
+   * @generated from field: string selected_entrypoint_manifest_ref = 11;
+   */
+  selectedEntrypointManifestRef?: string
+  /**
+   * @generated from field: string update_phase = 12;
+   */
+  updatePhase?: string
+  /**
+   * @generated from field: string update_version = 13;
+   */
+  updateVersion?: string
+  /**
+   * @generated from field: string staged_path = 14;
+   */
+  stagedPath?: string
+  /**
+   * @generated from field: string update_error = 15;
+   */
+  updateError?: string
 }
 
 export const LauncherRecoveryStatus: MessageType<LauncherRecoveryStatus> =
@@ -178,6 +218,46 @@ export const LauncherRecoveryStatus: MessageType<LauncherRecoveryStatus> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
+      {
+        no: 6,
+        name: 'release_world_head_ref',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 7,
+        name: 'selected_channel_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 8,
+        name: 'selected_entrypoint_manifest_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 9,
+        name: 'selected_entrypoint_platform_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 10,
+        name: 'selected_entrypoint_manifest_rev',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      {
+        no: 11,
+        name: 'selected_entrypoint_manifest_ref',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 12, name: 'update_phase', kind: 'scalar', T: ScalarType.STRING },
+      { no: 13, name: 'update_version', kind: 'scalar', T: ScalarType.STRING },
+      { no: 14, name: 'staged_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 15, name: 'update_error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

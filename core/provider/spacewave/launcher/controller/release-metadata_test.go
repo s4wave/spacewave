@@ -207,6 +207,56 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	if fetchStatus.SelectedEntrypointManifestRef == "" {
 		t.Fatal("selected entrypoint ref is empty")
 	}
+	if fetchStatus.ReleaseWorldHeadRef == "" {
+		t.Fatal("release world head ref is empty")
+	}
+}
+
+func TestRefreshReleaseMetadataStatusClearsStaleReleaseWorldHeadOnError(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", nativeTestPlatformID())
+
+	dc := cdc.NewController(ctx, le)
+	b := inmem.NewBus(dc)
+	rel, err := b.AddController(ctx, &releaseWorldLookupTestController{ws: ws}, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer rel()
+
+	ctrl := &Controller{
+		le:  le,
+		bus: b,
+		launcherInfoCtr: ccontainer.NewCContainer[*spacewave_launcher.LauncherInfo](
+			&spacewave_launcher.LauncherInfo{},
+		),
+		fetchStatusCtr: ccontainer.NewCContainer[*spacewave_launcher.FetchStatus](
+			&spacewave_launcher.FetchStatus{
+				ReleaseWorldHeadRef:           "previous-head",
+				SelectedEntrypointManifestRef: "previous-manifest",
+			},
+		),
+		stagingDirFunc: func() (string, error) { return t.TempDir(), nil },
+	}
+	err = ctrl.refreshReleaseMetadataStatus(ctx, &spacewave_launcher.DistConfig{
+		ProjectId:  "spacewave",
+		Rev:        1,
+		ChannelKey: "missing",
+	})
+	if err == nil {
+		t.Fatal("expected missing channel error")
+	}
+	fetchStatus := ctrl.fetchStatusCtr.GetValue()
+	if fetchStatus.ReleaseMetadataOutcome != "error" {
+		t.Fatalf("release metadata outcome = %q, want error", fetchStatus.ReleaseMetadataOutcome)
+	}
+	if fetchStatus.ReleaseWorldHeadRef != "" {
+		t.Fatalf("release world head ref = %q, want cleared", fetchStatus.ReleaseWorldHeadRef)
+	}
+	if fetchStatus.SelectedEntrypointManifestRef != "" {
+		t.Fatalf("selected entrypoint ref = %q, want cleared", fetchStatus.SelectedEntrypointManifestRef)
+	}
 }
 
 func TestRefreshReleaseMetadataStatusRejectsDirectoryEntrypoint(t *testing.T) {
@@ -410,10 +460,16 @@ func buildReleaseMetadataTestWorld(
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(ocs.Release)
-	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	eng, err := world_block.NewEngine(ctx, le, ocs, nil, nil, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	t.Cleanup(func() {
+		if err := eng.Close(); err != nil {
+			t.Fatal(err.Error())
+		}
+	})
+	ws := world.NewEngineWorldState(eng, true)
 	ref := testBlockRef()
 	metadata := testReleaseMetadata(channelKey, platformID, ref)
 	metadataRef := writeReleaseMetadataTestBlock(t, ctx, ws, releaseMetadataObjectKey(channelKey), metadata)

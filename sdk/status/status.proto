@@ -50,6 +50,16 @@ message LauncherRecoveryStatus {
   uint64 fetched_config_rev = 3;
   string fetched_config_source = 4;
   string release_metadata_outcome = 5;
+  string release_world_head_ref = 6;
+  string selected_channel_key = 7;
+  string selected_entrypoint_manifest_id = 8;
+  string selected_entrypoint_platform_id = 9;
+  uint64 selected_entrypoint_manifest_rev = 10;
+  string selected_entrypoint_manifest_ref = 11;
+  string update_phase = 12;
+  string update_version = 13;
+  string staged_path = 14;
+  string update_error = 15;
 }
 
 // PluginManifestRecoveryStatus reports scheduler-owned Manifest recovery facts.

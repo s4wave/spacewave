@@ -2150,8 +2150,18 @@ class LauncherRecoveryStatus final : public ::google::protobuf::Message
     kSelectedConfigSourceFieldNumber = 2,
     kFetchedConfigSourceFieldNumber = 4,
     kReleaseMetadataOutcomeFieldNumber = 5,
+    kReleaseWorldHeadRefFieldNumber = 6,
+    kSelectedChannelKeyFieldNumber = 7,
+    kSelectedEntrypointManifestIdFieldNumber = 8,
+    kSelectedEntrypointPlatformIdFieldNumber = 9,
+    kSelectedEntrypointManifestRefFieldNumber = 11,
+    kUpdatePhaseFieldNumber = 12,
+    kUpdateVersionFieldNumber = 13,
+    kStagedPathFieldNumber = 14,
+    kUpdateErrorFieldNumber = 15,
     kSelectedConfigRevFieldNumber = 1,
     kFetchedConfigRevFieldNumber = 3,
+    kSelectedEntrypointManifestRevFieldNumber = 10,
   };
   // string selected_config_source = 2;
   void clear_selected_config_source() ;
@@ -2198,6 +2208,141 @@ class LauncherRecoveryStatus final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_release_metadata_outcome();
 
   public:
+  // string release_world_head_ref = 6;
+  void clear_release_world_head_ref() ;
+  const ::std::string& release_world_head_ref() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_release_world_head_ref(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_release_world_head_ref();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_release_world_head_ref();
+  void set_allocated_release_world_head_ref(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_release_world_head_ref() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_release_world_head_ref(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_release_world_head_ref();
+
+  public:
+  // string selected_channel_key = 7;
+  void clear_selected_channel_key() ;
+  const ::std::string& selected_channel_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_selected_channel_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_selected_channel_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_selected_channel_key();
+  void set_allocated_selected_channel_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_selected_channel_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_selected_channel_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_selected_channel_key();
+
+  public:
+  // string selected_entrypoint_manifest_id = 8;
+  void clear_selected_entrypoint_manifest_id() ;
+  const ::std::string& selected_entrypoint_manifest_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_selected_entrypoint_manifest_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_selected_entrypoint_manifest_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_selected_entrypoint_manifest_id();
+  void set_allocated_selected_entrypoint_manifest_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_selected_entrypoint_manifest_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_selected_entrypoint_manifest_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_selected_entrypoint_manifest_id();
+
+  public:
+  // string selected_entrypoint_platform_id = 9;
+  void clear_selected_entrypoint_platform_id() ;
+  const ::std::string& selected_entrypoint_platform_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_selected_entrypoint_platform_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_selected_entrypoint_platform_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_selected_entrypoint_platform_id();
+  void set_allocated_selected_entrypoint_platform_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_selected_entrypoint_platform_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_selected_entrypoint_platform_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_selected_entrypoint_platform_id();
+
+  public:
+  // string selected_entrypoint_manifest_ref = 11;
+  void clear_selected_entrypoint_manifest_ref() ;
+  const ::std::string& selected_entrypoint_manifest_ref() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_selected_entrypoint_manifest_ref(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_selected_entrypoint_manifest_ref();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_selected_entrypoint_manifest_ref();
+  void set_allocated_selected_entrypoint_manifest_ref(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_selected_entrypoint_manifest_ref() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_selected_entrypoint_manifest_ref(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_selected_entrypoint_manifest_ref();
+
+  public:
+  // string update_phase = 12;
+  void clear_update_phase() ;
+  const ::std::string& update_phase() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_update_phase(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_update_phase();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_update_phase();
+  void set_allocated_update_phase(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_update_phase() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_update_phase(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_update_phase();
+
+  public:
+  // string update_version = 13;
+  void clear_update_version() ;
+  const ::std::string& update_version() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_update_version(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_update_version();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_update_version();
+  void set_allocated_update_version(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_update_version() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_update_version(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_update_version();
+
+  public:
+  // string staged_path = 14;
+  void clear_staged_path() ;
+  const ::std::string& staged_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_staged_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_staged_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_staged_path();
+  void set_allocated_staged_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_staged_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_staged_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_staged_path();
+
+  public:
+  // string update_error = 15;
+  void clear_update_error() ;
+  const ::std::string& update_error() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_update_error(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_update_error();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_update_error();
+  void set_allocated_update_error(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_update_error() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_update_error(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_update_error();
+
+  public:
   // uint64 selected_config_rev = 1;
   void clear_selected_config_rev() ;
   ::uint64_t selected_config_rev() const;
@@ -2218,12 +2363,22 @@ class LauncherRecoveryStatus final : public ::google::protobuf::Message
   void _internal_set_fetched_config_rev(::uint64_t value);
 
   public:
+  // uint64 selected_entrypoint_manifest_rev = 10;
+  void clear_selected_entrypoint_manifest_rev() ;
+  ::uint64_t selected_entrypoint_manifest_rev() const;
+  void set_selected_entrypoint_manifest_rev(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_selected_entrypoint_manifest_rev() const;
+  void _internal_set_selected_entrypoint_manifest_rev(::uint64_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.status.LauncherRecoveryStatus)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 5,
-                                   0, 112,
+  static const ::google::protobuf::internal::TcParseTable<4, 15,
+                                   0, 305,
                                    2>
       _table_;
 
@@ -2247,8 +2402,18 @@ class LauncherRecoveryStatus final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr selected_config_source_;
     ::google::protobuf::internal::ArenaStringPtr fetched_config_source_;
     ::google::protobuf::internal::ArenaStringPtr release_metadata_outcome_;
+    ::google::protobuf::internal::ArenaStringPtr release_world_head_ref_;
+    ::google::protobuf::internal::ArenaStringPtr selected_channel_key_;
+    ::google::protobuf::internal::ArenaStringPtr selected_entrypoint_manifest_id_;
+    ::google::protobuf::internal::ArenaStringPtr selected_entrypoint_platform_id_;
+    ::google::protobuf::internal::ArenaStringPtr selected_entrypoint_manifest_ref_;
+    ::google::protobuf::internal::ArenaStringPtr update_phase_;
+    ::google::protobuf::internal::ArenaStringPtr update_version_;
+    ::google::protobuf::internal::ArenaStringPtr staged_path_;
+    ::google::protobuf::internal::ArenaStringPtr update_error_;
     ::uint64_t selected_config_rev_;
     ::uint64_t fetched_config_rev_;
+    ::uint64_t selected_entrypoint_manifest_rev_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -4781,7 +4946,7 @@ inline void LauncherRecoveryStatus::clear_selected_config_rev() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.selected_config_rev_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00001000U);
 }
 inline ::uint64_t LauncherRecoveryStatus::selected_config_rev() const {
   // @@protoc_insertion_point(field_get:s4wave.status.LauncherRecoveryStatus.selected_config_rev)
@@ -4789,7 +4954,7 @@ inline ::uint64_t LauncherRecoveryStatus::selected_config_rev() const {
 }
 inline void LauncherRecoveryStatus::set_selected_config_rev(::uint64_t value) {
   _internal_set_selected_config_rev(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
   // @@protoc_insertion_point(field_set:s4wave.status.LauncherRecoveryStatus.selected_config_rev)
 }
 inline ::uint64_t LauncherRecoveryStatus::_internal_selected_config_rev() const {
@@ -4871,7 +5036,7 @@ inline void LauncherRecoveryStatus::clear_fetched_config_rev() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.fetched_config_rev_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00002000U);
 }
 inline ::uint64_t LauncherRecoveryStatus::fetched_config_rev() const {
   // @@protoc_insertion_point(field_get:s4wave.status.LauncherRecoveryStatus.fetched_config_rev)
@@ -4879,7 +5044,7 @@ inline ::uint64_t LauncherRecoveryStatus::fetched_config_rev() const {
 }
 inline void LauncherRecoveryStatus::set_fetched_config_rev(::uint64_t value) {
   _internal_set_fetched_config_rev(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00002000U);
   // @@protoc_insertion_point(field_set:s4wave.status.LauncherRecoveryStatus.fetched_config_rev)
 }
 inline ::uint64_t LauncherRecoveryStatus::_internal_fetched_config_rev() const {
@@ -5019,6 +5184,616 @@ inline void LauncherRecoveryStatus::set_allocated_release_metadata_outcome(::std
     _impl_.release_metadata_outcome_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:s4wave.status.LauncherRecoveryStatus.release_metadata_outcome)
+}
+
+// string release_world_head_ref = 6;
+inline void LauncherRecoveryStatus::clear_release_world_head_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.release_world_head_ref_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& LauncherRecoveryStatus::release_world_head_ref() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.LauncherRecoveryStatus.release_world_head_ref)
+  return _internal_release_world_head_ref();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void LauncherRecoveryStatus::set_release_world_head_ref(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.release_world_head_ref_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.LauncherRecoveryStatus.release_world_head_ref)
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::mutable_release_world_head_ref()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_release_world_head_ref();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.LauncherRecoveryStatus.release_world_head_ref)
+  return _s;
+}
+inline const ::std::string& LauncherRecoveryStatus::_internal_release_world_head_ref() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.release_world_head_ref_.Get();
+}
+inline void LauncherRecoveryStatus::_internal_set_release_world_head_ref(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.release_world_head_ref_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::_internal_mutable_release_world_head_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.release_world_head_ref_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE LauncherRecoveryStatus::release_release_world_head_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.LauncherRecoveryStatus.release_world_head_ref)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.release_world_head_ref_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.release_world_head_ref_.Set("", GetArena());
+  }
+  return released;
+}
+inline void LauncherRecoveryStatus::set_allocated_release_world_head_ref(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.release_world_head_ref_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.release_world_head_ref_.IsDefault()) {
+    _impl_.release_world_head_ref_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.LauncherRecoveryStatus.release_world_head_ref)
+}
+
+// string selected_channel_key = 7;
+inline void LauncherRecoveryStatus::clear_selected_channel_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.selected_channel_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& LauncherRecoveryStatus::selected_channel_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.LauncherRecoveryStatus.selected_channel_key)
+  return _internal_selected_channel_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void LauncherRecoveryStatus::set_selected_channel_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.selected_channel_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.LauncherRecoveryStatus.selected_channel_key)
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::mutable_selected_channel_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_selected_channel_key();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.LauncherRecoveryStatus.selected_channel_key)
+  return _s;
+}
+inline const ::std::string& LauncherRecoveryStatus::_internal_selected_channel_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.selected_channel_key_.Get();
+}
+inline void LauncherRecoveryStatus::_internal_set_selected_channel_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.selected_channel_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::_internal_mutable_selected_channel_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.selected_channel_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE LauncherRecoveryStatus::release_selected_channel_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.LauncherRecoveryStatus.selected_channel_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.selected_channel_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.selected_channel_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void LauncherRecoveryStatus::set_allocated_selected_channel_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.selected_channel_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.selected_channel_key_.IsDefault()) {
+    _impl_.selected_channel_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.LauncherRecoveryStatus.selected_channel_key)
+}
+
+// string selected_entrypoint_manifest_id = 8;
+inline void LauncherRecoveryStatus::clear_selected_entrypoint_manifest_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.selected_entrypoint_manifest_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::std::string& LauncherRecoveryStatus::selected_entrypoint_manifest_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.LauncherRecoveryStatus.selected_entrypoint_manifest_id)
+  return _internal_selected_entrypoint_manifest_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void LauncherRecoveryStatus::set_selected_entrypoint_manifest_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  _impl_.selected_entrypoint_manifest_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.LauncherRecoveryStatus.selected_entrypoint_manifest_id)
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::mutable_selected_entrypoint_manifest_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::std::string* _s = _internal_mutable_selected_entrypoint_manifest_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.LauncherRecoveryStatus.selected_entrypoint_manifest_id)
+  return _s;
+}
+inline const ::std::string& LauncherRecoveryStatus::_internal_selected_entrypoint_manifest_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.selected_entrypoint_manifest_id_.Get();
+}
+inline void LauncherRecoveryStatus::_internal_set_selected_entrypoint_manifest_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.selected_entrypoint_manifest_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::_internal_mutable_selected_entrypoint_manifest_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.selected_entrypoint_manifest_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE LauncherRecoveryStatus::release_selected_entrypoint_manifest_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.LauncherRecoveryStatus.selected_entrypoint_manifest_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  auto* released = _impl_.selected_entrypoint_manifest_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.selected_entrypoint_manifest_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void LauncherRecoveryStatus::set_allocated_selected_entrypoint_manifest_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  _impl_.selected_entrypoint_manifest_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.selected_entrypoint_manifest_id_.IsDefault()) {
+    _impl_.selected_entrypoint_manifest_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.LauncherRecoveryStatus.selected_entrypoint_manifest_id)
+}
+
+// string selected_entrypoint_platform_id = 9;
+inline void LauncherRecoveryStatus::clear_selected_entrypoint_platform_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.selected_entrypoint_platform_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::std::string& LauncherRecoveryStatus::selected_entrypoint_platform_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.LauncherRecoveryStatus.selected_entrypoint_platform_id)
+  return _internal_selected_entrypoint_platform_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void LauncherRecoveryStatus::set_selected_entrypoint_platform_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  _impl_.selected_entrypoint_platform_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.LauncherRecoveryStatus.selected_entrypoint_platform_id)
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::mutable_selected_entrypoint_platform_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::std::string* _s = _internal_mutable_selected_entrypoint_platform_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.LauncherRecoveryStatus.selected_entrypoint_platform_id)
+  return _s;
+}
+inline const ::std::string& LauncherRecoveryStatus::_internal_selected_entrypoint_platform_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.selected_entrypoint_platform_id_.Get();
+}
+inline void LauncherRecoveryStatus::_internal_set_selected_entrypoint_platform_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.selected_entrypoint_platform_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::_internal_mutable_selected_entrypoint_platform_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.selected_entrypoint_platform_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE LauncherRecoveryStatus::release_selected_entrypoint_platform_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.LauncherRecoveryStatus.selected_entrypoint_platform_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  auto* released = _impl_.selected_entrypoint_platform_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.selected_entrypoint_platform_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void LauncherRecoveryStatus::set_allocated_selected_entrypoint_platform_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  _impl_.selected_entrypoint_platform_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.selected_entrypoint_platform_id_.IsDefault()) {
+    _impl_.selected_entrypoint_platform_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.LauncherRecoveryStatus.selected_entrypoint_platform_id)
+}
+
+// uint64 selected_entrypoint_manifest_rev = 10;
+inline void LauncherRecoveryStatus::clear_selected_entrypoint_manifest_rev() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.selected_entrypoint_manifest_rev_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00004000U);
+}
+inline ::uint64_t LauncherRecoveryStatus::selected_entrypoint_manifest_rev() const {
+  // @@protoc_insertion_point(field_get:s4wave.status.LauncherRecoveryStatus.selected_entrypoint_manifest_rev)
+  return _internal_selected_entrypoint_manifest_rev();
+}
+inline void LauncherRecoveryStatus::set_selected_entrypoint_manifest_rev(::uint64_t value) {
+  _internal_set_selected_entrypoint_manifest_rev(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00004000U);
+  // @@protoc_insertion_point(field_set:s4wave.status.LauncherRecoveryStatus.selected_entrypoint_manifest_rev)
+}
+inline ::uint64_t LauncherRecoveryStatus::_internal_selected_entrypoint_manifest_rev() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.selected_entrypoint_manifest_rev_;
+}
+inline void LauncherRecoveryStatus::_internal_set_selected_entrypoint_manifest_rev(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.selected_entrypoint_manifest_rev_ = value;
+}
+
+// string selected_entrypoint_manifest_ref = 11;
+inline void LauncherRecoveryStatus::clear_selected_entrypoint_manifest_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.selected_entrypoint_manifest_ref_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline const ::std::string& LauncherRecoveryStatus::selected_entrypoint_manifest_ref() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.LauncherRecoveryStatus.selected_entrypoint_manifest_ref)
+  return _internal_selected_entrypoint_manifest_ref();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void LauncherRecoveryStatus::set_selected_entrypoint_manifest_ref(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  _impl_.selected_entrypoint_manifest_ref_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.LauncherRecoveryStatus.selected_entrypoint_manifest_ref)
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::mutable_selected_entrypoint_manifest_ref()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::std::string* _s = _internal_mutable_selected_entrypoint_manifest_ref();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.LauncherRecoveryStatus.selected_entrypoint_manifest_ref)
+  return _s;
+}
+inline const ::std::string& LauncherRecoveryStatus::_internal_selected_entrypoint_manifest_ref() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.selected_entrypoint_manifest_ref_.Get();
+}
+inline void LauncherRecoveryStatus::_internal_set_selected_entrypoint_manifest_ref(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.selected_entrypoint_manifest_ref_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::_internal_mutable_selected_entrypoint_manifest_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.selected_entrypoint_manifest_ref_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE LauncherRecoveryStatus::release_selected_entrypoint_manifest_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.LauncherRecoveryStatus.selected_entrypoint_manifest_ref)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000080U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  auto* released = _impl_.selected_entrypoint_manifest_ref_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.selected_entrypoint_manifest_ref_.Set("", GetArena());
+  }
+  return released;
+}
+inline void LauncherRecoveryStatus::set_allocated_selected_entrypoint_manifest_ref(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  }
+  _impl_.selected_entrypoint_manifest_ref_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.selected_entrypoint_manifest_ref_.IsDefault()) {
+    _impl_.selected_entrypoint_manifest_ref_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.LauncherRecoveryStatus.selected_entrypoint_manifest_ref)
+}
+
+// string update_phase = 12;
+inline void LauncherRecoveryStatus::clear_update_phase() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.update_phase_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline const ::std::string& LauncherRecoveryStatus::update_phase() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.LauncherRecoveryStatus.update_phase)
+  return _internal_update_phase();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void LauncherRecoveryStatus::set_update_phase(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  _impl_.update_phase_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.LauncherRecoveryStatus.update_phase)
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::mutable_update_phase()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ::std::string* _s = _internal_mutable_update_phase();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.LauncherRecoveryStatus.update_phase)
+  return _s;
+}
+inline const ::std::string& LauncherRecoveryStatus::_internal_update_phase() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.update_phase_.Get();
+}
+inline void LauncherRecoveryStatus::_internal_set_update_phase(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.update_phase_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::_internal_mutable_update_phase() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.update_phase_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE LauncherRecoveryStatus::release_update_phase() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.LauncherRecoveryStatus.update_phase)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000100U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  auto* released = _impl_.update_phase_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.update_phase_.Set("", GetArena());
+  }
+  return released;
+}
+inline void LauncherRecoveryStatus::set_allocated_update_phase(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  }
+  _impl_.update_phase_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.update_phase_.IsDefault()) {
+    _impl_.update_phase_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.LauncherRecoveryStatus.update_phase)
+}
+
+// string update_version = 13;
+inline void LauncherRecoveryStatus::clear_update_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.update_version_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline const ::std::string& LauncherRecoveryStatus::update_version() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.LauncherRecoveryStatus.update_version)
+  return _internal_update_version();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void LauncherRecoveryStatus::set_update_version(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  _impl_.update_version_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.LauncherRecoveryStatus.update_version)
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::mutable_update_version()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  ::std::string* _s = _internal_mutable_update_version();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.LauncherRecoveryStatus.update_version)
+  return _s;
+}
+inline const ::std::string& LauncherRecoveryStatus::_internal_update_version() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.update_version_.Get();
+}
+inline void LauncherRecoveryStatus::_internal_set_update_version(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.update_version_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::_internal_mutable_update_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.update_version_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE LauncherRecoveryStatus::release_update_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.LauncherRecoveryStatus.update_version)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000200U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
+  auto* released = _impl_.update_version_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.update_version_.Set("", GetArena());
+  }
+  return released;
+}
+inline void LauncherRecoveryStatus::set_allocated_update_version(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
+  }
+  _impl_.update_version_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.update_version_.IsDefault()) {
+    _impl_.update_version_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.LauncherRecoveryStatus.update_version)
+}
+
+// string staged_path = 14;
+inline void LauncherRecoveryStatus::clear_staged_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.staged_path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
+}
+inline const ::std::string& LauncherRecoveryStatus::staged_path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.LauncherRecoveryStatus.staged_path)
+  return _internal_staged_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void LauncherRecoveryStatus::set_staged_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  _impl_.staged_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.LauncherRecoveryStatus.staged_path)
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::mutable_staged_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  ::std::string* _s = _internal_mutable_staged_path();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.LauncherRecoveryStatus.staged_path)
+  return _s;
+}
+inline const ::std::string& LauncherRecoveryStatus::_internal_staged_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.staged_path_.Get();
+}
+inline void LauncherRecoveryStatus::_internal_set_staged_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.staged_path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::_internal_mutable_staged_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.staged_path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE LauncherRecoveryStatus::release_staged_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.LauncherRecoveryStatus.staged_path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000400U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000400U);
+  auto* released = _impl_.staged_path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.staged_path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void LauncherRecoveryStatus::set_allocated_staged_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000400U);
+  }
+  _impl_.staged_path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.staged_path_.IsDefault()) {
+    _impl_.staged_path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.LauncherRecoveryStatus.staged_path)
+}
+
+// string update_error = 15;
+inline void LauncherRecoveryStatus::clear_update_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.update_error_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000800U);
+}
+inline const ::std::string& LauncherRecoveryStatus::update_error() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.LauncherRecoveryStatus.update_error)
+  return _internal_update_error();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void LauncherRecoveryStatus::set_update_error(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  _impl_.update_error_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.LauncherRecoveryStatus.update_error)
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::mutable_update_error()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  ::std::string* _s = _internal_mutable_update_error();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.LauncherRecoveryStatus.update_error)
+  return _s;
+}
+inline const ::std::string& LauncherRecoveryStatus::_internal_update_error() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.update_error_.Get();
+}
+inline void LauncherRecoveryStatus::_internal_set_update_error(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.update_error_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL LauncherRecoveryStatus::_internal_mutable_update_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.update_error_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE LauncherRecoveryStatus::release_update_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.LauncherRecoveryStatus.update_error)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000800U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000800U);
+  auto* released = _impl_.update_error_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.update_error_.Set("", GetArena());
+  }
+  return released;
+}
+inline void LauncherRecoveryStatus::set_allocated_update_error(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000800U);
+  }
+  _impl_.update_error_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.update_error_.IsDefault()) {
+    _impl_.update_error_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.LauncherRecoveryStatus.update_error)
 }
 
 // -------------------------------------------------------------------
