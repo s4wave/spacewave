@@ -79,6 +79,7 @@ describe('object layout helpers', () => {
     })
     expect(ordinary.tabId).toBe('current')
     expect(ordinary.tab?.id).toBe('current')
+    expect(ordinary.tab?.enableClose).toBeUndefined()
     const ordinaryPayload = ObjectLayoutTab.fromBinary(
       ordinary.tab?.data ?? new Uint8Array(),
     )

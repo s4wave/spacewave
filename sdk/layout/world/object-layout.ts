@@ -99,16 +99,12 @@ export function createObjectLayoutReplaceTabRequest(
 ): ReplaceTabRequest {
   return {
     tabId: target.tabId,
-    tab: createObjectLayoutTabDef({
+    tab: {
       id: target.tabId,
       name: target.name ?? target.objectKey ?? 'Object',
       helpText: target.helpText ?? target.objectKey ?? '',
-      objectInfo: target.objectInfo,
-      objectKey: target.objectKey,
-      objectType: target.objectType,
-      componentID: target.componentID,
-      path: target.path,
-    }),
+      data: createObjectLayoutTabData(target),
+    },
   }
 }
 
