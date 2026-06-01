@@ -16,6 +16,30 @@ var BldrExternal = []string{
 	"quickjs-wasi-reactor",
 }
 
+var protobufEsLiteDistImports = []string{
+	"index.js",
+	"message.js",
+	"field.js",
+	"scalar.js",
+	"enum.js",
+	"binary.js",
+	"json.js",
+	"partial.js",
+	"proto-int64.js",
+	"proto-double.js",
+	"type-registry.js",
+	"service-type.js",
+	"google/protobuf/any.pb.js",
+	"google/protobuf/api.pb.js",
+	"google/protobuf/duration.pb.js",
+	"google/protobuf/empty.pb.js",
+	"google/protobuf/source_context.pb.js",
+	"google/protobuf/struct.pb.js",
+	"google/protobuf/timestamp.pb.js",
+	"google/protobuf/type.pb.js",
+	"google/protobuf/wrappers.pb.js",
+}
+
 // GetBldrExternalWebPkgRefs returns the web pkg refs for BldrExternal.
 func GetBldrDistWebPkgRefs(buildPkgsDir, bldrDistRoot string) []*web_pkg.WebPkgRef {
 	return []*web_pkg.WebPkgRef{{
@@ -37,15 +61,7 @@ func GetBldrDistWebPkgRefs(buildPkgsDir, bldrDistRoot string) []*web_pkg.WebPkgR
 	}, {
 		WebPkgId:   "@aptre/protobuf-es-lite",
 		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/@aptre/protobuf-es-lite/dist"),
-		Imports: []string{
-			"index.js",
-			"message.js",
-			"field.js",
-			"scalar.js",
-			"enum.js",
-			"google/protobuf/empty.pb.js",
-			"google/protobuf/timestamp.pb.js",
-		},
+		Imports:    protobufEsLiteDistImports,
 	}, {
 		WebPkgId:   "quickjs-wasi-reactor",
 		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/quickjs-wasi-reactor/dist"),
