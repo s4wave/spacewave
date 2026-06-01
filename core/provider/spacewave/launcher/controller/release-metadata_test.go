@@ -138,16 +138,7 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(src, "spacewave"), []byte("binary"), 0o755); err != nil {
 		t.Fatal(err.Error())
 	}
-	manifestRef := writeReleaseManifestTestBlockWithMeta(
-		t,
-		ctx,
-		ws,
-		"release/manifests/native",
-		src,
-		nativeEntrypointManifestID,
-		"desktop/darwin/arm64",
-		1,
-	)
+	manifestRef := writeReleaseManifestTestBlock(t, ctx, ws, "release/manifests/native", src)
 	metadata := testReleaseMetadata("stable", nativeTestPlatformID(), manifestRef.GetManifestRef().GetRootRef())
 	metadata.ManifestRefs = []*bldr_manifest.ManifestRef{manifestRef}
 	metadataRef := writeReleaseMetadataTestBlock(t, ctx, ws, releaseMetadataObjectKey("stable"), metadata)
@@ -274,7 +265,16 @@ func TestReleaseMetadataRoutineRetriesUntilReleaseWorldMounted(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(src, "spacewave"), []byte("binary"), 0o755); err != nil {
 		t.Fatal(err.Error())
 	}
-	manifestRef := writeReleaseManifestTestBlock(t, ctx, ws, "release/manifests/native", src)
+	manifestRef := writeReleaseManifestTestBlockWithMeta(
+		t,
+		ctx,
+		ws,
+		"release/manifests/native",
+		src,
+		nativeEntrypointManifestID,
+		"desktop/darwin/arm64",
+		1,
+	)
 	metadata := testReleaseMetadata("stable", nativeTestPlatformID(), manifestRef.GetManifestRef().GetRootRef())
 	metadata.ManifestRefs = []*bldr_manifest.ManifestRef{manifestRef}
 	metadataRef := writeReleaseMetadataTestBlock(t, ctx, ws, releaseMetadataObjectKey("stable"), metadata)
