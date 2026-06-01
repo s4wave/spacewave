@@ -24,6 +24,7 @@ import (
 const (
 	releaseWorldEngineID              = "spacewave-release-world"
 	releaseMetadataDirectoryObjectKey = "release/metadata"
+	nativeEntrypointManifestID        = "spacewave-dist"
 )
 
 func (c *Controller) refreshCurrentReleaseMetadataStatus(ctx context.Context) error {
@@ -38,10 +39,12 @@ func (c *Controller) refreshCurrentReleaseMetadataStatus(ctx context.Context) er
 func (c *Controller) refreshReleaseMetadataStatus(ctx context.Context, distConf *spacewave_launcher.DistConfig) error {
 	if distConf.GetRev() == 0 {
 		c.clearUpdateState()
+		c.setSelectedEntrypointManifestRef(nil)
 		c.setReleaseMetadataOutcome("idle")
 		return nil
 	}
 	c.setReleaseMetadataOutcome("resolving")
+	c.setSelectedEntrypointManifestRef(nil)
 	metadata, err := c.resolveReleaseMetadata(ctx, distConf.ResolvedChannelKey())
 	if err != nil {
 		c.setUpdateError(err)
@@ -54,7 +57,12 @@ func (c *Controller) refreshReleaseMetadataStatus(ctx context.Context, distConf 
 		c.setReleaseMetadataOutcome("error")
 		return err
 	}
-	manifestRef := selectReleaseManifestRef(metadata, platformID)
+	manifestRef, err := selectReleaseManifestRef(metadata, platformID)
+	if err != nil {
+		c.setUpdateError(err)
+		c.setReleaseMetadataOutcome("error")
+		return err
+	}
 	if err := c.stageReleaseManifestUpdate(ctx, metadata, platformID, manifestRef); err != nil {
 		c.setUpdateError(err)
 		c.setReleaseMetadataOutcome("error")
@@ -91,8 +99,9 @@ func (c *Controller) stageReleaseManifestUpdate(
 	manifestRef *bldr_manifest.ManifestRef,
 ) error {
 	if manifestRef == nil {
-		return errors.New("release metadata does not support platform " + platformID)
+		return errors.New("release metadata missing native entrypoint manifest " + nativeEntrypointManifestID + " for platform " + platformID)
 	}
+	c.setSelectedEntrypointManifestRef(manifestRef)
 	stagingDir, err := c.resolveStagingDir()
 	if err != nil {
 		return errors.Wrap(err, "get staging dir")
@@ -123,7 +132,7 @@ func (c *Controller) stageReleaseManifestUpdate(
 	if err != nil {
 		return errors.Wrap(err, "checkout release manifest")
 	}
-	if err := verifyStagedReleaseEntrypoint(ctx, stageRoot, stagedPath); err != nil {
+	if err := c.verifyStagedReleaseEntrypoint(ctx, platformID, stageRoot, stagedPath); err != nil {
 		return err
 	}
 	c.setUpdateStaged(metadata.GetVersion(), stagedPath)
@@ -167,10 +176,36 @@ func (c *Controller) setReleaseMetadataOutcome(outcome string) {
 	})
 }
 
-func verifyStagedReleaseEntrypoint(ctx context.Context, stageRoot, stagedPath string) error {
+func (c *Controller) setSelectedEntrypointManifestRef(ref *bldr_manifest.ManifestRef) {
+	c.updateFetchStatus(func(next *spacewave_launcher.FetchStatus) {
+		next.SelectedEntrypointManifestID = ""
+		next.SelectedEntrypointPlatformID = ""
+		next.SelectedEntrypointManifestRev = 0
+		next.SelectedEntrypointManifestRef = ""
+		if ref == nil {
+			return
+		}
+		next.SelectedEntrypointManifestID = ref.GetMeta().GetManifestId()
+		next.SelectedEntrypointPlatformID = ref.GetMeta().GetPlatformId()
+		next.SelectedEntrypointManifestRev = ref.GetMeta().GetRev()
+		next.SelectedEntrypointManifestRef = ref.GetManifestRef().MarshalString()
+	})
+}
+
+func (c *Controller) verifyStagedReleaseEntrypoint(
+	ctx context.Context,
+	platformID string,
+	stageRoot string,
+	stagedPath string,
+) error {
 	stagedInfo, err := os.Stat(stagedPath)
 	if err != nil {
 		return errors.Wrap(err, "stat staged release entrypoint")
+	}
+	if isDarwinDesktopPlatform(platformID) {
+		if err := c.verifyDarwinInstalledAppStagedEntrypoint(stageRoot, stagedPath, stagedInfo.IsDir()); err != nil {
+			return err
+		}
 	}
 	if !stagedInfo.IsDir() {
 		return nil
@@ -184,6 +219,25 @@ func verifyStagedReleaseEntrypoint(ctx context.Context, stageRoot, stagedPath st
 		return errors.Wrap(err, "verify staged app bundle")
 	}
 	return nil
+}
+
+func (c *Controller) verifyDarwinInstalledAppStagedEntrypoint(
+	stageRoot string,
+	stagedPath string,
+	stagedIsDir bool,
+) error {
+	_, isBundle, _, err := c.currentExecutableBundle()
+	if err != nil {
+		return err
+	}
+	if !isBundle {
+		return nil
+	}
+	if stagedIsDir && strings.HasSuffix(stagedPath, ".app") {
+		return nil
+	}
+	_ = os.RemoveAll(stageRoot)
+	return errors.New("darwin installed-app update must stage a signed .app bundle")
 }
 
 func readSelectedReleaseMetadata(
@@ -266,19 +320,46 @@ func releaseMetadataObjectKey(channelKey string) string {
 }
 
 func releaseMetadataSupportsPlatform(metadata *spacewave_release.ReleaseMetadata, platformID string) bool {
-	return selectReleaseManifestRef(metadata, platformID) != nil
+	_, err := selectReleaseManifestRef(metadata, platformID)
+	return err == nil
 }
 
 func selectReleaseManifestRef(
 	metadata *spacewave_release.ReleaseMetadata,
 	platformID string,
-) *bldr_manifest.ManifestRef {
+) (*bldr_manifest.ManifestRef, error) {
+	var selected *bldr_manifest.ManifestRef
+	var nonEntrypoint []string
 	for _, ref := range metadata.GetManifestRefs() {
-		if ref.GetMeta().GetPlatformId() == platformID {
-			return ref
+		meta := ref.GetMeta()
+		if meta.GetPlatformId() != platformID {
+			continue
 		}
+		if meta.GetManifestId() != nativeEntrypointManifestID {
+			nonEntrypoint = append(nonEntrypoint, meta.GetManifestId())
+			continue
+		}
+		if selected != nil {
+			return nil, errors.Errorf(
+				"release metadata has duplicate native entrypoint manifest %s for platform %s",
+				nativeEntrypointManifestID,
+				platformID,
+			)
+		}
+		selected = ref
 	}
-	return nil
+	if selected != nil {
+		return selected, nil
+	}
+	if len(nonEntrypoint) != 0 {
+		return nil, errors.Errorf(
+			"release metadata has non-entrypoint native manifests for platform %s (%s), missing %s",
+			platformID,
+			strings.Join(nonEntrypoint, ", "),
+			nativeEntrypointManifestID,
+		)
+	}
+	return nil, errors.Errorf("release metadata missing native entrypoint manifest %s for platform %s", nativeEntrypointManifestID, platformID)
 }
 
 func checkoutReleaseManifest(
@@ -308,4 +389,8 @@ func nativeDesktopPlatformID() (string, error) {
 		return "", err
 	}
 	return platform.GetPlatformID(), nil
+}
+
+func isDarwinDesktopPlatform(platformID string) bool {
+	return strings.HasPrefix(platformID, "desktop/darwin/")
 }

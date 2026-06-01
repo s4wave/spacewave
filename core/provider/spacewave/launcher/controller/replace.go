@@ -35,14 +35,9 @@ func (c *Controller) applyUpdate() error {
 		return errors.Wrap(err, "stat staged path")
 	}
 
-	// get current executable path (resolve symlinks)
-	execPath, err := os.Executable()
+	execPath, isBundle, bundleRoot, err := c.currentExecutableBundle()
 	if err != nil {
-		return errors.Wrap(err, "get executable path")
-	}
-	execPath, err = filepath.EvalSymlinks(execPath)
-	if err != nil {
-		return errors.Wrap(err, "resolve executable symlinks")
+		return err
 	}
 
 	// set applying state
@@ -55,8 +50,6 @@ func (c *Controller) applyUpdate() error {
 		return true, nil
 	})
 
-	// check if this is a macOS .app bundle update
-	isBundle, bundleRoot := appbundle.Detect(execPath)
 	if isBundle && stagedInfo.IsDir() {
 		return c.applyAppBundleUpdate(bundleRoot, stagedPath)
 	}
@@ -66,4 +59,20 @@ func (c *Controller) applyUpdate() error {
 	}
 
 	return applyRawBinaryUpdate(execPath, stagedPath)
+}
+
+func (c *Controller) currentExecutableBundle() (string, bool, string, error) {
+	if c.currentExecutableBundleFunc != nil {
+		return c.currentExecutableBundleFunc()
+	}
+	execPath, err := os.Executable()
+	if err != nil {
+		return "", false, "", errors.Wrap(err, "get executable path")
+	}
+	execPath, err = filepath.EvalSymlinks(execPath)
+	if err != nil {
+		return "", false, "", errors.Wrap(err, "resolve executable symlinks")
+	}
+	isBundle, bundleRoot := appbundle.Detect(execPath)
+	return execPath, isBundle, bundleRoot, nil
 }

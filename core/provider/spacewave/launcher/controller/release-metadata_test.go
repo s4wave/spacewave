@@ -62,6 +62,41 @@ func TestReadSelectedReleaseMetadataErrors(t *testing.T) {
 	}
 }
 
+func TestSelectReleaseManifestRefRequiresNativeEntrypointIdentity(t *testing.T) {
+	platformID := nativeTestPlatformID()
+	valid := testManifestRef(nativeEntrypointManifestID, platformID, 1)
+	selected, err := selectReleaseManifestRef(&spacewave_release.ReleaseMetadata{
+		ManifestRefs: []*bldr_manifest.ManifestRef{
+			testManifestRef("spacewave-plugin", platformID, 1),
+			valid,
+		},
+	}, platformID)
+	if err != nil {
+		t.Fatalf("selectReleaseManifestRef() error = %v", err)
+	}
+	if selected != valid {
+		t.Fatal("selector did not return the native entrypoint ref")
+	}
+
+	if _, err := selectReleaseManifestRef(&spacewave_release.ReleaseMetadata{
+		ManifestRefs: []*bldr_manifest.ManifestRef{testManifestRef("spacewave-plugin", platformID, 1)},
+	}, platformID); err == nil || !strings.Contains(err.Error(), "non-entrypoint native manifests") {
+		t.Fatalf("wrong-identity error = %v", err)
+	}
+
+	if _, err := selectReleaseManifestRef(&spacewave_release.ReleaseMetadata{
+		ManifestRefs: []*bldr_manifest.ManifestRef{valid, testManifestRef(nativeEntrypointManifestID, platformID, 2)},
+	}, platformID); err == nil || !strings.Contains(err.Error(), "duplicate native entrypoint manifest") {
+		t.Fatalf("duplicate error = %v", err)
+	}
+
+	if _, err := selectReleaseManifestRef(&spacewave_release.ReleaseMetadata{
+		ManifestRefs: []*bldr_manifest.ManifestRef{testManifestRef(nativeEntrypointManifestID, "desktop/other/arch", 1)},
+	}, platformID); err == nil || !strings.Contains(err.Error(), "missing native entrypoint manifest") {
+		t.Fatalf("missing error = %v", err)
+	}
+}
+
 func TestCheckoutReleaseManifestStagesDist(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
@@ -103,7 +138,16 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(src, "spacewave"), []byte("binary"), 0o755); err != nil {
 		t.Fatal(err.Error())
 	}
-	manifestRef := writeReleaseManifestTestBlock(t, ctx, ws, "release/manifests/native", src)
+	manifestRef := writeReleaseManifestTestBlockWithMeta(
+		t,
+		ctx,
+		ws,
+		"release/manifests/native",
+		src,
+		nativeEntrypointManifestID,
+		"desktop/darwin/arm64",
+		1,
+	)
 	metadata := testReleaseMetadata("stable", nativeTestPlatformID(), manifestRef.GetManifestRef().GetRootRef())
 	metadata.ManifestRefs = []*bldr_manifest.ManifestRef{manifestRef}
 	metadataRef := writeReleaseMetadataTestBlock(t, ctx, ws, releaseMetadataObjectKey("stable"), metadata)
@@ -158,6 +202,19 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	}
 	if outcome := ctrl.fetchStatusCtr.GetValue().ReleaseMetadataOutcome; outcome != "staged" {
 		t.Fatalf("release metadata outcome = %q, want staged", outcome)
+	}
+	fetchStatus := ctrl.fetchStatusCtr.GetValue()
+	if fetchStatus.SelectedEntrypointManifestID != nativeEntrypointManifestID {
+		t.Fatalf("selected entrypoint id = %q", fetchStatus.SelectedEntrypointManifestID)
+	}
+	if fetchStatus.SelectedEntrypointPlatformID != nativeTestPlatformID() {
+		t.Fatalf("selected entrypoint platform = %q", fetchStatus.SelectedEntrypointPlatformID)
+	}
+	if fetchStatus.SelectedEntrypointManifestRev != 1 {
+		t.Fatalf("selected entrypoint rev = %d", fetchStatus.SelectedEntrypointManifestRev)
+	}
+	if fetchStatus.SelectedEntrypointManifestRef == "" {
+		t.Fatal("selected entrypoint ref is empty")
 	}
 }
 
@@ -273,7 +330,7 @@ func TestRefreshReleaseMetadataStatusErrorsWhenNativeManifestMissing(t *testing.
 	if err == nil {
 		t.Fatal("expected missing native manifest error")
 	}
-	want := "release metadata does not support platform " + nativeTestPlatformID()
+	want := "release metadata missing native entrypoint manifest " + nativeEntrypointManifestID + " for platform " + nativeTestPlatformID()
 	if !strings.Contains(err.Error(), want) {
 		t.Fatalf("error = %q, want %q", err.Error(), want)
 	}
@@ -286,6 +343,43 @@ func TestRefreshReleaseMetadataStatusErrorsWhenNativeManifestMissing(t *testing.
 	}
 	if outcome := ctrl.fetchStatusCtr.GetValue().ReleaseMetadataOutcome; outcome != "error" {
 		t.Fatalf("release metadata outcome = %q, want error", outcome)
+	}
+}
+
+func TestStageReleaseManifestUpdateRejectsRawDarwinInstalledAppPayload(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", "desktop/darwin/arm64")
+	src := t.TempDir()
+	if err := os.WriteFile(filepath.Join(src, "spacewave"), []byte("binary"), 0o755); err != nil {
+		t.Fatal(err.Error())
+	}
+	manifestRef := writeReleaseManifestTestBlock(t, ctx, ws, "release/manifests/native", src)
+
+	dc := cdc.NewController(ctx, le)
+	b := inmem.NewBus(dc)
+	rel, err := b.AddController(ctx, &releaseWorldLookupTestController{ws: ws}, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer rel()
+
+	stagingDir := t.TempDir()
+	ctrl := newReleaseMetadataRoutineTestController(le, b, stagingDir)
+	ctrl.currentExecutableBundleFunc = func() (string, bool, string, error) {
+		return filepath.Join(t.TempDir(), "Spacewave.app", "Contents", "MacOS", "spacewave"), true, "/Applications/Spacewave.app", nil
+	}
+	metadata := testReleaseMetadata("stable", "desktop/darwin/arm64", manifestRef.GetManifestRef().GetRootRef())
+	metadata.ManifestRefs = []*bldr_manifest.ManifestRef{manifestRef}
+	err = ctrl.stageReleaseManifestUpdate(ctx, metadata, "desktop/darwin/arm64", manifestRef)
+	if err == nil {
+		t.Fatal("expected raw Darwin installed-app payload error")
+	}
+	if !strings.Contains(err.Error(), "darwin installed-app update must stage a signed .app bundle") {
+		t.Fatalf("error = %q", err.Error())
+	}
+	if _, err := os.Stat(filepath.Join(stagingDir, "0.1.0")); !os.IsNotExist(err) {
+		t.Fatalf("stage root should be removed, stat err = %v", err)
 	}
 }
 
@@ -428,11 +522,34 @@ func writeReleaseManifestTestBlock(
 	distDir string,
 ) *bldr_manifest.ManifestRef {
 	t.Helper()
+	return writeReleaseManifestTestBlockWithMeta(
+		t,
+		ctx,
+		ws,
+		objKey,
+		distDir,
+		nativeEntrypointManifestID,
+		nativeTestPlatformID(),
+		1,
+	)
+}
+
+func writeReleaseManifestTestBlockWithMeta(
+	t *testing.T,
+	ctx context.Context,
+	ws world.WorldState,
+	objKey string,
+	distDir string,
+	manifestID string,
+	platformID string,
+	rev uint64,
+) *bldr_manifest.ManifestRef {
+	t.Helper()
 	meta := &bldr_manifest.ManifestMeta{
-		ManifestId: "spacewave-launcher",
+		ManifestId: manifestID,
 		BuildType:  "production",
-		PlatformId: nativeTestPlatformID(),
-		Rev:        1,
+		PlatformId: platformID,
+		Rev:        rev,
 	}
 	objRef, _, err := world.AccessWorldObject(ctx, ws, objKey, true, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
@@ -472,7 +589,7 @@ func testReleaseMetadata(channelKey string, platformID string, ref *block.BlockR
 		ChannelKey: channelKey,
 		ManifestRefs: []*bldr_manifest.ManifestRef{{
 			Meta: &bldr_manifest.ManifestMeta{
-				ManifestId: "spacewave-launcher",
+				ManifestId: nativeEntrypointManifestID,
 				BuildType:  "production",
 				PlatformId: platformID,
 				Rev:        1,
@@ -494,6 +611,20 @@ func testReleaseMetadata(channelKey string, platformID string, ref *block.BlockR
 			}},
 		},
 		MinimumLauncherVersion: "0.1.0",
+	}
+}
+
+func testManifestRef(manifestID, platformID string, rev uint64) *bldr_manifest.ManifestRef {
+	ref := testBlockRef()
+	ref.Hash.Hash[0] = byte(rev)
+	return &bldr_manifest.ManifestRef{
+		Meta: &bldr_manifest.ManifestMeta{
+			ManifestId: manifestID,
+			BuildType:  "production",
+			PlatformId: platformID,
+			Rev:        rev,
+		},
+		ManifestRef: &bucket.ObjectRef{RootRef: ref},
 	}
 }
 

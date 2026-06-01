@@ -57,6 +57,8 @@ type Controller struct {
 	configSetRoutine *routine.RoutineContainer
 	// stagingDirFunc overrides the platform staging dir in tests
 	stagingDirFunc func() (string, error)
+	// currentExecutableBundleFunc overrides current executable bundle detection in tests.
+	currentExecutableBundleFunc func() (execPath string, isBundle bool, bundleRoot string, err error)
 	// mtx guards below fields
 	mtx sync.Mutex
 	// confFetcherRefetch is a timer to restart confFetcherRoutine on success

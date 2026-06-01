@@ -27,6 +27,18 @@ type FetchStatus struct {
 	// ReleaseMetadataOutcome describes the latest release metadata resolution
 	// result for the selected DistConfig.
 	ReleaseMetadataOutcome string
+	// SelectedEntrypointManifestID is the native entrypoint manifest selected
+	// from release metadata for staging.
+	SelectedEntrypointManifestID string
+	// SelectedEntrypointPlatformID is the native desktop platform of the
+	// selected entrypoint manifest.
+	SelectedEntrypointPlatformID string
+	// SelectedEntrypointManifestRev is the revision of the selected native
+	// entrypoint manifest.
+	SelectedEntrypointManifestRev uint64
+	// SelectedEntrypointManifestRef is the selected native entrypoint object
+	// ref in string form.
+	SelectedEntrypointManifestRef string
 	// LastErr is the most recent endpoint-fetch error string, or empty when
 	// the last attempt succeeded or no fetch has run yet.
 	LastErr string
