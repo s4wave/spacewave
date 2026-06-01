@@ -48,6 +48,11 @@ func BuildBlob(
 	}
 
 	if dataLen <= int64(hwm) { //nolint:gosec
+		recordMetric(ctx, Metric{
+			Stage:            "raw",
+			InputBytes:       dataLen,
+			RawHighWaterMark: hwm,
+		})
 		buf := make([]byte, dataLen)
 		if _, err := io.ReadFull(rdr, buf); err != nil {
 			return nil, err
@@ -58,6 +63,11 @@ func BuildBlob(
 	}
 
 	// build a chunked blob
+	recordMetric(ctx, Metric{
+		Stage:            "chunked",
+		InputBytes:       dataLen,
+		RawHighWaterMark: hwm,
+	})
 	blob := &Blob{BlobType: BlobType_BlobType_CHUNKED}
 	bcs.SetBlock(blob, true)
 	err := blob.WriteChunkIndex(ctx, bcs, opts, io.LimitReader(rdr, dataLen))
@@ -97,6 +107,11 @@ func BuildBlobWithReader(
 
 	// If we read less than high water mark, we can use a single block.
 	if nn < int64(hwm) { //nolint:gosec
+		recordMetric(ctx, Metric{
+			Stage:            "raw",
+			InputBytes:       nn,
+			RawHighWaterMark: hwm,
+		})
 		rb := NewRawBlob(buf.Bytes())
 		bcs.SetBlock(rb, true)
 		return rb, nil
@@ -104,6 +119,11 @@ func BuildBlobWithReader(
 
 	// Otherwise: build a chunked blob
 	// Tee the existing read data with rdr
+	recordMetric(ctx, Metric{
+		Stage:            "chunked",
+		InputBytes:       nn,
+		RawHighWaterMark: hwm,
+	})
 	blob := &Blob{BlobType: BlobType_BlobType_CHUNKED}
 	bcs.SetBlock(blob, true)
 	err = blob.WriteChunkIndex(ctx, bcs, opts, io.MultiReader(&buf, rdr))

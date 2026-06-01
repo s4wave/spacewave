@@ -3,6 +3,7 @@ package unixfs_world_testbed
 import (
 	"bytes"
 	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -13,12 +14,22 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type batchMetricRecorder struct {
+	metrics []unixfs_world.BatchFSWriterMetric
+}
+
+func (r *batchMetricRecorder) RecordBatchFSWriterMetric(metric unixfs_world.BatchFSWriterMetric) {
+	r.metrics = append(r.metrics, metric)
+}
+
 // TestBatchFSWriter_AddFileBuildsBlob verifies that AddFile accumulates
 // entries without mutating the parent directory, and that a subsequent
 // Commit flushes the flat batch into the root directory under a single
 // world transaction.
 func TestBatchFSWriter_AddFileBuildsBlob(t *testing.T) {
 	ctx := context.Background()
+	recorder := &batchMetricRecorder{}
+	ctx = unixfs_world.WithBatchFSWriterMetricsRecorder(ctx, recorder)
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(logger)
@@ -61,6 +72,19 @@ func TestBatchFSWriter_AddFileBuildsBlob(t *testing.T) {
 		t.Fatalf("Commit: %v", err)
 	}
 	bw.Release()
+	for _, stage := range []string{
+		"ingest-file-start",
+		"ingest-file-complete",
+		"commit-start",
+		"commit-complete",
+		"release",
+	} {
+		if !slices.ContainsFunc(recorder.metrics, func(metric unixfs_world.BatchFSWriterMetric) bool {
+			return metric.Stage == stage
+		}) {
+			t.Fatalf("missing batch metric stage %q: %#v", stage, recorder.metrics)
+		}
+	}
 
 	fh, err := fsHandle.Lookup(ctx, "hello.txt")
 	if err != nil {

@@ -56,8 +56,10 @@ func (s *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 		return nil, false, err
 	}
 
-	// Check if block already exists.
-	_, found, err := s.engine.Get([]byte(key))
+	// Duplicate checks must not materialize the existing value. Large uploads can
+	// naturally hit duplicate content chunks, and the write path only needs the
+	// existence bit before deciding whether to append a new segment entry.
+	found, err := s.engine.GetExists([]byte(key))
 	if err != nil {
 		return nil, false, err
 	}
@@ -134,7 +136,7 @@ func (s *BlockStore) PutBlockBackground(ctx context.Context, data []byte, opts *
 		return nil, false, err
 	}
 
-	_, found, err := s.engine.Get([]byte(key))
+	found, err := s.engine.GetExists([]byte(key))
 	if err != nil {
 		return nil, false, err
 	}
@@ -220,7 +222,7 @@ func (s *BlockStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block
 		return nil, err
 	}
 
-	val, found, err := s.engine.Get([]byte(key))
+	size, found, err := s.engine.Stat(ctx, []byte(key))
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +230,7 @@ func (s *BlockStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block
 		return nil, nil
 	}
 
-	return &block.BlockStat{Ref: ref, Size: int64(len(val))}, nil
+	return &block.BlockStat{Ref: ref, Size: size}, nil
 }
 
 // GetSupportedFeatures returns the native feature bitmask for the store.

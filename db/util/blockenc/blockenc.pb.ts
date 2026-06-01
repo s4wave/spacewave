@@ -14,7 +14,7 @@ export const protobufPackage = 'blockenc'
  */
 export enum BlockEnc {
   /**
-   * BlockEnc_UNKNOWN defaults to BlockEnc_XCHACHA20_POLY1305.
+   * BlockEnc_UNKNOWN is reserved for unset configuration.
    *
    * @generated from enum value: BlockEnc_UNKNOWN = 0;
    */
@@ -46,6 +46,16 @@ export enum BlockEnc {
    * @generated from enum value: BlockEnc_SECRET_BOX = 3;
    */
   BlockEnc_SECRET_BOX = 3,
+
+  /**
+   * BlockEnc_AES_256_GCM uses AES-256-GCM encryption.
+   * Key size of 32 bytes.
+   * Derives the nonce with blake3 key derivation.
+   * Stores the nonce in the first 12 bytes of the ciphertext.
+   *
+   * @generated from enum value: BlockEnc_AES_256_GCM = 4;
+   */
+  BlockEnc_AES_256_GCM = 4,
 }
 
 export const BlockEnc_Enum = /* @__PURE__ */ createEnumType(
@@ -55,5 +65,6 @@ export const BlockEnc_Enum = /* @__PURE__ */ createEnumType(
     [1, 'BlockEnc_NONE'],
     [2, 'BlockEnc_XCHACHA20_POLY1305'],
     [3, 'BlockEnc_SECRET_BOX'],
+    [4, 'BlockEnc_AES_256_GCM'],
   ],
 )

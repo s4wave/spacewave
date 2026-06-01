@@ -119,6 +119,40 @@ func TestBuildWithMetaMatchesLoadedLookupMeta(t *testing.T) {
 	}
 }
 
+func TestLookupMetaStatStreamsLargeValueWithoutReadingIt(t *testing.T) {
+	key := []byte("target")
+	value := bytes.Repeat([]byte("v"), maxLookupWindowRead+1)
+	w := NewWriter()
+	w.Add(key, value)
+
+	var buf bytes.Buffer
+	if _, err := w.Build(&buf); err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+	data := buf.Bytes()
+	meta, err := LoadLookupMeta(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		t.Fatalf("LoadLookupMeta: %v", err)
+	}
+
+	valueStart := int64(meta.Header.DataOffset) + 2 + int64(len(key)) + 4
+	guard := guardedReaderAt{
+		data:  data,
+		start: valueStart,
+		end:   valueStart + int64(len(value)),
+	}
+	stat, err := meta.Stat(guard, key)
+	if err != nil {
+		t.Fatalf("Stat: %v", err)
+	}
+	if !stat.Found || stat.Tombstone {
+		t.Fatalf("Stat found=%v tombstone=%v", stat.Found, stat.Tombstone)
+	}
+	if stat.ValueSize != int64(len(value)) {
+		t.Fatalf("Stat size=%d, want %d", stat.ValueSize, len(value))
+	}
+}
+
 func TestBuildStreamsDataEntries(t *testing.T) {
 	w := NewWriter()
 	w.SetIndexInterval(8)
@@ -141,6 +175,19 @@ func TestBuildStreamsDataEntries(t *testing.T) {
 	if _, err := NewReader(bytes.NewReader(dst.Bytes()), int64(dst.Len())); err != nil {
 		t.Fatalf("NewReader: %v", err)
 	}
+}
+
+type guardedReaderAt struct {
+	data  []byte
+	start int64
+	end   int64
+}
+
+func (r guardedReaderAt) ReadAt(p []byte, off int64) (int, error) {
+	if off < r.end && off+int64(len(p)) > r.start {
+		return 0, io.ErrUnexpectedEOF
+	}
+	return bytes.NewReader(r.data).ReadAt(p, off)
 }
 
 type maxWriteRecorder struct {

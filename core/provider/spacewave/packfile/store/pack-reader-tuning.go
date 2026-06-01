@@ -8,6 +8,7 @@ type PackReaderTuning struct {
 	MinWindow              int
 	TransportQuantum       int
 	MaxWindow              int
+	TransportFetchMaxBytes int
 	CurrentWindow          int
 	TargetRequestHz        float64
 	Smoothing              float64
@@ -58,6 +59,15 @@ func (e *PackReader) SetTransportMaxWindow(maxWindow int) {
 	})
 }
 
+func (e *PackReader) setTransportFetchMaxBytes(maxBytes int) {
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if maxBytes > 0 {
+			e.transportFetchMaxBytes = maxBytes
+			e.normalizeTransportLocked()
+		}
+	})
+}
+
 // SetTransportTargetRequestHz sets the steady-state request-rate target.
 func (e *PackReader) SetTransportTargetRequestHz(targetHz float64) {
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -103,6 +113,7 @@ func (e *PackReader) SnapshotTuning() PackReaderTuning {
 			MinWindow:              e.minWindow,
 			TransportQuantum:       e.transportQuantum,
 			MaxWindow:              e.maxWindow,
+			TransportFetchMaxBytes: e.transportFetchMaxBytes,
 			CurrentWindow:          e.currentWindow,
 			TargetRequestHz:        e.targetRequestHzLocked(),
 			Smoothing:              e.smoothing,
@@ -123,6 +134,17 @@ func (e *PackReader) normalizeTransportLocked() {
 	}
 	if e.transportQuantum <= 0 {
 		e.transportQuantum = e.minWindow
+	}
+	if e.transportFetchMaxBytes > 0 {
+		if e.minWindow > e.transportFetchMaxBytes {
+			e.minWindow = e.transportFetchMaxBytes
+		}
+		if e.transportQuantum > e.transportFetchMaxBytes {
+			e.transportQuantum = e.transportFetchMaxBytes
+		}
+		if e.maxWindow <= 0 || e.maxWindow > e.transportFetchMaxBytes {
+			e.maxWindow = e.transportFetchMaxBytes
+		}
 	}
 	minMaxWindow := max(e.minWindow, e.transportQuantum)
 	if e.maxWindow > 0 && e.maxWindow < minMaxWindow {

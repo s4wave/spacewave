@@ -74,7 +74,7 @@ func CreatePINLock(privPEM, pin []byte) (encPriv, encSymKey []byte, config *Lock
 	defer scrub.Scrub(symKey[:])
 
 	// Encrypt privkey with symKey.
-	symMethod, err := blockenc.NewXChaCha20Poly1305(symKey[:])
+	symMethod, err := newSessionLockMethod(symKey[:])
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -97,7 +97,7 @@ func CreatePINLock(privPEM, pin []byte) (encPriv, encSymKey []byte, config *Lock
 	defer scrub.Scrub(pinKey)
 
 	// Encrypt symKey with pinKey.
-	pinMethod, err := blockenc.NewXChaCha20Poly1305(pinKey)
+	pinMethod, err := newSessionLockMethod(pinKey)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -118,20 +118,12 @@ func UnlockPIN(encPriv, encSymKey []byte, config *LockConfig, pin []byte) ([]byt
 	defer scrub.Scrub(pinKey)
 
 	// Decrypt symKey.
-	pinMethod, err := blockenc.NewXChaCha20Poly1305(pinKey)
-	if err != nil {
-		return nil, err
-	}
-	symKeyBytes, err := pinMethod.Decrypt(blockenc.DefaultAllocFn(), encSymKey)
+	symKeyBytes, err := decryptSessionLockBytes(pinKey, encSymKey)
 	if err != nil {
 		return nil, errors.New("wrong PIN or corrupted lock key")
 	}
 	defer scrub.Scrub(symKeyBytes)
 
 	// Decrypt privkey.
-	symMethod, err := blockenc.NewXChaCha20Poly1305(symKeyBytes)
-	if err != nil {
-		return nil, err
-	}
-	return symMethod.Decrypt(blockenc.DefaultAllocFn(), encPriv)
+	return decryptSessionLockBytes(symKeyBytes, encPriv)
 }

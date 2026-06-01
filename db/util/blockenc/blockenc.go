@@ -2,11 +2,16 @@ package blockenc
 
 import "github.com/pkg/errors"
 
-// BlockEnc_BlockEnc_MAX is the maximum value for BlockCrypt.
-const BlockEnc_BlockEnc_MAX = BlockEnc_BlockEnc_SECRET_BOX
+const (
+	// DefaultBlockEnc is the encryption method used by new block transforms.
+	DefaultBlockEnc = BlockEnc_BlockEnc_AES_256_GCM
+	// BlockEnc_BlockEnc_MAX is the maximum value for BlockCrypt.
+	BlockEnc_BlockEnc_MAX = BlockEnc_BlockEnc_AES_256_GCM
+)
 
 // BlockEnc_KeySize is the set of known key sizes.
 var BlockEnc_KeySize = map[BlockEnc]int{
+	BlockEnc_BlockEnc_AES_256_GCM:        32,
 	BlockEnc_BlockEnc_SECRET_BOX:         32,
 	BlockEnc_BlockEnc_XCHACHA20_POLY1305: 32,
 }
@@ -34,6 +39,8 @@ func BuildBlockEnc(enc BlockEnc, key []byte) (Method, error) {
 		return NewXChaCha20Poly1305(key)
 	case BlockEnc_BlockEnc_SECRET_BOX:
 		return NewSecretBox(key)
+	case BlockEnc_BlockEnc_AES_256_GCM:
+		return NewAES256GCM(key)
 	default:
 		return nil, errors.Errorf("unknown blockenc type: %s", enc.String())
 	}
@@ -49,6 +56,8 @@ func (e BlockEnc) Validate() error {
 	case BlockEnc_BlockEnc_XCHACHA20_POLY1305:
 		return nil
 	case BlockEnc_BlockEnc_SECRET_BOX:
+		return nil
+	case BlockEnc_BlockEnc_AES_256_GCM:
 		return nil
 	default:
 		return errors.Errorf("unknown blockenc type: %s", e.String())

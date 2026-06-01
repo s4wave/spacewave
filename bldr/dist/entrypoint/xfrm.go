@@ -39,7 +39,7 @@ func buildStorageTransformConf(projectID string) []config.Config {
 		&transform_chksum.Config{},
 		&transform_s2.Config{},
 		&transform_blockenc.Config{
-			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
+			BlockEnc: blockenc.DefaultBlockEnc,
 			Key:      key[:],
 		},
 	}

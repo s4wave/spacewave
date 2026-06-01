@@ -39,16 +39,17 @@ static constexpr ::_pb::Message* PROTOBUF_NONNULL const* PROTOBUF_NULLABLE
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2futil_2fblockenc_2fblockenc_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n;github.com/s4wave/spacewave/db/util/bl"
-    "ockenc/blockenc.proto\022\010blockenc*m\n\010Block"
-    "Enc\022\024\n\020BlockEnc_UNKNOWN\020\000\022\021\n\rBlockEnc_NO"
-    "NE\020\001\022\037\n\033BlockEnc_XCHACHA20_POLY1305\020\002\022\027\n"
-    "\023BlockEnc_SECRET_BOX\020\003b\006proto3"
+    "ockenc/blockenc.proto\022\010blockenc*\207\001\n\010Bloc"
+    "kEnc\022\024\n\020BlockEnc_UNKNOWN\020\000\022\021\n\rBlockEnc_N"
+    "ONE\020\001\022\037\n\033BlockEnc_XCHACHA20_POLY1305\020\002\022\027"
+    "\n\023BlockEnc_SECRET_BOX\020\003\022\030\n\024BlockEnc_AES_"
+    "256_GCM\020\004b\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2futil_2fblockenc_2fblockenc_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2futil_2fblockenc_2fblockenc_2eproto = {
     false,
     false,
-    190,
+    217,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2futil_2fblockenc_2fblockenc_2eproto,
     "github.com/s4wave/spacewave/db/util/blockenc/blockenc.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2futil_2fblockenc_2fblockenc_2eproto_once,
@@ -67,7 +68,7 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL BlockEnc_descriptor()
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2futil_2fblockenc_2fblockenc_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t BlockEnc_internal_data_[] = {
-    262144u, 0u, };
+    327680u, 0u, };
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace blockenc
 namespace google {

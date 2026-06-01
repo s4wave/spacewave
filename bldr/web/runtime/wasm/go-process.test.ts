@@ -5,6 +5,9 @@ import {
   installOPFSBroadcastHelpers,
   installTinyGoJSHelpers,
   patchTinyGoRuntimeImports,
+  retainTinyGoPluginStreamStoredBytes,
+  snapshotTinyGoBrowserBudgetReport,
+  syncTinyGoPluginStreamPendingDeliveries,
   type TinyGoRuntime,
 } from './go-process.js'
 
@@ -68,6 +71,9 @@ type TinyGoHelperGlobal = typeof globalThis & {
     data: Uint8Array,
     opID: number,
   ) => void
+  __BLDR_TINYGO_BROWSER_BUDGET__?: {
+    snapshot: typeof snapshotTinyGoBrowserBudgetReport
+  }
 }
 
 afterEach(() => {
@@ -93,6 +99,7 @@ afterEach(() => {
   delete g.BLDR_OPFS_LIST_DIRECTORY
   delete g.BLDR_OPFS_WRITE_AT
   delete g.BLDR_OPFS_WRITE_FILE
+  delete g.__BLDR_TINYGO_BROWSER_BUDGET__
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
@@ -473,12 +480,25 @@ describe('patchTinyGoRuntimeImports', () => {
       close: async () => undefined,
       write: async () => undefined,
     }
+    const largeReadArrayBuffer = vi.fn(async () => {
+      throw new Error('oversized file should not be materialized')
+    })
     const dir = {
       getFileHandle: async (name: string, opts?: { create?: boolean }) => {
         if (name === 'read.bin') {
+          const bytes = new Uint8Array([4, 5, 6])
           return {
             getFile: async () => ({
-              arrayBuffer: async () => new Uint8Array([4, 5, 6]).buffer,
+              size: bytes.byteLength,
+              arrayBuffer: async () => bytes.buffer,
+            }),
+          }
+        }
+        if (name === 'large-read.bin') {
+          return {
+            getFile: async () => ({
+              size: 2 * 1024 * 1024 + 1,
+              arrayBuffer: largeReadArrayBuffer,
             }),
           }
         }
@@ -584,6 +604,15 @@ describe('patchTinyGoRuntimeImports', () => {
     expect(takeStoredBytes(read.id, 80, read.len)).toBe(1)
     expect(Array.from(mem.subarray(80, 83))).toEqual([4, 5, 6])
     expect(takeStoredBytes(read.id, 80, read.len)).toBe(0)
+
+    const largeReadNameLen = writeString(96, 'large-read.bin')
+    const largeReadCode = await waitOPFS(
+      309,
+      () => readFile(309, tinyGoObjectRef(7), 96, largeReadNameLen),
+      ([code = 0]) => -code,
+    )
+    expect(largeReadCode).toBe(0)
+    expect(largeReadArrayBuffer).not.toHaveBeenCalled()
 
     const singleNameLen = writeString(96, 'single.bin')
     mem.set([7, 8, 9], 128)
@@ -693,7 +722,11 @@ describe('patchTinyGoRuntimeImports', () => {
     )
     expect(abortFailureRetryCode).toBe(2)
 
-    expect(writes).toEqual([[7, 8, 9], [1, 2], [3, 4, 5]])
+    expect(writes).toEqual([
+      [7, 8, 9],
+      [1, 2],
+      [3, 4, 5],
+    ])
   })
 })
 
@@ -1028,6 +1061,120 @@ describe('installTinyGoJSHelpers', () => {
     expect(callTinyGoImport(go, 'bldr.tinygo.dropStoredBytes', 999)).toBe(0)
   })
 
+  it('rejects oversized direct TinyGo fetch responses before materializing them', async () => {
+    const memory = new WebAssembly.Memory({ initial: 1 })
+    const rejectedResult: { fn?: (value: number) => void } = {}
+    const rejected = new Promise<number>((resolve) => {
+      rejectedResult.fn = resolve
+    })
+    const resolveExport = vi.fn()
+    const rejectExport = vi.fn((opID: number, code: number) => {
+      if (opID === 78) {
+        rejectedResult.fn?.(code)
+      }
+    })
+    const go: TinyGoRuntime = {
+      importObject: { gojs: {} },
+      _inst: {
+        exports: {
+          memory,
+          BLDR_TINYGO_FETCH_RESOLVE: resolveExport,
+          BLDR_TINYGO_FETCH_REJECT: rejectExport,
+          go_scheduler: vi.fn(),
+        },
+      },
+    }
+    const cancel = vi.fn()
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array([1]))
+      },
+      cancel,
+    })
+    const fetchMock = vi.fn(async () => {
+      return new Response(stream, {
+        headers: { 'content-length': String(2 * 1024 * 1024 + 1) },
+      })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    installTinyGoJSHelpers(go)
+
+    const [urlPtr, urlLen] = writeTinyGoString(go, '/large.bin', 16)
+    const [reqPtr, reqLen] = writeTinyGoString(go, JSON.stringify({}), 64)
+    callTinyGoImport(
+      go,
+      'bldr.tinygo.fetch',
+      78,
+      urlPtr,
+      urlLen,
+      reqPtr,
+      reqLen,
+      0,
+      0,
+    )
+
+    await expect(rejected).resolves.toBe(0)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(resolveExport).not.toHaveBeenCalled()
+    expect(cancel).toHaveBeenCalledTimes(1)
+  })
+
+  it('cancels direct TinyGo fetch streams that exceed the response budget', async () => {
+    const memory = new WebAssembly.Memory({ initial: 1 })
+    const rejectedResult: { fn?: (value: number) => void } = {}
+    const rejected = new Promise<number>((resolve) => {
+      rejectedResult.fn = resolve
+    })
+    const resolveExport = vi.fn()
+    const rejectExport = vi.fn((opID: number, code: number) => {
+      if (opID === 79) {
+        rejectedResult.fn?.(code)
+      }
+    })
+    const go: TinyGoRuntime = {
+      importObject: { gojs: {} },
+      _inst: {
+        exports: {
+          memory,
+          BLDR_TINYGO_FETCH_RESOLVE: resolveExport,
+          BLDR_TINYGO_FETCH_REJECT: rejectExport,
+          go_scheduler: vi.fn(),
+        },
+      },
+    }
+    const cancel = vi.fn()
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(2 * 1024 * 1024))
+        controller.enqueue(new Uint8Array([1]))
+      },
+      cancel,
+    })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(stream)),
+    )
+    installTinyGoJSHelpers(go)
+
+    const [urlPtr, urlLen] = writeTinyGoString(go, '/stream-large.bin', 16)
+    const [reqPtr, reqLen] = writeTinyGoString(go, JSON.stringify({}), 64)
+    callTinyGoImport(
+      go,
+      'bldr.tinygo.fetch',
+      79,
+      urlPtr,
+      urlLen,
+      reqPtr,
+      reqLen,
+      0,
+      0,
+    )
+
+    await expect(rejected).resolves.toBe(0)
+    expect(resolveExport).not.toHaveBeenCalled()
+    expect(cancel).toHaveBeenCalledTimes(1)
+  })
+
   it('does not reserve TinyGo fetch bytes when resolve export is unavailable', async () => {
     const memory = new WebAssembly.Memory({ initial: 1 })
     const resolvedIDs: Array<{ metaID: number; bodyID: number }> = []
@@ -1191,6 +1338,173 @@ describe('installOPFSBroadcastHelpers', () => {
 })
 
 describe('GoWasmProcess', () => {
+  it('exposes an observe-only TinyGo browser budget report', async () => {
+    const opfsResolves = new Map<number, (values: number[]) => void>()
+    const waitOPFS = <T>(
+      opID: number,
+      invoke: () => void,
+      map: (values: number[]) => T,
+    ) =>
+      new Promise<T>((resolve) => {
+        opfsResolves.set(opID, (values) => resolve(map(values)))
+        invoke()
+      })
+    const opfsResolve = (
+      opID: number,
+      count: number,
+      value0: number,
+      value1: number,
+    ) => {
+      const values = [value0, value1].slice(0, count)
+      opfsResolves.get(opID)?.(values)
+      opfsResolves.delete(opID)
+    }
+    const opfsReject = vi.fn()
+    let activeGenerationID = 0
+    let storedBytesHighWater = 0
+
+    class FakeGo {
+      public readonly importObject = { gojs: {} }
+      public env: Record<string, string> = {}
+      public argv: string[] = []
+      public _inst?: WebAssembly.Instance
+      public _resume = vi.fn()
+
+      public async run() {
+        this._inst = {
+          exports: {
+            memory: new WebAssembly.Memory({ initial: 2 }),
+            BLDR_OPFS_HELPER_RESOLVE: opfsResolve,
+            BLDR_OPFS_HELPER_REJECT: opfsReject,
+          },
+        }
+        const g = globalThis as TinyGoHelperGlobal
+        const read = await waitOPFS(
+          401,
+          () => {
+            g.BLDR_OPFS_READ_FILE?.(
+              {
+                getFileHandle: async () => ({
+                  getFile: async () => ({
+                    arrayBuffer: async () =>
+                      new Uint8Array([1, 2, 3, 4]).buffer,
+                  }),
+                }),
+              } as unknown as FileSystemDirectoryHandle,
+              'budget.bin',
+              401,
+            )
+          },
+          ([id = 0, len = 0]) => ({ id, len }),
+        )
+        const active = snapshotTinyGoBrowserBudgetReport()
+        const generation = active.generations.at(-1)
+        if (!generation) {
+          throw new Error('missing TinyGo browser budget generation')
+        }
+        activeGenerationID = generation.id
+        expect(active.currentGenerationId).toBe(activeGenerationID)
+        expect(g.__BLDR_TINYGO_BROWSER_BUDGET__?.snapshot()).toEqual(active)
+        expect(generation.state).toBe('running')
+        expect(generation.owners.map((owner) => owner.owner)).toEqual([
+          'wasm-linear-memory',
+          'stored-bytes',
+          'plugin-stream-stored-bytes',
+          'plugin-stream-pending-deliveries',
+          'srpc-receive-queue',
+          'fetch-requests',
+          'web-lock-requests',
+          'opfs-write-streams',
+          'opfs-runtime-tasks',
+          'callback-queue',
+          'blockshard-storage',
+          'packfile-range-cache',
+          'sync-request-bodies',
+          'ui-preview-bytes',
+        ])
+        expect(active.budget.globalBytes).toBe(128 * 1024 * 1024)
+        expect(active.totals.budgetBytes).toBe(active.budget.globalBytes)
+        expect(generation.totals.overBudget).toBe(false)
+        expect(
+          generation.owners.find(
+            (owner) => owner.owner === 'wasm-linear-memory',
+          )?.currentBytes,
+        ).toBe(2 * 64 * 1024)
+        expect(
+          generation.owners.find(
+            (owner) => owner.owner === 'wasm-linear-memory',
+          )?.reservedBytes,
+        ).toBe(64 * 1024 * 1024)
+        expect(
+          generation.owners.find(
+            (owner) => owner.owner === 'srpc-receive-queue',
+          )?.reservedBytes,
+        ).toBe(8 * 1024 * 1024)
+        const stored = generation.owners.find(
+          (owner) => owner.owner === 'stored-bytes',
+        )
+        expect(stored).toMatchObject({
+          currentBytes: 4,
+          highWaterBytes: 4,
+          currentCount: 1,
+          highWaterCount: 1,
+        })
+        storedBytesHighWater = stored?.highWaterBytes ?? 0
+        const releasePluginBytes = retainTinyGoPluginStreamStoredBytes(this, 10)
+        syncTinyGoPluginStreamPendingDeliveries(this, 1)
+        const withPluginOwners = snapshotTinyGoBrowserBudgetReport()
+        const pluginGeneration = withPluginOwners.generations.at(-1)
+        expect(
+          pluginGeneration?.owners.find(
+            (owner) => owner.owner === 'plugin-stream-stored-bytes',
+          ),
+        ).toMatchObject({
+          currentBytes: 10,
+          highWaterBytes: 10,
+          currentCount: 1,
+          highWaterCount: 1,
+        })
+        expect(
+          pluginGeneration?.owners.find(
+            (owner) => owner.owner === 'plugin-stream-pending-deliveries',
+          ),
+        ).toMatchObject({
+          currentCount: 1,
+          highWaterCount: 1,
+        })
+        releasePluginBytes()
+        syncTinyGoPluginStreamPendingDeliveries(this, 0)
+        expect(g.BLDR_TINYGO_TAKE_STORED_BYTES?.(read.id)).toEqual(
+          new Uint8Array([1, 2, 3, 4]),
+        )
+      }
+    }
+
+    vi.stubGlobal('Go', FakeGo)
+    vi.spyOn(WebAssembly, 'instantiate').mockResolvedValue({
+      exports: {},
+    })
+
+    const process = new GoWasmProcess(
+      {},
+      {
+        retry: false,
+      },
+    )
+    await process.start()
+
+    const final = snapshotTinyGoBrowserBudgetReport()
+    const generation = final.generations.find(
+      (entry) => entry.id === activeGenerationID,
+    )
+    expect(generation?.state).toBe('exited')
+    const stored = generation?.owners.find(
+      (owner) => owner.owner === 'stored-bytes',
+    )
+    expect(stored?.currentBytes).toBe(0)
+    expect(stored?.highWaterBytes).toBe(storedBytesHighWater)
+  })
+
   it('scopes Go released-callback console errors and exposes TinyGo byte helpers', async () => {
     const pushed: Uint8Array[] = []
     const opfsResolves = new Map<number, (values: number[]) => void>()
@@ -1624,10 +1938,7 @@ describe('GoWasmProcess', () => {
       state.resolveAbortCleanup = resolve
     })
     const dir = {
-      getFileHandle: async (
-        name: string,
-        opts?: { create?: boolean },
-      ) => {
+      getFileHandle: async (name: string, opts?: { create?: boolean }) => {
         if (opts?.create !== true) {
           throw new Error('unexpected file handle request')
         }

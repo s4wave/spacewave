@@ -24,7 +24,7 @@ func RotateTransformKey(
 	currentEpoch uint64,
 	currentSeqno uint64,
 ) (*block_transform.Config, []*SOGrant, *SOKeyEpoch, error) {
-	// Generate new random 32-byte XChaCha20-Poly1305 key.
+	// Generate a new random key for the default block transform.
 	encKey := make([]byte, 32)
 	if _, err := rand.Read(encKey); err != nil {
 		return nil, nil, nil, errors.Wrap(err, "generate encryption key")
@@ -33,7 +33,7 @@ func RotateTransformKey(
 
 	soTransformConf, err := block_transform.NewConfig([]config.Config{
 		&transform_blockenc.Config{
-			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
+			BlockEnc: blockenc.DefaultBlockEnc,
 			Key:      encKey,
 		},
 	})

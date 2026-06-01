@@ -30,8 +30,101 @@ export type WasmSource =
 const tinyGoPromiseErrorUnknown = 0
 const tinyGoPromiseErrorNotFound = 1
 const tinyGoPromiseErrorNoModificationAllowed = 2
+const tinyGoFetchBodyMaxBytes = 2 * 1024 * 1024
+const tinyGoOPFSReadFileMaxBytes = 2 * 1024 * 1024
+const tinyGoBrowserWorkerBudgetBytes = 128 * 1024 * 1024
 
 type NavigatorWithLocks = Navigator & { locks?: LockManager }
+
+export type TinyGoBrowserBudgetOwner =
+  | 'wasm-linear-memory'
+  | 'stored-bytes'
+  | 'plugin-stream-stored-bytes'
+  | 'plugin-stream-pending-deliveries'
+  | 'srpc-receive-queue'
+  | 'fetch-requests'
+  | 'web-lock-requests'
+  | 'opfs-write-streams'
+  | 'opfs-runtime-tasks'
+  | 'callback-queue'
+  | 'blockshard-storage'
+  | 'packfile-range-cache'
+  | 'sync-request-bodies'
+  | 'ui-preview-bytes'
+
+export interface TinyGoBrowserBudgetOwnerReport {
+  owner: TinyGoBrowserBudgetOwner
+  reservedBytes?: number
+  reservedCount?: number
+  currentBytes: number
+  highWaterBytes: number
+  currentCount: number
+  highWaterCount: number
+  overBudget: boolean
+}
+
+export interface TinyGoBrowserBudgetGenerationReport {
+  id: number
+  state: 'running' | 'exited'
+  owners: TinyGoBrowserBudgetOwnerReport[]
+  totals: {
+    currentBytes: number
+    highWaterBytes: number
+    overBudget: boolean
+  }
+}
+
+export interface TinyGoBrowserBudgetReport {
+  budget: {
+    globalBytes: number
+  }
+  currentGenerationId?: number
+  generations: TinyGoBrowserBudgetGenerationReport[]
+  totals: {
+    budgetBytes: number
+    currentBytes: number
+    highWaterBytes: number
+    overBudget: boolean
+  }
+}
+
+type TinyGoBrowserBudgetOwnerReservation = {
+  reservedBytes?: number
+  reservedCount?: number
+}
+
+type TinyGoBrowserBudgetOwnerState = {
+  currentBytes: number
+  highWaterBytes: number
+  currentCount: number
+  highWaterCount: number
+}
+
+type TinyGoBrowserBudgetGenerationState = {
+  id: number
+  go: TinyGoRuntime
+  exited: boolean
+  owners: Map<TinyGoBrowserBudgetOwner, TinyGoBrowserBudgetOwnerState>
+}
+
+type TinyGoStoredBytesOwner = {
+  generation?: TinyGoBrowserBudgetGenerationState
+  bytes: number
+}
+
+let tinyGoRuntimeGenerationID = 1
+let currentTinyGoRuntimeGeneration:
+  | TinyGoBrowserBudgetGenerationState
+  | undefined
+const tinyGoRuntimeGenerations = new Map<
+  number,
+  TinyGoBrowserBudgetGenerationState
+>()
+const tinyGoRuntimeGenerationByGo = new WeakMap<
+  TinyGoRuntime,
+  TinyGoBrowserBudgetGenerationState
+>()
+const tinyGoStoredBytesOwners = new Map<number, TinyGoStoredBytesOwner>()
 
 let tinyGoStoredValueID = 1
 const tinyGoStoredBytes = new Map<number, Uint8Array>()
@@ -42,7 +135,15 @@ const tinyGoWebLockRequests = new Map<
   number,
   { abort?: AbortController; canceled?: boolean; releaseID?: number }
 >()
+const tinyGoWebLockRequestGenerations = new Map<
+  number,
+  TinyGoBrowserBudgetGenerationState
+>()
 const tinyGoFetchRequests = new Map<number, AbortController>()
+const tinyGoFetchRequestGenerations = new Map<
+  number,
+  TinyGoBrowserBudgetGenerationState
+>()
 let tinyGoOPFSWriteStreamID = 1
 const tinyGoOPFSWriteStreams = new Map<
   number,
@@ -57,6 +158,356 @@ const tinyGoExitedRuntimes = new WeakSet<TinyGoRuntime>()
 const tinyGoCallbackQueue: (() => void)[] = []
 let tinyGoCallbackScheduled = false
 let tinyGoCallbackChannel: MessageChannel | undefined
+
+const tinyGoBrowserBudgetOwners: TinyGoBrowserBudgetOwner[] = [
+  'wasm-linear-memory',
+  'stored-bytes',
+  'plugin-stream-stored-bytes',
+  'plugin-stream-pending-deliveries',
+  'srpc-receive-queue',
+  'fetch-requests',
+  'web-lock-requests',
+  'opfs-write-streams',
+  'opfs-runtime-tasks',
+  'callback-queue',
+  'blockshard-storage',
+  'packfile-range-cache',
+  'sync-request-bodies',
+  'ui-preview-bytes',
+]
+
+const tinyGoBrowserBudgetReservations: Record<
+  TinyGoBrowserBudgetOwner,
+  TinyGoBrowserBudgetOwnerReservation
+> = {
+  'wasm-linear-memory': { reservedBytes: 64 * 1024 * 1024 },
+  'stored-bytes': { reservedBytes: 4 * 1024 * 1024 },
+  'plugin-stream-stored-bytes': { reservedBytes: 2 * 1024 * 1024 },
+  'plugin-stream-pending-deliveries': { reservedCount: 1 },
+  'srpc-receive-queue': { reservedBytes: 8 * 1024 * 1024 },
+  'fetch-requests': { reservedCount: 16 },
+  'web-lock-requests': { reservedCount: 16 },
+  'opfs-write-streams': { reservedBytes: 8 * 1024 * 1024 },
+  'opfs-runtime-tasks': { reservedCount: 32 },
+  'callback-queue': { reservedCount: 256 },
+  'blockshard-storage': { reservedBytes: 16 * 1024 * 1024 },
+  'packfile-range-cache': { reservedBytes: 16 * 1024 * 1024 },
+  'sync-request-bodies': { reservedBytes: 8 * 1024 * 1024 },
+  'ui-preview-bytes': { reservedBytes: 1 * 1024 * 1024 },
+}
+
+function emptyTinyGoBudgetOwnerState(): TinyGoBrowserBudgetOwnerState {
+  return {
+    currentBytes: 0,
+    highWaterBytes: 0,
+    currentCount: 0,
+    highWaterCount: 0,
+  }
+}
+
+function tinyGoBudgetOwnerState(
+  generation: TinyGoBrowserBudgetGenerationState,
+  owner: TinyGoBrowserBudgetOwner,
+): TinyGoBrowserBudgetOwnerState {
+  const existing = generation.owners.get(owner)
+  if (existing) {
+    return existing
+  }
+  const next = emptyTinyGoBudgetOwnerState()
+  generation.owners.set(owner, next)
+  return next
+}
+
+function addTinyGoBudgetOwnerBytes(
+  generation: TinyGoBrowserBudgetGenerationState | undefined,
+  owner: TinyGoBrowserBudgetOwner,
+  bytes: number,
+): void {
+  if (!generation || bytes <= 0) {
+    return
+  }
+  const state = tinyGoBudgetOwnerState(generation, owner)
+  state.currentBytes += bytes
+  state.currentCount++
+  state.highWaterBytes = Math.max(state.highWaterBytes, state.currentBytes)
+  state.highWaterCount = Math.max(state.highWaterCount, state.currentCount)
+}
+
+function releaseTinyGoBudgetOwnerBytes(
+  generation: TinyGoBrowserBudgetGenerationState | undefined,
+  owner: TinyGoBrowserBudgetOwner,
+  bytes: number,
+): void {
+  if (!generation || bytes <= 0) {
+    return
+  }
+  const state = tinyGoBudgetOwnerState(generation, owner)
+  state.currentBytes = Math.max(0, state.currentBytes - bytes)
+  state.currentCount = Math.max(0, state.currentCount - 1)
+}
+
+function addTinyGoBudgetOwnerCount(
+  generation: TinyGoBrowserBudgetGenerationState | undefined,
+  owner: TinyGoBrowserBudgetOwner,
+): void {
+  if (!generation) {
+    return
+  }
+  const state = tinyGoBudgetOwnerState(generation, owner)
+  state.currentCount++
+  state.highWaterCount = Math.max(state.highWaterCount, state.currentCount)
+}
+
+function releaseTinyGoBudgetOwnerCount(
+  generation: TinyGoBrowserBudgetGenerationState | undefined,
+  owner: TinyGoBrowserBudgetOwner,
+): void {
+  if (!generation) {
+    return
+  }
+  const state = tinyGoBudgetOwnerState(generation, owner)
+  state.currentCount = Math.max(0, state.currentCount - 1)
+}
+
+function addTinyGoBudgetOwnerRetainedBytes(
+  generation: TinyGoBrowserBudgetGenerationState | undefined,
+  owner: TinyGoBrowserBudgetOwner,
+  bytes: number,
+): void {
+  if (!generation || bytes <= 0) {
+    return
+  }
+  const state = tinyGoBudgetOwnerState(generation, owner)
+  state.currentBytes += bytes
+  state.highWaterBytes = Math.max(state.highWaterBytes, state.currentBytes)
+}
+
+function releaseTinyGoBudgetOwnerRetainedBytes(
+  generation: TinyGoBrowserBudgetGenerationState | undefined,
+  owner: TinyGoBrowserBudgetOwner,
+  bytes: number,
+): void {
+  if (!generation || bytes <= 0) {
+    return
+  }
+  const state = tinyGoBudgetOwnerState(generation, owner)
+  state.currentBytes = Math.max(0, state.currentBytes - bytes)
+}
+
+function retainTinyGoOPFSWriteBytes(
+  go: TinyGoRuntime,
+  bytes: number,
+): () => void {
+  const generation = tinyGoRuntimeGeneration(go)
+  addTinyGoBudgetOwnerRetainedBytes(generation, 'opfs-write-streams', bytes)
+  let released = false
+  return () => {
+    if (released) {
+      return
+    }
+    released = true
+    releaseTinyGoBudgetOwnerRetainedBytes(
+      generation,
+      'opfs-write-streams',
+      bytes,
+    )
+  }
+}
+
+export function retainTinyGoPluginStreamStoredBytes(
+  go: TinyGoRuntime,
+  bytes: number,
+): () => void {
+  const generation = tinyGoRuntimeGeneration(go)
+  addTinyGoBudgetOwnerBytes(generation, 'plugin-stream-stored-bytes', bytes)
+  let released = false
+  return () => {
+    if (released) {
+      return
+    }
+    released = true
+    releaseTinyGoBudgetOwnerBytes(
+      generation,
+      'plugin-stream-stored-bytes',
+      bytes,
+    )
+  }
+}
+
+export function syncTinyGoPluginStreamPendingDeliveries(
+  go: TinyGoRuntime,
+  count: number,
+): void {
+  syncTinyGoBudgetOwnerCount(
+    tinyGoRuntimeGeneration(go),
+    'plugin-stream-pending-deliveries',
+    count,
+  )
+}
+
+function syncTinyGoBudgetOwnerCount(
+  generation: TinyGoBrowserBudgetGenerationState | undefined,
+  owner: TinyGoBrowserBudgetOwner,
+  count: number,
+): void {
+  if (!generation) {
+    return
+  }
+  const state = tinyGoBudgetOwnerState(generation, owner)
+  state.currentCount = Math.max(0, count)
+  state.highWaterCount = Math.max(state.highWaterCount, state.currentCount)
+}
+
+function syncTinyGoBudgetOwnerBytes(
+  generation: TinyGoBrowserBudgetGenerationState | undefined,
+  owner: TinyGoBrowserBudgetOwner,
+  bytes: number,
+): void {
+  if (!generation) {
+    return
+  }
+  const state = tinyGoBudgetOwnerState(generation, owner)
+  state.currentBytes = Math.max(0, bytes)
+  state.currentCount = bytes > 0 ? 1 : 0
+  state.highWaterBytes = Math.max(state.highWaterBytes, state.currentBytes)
+  state.highWaterCount = Math.max(state.highWaterCount, state.currentCount)
+}
+
+function beginTinyGoRuntimeGeneration(
+  go: TinyGoRuntime,
+): TinyGoBrowserBudgetGenerationState {
+  const generation: TinyGoBrowserBudgetGenerationState = {
+    id: tinyGoRuntimeGenerationID++,
+    go,
+    exited: false,
+    owners: new Map(),
+  }
+  tinyGoRuntimeGenerations.set(generation.id, generation)
+  tinyGoRuntimeGenerationByGo.set(go, generation)
+  currentTinyGoRuntimeGeneration = generation
+  return generation
+}
+
+function finishTinyGoRuntimeGeneration(go: TinyGoRuntime): void {
+  const generation = tinyGoRuntimeGenerationByGo.get(go)
+  if (generation) {
+    generation.exited = true
+    if (currentTinyGoRuntimeGeneration === generation) {
+      currentTinyGoRuntimeGeneration = undefined
+    }
+  }
+}
+
+function tinyGoRuntimeGeneration(
+  go: TinyGoRuntime,
+): TinyGoBrowserBudgetGenerationState | undefined {
+  return tinyGoRuntimeGenerationByGo.get(go)
+}
+
+function updateTinyGoRuntimeGenerationMemory(
+  generation: TinyGoBrowserBudgetGenerationState,
+): void {
+  const memory = generation.go._inst?.exports.memory
+  if (memory instanceof WebAssembly.Memory) {
+    syncTinyGoBudgetOwnerBytes(
+      generation,
+      'wasm-linear-memory',
+      memory.buffer.byteLength,
+    )
+  }
+  const tasks = tinyGoOPFSRuntimeTasks.get(generation.go)
+  syncTinyGoBudgetOwnerCount(generation, 'opfs-runtime-tasks', tasks?.size ?? 0)
+}
+
+function tinyGoBrowserBudgetOwnerReport(
+  owner: TinyGoBrowserBudgetOwner,
+  state: TinyGoBrowserBudgetOwnerState | undefined,
+): TinyGoBrowserBudgetOwnerReport {
+  const reservation = tinyGoBrowserBudgetReservations[owner]
+  const currentBytes = state?.currentBytes ?? 0
+  const highWaterBytes = state?.highWaterBytes ?? 0
+  const currentCount = state?.currentCount ?? 0
+  const highWaterCount = state?.highWaterCount ?? 0
+  return {
+    owner,
+    ...reservation,
+    currentBytes,
+    highWaterBytes,
+    currentCount,
+    highWaterCount,
+    overBudget:
+      (reservation.reservedBytes !== undefined &&
+        highWaterBytes > reservation.reservedBytes) ||
+      (reservation.reservedCount !== undefined &&
+        highWaterCount > reservation.reservedCount),
+  }
+}
+
+export function snapshotTinyGoBrowserBudgetReport(): TinyGoBrowserBudgetReport {
+  const generations = [...tinyGoRuntimeGenerations.values()]
+    .sort((a, b) => a.id - b.id)
+    .map((generation) => {
+      updateTinyGoRuntimeGenerationMemory(generation)
+      const owners = tinyGoBrowserBudgetOwners.map((owner) =>
+        tinyGoBrowserBudgetOwnerReport(owner, generation.owners.get(owner)),
+      )
+      const currentBytes = owners.reduce(
+        (total, owner) => total + owner.currentBytes,
+        0,
+      )
+      const highWaterBytes = owners.reduce(
+        (total, owner) => total + owner.highWaterBytes,
+        0,
+      )
+      return {
+        id: generation.id,
+        state: generation.exited ? 'exited' : 'running',
+        owners,
+        totals: {
+          currentBytes,
+          highWaterBytes,
+          overBudget:
+            highWaterBytes > tinyGoBrowserWorkerBudgetBytes ||
+            owners.some((owner) => owner.overBudget),
+        },
+      } satisfies TinyGoBrowserBudgetGenerationReport
+    })
+  let currentBytes = 0
+  let highWaterBytes = 0
+  let overBudget = false
+  for (const generation of generations) {
+    currentBytes += generation.totals.currentBytes
+    highWaterBytes += generation.totals.highWaterBytes
+    overBudget ||= generation.totals.overBudget
+  }
+  const report: TinyGoBrowserBudgetReport = {
+    budget: {
+      globalBytes: tinyGoBrowserWorkerBudgetBytes,
+    },
+    generations,
+    totals: {
+      budgetBytes: tinyGoBrowserWorkerBudgetBytes,
+      currentBytes,
+      highWaterBytes,
+      overBudget,
+    },
+  }
+  if (currentTinyGoRuntimeGeneration) {
+    report.currentGenerationId = currentTinyGoRuntimeGeneration.id
+  }
+  return report
+}
+
+function installTinyGoBrowserBudgetDebugGlobal(): void {
+  const g = globalThis as typeof globalThis & {
+    __BLDR_TINYGO_BROWSER_BUDGET__?: {
+      snapshot: () => TinyGoBrowserBudgetReport
+    }
+  }
+  g.__BLDR_TINYGO_BROWSER_BUDGET__ ??= {
+    snapshot: snapshotTinyGoBrowserBudgetReport,
+  }
+}
 
 function tinyGoPromiseErrorCode(reason: unknown): number {
   let name = ''
@@ -134,6 +585,21 @@ function rejectTinyGoOPFSOp(
   rejectTinyGoOPFSHelper(go, opID, code)
 }
 
+async function readTinyGoOPFSFileBytes(file: File): Promise<Uint8Array> {
+  if (file.size > tinyGoOPFSReadFileMaxBytes) {
+    throw new RangeError(
+      `TinyGo OPFS ReadFile exceeds max size ${tinyGoOPFSReadFileMaxBytes}`,
+    )
+  }
+  const buf = await file.arrayBuffer()
+  if (buf.byteLength > tinyGoOPFSReadFileMaxBytes) {
+    throw new RangeError(
+      `TinyGo OPFS ReadFile exceeds max size ${tinyGoOPFSReadFileMaxBytes}`,
+    )
+  }
+  return new Uint8Array(buf)
+}
+
 async function rejectTinyGoOPFSWritableFailure(
   go: TinyGoRuntime,
   opID: number,
@@ -178,9 +644,7 @@ function abortOPFSWritableQuietly(
   void abortOPFSWritable(writable)
 }
 
-function tinyGoOPFSRuntimeTaskSet(
-  go: TinyGoRuntime,
-): Set<Promise<void>> {
+function tinyGoOPFSRuntimeTaskSet(go: TinyGoRuntime): Set<Promise<void>> {
   const existing = tinyGoOPFSRuntimeTasks.get(go)
   if (existing) {
     return existing
@@ -195,6 +659,7 @@ function trackTinyGoOPFSRuntimeTask(
   task: Promise<unknown>,
 ): void {
   const tasks = tinyGoOPFSRuntimeTaskSet(go)
+  const generation = tinyGoRuntimeGeneration(go)
   const tracked = Promise.resolve(task)
     .then(
       () => undefined,
@@ -202,13 +667,13 @@ function trackTinyGoOPFSRuntimeTask(
     )
     .finally(() => {
       tasks.delete(tracked)
+      syncTinyGoBudgetOwnerCount(generation, 'opfs-runtime-tasks', tasks.size)
     })
   tasks.add(tracked)
+  syncTinyGoBudgetOwnerCount(generation, 'opfs-runtime-tasks', tasks.size)
 }
 
-async function awaitTinyGoOPFSRuntimeTasks(
-  go: TinyGoRuntime,
-): Promise<void> {
+async function awaitTinyGoOPFSRuntimeTasks(go: TinyGoRuntime): Promise<void> {
   const tasks = tinyGoOPFSRuntimeTasks.get(go)
   while (tasks && tasks.size !== 0) {
     await Promise.all([...tasks])
@@ -249,10 +714,25 @@ function abortTinyGoOPFSWriteStream(
     : abortOPFSWritable(stream.writable)
   const aborted = abort.then(() => {
     tinyGoOPFSWriteStreams.delete(id)
+    syncTinyGoOPFSWriteStreamCount(stream.go)
     return true
   })
   trackTinyGoOPFSRuntimeTask(stream.go, aborted)
   return aborted
+}
+
+function syncTinyGoOPFSWriteStreamCount(go: TinyGoRuntime): void {
+  let count = 0
+  for (const stream of tinyGoOPFSWriteStreams.values()) {
+    if (stream.go === go) {
+      count++
+    }
+  }
+  syncTinyGoBudgetOwnerCount(
+    tinyGoRuntimeGeneration(go),
+    'opfs-write-streams',
+    count,
+  )
 }
 
 function abortTinyGoOPFSWriteStreamsForGo(go: TinyGoRuntime): void {
@@ -272,15 +752,30 @@ function copyUint8Array(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
   return copy
 }
 
-function storeTinyGoBytes(bytes: Uint8Array): number {
+function storeTinyGoBytes(
+  bytes: Uint8Array,
+  generation = currentTinyGoRuntimeGeneration,
+): number {
   const id = tinyGoStoredValueID++
   tinyGoStoredBytes.set(id, bytes)
+  tinyGoStoredBytesOwners.set(id, {
+    generation,
+    bytes: bytes.byteLength,
+  })
+  addTinyGoBudgetOwnerBytes(generation, 'stored-bytes', bytes.byteLength)
   return id
 }
 
 function takeTinyGoBytes(id: number): Uint8Array | undefined {
   const bytes = tinyGoStoredBytes.get(id)
   tinyGoStoredBytes.delete(id)
+  const owner = tinyGoStoredBytesOwners.get(id)
+  tinyGoStoredBytesOwners.delete(id)
+  releaseTinyGoBudgetOwnerBytes(
+    owner?.generation,
+    'stored-bytes',
+    owner?.bytes ?? bytes?.byteLength ?? 0,
+  )
   return bytes
 }
 
@@ -306,6 +801,9 @@ function takeTinyGoWebLockRelease(id: number): (() => void) | undefined {
   tinyGoWebLockReleaseOps.delete(id)
   if (opID !== undefined) {
     tinyGoWebLockRequests.delete(opID)
+    const generation = tinyGoWebLockRequestGenerations.get(opID)
+    tinyGoWebLockRequestGenerations.delete(opID)
+    releaseTinyGoBudgetOwnerCount(generation, 'web-lock-requests')
   }
   const release = tinyGoWebLockReleases.get(id)
   tinyGoWebLockReleases.delete(id)
@@ -326,6 +824,9 @@ function cancelTinyGoWebLock(opID: number): boolean {
     }
   }
   request.abort?.abort()
+  const generation = tinyGoWebLockRequestGenerations.get(opID)
+  tinyGoWebLockRequestGenerations.delete(opID)
+  releaseTinyGoBudgetOwnerCount(generation, 'web-lock-requests')
   return true
 }
 
@@ -599,6 +1100,77 @@ function tinyGoFetchInit(
   return init
 }
 
+async function readTinyGoFetchBodyBytes(
+  response: Response,
+): Promise<Uint8Array> {
+  const rawContentLength = response.headers.get('content-length')
+  const contentLength =
+    rawContentLength === null ? Number.NaN : Number(rawContentLength)
+  if (
+    Number.isFinite(contentLength) &&
+    contentLength > tinyGoFetchBodyMaxBytes
+  ) {
+    await response.body
+      ?.cancel(
+        `TinyGo fetch response exceeds max size ${tinyGoFetchBodyMaxBytes}`,
+      )
+      .catch(() => undefined)
+    throw new RangeError(
+      `TinyGo fetch response exceeds max size ${tinyGoFetchBodyMaxBytes}`,
+    )
+  }
+
+  if (!response.body) {
+    const buf = await response.arrayBuffer()
+    if (buf.byteLength > tinyGoFetchBodyMaxBytes) {
+      throw new RangeError(
+        `TinyGo fetch response exceeds max size ${tinyGoFetchBodyMaxBytes}`,
+      )
+    }
+    return new Uint8Array(buf)
+  }
+
+  const reader = response.body.getReader()
+  const chunks: Uint8Array[] = []
+  let total = 0
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) {
+        break
+      }
+      if (!value || value.byteLength === 0) {
+        continue
+      }
+      total += value.byteLength
+      if (total > tinyGoFetchBodyMaxBytes) {
+        await reader
+          .cancel(
+            `TinyGo fetch response exceeds max size ${tinyGoFetchBodyMaxBytes}`,
+          )
+          .catch(() => undefined)
+        throw new RangeError(
+          `TinyGo fetch response exceeds max size ${tinyGoFetchBodyMaxBytes}`,
+        )
+      }
+      chunks.push(value)
+    }
+  } finally {
+    reader.releaseLock()
+  }
+
+  if (chunks.length === 1) {
+    return chunks[0]
+  }
+  const out = new Uint8Array(total)
+  let offset = 0
+  for (const chunk of chunks) {
+    out.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return out
+}
+
 function resolveTinyGoFetch(
   go: TinyGoRuntime,
   opID: number,
@@ -624,8 +1196,9 @@ function resolveTinyGoFetch(
       url: response.url,
     }),
   )
-  const metaID = storeTinyGoBytes(metadata)
-  const bodyID = storeTinyGoBytes(body)
+  const generation = tinyGoRuntimeGeneration(go)
+  const metaID = storeTinyGoBytes(metadata, generation)
+  const bodyID = storeTinyGoBytes(body, generation)
   deferTinyGoCallback(() => {
     try {
       callTinyGoExport(
@@ -643,6 +1216,23 @@ function resolveTinyGoFetch(
       throw err
     }
   })
+}
+
+function beginTinyGoFetchRequest(
+  opID: number,
+  generation: TinyGoBrowserBudgetGenerationState | undefined,
+): void {
+  if (!generation) {
+    return
+  }
+  tinyGoFetchRequestGenerations.set(opID, generation)
+  addTinyGoBudgetOwnerCount(generation, 'fetch-requests')
+}
+
+function finishTinyGoFetchRequest(opID: number): void {
+  const generation = tinyGoFetchRequestGenerations.get(opID)
+  tinyGoFetchRequestGenerations.delete(opID)
+  releaseTinyGoBudgetOwnerCount(generation, 'fetch-requests')
 }
 
 function rejectTinyGoFetch(
@@ -810,6 +1400,7 @@ function installTinyGoJSImportHelpers(go: TinyGoRuntime): void {
       return 0
     }
     tinyGoFetchRequests.delete(opID)
+    finishTinyGoFetchRequest(opID)
     abort.abort()
     return 1
   })
@@ -832,19 +1423,24 @@ function installTinyGoJSImportHelpers(go: TinyGoRuntime): void {
           bodyLen === 0
             ? undefined
             : copyUint8Array(tinyGoMemoryView(go, bodyPtr, bodyLen))
+        const generation = tinyGoRuntimeGeneration(go)
         const init = tinyGoFetchInit(opID, request, body)
+        beginTinyGoFetchRequest(opID, generation)
         fetch(url, init)
           .then(async (response) => {
-            const bytes = new Uint8Array(await response.arrayBuffer())
+            const bytes = await readTinyGoFetchBodyBytes(response)
             tinyGoFetchRequests.delete(opID)
+            finishTinyGoFetchRequest(opID)
             resolveTinyGoFetch(go, opID, response, bytes)
           })
           .catch((reason) => {
             tinyGoFetchRequests.delete(opID)
+            finishTinyGoFetchRequest(opID)
             rejectTinyGoFetch(go, opID, reason)
           })
       } catch (reason) {
         tinyGoFetchRequests.delete(opID)
+        finishTinyGoFetchRequest(opID)
         rejectTinyGoFetch(go, opID, reason)
       }
     },
@@ -945,6 +1541,11 @@ function runTinyGoCallback(callback: () => void): void {
 function flushTinyGoCallbacks(): void {
   tinyGoCallbackScheduled = false
   const callback = tinyGoCallbackQueue.shift()
+  syncTinyGoBudgetOwnerCount(
+    currentTinyGoRuntimeGeneration,
+    'callback-queue',
+    tinyGoCallbackQueue.length,
+  )
   if (callback) {
     // TinyGo's asyncified runtime owns a single pending JS callback event.
     // Give each callback a fresh task boundary so resumed goroutines can
@@ -972,6 +1573,11 @@ function scheduleTinyGoCallbackFlush(): void {
 
 function deferTinyGoCallback(callback: () => void): void {
   tinyGoCallbackQueue.push(callback)
+  syncTinyGoBudgetOwnerCount(
+    currentTinyGoRuntimeGeneration,
+    'callback-queue',
+    tinyGoCallbackQueue.length,
+  )
   scheduleTinyGoCallbackFlush()
 }
 
@@ -1112,17 +1718,34 @@ export function installTinyGoJSHelpers(go: TinyGoRuntime): void {
     if (ifAvailable) {
       lockOptions.ifAvailable = true
     }
+    const generation = currentTinyGoRuntimeGeneration
+    addTinyGoBudgetOwnerCount(generation, 'web-lock-requests')
+    let released = false
+    const releaseBudget = () => {
+      if (released) {
+        return
+      }
+      released = true
+      releaseTinyGoBudgetOwnerCount(generation, 'web-lock-requests')
+    }
     locks
       .request(name, lockOptions, (lock) => {
         if (ifAvailable && !lock) {
+          releaseBudget()
           deferTinyGoCallback(() => resolve(() => {}, false))
           return undefined
         }
         return new Promise<void>((releaseLock) => {
-          deferTinyGoCallback(() => resolve(releaseLock, true))
+          deferTinyGoCallback(() =>
+            resolve(() => {
+              releaseBudget()
+              releaseLock()
+            }, true),
+          )
         })
       })
       .catch((reason) => {
+        releaseBudget()
         const code = tinyGoPromiseErrorCode(reason)
         deferTinyGoCallback(() => reject(code))
       })
@@ -1157,9 +1780,8 @@ export function installTinyGoJSHelpers(go: TinyGoRuntime): void {
     dir
       .getFileHandle(name)
       .then((handle) => handle.getFile())
-      .then((file) => file.arrayBuffer())
-      .then((buf) => {
-        const bytes = new Uint8Array(buf)
+      .then(readTinyGoOPFSFileBytes)
+      .then((bytes) => {
         const id = storeTinyGoBytes(bytes)
         const len = bytes.byteLength
         resolveTinyGoOPFSHelper(go, opID, id, len)
@@ -1220,8 +1842,10 @@ export function installTinyGoJSHelpers(go: TinyGoRuntime): void {
     opID: number,
   ) => {
     const state: { writable?: FileSystemWritableFileStream } = {}
+    let releaseWriteData = () => {}
     try {
       const writeData = copyUint8Array(data)
+      releaseWriteData = retainTinyGoOPFSWriteBytes(go, writeData.byteLength)
       const opts = keepExisting ? { keepExistingData: true } : undefined
       const task = createTinyGoOPFSWritable(go, handle, opts)
         .then(async (next) => {
@@ -1249,8 +1873,10 @@ export function installTinyGoJSHelpers(go: TinyGoRuntime): void {
             reason,
           )
         })
+        .finally(releaseWriteData)
       trackTinyGoOPFSRuntimeTask(go, task)
     } catch (reason) {
+      releaseWriteData()
       abortOPFSWritableQuietly(state.writable)
       if (!tinyGoExitedRuntimes.has(go)) {
         rejectTinyGoOPFSOp(go, opID, reason)
@@ -1264,8 +1890,10 @@ export function installTinyGoJSHelpers(go: TinyGoRuntime): void {
     opID: number,
   ) => {
     const state: { writable?: FileSystemWritableFileStream } = {}
+    let releaseWriteData = () => {}
     try {
       const writeData = copyUint8Array(data)
+      releaseWriteData = retainTinyGoOPFSWriteBytes(go, writeData.byteLength)
       const task = dir
         .getFileHandle(name, { create: true })
         .then((handle) => createTinyGoOPFSWritable(go, handle))
@@ -1291,8 +1919,10 @@ export function installTinyGoJSHelpers(go: TinyGoRuntime): void {
             reason,
           )
         })
+        .finally(releaseWriteData)
       trackTinyGoOPFSRuntimeTask(go, task)
     } catch (reason) {
+      releaseWriteData()
       abortOPFSWritableQuietly(state.writable)
       if (!tinyGoExitedRuntimes.has(go)) {
         rejectTinyGoOPFSOp(go, opID, reason)
@@ -1446,10 +2076,17 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
       releaseID?: number
     } = { abort }
     tinyGoWebLockRequests.set(opID, request)
+    const generation = tinyGoRuntimeGeneration(go)
+    if (generation) {
+      tinyGoWebLockRequestGenerations.set(opID, generation)
+      addTinyGoBudgetOwnerCount(generation, 'web-lock-requests')
+    }
     locks
       .request(name, lockOptions, (lock) => {
         if (ifAvailable && !lock) {
           tinyGoWebLockRequests.delete(opID)
+          tinyGoWebLockRequestGenerations.delete(opID)
+          releaseTinyGoBudgetOwnerCount(generation, 'web-lock-requests')
           deferTinyGoCallback(() => callTinyGoExport(go, resolve, opID, 0, 0))
           return undefined
         }
@@ -1457,6 +2094,8 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
           if (request.canceled) {
             releaseLock()
             tinyGoWebLockRequests.delete(opID)
+            tinyGoWebLockRequestGenerations.delete(opID)
+            releaseTinyGoBudgetOwnerCount(generation, 'web-lock-requests')
             return
           }
           const releaseID = storeTinyGoWebLockRelease(releaseLock, opID)
@@ -1467,6 +2106,8 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
       })
       .catch((reason) => {
         tinyGoWebLockRequests.delete(opID)
+        tinyGoWebLockRequestGenerations.delete(opID)
+        releaseTinyGoBudgetOwnerCount(generation, 'web-lock-requests')
         if (request.canceled) {
           return
         }
@@ -1573,7 +2214,9 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
   ) => {
     const handle = tinyGoUnboxValue(go, handleRef) as FileSystemFileHandle
     const state: { writable?: FileSystemWritableFileStream } = {}
-    const task = createTinyGoOPFSWritable(go, handle, { keepExistingData: true })
+    const task = createTinyGoOPFSWritable(go, handle, {
+      keepExistingData: true,
+    })
       .then(async (next) => {
         if (!next) {
           return
@@ -1587,12 +2230,7 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
         resolveTinyGoOPFSHelper(go, opID, 1)
       })
       .catch(async (reason) => {
-        await rejectTinyGoOPFSWritableFailure(
-          go,
-          opID,
-          state.writable,
-          reason,
-        )
+        await rejectTinyGoOPFSWritableFailure(go, opID, state.writable, reason)
       })
     trackTinyGoOPFSRuntimeTask(go, task)
   }
@@ -1621,9 +2259,8 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
     dir
       .getFileHandle(name)
       .then((handle) => handle.getFile())
-      .then((file) => file.arrayBuffer())
-      .then((buf) => {
-        const bytes = new Uint8Array(buf)
+      .then(readTinyGoOPFSFileBytes)
+      .then((bytes) => {
         resolveTinyGoOPFSHelper(
           go,
           opID,
@@ -1685,8 +2322,10 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
   ) => {
     const handle = tinyGoUnboxValue(go, handleRef) as FileSystemFileHandle
     const state: { writable?: FileSystemWritableFileStream } = {}
+    let releaseWriteData = () => {}
     try {
       const writeData = copyUint8Array(tinyGoMemoryView(go, dataPtr, dataLen))
+      releaseWriteData = retainTinyGoOPFSWriteBytes(go, writeData.byteLength)
       const opts = keepExisting ? { keepExistingData: true } : undefined
       const task = createTinyGoOPFSWritable(go, handle, opts)
         .then(async (next) => {
@@ -1715,8 +2354,10 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
             reason,
           )
         })
+        .finally(releaseWriteData)
       trackTinyGoOPFSRuntimeTask(go, task)
     } catch (reason) {
+      releaseWriteData()
       abortOPFSWritableQuietly(state.writable)
       if (!tinyGoExitedRuntimes.has(go)) {
         rejectTinyGoOPFSOp(go, opID, reason)
@@ -1733,9 +2374,11 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
   ) => {
     const dir = tinyGoUnboxValue(go, dirRef) as FileSystemDirectoryHandle
     const state: { writable?: FileSystemWritableFileStream } = {}
+    let releaseWriteData = () => {}
     try {
       const name = readTinyGoString(go, namePtr, nameLen)
       const writeData = copyUint8Array(tinyGoMemoryView(go, dataPtr, dataLen))
+      releaseWriteData = retainTinyGoOPFSWriteBytes(go, writeData.byteLength)
       const task = dir
         .getFileHandle(name, { create: true })
         .then((handle) => createTinyGoOPFSWritable(go, handle))
@@ -1761,8 +2404,10 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
             reason,
           )
         })
+        .finally(releaseWriteData)
       trackTinyGoOPFSRuntimeTask(go, task)
     } catch (reason) {
+      releaseWriteData()
       abortOPFSWritableQuietly(state.writable)
       if (!tinyGoExitedRuntimes.has(go)) {
         rejectTinyGoOPFSOp(go, opID, reason)
@@ -1793,6 +2438,7 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
             writable: next,
             chain: Promise.resolve(),
           })
+          syncTinyGoOPFSWriteStreamCount(go)
           resolveTinyGoOPFSHelper(go, opID, streamID)
         })
         .catch(async (reason) => {
@@ -1824,6 +2470,10 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
     }
     try {
       const writeData = copyUint8Array(tinyGoMemoryView(go, dataPtr, dataLen))
+      const releaseWriteData = retainTinyGoOPFSWriteBytes(
+        go,
+        writeData.byteLength,
+      )
       stream.chain = stream.chain
         .then(async () => {
           if (writeData.byteLength !== 0) {
@@ -1842,6 +2492,7 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
             rejectTinyGoOPFSOp(go, opID, reason)
           }
         })
+        .finally(releaseWriteData)
     } catch (reason) {
       if (!tinyGoExitedRuntimes.has(go)) {
         rejectTinyGoOPFSOp(go, opID, reason)
@@ -1864,6 +2515,7 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
           return
         }
         tinyGoOPFSWriteStreams.delete(streamID)
+        syncTinyGoOPFSWriteStreamCount(stream.go)
         resolveTinyGoOPFSHelper(go, opID, 1)
       })
       .catch((reason) => {
@@ -1998,27 +2650,34 @@ export class GoWasmProcess {
     abortSignal: AbortSignal,
   ) {
     const go = new Go()
+    const generation = beginTinyGoRuntimeGeneration(go)
+    installTinyGoBrowserBudgetDebugGlobal()
     tinyGoExitedRuntimes.delete(go)
-    const wasmModule = await loadWebAssemblyModule(this.wasmSource)
-    patchWorkerBrowserGlobals(go)
-    patchTinyGoRuntimeImports(go)
-    this.opts?.tinyGoRuntimeImports?.(go)
-    if (this.opts?.argv) {
-      go.argv = this.opts.argv
-    }
-    if (this.opts?.env) {
-      go.env = { ...this.opts.env }
-    }
-
-    const instance = await WebAssembly.instantiate(wasmModule, go.importObject)
-    abortSignal.throwIfAborted()
 
     try {
+      const wasmModule = await loadWebAssemblyModule(this.wasmSource)
+      patchWorkerBrowserGlobals(go)
+      patchTinyGoRuntimeImports(go)
+      this.opts?.tinyGoRuntimeImports?.(go)
+      if (this.opts?.argv) {
+        go.argv = this.opts.argv
+      }
+      if (this.opts?.env) {
+        go.env = { ...this.opts.env }
+      }
+
+      const instance = await WebAssembly.instantiate(
+        wasmModule,
+        go.importObject,
+      )
+      abortSignal.throwIfAborted()
       await go.run(instance)
     } finally {
       tinyGoExitedRuntimes.add(go)
       abortTinyGoOPFSWriteStreamsForGo(go)
       await awaitTinyGoOPFSRuntimeTasks(go)
+      updateTinyGoRuntimeGenerationMemory(generation)
+      finishTinyGoRuntimeGeneration(go)
     }
   }
 

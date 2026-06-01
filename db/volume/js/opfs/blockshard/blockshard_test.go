@@ -163,7 +163,7 @@ func TestBroadcastChannelInvalidationAcceptsArrayBufferPayload(t *testing.T) {
 	arr := js.Global().Get("Uint8Array").New(10)
 	arr.SetIndex(0, int(shardID>>8))
 	arr.SetIndex(1, int(shardID))
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		shift := uint((7 - i) * 8)
 		arr.SetIndex(2+i, int(byte(generation>>shift)))
 	}
@@ -795,6 +795,123 @@ func TestBlockStoreGetBlockExists(t *testing.T) {
 	}
 	if found {
 		t.Fatal("GetBlock(tombstoned): should not be found")
+	}
+}
+
+func TestBlockStoreStatBlockUsesValueLessLookup(t *testing.T) {
+	settings := DefaultSettings()
+	settings.ShardCount = 1
+	settings.AsyncIO = true
+	e, cleanup := newTestEngineWithSettings(
+		t,
+		"test-blockshard-store-stat-value-less",
+		"test-blockshard-store-stat-value-less",
+		settings,
+	)
+	defer cleanup()
+
+	store := NewBlockStore(e, block.DefaultHashType)
+	data := bytes.Repeat([]byte("stat-chunk"), 64*1024)
+	ref, existed, err := store.PutBlock(context.Background(), data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if existed {
+		t.Fatal("put should create a new block")
+	}
+
+	stat, err := store.StatBlock(context.Background(), ref.Clone())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stat == nil {
+		t.Fatal("StatBlock(existing): missing stat")
+	}
+	if stat.Size != int64(len(data)) {
+		t.Fatalf("StatBlock size = %d, want %d", stat.Size, len(data))
+	}
+
+	if err := store.RmBlock(context.Background(), ref.Clone()); err != nil {
+		t.Fatal(err)
+	}
+	stat, err = store.StatBlock(context.Background(), ref.Clone())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stat != nil {
+		t.Fatal("StatBlock(tombstoned): should not be found")
+	}
+}
+
+func TestBlockStoreDuplicatePutUsesExistenceOnlyLookup(t *testing.T) {
+	settings := DefaultSettings()
+	settings.ShardCount = 1
+	settings.AsyncIO = true
+	e, cleanup := newTestEngineWithSettings(
+		t,
+		"test-blockshard-store-duplicate-exists-only",
+		"test-blockshard-store-duplicate-exists-only",
+		settings,
+	)
+	defer cleanup()
+
+	store := NewBlockStore(e, block.DefaultHashType)
+	data := bytes.Repeat([]byte("duplicate-chunk"), 64*1024)
+	ref, existed, err := store.PutBlock(context.Background(), data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if existed {
+		t.Fatal("initial PutBlock unexpectedly reported existing block")
+	}
+	beforeSegments := len(e.shards[0].Manifest().Segments)
+
+	ref2, existed, err := store.PutBlock(context.Background(), data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !existed {
+		t.Fatal("duplicate PutBlock did not report existing block")
+	}
+	if !ref2.EqualsRef(ref) {
+		t.Fatalf("duplicate ref mismatch: got %s want %s", ref2.MarshalString(), ref.MarshalString())
+	}
+	afterSegments := len(e.shards[0].Manifest().Segments)
+	if afterSegments != beforeSegments {
+		t.Fatalf("duplicate PutBlock wrote a segment: got %d segments want %d", afterSegments, beforeSegments)
+	}
+}
+
+func TestBlockshardRejectsOversizedEntryValue(t *testing.T) {
+	settings := DefaultSettings()
+	settings.ShardCount = 1
+	settings.AsyncIO = true
+	settings.MaxEntryValueBytes = 64
+	e, cleanup := newTestEngineWithSettings(
+		t,
+		"test-blockshard-entry-value-limit",
+		"test-blockshard-entry-value-limit",
+		settings,
+	)
+	defer cleanup()
+
+	if err := e.Put(context.Background(), []segment.Entry{{
+		Key:   []byte("large"),
+		Value: bytes.Repeat([]byte("x"), settings.MaxEntryValueBytes+1),
+	}}); err == nil {
+		t.Fatal("expected oversized foreground entry to fail")
+	}
+	if err := e.PutBackground(context.Background(), []segment.Entry{{
+		Key:   []byte("large-bg"),
+		Value: bytes.Repeat([]byte("x"), settings.MaxEntryValueBytes+1),
+	}}); err == nil {
+		t.Fatal("expected oversized background entry to fail")
+	}
+	if err := e.Put(context.Background(), []segment.Entry{{
+		Key:   []byte("ok"),
+		Value: bytes.Repeat([]byte("x"), settings.MaxEntryValueBytes),
+	}}); err != nil {
+		t.Fatal(err)
 	}
 }
 

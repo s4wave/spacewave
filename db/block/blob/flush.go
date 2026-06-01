@@ -23,6 +23,12 @@ func appendChunkData(
 		if err != nil {
 			return err
 		}
+		recordMetric(ctx, Metric{
+			Stage:      "chunk-direct-put",
+			ChunkBytes: len(data),
+			ChunkIndex: idx,
+			DirectPut:  true,
+		})
 		ci.Chunks = append(ci.Chunks, &Chunk{
 			DataRef: ref,
 			Size:    size,
@@ -32,6 +38,11 @@ func appendChunkData(
 	}
 
 	dataCopy := append([]byte(nil), data...)
+	recordMetric(ctx, Metric{
+		Stage:      "chunk-fallback-copy",
+		ChunkBytes: len(dataCopy),
+		ChunkIndex: idx,
+	})
 	ci.AppendChunk(chkSet, idx, size, start, dataCopy)
 	return flushChunkData(ctx, chkSet, idx)
 }

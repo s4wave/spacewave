@@ -1,6 +1,9 @@
 package bldr_web_plugin_compiler
 
 import (
+	"os"
+	"path/filepath"
+	"slices"
 	"testing"
 
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -87,6 +90,7 @@ func TestElectronNoSandboxEnabledHonorsEnv(t *testing.T) {
 }
 
 func TestAddWebPluginStartupInputsIncludesSkipRendererEnv(t *testing.T) {
+	t.Setenv("BLDR_WEB_RENDERER", "")
 	t.Setenv(SkipNativeWebRendererEnvVar, "true")
 	t.Setenv(ElectronNoSandboxEnvVar, "true")
 	result := &bldr_manifest_builder.BuilderResult{}
@@ -98,6 +102,7 @@ func TestAddWebPluginStartupInputsIncludesSkipRendererEnv(t *testing.T) {
 	}
 
 	wantInputs := map[string]string{
+		"BLDR_WEB_RENDERER":         "",
 		SkipNativeWebRendererEnvVar: "true",
 		ElectronNoSandboxEnvVar:     "true",
 	}
@@ -113,5 +118,46 @@ func TestAddWebPluginStartupInputsIncludesSkipRendererEnv(t *testing.T) {
 	}
 	for key := range wantInputs {
 		t.Fatalf("missing startup input for %s", key)
+	}
+}
+
+func TestAddWebPluginStartupInputsIncludesBrowserShimSources(t *testing.T) {
+	sourcePath := t.TempDir()
+	for _, relPath := range []string{
+		".bldr/src/web/plugin/browser/web-plugin-browser.ts",
+		".bldr/src/web/plugin/browser/browser_srpc.pb.ts",
+		".bldr/src/plugin/plugin_srpc.pb.ts",
+		".bldr/src/manifest/manifest.pb.ts",
+	} {
+		absPath := filepath.Join(sourcePath, relPath)
+		if err := os.MkdirAll(filepath.Dir(absPath), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(absPath, []byte("export {}\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	result := &bldr_manifest_builder.BuilderResult{}
+	if err := addWebPluginStartupInputs(
+		&bldr_manifest_builder.BuilderConfig{SourcePath: sourcePath},
+		result,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	var paths []string
+	for _, input := range result.GetInputManifest().GetFiles() {
+		paths = append(paths, input.GetPath())
+	}
+	for _, relPath := range []string{
+		".bldr/src/manifest/manifest.pb.ts",
+		".bldr/src/plugin/plugin_srpc.pb.ts",
+		".bldr/src/web/plugin/browser/browser_srpc.pb.ts",
+		".bldr/src/web/plugin/browser/web-plugin-browser.ts",
+	} {
+		if !slices.Contains(paths, relPath) {
+			t.Fatalf("startup input files=%v, want %s", paths, relPath)
+		}
 	}
 }

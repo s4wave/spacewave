@@ -4,12 +4,22 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"slices"
 	"testing"
 
 	"github.com/aperturerobotics/util/prng"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/sirupsen/logrus"
 )
+
+type blobMetricRecorder struct {
+	metrics []Metric
+}
+
+func (r *blobMetricRecorder) RecordBlobMetric(metric Metric) {
+	r.metrics = append(r.metrics, metric)
+}
 
 // TestBuildBlobWithBytes tests building a Blob from a byte slice.
 func TestBuildBlobWithBytes(t *testing.T) {
@@ -65,6 +75,8 @@ func TestBuildBlobWithBytes(t *testing.T) {
 // TestBuildBlobWithReader tests building a Blob from a reader w/o known size.
 func TestBuildBlobWithReader(t *testing.T) {
 	ctx := context.Background()
+	recorder := &blobMetricRecorder{}
+	ctx = WithMetricsRecorder(ctx, recorder)
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
@@ -116,6 +128,21 @@ func TestBuildBlobWithReader(t *testing.T) {
 	if builtBlob.GetBlobType() != BlobType_BlobType_CHUNKED {
 		t.Fatalf("Expected chunked blob but got %v", builtBlob.GetBlobType().String())
 	}
+	if !slices.ContainsFunc(recorder.metrics, func(metric Metric) bool {
+		return metric.Stage == "raw" && metric.InputBytes == DefRawHighWaterMark-2
+	}) {
+		t.Fatalf("missing raw blob metric: %#v", recorder.metrics)
+	}
+	if !slices.ContainsFunc(recorder.metrics, func(metric Metric) bool {
+		return metric.Stage == "chunked"
+	}) {
+		t.Fatalf("missing chunked blob metric: %#v", recorder.metrics)
+	}
+	if !slices.ContainsFunc(recorder.metrics, func(metric Metric) bool {
+		return metric.Stage == "chunk-direct-put" && metric.DirectPut
+	}) {
+		t.Fatalf("missing direct put chunk metric: %#v", recorder.metrics)
+	}
 	ref, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -141,5 +168,28 @@ func TestBuildBlobWithReader(t *testing.T) {
 
 	if !bytes.Equal(readData, chunkedData) {
 		t.Fatal("mismatch of read data from chunked test")
+	}
+}
+
+func TestBuildBlobWithReaderFallbackCopyIsAccounted(t *testing.T) {
+	ctx := context.Background()
+	recorder := &blobMetricRecorder{}
+	ctx = WithMetricsRecorder(ctx, recorder)
+
+	_, bcs := block.NewTransaction(nil, nil, nil, nil)
+	data := []byte("chunk fallback payload")
+	_, err := BuildBlobWithReader(
+		ctx,
+		bytes.NewReader(data),
+		bcs,
+		&BuildBlobOpts{RawHighWaterMark: 1},
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !slices.ContainsFunc(recorder.metrics, func(metric Metric) bool {
+		return metric.Stage == "chunk-fallback-copy" && metric.ChunkBytes > 0 && !metric.DirectPut
+	}) {
+		t.Fatalf("missing accounted fallback-copy metric: %#v", recorder.metrics)
 	}
 }

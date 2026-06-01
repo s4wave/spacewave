@@ -3,6 +3,7 @@ package web_pkg_external
 import (
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -82,4 +83,19 @@ func TestBldrDistWebPkgRefsIncludeProtobufEsLiteRuntimeExports(t *testing.T) {
 	if !slices.Contains(BldrExternal, "@aptre/protobuf-es-lite") {
 		t.Fatal("@aptre/protobuf-es-lite missing from BldrExternal")
 	}
+}
+
+func TestBldrExternalProtobufEsLiteCoversServiceTypeSubpath(t *testing.T) {
+	if !bldrExternalMatches("@aptre/protobuf-es-lite/service-type") {
+		t.Fatal("@aptre/protobuf-es-lite/service-type is not covered by BldrExternal")
+	}
+}
+
+func bldrExternalMatches(id string) bool {
+	for _, pkg := range BldrExternal {
+		if id == pkg || strings.HasPrefix(id, pkg+"/") {
+			return true
+		}
+	}
+	return false
 }

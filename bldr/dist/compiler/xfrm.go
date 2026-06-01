@@ -18,7 +18,7 @@ func buildEmbedTransformConf(workingID string) []config.Config {
 	return []config.Config{
 		&transform_s2.Config{},
 		&transform_blockenc.Config{
-			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
+			BlockEnc: blockenc.DefaultBlockEnc,
 			Key:      key[:],
 		},
 	}

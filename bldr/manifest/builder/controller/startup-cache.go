@@ -28,10 +28,9 @@ import (
 )
 
 // startupCacheFormatEnvKey is bumped when compiler-owned output policy changes
-// without changing a plugin source file. V6 invalidates pre stack-size TinyGo
-// release artifacts and web manifests cached before web-server mode recorded
-// native renderer bundling policy.
-const startupCacheFormatEnvKey = "BLDR_STARTUP_CACHE_FORMAT_V6"
+// without changing a plugin source file. V7 invalidates web-plugin manifests
+// cached before the browser shim recorded its startup validation inputs.
+const startupCacheFormatEnvKey = "BLDR_STARTUP_CACHE_FORMAT_V7"
 
 // startupValidationResult contains the startup cache validation result.
 type startupValidationResult struct {

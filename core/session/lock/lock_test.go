@@ -2,10 +2,11 @@ package session_lock
 
 import (
 	"bytes"
+	crypto_rand "crypto/rand"
 	"runtime"
 	"testing"
 
-	crypto_rand "crypto/rand"
+	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/net/crypto"
 )
 
@@ -73,6 +74,9 @@ func TestAutoUnlockRoundTrip(t *testing.T) {
 	if bytes.Equal(encrypted, plaintext) {
 		t.Fatal("encrypted data matches plaintext")
 	}
+	if got, want := len(encrypted)-len(plaintext), 12+16; got != want {
+		t.Fatalf("encrypted overhead = %d, want %d", got, want)
+	}
 
 	decrypted, err := DecryptAutoUnlock(storageKey, encrypted)
 	if err != nil {
@@ -81,6 +85,36 @@ func TestAutoUnlockRoundTrip(t *testing.T) {
 
 	if !bytes.Equal(decrypted, plaintext) {
 		t.Fatal("decrypted data does not match original")
+	}
+}
+
+func TestAutoUnlockDecryptsLegacyXChaCha(t *testing.T) {
+	priv, _, err := crypto.GenerateEd25519Key(crypto_rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	storageKey, err := DeriveStorageKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	plaintext := []byte("legacy session private key PEM data")
+	method, err := blockenc.NewXChaCha20Poly1305(storageKey[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	encrypted, err := method.Encrypt(blockenc.DefaultAllocFn(), plaintext)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	decrypted, err := DecryptAutoUnlock(storageKey, encrypted)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(decrypted, plaintext) {
+		t.Fatal("decrypted legacy data does not match original")
 	}
 }
 

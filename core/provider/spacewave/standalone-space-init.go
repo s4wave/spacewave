@@ -376,7 +376,7 @@ func buildInitialSpaceTransform(
 	}
 	soTransformConf, err := block_transform.NewConfig([]config.Config{
 		&transform_blockenc.Config{
-			BlockEnc: hydra_blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
+			BlockEnc: hydra_blockenc.DefaultBlockEnc,
 			Key:      encKey,
 		},
 	})

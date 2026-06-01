@@ -58,10 +58,7 @@ func (f *cachedSegmentFile) ReadAt(p []byte, off int64) (int, error) {
 		return 0, io.EOF
 	}
 
-	readEnd := off + int64(len(p))
-	if readEnd > f.size {
-		readEnd = f.size
-	}
+	readEnd := min(off+int64(len(p)), f.size)
 
 	startBlock := alignSegmentOffset(off)
 	endBlock := alignSegmentOffset(readEnd - 1)

@@ -6,14 +6,16 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"strconv"
 
+	fetch "github.com/aperturerobotics/util/js/fetch"
 	"github.com/pkg/errors"
-	http_range "github.com/s4wave/spacewave/db/util/http-range"
 )
+
+const tinyGoPackRangeMaxBytes = 2 * 1024 * 1024
 
 type httpTransport struct {
 	url          string
-	size         uint64
 	headers      map[string][]string
 	constructErr error
 }
@@ -25,15 +27,52 @@ func (t *httpTransport) Fetch(ctx context.Context, off int64, length int) ([]byt
 	if t.constructErr != nil {
 		return nil, t.constructErr
 	}
+	if length > tinyGoPackRangeMaxBytes {
+		return nil, errors.Errorf("pack range request length %d exceeds TinyGo browser limit %d", length, tinyGoPackRangeMaxBytes)
+	}
 
-	reader, err := http_range.NewHTTPRangeReader(ctx, nil, t.url, t.headers, false, false)
+	req := &fetch.Opts{
+		Signal: ctx,
+		Header: cloneFetchHeaders(t.headers),
+	}
+	if req.Header == nil {
+		req.Header = make(fetch.Header, 1)
+	}
+	req.Header.Set("Range", "bytes="+strconv.FormatInt(off, 10)+"-"+strconv.FormatInt(off+int64(length)-1, 10))
+
+	resp, err := fetch.Fetch(t.url, req)
 	if err != nil {
 		return nil, err
 	}
-	reader.SetSize(t.size)
+	defer resp.Body.Close()
 
+	switch resp.StatusCode {
+	case http.StatusPartialContent:
+		return readTinyGoPackRangeBody(resp.Body, length)
+	case http.StatusOK:
+		if off > 0 {
+			if _, err := io.CopyN(io.Discard, resp.Body, off); err != nil {
+				if err == io.EOF {
+					return nil, nil
+				}
+				return nil, errors.Wrap(err, "skipping prefix from full pack response")
+			}
+		}
+		return readTinyGoPackRangeBody(resp.Body, length)
+	case http.StatusRequestedRangeNotSatisfiable:
+		return nil, errors.New("requested range not satisfiable")
+	case http.StatusForbidden:
+		return nil, errors.New("forbidden")
+	case http.StatusNotFound:
+		return nil, errors.New("not found")
+	default:
+		return nil, errors.Errorf("unexpected response status: %d", resp.StatusCode)
+	}
+}
+
+func readTinyGoPackRangeBody(r io.Reader, length int) ([]byte, error) {
 	buf := make([]byte, length)
-	n, err := reader.ReadAt(buf, off)
+	n, err := io.ReadFull(r, buf)
 	if err == io.EOF || err == io.ErrUnexpectedEOF {
 		return buf[:n], nil
 	}
@@ -41,6 +80,17 @@ func (t *httpTransport) Fetch(ctx context.Context, off int64, length int) ([]byt
 		return nil, err
 	}
 	return buf[:n], nil
+}
+
+func cloneFetchHeaders(src map[string][]string) fetch.Header {
+	if len(src) == 0 {
+		return nil
+	}
+	dst := make(fetch.Header, len(src))
+	for key, vals := range src {
+		dst[key] = append([]string(nil), vals...)
+	}
+	return dst
 }
 
 func (t *httpTransport) SnapshotTransportStats() TransportStats {
@@ -61,7 +111,6 @@ func NewHTTPRangeReader(
 	headers, err := buildSignedRangeHeaders(url, signReq)
 	t := &httpTransport{
 		url:          url,
-		size:         uint64(size),
 		headers:      headers,
 		constructErr: err,
 	}
@@ -74,6 +123,8 @@ func NewHTTPRangeReader(
 	if pageSize > 0 {
 		e.pageSize = pageSize
 	}
+	e.setTransportFetchMaxBytes(tinyGoPackRangeMaxBytes)
+	e.maxBytes = 16 * 1024 * 1024
 	e.normalizeTransportLocked()
 	return e
 }

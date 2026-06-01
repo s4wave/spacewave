@@ -48,3 +48,12 @@ func TestBlockEnc(t *testing.T) {
 		}
 	}
 }
+
+func TestDefaultBlockEncIsAES256GCM(t *testing.T) {
+	if DefaultBlockEnc != BlockEnc_BlockEnc_AES_256_GCM {
+		t.Fatalf("DefaultBlockEnc = %s, want BlockEnc_AES_256_GCM", DefaultBlockEnc.String())
+	}
+	if err := ValidateKeySize(DefaultBlockEnc, 32); err != nil {
+		t.Fatalf("ValidateKeySize(DefaultBlockEnc): %v", err)
+	}
+}

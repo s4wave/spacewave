@@ -31,6 +31,14 @@ type LookupResult struct {
 	Tombstone bool
 }
 
+// LookupStat is metadata for a lookup result that does not require loading the
+// value bytes.
+type LookupStat struct {
+	ValueSize int64
+	Found     bool
+	Tombstone bool
+}
+
 // LoadLookupMeta loads only the SSTable metadata needed for point lookups.
 func LoadLookupMeta(r io.ReaderAt, size int64) (*LookupMeta, error) {
 	if size < HeaderSize+4 {
@@ -114,6 +122,39 @@ func (m *LookupMeta) Get(r io.ReaderAt, key []byte) ([]byte, bool, error) {
 func (m *LookupMeta) Has(r io.ReaderAt, key []byte) (bool, error) {
 	_, found, _, err := m.Locate(r, key, false)
 	return found, err
+}
+
+// Stat resolves a key and returns the value size without materializing the
+// value. Tombstoned keys return Found=false with Tombstone=true.
+func (m *LookupMeta) Stat(r io.ReaderAt, key []byte) (LookupStat, error) {
+	ctx := context.Background()
+	ctx, task := trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/stat")
+	defer task.End()
+
+	keyStr := string(key)
+	if keyStr < string(m.MinKey) || keyStr > string(m.MaxKey) {
+		return LookupStat{}, nil
+	}
+	if m.Bloom != nil && !m.Bloom.MayContain(key) {
+		return LookupStat{}, nil
+	}
+
+	start, limit := SearchIndex(m.Index, key, m.Header.DataSize)
+	if limit < start {
+		return LookupStat{}, errors.New("invalid data window")
+	}
+	windowSize, err := uint32ToInt(limit - start)
+	if err != nil {
+		return LookupStat{}, err
+	}
+	if windowSize <= maxLookupWindowRead {
+		window := make([]byte, windowSize)
+		if _, err := r.ReadAt(window, int64(m.Header.DataOffset)+int64(start)); err != nil {
+			return LookupStat{}, errors.Wrap(err, "read data window")
+		}
+		return statInWindowBytes(window, keyStr)
+	}
+	return statInWindowReader(r, int64(m.Header.DataOffset), start, limit, key)
 }
 
 // Locate resolves a key using cached metadata.
@@ -302,6 +343,115 @@ func locateInWindowReader(
 		off += valLen
 	}
 	return nil, false, false, nil
+}
+
+func statInWindowBytes(window []byte, keyStr string) (LookupStat, error) {
+	off := 0
+	for off < len(window) {
+		if off+2 > len(window) {
+			break
+		}
+		keyLen := int(binary.BigEndian.Uint16(window[off : off+2]))
+		off += 2
+		if off+keyLen > len(window) {
+			break
+		}
+		entryKey := string(window[off : off+keyLen])
+		off += keyLen
+		if off+4 > len(window) {
+			break
+		}
+		valLen := binary.BigEndian.Uint32(window[off : off+4])
+		off += 4
+
+		if entryKey == keyStr {
+			if valLen == TombstoneLen {
+				return LookupStat{Tombstone: true}, nil
+			}
+			if uint64(len(window)-off) < uint64(valLen) {
+				return LookupStat{}, errors.New("truncated value in data window")
+			}
+			return LookupStat{ValueSize: int64(valLen), Found: true}, nil
+		}
+		if entryKey > keyStr {
+			return LookupStat{}, nil
+		}
+		if valLen != TombstoneLen {
+			valLenInt, err := uint32ToInt(valLen)
+			if err != nil {
+				return LookupStat{}, err
+			}
+			if len(window)-off < valLenInt {
+				break
+			}
+			off += valLenInt
+		}
+	}
+	return LookupStat{}, nil
+}
+
+func statInWindowReader(
+	r io.ReaderAt,
+	dataOffset int64,
+	start uint32,
+	limit uint32,
+	key []byte,
+) (LookupStat, error) {
+	off := start
+	var header [4]byte
+	for off < limit {
+		if limit-off < 2 {
+			break
+		}
+		if _, err := r.ReadAt(header[:2], dataOffset+int64(off)); err != nil {
+			return LookupStat{}, errors.Wrap(err, "read data window key length")
+		}
+		keyLen := uint32(binary.BigEndian.Uint16(header[:2]))
+		off += 2
+		if limit-off < keyLen {
+			break
+		}
+
+		entryKey := make([]byte, keyLen)
+		if keyLen != 0 {
+			if _, err := r.ReadAt(entryKey, dataOffset+int64(off)); err != nil {
+				return LookupStat{}, errors.Wrap(err, "read data window key")
+			}
+		}
+		off += keyLen
+
+		if limit-off < 4 {
+			break
+		}
+		if _, err := r.ReadAt(header[:4], dataOffset+int64(off)); err != nil {
+			return LookupStat{}, errors.Wrap(err, "read data window value length")
+		}
+		valLen := binary.BigEndian.Uint32(header[:4])
+		off += 4
+
+		cmp := bytes.Compare(entryKey, key)
+		if cmp == 0 {
+			if valLen == TombstoneLen {
+				return LookupStat{Tombstone: true}, nil
+			}
+			if uint64(limit-off) < uint64(valLen) {
+				return LookupStat{}, errors.New("truncated value in data window")
+			}
+			return LookupStat{ValueSize: int64(valLen), Found: true}, nil
+		}
+		if cmp > 0 {
+			return LookupStat{}, nil
+		}
+
+		if valLen == TombstoneLen {
+			continue
+		}
+		if uint64(limit-off) < uint64(valLen) {
+			break
+		}
+		off += valLen
+	}
+	return LookupStat{}, nil
 }
 
 // LocateBatch resolves keys using cached metadata and groups keys by

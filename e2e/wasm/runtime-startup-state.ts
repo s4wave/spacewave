@@ -59,6 +59,9 @@ export default function () {
       specifiers: importMapSpecifiers,
       hasReact: importMapSpecifiers.includes('react'),
       hasReactDomClient: importMapSpecifiers.includes('react-dom/client'),
+      hasProtobufServiceType: importMapSpecifiers.includes(
+        '@aptre/protobuf-es-lite/service-type',
+      ),
       importCount: importMapSpecifiers.length,
     },
     startupMarks: startup.evidence.marks.map((mark) => ({

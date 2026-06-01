@@ -4,6 +4,8 @@ import { MessagePortDuplex, PacketStream, castToError } from 'starpc'
 import {
   callTinyGoExport,
   GoWasmProcess,
+  retainTinyGoPluginStreamStoredBytes,
+  syncTinyGoPluginStreamPendingDeliveries,
   tinyGoExport,
   tinyGoMemory,
   type TinyGoRuntime,
@@ -168,6 +170,7 @@ class TinyGoPluginStreamBridge {
   private nextBytesID = 1
   private readonly streams = new Map<number, TinyGoPluginStream>()
   private readonly storedBytes = new Map<number, Uint8Array>()
+  private readonly storedByteReleases = new Map<number, () => void>()
   private readonly pendingDeliveries = new Map<number, TinyGoPluginDelivery>()
   private readonly encoder = new TextEncoder()
 
@@ -218,7 +221,7 @@ class TinyGoPluginStreamBridge {
     for (const streamID of Array.from(this.streams.keys())) {
       this.releaseStream(streamID)
     }
-    this.storedBytes.clear()
+    this.clearStoredBytes()
     this.resolveAllDeliveries(false)
     this.api.handleStreamCtr.set(undefined)
   }
@@ -395,8 +398,7 @@ class TinyGoPluginStreamBridge {
   }
 
   private takeBytes(bytesID: number, ptr: number, len: number): number {
-    const bytes = this.storedBytes.get(bytesID)
-    this.storedBytes.delete(bytesID)
+    const bytes = this.takeStoredBytes(bytesID)
     if (!bytes) {
       return 0
     }
@@ -417,7 +419,7 @@ class TinyGoPluginStreamBridge {
   }
 
   private dropBytes(bytesID: number): boolean {
-    return this.storedBytes.delete(bytesID)
+    return this.deleteStoredBytes(bytesID)
   }
 
   private storeError(err: unknown): { id: number; len: number } {
@@ -428,30 +430,37 @@ class TinyGoPluginStreamBridge {
   private storeBytes(bytes: Uint8Array): number {
     const id = this.nextBytesID++
     this.storedBytes.set(id, bytes)
+    this.storedByteReleases.set(
+      id,
+      retainTinyGoPluginStreamStoredBytes(this.mustGo(), bytes.byteLength),
+    )
     return id
   }
 
   private awaitDelivery(streamID: number, bytesID: number): Promise<boolean> {
     return new Promise((resolve) => {
       this.pendingDeliveries.set(bytesID, { streamID, resolve })
+      this.syncPendingDeliveries()
     })
   }
 
   private resolveDelivery(bytesID: number, delivered: boolean): void {
-    this.storedBytes.delete(bytesID)
+    this.deleteStoredBytes(bytesID)
     const delivery = this.pendingDeliveries.get(bytesID)
     if (!delivery) {
       return
     }
     this.pendingDeliveries.delete(bytesID)
+    this.syncPendingDeliveries()
     delivery.resolve(delivered)
   }
 
   private resolveStreamDeliveries(streamID: number, delivered: boolean): void {
     for (const [bytesID, delivery] of this.pendingDeliveries) {
       if (delivery.streamID === streamID) {
-        this.storedBytes.delete(bytesID)
+        this.deleteStoredBytes(bytesID)
         this.pendingDeliveries.delete(bytesID)
+        this.syncPendingDeliveries()
         delivery.resolve(delivered)
       }
     }
@@ -459,10 +468,42 @@ class TinyGoPluginStreamBridge {
 
   private resolveAllDeliveries(delivered: boolean): void {
     for (const [bytesID, delivery] of this.pendingDeliveries) {
-      this.storedBytes.delete(bytesID)
+      this.deleteStoredBytes(bytesID)
       this.pendingDeliveries.delete(bytesID)
+      this.syncPendingDeliveries()
       delivery.resolve(delivered)
     }
+  }
+
+  private takeStoredBytes(bytesID: number): Uint8Array | undefined {
+    const bytes = this.storedBytes.get(bytesID)
+    this.deleteStoredBytes(bytesID)
+    return bytes
+  }
+
+  private deleteStoredBytes(bytesID: number): boolean {
+    const deleted = this.storedBytes.delete(bytesID)
+    const release = this.storedByteReleases.get(bytesID)
+    if (release) {
+      this.storedByteReleases.delete(bytesID)
+      release()
+    }
+    return deleted
+  }
+
+  private clearStoredBytes(): void {
+    for (const release of this.storedByteReleases.values()) {
+      release()
+    }
+    this.storedByteReleases.clear()
+    this.storedBytes.clear()
+  }
+
+  private syncPendingDeliveries(): void {
+    syncTinyGoPluginStreamPendingDeliveries(
+      this.mustGo(),
+      this.pendingDeliveries.size,
+    )
   }
 
   private callExport(name: string, ...args: number[]): void {

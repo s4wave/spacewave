@@ -43,10 +43,7 @@ func WaitForApp(t testing.TB, page playwright.Page) {
 		if remainingMS <= 0 {
 			break
 		}
-		evalWindowMS := int64(10000)
-		if remainingMS < evalWindowMS {
-			evalWindowMS = remainingMS
-		}
+		evalWindowMS := min(remainingMS, int64(10000))
 		_, err := page.Evaluate(`async ({ deadlineMS }) => {
 		const deadline = performance.now() + deadlineMS
 		let booted = false
@@ -151,6 +148,9 @@ func AssertRootImportMap(t testing.TB, h *Harness, page playwright.Page) {
 	}
 	if !boolField(importMap, "hasReactDomClient") {
 		t.Fatalf("root import map missing react-dom/client specifier; proof=%#v", proof)
+	}
+	if !boolField(importMap, "hasProtobufServiceType") {
+		t.Fatalf("root import map missing @aptre/protobuf-es-lite/service-type specifier; proof=%#v", proof)
 	}
 	if got := intField(importMap, "importCount"); got == 0 {
 		t.Fatalf("root import map is empty; proof=%#v", proof)
@@ -317,7 +317,96 @@ func CompleteDriveIntroWizardIfPresent(t testing.TB, page playwright.Page) {
 		if bodyErr != nil {
 			body = "failed to read body text: " + bodyErr.Error()
 		}
-		t.Fatalf("complete drive intro if present: %v\nurl: %s\nbody: %s", err, page.URL(), trimPageText(body))
+		debug, debugErr := page.Evaluate(`async () => {
+			async function firstStreamValue(stream) {
+				for await (const value of stream) {
+					return value
+				}
+				return null
+			}
+			async function routeProbe() {
+				const match = window.location.hash.match(/^#\/u\/([0-9]+)\/so\/([^/]+)/)
+				const root = globalThis.__s4wave_debug?.root
+				if (!match || !root) {
+					return { skipped: true, hasDebugRoot: !!root }
+				}
+				const sessionIdx = Number(match[1])
+				const sharedObjectId = decodeURIComponent(match[2])
+				let session = null
+				let sharedObject = null
+				let body = null
+				let space = null
+				let step = 'mountSessionByIdx'
+				try {
+					const abort = AbortSignal.timeout(15000)
+					const mounted = await root.mountSessionByIdx({ sessionIdx }, abort)
+					session = mounted?.session ?? null
+					if (!session) return { skipped: false, session: false }
+					step = 'mountSharedObject'
+					sharedObject = await session.mountSharedObject({ sharedObjectId }, abort)
+					if (!sharedObject) return { skipped: false, session: true, sharedObject: false }
+					step = 'mountSharedObjectBody'
+					body = await sharedObject.mountSharedObjectBody({}, abort)
+					step = 'importSpace'
+					const { Space } = await import('@s4wave/sdk/space/space.js')
+					space = new Space(body.resourceRef.createRef(body.id))
+					step = 'watchSpaceState'
+					const state = await firstStreamValue(space.watchSpaceState({}, abort))
+					return {
+						skipped: false,
+						step,
+						session: true,
+						sharedObject: true,
+						body: true,
+						spaceState: state ? {
+							ready: !!state.ready,
+							indexPath: state.settings?.indexPath ?? '',
+							objectKeys: (state.worldContents?.objects ?? []).map((obj) => obj.objectKey ?? ''),
+						} : null,
+					}
+				} catch (err) {
+					return { skipped: false, step, error: String(err?.stack ?? err) }
+				} finally {
+					space?.release?.()
+					body?.release?.()
+					sharedObject?.release?.()
+					session?.release?.()
+				}
+			}
+			const startup = globalThis.__swBootStatus ?? null
+			const timing = globalThis.__s4waveQuickstartTiming ?? globalThis.__s4wave_debug?.quickstartTiming ?? null
+			const hash = window.location.hash
+			const testIds = Array.from(document.querySelectorAll('[data-testid]')).map((el) => ({
+				testid: el.getAttribute('data-testid'),
+				text: el.textContent?.slice(0, 180) ?? '',
+				tag: el.tagName,
+			}))
+			const buttons = Array.from(document.querySelectorAll('button')).map((button) => ({
+				text: button.textContent?.slice(0, 180) ?? '',
+				disabled: button.disabled,
+			}))
+			const headings = Array.from(document.querySelectorAll('h1,h2,h3,[data-slot="loading-title"],[data-slot="loading-detail"]')).map((el) => ({
+				tag: el.tagName,
+				text: el.textContent?.slice(0, 180) ?? '',
+			}))
+			return JSON.stringify({
+				hash,
+				hasDebugRoot: !!globalThis.__s4wave_debug?.root,
+				startup,
+				startupMarks: globalThis.__swStartupMarks ?? [],
+				timing,
+				testIds,
+				buttons,
+				headings,
+				routeProbe: await routeProbe(),
+				bodyHtml: document.body.innerHTML.slice(0, 5000),
+				bodyText: document.body.textContent?.slice(0, 2000) ?? '',
+			})
+		}`)
+		if debugErr != nil {
+			debug = "failed to collect page debug: " + debugErr.Error()
+		}
+		t.Fatalf("complete drive intro if present: %v\nurl: %s\nbody: %s\ndebug: %v", err, page.URL(), trimPageText(body), debug)
 	}
 }
 

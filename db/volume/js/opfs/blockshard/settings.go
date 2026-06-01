@@ -11,6 +11,11 @@ const (
 	// producing the final segment, so the default keeps normal Spacewave upload
 	// chunks below multi-megabyte Go heap growth in the blockshard writer.
 	DefaultMaxSegmentDataBytes = 768 << 10
+	// DefaultMaxEntryValueBytes rejects impossible-large single entries before
+	// the segment writer duplicates them into an SSTable buffer. Normal UnixFS
+	// blob chunks are below this bound; larger user files must arrive as chunked
+	// blobs rather than one raw Blockshard value.
+	DefaultMaxEntryValueBytes = 2 << 20
 )
 
 // Settings configures the block shard engine.
@@ -20,6 +25,7 @@ type Settings struct {
 	CompactionTrigger   int
 	AsyncIO             bool
 	MaxSegmentDataBytes int
+	MaxEntryValueBytes  int
 }
 
 // DefaultSettings returns the default block shard settings.
@@ -29,6 +35,7 @@ func DefaultSettings() *Settings {
 		BloomFPR:            segment.DefaultBloomFPR,
 		CompactionTrigger:   DefaultL0Trigger,
 		MaxSegmentDataBytes: DefaultMaxSegmentDataBytes,
+		MaxEntryValueBytes:  DefaultMaxEntryValueBytes,
 	}
 }
 
@@ -48,6 +55,9 @@ func normalizeSettings(s *Settings) *Settings {
 	}
 	if out.MaxSegmentDataBytes < 1 {
 		out.MaxSegmentDataBytes = DefaultMaxSegmentDataBytes
+	}
+	if out.MaxEntryValueBytes < 1 {
+		out.MaxEntryValueBytes = DefaultMaxEntryValueBytes
 	}
 	return &out
 }

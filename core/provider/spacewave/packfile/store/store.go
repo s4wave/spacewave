@@ -429,11 +429,58 @@ func (s *PackfileStore) GetBlockExistsBatch(ctx context.Context, refs []*block.B
 // StatBlock returns metadata about a block without reading its data.
 // Returns nil, nil if the block does not exist.
 func (s *PackfileStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
-	_, found, err := s.GetBlock(ctx, ref)
-	if err != nil || !found {
-		return nil, err
+	h := ref.GetHash()
+	if h == nil {
+		return nil, nil
 	}
-	return &block.BlockStat{Ref: ref, Size: -1}, nil
+	key := []byte(h.MarshalString())
+
+	var entries []*packfile.PackfileEntry
+	var tree *bloomNode
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		entries = s.manifest
+		tree = s.tree
+	})
+	if len(entries) == 0 {
+		return nil, nil
+	}
+
+	candidates := s.findCandidates(key, entries, tree)
+	opened := 0
+	negative := 0
+	hit := false
+	defer func() {
+		s.recordLookupStats(len(candidates), opened, negative, hit)
+	}()
+
+	for _, idx := range candidates {
+		entry := entries[idx]
+		if tree == nil {
+			bf := s.getOrDeserializeBloom(entry)
+			if bf != nil && !bf.Test(key) {
+				continue
+			}
+		}
+		size := int64(entry.GetSizeBytes())
+		if size <= 0 {
+			continue
+		}
+		eng, err := s.getOrOpenEngine(entry.GetId(), size, entry.GetBlockCount())
+		if err != nil {
+			return nil, errors.Wrap(err, "opening packfile")
+		}
+		opened++
+		stat, err := eng.statBlock(ctx, key, ref)
+		if err != nil {
+			return nil, err
+		}
+		if stat != nil {
+			hit = true
+			return stat, nil
+		}
+		negative++
+	}
+	return nil, nil
 }
 
 // PutBlock is not supported on a read-only store.

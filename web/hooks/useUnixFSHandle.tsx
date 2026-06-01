@@ -162,6 +162,8 @@ export interface ReadFileResult {
   eof: boolean
 }
 
+export const unixFSHandleTextContentMaxBytes = 512 * 1024
+
 // useUnixFSHandleReadFile reads file content from a handle.
 export function useUnixFSHandleReadFile(
   handle: Resource<FSHandle>,
@@ -186,7 +188,11 @@ export function useUnixFSHandleReadFile(
 export function useUnixFSHandleTextContent(
   handle: Resource<FSHandle>,
 ): Resource<string> {
-  const readResource = useUnixFSHandleReadFile(handle)
+  const readResource = useUnixFSHandleReadFile(
+    handle,
+    0n,
+    BigInt(unixFSHandleTextContentMaxBytes),
+  )
   return useMappedResource(readResource, (r) =>
     new TextDecoder().decode(r.data),
   )

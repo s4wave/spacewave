@@ -2,6 +2,8 @@ package resource_unixfs
 
 import (
 	"context"
+	"errors"
+	"io"
 	"net"
 	"slices"
 	"testing"
@@ -21,6 +23,71 @@ import (
 	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
 	"github.com/sirupsen/logrus"
 )
+
+type uploadMetricRecorder struct {
+	metrics []UploadMetric
+}
+
+func (r *uploadMetricRecorder) RecordUploadMetric(metric UploadMetric) {
+	r.metrics = append(r.metrics, metric)
+}
+
+func (r *uploadMetricRecorder) stages() []string {
+	stages := make([]string, 0, len(r.metrics))
+	for _, metric := range r.metrics {
+		stages = append(stages, metric.Stage)
+	}
+	return stages
+}
+
+func (r *uploadMetricRecorder) totalBytes(stage string) int {
+	var total int
+	for _, metric := range r.metrics {
+		if metric.Stage == stage {
+			total += metric.Bytes
+		}
+	}
+	return total
+}
+
+type uploadTreeMetricStream struct {
+	ctx      context.Context
+	messages []*s4wave_unixfs.HandleUploadTreeRequest
+}
+
+func (s *uploadTreeMetricStream) Context() context.Context { return s.ctx }
+
+func (s *uploadTreeMetricStream) MsgSend(srpc.Message) error { return nil }
+
+func (s *uploadTreeMetricStream) MsgRecv(msg srpc.Message) error {
+	out, ok := msg.(*s4wave_unixfs.HandleUploadTreeRequest)
+	if !ok {
+		return errors.New("unexpected upload tree message type")
+	}
+	return s.RecvTo(out)
+}
+
+func (s *uploadTreeMetricStream) CloseSend() error { return nil }
+
+func (s *uploadTreeMetricStream) Close() error { return nil }
+
+func (s *uploadTreeMetricStream) Recv() (*s4wave_unixfs.HandleUploadTreeRequest, error) {
+	if len(s.messages) == 0 {
+		return nil, io.EOF
+	}
+	msg := s.messages[0]
+	s.messages = s.messages[1:]
+	return msg, nil
+}
+
+func (s *uploadTreeMetricStream) RecvTo(out *s4wave_unixfs.HandleUploadTreeRequest) error {
+	msg, err := s.Recv()
+	if err != nil {
+		return err
+	}
+	*out = *msg
+	return nil
+}
 
 func setupFSHandleResourceClient(
 	t *testing.T,
@@ -456,6 +523,159 @@ func TestFSHandleResourceUploadTreeNested(t *testing.T) {
 	}
 }
 
+func TestFSHandleResourceUploadTreeMetrics(t *testing.T) {
+	ctx, _, rootHandle, rootResource, cleanup := setupFSHandleResourceClient(t)
+	defer cleanup()
+
+	recorder := &uploadMetricRecorder{}
+	metricCtx := WithUploadMetricsRecorder(ctx, recorder)
+	resp, err := rootResource.UploadTree(&uploadTreeMetricStream{
+		ctx: metricCtx,
+		messages: []*s4wave_unixfs.HandleUploadTreeRequest{
+			{
+				Body: &s4wave_unixfs.HandleUploadTreeRequest_Directory{
+					Directory: &s4wave_unixfs.HandleUploadTreeDirectory{
+						Path: "metric-dir",
+						Mode: 0o755,
+					},
+				},
+			},
+			{
+				Body: &s4wave_unixfs.HandleUploadTreeRequest_FileStart{
+					FileStart: &s4wave_unixfs.HandleUploadTreeFileStart{
+						Path:      "metric-dir/file.txt",
+						TotalSize: 5,
+						Mode:      0o644,
+					},
+				},
+			},
+			{
+				Body: &s4wave_unixfs.HandleUploadTreeRequest_Data{
+					Data: []byte("hello"),
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rootResource.GetHandle() != rootHandle {
+		defer rootResource.GetHandle().Release()
+	}
+	if resp.GetBytesWritten() != 5 {
+		t.Fatalf("bytes_written = %d, want %d", resp.GetBytesWritten(), 5)
+	}
+	if resp.GetFilesWritten() != 1 {
+		t.Fatalf("files_written = %d, want %d", resp.GetFilesWritten(), 1)
+	}
+	if resp.GetDirectoriesWritten() != 1 {
+		t.Fatalf("directories_written = %d, want %d", resp.GetDirectoriesWritten(), 1)
+	}
+
+	wantStages := []string{
+		"receive-directory",
+		"receive-file-start",
+		"receive-data",
+		"commit-start",
+		"commit-complete",
+		"reload-start",
+		"reload-complete",
+		"broadcast",
+	}
+	if !slices.Equal(recorder.stages(), wantStages) {
+		t.Fatalf("stages = %v, want %v", recorder.stages(), wantStages)
+	}
+	if recorder.totalBytes("receive-data") != 5 {
+		t.Fatalf("receive-data bytes = %d, want %d", recorder.totalBytes("receive-data"), 5)
+	}
+
+	bfs := unixfs_billy.NewBillyFS(ctx, rootResource.GetHandle(), "", time.Now())
+	data, err := billy_util.ReadFile(bfs, "metric-dir/file.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "hello" {
+		t.Fatalf("got data %q, want %q", string(data), "hello")
+	}
+}
+
+func TestFSHandleResourceUploadTreeMetricsAbortCleanup(t *testing.T) {
+	ctx, _, _, rootResource, cleanup := setupFSHandleResourceClient(t)
+	defer cleanup()
+
+	recorder := &uploadMetricRecorder{}
+	metricCtx := WithUploadMetricsRecorder(ctx, recorder)
+	_, err := rootResource.UploadTree(&uploadTreeMetricStream{
+		ctx: metricCtx,
+		messages: []*s4wave_unixfs.HandleUploadTreeRequest{
+			{
+				Body: &s4wave_unixfs.HandleUploadTreeRequest_Directory{
+					Directory: &s4wave_unixfs.HandleUploadTreeDirectory{
+						Path: "/metric-dir",
+						Mode: 0o755,
+					},
+				},
+			},
+		},
+	})
+	if err == nil {
+		t.Fatal("expected absolute upload path to fail")
+	}
+	if !slices.Equal(recorder.stages(), []string{"receive-directory", "abort-cleanup"}) {
+		t.Fatalf("stages = %v, want [receive-directory abort-cleanup]", recorder.stages())
+	}
+}
+
+func TestFSHandleResourceUploadTreeOverwriteReadback(t *testing.T) {
+	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
+	defer cleanup()
+
+	rootRef := resClient.AccessRootResource()
+	defer rootRef.Release()
+
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+
+	first := uploadTestPatternBytes(96 * 1024)
+	second := uploadTestPatternBytes(160 * 1024)
+	uploadTreeFileViaResource(t, ctx, rootSvc, "overwrite.bin", first)
+	uploadTreeFileViaResource(t, ctx, rootSvc, "overwrite.bin", second)
+
+	fileResp, err := rootSvc.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{
+		Path: "overwrite.bin",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fileRef := resClient.CreateResourceReference(fileResp.GetResourceId())
+	defer fileRef.Release()
+
+	fileClient, err := fileRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fileSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(fileClient)
+	for offset := 0; offset < len(second); offset += fsHandleMaxReadSize {
+		end := min(offset+fsHandleMaxReadSize, len(second))
+		readResp, err := fileSvc.ReadAt(ctx, &s4wave_unixfs.HandleReadAtRequest{
+			Offset: int64(offset),
+			Length: int64(len(second)),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !slices.Equal(readResp.GetData(), second[offset:end]) {
+			t.Fatalf("overwritten file data mismatch at offset %d", offset)
+		}
+		if got, want := readResp.GetEof(), end == len(second); got != want {
+			t.Fatalf("read eof at offset %d = %v, want %v", offset, got, want)
+		}
+	}
+}
+
 func TestFSHandleResourceReadAtCapsLargeResponse(t *testing.T) {
 	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
 	defer cleanup()
@@ -557,6 +777,60 @@ func TestFSHandleResourceReadAtCapsLargeResponse(t *testing.T) {
 	}
 }
 
+func uploadTreeFileViaResource(
+	t *testing.T,
+	ctx context.Context,
+	rootSvc s4wave_unixfs.SRPCFSHandleResourceServiceClient,
+	name string,
+	data []byte,
+) {
+	t.Helper()
+
+	strm, err := rootSvc.UploadTree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := strm.Send(&s4wave_unixfs.HandleUploadTreeRequest{
+		Body: &s4wave_unixfs.HandleUploadTreeRequest_FileStart{
+			FileStart: &s4wave_unixfs.HandleUploadTreeFileStart{
+				Path:      name,
+				TotalSize: int64(len(data)),
+				Mode:      0o644,
+			},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	for offset := 0; offset < len(data); offset += uploadDataFrameMaxBytes {
+		end := min(offset+uploadDataFrameMaxBytes, len(data))
+		if err := strm.Send(&s4wave_unixfs.HandleUploadTreeRequest{
+			Body: &s4wave_unixfs.HandleUploadTreeRequest_Data{
+				Data: data[offset:end],
+			},
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	resp, err := strm.CloseAndRecv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.GetBytesWritten() != int64(len(data)) {
+		t.Fatalf("bytes_written = %d, want %d", resp.GetBytesWritten(), len(data))
+	}
+	if resp.GetFilesWritten() != 1 {
+		t.Fatalf("files_written = %d, want %d", resp.GetFilesWritten(), 1)
+	}
+}
+
+func uploadTestPatternBytes(size int) []byte {
+	buf := make([]byte, size)
+	for i := range buf {
+		buf[i] = byte((i * 31) ^ (i >> 7) ^ (i >> 15))
+	}
+	return buf
+}
+
 func TestFSHandleResourceUploadTreeRejectsAbsolutePath(t *testing.T) {
 	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
 	defer cleanup()
@@ -610,7 +884,7 @@ func TestFSHandleResourceUploadTreeRejectsOversizedData(t *testing.T) {
 		Body: &s4wave_unixfs.HandleUploadTreeRequest_FileStart{
 			FileStart: &s4wave_unixfs.HandleUploadTreeFileStart{
 				Path:      "oversized.txt",
-				TotalSize: 1,
+				TotalSize: uploadDataFrameMaxBytes + 1,
 				Mode:      0o644,
 			},
 		},
@@ -619,8 +893,38 @@ func TestFSHandleResourceUploadTreeRejectsOversizedData(t *testing.T) {
 	}
 	if err := strm.Send(&s4wave_unixfs.HandleUploadTreeRequest{
 		Body: &s4wave_unixfs.HandleUploadTreeRequest_Data{
-			Data: []byte("too much"),
+			Data: make([]byte, uploadDataFrameMaxBytes+1),
 		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := strm.CloseAndRecv(); err == nil {
+		t.Fatal("expected oversized upload data to fail")
+	}
+}
+
+func TestFSHandleResourceUploadFileRejectsOversizedData(t *testing.T) {
+	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
+	defer cleanup()
+
+	rootRef := resClient.AccessRootResource()
+	defer rootRef.Release()
+
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+
+	strm, err := rootSvc.UploadFile(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := strm.Send(&s4wave_unixfs.HandleUploadFileRequest{
+		Name:      "oversized.txt",
+		TotalSize: uploadDataFrameMaxBytes + 1,
+		Mode:      0o644,
+		Data:      make([]byte, uploadDataFrameMaxBytes+1),
 	}); err != nil {
 		t.Fatal(err)
 	}

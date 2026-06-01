@@ -48,6 +48,12 @@ func (r *FSHandleResource) UploadTree(
 		b:    unixfs_world.NewBatchFSWriter(r.ws, r.objKey, r.fsType, ""),
 		dirs: make(map[string]struct{}),
 	}
+	committed := false
+	defer func() {
+		if !committed {
+			recordUploadMetric(ctx, UploadMetric{Stage: "abort-cleanup"})
+		}
+	}()
 	defer state.b.Release()
 
 	for {
@@ -62,14 +68,20 @@ func (r *FSHandleResource) UploadTree(
 			return nil, err
 		}
 	}
+	recordUploadMetric(ctx, UploadMetric{Stage: "commit-start"})
 	if err := state.b.Commit(ctx); err != nil {
 		return nil, err
 	}
+	recordUploadMetric(ctx, UploadMetric{Stage: "commit-complete"})
+	recordUploadMetric(ctx, UploadMetric{Stage: "reload-start"})
 	if err := r.reloadHandle(ctx); err != nil {
 		return nil, err
 	}
+	recordUploadMetric(ctx, UploadMetric{Stage: "reload-complete"})
 
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) { broadcast() })
+	recordUploadMetric(ctx, UploadMetric{Stage: "broadcast"})
+	committed = true
 	return &state.resp, nil
 }
 
@@ -81,6 +93,7 @@ func (r *FSHandleResource) handleUploadTreeMessage(
 	msg *s4wave_unixfs.HandleUploadTreeRequest,
 ) error {
 	if dir := msg.GetDirectory(); dir != nil {
+		recordUploadMetric(ctx, UploadMetric{Stage: "receive-directory"})
 		parts, err := parseUploadTreePath(dir.GetPath())
 		if err != nil {
 			return err
@@ -104,6 +117,7 @@ func (r *FSHandleResource) handleUploadTreeMessage(
 	}
 
 	if fileStart := msg.GetFileStart(); fileStart != nil {
+		recordUploadMetric(ctx, UploadMetric{Stage: "receive-file-start"})
 		parts, err := parseUploadTreePath(fileStart.GetPath())
 		if err != nil {
 			return err
@@ -246,6 +260,13 @@ func (f *uploadTreeFile) Read(p []byte) (int, error) {
 	if len(data) == 0 {
 		return 0, errors.Errorf("tree upload file %q expected data before declared size", f.name)
 	}
+	if err := validateUploadDataFrame(data); err != nil {
+		return 0, err
+	}
+	recordUploadMetric(f.strm.Context(), UploadMetric{
+		Stage: "receive-data",
+		Bytes: len(data),
+	})
 	if int64(len(data)) > f.remaining {
 		return 0, errors.Errorf("tree upload data exceeds declared size for %q", f.name)
 	}

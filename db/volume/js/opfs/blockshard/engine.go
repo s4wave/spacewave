@@ -65,6 +65,7 @@ type Engine struct {
 	cancel      context.CancelFunc
 	wg          sync.WaitGroup
 	compactionN int
+	maxEntryN   int
 	broadcaster *Broadcaster
 	listener    *Listener
 }
@@ -92,6 +93,7 @@ func NewEngineWithSettings(
 		ctx:         ctx,
 		cancel:      cancel,
 		compactionN: settings.CompactionTrigger,
+		maxEntryN:   settings.MaxEntryValueBytes,
 		broadcaster: NewBroadcaster(lockPrefix),
 		listener:    NewListener(lockPrefix),
 	}
@@ -241,6 +243,9 @@ func (e *Engine) putToActors(
 	if len(entries) == 0 {
 		return nil
 	}
+	if err := e.validateEntryValues(entries); err != nil {
+		return err
+	}
 
 	taskCtx, partitionTask := trace.NewTask(ctx, tracePrefix+"/partition-by-shard")
 	buckets := make([][]segment.Entry, len(e.shards))
@@ -285,6 +290,21 @@ func (e *Engine) putToActors(
 	for _, err := range errs {
 		if err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+func (e *Engine) validateEntryValues(entries []segment.Entry) error {
+	if e.maxEntryN < 1 {
+		return nil
+	}
+	for i := range entries {
+		if entries[i].Tombstone {
+			continue
+		}
+		if len(entries[i].Value) > e.maxEntryN {
+			return errors.Errorf("blockshard entry value exceeds max size %d", e.maxEntryN)
 		}
 	}
 	return nil
@@ -497,6 +517,12 @@ func (e *Engine) GetContext(ctx context.Context, key []byte) ([]byte, bool, erro
 	return val, found, err
 }
 
+// Stat resolves a key and returns its value size without loading the value.
+func (e *Engine) Stat(ctx context.Context, key []byte) (int64, bool, error) {
+	idx := e.ShardForKey(key)
+	return e.statFromShard(ctx, idx, key, false)
+}
+
 // GetExists checks whether a key exists across all shards without loading its
 // value.
 func (e *Engine) GetExists(key []byte) (bool, error) {
@@ -529,6 +555,63 @@ func (e *Engine) GetExistsBatch(ctx context.Context, keys [][]byte) ([]bool, err
 		}
 	}
 	return out, nil
+}
+
+func (e *Engine) statFromShard(
+	ctx context.Context,
+	shardIdx int,
+	key []byte,
+	retried bool,
+) (int64, bool, error) {
+	shard := e.shards[shardIdx]
+	m := shard.Manifest()
+	if latestGen := shard.getLatestGeneration(); latestGen > m.Generation {
+		refreshed, err := e.refreshShardManifest(shardIdx)
+		if err == nil && refreshed != nil && refreshed.Generation > m.Generation {
+			m = refreshed
+		}
+	}
+
+	for i := len(m.Segments) - 1; i >= 0; i-- {
+		seg := &m.Segments[i]
+		if string(key) < string(seg.MinKey) || string(key) > string(seg.MaxKey) {
+			continue
+		}
+		lookup, err := shard.getLookup(ctx, seg)
+		if err != nil {
+			if opfs.IsNotFound(err) {
+				shard.dropSegmentFile(seg.Filename)
+			}
+			if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
+				return e.statFromShard(ctx, shardIdx, key, true)
+			}
+			return 0, false, errors.Errorf("load segment %s lookup: %v", seg.Filename, err)
+		}
+		f, err := shard.getSegmentFile(ctx, seg)
+		if err != nil {
+			if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
+				return e.statFromShard(ctx, shardIdx, key, true)
+			}
+			return 0, false, errors.Errorf("open segment %s: %v", seg.Filename, err)
+		}
+		stat, err := lookup.Stat(f, key)
+		if err != nil {
+			if opfs.IsNotFound(err) {
+				shard.dropSegmentFile(seg.Filename)
+			}
+			if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
+				return e.statFromShard(ctx, shardIdx, key, true)
+			}
+			return 0, false, err
+		}
+		if stat.Tombstone {
+			return 0, false, nil
+		}
+		if stat.Found {
+			return stat.ValueSize, true, nil
+		}
+	}
+	return 0, false, nil
 }
 
 func (e *Engine) getExistsBatchFromShard(

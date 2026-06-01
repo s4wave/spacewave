@@ -273,6 +273,54 @@ func TestPackfileStoreGetBlockExistsDoesNotFetchPayload(t *testing.T) {
 	}
 }
 
+func TestPackfileStoreStatBlockUsesIndexOnly(t *testing.T) {
+	ctx := t.Context()
+	filler := bytes.Repeat([]byte("x"), defaultIndexTailInitialWindow+4096)
+	ordered := []struct{ Name, Data string }{
+		{"a", "alpha-data"},
+		{"b", string(filler)},
+	}
+	packBytes, bloomBytes := buildTestPackOrdered(t, ordered)
+	opener, transport := openerFromBytes(packBytes)
+	store := NewPackfileStore(opener, newMemIndexCache())
+	store.UpdateManifest([]*packfile.PackfileEntry{{
+		Id:          "stat-pack",
+		BloomFilter: bloomBytes,
+		BlockCount:  uint64(len(ordered)),
+		SizeBytes:   uint64(len(packBytes)),
+	}})
+
+	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha-data"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	exists, err := store.GetBlockExists(ctx, &block.BlockRef{Hash: h})
+	if err != nil {
+		t.Fatalf("GetBlockExists: %v", err)
+	}
+	if !exists {
+		t.Fatal("expected block to exist")
+	}
+	firstCalls := transport.callCount()
+	if firstCalls == 0 {
+		t.Fatal("expected index load fetch")
+	}
+
+	stat, err := store.StatBlock(ctx, &block.BlockRef{Hash: h})
+	if err != nil {
+		t.Fatalf("StatBlock: %v", err)
+	}
+	if stat == nil {
+		t.Fatal("expected block stat")
+	}
+	if stat.Size != int64(len("alpha-data")) {
+		t.Fatalf("stat size = %d, want %d", stat.Size, len("alpha-data"))
+	}
+	if got := transport.callCount(); got != firstCalls {
+		t.Fatalf("StatBlock fetched payload window: calls %d -> %d", firstCalls, got)
+	}
+}
+
 func TestPackfileStoreUpdateManifestFiltersSupersededAndEvictsEngines(t *testing.T) {
 	store := NewPackfileStore(func(packID string, size int64) (*PackReader, error) {
 		t.Fatalf("unexpected opener call for %s size %d", packID, size)

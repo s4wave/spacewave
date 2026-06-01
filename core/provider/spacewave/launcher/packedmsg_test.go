@@ -3,6 +3,10 @@ package spacewave_launcher
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -71,6 +75,74 @@ func TestPackDistConfig(t *testing.T) {
 	if !conf.EqualMessageVT(config) {
 		t.Fail()
 	}
+}
+
+func TestE2EReleaseWASMInitDistConfigFixtureParses(t *testing.T) {
+	initDistConfig := readBldrStarString(t, "E2E_RELEASE_WASM_INIT_DIST_CONFIG")
+	distPeerIDStr := readBldrStarString(t, "E2E_RELEASE_WASM_DIST_PEER_ID")
+	distPeerID, err := peer.IDB58Decode(distPeerIDStr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	conf, _, confPeer, err := ParseDistConfigPackedMsg(logrus.NewEntry(logrus.New()), []byte(initDistConfig), []peer.ID{distPeerID}, "spacewave")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := conf.GetProjectId(), "spacewave"; got != want {
+		t.Fatalf("project id=%q want %q", got, want)
+	}
+	if got := confPeer.String(); got != distPeerIDStr {
+		t.Fatalf("dist peer id=%q want %q", got, distPeerIDStr)
+	}
+	if conf.GetRev() == 0 {
+		t.Fatal("expected non-zero dist config revision")
+	}
+	if conf.GetChannelKey() == "" {
+		t.Fatal("expected channel key")
+	}
+}
+
+func TestDistConfigKeyDerivationFixture(t *testing.T) {
+	initDistConfig := readBldrStarString(t, "E2E_RELEASE_WASM_INIT_DIST_CONFIG")
+	packedMsgs, _ := packedmsg.FindPackedMessages(initDistConfig)
+	if len(packedMsgs) != 1 {
+		t.Fatalf("packed message count=%d want 1", len(packedMsgs))
+	}
+	signedMsg := &peer.SignedMsg{}
+	if err := signedMsg.UnmarshalVT(packedMsgs[0]); err != nil {
+		t.Fatal(err)
+	}
+	key, nonce, err := deriveDistConfigKey(signedMsg.GetFromPeerId(), signedMsg.GetSignature().GetHashType(), "spacewave")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := signedMsg.GetFromPeerId(), readBldrStarString(t, "E2E_RELEASE_WASM_DIST_PEER_ID"); got != want {
+		t.Fatalf("signed from peer=%q want %q", got, want)
+	}
+	if got, want := signedMsg.GetSignature().GetHashType().String(), "HashType_SHA256"; got != want {
+		t.Fatalf("signature hash type=%q want %q", got, want)
+	}
+	if got, want := hex.EncodeToString(key), "511ad49309b02c6cfda84f6eaba60089b795ddd4125f48fba29429cdbaac11a2"; got != want {
+		t.Fatalf("derived key=%s want %s", got, want)
+	}
+	if got, want := hex.EncodeToString(nonce), "3b0e8b955cf88591b3ae2e6dad74d3f3005378850d195fdf"; got != want {
+		t.Fatalf("derived nonce=%s want %s", got, want)
+	}
+}
+
+func readBldrStarString(t *testing.T, name string) string {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "bldr.star"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	re := regexp.MustCompile(`(?m)^` + regexp.QuoteMeta(name) + ` = "([^"]+)"$`)
+	match := re.FindSubmatch(data)
+	if match == nil {
+		t.Fatalf("missing %s in bldr.star", name)
+	}
+	return string(match[1])
 }
 
 func TestParseDistConfigPackedMsgRejectsInvalidValidator(t *testing.T) {

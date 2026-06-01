@@ -69,7 +69,7 @@ func RekeySOState(
 
 	soTransformConf, err := block_transform.NewConfig([]config.Config{
 		&transform_blockenc.Config{
-			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
+			BlockEnc: blockenc.DefaultBlockEnc,
 			Key:      encKey,
 		},
 	})

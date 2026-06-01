@@ -18,7 +18,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const fsHandleMaxReadSize = 64 * 1024
+const (
+	fsHandleMaxReadSize     = 64 * 1024
+	uploadDataFrameMaxBytes = 64 * 1024
+)
+
+func validateUploadDataFrame(data []byte) error {
+	if len(data) > uploadDataFrameMaxBytes {
+		return errors.Errorf("unixfs upload data frame exceeds max size %d", uploadDataFrameMaxBytes)
+	}
+	return nil
+}
 
 // FSHandleResource implements FSHandleResourceService for a single FSHandle.
 // Each instance wraps exactly one hydra/unixfs.FSHandle with 1:1 mapping.
@@ -601,14 +611,20 @@ func (r *FSHandleResource) UploadFile(strm s4wave_unixfs.SRPCFSHandleResourceSer
 	}()
 
 	var bytesWritten int64
-	if len(first.GetData()) > 0 {
-		_, err = pw.Write(first.GetData())
+	if data := first.GetData(); len(data) > 0 {
+		if err := validateUploadDataFrame(data); err != nil {
+			pw.CloseWithError(err)
+			<-done
+			return nil, err
+		}
+		recordUploadMetric(ctx, UploadMetric{Stage: "receive-data", Bytes: len(data)})
+		_, err = pw.Write(data)
 		if err != nil {
 			pw.CloseWithError(err)
 			<-done
 			return nil, err
 		}
-		bytesWritten += int64(len(first.GetData()))
+		bytesWritten += int64(len(data))
 	}
 
 	for {
@@ -623,6 +639,12 @@ func (r *FSHandleResource) UploadFile(strm s4wave_unixfs.SRPCFSHandleResourceSer
 		}
 		data := msg.GetData()
 		if len(data) > 0 {
+			if err := validateUploadDataFrame(data); err != nil {
+				pw.CloseWithError(err)
+				<-done
+				return nil, err
+			}
+			recordUploadMetric(ctx, UploadMetric{Stage: "receive-data", Bytes: len(data)})
 			_, err = pw.Write(data)
 			if err != nil {
 				pw.CloseWithError(err)

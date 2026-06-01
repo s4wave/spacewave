@@ -5,7 +5,7 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum BlockEnc {
-    /// BlockEnc_UNKNOWN defaults to BlockEnc_XCHACHA20_POLY1305.
+    /// BlockEnc_UNKNOWN is reserved for unset configuration.
     Unknown = 0,
     /// BlockEnc_NONE is unencrypted.
     None = 1,
@@ -19,6 +19,11 @@ pub enum BlockEnc {
     /// Derives the nonce with blake3 key derivation.
     /// Stores the nonce in the first 24 bytes of the ciphertext.
     SecretBox = 3,
+    /// BlockEnc_AES_256_GCM uses AES-256-GCM encryption.
+    /// Key size of 32 bytes.
+    /// Derives the nonce with blake3 key derivation.
+    /// Stores the nonce in the first 12 bytes of the ciphertext.
+    Aes256Gcm = 4,
 }
 impl BlockEnc {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -31,6 +36,7 @@ impl BlockEnc {
             Self::None => "BlockEnc_NONE",
             Self::Xchacha20Poly1305 => "BlockEnc_XCHACHA20_POLY1305",
             Self::SecretBox => "BlockEnc_SECRET_BOX",
+            Self::Aes256Gcm => "BlockEnc_AES_256_GCM",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -40,6 +46,7 @@ impl BlockEnc {
             "BlockEnc_NONE" => Some(Self::None),
             "BlockEnc_XCHACHA20_POLY1305" => Some(Self::Xchacha20Poly1305),
             "BlockEnc_SECRET_BOX" => Some(Self::SecretBox),
+            "BlockEnc_AES_256_GCM" => Some(Self::Aes256Gcm),
             _ => None,
         }
     }

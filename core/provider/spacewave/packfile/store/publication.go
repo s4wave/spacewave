@@ -175,6 +175,27 @@ func (e *PackReader) getBlockExists(ctx context.Context, key []byte) (bool, erro
 	return found, nil
 }
 
+func (e *PackReader) statBlock(ctx context.Context, key []byte, ref *block.BlockRef) (*block.BlockStat, error) {
+	if err := e.ensureIndexLoaded(ctx); err != nil {
+		return nil, err
+	}
+
+	var size int64
+	var found bool
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		entry, ok := e.findEntryByKeyLocked(key)
+		if !ok {
+			return
+		}
+		size = int64(entry.GetSize())
+		found = true
+	})
+	if !found {
+		return nil, nil
+	}
+	return &block.BlockStat{Ref: ref, Size: size}, nil
+}
+
 // verifyBlock runs hash verification and optional writeback for one record.
 //
 // On success the record transitions to Verified, or Published when writeback

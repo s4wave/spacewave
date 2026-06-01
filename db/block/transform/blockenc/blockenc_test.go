@@ -10,7 +10,7 @@ import (
 func TestBlockEncRoundTripUsesLazyPool(t *testing.T) {
 	key := bytes.Repeat([]byte{1}, 32)
 	enc, err := NewBlockEnc(&Config{
-		BlockEnc: blockenc.BlockEnc_BlockEnc_SECRET_BOX,
+		BlockEnc: blockenc.DefaultBlockEnc,
 		Key:      key,
 	})
 	if err != nil {

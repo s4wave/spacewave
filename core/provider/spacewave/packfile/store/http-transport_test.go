@@ -210,6 +210,34 @@ func TestPackfileStoreAppliesTuningOverrides(t *testing.T) {
 	}
 }
 
+func TestPackReaderTransportFetchMaxBytesClampsTuning(t *testing.T) {
+	eng := NewPackReader("cap-pack", 16<<20, TransportFunc(func(context.Context, int64, int) ([]byte, error) {
+		return nil, nil
+	}), 0)
+	eng.setTransportFetchMaxBytes(2 << 20)
+	eng.SetTransportMinWindow(4 << 20)
+	eng.SetTransportQuantum(4 << 20)
+	eng.SetTransportMaxWindow(8 << 20)
+
+	tuning := eng.SnapshotTuning()
+	if tuning.MinWindow != 2<<20 {
+		t.Fatalf("min window = %d, want %d", tuning.MinWindow, 2<<20)
+	}
+	if tuning.TransportQuantum != 2<<20 {
+		t.Fatalf("transport quantum = %d, want %d", tuning.TransportQuantum, 2<<20)
+	}
+	if tuning.MaxWindow != 2<<20 {
+		t.Fatalf("max window = %d, want %d", tuning.MaxWindow, 2<<20)
+	}
+	if tuning.TransportFetchMaxBytes != 2<<20 {
+		t.Fatalf("transport fetch cap = %d, want %d", tuning.TransportFetchMaxBytes, 2<<20)
+	}
+	key := eng.planFetchLocked(0, 1)
+	if key.size > 2<<20 {
+		t.Fatalf("planned fetch size = %d, want <= %d", key.size, 2<<20)
+	}
+}
+
 func TestHTTPRangeReaderDedupesConcurrentFetch(t *testing.T) {
 	if runtime.GOOS == "js" {
 		t.Skip("GoScript net/http override does not implement in-process httptest range servers")

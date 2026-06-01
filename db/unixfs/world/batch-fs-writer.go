@@ -75,6 +75,8 @@ type BatchFSWriter struct {
 	// pending maps a joined parent-path key to accumulated entries under
 	// that parent. The key encoding is produced by joinPathKey.
 	pending map[string]*pendingDir
+
+	metricsRecorder BatchFSWriterMetricsRecorder
 }
 
 // NewBatchFSWriter constructs a new BatchFSWriter bound to the given world
@@ -118,6 +120,10 @@ func (b *BatchFSWriter) AddFile(
 	if dataLen < 0 {
 		return errors.New("negative data length")
 	}
+	b.recordBatchFSWriterMetric(ctx, BatchFSWriterMetric{
+		Stage: "ingest-file-start",
+		Bytes: dataLen,
+	})
 
 	// Build the blob in an isolated object. Mirrors FsMknodWithContent
 	// phase 1: exactly one btx.Write writes the blob blocks + computes the
@@ -147,6 +153,13 @@ func (b *BatchFSWriter) AddFile(
 		permissions: permissions.Perm(),
 		ts:          unixfs_block.ToTimestamp(ts, true),
 		blobRef:     blobRef,
+	})
+	pendingDirs, pendingEntries := b.pendingMetricCounts()
+	b.recordBatchFSWriterMetric(ctx, BatchFSWriterMetric{
+		Stage:          "ingest-file-complete",
+		Bytes:          dataLen,
+		PendingDirs:    pendingDirs,
+		PendingEntries: pendingEntries,
 	})
 	return nil
 }
@@ -241,8 +254,18 @@ func (b *BatchFSWriter) Commit(ctx context.Context) error {
 	b.committed = true
 
 	if len(b.pending) == 0 {
+		b.recordBatchFSWriterMetric(ctx, BatchFSWriterMetric{
+			Stage:     "commit-empty",
+			Committed: true,
+		})
 		return nil
 	}
+	pendingDirs, pendingEntries := b.pendingMetricCounts()
+	b.recordBatchFSWriterMetric(ctx, BatchFSWriterMetric{
+		Stage:          "commit-start",
+		PendingDirs:    pendingDirs,
+		PendingEntries: pendingEntries,
+	})
 
 	obj, exists, err := b.ws.GetObject(ctx, b.objKey)
 	if err != nil {
@@ -265,6 +288,14 @@ func (b *BatchFSWriter) Commit(ctx context.Context) error {
 		}
 		return nil
 	})
+	if err == nil {
+		b.recordBatchFSWriterMetric(ctx, BatchFSWriterMetric{
+			Stage:          "commit-complete",
+			PendingDirs:    pendingDirs,
+			PendingEntries: pendingEntries,
+			Committed:      true,
+		})
+	}
 	return err
 }
 
@@ -454,6 +485,11 @@ func (b *BatchFSWriter) syncExistingFile(
 		}
 		compareChunk = compareChunk[:nreadDst]
 		if !bytes.Equal(readChunk[:len(compareChunk)], compareChunk) {
+			// WriteBlob overlays ranges. Clear the existing file first so an
+			// overwrite cannot leave stale tail ranges behind a replacement blob.
+			if err := unixfs_block.TruncateFile(ctx, root, path, 0, ts); err != nil {
+				return err
+			}
 			if err := unixfs_block.WriteBlob(ctx, root, path, 0, blobRef, false, false, ts); err != nil {
 				return err
 			}
@@ -475,8 +511,15 @@ func (b *BatchFSWriter) syncExistingFile(
 // not attempt to reclaim those blobs; they will be garbage-collected by
 // the block-store GC as part of normal world upkeep.
 func (b *BatchFSWriter) Release() {
+	pendingDirs, pendingEntries := b.pendingMetricCounts()
 	b.released = true
 	b.pending = nil
+	b.recordBatchFSWriterMetric(context.Background(), BatchFSWriterMetric{
+		Stage:          "release",
+		PendingDirs:    pendingDirs,
+		PendingEntries: pendingEntries,
+		Released:       true,
+	})
 }
 
 // checkOpen returns an error if the writer is no longer accepting entries.

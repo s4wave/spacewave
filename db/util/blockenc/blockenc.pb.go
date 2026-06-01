@@ -15,7 +15,7 @@ import (
 type BlockEnc int32
 
 const (
-	// BlockEnc_UNKNOWN defaults to BlockEnc_XCHACHA20_POLY1305.
+	// BlockEnc_UNKNOWN is reserved for unset configuration.
 	BlockEnc_BlockEnc_UNKNOWN BlockEnc = 0
 	// BlockEnc_NONE is unencrypted.
 	BlockEnc_BlockEnc_NONE BlockEnc = 1
@@ -29,6 +29,11 @@ const (
 	// Derives the nonce with blake3 key derivation.
 	// Stores the nonce in the first 24 bytes of the ciphertext.
 	BlockEnc_BlockEnc_SECRET_BOX BlockEnc = 3
+	// BlockEnc_AES_256_GCM uses AES-256-GCM encryption.
+	// Key size of 32 bytes.
+	// Derives the nonce with blake3 key derivation.
+	// Stores the nonce in the first 12 bytes of the ciphertext.
+	BlockEnc_BlockEnc_AES_256_GCM BlockEnc = 4
 )
 
 // Enum value maps for BlockEnc.
@@ -38,12 +43,14 @@ var (
 		1: "BlockEnc_NONE",
 		2: "BlockEnc_XCHACHA20_POLY1305",
 		3: "BlockEnc_SECRET_BOX",
+		4: "BlockEnc_AES_256_GCM",
 	}
 	BlockEnc_value = map[string]int32{
 		"BlockEnc_UNKNOWN":            0,
 		"BlockEnc_NONE":               1,
 		"BlockEnc_XCHACHA20_POLY1305": 2,
 		"BlockEnc_SECRET_BOX":         3,
+		"BlockEnc_AES_256_GCM":        4,
 	}
 )
 

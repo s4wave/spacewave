@@ -25,7 +25,7 @@ func buildDefaultTransformConf() (*block_transform.Config, error) {
 	blake3.DeriveKey("sobject/world/engine transform-config Sat Oct 22 15:21:51 PDT 2024 v1.", material[:], encKey[:])
 
 	return block_transform.NewConfig([]config.Config{&transform_blockenc.Config{
-		BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
+		BlockEnc: blockenc.DefaultBlockEnc,
 		Key:      encKey[:],
 	}})
 }

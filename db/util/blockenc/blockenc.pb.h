@@ -70,6 +70,7 @@ enum BlockEnc : int {
   BlockEnc_NONE = 1,
   BlockEnc_XCHACHA20_POLY1305 = 2,
   BlockEnc_SECRET_BOX = 3,
+  BlockEnc_AES_256_GCM = 4,
   BlockEnc_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
   BlockEnc_INT_MAX_SENTINEL_DO_NOT_USE_ =
@@ -80,11 +81,11 @@ extern const uint32_t BlockEnc_internal_data_[];
 inline constexpr BlockEnc BlockEnc_MIN =
     static_cast<BlockEnc>(0);
 inline constexpr BlockEnc BlockEnc_MAX =
-    static_cast<BlockEnc>(3);
+    static_cast<BlockEnc>(4);
 inline bool BlockEnc_IsValid(int value) {
-  return 0 <= value && value <= 3;
+  return 0 <= value && value <= 4;
 }
-inline constexpr int BlockEnc_ARRAYSIZE = 3 + 1;
+inline constexpr int BlockEnc_ARRAYSIZE = 4 + 1;
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL BlockEnc_descriptor();
 template <typename T>
 const ::std::string& BlockEnc_Name(T value) {
@@ -95,7 +96,7 @@ const ::std::string& BlockEnc_Name(T value) {
 }
 template <>
 inline const ::std::string& BlockEnc_Name(BlockEnc value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<BlockEnc_descriptor, 0, 3>(
+  return ::google::protobuf::internal::NameOfDenseEnum<BlockEnc_descriptor, 0, 4>(
       static_cast<int>(value));
 }
 inline bool BlockEnc_Parse(

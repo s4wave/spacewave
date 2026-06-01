@@ -69,6 +69,7 @@ type PackReader struct {
 	minWindow              int
 	transportQuantum       int
 	maxWindow              int
+	transportFetchMaxBytes int
 	currentWindow          int
 	smoothing              float64
 	targetInterval         time.Duration

@@ -6,7 +6,9 @@ import (
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 )
 
-// BldrExternal are packages that are bundled externally for all bldr components.
+// BldrExternal are package prefixes bundled externally for all bldr components.
+// Bundler call sites externalize both the package root and subpath imports such
+// as @aptre/protobuf-es-lite/service-type.
 var BldrExternal = []string{
 	"react",
 	"react-dom",

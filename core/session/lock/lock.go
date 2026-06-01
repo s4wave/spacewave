@@ -24,7 +24,7 @@ func DeriveStorageKey(volPeerPrivKey crypto.PrivKey) ([32]byte, error) {
 
 // EncryptAutoUnlock encrypts session privkey PEM with the storage key.
 func EncryptAutoUnlock(storageKey [32]byte, privPEM []byte) ([]byte, error) {
-	method, err := blockenc.NewXChaCha20Poly1305(storageKey[:])
+	method, err := newSessionLockMethod(storageKey[:])
 	if err != nil {
 		return nil, err
 	}
@@ -33,9 +33,30 @@ func EncryptAutoUnlock(storageKey [32]byte, privPEM []byte) ([]byte, error) {
 
 // DecryptAutoUnlock decrypts session privkey PEM with the storage key.
 func DecryptAutoUnlock(storageKey [32]byte, encrypted []byte) ([]byte, error) {
-	method, err := blockenc.NewXChaCha20Poly1305(storageKey[:])
+	return decryptSessionLockBytes(storageKey[:], encrypted)
+}
+
+func newSessionLockMethod(key []byte) (blockenc.Method, error) {
+	return blockenc.NewAES256GCM(key)
+}
+
+func decryptSessionLockBytes(key []byte, encrypted []byte) ([]byte, error) {
+	method, err := newSessionLockMethod(key)
 	if err != nil {
 		return nil, err
 	}
-	return method.Decrypt(blockenc.DefaultAllocFn(), encrypted)
+	out, err := method.Decrypt(blockenc.DefaultAllocFn(), encrypted)
+	if err == nil {
+		return out, nil
+	}
+
+	legacyMethod, legacyErr := blockenc.NewXChaCha20Poly1305(key)
+	if legacyErr != nil {
+		return nil, err
+	}
+	out, legacyErr = legacyMethod.Decrypt(blockenc.DefaultAllocFn(), encrypted)
+	if legacyErr == nil {
+		return out, nil
+	}
+	return nil, legacyErr
 }

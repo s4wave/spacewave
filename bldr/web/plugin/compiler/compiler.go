@@ -581,6 +581,9 @@ func (c *Controller) buildBrowserShimManifest(
 		committedManifestRef,
 		nil,
 	)
+	if err := addWebPluginStartupInputs(builderConf, result); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
@@ -593,7 +596,7 @@ func (c *Controller) GetSupportedPlatforms() []string {
 	return []string{bldr_platform.PlatformID_DESKTOP, bldr_platform.PlatformID_WEB}
 }
 
-// addWebPluginStartupInputs adds desktop startup validation inputs.
+// addWebPluginStartupInputs adds web-plugin startup validation inputs.
 func addWebPluginStartupInputs(
 	builderConf *bldr_manifest_builder.BuilderConfig,
 	builderResult *bldr_manifest_builder.BuilderResult,
@@ -605,7 +608,7 @@ func addWebPluginStartupInputs(
 	inputManifest.AddStartupInput(
 		bldr_manifest_builder.NewEnvStartupInput(
 			web_runtime.WebRendererEnvVar,
-			web_runtime.GetWebRendererFromEnv().Resolve().String(),
+			os.Getenv(web_runtime.WebRendererEnvVar),
 		),
 	)
 	inputManifest.AddStartupInput(
@@ -632,8 +635,11 @@ func addWebPluginStartupInputs(
 	appendWebPluginInputFile(inputManifest, seenPaths, sourcePath, false, "package.json")
 	appendWebPluginInputFile(inputManifest, seenPaths, sourcePath, false, "bun.lock")
 	appendWebPluginInputDir(inputManifest, seenPaths, sourcePath, false, ".bldr/src/dist/deps")
+	appendWebPluginInputDir(inputManifest, seenPaths, sourcePath, false, ".bldr/src/manifest")
+	appendWebPluginInputDir(inputManifest, seenPaths, sourcePath, false, ".bldr/src/plugin")
 	appendWebPluginInputDir(inputManifest, seenPaths, sourcePath, false, ".bldr/src/web/electron")
 	appendWebPluginInputDir(inputManifest, seenPaths, sourcePath, false, ".bldr/src/web/entrypoint")
+	appendWebPluginInputDir(inputManifest, seenPaths, sourcePath, false, ".bldr/src/web/plugin/browser")
 	appendWebPluginInputDir(inputManifest, seenPaths, sourcePath, false, ".bldr/src/web/runtime/wasm")
 	inputManifest.SortStartupInputs()
 	inputManifest.SortFiles()
