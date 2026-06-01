@@ -118,7 +118,8 @@ func (r *LayoutResource) AddTab(ctx context.Context, req *s4wave_layout.AddTabRe
 }
 
 // ReplaceLayoutModelTab replaces exactly one tab definition in a layout model.
-// The existing tab keeps its id so the surrounding layout structure stays stable.
+// The existing tab keeps position-owned state so the surrounding layout
+// structure and close policy stay stable.
 func ReplaceLayoutModelTab(m *s4wave_layout.LayoutModel, tabID string, replacement *s4wave_layout.TabDef) bool {
 	if m == nil || tabID == "" || replacement == nil {
 		return false
@@ -134,7 +135,6 @@ func ReplaceLayoutModelTab(m *s4wave_layout.LayoutModel, tabID string, replaceme
 		}
 		tabDef.Name = replacement.GetName()
 		tabDef.HelpText = replacement.GetHelpText()
-		tabDef.EnableClose = replacement.GetEnableClose()
 		tabDef.Data = append(tabDef.Data[:0], replacement.GetData()...)
 		replaced = true
 		return false

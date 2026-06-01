@@ -15,14 +15,14 @@ pub struct NavigateTabRequest {
 pub struct NavigateTabResponse {
 }
 /// ReplaceTabRequest is a request to replace the data and presentation fields of
-/// an existing tab without moving it or changing its id.
+/// an existing tab without moving it or changing position-owned policy.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ReplaceTabRequest {
     /// TabId is the identifier of the tab to replace.
     #[prost(string, tag="1")]
     pub tab_id: ::prost::alloc::string::String,
-    /// Tab contains the replacement title, help text, close flag, and data.
-    /// The existing tab keeps TabId as its id.
+    /// Tab contains the replacement title, help text, and data. The existing tab
+    /// keeps TabId as its id and preserves its close policy.
     #[prost(message, optional, tag="2")]
     pub tab: ::core::option::Option<TabDef>,
 }

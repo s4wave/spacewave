@@ -3952,7 +3952,7 @@
       "protoFiles": ["sdk/git/repo.proto", "sdk/git/worktree.proto"]
     },
     "github.com/s4wave/spacewave/sdk/layout": {
-      "hash": "ab87bdc359135283196f90e24b10d4a3833c5fbc8b6390718526e96443657f28",
+      "hash": "fd38937e5b59a969428fb01baf22851bd16ff7bfa036896f46f47fd0988e365a",
       "generatedFiles": [
         "sdk/layout/layout.pb.cc",
         "sdk/layout/layout.pb.go",

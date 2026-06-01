@@ -153,7 +153,7 @@ export const TabDef: MessageType<TabDef> = /* @__PURE__ */ createMessageType({
 
 /**
  * ReplaceTabRequest is a request to replace the data and presentation fields of
- * an existing tab without moving it or changing its id.
+ * an existing tab without moving it or changing position-owned policy.
  *
  * @generated from message s4wave.layout.ReplaceTabRequest
  */
@@ -165,8 +165,8 @@ export interface ReplaceTabRequest {
    */
   tabId?: string
   /**
-   * Tab contains the replacement title, help text, close flag, and data.
-   * The existing tab keeps TabId as its id.
+   * Tab contains the replacement title, help text, and data. The existing tab
+   * keeps TabId as its id and preserves its close policy.
    *
    * @generated from field: s4wave.layout.TabDef tab = 2;
    */

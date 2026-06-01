@@ -15,6 +15,7 @@ import (
 type layoutTabState struct {
 	tabID       string
 	name        string
+	enableClose bool
 	objectKey   string
 	objectType  string
 	componentID string
@@ -49,6 +50,7 @@ func getMainFilesTabState(t *testing.T, model *s4wave_layout.LayoutModel) layout
 	return layoutTabState{
 		tabID:       tabID,
 		name:        tab.GetName(),
+		enableClose: tab.GetEnableClose(),
 		objectKey:   tabData.GetObjectInfo().GetWorldObjectInfo().GetObjectKey(),
 		objectType:  tabData.GetObjectInfo().GetWorldObjectInfo().GetObjectType(),
 		componentID: tabData.GetComponentId(),
@@ -294,6 +296,9 @@ func TestLayoutResource(t *testing.T) {
 		if initialTab.tabID != "files" {
 			t.Fatalf("expected files tab id, got %q", initialTab.tabID)
 		}
+		if initialTab.enableClose {
+			t.Fatal("expected initial files tab to be unclosable")
+		}
 		if initialTab.path != "" {
 			t.Fatalf("expected empty initial path, got %q", initialTab.path)
 		}
@@ -389,6 +394,9 @@ func TestLayoutResource(t *testing.T) {
 		if replacedTab.name != "Canvas" {
 			t.Fatalf("expected tab name Canvas, got %q", replacedTab.name)
 		}
+		if replacedTab.enableClose != initialTab.enableClose {
+			t.Fatalf("expected replace to preserve enableClose=%v, got %v", initialTab.enableClose, replacedTab.enableClose)
+		}
 		if replacedTab.objectKey != "canvas-1" || replacedTab.objectType != "canvas" {
 			t.Fatalf("expected canvas target, got key=%q type=%q", replacedTab.objectKey, replacedTab.objectType)
 		}
@@ -417,6 +425,9 @@ func TestLayoutResource(t *testing.T) {
 			t.Fatalf("Recv component model failed: %v", err)
 		}
 		componentTab := getMainFilesTabState(t, componentModel)
+		if componentTab.enableClose != initialTab.enableClose {
+			t.Fatalf("expected component replace to preserve enableClose=%v, got %v", initialTab.enableClose, componentTab.enableClose)
+		}
 		if componentTab.componentID != "canvas.component" {
 			t.Fatalf("expected explicit component id, got %q", componentTab.componentID)
 		}

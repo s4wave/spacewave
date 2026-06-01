@@ -104,13 +104,13 @@ func (x *NavigateTabResponse) Reset() {
 func (*NavigateTabResponse) ProtoMessage() {}
 
 // ReplaceTabRequest is a request to replace the data and presentation fields of
-// an existing tab without moving it or changing its id.
+// an existing tab without moving it or changing position-owned policy.
 type ReplaceTabRequest struct {
 	unknownFields []byte
 	// TabId is the identifier of the tab to replace.
 	TabId string `protobuf:"bytes,1,opt,name=tab_id,json=tabId,proto3" json:"tabId,omitempty"`
-	// Tab contains the replacement title, help text, close flag, and data.
-	// The existing tab keeps TabId as its id.
+	// Tab contains the replacement title, help text, and data. The existing tab
+	// keeps TabId as its id and preserves its close policy.
 	Tab *TabDef `protobuf:"bytes,2,opt,name=tab,proto3" json:"tab,omitempty"`
 }
 

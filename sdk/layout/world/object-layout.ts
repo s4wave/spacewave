@@ -33,7 +33,6 @@ export interface ObjectLayoutReplaceTabTarget extends ObjectLayoutObjectTarget {
   tabId: string
   name?: string
   helpText?: string
-  enableClose?: boolean
 }
 
 export interface ObjectLayoutTabSetTarget {
@@ -104,7 +103,6 @@ export function createObjectLayoutReplaceTabRequest(
       id: target.tabId,
       name: target.name ?? target.objectKey ?? 'Object',
       helpText: target.helpText ?? target.objectKey ?? '',
-      enableClose: target.enableClose ?? true,
       objectInfo: target.objectInfo,
       objectKey: target.objectKey,
       objectType: target.objectType,
