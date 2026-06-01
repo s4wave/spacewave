@@ -18,6 +18,7 @@ import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 import { Client as ResourceClient } from '../../../sdk/resource/client.js'
 import { ResourceServiceClient } from '../../../resource/resource_srpc.pb.js'
 import { ViewerRegistryResourceServiceClient } from '../../../../sdk/viewer/registry/registry_srpc.pb.js'
+import { SpaceResourceServiceClient } from '../../../../sdk/space/space_srpc.pb.js'
 
 declare global {
   interface Window {
@@ -35,6 +36,8 @@ declare global {
       nestedChildReleaseOnce: boolean
       concurrentChildEchoUnary: boolean
       concurrentChildEchoStreams: boolean
+      spaceMountContents: boolean
+      spaceWatchMountContents: boolean
       failureReason?: string
     }
   }
@@ -173,6 +176,8 @@ async function proveResourceService(
   nestedChildReleaseOnce: boolean
   concurrentChildEchoUnary: boolean
   concurrentChildEchoStreams: boolean
+  spaceMountContents: boolean
+  spaceWatchMountContents: boolean
 }> {
   const abort = new AbortController()
   const srpc = new SRPCClient(openStream)
@@ -225,6 +230,7 @@ async function proveResourceService(
       resourceClient,
       rootRef,
     )
+    const spaceChild = await proveSpaceResourceMountRpc(resourceClient, rootRef)
 
     return {
       rootResource: rootRef.resourceId > 0,
@@ -232,12 +238,61 @@ async function proveResourceService(
       releaseRemovedViewer,
       ...nested,
       ...concurrentChild,
+      ...spaceChild,
     }
   } finally {
     registrationRef?.release()
     rootRef?.release()
     abort.abort()
     resourceClient.dispose()
+  }
+}
+
+async function proveSpaceResourceMountRpc(
+  resourceClient: ResourceClient,
+  rootRef: Awaited<ReturnType<ResourceClient['accessRootResource']>>,
+): Promise<{
+  spaceMountContents: boolean
+  spaceWatchMountContents: boolean
+}> {
+  const rootMock = new MockClient(rootRef.client)
+  const response = await rootMock.MockRequest({ body: 'create-space-child' })
+  const childID = Number(
+    response.body?.startsWith('space-child:')
+      ? response.body.slice('space-child:'.length)
+      : 0,
+  )
+  if (!Number.isFinite(childID) || childID <= 0) {
+    throw new Error(`unexpected space child response: ${response.body}`)
+  }
+
+  const childRef = resourceClient.createResourceReference(childID)
+  try {
+    const space = new SpaceResourceServiceClient(childRef.client)
+    const mounted = await space.MountSpaceContents({})
+    const stateStream = space.WatchSpaceState({})
+    const sharingStream = space.WatchSpaceSharingState({})
+    const stateIt = stateStream[Symbol.asyncIterator]()
+    const sharingIt = sharingStream[Symbol.asyncIterator]()
+    const [state, sharing] = await Promise.all([
+      stateIt.next(),
+      sharingIt.next(),
+    ])
+    const watchedMount = await space.MountSpaceContents({})
+    await Promise.all([
+      stateIt.return?.() ?? Promise.resolve(),
+      sharingIt.return?.() ?? Promise.resolve(),
+    ])
+    return {
+      spaceMountContents: mounted.resourceId === 4242,
+      spaceWatchMountContents:
+        !state.done &&
+        state.value?.ready === true &&
+        !sharing.done &&
+        watchedMount.resourceId === 4242,
+    }
+  } finally {
+    childRef.release()
   }
 }
 
@@ -455,6 +510,8 @@ async function run() {
       resource.nestedChildReleaseOnce &&
       resource.concurrentChildEchoUnary &&
       resource.concurrentChildEchoStreams &&
+      resource.spaceMountContents &&
+      resource.spaceWatchMountContents &&
       !failureReason &&
       errors.length === 0
     window.__results = {
@@ -474,6 +531,8 @@ async function run() {
             `nestedChildReleaseOnce=${resource.nestedChildReleaseOnce}`,
             `concurrentChildEchoUnary=${resource.concurrentChildEchoUnary}`,
             `concurrentChildEchoStreams=${resource.concurrentChildEchoStreams}`,
+            `spaceMountContents=${resource.spaceMountContents}`,
+            `spaceWatchMountContents=${resource.spaceWatchMountContents}`,
             `failureReason=${failureReason ?? ''}`,
           ].join('; '),
       workerReady,
@@ -487,6 +546,8 @@ async function run() {
       nestedChildReleaseOnce: resource.nestedChildReleaseOnce,
       concurrentChildEchoUnary: resource.concurrentChildEchoUnary,
       concurrentChildEchoStreams: resource.concurrentChildEchoStreams,
+      spaceMountContents: resource.spaceMountContents,
+      spaceWatchMountContents: resource.spaceWatchMountContents,
       failureReason,
     }
   } catch (err) {
@@ -504,6 +565,8 @@ async function run() {
       nestedChildReleaseOnce: false,
       concurrentChildEchoUnary: false,
       concurrentChildEchoStreams: false,
+      spaceMountContents: false,
+      spaceWatchMountContents: false,
       failureReason: undefined,
     }
   } finally {

@@ -16,6 +16,7 @@ import (
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	web_runtime_wasm "github.com/s4wave/spacewave/bldr/web/runtime/wasm"
 	resource_viewer_registry "github.com/s4wave/spacewave/core/resource/viewer/registry"
+	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 )
 
 func main() {
@@ -82,6 +83,21 @@ func (nestedResourceMock) MockRequest(ctx context.Context, msg *e2e_mock.MockMsg
 		}
 		return &e2e_mock.MockMsg{Body: "echo-child:" + strconv.FormatUint(uint64(childID), 10)}, nil
 	}
+	if msg.GetBody() == "create-space-child" {
+		resourceClient, err := resource_server.MustGetResourceClientContext(ctx)
+		if err != nil {
+			return nil, err
+		}
+		childMux := srpc.NewMux()
+		if err := s4wave_space.SRPCRegisterSpaceResourceService(childMux, spaceResourceMock{}); err != nil {
+			return nil, err
+		}
+		childID, err := resourceClient.AddResource(childMux, nil)
+		if err != nil {
+			return nil, err
+		}
+		return &e2e_mock.MockMsg{Body: "space-child:" + strconv.FormatUint(uint64(childID), 10)}, nil
+	}
 
 	engineID, ok := strings.CutPrefix(msg.GetBody(), "run-nested:")
 	if !ok {
@@ -144,6 +160,78 @@ func (nestedResourceMock) MockRequest(ctx context.Context, msg *e2e_mock.MockMsg
 	}
 
 	return &e2e_mock.MockMsg{Body: "seed-ok"}, nil
+}
+
+type spaceResourceMock struct{}
+
+func (spaceResourceMock) WatchSpaceState(
+	req *s4wave_space.WatchSpaceStateRequest,
+	strm s4wave_space.SRPCSpaceResourceService_WatchSpaceStateStream,
+) error {
+	if err := strm.Send(&s4wave_space.SpaceState{Ready: true}); err != nil {
+		return err
+	}
+	<-strm.Context().Done()
+	return nil
+}
+
+func (spaceResourceMock) WatchSpaceSharingState(
+	req *s4wave_space.WatchSpaceSharingStateRequest,
+	strm s4wave_space.SRPCSpaceResourceService_WatchSpaceSharingStateStream,
+) error {
+	if err := strm.Send(&s4wave_space.SpaceSharingState{}); err != nil {
+		return err
+	}
+	<-strm.Context().Done()
+	return nil
+}
+
+func (spaceResourceMock) AccessWorld(
+	ctx context.Context,
+	req *s4wave_space.AccessWorldRequest,
+) (*s4wave_space.AccessWorldResponse, error) {
+	return nil, errors.New("AccessWorld not implemented")
+}
+
+func (spaceResourceMock) MountSpaceContents(
+	ctx context.Context,
+	req *s4wave_space.MountSpaceContentsRequest,
+) (*s4wave_space.MountSpaceContentsResponse, error) {
+	return &s4wave_space.MountSpaceContentsResponse{ResourceId: 4242}, nil
+}
+
+func (spaceResourceMock) CreateSecret(
+	ctx context.Context,
+	req *s4wave_space.CreateSecretRequest,
+) (*s4wave_space.CreateSecretResponse, error) {
+	return nil, errors.New("CreateSecret not implemented")
+}
+
+func (spaceResourceMock) ReadSecretPayload(
+	ctx context.Context,
+	req *s4wave_space.ReadSecretPayloadRequest,
+) (*s4wave_space.ReadSecretPayloadResponse, error) {
+	return nil, errors.New("ReadSecretPayload not implemented")
+}
+
+func (spaceResourceMock) DeployManifest(
+	strm s4wave_space.SRPCSpaceResourceService_DeployManifestStream,
+) error {
+	return errors.New("DeployManifest not implemented")
+}
+
+func (spaceResourceMock) AddSpacePlugin(
+	ctx context.Context,
+	req *s4wave_space.AddSpacePluginRequest,
+) (*s4wave_space.AddSpacePluginResponse, error) {
+	return nil, errors.New("AddSpacePlugin not implemented")
+}
+
+func (spaceResourceMock) RemoveSpacePlugin(
+	ctx context.Context,
+	req *s4wave_space.RemoveSpacePluginRequest,
+) (*s4wave_space.RemoveSpacePluginResponse, error) {
+	return nil, errors.New("RemoveSpacePlugin not implemented")
 }
 
 func postFailure(err error) {
