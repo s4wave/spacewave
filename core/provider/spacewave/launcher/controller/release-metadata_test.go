@@ -354,7 +354,16 @@ func TestStageReleaseManifestUpdateRejectsRawDarwinInstalledAppPayload(t *testin
 	if err := os.WriteFile(filepath.Join(src, "spacewave"), []byte("binary"), 0o755); err != nil {
 		t.Fatal(err.Error())
 	}
-	manifestRef := writeReleaseManifestTestBlock(t, ctx, ws, "release/manifests/native", src)
+	manifestRef := writeReleaseManifestTestBlockWithMeta(
+		t,
+		ctx,
+		ws,
+		"release/manifests/native",
+		src,
+		nativeEntrypointManifestID,
+		"desktop/darwin/arm64",
+		1,
+	)
 
 	dc := cdc.NewController(ctx, le)
 	b := inmem.NewBus(dc)
