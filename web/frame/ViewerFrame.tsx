@@ -102,7 +102,7 @@ function CollapsedBottomBarItems({
           className={cn('px-1.5', selected && 'bg-bar-item-selected')}
           aria-label="Open hidden bottom bar items"
         >
-          [...]
+          ...
         </BottomBarButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" className="max-w-72">
@@ -318,7 +318,7 @@ export function ViewerFrame(props: ViewerFrameProps) {
   )
 
   const left =
-    leftItems.length > 2 ? (
+    leftItems.length > 3 ? (
       (() => {
         const first = leftItems[0]
         const last = leftItems[leftItems.length - 1]

@@ -29,12 +29,9 @@ describe('ViewerFrame', () => {
     vi.useRealTimers()
   })
 
-  it('collapses intermediate left bottom-bar items into a menu', async () => {
-    const user = userEvent.setup()
-    const setOpenMenu = vi.fn()
-
+  it('keeps one intermediate left bottom-bar item visible without a collapse menu', () => {
     render(
-      <BottomBarRoot openMenu="" setOpenMenu={setOpenMenu}>
+      <BottomBarRoot openMenu="" setOpenMenu={() => {}}>
         <BottomBarLevel id="first" menuLabel="First" button={button('First')}>
           <BottomBarLevel
             id="middle"
@@ -52,16 +49,58 @@ describe('ViewerFrame', () => {
     )
 
     expect(screen.getByText('First')).toBeTruthy()
+    expect(screen.getByText('Middle')).toBeTruthy()
     expect(screen.getByText('Last')).toBeTruthy()
-    expect(screen.queryByText('Middle')).toBeNull()
+    expect(screen.queryByLabelText('Open hidden bottom bar items')).toBeNull()
+  })
+
+  it('collapses two or more intermediate left bottom-bar items into a menu', async () => {
+    const user = userEvent.setup()
+    const setOpenMenu = vi.fn()
+
+    render(
+      <BottomBarRoot openMenu="" setOpenMenu={setOpenMenu}>
+        <BottomBarLevel id="first" menuLabel="First" button={button('First')}>
+          <BottomBarLevel
+            id="middle-a"
+            menuLabel="Middle A"
+            button={button('Middle A')}
+          >
+            <BottomBarLevel
+              id="middle-b"
+              menuLabel="Middle B"
+              button={button('Middle B')}
+            >
+              <BottomBarLevel
+                id="last"
+                menuLabel="Last"
+                button={button('Last')}
+              >
+                <ViewerFrame>
+                  <div>Content</div>
+                </ViewerFrame>
+              </BottomBarLevel>
+            </BottomBarLevel>
+          </BottomBarLevel>
+        </BottomBarLevel>
+      </BottomBarRoot>,
+    )
+
+    expect(screen.getByText('First')).toBeTruthy()
+    expect(screen.getByText('Last')).toBeTruthy()
+    expect(screen.queryByText('Middle A')).toBeNull()
+    expect(screen.queryByText('Middle B')).toBeNull()
+    expect(screen.getByText('...')).toBeTruthy()
+    expect(screen.queryByText('[...]')).toBeNull()
 
     await user.click(screen.getByLabelText('Open hidden bottom bar items'))
 
-    const item = screen.getByText('Middle')
+    expect(screen.getByText('Middle A')).toBeTruthy()
+    const item = screen.getByText('Middle B')
     expect(item).toBeTruthy()
 
     await user.click(item)
-    expect(setOpenMenu).toHaveBeenCalledWith('middle')
+    expect(setOpenMenu).toHaveBeenCalledWith('middle-b')
   })
 
   it('opens a collapsed item context menu without selecting the hidden item', async () => {
@@ -73,9 +112,9 @@ describe('ViewerFrame', () => {
       <BottomBarRoot openMenu="" setOpenMenu={setOpenMenu}>
         <BottomBarLevel id="first" menuLabel="First" button={button('First')}>
           <BottomBarLevel
-            id="middle"
-            menuLabel="Middle"
-            button={button('Middle')}
+            id="middle-a"
+            menuLabel="Middle A"
+            button={button('Middle A')}
             contextMenuItems={[
               {
                 type: 'action',
@@ -85,10 +124,20 @@ describe('ViewerFrame', () => {
               },
             ]}
           >
-            <BottomBarLevel id="last" menuLabel="Last" button={button('Last')}>
-              <ViewerFrame>
-                <div>Content</div>
-              </ViewerFrame>
+            <BottomBarLevel
+              id="middle-b"
+              menuLabel="Middle B"
+              button={button('Middle B')}
+            >
+              <BottomBarLevel
+                id="last"
+                menuLabel="Last"
+                button={button('Last')}
+              >
+                <ViewerFrame>
+                  <div>Content</div>
+                </ViewerFrame>
+              </BottomBarLevel>
             </BottomBarLevel>
           </BottomBarLevel>
         </BottomBarLevel>
@@ -96,7 +145,7 @@ describe('ViewerFrame', () => {
     )
 
     await user.click(screen.getByLabelText('Open hidden bottom bar items'))
-    fireEvent.contextMenu(screen.getByText('Middle'), {
+    fireEvent.contextMenu(screen.getByText('Middle A'), {
       clientX: 64,
       clientY: 10,
     })
@@ -104,7 +153,7 @@ describe('ViewerFrame', () => {
     expect(setOpenMenu).not.toHaveBeenCalled()
     await user.click(await screen.findByText('Inspect Middle'))
     expect(onSelect).toHaveBeenCalledWith(
-      expect.objectContaining({ itemId: 'middle', openKind: 'mouse' }),
+      expect.objectContaining({ itemId: 'middle-a', openKind: 'mouse' }),
     )
   })
 
@@ -116,9 +165,9 @@ describe('ViewerFrame', () => {
       <BottomBarRoot openMenu="" setOpenMenu={() => {}}>
         <BottomBarLevel id="first" menuLabel="First" button={button('First')}>
           <BottomBarLevel
-            id="middle"
-            menuLabel="Middle"
-            button={button('Middle')}
+            id="middle-a"
+            menuLabel="Middle A"
+            button={button('Middle A')}
             contextMenuItems={[
               {
                 type: 'action',
@@ -128,10 +177,20 @@ describe('ViewerFrame', () => {
               },
             ]}
           >
-            <BottomBarLevel id="last" menuLabel="Last" button={button('Last')}>
-              <ViewerFrame>
-                <div>Content</div>
-              </ViewerFrame>
+            <BottomBarLevel
+              id="middle-b"
+              menuLabel="Middle B"
+              button={button('Middle B')}
+            >
+              <BottomBarLevel
+                id="last"
+                menuLabel="Last"
+                button={button('Last')}
+              >
+                <ViewerFrame>
+                  <div>Content</div>
+                </ViewerFrame>
+              </BottomBarLevel>
             </BottomBarLevel>
           </BottomBarLevel>
         </BottomBarLevel>
@@ -139,13 +198,13 @@ describe('ViewerFrame', () => {
     )
 
     await user.click(screen.getByLabelText('Open hidden bottom bar items'))
-    const collapsedItem = screen.getByText('Middle')
+    const collapsedItem = screen.getByText('Middle A')
     collapsedItem.focus()
     await user.keyboard('{ContextMenu}')
 
     await user.click(await screen.findByText('Inspect Middle'))
     expect(onSelect).toHaveBeenCalledWith(
-      expect.objectContaining({ itemId: 'middle', openKind: 'keyboard' }),
+      expect.objectContaining({ itemId: 'middle-a', openKind: 'keyboard' }),
     )
   })
 
