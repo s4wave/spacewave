@@ -1,10 +1,30 @@
 import { useCallback, useMemo, type ReactNode } from 'react'
 import { isDesktop } from '@aptre/bldr'
-import { LuArrowLeft, LuCircle, LuTerminal, LuUsers } from 'react-icons/lu'
+import {
+  LuArrowLeft,
+  LuDownload,
+  LuCircle,
+  LuRefreshCw,
+  LuSettings,
+  LuTerminal,
+  LuUsers,
+} from 'react-icons/lu'
+import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
+import type { Root } from '@s4wave/sdk/root'
+import {
+  DesktopCLIInstallActionKind,
+  DesktopCLIInstallStatus,
+  type DesktopCLIInstallActionItem,
+  type DesktopCLIEntrypointIdentity,
+  type DesktopCLIInstallState,
+  type WatchCLIInstallStateResponse,
+} from '@go/github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime/desktop-runtime.pb.js'
+import { DesktopCLIInstallResourceServiceClient } from '@go/github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime/desktop-runtime_srpc.pb.js'
 
 import { useRuntimeHandoff } from '@s4wave/app/listener/RuntimeHandoffContext.js'
 import { useListenerStatus } from '@s4wave/app/hooks/useListenerStatus.js'
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
+import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
@@ -24,10 +44,25 @@ export function CommandLineSetupPage() {
   const navigate = useNavigate()
   const sessionIdx = useSessionIndex()
   const status = useListenerStatus()
+  const rootResource = useRootResource()
+  const cliInstall = useDesktopCLIInstallState(rootResource)
 
   const handleBack = useCallback(() => {
     navigate({ path: '../../' })
   }, [navigate])
+
+  const handleCLIInstallAction = useCallback(
+    async (action: DesktopCLIInstallActionItem) => {
+      const root = rootResource.value
+      if (!root) return
+      const service = new DesktopCLIInstallResourceServiceClient(root.client)
+      await service.InvokeCLIInstallAction({
+        actionId: action.id,
+        generation: action.generation,
+      })
+    },
+    [rootResource.value],
+  )
 
   const opts: CommandOptions = useMemo(
     () => ({
@@ -63,6 +98,12 @@ export function CommandLineSetupPage() {
         </div>
 
         <div className="space-y-4">
+          <DesktopCLIInstallCard
+            state={cliInstall.value?.state}
+            loading={cliInstall.loading}
+            error={cliInstall.error}
+            onInvokeAction={handleCLIInstallAction}
+          />
           <ListenerStatusChip />
           <WalkthroughSection opts={opts} />
           <InstallGuidanceSection />
@@ -73,9 +114,247 @@ export function CommandLineSetupPage() {
   )
 }
 
+function useDesktopCLIInstallState(
+  rootResource: ReturnType<typeof useRootResource>,
+) {
+  return useStreamingResource(
+    rootResource,
+    (root: Root, signal: AbortSignal) =>
+      watchDesktopCLIInstallState(root, signal),
+    [],
+  )
+}
+
+async function* watchDesktopCLIInstallState(
+  root: Root,
+  signal: AbortSignal,
+): AsyncIterable<WatchCLIInstallStateResponse> {
+  if (!isDesktop) return
+  const service = new DesktopCLIInstallResourceServiceClient(root.client)
+  for await (const item of service.WatchCLIInstallState({}, signal)) {
+    yield item
+  }
+}
+
+export function DesktopCLIInstallCard({
+  state,
+  loading,
+  error,
+  onInvokeAction,
+}: {
+  state?: DesktopCLIInstallState
+  loading?: boolean
+  error?: Error | null
+  onInvokeAction?: (action: DesktopCLIInstallActionItem) => void | Promise<void>
+}) {
+  const presentation = desktopCLIInstallPresentation(state, loading, error)
+  const selectedTarget = state?.targets?.find((target) => target.selected)
+  const actions = state?.actions ?? []
+
+  return (
+    <section className="border-foreground/6 bg-background-card/30 rounded-lg border p-4 backdrop-blur-sm">
+      <div className="mb-3 flex items-start gap-3">
+        <StatusDot tone={presentation.tone} />
+        <div className="min-w-0 flex-1">
+          <h2 className="text-foreground text-sm font-semibold tracking-tight">
+            Desktop CLI install
+          </h2>
+          <p className="text-foreground-alt mt-0.5 text-xs">
+            {presentation.label}
+          </p>
+        </div>
+        <ActionButtons actions={actions} onInvokeAction={onInvokeAction} />
+      </div>
+
+      {presentation.detail && (
+        <p className="text-foreground-alt mb-3 text-xs">
+          {presentation.detail}
+        </p>
+      )}
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="min-w-0">
+          <p className="text-foreground-alt mb-1 text-[0.7rem] font-medium uppercase">
+            Selected target
+          </p>
+          <code className="text-foreground-alt/90 bg-foreground/5 block max-w-full truncate rounded px-1.5 py-1 font-mono text-[0.7rem]">
+            {selectedTarget?.path || 'Not selected'}
+          </code>
+          {selectedTarget && (
+            <p className="text-foreground-alt mt-1 text-[0.7rem]">
+              {selectedTarget.detail ||
+                (selectedTarget.writable
+                  ? 'Writable user target'
+                  : 'Manual target review')}
+            </p>
+          )}
+        </div>
+
+        <div className="min-w-0">
+          <p className="text-foreground-alt mb-1 text-[0.7rem] font-medium uppercase">
+            Release identity
+          </p>
+          <p className="text-foreground text-xs">
+            {formatCLIIdentity(state?.available) ||
+              'Waiting for release metadata'}
+          </p>
+          {state?.installed?.manifestId && (
+            <p className="text-foreground-alt mt-1 text-[0.7rem]">
+              Installed {formatCLIIdentity(state.installed)}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {state?.conflictPath && (
+        <div className="mt-3 rounded-md border border-amber-500/20 bg-amber-500/5 p-3">
+          <p className="text-foreground text-xs font-medium">PATH conflict</p>
+          <code className="text-foreground-alt/90 mt-1 block max-w-full truncate font-mono text-[0.7rem]">
+            {state.conflictPath}
+          </code>
+        </div>
+      )}
+
+      {state?.errorMessage && (
+        <p className="text-danger mt-3 text-xs">{state.errorMessage}</p>
+      )}
+    </section>
+  )
+}
+
+function ActionButtons({
+  actions,
+  onInvokeAction,
+}: {
+  actions: DesktopCLIInstallActionItem[]
+  onInvokeAction?: (action: DesktopCLIInstallActionItem) => void | Promise<void>
+}) {
+  const visibleActions = actions.filter((action) => {
+    switch (action.kind) {
+      case DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_RECHECK:
+      case DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS:
+      case DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL:
+      case DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE:
+        return true
+      default:
+        return false
+    }
+  })
+  if (visibleActions.length === 0) return null
+
+  return (
+    <div className="flex shrink-0 items-center gap-1">
+      {visibleActions.map((action) => {
+        const Icon =
+          action.kind ===
+          DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_RECHECK
+            ? LuRefreshCw
+            : action.kind ===
+                  DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL ||
+                action.kind ===
+                  DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE
+              ? LuDownload
+              : LuSettings
+        return (
+          <button
+            key={action.id}
+            type="button"
+            disabled={!(action.enabled ?? false)}
+            title={action.label || action.id}
+            aria-label={action.label || action.id}
+            onClick={() => void onInvokeAction?.(action)}
+            className="border-foreground/10 text-foreground-alt hover:text-foreground hover:bg-foreground/5 disabled:text-foreground-alt/30 flex size-7 items-center justify-center rounded-md border transition-colors disabled:cursor-not-allowed"
+          >
+            <Icon className="size-3.5" />
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function desktopCLIInstallPresentation(
+  state: DesktopCLIInstallState | undefined,
+  loading: boolean | undefined,
+  error: Error | null | undefined,
+): {
+  tone: 'ready' | 'warning' | 'muted' | 'active' | 'error'
+  label: string
+  detail: string
+} {
+  if (error) {
+    return {
+      tone: 'error',
+      label: 'Install state unavailable',
+      detail: error.message,
+    }
+  }
+  if (loading || !state) {
+    return {
+      tone: 'muted',
+      label: 'Checking command line tool',
+      detail: '',
+    }
+  }
+  switch (state.status) {
+    case DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_INSTALLED:
+      return {
+        tone: 'ready',
+        label: state.label || 'Command line tool installed',
+        detail: state.detail ?? '',
+      }
+    case DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_UPDATE_AVAILABLE:
+      return {
+        tone: 'warning',
+        label: state.label || 'Command line tool update available',
+        detail: state.detail ?? '',
+      }
+    case DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_CONFLICT:
+      return {
+        tone: 'warning',
+        label: state.label || 'Command line tool conflict',
+        detail: state.detail ?? '',
+      }
+    case DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_ERROR:
+      return {
+        tone: 'error',
+        label: state.label || 'Command line tool check failed',
+        detail: state.detail ?? '',
+      }
+    case DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_INSTALLING:
+    case DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_UPDATING:
+      return {
+        tone: 'active',
+        label: state.label || 'Command line tool update running',
+        detail: state.detail ?? '',
+      }
+    case DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_MISSING:
+      return {
+        tone: 'muted',
+        label: state.label || 'Command line tool not installed',
+        detail: state.detail ?? '',
+      }
+    default:
+      return {
+        tone: 'muted',
+        label: state.label || 'Checking command line tool',
+        detail: state.detail ?? '',
+      }
+  }
+}
+
+function formatCLIIdentity(
+  identity: DesktopCLIEntrypointIdentity | undefined,
+): string {
+  if (!identity?.manifestId) return ''
+  const rev = identity.manifestRev ? ` rev ${identity.manifestRev}` : ''
+  const platform = identity.platformId ? ` (${identity.platformId})` : ''
+  return `${identity.manifestId}${rev}${platform}`
+}
+
 // WalkthroughSection renders the three-step CLI walkthrough bound to
 // the active session (status, whoami, space list).
-function WalkthroughSection({ opts }: { opts: CommandOptions }) {
+export function WalkthroughSection({ opts }: { opts: CommandOptions }) {
   return (
     <section className="border-foreground/6 bg-background-card/30 rounded-lg border p-4 backdrop-blur-sm">
       <h2 className="text-foreground mb-3 text-sm font-semibold tracking-tight">
@@ -329,13 +608,21 @@ function listenerToneLabel(
 
 // StatusDot renders a small filled circle whose color matches the
 // listener state tone.
-function StatusDot({ tone }: { tone: 'ready' | 'warning' | 'muted' }) {
+function StatusDot({
+  tone,
+}: {
+  tone: 'ready' | 'warning' | 'muted' | 'active' | 'error'
+}) {
   const cls =
     tone === 'ready'
       ? 'text-emerald-500'
-      : tone === 'warning'
-        ? 'text-amber-500'
-        : 'text-foreground-alt/40'
+      : tone === 'active'
+        ? 'text-brand'
+        : tone === 'error'
+          ? 'text-danger'
+          : tone === 'warning'
+            ? 'text-amber-500'
+            : 'text-foreground-alt/40'
   return (
     <LuCircle
       className={cn('h-2.5 w-2.5 shrink-0 fill-current', cls)}

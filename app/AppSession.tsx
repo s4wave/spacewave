@@ -54,28 +54,7 @@ export function AppSession() {
       if (!sessionIdx) return null
       const handoff = consumeQuickstartSessionHandoff(sessionIdx)
       if (handoff) {
-        if (
-          (globalThis as { __s4waveLogQuickstartTiming?: boolean })
-            .__s4waveLogQuickstartTiming
-        ) {
-          console.log(
-            'quickstart route consuming session handoff: ' +
-              JSON.stringify({
-                sessionIdx,
-                released: handoff.session.released,
-              }),
-          )
-        }
         return cleanup(handoff.session)
-      }
-      if (
-        (globalThis as { __s4waveLogQuickstartTiming?: boolean })
-          .__s4waveLogQuickstartTiming
-      ) {
-        console.log(
-          'quickstart route mounting session by index: ' +
-            JSON.stringify({ sessionIdx }),
-        )
       }
       const result = await root.mountSessionByIdx({ sessionIdx }, signal)
       if (result === null) {

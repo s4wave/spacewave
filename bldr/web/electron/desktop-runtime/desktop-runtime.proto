@@ -18,6 +18,15 @@ service DesktopRuntimeResourceService {
   rpc QuitDesktopRuntime(QuitDesktopRuntimeRequest) returns (QuitDesktopRuntimeResponse);
 }
 
+// DesktopCLIInstallResourceService exposes desktop-owned CLI install state.
+service DesktopCLIInstallResourceService {
+  // WatchCLIInstallState streams detected CLI install state.
+  rpc WatchCLIInstallState(WatchCLIInstallStateRequest) returns (stream WatchCLIInstallStateResponse);
+
+  // InvokeCLIInstallAction invokes a generation-bound CLI install action.
+  rpc InvokeCLIInstallAction(InvokeCLIInstallActionRequest) returns (InvokeCLIInstallActionResponse);
+}
+
 // DesktopRuntimeState describes Electron main desktop-shell state.
 message DesktopRuntimeState {
   // MainWindowOpen is set when the main app window exists.
@@ -44,6 +53,142 @@ message DesktopRuntimeState {
   repeated DesktopRuntimeAttentionItem attention_items = 11;
   // Actions contains bounded explicit command rows.
   repeated DesktopRuntimeActionItem actions = 12;
+  // CliInstall contains compact desktop-managed CLI install status for tray surfaces.
+  DesktopRuntimeCLIInstallSummary cli_install = 13;
+}
+
+// DesktopCLIInstallStatus describes managed CLI install/update state.
+enum DesktopCLIInstallStatus {
+  // DESKTOP_CLI_INSTALL_STATUS_UNSPECIFIED leaves state unset.
+  DESKTOP_CLI_INSTALL_STATUS_UNSPECIFIED = 0;
+  // DESKTOP_CLI_INSTALL_STATUS_UNKNOWN indicates detection has not completed.
+  DESKTOP_CLI_INSTALL_STATUS_UNKNOWN = 1;
+  // DESKTOP_CLI_INSTALL_STATUS_MISSING indicates no managed CLI was detected.
+  DESKTOP_CLI_INSTALL_STATUS_MISSING = 2;
+  // DESKTOP_CLI_INSTALL_STATUS_INSTALLED indicates the managed CLI is current.
+  DESKTOP_CLI_INSTALL_STATUS_INSTALLED = 3;
+  // DESKTOP_CLI_INSTALL_STATUS_UPDATE_AVAILABLE indicates a release CLI is newer.
+  DESKTOP_CLI_INSTALL_STATUS_UPDATE_AVAILABLE = 4;
+  // DESKTOP_CLI_INSTALL_STATUS_CONFLICT indicates an unmanaged command is first on PATH.
+  DESKTOP_CLI_INSTALL_STATUS_CONFLICT = 5;
+  // DESKTOP_CLI_INSTALL_STATUS_ERROR indicates detection failed.
+  DESKTOP_CLI_INSTALL_STATUS_ERROR = 6;
+  // DESKTOP_CLI_INSTALL_STATUS_INSTALLING indicates a managed install is running.
+  DESKTOP_CLI_INSTALL_STATUS_INSTALLING = 7;
+  // DESKTOP_CLI_INSTALL_STATUS_UPDATING indicates a managed update is running.
+  DESKTOP_CLI_INSTALL_STATUS_UPDATING = 8;
+}
+
+// DesktopCLIInstallActionKind describes desktop-owned install actions.
+enum DesktopCLIInstallActionKind {
+  // DESKTOP_CLI_INSTALL_ACTION_KIND_UNSPECIFIED leaves the action unset.
+  DESKTOP_CLI_INSTALL_ACTION_KIND_UNSPECIFIED = 0;
+  // DESKTOP_CLI_INSTALL_ACTION_KIND_RECHECK reruns detection.
+  DESKTOP_CLI_INSTALL_ACTION_KIND_RECHECK = 1;
+  // DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS opens CLI settings.
+  DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS = 2;
+  // DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL installs a missing managed CLI.
+  DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL = 3;
+  // DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE updates an existing managed CLI.
+  DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE = 4;
+}
+
+// DesktopCLIInstallTargetPathState describes PATH evidence for a target.
+enum DesktopCLIInstallTargetPathState {
+  // DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNSPECIFIED leaves PATH evidence unset.
+  DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNSPECIFIED = 0;
+  // DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNKNOWN means process evidence is weak.
+  DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNKNOWN = 1;
+  // DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_ON_PATH means the target directory is on PATH.
+  DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_ON_PATH = 2;
+  // DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_OFF_PATH means manual PATH remediation is needed.
+  DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_OFF_PATH = 3;
+  // DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_BLOCKED means policy rejects this target.
+  DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_BLOCKED = 4;
+}
+
+// DesktopCLIEntrypointIdentity describes a detected or available CLI entrypoint.
+message DesktopCLIEntrypointIdentity {
+  // Path is the local command path when known.
+  string path = 1;
+  // ProjectId is the Spacewave project id reported by version JSON.
+  string project_id = 2;
+  // EntrypointRole is managed role identity such as cli or standalone.
+  string entrypoint_role = 3;
+  // ChannelKey is the release channel reported by the entrypoint.
+  string channel_key = 4;
+  // ManifestId is the selected Manifest id.
+  string manifest_id = 5;
+  // ManifestRev is the selected Manifest revision.
+  uint64 manifest_rev = 6;
+  // PlatformId is the native platform id.
+  string platform_id = 7;
+}
+
+// DesktopCLIInstallTarget describes one user-level install target candidate.
+message DesktopCLIInstallTarget {
+  // Id identifies the target within the desktop CLI install resource.
+  string id = 1;
+  // Label is primary display text.
+  string label = 2;
+  // Path is the filesystem path for the command.
+  string path = 3;
+  // Writable indicates detection believes the target can be written.
+  bool writable = 4;
+  // Selected indicates the default target.
+  bool selected = 5;
+  // Detail is secondary display text.
+  string detail = 6;
+  // Generation is the state generation this target was built from.
+  uint64 generation = 7;
+  // PathState describes whether process PATH evidence reaches this target.
+  DesktopCLIInstallTargetPathState path_state = 8;
+  // BlockedReason explains why target policy rejected this target.
+  string blocked_reason = 9;
+}
+
+// DesktopCLIInstallActionItem describes one generation-bound user action.
+message DesktopCLIInstallActionItem {
+  // Id identifies the action within the current state generation.
+  string id = 1;
+  // Kind is the action type.
+  DesktopCLIInstallActionKind kind = 2;
+  // Label is primary display text.
+  string label = 3;
+  // Enabled indicates the action can be invoked.
+  bool enabled = 4;
+  // TargetId identifies the target affected by the action when applicable.
+  string target_id = 5;
+  // Generation is the state generation this action was built from.
+  uint64 generation = 6;
+  // Detail is secondary display text.
+  string detail = 7;
+}
+
+// DesktopCLIInstallState describes desktop-managed CLI install state.
+message DesktopCLIInstallState {
+  // Status is the collapsed install/update state.
+  DesktopCLIInstallStatus status = 1;
+  // Label is primary display text.
+  string label = 2;
+  // Detail is secondary display text.
+  string detail = 3;
+  // Installed is the detected local CLI identity.
+  DesktopCLIEntrypointIdentity installed = 4;
+  // Available is the release-world CLI identity selected for install/update.
+  DesktopCLIEntrypointIdentity available = 5;
+  // Targets contains user-level install target candidates.
+  repeated DesktopCLIInstallTarget targets = 6;
+  // ConflictPath is the conflicting command path when status is CONFLICT.
+  string conflict_path = 7;
+  // ErrorMessage is the latest detection error.
+  string error_message = 8;
+  // Generation increments every time detection state changes.
+  uint64 generation = 9;
+  // SelectedTargetId identifies the target selected by the resource owner.
+  string selected_target_id = 10;
+  // Actions contains generation-bound resource actions.
+  repeated DesktopCLIInstallActionItem actions = 11;
 }
 
 // DesktopRuntimeHealth describes the collapsed tray icon status.
@@ -214,6 +359,18 @@ message DesktopRuntimeUpdateStatus {
   string detail = 4;
 }
 
+// DesktopRuntimeCLIInstallSummary is compact CLI install state for tray readback.
+message DesktopRuntimeCLIInstallSummary {
+  // Status mirrors the desktop CLI install child resource status.
+  DesktopCLIInstallStatus status = 1;
+  // Label is primary display text.
+  string label = 2;
+  // Detail is secondary display text.
+  string detail = 3;
+  // Route opens the settings surface that owns install/update actions.
+  string route = 4;
+}
+
 // DesktopRuntimeAttentionItem describes a user-actionable attention row.
 message DesktopRuntimeAttentionItem {
   // Kind describes the attention category.
@@ -278,3 +435,19 @@ message QuitDesktopRuntimeRequest {}
 
 // QuitDesktopRuntimeResponse is the response for QuitDesktopRuntime.
 message QuitDesktopRuntimeResponse {}
+
+// WatchCLIInstallStateRequest is the request for WatchCLIInstallState.
+message WatchCLIInstallStateRequest {}
+
+// WatchCLIInstallStateResponse is the response for WatchCLIInstallState.
+message WatchCLIInstallStateResponse {
+  // State is the current CLI install state.
+  DesktopCLIInstallState state = 1;
+}
+
+message InvokeCLIInstallActionRequest {
+  string action_id = 1;
+  uint64 generation = 2;
+}
+
+message InvokeCLIInstallActionResponse {}

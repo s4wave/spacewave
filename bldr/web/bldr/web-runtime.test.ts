@@ -6,68 +6,72 @@ import {
   combineUint8ArrayListTransform,
   openRpcStream,
   type ChannelPort,
-} from "starpc";
-import { pipe } from "it-pipe";
+} from 'starpc'
+import { pipe } from 'it-pipe'
 
-import { Client as ResourceClient } from "../../sdk/resource/client.js";
-import { ResourceServiceClient } from "../../sdk/resource/resource_srpc.pb.js";
-import { DesktopTrayResourceServiceClient } from "../../desktop/tray/tray_srpc.pb.js";
-import { DesktopTrayIconState } from "../../desktop/tray/tray.pb.js";
-import { DesktopRuntimeResourceServiceClient } from "../electron/desktop-runtime/desktop-runtime_srpc.pb.js";
+import { Client as ResourceClient } from '../../sdk/resource/client.js'
+import { ResourceServiceClient } from '../../sdk/resource/resource_srpc.pb.js'
+import { DesktopTrayResourceServiceClient } from '../../desktop/tray/tray_srpc.pb.js'
+import { DesktopTrayIconState } from '../../desktop/tray/tray.pb.js'
 import {
+  DesktopCLIInstallResourceServiceClient,
+  DesktopRuntimeResourceServiceClient,
+} from '../electron/desktop-runtime/desktop-runtime_srpc.pb.js'
+import {
+  DesktopCLIInstallStatus,
   DesktopRuntimeHealth,
   DesktopRuntimeLifecycle,
-} from "../electron/desktop-runtime/desktop-runtime.pb.js";
-import { DesktopRuntimeResource } from "../electron/main/desktop-runtime.js";
-import { WebRuntimeClientType } from "../runtime/runtime.pb.js";
-import { WebRuntimeClient as WebRuntimeServiceClient } from "../runtime/runtime_srpc.pb.js";
+} from '../electron/desktop-runtime/desktop-runtime.pb.js'
+import { DesktopRuntimeResource } from '../electron/main/desktop-runtime.js'
+import { WebRuntimeClientType } from '../runtime/runtime.pb.js'
+import { WebRuntimeClient as WebRuntimeServiceClient } from '../runtime/runtime_srpc.pb.js'
 import {
   isClosedStreamWriteError,
   logWebRuntimeMessage,
   WebRuntime,
   WebRuntimeClientChannelStreamOpts,
-} from "./web-runtime.js";
+} from './web-runtime.js'
 
 class MemoryChannel {
-  private handler: ((ev: { data: unknown }) => void) | null = null;
-  private readonly pending: unknown[] = [];
+  private handler: ((ev: { data: unknown }) => void) | null = null
+  private readonly pending: unknown[] = []
 
   public set onmessage(handler: ((ev: { data: unknown }) => void) | null) {
-    this.handler = handler;
-    this.flush();
+    this.handler = handler
+    this.flush()
   }
 
   public get onmessage(): ((ev: { data: unknown }) => void) | null {
-    return this.handler;
+    return this.handler
   }
 
   public constructor(private peer?: MemoryChannel) {}
 
   public setPeer(peer: MemoryChannel): void {
-    this.peer = peer;
+    this.peer = peer
   }
 
   public postMessage(data: unknown): void {
-    this.peer?.deliver(data);
+    this.peer?.deliver(data)
   }
 
   public close(): void {
-    this.handler = null;
-    this.pending.length = 0;
+    this.handler = null
+    this.pending.length = 0
   }
 
   private deliver(data: unknown): void {
     if (!this.handler) {
-      this.pending.push(data);
-      return;
+      this.pending.push(data)
+      return
     }
-    queueMicrotask(() => this.handler?.({ data }));
+    queueMicrotask(() => this.handler?.({ data }))
   }
 
   private flush(): void {
     while (this.handler && this.pending.length > 0) {
-      const data = this.pending.shift();
-      queueMicrotask(() => this.handler?.({ data }));
+      const data = this.pending.shift()
+      queueMicrotask(() => this.handler?.({ data }))
     }
   }
 }
@@ -75,81 +79,81 @@ class MemoryChannel {
 class TransferMessagePort {
   private handler:
     | ((ev: { data: unknown; ports: MessagePort[] }) => void)
-    | null = null;
-  private readonly pending: { data: unknown; ports: MessagePort[] }[] = [];
-  private peer?: TransferMessagePort;
+    | null = null
+  private readonly pending: { data: unknown; ports: MessagePort[] }[] = []
+  private peer?: TransferMessagePort
 
   public set onmessage(
     handler: ((ev: { data: unknown; ports: MessagePort[] }) => void) | null,
   ) {
-    this.handler = handler;
-    this.flush();
+    this.handler = handler
+    this.flush()
   }
 
   public get onmessage():
     | ((ev: { data: unknown; ports: MessagePort[] }) => void)
     | null {
-    return this.handler;
+    return this.handler
   }
 
   public setPeer(peer: TransferMessagePort): void {
-    this.peer = peer;
+    this.peer = peer
   }
 
   public postMessage(data: unknown, ports: MessagePort[] = []): void {
-    this.peer?.deliver({ data, ports });
+    this.peer?.deliver({ data, ports })
   }
 
   public start(): void {
-    this.flush();
+    this.flush()
   }
 
   public close(): void {
-    this.handler = null;
-    this.pending.length = 0;
+    this.handler = null
+    this.pending.length = 0
   }
 
   private deliver(event: { data: unknown; ports: MessagePort[] }): void {
     if (!this.handler) {
-      this.pending.push(event);
-      return;
+      this.pending.push(event)
+      return
     }
-    queueMicrotask(() => this.handler?.(event));
+    queueMicrotask(() => this.handler?.(event))
   }
 
   private flush(): void {
     while (this.handler && this.pending.length > 0) {
-      const event = this.pending.shift();
-      queueMicrotask(() => event && this.handler?.(event));
+      const event = this.pending.shift()
+      queueMicrotask(() => event && this.handler?.(event))
     }
   }
 }
 
 class TransferMessageChannel {
-  public readonly port1: MessagePort;
-  public readonly port2: MessagePort;
+  public readonly port1: MessagePort
+  public readonly port2: MessagePort
 
   constructor() {
-    const left = new TransferMessagePort();
-    const right = new TransferMessagePort();
-    left.setPeer(right);
-    right.setPeer(left);
-    this.port1 = left as unknown as MessagePort;
-    this.port2 = right as unknown as MessagePort;
+    const left = new TransferMessagePort()
+    const right = new TransferMessagePort()
+    left.setPeer(right)
+    right.setPeer(left)
+    this.port1 = left as unknown as MessagePort
+    this.port2 = right as unknown as MessagePort
   }
 }
 
 function createChannelPortPair(): [ChannelPort, ChannelPort] {
-  const clientRx = new MemoryChannel();
-  const serverRx = new MemoryChannel();
-  const clientTx = new MemoryChannel(serverRx);
-  const serverTx = new MemoryChannel(clientRx);
-  clientRx.setPeer(serverTx);
-  serverRx.setPeer(clientTx);
+  const clientRx = new MemoryChannel()
+  const serverRx = new MemoryChannel()
+  const clientTx = new MemoryChannel(serverRx)
+  const serverTx = new MemoryChannel(clientRx)
+  clientRx.setPeer(serverTx)
+  serverRx.setPeer(clientTx)
   return [
     { tx: clientTx, rx: clientRx } as unknown as ChannelPort,
     { tx: serverTx, rx: serverRx } as unknown as ChannelPort,
-  ];
+  ]
 }
 
 function installFakeMessageChannel(): {
@@ -182,17 +186,17 @@ function installFakeMessageChannel(): {
 }
 
 function connectRuntimeServer(runtime: WebRuntime): {
-  client: SRPCClient;
-  close(): Promise<void>;
+  client: SRPCClient
+  close(): Promise<void>
 } {
-  const serverTasks: Promise<void>[] = [];
-  const clientConn = new StreamConn();
+  const serverTasks: Promise<void>[] = []
+  const clientConn = new StreamConn()
   const serverConn = new StreamConn(runtime.getWebRuntimeServer(), {
-    direction: "inbound",
-  });
-  const [clientPort, serverPort] = createChannelPortPair();
-  const clientStream = new ChannelStream("client", clientPort);
-  const serverStream = new ChannelStream("server", serverPort);
+    direction: 'inbound',
+  })
+  const [clientPort, serverPort] = createChannelPortPair()
+  const clientStream = new ChannelStream('client', clientPort)
+  const serverStream = new ChannelStream('server', serverPort)
   serverTasks.push(
     pipe(
       clientStream,
@@ -210,15 +214,15 @@ function connectRuntimeServer(runtime: WebRuntime): {
     )
       .catch((err: unknown) => serverConn.close(toError(err)))
       .then(() => serverConn.close()),
-  );
+  )
   return {
     client: new SRPCClient(clientConn.buildOpenStreamFunc()),
     async close() {
-      clientConn.close();
-      serverConn.close();
-      await Promise.allSettled(serverTasks);
+      clientConn.close()
+      serverConn.close()
+      await Promise.allSettled(serverTasks)
     },
-  };
+  }
 }
 
 describe('WebRuntime', () => {
@@ -233,68 +237,74 @@ describe('WebRuntime', () => {
     expect(WebRuntimeClientChannelStreamOpts.idleTimeoutMs).toBeUndefined()
   })
 
-  it("treats closed log streams as teardown", () => {
-    const err = new Error("write EPIPE") as Error & { code: string };
-    err.code = "EPIPE";
-    const log = vi.spyOn(console, "log").mockImplementation(() => {
-      throw err;
-    });
+  it('treats closed log streams as teardown', () => {
+    const err = new Error('write EPIPE') as Error & { code: string }
+    err.code = 'EPIPE'
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {
+      throw err
+    })
     try {
-      expect(isClosedStreamWriteError(err)).toBe(true);
-      expect(() => logWebRuntimeMessage("closing")).not.toThrow();
+      expect(isClosedStreamWriteError(err)).toBe(true)
+      expect(() => logWebRuntimeMessage('closing')).not.toThrow()
     } finally {
-      log.mockRestore();
+      log.mockRestore()
     }
-  });
+  })
 
-  it("keeps non-stream log failures fatal", () => {
-    const err = new Error("unexpected console failure") as Error & {
-      code: string;
-    };
-    err.code = "OTHER";
-    const log = vi.spyOn(console, "log").mockImplementation(() => {
-      throw err;
-    });
+  it('keeps non-stream log failures fatal', () => {
+    const err = new Error('unexpected console failure') as Error & {
+      code: string
+    }
+    err.code = 'OTHER'
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {
+      throw err
+    })
     try {
-      expect(isClosedStreamWriteError(err)).toBe(false);
-      expect(() => logWebRuntimeMessage("closing")).toThrow(err);
+      expect(isClosedStreamWriteError(err)).toBe(false)
+      expect(() => logWebRuntimeMessage('closing')).toThrow(err)
     } finally {
-      log.mockRestore();
+      log.mockRestore()
     }
-  });
+  })
 
-  it("exposes registered services through the process-lifetime runtime server", async () => {
-    const runtime = new WebRuntime("runtime-1", vi.fn(), null, null);
+  it('exposes registered services through the process-lifetime runtime server', async () => {
+    const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
     const desktopResource = new DesktopRuntimeResource({
       openOrFocusMainWindow: vi.fn(),
       quitDesktopRuntime: vi.fn(),
-    });
-    runtime.registerServerExtension(desktopResource.resourceServer);
+    })
+    runtime.registerServerExtension(desktopResource.resourceServer)
 
-    const controller = new AbortController();
-    const runtimeConn = connectRuntimeServer(runtime);
-    const srpcClient = runtimeConn.client;
+    const controller = new AbortController()
+    const runtimeConn = connectRuntimeServer(runtime)
+    const srpcClient = runtimeConn.client
     const resourceClient = new ResourceClient(
       new ResourceServiceClient(srpcClient),
       controller.signal,
-    );
+    )
 
-    const rootRef = await resourceClient.accessRootResource();
-    const service = new DesktopRuntimeResourceServiceClient(rootRef.client);
-    const tray = new DesktopTrayResourceServiceClient(rootRef.client);
-    const iter = service.WatchDesktopState({})[Symbol.asyncIterator]();
-    const trayIter = tray.WatchDesktopTray({})[Symbol.asyncIterator]();
+    const rootRef = await resourceClient.accessRootResource()
+    const service = new DesktopRuntimeResourceServiceClient(rootRef.client)
+    const tray = new DesktopTrayResourceServiceClient(rootRef.client)
+    const cliInstall = new DesktopCLIInstallResourceServiceClient(
+      rootRef.client,
+    )
+    const iter = service.WatchDesktopState({})[Symbol.asyncIterator]()
+    const trayIter = tray.WatchDesktopTray({})[Symbol.asyncIterator]()
+    const cliInstallIter = cliInstall
+      .WatchCLIInstallState({})
+      [Symbol.asyncIterator]()
 
     await expect(iter.next()).resolves.toMatchObject({
       value: {
         state: {
-          statusText: "Running",
+          statusText: 'Running',
           health: DesktopRuntimeHealth.HEALTHY,
           lifecycle: DesktopRuntimeLifecycle.RUNNING,
         },
       },
       done: false,
-    });
+    })
     await expect(trayIter.next()).resolves.toMatchObject({
       value: {
         state: {
@@ -302,144 +312,158 @@ describe('WebRuntime', () => {
         },
       },
       done: false,
-    });
+    })
+    await expect(cliInstallIter.next()).resolves.toMatchObject({
+      value: {
+        state: {
+          status: DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_UNKNOWN,
+          generation: 1n,
+          actions: [
+            { id: 'recheck', generation: 1n },
+            { id: 'open-settings', generation: 1n },
+          ],
+        },
+      },
+      done: false,
+    })
 
     await service.SetDesktopState({
       state: {
-        statusText: "Projected",
+        statusText: 'Projected',
         health: DesktopRuntimeHealth.ACTIVE,
         lifecycle: DesktopRuntimeLifecycle.RUNNING,
       },
-    });
+    })
     await expect(iter.next()).resolves.toMatchObject({
       value: {
         state: {
-          statusText: "Projected",
+          statusText: 'Projected',
           health: DesktopRuntimeHealth.ACTIVE,
           lifecycle: DesktopRuntimeLifecycle.RUNNING,
         },
       },
       done: false,
-    });
+    })
     expect(desktopResource.getState()).toMatchObject({
-      statusText: "Projected",
+      statusText: 'Projected',
       health: DesktopRuntimeHealth.ACTIVE,
-    });
+    })
 
-    await iter.return?.();
-    await trayIter.return?.();
-    rootRef.release();
-    resourceClient.dispose();
-    controller.abort();
-    await runtimeConn.close();
-  });
+    await iter.return?.()
+    await trayIter.return?.()
+    await cliInstallIter.return?.()
+    rootRef.release()
+    resourceClient.dispose()
+    controller.abort()
+    await runtimeConn.close()
+  })
 
-  it("flushes the browser index cache through the runtime RPC", async () => {
-    const runtime = new WebRuntime("runtime-1", vi.fn(), null, null);
-    const runtimeConn = connectRuntimeServer(runtime);
+  it('flushes the browser index cache through the runtime RPC', async () => {
+    const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
+    const runtimeConn = connectRuntimeServer(runtime)
     const fetchMock = vi
       .fn()
-      .mockResolvedValue(new Response("updated index", { status: 200 }));
-    vi.stubGlobal("fetch", fetchMock);
+      .mockResolvedValue(new Response('updated index', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
 
     try {
-      const service = new WebRuntimeServiceClient(runtimeConn.client);
+      const service = new WebRuntimeServiceClient(runtimeConn.client)
 
-      await service.FlushIndexCache({});
+      await service.FlushIndexCache({})
 
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledTimes(1)
       expect(fetchMock.mock.calls[0][0]).toBe(
-        new URL("/b/__index.html", globalThis.location.href).toString(),
-      );
-      expect(fetchMock.mock.calls[0][1]).toEqual({ cache: "reload" });
+        new URL('/b/__index.html', globalThis.location.href).toString(),
+      )
+      expect(fetchMock.mock.calls[0][1]).toEqual({ cache: 'reload' })
     } finally {
-      await runtimeConn.close();
-      vi.unstubAllGlobals();
+      await runtimeConn.close()
+      vi.unstubAllGlobals()
     }
-  });
+  })
 
-  it("rejects a failed browser index cache flush", async () => {
-    const runtime = new WebRuntime("runtime-1", vi.fn(), null, null);
-    const runtimeConn = connectRuntimeServer(runtime);
+  it('rejects a failed browser index cache flush', async () => {
+    const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
+    const runtimeConn = connectRuntimeServer(runtime)
     vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(new Response("unavailable", { status: 503 })),
-    );
+      'fetch',
+      vi.fn().mockResolvedValue(new Response('unavailable', { status: 503 })),
+    )
 
     try {
-      const service = new WebRuntimeServiceClient(runtimeConn.client);
+      const service = new WebRuntimeServiceClient(runtimeConn.client)
 
       await expect(service.FlushIndexCache({})).rejects.toThrow(
-        "browser index cache refresh failed: status=503",
-      );
+        'browser index cache refresh failed: status=503',
+      )
     } finally {
-      await runtimeConn.close();
-      vi.unstubAllGlobals();
+      await runtimeConn.close()
+      vi.unstubAllGlobals()
     }
-  });
+  })
 
-  it("rejects pending waiters when a client is invalidated", async () => {
-    const runtime = new WebRuntime("runtime-1", vi.fn(), null, null);
-    const waitForClient = runtime.waitForClient("electron-init");
+  it('rejects pending waiters when a client is invalidated', async () => {
+    const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
+    const waitForClient = runtime.waitForClient('electron-init')
 
     runtime.invalidateClient(
-      "electron-init",
-      new Error("renderer gone: crashed"),
-    );
+      'electron-init',
+      new Error('renderer gone: crashed'),
+    )
 
-    await expect(waitForClient).rejects.toThrow("renderer gone: crashed");
-  });
+    await expect(waitForClient).rejects.toThrow('renderer gone: crashed')
+  })
 
-  it("removes active clients when invalidated", () => {
-    const runtime = new WebRuntime("runtime-1", vi.fn(), null, null);
-    const { port1 } = new MessageChannel();
+  it('removes active clients when invalidated', () => {
+    const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
+    const { port1 } = new MessageChannel()
 
     runtime.handleClient(
       {
-        clientUuid: "electron-init",
+        clientUuid: 'electron-init',
         clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
       },
       port1,
-    );
-    expect(runtime.lookupClient("electron-init")).not.toBeNull();
+    )
+    expect(runtime.lookupClient('electron-init')).not.toBeNull()
 
     runtime.invalidateClient(
-      "electron-init",
-      new Error("navigation started: app://index.html"),
-    );
+      'electron-init',
+      new Error('navigation started: app://index.html'),
+    )
 
-    expect(runtime.lookupClient("electron-init")).toBeNull();
-  });
+    expect(runtime.lookupClient('electron-init')).toBeNull()
+  })
 
-  it("closes descendant streams when invalidating a client generation", () => {
-    const runtime = new WebRuntime("runtime-1", vi.fn(), null, null);
-    const { port1 } = new MessageChannel();
+  it('closes descendant streams when invalidating a client generation', () => {
+    const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
+    const { port1 } = new MessageChannel()
 
     runtime.handleClient(
       {
-        clientUuid: "electron-init-gen-1",
-        logicalClientId: "electron-init",
+        clientUuid: 'electron-init-gen-1',
+        logicalClientId: 'electron-init',
         clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
       },
       port1,
-    );
+    )
 
-    const client = runtime.lookupClient("electron-init") as {
-      childStreams: Set<{ close: (err?: Error) => void }>;
-    } | null;
-    expect(client).not.toBeNull();
+    const client = runtime.lookupClient('electron-init') as {
+      childStreams: Set<{ close: (err?: Error) => void }>
+    } | null
+    expect(client).not.toBeNull()
 
-    const close = vi.fn();
-    client!.childStreams.add({ close });
+    const close = vi.fn()
+    client!.childStreams.add({ close })
 
     runtime.invalidateClient(
-      "electron-init",
-      new Error("navigation started: app://index.html"),
-    );
+      'electron-init',
+      new Error('navigation started: app://index.html'),
+    )
 
-    expect(close).toHaveBeenCalledTimes(1);
-    expect(close.mock.calls[0]?.[0]).toBeInstanceOf(Error);
-  });
+    expect(close).toHaveBeenCalledTimes(1)
+    expect(close.mock.calls[0]?.[0]).toBeInstanceOf(Error)
+  })
 
   it('keeps runtime-to-client stream opens pending until client invalidation', async () => {
     vi.useFakeTimers()
@@ -519,136 +543,137 @@ describe('WebRuntime', () => {
 
     runtime.handleClient(
       {
-        clientUuid: "electron-init-gen-2",
-        logicalClientId: "electron-init",
+        clientUuid: 'electron-init-gen-2',
+        logicalClientId: 'electron-init',
         clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
       },
       port1,
-    );
+    )
 
-    await expect(runtime.waitForClient("electron-init")).resolves.toBe(
-      runtime.lookupClient("electron-init"),
-    );
-    expect(runtime.lookupClient("electron-init-gen-2")).toBeNull();
-  });
+    await expect(runtime.waitForClient('electron-init')).resolves.toBe(
+      runtime.lookupClient('electron-init'),
+    )
+    expect(runtime.lookupClient('electron-init-gen-2')).toBeNull()
+  })
 
-  it("routes WebWorkerRpc streams through a registered worker client", async () => {
-    vi.stubGlobal("MessagePort", TransferMessagePort);
-    vi.stubGlobal("MessageChannel", TransferMessageChannel);
+  it('routes WebWorkerRpc streams through a registered worker client', async () => {
+    vi.stubGlobal('MessagePort', TransferMessagePort)
+    vi.stubGlobal('MessageChannel', TransferMessageChannel)
 
-    const runtime = new WebRuntime("runtime-1", vi.fn(), null, null);
-    const runtimeConn = connectRuntimeServer(runtime);
-    const service = new WebRuntimeServiceClient(runtimeConn.client);
-    const { port1, port2 } = new MessageChannel();
-    const workerTasks: Promise<void>[] = [];
+    const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
+    const runtimeConn = connectRuntimeServer(runtime)
+    const service = new WebRuntimeServiceClient(runtimeConn.client)
+    const { port1, port2 } = new MessageChannel()
+    const workerTasks: Promise<void>[] = []
 
     try {
       port2.onmessage = (ev) => {
-        const data = ev.data;
-        if (typeof data !== "object" || !data.openStream) {
-          return;
+        const data = ev.data
+        if (typeof data !== 'object' || !data.openStream) {
+          return
         }
-        const remotePort = ev.ports[0];
-        expect(remotePort).toBeDefined();
-        const workerStream = new ChannelStream("worker", remotePort, {
+        const remotePort = ev.ports[0]
+        expect(remotePort).toBeDefined()
+        const workerStream = new ChannelStream('worker', remotePort, {
           ...WebRuntimeClientChannelStreamOpts,
           remoteOpen: true,
-        });
+        })
         const requestPromise = (async () => {
           // Channel streams are duplex; waiting for EOF or breaking a for-await
           // loop can close the response path before the worker writes back.
-          const result = await workerStream.source[Symbol.asyncIterator]().next();
-          return result.value ?? new Uint8Array();
-        })();
+          const result =
+            await workerStream.source[Symbol.asyncIterator]().next()
+          return result.value ?? new Uint8Array()
+        })()
         const responsePromise = workerStream.sink(
           (async function* () {
-            const request = await requestPromise;
-            yield new Uint8Array([42, ...request]);
+            const request = await requestPromise
+            yield new Uint8Array([42, ...request])
           })(),
-        );
+        )
         workerTasks.push(
           Promise.all([requestPromise, responsePromise]).then(() => {}),
-        );
-      };
-      port2.start();
+        )
+      }
+      port2.start()
 
       runtime.handleClient(
         {
-          clientUuid: "plugin/spacewave-notes",
+          clientUuid: 'plugin/spacewave-notes',
           clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER,
         },
         port1,
-      );
+      )
 
       const stream = await openRpcStream(
-        "plugin/spacewave-notes",
+        'plugin/spacewave-notes',
         service.WebWorkerRpc.bind(service),
         true,
-      );
+      )
       await stream.sink(
         (async function* () {
-          yield new Uint8Array([7, 8, 9]);
+          yield new Uint8Array([7, 8, 9])
         })(),
-      );
+      )
 
-      const response = stream.source[Symbol.asyncIterator]();
+      const response = stream.source[Symbol.asyncIterator]()
       await expect(response.next()).resolves.toEqual({
         done: false,
         value: new Uint8Array([42, 7, 8, 9]),
-      });
+      })
       await expect(response.next()).resolves.toEqual({
         done: true,
         value: undefined,
-      });
+      })
 
-      await Promise.all(workerTasks);
-      port2.close();
+      await Promise.all(workerTasks)
+      port2.close()
     } finally {
-      await runtimeConn.close();
-      vi.unstubAllGlobals();
+      await runtimeConn.close()
+      vi.unstubAllGlobals()
     }
-  });
+  })
 
-  it("lets the latest document generation re-register after refresh invalidation", async () => {
-    const runtime = new WebRuntime("runtime-1", vi.fn(), null, null);
-    const { port1 } = new MessageChannel();
+  it('lets the latest document generation re-register after refresh invalidation', async () => {
+    const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
+    const { port1 } = new MessageChannel()
     runtime.handleClient(
       {
-        clientUuid: "electron-init-gen-1",
-        logicalClientId: "electron-init",
+        clientUuid: 'electron-init-gen-1',
+        logicalClientId: 'electron-init',
         clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
       },
       port1,
-    );
-    const first = runtime.lookupClient("electron-init");
+    )
+    const first = runtime.lookupClient('electron-init')
 
     runtime.invalidateClient(
-      "electron-init",
-      new Error("navigation started: app://index.html"),
-    );
-    expect(runtime.lookupClient("electron-init")).toBeNull();
+      'electron-init',
+      new Error('navigation started: app://index.html'),
+    )
+    expect(runtime.lookupClient('electron-init')).toBeNull()
 
-    const waiter = runtime.waitForClient("electron-init");
-    const { port1: port2 } = new MessageChannel();
+    const waiter = runtime.waitForClient('electron-init')
+    const { port1: port2 } = new MessageChannel()
     runtime.handleClient(
       {
-        clientUuid: "electron-init-gen-2",
-        logicalClientId: "electron-init",
+        clientUuid: 'electron-init-gen-2',
+        logicalClientId: 'electron-init',
         clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
       },
       port2,
-    );
+    )
 
-    const second = runtime.lookupClient("electron-init");
-    await expect(waiter).resolves.toBe(second);
-    expect(second).not.toBeNull();
-    expect(second).not.toBe(first);
-  });
-});
+    const second = runtime.lookupClient('electron-init')
+    await expect(waiter).resolves.toBe(second)
+    expect(second).not.toBeNull()
+    expect(second).not.toBe(first)
+  })
+})
 
 function toError(err: unknown): Error {
   if (err instanceof Error) {
-    return err;
+    return err
   }
-  return new Error(String(err));
+  return new Error(String(err))
 }

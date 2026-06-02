@@ -18,4 +18,13 @@ message DistMeta {
   .bucket.ObjectRef dist_world_ref = 4;
   // DistObjectKey is the root object key to search for manifests in the dist world.
   string dist_object_key = 5;
+  // EntrypointRole is the release role for this entrypoint.
+  // Expected values are "desktop", "browser", and "cli".
+  string entrypoint_role = 6;
+  // ChannelKey is the release channel this entrypoint was built for.
+  string channel_key = 7;
+  // ManifestId is the Bldr Manifest id for this entrypoint binary.
+  string manifest_id = 8;
+  // ManifestRev is the Bldr Manifest revision for this entrypoint binary.
+  uint64 manifest_rev = 9;
 }

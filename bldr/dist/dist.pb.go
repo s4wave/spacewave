@@ -32,6 +32,15 @@ type DistMeta struct {
 	DistWorldRef *bucket.ObjectRef `protobuf:"bytes,4,opt,name=dist_world_ref,json=distWorldRef,proto3" json:"distWorldRef,omitempty"`
 	// DistObjectKey is the root object key to search for manifests in the dist world.
 	DistObjectKey string `protobuf:"bytes,5,opt,name=dist_object_key,json=distObjectKey,proto3" json:"distObjectKey,omitempty"`
+	// EntrypointRole is the release role for this entrypoint.
+	// Expected values are "desktop", "browser", and "cli".
+	EntrypointRole string `protobuf:"bytes,6,opt,name=entrypoint_role,json=entrypointRole,proto3" json:"entrypointRole,omitempty"`
+	// ChannelKey is the release channel this entrypoint was built for.
+	ChannelKey string `protobuf:"bytes,7,opt,name=channel_key,json=channelKey,proto3" json:"channelKey,omitempty"`
+	// ManifestId is the Bldr Manifest id for this entrypoint binary.
+	ManifestId string `protobuf:"bytes,8,opt,name=manifest_id,json=manifestId,proto3" json:"manifestId,omitempty"`
+	// ManifestRev is the Bldr Manifest revision for this entrypoint binary.
+	ManifestRev uint64 `protobuf:"varint,9,opt,name=manifest_rev,json=manifestRev,proto3" json:"manifestRev,omitempty"`
 }
 
 func (x *DistMeta) Reset() {
@@ -75,6 +84,34 @@ func (x *DistMeta) GetDistObjectKey() string {
 	return ""
 }
 
+func (x *DistMeta) GetEntrypointRole() string {
+	if x != nil {
+		return x.EntrypointRole
+	}
+	return ""
+}
+
+func (x *DistMeta) GetChannelKey() string {
+	if x != nil {
+		return x.ChannelKey
+	}
+	return ""
+}
+
+func (x *DistMeta) GetManifestId() string {
+	if x != nil {
+		return x.ManifestId
+	}
+	return ""
+}
+
+func (x *DistMeta) GetManifestRev() uint64 {
+	if x != nil {
+		return x.ManifestRev
+	}
+	return 0
+}
+
 func (m *DistMeta) CloneVT() *DistMeta {
 	if m == nil {
 		return (*DistMeta)(nil)
@@ -84,6 +121,10 @@ func (m *DistMeta) CloneVT() *DistMeta {
 	r.PlatformId = m.PlatformId
 	r.DistWorldRef = m.DistWorldRef.CloneVT()
 	r.DistObjectKey = m.DistObjectKey
+	r.EntrypointRole = m.EntrypointRole
+	r.ChannelKey = m.ChannelKey
+	r.ManifestId = m.ManifestId
+	r.ManifestRev = m.ManifestRev
 	if rhs := m.StartupPlugins; rhs != nil {
 		r.StartupPlugins = slices.Clone(rhs)
 	}
@@ -122,6 +163,18 @@ func (this *DistMeta) EqualVT(that *DistMeta) bool {
 		return false
 	}
 	if this.DistObjectKey != that.DistObjectKey {
+		return false
+	}
+	if this.EntrypointRole != that.EntrypointRole {
+		return false
+	}
+	if this.ChannelKey != that.ChannelKey {
+		return false
+	}
+	if this.ManifestId != that.ManifestId {
+		return false
+	}
+	if this.ManifestRev != that.ManifestRev {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -168,6 +221,26 @@ func (x *DistMeta) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("distObjectKey")
 		s.WriteString(x.DistObjectKey)
 	}
+	if x.EntrypointRole != "" || s.HasField("entrypointRole") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entrypointRole")
+		s.WriteString(x.EntrypointRole)
+	}
+	if x.ChannelKey != "" || s.HasField("channelKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("channelKey")
+		s.WriteString(x.ChannelKey)
+	}
+	if x.ManifestId != "" || s.HasField("manifestId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("manifestId")
+		s.WriteString(x.ManifestId)
+	}
+	if x.ManifestRev != 0 || s.HasField("manifestRev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("manifestRev")
+		s.WriteUint64(x.ManifestRev)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -208,6 +281,18 @@ func (x *DistMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "dist_object_key", "distObjectKey":
 			s.AddField("dist_object_key")
 			x.DistObjectKey = s.ReadString()
+		case "entrypoint_role", "entrypointRole":
+			s.AddField("entrypoint_role")
+			x.EntrypointRole = s.ReadString()
+		case "channel_key", "channelKey":
+			s.AddField("channel_key")
+			x.ChannelKey = s.ReadString()
+		case "manifest_id", "manifestId":
+			s.AddField("manifest_id")
+			x.ManifestId = s.ReadString()
+		case "manifest_rev", "manifestRev":
+			s.AddField("manifest_rev")
+			x.ManifestRev = s.ReadUint64()
 		}
 	})
 }
@@ -246,6 +331,32 @@ func (m *DistMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ManifestRev != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ManifestRev))
+		i--
+		dAtA[i] = 0x48
+	}
+	if len(m.ManifestId) > 0 {
+		i -= len(m.ManifestId)
+		copy(dAtA[i:], m.ManifestId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ManifestId)))
+		i--
+		dAtA[i] = 0x42
+	}
+	if len(m.ChannelKey) > 0 {
+		i -= len(m.ChannelKey)
+		copy(dAtA[i:], m.ChannelKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ChannelKey)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.EntrypointRole) > 0 {
+		i -= len(m.EntrypointRole)
+		copy(dAtA[i:], m.EntrypointRole)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.EntrypointRole)))
+		i--
+		dAtA[i] = 0x32
 	}
 	if len(m.DistObjectKey) > 0 {
 		i -= len(m.DistObjectKey)
@@ -318,6 +429,21 @@ func (m *DistMeta) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	l = len(m.EntrypointRole)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ChannelKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ManifestId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.ManifestRev != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ManifestRev))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -365,6 +491,34 @@ func (x *DistMeta) MarshalProtoText() string {
 		}
 		sb.WriteString("dist_object_key: ")
 		sb.WriteString(strconv.Quote(x.DistObjectKey))
+	}
+	if x.EntrypointRole != "" {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("entrypoint_role: ")
+		sb.WriteString(strconv.Quote(x.EntrypointRole))
+	}
+	if x.ChannelKey != "" {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("channel_key: ")
+		sb.WriteString(strconv.Quote(x.ChannelKey))
+	}
+	if x.ManifestId != "" {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("manifest_id: ")
+		sb.WriteString(strconv.Quote(x.ManifestId))
+	}
+	if x.ManifestRev != 0 {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("manifest_rev: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.ManifestRev), 10))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -510,6 +664,81 @@ func (m *DistMeta) UnmarshalVT(dAtA []byte) error {
 			}
 			m.DistObjectKey = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EntrypointRole", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EntrypointRole = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChannelKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ChannelKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ManifestId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ManifestId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ManifestRev", wireType)
+			}
+			m.ManifestRev = 0
+			m.ManifestRev, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -53,6 +53,13 @@ message Config {
   // ProjectId overrides the project id set in the project config.
   string project_id = 4;
 
+  // EntrypointRole identifies the release role for the dist binary.
+  // Expected values are "desktop", "browser", and "cli".
+  string entrypoint_role = 10;
+
+  // ChannelKey is the release channel this entrypoint targets.
+  string channel_key = 11;
+
   // EnableCgo enables cgo in the Go compiler.
   //
   // Cgo is disabled by default as it may cause non-reproducible builds.

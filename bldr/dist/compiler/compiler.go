@@ -188,6 +188,14 @@ func (c *Controller) BuildManifest(
 	if cproj := conf.GetProjectId(); cproj != "" {
 		projectID = cproj
 	}
+	entrypointRole := conf.GetEntrypointRole()
+	if entrypointRole == "" {
+		entrypointRole = bldr_dist.EntrypointRoleDesktop
+	}
+	channelKey := conf.GetChannelKey()
+	if channelKey == "" {
+		channelKey = "stable"
+	}
 
 	// sort and cleanup the fields
 	conf.Normalize()
@@ -196,7 +204,17 @@ func (c *Controller) BuildManifest(
 	entrypointFilename := projectID + buildPlatform.GetExecutableExt()
 	manifestStoreObjKey := "dist"
 	manifestStorePrefix := manifestStoreObjKey + "/"
-	distMeta := bldr_dist.NewDistMeta(projectID, platformID, loadPlugins, nil, manifestStoreObjKey)
+	distMeta := bldr_dist.NewDistEntrypointMeta(
+		projectID,
+		platformID,
+		loadPlugins,
+		nil,
+		manifestStoreObjKey,
+		entrypointRole,
+		channelKey,
+		manifestID,
+		meta.GetRev(),
+	)
 
 	searchKeys := builderConf.GetLinkObjectKeys()
 	if len(searchKeys) == 0 {

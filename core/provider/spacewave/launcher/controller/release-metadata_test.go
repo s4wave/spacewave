@@ -97,6 +97,43 @@ func TestSelectReleaseManifestRefRequiresNativeEntrypointIdentity(t *testing.T) 
 	}
 }
 
+func TestSelectCLIReleaseManifestRefRequiresCLIEntrypointIdentity(t *testing.T) {
+	platformID := nativeTestPlatformID()
+	desktop := testManifestRef(nativeEntrypointManifestID, platformID, 1)
+	cli := testManifestRef(cliEntrypointManifestID, platformID, 2)
+	selected, err := selectCLIReleaseManifestRef(&spacewave_release.ReleaseMetadata{
+		ManifestRefs: []*bldr_manifest.ManifestRef{
+			testManifestRef("spacewave-plugin", platformID, 1),
+			desktop,
+			cli,
+		},
+	}, platformID)
+	if err != nil {
+		t.Fatalf("selectCLIReleaseManifestRef() error = %v", err)
+	}
+	if selected != cli {
+		t.Fatal("selector did not return the cli entrypoint ref")
+	}
+
+	if _, err := selectCLIReleaseManifestRef(&spacewave_release.ReleaseMetadata{
+		ManifestRefs: []*bldr_manifest.ManifestRef{desktop},
+	}, platformID); err == nil || !strings.Contains(err.Error(), "missing spacewave-cli") {
+		t.Fatalf("wrong-identity error = %v", err)
+	}
+
+	if _, err := selectCLIReleaseManifestRef(&spacewave_release.ReleaseMetadata{
+		ManifestRefs: []*bldr_manifest.ManifestRef{cli, testManifestRef(cliEntrypointManifestID, platformID, 3)},
+	}, platformID); err == nil || !strings.Contains(err.Error(), "duplicate cli entrypoint manifest") {
+		t.Fatalf("duplicate error = %v", err)
+	}
+
+	if _, err := selectReleaseManifestRef(&spacewave_release.ReleaseMetadata{
+		ManifestRefs: []*bldr_manifest.ManifestRef{cli},
+	}, platformID); err == nil || !strings.Contains(err.Error(), "missing spacewave-dist") {
+		t.Fatalf("cli should not satisfy native selector: %v", err)
+	}
+}
+
 func TestCheckoutReleaseManifestStagesDist(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())

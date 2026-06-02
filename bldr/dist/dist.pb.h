@@ -222,7 +222,11 @@ class DistMeta final : public ::google::protobuf::Message
     kProjectIdFieldNumber = 1,
     kPlatformIdFieldNumber = 2,
     kDistObjectKeyFieldNumber = 5,
+    kEntrypointRoleFieldNumber = 6,
+    kChannelKeyFieldNumber = 7,
+    kManifestIdFieldNumber = 8,
     kDistWorldRefFieldNumber = 4,
+    kManifestRevFieldNumber = 9,
   };
   // repeated string startup_plugins = 3;
   int startup_plugins_size() const;
@@ -291,6 +295,51 @@ class DistMeta final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_dist_object_key();
 
   public:
+  // string entrypoint_role = 6;
+  void clear_entrypoint_role() ;
+  const ::std::string& entrypoint_role() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_entrypoint_role(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_entrypoint_role();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_entrypoint_role();
+  void set_allocated_entrypoint_role(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_entrypoint_role() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_entrypoint_role(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_entrypoint_role();
+
+  public:
+  // string channel_key = 7;
+  void clear_channel_key() ;
+  const ::std::string& channel_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_channel_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_channel_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_channel_key();
+  void set_allocated_channel_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_channel_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_channel_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_channel_key();
+
+  public:
+  // string manifest_id = 8;
+  void clear_manifest_id() ;
+  const ::std::string& manifest_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_manifest_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_manifest_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_manifest_id();
+  void set_allocated_manifest_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_manifest_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_manifest_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_manifest_id();
+
+  public:
   // .bucket.ObjectRef dist_world_ref = 4;
   bool has_dist_world_ref() const;
   void clear_dist_world_ref() ;
@@ -306,12 +355,22 @@ class DistMeta final : public ::google::protobuf::Message
   ::bucket::ObjectRef* PROTOBUF_NONNULL _internal_mutable_dist_world_ref();
 
   public:
+  // uint64 manifest_rev = 9;
+  void clear_manifest_rev() ;
+  ::uint64_t manifest_rev() const;
+  void set_manifest_rev(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_manifest_rev() const;
+  void _internal_set_manifest_rev(::uint64_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:bldr.dist.DistMeta)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 5,
-                                   1, 78,
+  static const ::google::protobuf::internal::TcParseTable<4, 9,
+                                   1, 123,
                                    2>
       _table_;
 
@@ -336,7 +395,11 @@ class DistMeta final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr project_id_;
     ::google::protobuf::internal::ArenaStringPtr platform_id_;
     ::google::protobuf::internal::ArenaStringPtr dist_object_key_;
+    ::google::protobuf::internal::ArenaStringPtr entrypoint_role_;
+    ::google::protobuf::internal::ArenaStringPtr channel_key_;
+    ::google::protobuf::internal::ArenaStringPtr manifest_id_;
     ::bucket::ObjectRef* PROTOBUF_NULLABLE dist_world_ref_;
+    ::uint64_t manifest_rev_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -565,7 +628,7 @@ DistMeta::_internal_mutable_startup_plugins() {
 
 // .bucket.ObjectRef dist_world_ref = 4;
 inline bool DistMeta::has_dist_world_ref() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000080U);
   PROTOBUF_ASSUME(!value || _impl_.dist_world_ref_ != nullptr);
   return value;
 }
@@ -586,16 +649,16 @@ inline void DistMeta::unsafe_arena_set_allocated_dist_world_ref(
   }
   _impl_.dist_world_ref_ = reinterpret_cast<::bucket::ObjectRef*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bldr.dist.DistMeta.dist_world_ref)
 }
 inline ::bucket::ObjectRef* PROTOBUF_NULLABLE DistMeta::release_dist_world_ref() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
   ::bucket::ObjectRef* released = _impl_.dist_world_ref_;
   _impl_.dist_world_ref_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -615,7 +678,7 @@ inline ::bucket::ObjectRef* PROTOBUF_NULLABLE DistMeta::unsafe_arena_release_dis
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:bldr.dist.DistMeta.dist_world_ref)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
   ::bucket::ObjectRef* temp = _impl_.dist_world_ref_;
   _impl_.dist_world_ref_ = nullptr;
   return temp;
@@ -630,7 +693,7 @@ inline ::bucket::ObjectRef* PROTOBUF_NONNULL DistMeta::_internal_mutable_dist_wo
 }
 inline ::bucket::ObjectRef* PROTOBUF_NONNULL DistMeta::mutable_dist_world_ref()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   ::bucket::ObjectRef* _msg = _internal_mutable_dist_world_ref();
   // @@protoc_insertion_point(field_mutable:bldr.dist.DistMeta.dist_world_ref)
   return _msg;
@@ -647,9 +710,9 @@ inline void DistMeta::set_allocated_dist_world_ref(::bucket::ObjectRef* PROTOBUF
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
   }
 
   _impl_.dist_world_ref_ = reinterpret_cast<::bucket::ObjectRef*>(value);
@@ -719,6 +782,226 @@ inline void DistMeta::set_allocated_dist_object_key(::std::string* PROTOBUF_NULL
     _impl_.dist_object_key_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:bldr.dist.DistMeta.dist_object_key)
+}
+
+// string entrypoint_role = 6;
+inline void DistMeta::clear_entrypoint_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.entrypoint_role_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& DistMeta::entrypoint_role() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.dist.DistMeta.entrypoint_role)
+  return _internal_entrypoint_role();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DistMeta::set_entrypoint_role(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.entrypoint_role_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.dist.DistMeta.entrypoint_role)
+}
+inline ::std::string* PROTOBUF_NONNULL DistMeta::mutable_entrypoint_role()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_entrypoint_role();
+  // @@protoc_insertion_point(field_mutable:bldr.dist.DistMeta.entrypoint_role)
+  return _s;
+}
+inline const ::std::string& DistMeta::_internal_entrypoint_role() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.entrypoint_role_.Get();
+}
+inline void DistMeta::_internal_set_entrypoint_role(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.entrypoint_role_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DistMeta::_internal_mutable_entrypoint_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.entrypoint_role_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DistMeta::release_entrypoint_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.dist.DistMeta.entrypoint_role)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.entrypoint_role_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.entrypoint_role_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DistMeta::set_allocated_entrypoint_role(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.entrypoint_role_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.entrypoint_role_.IsDefault()) {
+    _impl_.entrypoint_role_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.dist.DistMeta.entrypoint_role)
+}
+
+// string channel_key = 7;
+inline void DistMeta::clear_channel_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.channel_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::std::string& DistMeta::channel_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.dist.DistMeta.channel_key)
+  return _internal_channel_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DistMeta::set_channel_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  _impl_.channel_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.dist.DistMeta.channel_key)
+}
+inline ::std::string* PROTOBUF_NONNULL DistMeta::mutable_channel_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::std::string* _s = _internal_mutable_channel_key();
+  // @@protoc_insertion_point(field_mutable:bldr.dist.DistMeta.channel_key)
+  return _s;
+}
+inline const ::std::string& DistMeta::_internal_channel_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.channel_key_.Get();
+}
+inline void DistMeta::_internal_set_channel_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.channel_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DistMeta::_internal_mutable_channel_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.channel_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DistMeta::release_channel_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.dist.DistMeta.channel_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  auto* released = _impl_.channel_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.channel_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DistMeta::set_allocated_channel_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  _impl_.channel_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.channel_key_.IsDefault()) {
+    _impl_.channel_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.dist.DistMeta.channel_key)
+}
+
+// string manifest_id = 8;
+inline void DistMeta::clear_manifest_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.manifest_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::std::string& DistMeta::manifest_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.dist.DistMeta.manifest_id)
+  return _internal_manifest_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DistMeta::set_manifest_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  _impl_.manifest_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.dist.DistMeta.manifest_id)
+}
+inline ::std::string* PROTOBUF_NONNULL DistMeta::mutable_manifest_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::std::string* _s = _internal_mutable_manifest_id();
+  // @@protoc_insertion_point(field_mutable:bldr.dist.DistMeta.manifest_id)
+  return _s;
+}
+inline const ::std::string& DistMeta::_internal_manifest_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.manifest_id_.Get();
+}
+inline void DistMeta::_internal_set_manifest_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.manifest_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DistMeta::_internal_mutable_manifest_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.manifest_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DistMeta::release_manifest_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.dist.DistMeta.manifest_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  auto* released = _impl_.manifest_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.manifest_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DistMeta::set_allocated_manifest_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  _impl_.manifest_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.manifest_id_.IsDefault()) {
+    _impl_.manifest_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.dist.DistMeta.manifest_id)
+}
+
+// uint64 manifest_rev = 9;
+inline void DistMeta::clear_manifest_rev() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.manifest_rev_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline ::uint64_t DistMeta::manifest_rev() const {
+  // @@protoc_insertion_point(field_get:bldr.dist.DistMeta.manifest_rev)
+  return _internal_manifest_rev();
+}
+inline void DistMeta::set_manifest_rev(::uint64_t value) {
+  _internal_set_manifest_rev(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  // @@protoc_insertion_point(field_set:bldr.dist.DistMeta.manifest_rev)
+}
+inline ::uint64_t DistMeta::_internal_manifest_rev() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.manifest_rev_;
+}
+inline void DistMeta::_internal_set_manifest_rev(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.manifest_rev_ = value;
 }
 
 #ifdef __GNUC__

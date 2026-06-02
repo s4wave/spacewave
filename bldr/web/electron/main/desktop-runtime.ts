@@ -6,6 +6,7 @@ import { ResourceServer } from '../../../sdk/resource/server/server.js'
 import { newResourceMux } from '../../../sdk/resource/server/mux.js'
 import { DesktopTrayResourceServiceDefinition } from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray_srpc.pb.js'
 import {
+  DesktopCLIInstallResourceServiceDefinition,
   DesktopRuntimeResourceServiceDefinition,
   type DesktopRuntimeResourceService,
 } from '../desktop-runtime/desktop-runtime_srpc.pb.js'
@@ -17,6 +18,7 @@ import {
   type DesktopRuntimeActionItem,
   type DesktopRuntimeActivityItem,
   type DesktopRuntimeAttentionItem,
+  type DesktopRuntimeCLIInstallSummary,
   type DesktopRuntimeListenerStatus,
   type DesktopRuntimeNavigationItem,
   type DesktopRuntimeUpdateStatus,
@@ -30,12 +32,18 @@ import {
   type WatchDesktopStateResponse,
 } from '../desktop-runtime/desktop-runtime.pb.js'
 import { DesktopTrayResource } from './desktop-tray-resource.js'
+import { buildDesktopTrayCLIInstallEntries } from './desktop-tray-runtime-projection.js'
+import {
+  DesktopCLIInstallResource,
+  type DesktopCLIInstallResourceOpts,
+} from './desktop-cli-install-resource.js'
 
 interface DesktopRuntimeResourceOpts {
   openOrFocusMainWindow: (
     request: OpenOrFocusMainWindowRequest,
   ) => Promise<void> | void
   quitDesktopRuntime: () => Promise<void> | void
+  desktopCLIInstall?: DesktopCLIInstallResourceOpts
 }
 
 // DesktopRuntimeResource owns Electron main desktop-shell lifecycle state.
@@ -47,11 +55,20 @@ export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
   )
   public readonly resourceServer: ResourceServer
   public readonly desktopTrayResource: DesktopTrayResource
+  public readonly desktopCLIInstallResource: DesktopCLIInstallResource
 
   constructor(private readonly opts: DesktopRuntimeResourceOpts) {
     this.desktopTrayResource = new DesktopTrayResource()
+    this.desktopCLIInstallResource = new DesktopCLIInstallResource(
+      opts.desktopCLIInstall,
+    )
+    this.watchDesktopCLIInstallResource()
     const mux = newResourceMux(
       createHandler(DesktopRuntimeResourceServiceDefinition, this),
+      createHandler(
+        DesktopCLIInstallResourceServiceDefinition,
+        this.desktopCLIInstallResource,
+      ),
       createHandler(
         DesktopTrayResourceServiceDefinition,
         this.desktopTrayResource,
@@ -154,6 +171,30 @@ export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
   private pushState(): void {
     this.stateStream.pushChangeEvent(this.buildStateResponse())
   }
+
+  private watchDesktopCLIInstallResource(): void {
+    void (async () => {
+      for await (const resp of this.desktopCLIInstallResource.WatchCLIInstallState(
+        {},
+      )) {
+        if ((resp.state?.generation ?? 0n) <= 1n) continue
+        const cliInstall = {
+          status: resp.state?.status,
+          label: resp.state?.label || '',
+          detail: resp.state?.detail || resp.state?.errorMessage || '',
+          route: '/settings',
+        }
+        this.state = {
+          ...this.state,
+          cliInstall,
+        }
+        this.desktopTrayResource.replaceOwnerEntries(
+          buildDesktopTrayCLIInstallEntries(cliInstall),
+        )
+        this.pushState()
+      }
+    })()
+  }
 }
 
 function buildInitialDesktopRuntimeState(): DesktopRuntimeState {
@@ -172,6 +213,7 @@ function buildInitialDesktopRuntimeState(): DesktopRuntimeState {
     update: {},
     attentionItems: [],
     actions: [],
+    cliInstall: {},
   }
 }
 
@@ -187,6 +229,7 @@ function cloneDesktopRuntimeState(
     update: cloneUpdate(state.update),
     attentionItems: cloneAttentionItems(state.attentionItems),
     actions: cloneActionItems(state.actions),
+    cliInstall: cloneCLIInstallSummary(state.cliInstall),
   }
 }
 
@@ -226,6 +269,13 @@ function cloneActionItems(
   items: DesktopRuntimeActionItem[] | undefined,
 ): DesktopRuntimeActionItem[] {
   return items?.map((item) => ({ ...item })) ?? []
+}
+
+function cloneCLIInstallSummary(
+  summary: DesktopRuntimeCLIInstallSummary | undefined,
+): DesktopRuntimeCLIInstallSummary {
+  if (!summary) return {}
+  return { ...summary }
 }
 
 export type { DesktopRuntimeResourceOpts }

@@ -14,6 +14,198 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 export const protobufPackage = 'electron.desktop_runtime'
 
 /**
+ * DesktopCLIInstallStatus describes managed CLI install/update state.
+ *
+ * @generated from enum electron.desktop_runtime.DesktopCLIInstallStatus
+ */
+export enum DesktopCLIInstallStatus {
+  /**
+   * DESKTOP_CLI_INSTALL_STATUS_UNSPECIFIED leaves state unset.
+   *
+   * @generated from enum value: DESKTOP_CLI_INSTALL_STATUS_UNSPECIFIED = 0;
+   */
+  DESKTOP_CLI_INSTALL_STATUS_UNSPECIFIED = 0,
+
+  /**
+   * DESKTOP_CLI_INSTALL_STATUS_UNKNOWN indicates detection has not completed.
+   *
+   * @generated from enum value: DESKTOP_CLI_INSTALL_STATUS_UNKNOWN = 1;
+   */
+  DESKTOP_CLI_INSTALL_STATUS_UNKNOWN = 1,
+
+  /**
+   * DESKTOP_CLI_INSTALL_STATUS_MISSING indicates no managed CLI was detected.
+   *
+   * @generated from enum value: DESKTOP_CLI_INSTALL_STATUS_MISSING = 2;
+   */
+  DESKTOP_CLI_INSTALL_STATUS_MISSING = 2,
+
+  /**
+   * DESKTOP_CLI_INSTALL_STATUS_INSTALLED indicates the managed CLI is current.
+   *
+   * @generated from enum value: DESKTOP_CLI_INSTALL_STATUS_INSTALLED = 3;
+   */
+  DESKTOP_CLI_INSTALL_STATUS_INSTALLED = 3,
+
+  /**
+   * DESKTOP_CLI_INSTALL_STATUS_UPDATE_AVAILABLE indicates a release CLI is newer.
+   *
+   * @generated from enum value: DESKTOP_CLI_INSTALL_STATUS_UPDATE_AVAILABLE = 4;
+   */
+  DESKTOP_CLI_INSTALL_STATUS_UPDATE_AVAILABLE = 4,
+
+  /**
+   * DESKTOP_CLI_INSTALL_STATUS_CONFLICT indicates an unmanaged command is first on PATH.
+   *
+   * @generated from enum value: DESKTOP_CLI_INSTALL_STATUS_CONFLICT = 5;
+   */
+  DESKTOP_CLI_INSTALL_STATUS_CONFLICT = 5,
+
+  /**
+   * DESKTOP_CLI_INSTALL_STATUS_ERROR indicates detection failed.
+   *
+   * @generated from enum value: DESKTOP_CLI_INSTALL_STATUS_ERROR = 6;
+   */
+  DESKTOP_CLI_INSTALL_STATUS_ERROR = 6,
+
+  /**
+   * DESKTOP_CLI_INSTALL_STATUS_INSTALLING indicates a managed install is running.
+   *
+   * @generated from enum value: DESKTOP_CLI_INSTALL_STATUS_INSTALLING = 7;
+   */
+  DESKTOP_CLI_INSTALL_STATUS_INSTALLING = 7,
+
+  /**
+   * DESKTOP_CLI_INSTALL_STATUS_UPDATING indicates a managed update is running.
+   *
+   * @generated from enum value: DESKTOP_CLI_INSTALL_STATUS_UPDATING = 8;
+   */
+  DESKTOP_CLI_INSTALL_STATUS_UPDATING = 8,
+}
+
+export const DesktopCLIInstallStatus_Enum = /* @__PURE__ */ createEnumType(
+  'electron.desktop_runtime.DesktopCLIInstallStatus',
+  [
+    [0, 'DESKTOP_CLI_INSTALL_STATUS_UNSPECIFIED'],
+    [1, 'DESKTOP_CLI_INSTALL_STATUS_UNKNOWN'],
+    [2, 'DESKTOP_CLI_INSTALL_STATUS_MISSING'],
+    [3, 'DESKTOP_CLI_INSTALL_STATUS_INSTALLED'],
+    [4, 'DESKTOP_CLI_INSTALL_STATUS_UPDATE_AVAILABLE'],
+    [5, 'DESKTOP_CLI_INSTALL_STATUS_CONFLICT'],
+    [6, 'DESKTOP_CLI_INSTALL_STATUS_ERROR'],
+    [7, 'DESKTOP_CLI_INSTALL_STATUS_INSTALLING'],
+    [8, 'DESKTOP_CLI_INSTALL_STATUS_UPDATING'],
+  ],
+)
+
+/**
+ * DesktopCLIInstallActionKind describes desktop-owned install actions.
+ *
+ * @generated from enum electron.desktop_runtime.DesktopCLIInstallActionKind
+ */
+export enum DesktopCLIInstallActionKind {
+  /**
+   * DESKTOP_CLI_INSTALL_ACTION_KIND_UNSPECIFIED leaves the action unset.
+   *
+   * @generated from enum value: DESKTOP_CLI_INSTALL_ACTION_KIND_UNSPECIFIED = 0;
+   */
+  DESKTOP_CLI_INSTALL_ACTION_KIND_UNSPECIFIED = 0,
+
+  /**
+   * DESKTOP_CLI_INSTALL_ACTION_KIND_RECHECK reruns detection.
+   *
+   * @generated from enum value: DESKTOP_CLI_INSTALL_ACTION_KIND_RECHECK = 1;
+   */
+  DESKTOP_CLI_INSTALL_ACTION_KIND_RECHECK = 1,
+
+  /**
+   * DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS opens CLI settings.
+   *
+   * @generated from enum value: DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS = 2;
+   */
+  DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS = 2,
+
+  /**
+   * DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL installs a missing managed CLI.
+   *
+   * @generated from enum value: DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL = 3;
+   */
+  DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL = 3,
+
+  /**
+   * DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE updates an existing managed CLI.
+   *
+   * @generated from enum value: DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE = 4;
+   */
+  DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE = 4,
+}
+
+export const DesktopCLIInstallActionKind_Enum = /* @__PURE__ */ createEnumType(
+  'electron.desktop_runtime.DesktopCLIInstallActionKind',
+  [
+    [0, 'DESKTOP_CLI_INSTALL_ACTION_KIND_UNSPECIFIED'],
+    [1, 'DESKTOP_CLI_INSTALL_ACTION_KIND_RECHECK'],
+    [2, 'DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS'],
+    [3, 'DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL'],
+    [4, 'DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE'],
+  ],
+)
+
+/**
+ * DesktopCLIInstallTargetPathState describes PATH evidence for a target.
+ *
+ * @generated from enum electron.desktop_runtime.DesktopCLIInstallTargetPathState
+ */
+export enum DesktopCLIInstallTargetPathState {
+  /**
+   * DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNSPECIFIED leaves PATH evidence unset.
+   *
+   * @generated from enum value: DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNSPECIFIED = 0;
+   */
+  DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNSPECIFIED = 0,
+
+  /**
+   * DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNKNOWN means process evidence is weak.
+   *
+   * @generated from enum value: DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNKNOWN = 1;
+   */
+  DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNKNOWN = 1,
+
+  /**
+   * DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_ON_PATH means the target directory is on PATH.
+   *
+   * @generated from enum value: DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_ON_PATH = 2;
+   */
+  DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_ON_PATH = 2,
+
+  /**
+   * DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_OFF_PATH means manual PATH remediation is needed.
+   *
+   * @generated from enum value: DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_OFF_PATH = 3;
+   */
+  DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_OFF_PATH = 3,
+
+  /**
+   * DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_BLOCKED means policy rejects this target.
+   *
+   * @generated from enum value: DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_BLOCKED = 4;
+   */
+  DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_BLOCKED = 4,
+}
+
+export const DesktopCLIInstallTargetPathState_Enum =
+  /* @__PURE__ */ createEnumType(
+    'electron.desktop_runtime.DesktopCLIInstallTargetPathState',
+    [
+      [0, 'DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNSPECIFIED'],
+      [1, 'DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNKNOWN'],
+      [2, 'DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_ON_PATH'],
+      [3, 'DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_OFF_PATH'],
+      [4, 'DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_BLOCKED'],
+    ],
+  )
+
+/**
  * DesktopRuntimeHealth describes the collapsed tray icon status.
  *
  * @generated from enum electron.desktop_runtime.DesktopRuntimeHealth
@@ -786,6 +978,50 @@ export const DesktopRuntimeActionItem: MessageType<DesktopRuntimeActionItem> =
   })
 
 /**
+ * DesktopRuntimeCLIInstallSummary is compact CLI install state for tray readback.
+ *
+ * @generated from message electron.desktop_runtime.DesktopRuntimeCLIInstallSummary
+ */
+export interface DesktopRuntimeCLIInstallSummary {
+  /**
+   * Status mirrors the desktop CLI install child resource status.
+   *
+   * @generated from field: electron.desktop_runtime.DesktopCLIInstallStatus status = 1;
+   */
+  status?: DesktopCLIInstallStatus
+  /**
+   * Label is primary display text.
+   *
+   * @generated from field: string label = 2;
+   */
+  label?: string
+  /**
+   * Detail is secondary display text.
+   *
+   * @generated from field: string detail = 3;
+   */
+  detail?: string
+  /**
+   * Route opens the settings surface that owns install/update actions.
+   *
+   * @generated from field: string route = 4;
+   */
+  route?: string
+}
+
+export const DesktopRuntimeCLIInstallSummary: MessageType<DesktopRuntimeCLIInstallSummary> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'electron.desktop_runtime.DesktopRuntimeCLIInstallSummary',
+    fields: [
+      { no: 1, name: 'status', kind: 'enum', T: DesktopCLIInstallStatus_Enum },
+      { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'route', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * DesktopRuntimeState describes Electron main desktop-shell state.
  *
  * @generated from message electron.desktop_runtime.DesktopRuntimeState
@@ -863,6 +1099,12 @@ export interface DesktopRuntimeState {
    * @generated from field: repeated electron.desktop_runtime.DesktopRuntimeActionItem actions = 12;
    */
   actions?: DesktopRuntimeActionItem[]
+  /**
+   * CliInstall contains compact desktop-managed CLI install status for tray surfaces.
+   *
+   * @generated from field: electron.desktop_runtime.DesktopRuntimeCLIInstallSummary cli_install = 13;
+   */
+  cliInstall?: DesktopRuntimeCLIInstallSummary
 }
 
 export const DesktopRuntimeState: MessageType<DesktopRuntimeState> =
@@ -924,6 +1166,351 @@ export const DesktopRuntimeState: MessageType<DesktopRuntimeState> =
         name: 'actions',
         kind: 'message',
         T: () => DesktopRuntimeActionItem,
+        repeated: true,
+      },
+      {
+        no: 13,
+        name: 'cli_install',
+        kind: 'message',
+        T: () => DesktopRuntimeCLIInstallSummary,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * DesktopCLIEntrypointIdentity describes a detected or available CLI entrypoint.
+ *
+ * @generated from message electron.desktop_runtime.DesktopCLIEntrypointIdentity
+ */
+export interface DesktopCLIEntrypointIdentity {
+  /**
+   * Path is the local command path when known.
+   *
+   * @generated from field: string path = 1;
+   */
+  path?: string
+  /**
+   * ProjectId is the Spacewave project id reported by version JSON.
+   *
+   * @generated from field: string project_id = 2;
+   */
+  projectId?: string
+  /**
+   * EntrypointRole is managed role identity such as cli or standalone.
+   *
+   * @generated from field: string entrypoint_role = 3;
+   */
+  entrypointRole?: string
+  /**
+   * ChannelKey is the release channel reported by the entrypoint.
+   *
+   * @generated from field: string channel_key = 4;
+   */
+  channelKey?: string
+  /**
+   * ManifestId is the selected Manifest id.
+   *
+   * @generated from field: string manifest_id = 5;
+   */
+  manifestId?: string
+  /**
+   * ManifestRev is the selected Manifest revision.
+   *
+   * @generated from field: uint64 manifest_rev = 6;
+   */
+  manifestRev?: bigint
+  /**
+   * PlatformId is the native platform id.
+   *
+   * @generated from field: string platform_id = 7;
+   */
+  platformId?: string
+}
+
+export const DesktopCLIEntrypointIdentity: MessageType<DesktopCLIEntrypointIdentity> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'electron.desktop_runtime.DesktopCLIEntrypointIdentity',
+    fields: [
+      { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'entrypoint_role', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'channel_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'manifest_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'manifest_rev', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 7, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * DesktopCLIInstallTarget describes one user-level install target candidate.
+ *
+ * @generated from message electron.desktop_runtime.DesktopCLIInstallTarget
+ */
+export interface DesktopCLIInstallTarget {
+  /**
+   * Id identifies the target within the desktop CLI install resource.
+   *
+   * @generated from field: string id = 1;
+   */
+  id?: string
+  /**
+   * Label is primary display text.
+   *
+   * @generated from field: string label = 2;
+   */
+  label?: string
+  /**
+   * Path is the filesystem path for the command.
+   *
+   * @generated from field: string path = 3;
+   */
+  path?: string
+  /**
+   * Writable indicates detection believes the target can be written.
+   *
+   * @generated from field: bool writable = 4;
+   */
+  writable?: boolean
+  /**
+   * Selected indicates the default target.
+   *
+   * @generated from field: bool selected = 5;
+   */
+  selected?: boolean
+  /**
+   * Detail is secondary display text.
+   *
+   * @generated from field: string detail = 6;
+   */
+  detail?: string
+  /**
+   * Generation is the state generation this target was built from.
+   *
+   * @generated from field: uint64 generation = 7;
+   */
+  generation?: bigint
+  /**
+   * PathState describes whether process PATH evidence reaches this target.
+   *
+   * @generated from field: electron.desktop_runtime.DesktopCLIInstallTargetPathState path_state = 8;
+   */
+  pathState?: DesktopCLIInstallTargetPathState
+  /**
+   * BlockedReason explains why target policy rejected this target.
+   *
+   * @generated from field: string blocked_reason = 9;
+   */
+  blockedReason?: string
+}
+
+export const DesktopCLIInstallTarget: MessageType<DesktopCLIInstallTarget> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'electron.desktop_runtime.DesktopCLIInstallTarget',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'writable', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 5, name: 'selected', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 6, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
+      { no: 7, name: 'generation', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 8,
+        name: 'path_state',
+        kind: 'enum',
+        T: DesktopCLIInstallTargetPathState_Enum,
+      },
+      { no: 9, name: 'blocked_reason', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * DesktopCLIInstallActionItem describes one generation-bound user action.
+ *
+ * @generated from message electron.desktop_runtime.DesktopCLIInstallActionItem
+ */
+export interface DesktopCLIInstallActionItem {
+  /**
+   * Id identifies the action within the current state generation.
+   *
+   * @generated from field: string id = 1;
+   */
+  id?: string
+  /**
+   * Kind is the action type.
+   *
+   * @generated from field: electron.desktop_runtime.DesktopCLIInstallActionKind kind = 2;
+   */
+  kind?: DesktopCLIInstallActionKind
+  /**
+   * Label is primary display text.
+   *
+   * @generated from field: string label = 3;
+   */
+  label?: string
+  /**
+   * Enabled indicates the action can be invoked.
+   *
+   * @generated from field: bool enabled = 4;
+   */
+  enabled?: boolean
+  /**
+   * TargetId identifies the target affected by the action when applicable.
+   *
+   * @generated from field: string target_id = 5;
+   */
+  targetId?: string
+  /**
+   * Generation is the state generation this action was built from.
+   *
+   * @generated from field: uint64 generation = 6;
+   */
+  generation?: bigint
+  /**
+   * Detail is secondary display text.
+   *
+   * @generated from field: string detail = 7;
+   */
+  detail?: string
+}
+
+export const DesktopCLIInstallActionItem: MessageType<DesktopCLIInstallActionItem> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'electron.desktop_runtime.DesktopCLIInstallActionItem',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'kind',
+        kind: 'enum',
+        T: DesktopCLIInstallActionKind_Enum,
+      },
+      { no: 3, name: 'label', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 5, name: 'target_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'generation', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 7, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * DesktopCLIInstallState describes desktop-managed CLI install state.
+ *
+ * @generated from message electron.desktop_runtime.DesktopCLIInstallState
+ */
+export interface DesktopCLIInstallState {
+  /**
+   * Status is the collapsed install/update state.
+   *
+   * @generated from field: electron.desktop_runtime.DesktopCLIInstallStatus status = 1;
+   */
+  status?: DesktopCLIInstallStatus
+  /**
+   * Label is primary display text.
+   *
+   * @generated from field: string label = 2;
+   */
+  label?: string
+  /**
+   * Detail is secondary display text.
+   *
+   * @generated from field: string detail = 3;
+   */
+  detail?: string
+  /**
+   * Installed is the detected local CLI identity.
+   *
+   * @generated from field: electron.desktop_runtime.DesktopCLIEntrypointIdentity installed = 4;
+   */
+  installed?: DesktopCLIEntrypointIdentity
+  /**
+   * Available is the release-world CLI identity selected for install/update.
+   *
+   * @generated from field: electron.desktop_runtime.DesktopCLIEntrypointIdentity available = 5;
+   */
+  available?: DesktopCLIEntrypointIdentity
+  /**
+   * Targets contains user-level install target candidates.
+   *
+   * @generated from field: repeated electron.desktop_runtime.DesktopCLIInstallTarget targets = 6;
+   */
+  targets?: DesktopCLIInstallTarget[]
+  /**
+   * ConflictPath is the conflicting command path when status is CONFLICT.
+   *
+   * @generated from field: string conflict_path = 7;
+   */
+  conflictPath?: string
+  /**
+   * ErrorMessage is the latest detection error.
+   *
+   * @generated from field: string error_message = 8;
+   */
+  errorMessage?: string
+  /**
+   * Generation increments every time detection state changes.
+   *
+   * @generated from field: uint64 generation = 9;
+   */
+  generation?: bigint
+  /**
+   * SelectedTargetId identifies the target selected by the resource owner.
+   *
+   * @generated from field: string selected_target_id = 10;
+   */
+  selectedTargetId?: string
+  /**
+   * Actions contains generation-bound resource actions.
+   *
+   * @generated from field: repeated electron.desktop_runtime.DesktopCLIInstallActionItem actions = 11;
+   */
+  actions?: DesktopCLIInstallActionItem[]
+}
+
+export const DesktopCLIInstallState: MessageType<DesktopCLIInstallState> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'electron.desktop_runtime.DesktopCLIInstallState',
+    fields: [
+      { no: 1, name: 'status', kind: 'enum', T: DesktopCLIInstallStatus_Enum },
+      { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 4,
+        name: 'installed',
+        kind: 'message',
+        T: () => DesktopCLIEntrypointIdentity,
+      },
+      {
+        no: 5,
+        name: 'available',
+        kind: 'message',
+        T: () => DesktopCLIEntrypointIdentity,
+      },
+      {
+        no: 6,
+        name: 'targets',
+        kind: 'message',
+        T: () => DesktopCLIInstallTarget,
+        repeated: true,
+      },
+      { no: 7, name: 'conflict_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 8, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
+      { no: 9, name: 'generation', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 10,
+        name: 'selected_target_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 11,
+        name: 'actions',
+        kind: 'message',
+        T: () => DesktopCLIInstallActionItem,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
@@ -1061,5 +1648,81 @@ export interface QuitDesktopRuntimeResponse {}
 export const QuitDesktopRuntimeResponse: MessageType<QuitDesktopRuntimeResponse> =
   /* @__PURE__ */ createEmptyMessageType<QuitDesktopRuntimeResponse>(
     'electron.desktop_runtime.QuitDesktopRuntimeResponse',
+    true,
+  )
+
+/**
+ * WatchCLIInstallStateRequest is the request for WatchCLIInstallState.
+ *
+ * @generated from message electron.desktop_runtime.WatchCLIInstallStateRequest
+ */
+export interface WatchCLIInstallStateRequest {}
+
+export const WatchCLIInstallStateRequest: MessageType<WatchCLIInstallStateRequest> =
+  /* @__PURE__ */ createEmptyMessageType<WatchCLIInstallStateRequest>(
+    'electron.desktop_runtime.WatchCLIInstallStateRequest',
+    true,
+  )
+
+/**
+ * WatchCLIInstallStateResponse is the response for WatchCLIInstallState.
+ *
+ * @generated from message electron.desktop_runtime.WatchCLIInstallStateResponse
+ */
+export interface WatchCLIInstallStateResponse {
+  /**
+   * State is the current CLI install state.
+   *
+   * @generated from field: electron.desktop_runtime.DesktopCLIInstallState state = 1;
+   */
+  state?: DesktopCLIInstallState
+}
+
+export const WatchCLIInstallStateResponse: MessageType<WatchCLIInstallStateResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'electron.desktop_runtime.WatchCLIInstallStateResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'state',
+        kind: 'message',
+        T: () => DesktopCLIInstallState,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * @generated from message electron.desktop_runtime.InvokeCLIInstallActionRequest
+ */
+export interface InvokeCLIInstallActionRequest {
+  /**
+   * @generated from field: string action_id = 1;
+   */
+  actionId?: string
+  /**
+   * @generated from field: uint64 generation = 2;
+   */
+  generation?: bigint
+}
+
+export const InvokeCLIInstallActionRequest: MessageType<InvokeCLIInstallActionRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'electron.desktop_runtime.InvokeCLIInstallActionRequest',
+    fields: [
+      { no: 1, name: 'action_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'generation', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * @generated from message electron.desktop_runtime.InvokeCLIInstallActionResponse
+ */
+export interface InvokeCLIInstallActionResponse {}
+
+export const InvokeCLIInstallActionResponse: MessageType<InvokeCLIInstallActionResponse> =
+  /* @__PURE__ */ createEmptyMessageType<InvokeCLIInstallActionResponse>(
+    'electron.desktop_runtime.InvokeCLIInstallActionResponse',
     true,
   )

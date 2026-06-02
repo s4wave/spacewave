@@ -46,6 +46,7 @@ export class DesktopTrayResource implements DesktopTrayResourceService {
     () => Promise.resolve(this.buildStateResponse()),
     { mostRecentOnly: true },
   )
+  private ownerEntries: DesktopTrayEntry[] = []
   private e2eState?: DesktopTrayState
 
   public RegisterDesktopTrayEntry(
@@ -162,9 +163,13 @@ export class DesktopTrayResource implements DesktopTrayResourceService {
     if (this.e2eState) {
       return cloneState(this.e2eState)
     }
-    const entries = Array.from(this.registrations.values())
+    const registeredEntries = Array.from(this.registrations.values())
       .toSorted(compareRegistrations)
       .map((reg) => cloneEntry(reg.entry))
+    const entries = [
+      ...registeredEntries,
+      ...this.ownerEntries.map((entry) => cloneEntry(entry)),
+    ]
     return {
       entries,
       iconState: maxIconState(entries, DesktopTrayIconState.NORMAL),
@@ -174,6 +179,11 @@ export class DesktopTrayResource implements DesktopTrayResourceService {
 
   public replaceStateForE2E(state: DesktopTrayState | undefined): void {
     this.e2eState = state ? cloneState(state) : undefined
+    this.pushState()
+  }
+
+  public replaceOwnerEntries(entries: DesktopTrayEntry[]): void {
+    this.ownerEntries = entries.map((entry) => cloneEntry(entry))
     this.pushState()
   }
 

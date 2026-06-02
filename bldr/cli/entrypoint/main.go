@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -14,6 +16,7 @@ import (
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/entrypoint/storagepath"
 	"github.com/s4wave/spacewave/bldr/util/logfile"
@@ -152,6 +155,9 @@ func Main(
 	}
 
 	app.Before = func(c *cli.Context) error {
+		if c.Command != nil && c.Command.Name == "version" {
+			return nil
+		}
 		log := logrus.New()
 		log.SetFormatter(&logrus.TextFormatter{
 			DisableColors:    false,
@@ -221,6 +227,7 @@ func Main(
 	}
 
 	var runtimeTracePath string
+	app.Commands = append(app.Commands, newStandaloneVersionCommand(projectID))
 	app.Commands = append(app.Commands, &cli.Command{
 		Name:  "start",
 		Usage: "start the daemon and block until interrupted",
@@ -258,4 +265,55 @@ func Main(
 		os.Stderr.WriteString(err.Error() + "\n")
 		os.Exit(1)
 	}
+}
+
+type standaloneVersionIdentity struct {
+	SchemaVersion  int
+	ProjectID      string
+	EntrypointRole string
+	ChannelKey     string
+	PlatformID     string
+	Manifest       struct {
+		ManifestID string
+		Rev        uint64
+	}
+}
+
+func newStandaloneVersionCommand(projectID string) *cli.Command {
+	return &cli.Command{
+		Name:  "version",
+		Usage: "print entrypoint version and release identity",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{Name: "json", Usage: "print machine-readable JSON"},
+		},
+		Action: func(c *cli.Context) error {
+			identity := standaloneVersionIdentity{
+				SchemaVersion:  1,
+				ProjectID:      projectID,
+				EntrypointRole: "standalone",
+				PlatformID:     "desktop/" + runtime.GOOS + "/" + runtime.GOARCH,
+			}
+			if c.Bool("json") {
+				_, err := c.App.Writer.Write(marshalStandaloneVersionIdentity(identity))
+				return err
+			}
+			_, err := c.App.Writer.Write([]byte(identity.ProjectID + " " + identity.EntrypointRole + "\n"))
+			return err
+		},
+	}
+}
+
+func marshalStandaloneVersionIdentity(identity standaloneVersionIdentity) []byte {
+	var arena fastjson.Arena
+	obj := arena.NewObject()
+	obj.Set("schemaVersion", arena.NewNumberInt(identity.SchemaVersion))
+	obj.Set("projectId", arena.NewString(identity.ProjectID))
+	obj.Set("entrypointRole", arena.NewString(identity.EntrypointRole))
+	obj.Set("channelKey", arena.NewString(identity.ChannelKey))
+	obj.Set("platformId", arena.NewString(identity.PlatformID))
+	manifest := arena.NewObject()
+	manifest.Set("manifestId", arena.NewString(identity.Manifest.ManifestID))
+	manifest.Set("rev", arena.NewNumberString(strconv.FormatUint(identity.Manifest.Rev, 10)))
+	obj.Set("manifest", manifest)
+	return append(obj.MarshalTo(nil), '\n')
 }

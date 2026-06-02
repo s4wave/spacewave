@@ -152,4 +152,127 @@ class SRPCDesktopRuntimeResourceService_WatchDesktopStateStream {
   starpc::Stream* strm_;
 };
 
+// Service ID for DesktopCLIInstallResourceService
+constexpr const char* kSRPCDesktopCLIInstallResourceServiceServiceID = "electron.desktop_runtime.DesktopCLIInstallResourceService";
+
+class SRPCDesktopCLIInstallResourceService_WatchCLIInstallStateClient;
+class SRPCDesktopCLIInstallResourceService_WatchCLIInstallStateStream;
+
+// SRPCDesktopCLIInstallResourceServiceClient is the client API for DesktopCLIInstallResourceService service.
+class SRPCDesktopCLIInstallResourceServiceClient {
+ public:
+  virtual ~SRPCDesktopCLIInstallResourceServiceClient() = default;
+
+  // SRPCClient returns the underlying SRPC client.
+  virtual starpc::Client* SRPCClient() = 0;
+
+  // WatchCLIInstallState
+  virtual std::pair<std::unique_ptr<SRPCDesktopCLIInstallResourceService_WatchCLIInstallStateClient>, starpc::Error> WatchCLIInstallState(const electron::desktop_runtime::WatchCLIInstallStateRequest& in) = 0;
+  // InvokeCLIInstallAction
+  virtual starpc::Error InvokeCLIInstallAction(const electron::desktop_runtime::InvokeCLIInstallActionRequest& in, electron::desktop_runtime::InvokeCLIInstallActionResponse* out) = 0;
+};
+
+// SRPCDesktopCLIInstallResourceServiceClientImpl implements SRPCDesktopCLIInstallResourceServiceClient.
+class SRPCDesktopCLIInstallResourceServiceClientImpl : public SRPCDesktopCLIInstallResourceServiceClient {
+ public:
+  explicit SRPCDesktopCLIInstallResourceServiceClientImpl(starpc::Client* cc, const std::string& service_id = "")
+      : cc_(cc), service_id_(service_id.empty() ? kSRPCDesktopCLIInstallResourceServiceServiceID : service_id) {}
+
+  starpc::Client* SRPCClient() override { return cc_; }
+
+  // WatchCLIInstallState
+  virtual std::pair<std::unique_ptr<SRPCDesktopCLIInstallResourceService_WatchCLIInstallStateClient>, starpc::Error> WatchCLIInstallState(const electron::desktop_runtime::WatchCLIInstallStateRequest& in) override;
+  // InvokeCLIInstallAction
+  virtual starpc::Error InvokeCLIInstallAction(const electron::desktop_runtime::InvokeCLIInstallActionRequest& in, electron::desktop_runtime::InvokeCLIInstallActionResponse* out) override;
+
+ private:
+  starpc::Client* cc_;
+  std::string service_id_;
+};
+
+// NewSRPCDesktopCLIInstallResourceServiceClient creates a new client.
+inline std::unique_ptr<SRPCDesktopCLIInstallResourceServiceClient> NewSRPCDesktopCLIInstallResourceServiceClient(starpc::Client* cc) {
+  return std::make_unique<SRPCDesktopCLIInstallResourceServiceClientImpl>(cc);
+}
+
+// SRPCDesktopCLIInstallResourceServiceServer is the server API for DesktopCLIInstallResourceService service.
+class SRPCDesktopCLIInstallResourceServiceServer {
+ public:
+  virtual ~SRPCDesktopCLIInstallResourceServiceServer() = default;
+
+  // WatchCLIInstallState
+  virtual starpc::Error WatchCLIInstallState(const electron::desktop_runtime::WatchCLIInstallStateRequest& req, SRPCDesktopCLIInstallResourceService_WatchCLIInstallStateStream* strm) = 0;
+  // InvokeCLIInstallAction
+  virtual starpc::Error InvokeCLIInstallAction(const electron::desktop_runtime::InvokeCLIInstallActionRequest& req, electron::desktop_runtime::InvokeCLIInstallActionResponse* resp) = 0;
+};
+
+// SRPCDesktopCLIInstallResourceServiceHandler implements starpc::Handler for DesktopCLIInstallResourceService.
+class SRPCDesktopCLIInstallResourceServiceHandler : public starpc::Handler {
+ public:
+  SRPCDesktopCLIInstallResourceServiceHandler(SRPCDesktopCLIInstallResourceServiceServer* impl, const std::string& service_id = "")
+      : impl_(impl), service_id_(service_id.empty() ? kSRPCDesktopCLIInstallResourceServiceServiceID : service_id) {}
+
+  const std::string& GetServiceID() const override { return service_id_; }
+  std::vector<std::string> GetMethodIDs() const override;
+  std::pair<bool, starpc::Error> InvokeMethod(
+      const std::string& service_id,
+      const std::string& method_id,
+      starpc::Stream* strm) override;
+
+ private:
+  SRPCDesktopCLIInstallResourceServiceServer* impl_;
+  std::string service_id_;
+};
+
+// NewSRPCDesktopCLIInstallResourceServiceHandler creates a new handler for the given implementation.
+inline std::unique_ptr<SRPCDesktopCLIInstallResourceServiceHandler> NewSRPCDesktopCLIInstallResourceServiceHandler(SRPCDesktopCLIInstallResourceServiceServer* impl) {
+  return std::make_unique<SRPCDesktopCLIInstallResourceServiceHandler>(impl);
+}
+
+// SRPCRegisterDesktopCLIInstallResourceService registers the server implementation with the mux.
+// The returned handler must outlive the mux registration.
+inline std::pair<std::unique_ptr<SRPCDesktopCLIInstallResourceServiceHandler>, starpc::Error> SRPCRegisterDesktopCLIInstallResourceService(starpc::Mux* mux, SRPCDesktopCLIInstallResourceServiceServer* impl) {
+  auto handler = NewSRPCDesktopCLIInstallResourceServiceHandler(impl);
+  starpc::Error err = mux->Register(handler.get());
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::move(handler), starpc::Error::OK};
+}
+
+// SRPCDesktopCLIInstallResourceService_WatchCLIInstallStateClient is the client stream for WatchCLIInstallState.
+class SRPCDesktopCLIInstallResourceService_WatchCLIInstallStateClient {
+ public:
+  explicit SRPCDesktopCLIInstallResourceService_WatchCLIInstallStateClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
+
+  starpc::Error Recv(electron::desktop_runtime::WatchCLIInstallStateResponse* msg) {
+    return strm_->MsgRecv(msg);
+  }
+
+  starpc::Error CloseSend() { return strm_->CloseSend(); }
+  starpc::Error Close() { return strm_->Close(); }
+
+ private:
+  std::unique_ptr<starpc::Stream> strm_;
+};
+
+// SRPCDesktopCLIInstallResourceService_WatchCLIInstallStateStream is the server stream for WatchCLIInstallState.
+class SRPCDesktopCLIInstallResourceService_WatchCLIInstallStateStream {
+ public:
+  explicit SRPCDesktopCLIInstallResourceService_WatchCLIInstallStateStream(starpc::Stream* strm) : strm_(strm) {}
+
+  starpc::Error Send(const electron::desktop_runtime::WatchCLIInstallStateResponse& msg) {
+    return strm_->MsgSend(msg);
+  }
+
+  starpc::Error SendAndClose(const electron::desktop_runtime::WatchCLIInstallStateResponse& msg) {
+    starpc::Error err = strm_->MsgSend(msg);
+    if (err != starpc::Error::OK) return err;
+    return strm_->CloseSend();
+  }
+
+ private:
+  starpc::Stream* strm_;
+};
+
 }  // namespace electron::desktop_runtime

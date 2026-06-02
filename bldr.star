@@ -364,6 +364,11 @@ DESKTOP_RELEASE_LOAD_PLUGINS = [
     "spacewave-core", "spacewave-web", "spacewave-app", "web",
 ]
 
+CLI_RELEASE_LOAD_PLUGINS = [
+    "spacewave-launcher",
+    "spacewave-core", "spacewave-web", "spacewave-app", "web",
+]
+
 BROWSER_RELEASE_LOAD_PLUGINS = [
     # spacewave-loader is intentionally omitted in browser release builds. It
     # exists only to spawn the native spacewave-helper loading window; in WASM
@@ -377,10 +382,12 @@ BROWSER_RELEASE_E2E_LOAD_PLUGINS = [
     "spacewave-core", "spacewave-web", "spacewave-app", "web",
 ]
 
-def dist_release_config(embed_manifests, load_plugins):
+def dist_release_config(embed_manifests, load_plugins, entrypoint_role="desktop"):
     return dist_compiler_config(
         cliPkgs=["./cmd/spacewave/cli"],
         embedManifests=embed_manifests,
+        entrypointRole=entrypoint_role,
+        channelKey="stable",
         loadPlugins=load_plugins,
         loadWebStartup=WEB_STARTUP,
     )
@@ -393,6 +400,13 @@ manifest("spacewave-dist",
     # host-agnostic and makes the build target the single source of truth for
     # what ships in each bundle.
     config=dist_release_config([], DESKTOP_RELEASE_LOAD_PLUGINS),
+)
+manifest("spacewave-cli",
+    builder="bldr/dist/compiler",
+    # CLI uses the same dist compiler and native CLI path as spacewave-dist,
+    # but has its own Manifest id so Release World metadata can distinguish
+    # CLI rollout from desktop app rollout without overloading platform ids.
+    config=dist_release_config([], CLI_RELEASE_LOAD_PLUGINS, entrypoint_role="cli"),
 )
 
 # -- Build targets --
@@ -418,6 +432,11 @@ DESKTOP_RELEASE_MANIFESTS = [
     "spacewave-launcher", "spacewave-loader",
     "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "web",
     "spacewave-dist",
+]
+CLI_RELEASE_MANIFESTS = [
+    "spacewave-launcher",
+    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "web",
+    "spacewave-cli",
 ]
 # REMOTE_WORLD_MANIFESTS are the manifests that ship in the R2-hosted plugin
 # world. Desktop entrypoints still embed the startup app manifests for a
@@ -460,6 +479,7 @@ build("release-web",
         "spacewave-dist": dist_release_config(
             BROWSER_RELEASE_EMBED_MANIFESTS,
             BROWSER_RELEASE_LOAD_PLUGINS,
+            entrypoint_role="browser",
         ),
     },
 )
@@ -471,6 +491,7 @@ build("release-web-e2e",
         "spacewave-dist": dist_release_config(
             BROWSER_RELEASE_E2E_EMBED_MANIFESTS,
             BROWSER_RELEASE_E2E_LOAD_PLUGINS,
+            entrypoint_role="browser",
         ),
     },
 )
@@ -482,6 +503,7 @@ build("release-web-tinygo",
         "spacewave-dist": dist_release_config(
             BROWSER_RELEASE_EMBED_MANIFESTS,
             BROWSER_RELEASE_LOAD_PLUGINS,
+            entrypoint_role="browser",
         ),
     },
 )
@@ -494,6 +516,7 @@ build("release-web-e2e-tinygo",
         "spacewave-dist": dist_release_config(
             BROWSER_RELEASE_E2E_EMBED_MANIFESTS,
             BROWSER_RELEASE_E2E_LOAD_PLUGINS,
+            entrypoint_role="browser",
         ),
     },
 )
@@ -506,6 +529,7 @@ build("release-web-e2e-goscript",
         "spacewave-dist": dist_release_config(
             BROWSER_RELEASE_E2E_EMBED_MANIFESTS,
             BROWSER_RELEASE_E2E_LOAD_PLUGINS,
+            entrypoint_role="browser",
         ),
     },
 )
@@ -570,22 +594,35 @@ def define_release_build(host_key, platform_id):
 for host_key, platform_id in RELEASE_HOSTS:
     define_release_build(host_key, platform_id)
 
-# Per-host CLI-only release builds. Each (host_key, platform_id) pair drives
-# one `release-cli-<host_key>` build target that produces a standalone
-# `spacewave` binary for the matching host. Release automation packages
-# the binary into the platform-specific archive (macOS/Windows: `.zip`, Linux:
-# `.tar.gz`) advertised in the `/download` page CLI manifest. The host_key uses
-# the Go GOOS naming (`darwin`, `linux`, `windows`) to match the existing
-# `release-desktop-<host>` convention; release packaging renames `darwin`
-# to the user-facing `macos` label (e.g. `spacewave-cli-macos-arm64.zip`)
-# so the public artifact names match the existing
-# `spacewave-macos-*.dmg` installer naming. Host matrix matches RELEASE_HOSTS
-# so the CLI ships everywhere the desktop app does.
+# Per-host managed CLI entrypoint builds. Each (host_key, platform_id) pair
+# drives one `release-cli-<host_key>` build target that produces a
+# `spacewave-cli` dist entrypoint for the matching host. The terminal path
+# loads the same release-world product plugin surface as desktop, but omits the
+# native helper-window loader so CLI startup owns progress and failure output.
 for host_key, platform_id in RELEASE_HOSTS:
     cli_host_key = host_key.replace("desktop-", "")
+    cli_embed_manifests = [
+        {"manifestId": "spacewave-launcher",
+         "platformId": platform_id},
+        {"manifestId": "spacewave-core",
+         "platformId": platform_id},
+        {"manifestId": "web",
+         "platformId": platform_id},
+        {"manifestId": "spacewave-web",
+         "platformId": "js"},
+        {"manifestId": "spacewave-app",
+         "platformId": "js"},
+    ]
     build("release-cli-" + cli_host_key,
-        manifests=["spacewave"],
+        manifests=CLI_RELEASE_MANIFESTS,
         platform_ids=[platform_id],
+        manifestOverrides={
+            "spacewave-cli": dist_release_config(
+                cli_embed_manifests,
+                CLI_RELEASE_LOAD_PLUGINS,
+                entrypoint_role="cli",
+            ),
+        },
     )
 
 # Per-host plugin-only release builds. These produce just the native

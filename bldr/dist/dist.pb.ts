@@ -49,6 +49,31 @@ export interface DistMeta {
    * @generated from field: string dist_object_key = 5;
    */
   distObjectKey?: string
+  /**
+   * EntrypointRole is the release role for this entrypoint.
+   * Expected values are "desktop", "browser", and "cli".
+   *
+   * @generated from field: string entrypoint_role = 6;
+   */
+  entrypointRole?: string
+  /**
+   * ChannelKey is the release channel this entrypoint was built for.
+   *
+   * @generated from field: string channel_key = 7;
+   */
+  channelKey?: string
+  /**
+   * ManifestId is the Bldr Manifest id for this entrypoint binary.
+   *
+   * @generated from field: string manifest_id = 8;
+   */
+  manifestId?: string
+  /**
+   * ManifestRev is the Bldr Manifest revision for this entrypoint binary.
+   *
+   * @generated from field: uint64 manifest_rev = 9;
+   */
+  manifestRev?: bigint
 }
 
 export const DistMeta: MessageType<DistMeta> =
@@ -66,6 +91,10 @@ export const DistMeta: MessageType<DistMeta> =
       },
       { no: 4, name: 'dist_world_ref', kind: 'message', T: () => ObjectRef },
       { no: 5, name: 'dist_object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'entrypoint_role', kind: 'scalar', T: ScalarType.STRING },
+      { no: 7, name: 'channel_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 8, name: 'manifest_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 9, name: 'manifest_rev', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

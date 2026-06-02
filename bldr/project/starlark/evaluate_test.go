@@ -404,6 +404,37 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		}
 	}
 
+	cliRelease := result.Config.GetBuild()["release-cli-darwin-arm64"]
+	if cliRelease == nil {
+		t.Fatal("build target 'release-cli-darwin-arm64' not found")
+	}
+	if slices.Contains(cliRelease.GetManifests(), "spacewave-dist") {
+		t.Fatalf("release cli manifests should not build desktop entrypoint: %v", cliRelease.GetManifests())
+	}
+	if !slices.Contains(cliRelease.GetManifests(), "spacewave-cli") {
+		t.Fatalf("release cli manifests missing spacewave-cli: %v", cliRelease.GetManifests())
+	}
+	cliOverride := cliRelease.GetManifestOverrides()["spacewave-cli"]
+	if cliOverride == nil {
+		t.Fatal("override for 'spacewave-cli' not found")
+	}
+	cliCfg := string(cliOverride.GetConfig())
+	for _, want := range []string{
+		`"entrypointRole":"cli"`,
+		`"spacewave-launcher"`,
+		`"spacewave-core"`,
+		`"spacewave-web"`,
+		`"spacewave-app"`,
+		`"web"`,
+	} {
+		if !strings.Contains(cliCfg, want) {
+			t.Fatalf("release cli override config missing %s: %s", want, cliCfg)
+		}
+	}
+	if strings.Contains(cliCfg, `"spacewave-loader"`) {
+		t.Fatalf("release cli override unexpectedly includes desktop loader: %s", cliCfg)
+	}
+
 	browserRelease := result.Config.GetBuild()["release-web"]
 	if browserRelease == nil {
 		t.Fatal("build target 'release-web' not found")

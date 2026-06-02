@@ -1,12 +1,23 @@
 package bldr_dist
 
 import (
+	"slices"
+
 	"github.com/klauspost/compress/s2"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/util/labels"
+)
+
+const (
+	// EntrypointRoleDesktop identifies the native desktop UI entrypoint.
+	EntrypointRoleDesktop = "desktop"
+	// EntrypointRoleBrowser identifies the browser/CDN entrypoint.
+	EntrypointRoleBrowser = "browser"
+	// EntrypointRoleCLI identifies the managed CLI entrypoint.
+	EntrypointRoleCLI = "cli"
 )
 
 // NewDistMeta constructs a new DistMeta.
@@ -18,6 +29,26 @@ func NewDistMeta(projectID, platformID string, startupPlugins []string, distWorl
 		DistWorldRef:   distWorldRef,
 		DistObjectKey:  distObjKey,
 	}
+}
+
+// NewDistEntrypointMeta constructs a new DistMeta with entrypoint identity.
+func NewDistEntrypointMeta(
+	projectID string,
+	platformID string,
+	startupPlugins []string,
+	distWorldRef *bucket.ObjectRef,
+	distObjKey string,
+	entrypointRole string,
+	channelKey string,
+	manifestID string,
+	manifestRev uint64,
+) *DistMeta {
+	meta := NewDistMeta(projectID, platformID, startupPlugins, distWorldRef, distObjKey)
+	meta.EntrypointRole = entrypointRole
+	meta.ChannelKey = channelKey
+	meta.ManifestId = manifestID
+	meta.ManifestRev = manifestRev
+	return meta
 }
 
 // UnmarshalDistMetaB58 unmarshals a b58 dist meta.
@@ -49,6 +80,9 @@ func (m *DistMeta) Validate() error {
 	if m.GetDistObjectKey() == "" {
 		return errors.Wrap(world.ErrEmptyObjectKey, "dist_object_key")
 	}
+	if role := m.GetEntrypointRole(); role != "" && !slices.Contains(validEntrypointRoles(), role) {
+		return errors.Errorf("entrypoint_role: invalid role %q", role)
+	}
 	return nil
 }
 
@@ -58,4 +92,8 @@ func (m *DistMeta) MarshalB58() string {
 	dat, _ := m.MarshalVT()
 	dat = s2.EncodeBest(nil, dat)
 	return b58.Encode(dat)
+}
+
+func validEntrypointRoles() []string {
+	return []string{EntrypointRoleDesktop, EntrypointRoleBrowser, EntrypointRoleCLI}
 }

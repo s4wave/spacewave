@@ -54,6 +54,26 @@ message ElectronInit {
   string tray_icon_path = 10;
   // MacosTemplateTrayIconPath is the path to the macOS template tray icon.
   string macos_template_tray_icon_path = 11;
+  // ManagedCliRelease identifies the release-selected CLI source for desktop-managed installs.
+  ManagedCLIRelease managed_cli_release = 12;
+}
+
+// ManagedCLIRelease identifies a release-selected managed CLI binary.
+message ManagedCLIRelease {
+  // BinaryPath is the local release binary path Electron main may copy.
+  string binary_path = 1;
+  // ProjectId is the release project id.
+  string project_id = 2;
+  // EntrypointRole must be cli.
+  string entrypoint_role = 3;
+  // ChannelKey is the selected release channel.
+  string channel_key = 4;
+  // ManifestId is the selected CLI Manifest id.
+  string manifest_id = 5;
+  // ManifestRev is the selected CLI Manifest revision.
+  uint64 manifest_rev = 6;
+  // PlatformId is the selected native platform id.
+  string platform_id = 7;
 }
 
 // Config is the configuration for the electron runtime.
@@ -102,4 +122,6 @@ message Config {
   string tray_icon_path = 15;
   // MacosTemplateTrayIconPath is the path to the macOS template tray icon.
   string macos_template_tray_icon_path = 16;
+  // ManagedCliRelease identifies the release-selected CLI source for desktop-managed installs.
+  ManagedCLIRelease managed_cli_release = 17;
 }

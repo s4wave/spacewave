@@ -157,6 +157,8 @@ type ElectronInit struct {
 	TrayIconPath string `protobuf:"bytes,10,opt,name=tray_icon_path,json=trayIconPath,proto3" json:"trayIconPath,omitempty"`
 	// MacosTemplateTrayIconPath is the path to the macOS template tray icon.
 	MacosTemplateTrayIconPath string `protobuf:"bytes,11,opt,name=macos_template_tray_icon_path,json=macosTemplateTrayIconPath,proto3" json:"macosTemplateTrayIconPath,omitempty"`
+	// ManagedCliRelease identifies the release-selected CLI source for desktop-managed installs.
+	ManagedCliRelease *ManagedCLIRelease `protobuf:"bytes,12,opt,name=managed_cli_release,json=managedCliRelease,proto3" json:"managedCliRelease,omitempty"`
 }
 
 func (x *ElectronInit) Reset() {
@@ -242,6 +244,87 @@ func (x *ElectronInit) GetMacosTemplateTrayIconPath() string {
 	return ""
 }
 
+func (x *ElectronInit) GetManagedCliRelease() *ManagedCLIRelease {
+	if x != nil {
+		return x.ManagedCliRelease
+	}
+	return nil
+}
+
+// ManagedCLIRelease identifies a release-selected managed CLI binary.
+type ManagedCLIRelease struct {
+	unknownFields []byte
+	// BinaryPath is the local release binary path Electron main may copy.
+	BinaryPath string `protobuf:"bytes,1,opt,name=binary_path,json=binaryPath,proto3" json:"binaryPath,omitempty"`
+	// ProjectId is the release project id.
+	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"projectId,omitempty"`
+	// EntrypointRole must be cli.
+	EntrypointRole string `protobuf:"bytes,3,opt,name=entrypoint_role,json=entrypointRole,proto3" json:"entrypointRole,omitempty"`
+	// ChannelKey is the selected release channel.
+	ChannelKey string `protobuf:"bytes,4,opt,name=channel_key,json=channelKey,proto3" json:"channelKey,omitempty"`
+	// ManifestId is the selected CLI Manifest id.
+	ManifestId string `protobuf:"bytes,5,opt,name=manifest_id,json=manifestId,proto3" json:"manifestId,omitempty"`
+	// ManifestRev is the selected CLI Manifest revision.
+	ManifestRev uint64 `protobuf:"varint,6,opt,name=manifest_rev,json=manifestRev,proto3" json:"manifestRev,omitempty"`
+	// PlatformId is the selected native platform id.
+	PlatformId string `protobuf:"bytes,7,opt,name=platform_id,json=platformId,proto3" json:"platformId,omitempty"`
+}
+
+func (x *ManagedCLIRelease) Reset() {
+	*x = ManagedCLIRelease{}
+}
+
+func (*ManagedCLIRelease) ProtoMessage() {}
+
+func (x *ManagedCLIRelease) GetBinaryPath() string {
+	if x != nil {
+		return x.BinaryPath
+	}
+	return ""
+}
+
+func (x *ManagedCLIRelease) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *ManagedCLIRelease) GetEntrypointRole() string {
+	if x != nil {
+		return x.EntrypointRole
+	}
+	return ""
+}
+
+func (x *ManagedCLIRelease) GetChannelKey() string {
+	if x != nil {
+		return x.ChannelKey
+	}
+	return ""
+}
+
+func (x *ManagedCLIRelease) GetManifestId() string {
+	if x != nil {
+		return x.ManifestId
+	}
+	return ""
+}
+
+func (x *ManagedCLIRelease) GetManifestRev() uint64 {
+	if x != nil {
+		return x.ManifestRev
+	}
+	return 0
+}
+
+func (x *ManagedCLIRelease) GetPlatformId() string {
+	if x != nil {
+		return x.PlatformId
+	}
+	return ""
+}
+
 // Config is the configuration for the electron runtime.
 type Config struct {
 	unknownFields []byte
@@ -283,6 +366,8 @@ type Config struct {
 	TrayIconPath string `protobuf:"bytes,15,opt,name=tray_icon_path,json=trayIconPath,proto3" json:"trayIconPath,omitempty"`
 	// MacosTemplateTrayIconPath is the path to the macOS template tray icon.
 	MacosTemplateTrayIconPath string `protobuf:"bytes,16,opt,name=macos_template_tray_icon_path,json=macosTemplateTrayIconPath,proto3" json:"macosTemplateTrayIconPath,omitempty"`
+	// ManagedCliRelease identifies the release-selected CLI source for desktop-managed installs.
+	ManagedCliRelease *ManagedCLIRelease `protobuf:"bytes,17,opt,name=managed_cli_release,json=managedCliRelease,proto3" json:"managedCliRelease,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -403,6 +488,13 @@ func (x *Config) GetMacosTemplateTrayIconPath() string {
 	return ""
 }
 
+func (x *Config) GetManagedCliRelease() *ManagedCLIRelease {
+	if x != nil {
+		return x.ManagedCliRelease
+	}
+	return nil
+}
+
 func (m *ElectronInit) CloneVT() *ElectronInit {
 	if m == nil {
 		return (*ElectronInit)(nil)
@@ -419,6 +511,7 @@ func (m *ElectronInit) CloneVT() *ElectronInit {
 	r.DesktopPresencePolicy = m.DesktopPresencePolicy
 	r.TrayIconPath = m.TrayIconPath
 	r.MacosTemplateTrayIconPath = m.MacosTemplateTrayIconPath
+	r.ManagedCliRelease = m.ManagedCliRelease.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -426,6 +519,28 @@ func (m *ElectronInit) CloneVT() *ElectronInit {
 }
 
 func (m *ElectronInit) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ManagedCLIRelease) CloneVT() *ManagedCLIRelease {
+	if m == nil {
+		return (*ManagedCLIRelease)(nil)
+	}
+	r := new(ManagedCLIRelease)
+	r.BinaryPath = m.BinaryPath
+	r.ProjectId = m.ProjectId
+	r.EntrypointRole = m.EntrypointRole
+	r.ChannelKey = m.ChannelKey
+	r.ManifestId = m.ManifestId
+	r.ManifestRev = m.ManifestRev
+	r.PlatformId = m.PlatformId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ManagedCLIRelease) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -449,6 +564,7 @@ func (m *Config) CloneVT() *Config {
 	r.DesktopPresencePolicy = m.DesktopPresencePolicy
 	r.TrayIconPath = m.TrayIconPath
 	r.MacosTemplateTrayIconPath = m.MacosTemplateTrayIconPath
+	r.ManagedCliRelease = m.ManagedCliRelease.CloneVT()
 	if rhs := m.ElectronFlags; rhs != nil {
 		r.ElectronFlags = slices.Clone(rhs)
 	}
@@ -501,11 +617,52 @@ func (this *ElectronInit) EqualVT(that *ElectronInit) bool {
 	if this.MacosTemplateTrayIconPath != that.MacosTemplateTrayIconPath {
 		return false
 	}
+	if !this.ManagedCliRelease.EqualVT(that.ManagedCliRelease) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *ElectronInit) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ElectronInit)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ManagedCLIRelease) EqualVT(that *ManagedCLIRelease) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.BinaryPath != that.BinaryPath {
+		return false
+	}
+	if this.ProjectId != that.ProjectId {
+		return false
+	}
+	if this.EntrypointRole != that.EntrypointRole {
+		return false
+	}
+	if this.ChannelKey != that.ChannelKey {
+		return false
+	}
+	if this.ManifestId != that.ManifestId {
+		return false
+	}
+	if this.ManifestRev != that.ManifestRev {
+		return false
+	}
+	if this.PlatformId != that.PlatformId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ManagedCLIRelease) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ManagedCLIRelease)
 	if !ok {
 		return false
 	}
@@ -570,6 +727,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.MacosTemplateTrayIconPath != that.MacosTemplateTrayIconPath {
+		return false
+	}
+	if !this.ManagedCliRelease.EqualVT(that.ManagedCliRelease) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -766,6 +926,11 @@ func (x *ElectronInit) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("macosTemplateTrayIconPath")
 		s.WriteString(x.MacosTemplateTrayIconPath)
 	}
+	if x.ManagedCliRelease != nil || s.HasField("managedCliRelease") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("managedCliRelease")
+		x.ManagedCliRelease.MarshalProtoJSON(s.WithField("managedCliRelease"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -816,12 +981,109 @@ func (x *ElectronInit) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "macos_template_tray_icon_path", "macosTemplateTrayIconPath":
 			s.AddField("macos_template_tray_icon_path")
 			x.MacosTemplateTrayIconPath = s.ReadString()
+		case "managed_cli_release", "managedCliRelease":
+			if s.ReadNil() {
+				x.ManagedCliRelease = nil
+				return
+			}
+			x.ManagedCliRelease = &ManagedCLIRelease{}
+			x.ManagedCliRelease.UnmarshalProtoJSON(s.WithField("managed_cli_release", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the ElectronInit from JSON.
 func (x *ElectronInit) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ManagedCLIRelease message to JSON.
+func (x *ManagedCLIRelease) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.BinaryPath != "" || s.HasField("binaryPath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("binaryPath")
+		s.WriteString(x.BinaryPath)
+	}
+	if x.ProjectId != "" || s.HasField("projectId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("projectId")
+		s.WriteString(x.ProjectId)
+	}
+	if x.EntrypointRole != "" || s.HasField("entrypointRole") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entrypointRole")
+		s.WriteString(x.EntrypointRole)
+	}
+	if x.ChannelKey != "" || s.HasField("channelKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("channelKey")
+		s.WriteString(x.ChannelKey)
+	}
+	if x.ManifestId != "" || s.HasField("manifestId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("manifestId")
+		s.WriteString(x.ManifestId)
+	}
+	if x.ManifestRev != 0 || s.HasField("manifestRev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("manifestRev")
+		s.WriteUint64(x.ManifestRev)
+	}
+	if x.PlatformId != "" || s.HasField("platformId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("platformId")
+		s.WriteString(x.PlatformId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ManagedCLIRelease to JSON.
+func (x *ManagedCLIRelease) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ManagedCLIRelease message from JSON.
+func (x *ManagedCLIRelease) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "binary_path", "binaryPath":
+			s.AddField("binary_path")
+			x.BinaryPath = s.ReadString()
+		case "project_id", "projectId":
+			s.AddField("project_id")
+			x.ProjectId = s.ReadString()
+		case "entrypoint_role", "entrypointRole":
+			s.AddField("entrypoint_role")
+			x.EntrypointRole = s.ReadString()
+		case "channel_key", "channelKey":
+			s.AddField("channel_key")
+			x.ChannelKey = s.ReadString()
+		case "manifest_id", "manifestId":
+			s.AddField("manifest_id")
+			x.ManifestId = s.ReadString()
+		case "manifest_rev", "manifestRev":
+			s.AddField("manifest_rev")
+			x.ManifestRev = s.ReadUint64()
+		case "platform_id", "platformId":
+			s.AddField("platform_id")
+			x.PlatformId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ManagedCLIRelease from JSON.
+func (x *ManagedCLIRelease) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -913,6 +1175,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("macosTemplateTrayIconPath")
 		s.WriteString(x.MacosTemplateTrayIconPath)
 	}
+	if x.ManagedCliRelease != nil || s.HasField("managedCliRelease") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("managedCliRelease")
+		x.ManagedCliRelease.MarshalProtoJSON(s.WithField("managedCliRelease"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -982,6 +1249,13 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "macos_template_tray_icon_path", "macosTemplateTrayIconPath":
 			s.AddField("macos_template_tray_icon_path")
 			x.MacosTemplateTrayIconPath = s.ReadString()
+		case "managed_cli_release", "managedCliRelease":
+			if s.ReadNil() {
+				x.ManagedCliRelease = nil
+				return
+			}
+			x.ManagedCliRelease = &ManagedCLIRelease{}
+			x.ManagedCliRelease.UnmarshalProtoJSON(s.WithField("managed_cli_release", true))
 		}
 	})
 }
@@ -1020,6 +1294,16 @@ func (m *ElectronInit) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ManagedCliRelease != nil {
+		size, err := m.ManagedCliRelease.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x62
 	}
 	if len(m.MacosTemplateTrayIconPath) > 0 {
 		i -= len(m.MacosTemplateTrayIconPath)
@@ -1094,6 +1378,86 @@ func (m *ElectronInit) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *ManagedCLIRelease) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ManagedCLIRelease) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ManagedCLIRelease) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.PlatformId) > 0 {
+		i -= len(m.PlatformId)
+		copy(dAtA[i:], m.PlatformId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PlatformId)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if m.ManifestRev != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ManifestRev))
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.ManifestId) > 0 {
+		i -= len(m.ManifestId)
+		copy(dAtA[i:], m.ManifestId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ManifestId)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.ChannelKey) > 0 {
+		i -= len(m.ChannelKey)
+		copy(dAtA[i:], m.ChannelKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ChannelKey)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.EntrypointRole) > 0 {
+		i -= len(m.EntrypointRole)
+		copy(dAtA[i:], m.EntrypointRole)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.EntrypointRole)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.ProjectId) > 0 {
+		i -= len(m.ProjectId)
+		copy(dAtA[i:], m.ProjectId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ProjectId)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.BinaryPath) > 0 {
+		i -= len(m.BinaryPath)
+		copy(dAtA[i:], m.BinaryPath)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.BinaryPath)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Config) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1123,6 +1487,18 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ManagedCliRelease != nil {
+		size, err := m.ManagedCliRelease.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x8a
 	}
 	if len(m.MacosTemplateTrayIconPath) > 0 {
 		i -= len(m.MacosTemplateTrayIconPath)
@@ -1280,6 +1656,47 @@ func (m *ElectronInit) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.ManagedCliRelease != nil {
+		l = m.ManagedCliRelease.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ManagedCLIRelease) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.BinaryPath)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ProjectId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.EntrypointRole)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ChannelKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ManifestId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.ManifestRev != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ManifestRev))
+	}
+	l = len(m.PlatformId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1348,6 +1765,10 @@ func (m *Config) SizeVT() (n int) {
 	}
 	l = len(m.MacosTemplateTrayIconPath)
 	if l > 0 {
+		n += 2 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.ManagedCliRelease != nil {
+		l = m.ManagedCliRelease.SizeVT()
 		n += 2 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -1452,11 +1873,78 @@ func (x *ElectronInit) MarshalProtoText() string {
 		sb.WriteString("macos_template_tray_icon_path: ")
 		sb.WriteString(strconv.Quote(x.MacosTemplateTrayIconPath))
 	}
+	if x.ManagedCliRelease != nil {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("managed_cli_release: ")
+		sb.WriteString(x.ManagedCliRelease.MarshalProtoText())
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
 
 func (x *ElectronInit) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ManagedCLIRelease) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ManagedCLIRelease {")
+	if x.BinaryPath != "" {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("binary_path: ")
+		sb.WriteString(strconv.Quote(x.BinaryPath))
+	}
+	if x.ProjectId != "" {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("project_id: ")
+		sb.WriteString(strconv.Quote(x.ProjectId))
+	}
+	if x.EntrypointRole != "" {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("entrypoint_role: ")
+		sb.WriteString(strconv.Quote(x.EntrypointRole))
+	}
+	if x.ChannelKey != "" {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("channel_key: ")
+		sb.WriteString(strconv.Quote(x.ChannelKey))
+	}
+	if x.ManifestId != "" {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("manifest_id: ")
+		sb.WriteString(strconv.Quote(x.ManifestId))
+	}
+	if x.ManifestRev != 0 {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("manifest_rev: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.ManifestRev), 10))
+	}
+	if x.PlatformId != "" {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("platform_id: ")
+		sb.WriteString(strconv.Quote(x.PlatformId))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ManagedCLIRelease) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1586,6 +2074,13 @@ func (x *Config) MarshalProtoText() string {
 		}
 		sb.WriteString("macos_template_tray_icon_path: ")
 		sb.WriteString(strconv.Quote(x.MacosTemplateTrayIconPath))
+	}
+	if x.ManagedCliRelease != nil {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("managed_cli_release: ")
+		sb.WriteString(x.ManagedCliRelease.MarshalProtoText())
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1787,6 +2282,218 @@ func (m *ElectronInit) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.MacosTemplateTrayIconPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ManagedCliRelease", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ManagedCliRelease == nil {
+				m.ManagedCliRelease = &ManagedCLIRelease{}
+			}
+			if err := m.ManagedCliRelease.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ManagedCLIRelease) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ManagedCLIRelease: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ManagedCLIRelease: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BinaryPath", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BinaryPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProjectId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ProjectId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EntrypointRole", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EntrypointRole = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChannelKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ChannelKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ManifestId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ManifestId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ManifestRev", wireType)
+			}
+			m.ManifestRev = 0
+			m.ManifestRev, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PlatformId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PlatformId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -2113,6 +2820,34 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.MacosTemplateTrayIconPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 17:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ManagedCliRelease", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ManagedCliRelease == nil {
+				m.ManagedCliRelease = &ManagedCLIRelease{}
+			}
+			if err := m.ManagedCliRelease.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

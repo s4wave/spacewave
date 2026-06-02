@@ -260,3 +260,182 @@ type SRPCDesktopRuntimeResourceService_QuitDesktopRuntimeStream interface {
 type srpcDesktopRuntimeResourceService_QuitDesktopRuntimeStream struct {
 	srpc.Stream
 }
+
+type SRPCDesktopCLIInstallResourceServiceClient interface {
+	// SRPCClient returns the underlying SRPC client.
+	SRPCClient() srpc.Client
+
+	// WatchCLIInstallState streams detected CLI install state.
+	WatchCLIInstallState(ctx context.Context, in *WatchCLIInstallStateRequest) (SRPCDesktopCLIInstallResourceService_WatchCLIInstallStateClient, error)
+	// InvokeCLIInstallAction invokes a generation-bound CLI install action.
+	InvokeCLIInstallAction(ctx context.Context, in *InvokeCLIInstallActionRequest) (*InvokeCLIInstallActionResponse, error)
+}
+
+type srpcDesktopCLIInstallResourceServiceClient struct {
+	cc        srpc.Client
+	serviceID string
+}
+
+func NewSRPCDesktopCLIInstallResourceServiceClient(cc srpc.Client) SRPCDesktopCLIInstallResourceServiceClient {
+	return &srpcDesktopCLIInstallResourceServiceClient{cc: cc, serviceID: SRPCDesktopCLIInstallResourceServiceServiceID}
+}
+
+func NewSRPCDesktopCLIInstallResourceServiceClientWithServiceID(cc srpc.Client, serviceID string) SRPCDesktopCLIInstallResourceServiceClient {
+	if serviceID == "" {
+		serviceID = SRPCDesktopCLIInstallResourceServiceServiceID
+	}
+	return &srpcDesktopCLIInstallResourceServiceClient{cc: cc, serviceID: serviceID}
+}
+
+func (c *srpcDesktopCLIInstallResourceServiceClient) SRPCClient() srpc.Client { return c.cc }
+
+func (c *srpcDesktopCLIInstallResourceServiceClient) WatchCLIInstallState(ctx context.Context, in *WatchCLIInstallStateRequest) (SRPCDesktopCLIInstallResourceService_WatchCLIInstallStateClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchCLIInstallState", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcDesktopCLIInstallResourceService_WatchCLIInstallStateClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCDesktopCLIInstallResourceService_WatchCLIInstallStateClient interface {
+	srpc.Stream
+	Recv() (*WatchCLIInstallStateResponse, error)
+	RecvTo(*WatchCLIInstallStateResponse) error
+}
+
+type srpcDesktopCLIInstallResourceService_WatchCLIInstallStateClient struct {
+	srpc.Stream
+}
+
+func (x *srpcDesktopCLIInstallResourceService_WatchCLIInstallStateClient) Recv() (*WatchCLIInstallStateResponse, error) {
+	m := new(WatchCLIInstallStateResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcDesktopCLIInstallResourceService_WatchCLIInstallStateClient) RecvTo(m *WatchCLIInstallStateResponse) error {
+	return x.MsgRecv(m)
+}
+
+func (c *srpcDesktopCLIInstallResourceServiceClient) InvokeCLIInstallAction(ctx context.Context, in *InvokeCLIInstallActionRequest) (*InvokeCLIInstallActionResponse, error) {
+	out := new(InvokeCLIInstallActionResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "InvokeCLIInstallAction", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+type SRPCDesktopCLIInstallResourceServiceServer interface {
+	// WatchCLIInstallState streams detected CLI install state.
+	WatchCLIInstallState(*WatchCLIInstallStateRequest, SRPCDesktopCLIInstallResourceService_WatchCLIInstallStateStream) error
+	// InvokeCLIInstallAction invokes a generation-bound CLI install action.
+	InvokeCLIInstallAction(context.Context, *InvokeCLIInstallActionRequest) (*InvokeCLIInstallActionResponse, error)
+}
+
+const SRPCDesktopCLIInstallResourceServiceServiceID = "electron.desktop_runtime.DesktopCLIInstallResourceService"
+
+type SRPCDesktopCLIInstallResourceServiceHandler struct {
+	serviceID string
+	impl      SRPCDesktopCLIInstallResourceServiceServer
+}
+
+// NewSRPCDesktopCLIInstallResourceServiceHandler constructs a new RPC handler.
+// serviceID: if empty, uses default: electron.desktop_runtime.DesktopCLIInstallResourceService
+func NewSRPCDesktopCLIInstallResourceServiceHandler(impl SRPCDesktopCLIInstallResourceServiceServer, serviceID string) srpc.Handler {
+	if serviceID == "" {
+		serviceID = SRPCDesktopCLIInstallResourceServiceServiceID
+	}
+	return &SRPCDesktopCLIInstallResourceServiceHandler{impl: impl, serviceID: serviceID}
+}
+
+// SRPCRegisterDesktopCLIInstallResourceService registers the implementation with the mux.
+// Uses the default serviceID: electron.desktop_runtime.DesktopCLIInstallResourceService
+func SRPCRegisterDesktopCLIInstallResourceService(mux srpc.Mux, impl SRPCDesktopCLIInstallResourceServiceServer) error {
+	return mux.Register(NewSRPCDesktopCLIInstallResourceServiceHandler(impl, ""))
+}
+
+func (d *SRPCDesktopCLIInstallResourceServiceHandler) GetServiceID() string { return d.serviceID }
+
+func (SRPCDesktopCLIInstallResourceServiceHandler) GetMethodIDs() []string {
+	return []string{
+		"WatchCLIInstallState",
+		"InvokeCLIInstallAction",
+	}
+}
+
+func (d *SRPCDesktopCLIInstallResourceServiceHandler) InvokeMethod(
+	serviceID, methodID string,
+	strm srpc.Stream,
+) (bool, error) {
+	if serviceID != "" && serviceID != d.GetServiceID() {
+		return false, nil
+	}
+
+	switch methodID {
+	case "WatchCLIInstallState":
+		return true, d.InvokeMethod_WatchCLIInstallState(d.impl, strm)
+	case "InvokeCLIInstallAction":
+		return true, d.InvokeMethod_InvokeCLIInstallAction(d.impl, strm)
+	default:
+		return false, nil
+	}
+}
+
+func (SRPCDesktopCLIInstallResourceServiceHandler) InvokeMethod_WatchCLIInstallState(impl SRPCDesktopCLIInstallResourceServiceServer, strm srpc.Stream) error {
+	req := new(WatchCLIInstallStateRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcDesktopCLIInstallResourceService_WatchCLIInstallStateStream{strm}
+	return impl.WatchCLIInstallState(req, serverStrm)
+}
+
+func (SRPCDesktopCLIInstallResourceServiceHandler) InvokeMethod_InvokeCLIInstallAction(impl SRPCDesktopCLIInstallResourceServiceServer, strm srpc.Stream) error {
+	req := new(InvokeCLIInstallActionRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.InvokeCLIInstallAction(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+type SRPCDesktopCLIInstallResourceService_WatchCLIInstallStateStream interface {
+	srpc.Stream
+	Send(*WatchCLIInstallStateResponse) error
+	SendAndClose(*WatchCLIInstallStateResponse) error
+}
+
+type srpcDesktopCLIInstallResourceService_WatchCLIInstallStateStream struct {
+	srpc.Stream
+}
+
+func (x *srpcDesktopCLIInstallResourceService_WatchCLIInstallStateStream) Send(m *WatchCLIInstallStateResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcDesktopCLIInstallResourceService_WatchCLIInstallStateStream) SendAndClose(m *WatchCLIInstallStateResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCDesktopCLIInstallResourceService_InvokeCLIInstallActionStream interface {
+	srpc.Stream
+}
+
+type srpcDesktopCLIInstallResourceService_InvokeCLIInstallActionStream struct {
+	srpc.Stream
+}

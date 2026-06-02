@@ -39,6 +39,127 @@ pub struct DesktopRuntimeState {
     /// Actions contains bounded explicit command rows.
     #[prost(message, repeated, tag="12")]
     pub actions: ::prost::alloc::vec::Vec<DesktopRuntimeActionItem>,
+    /// CliInstall contains compact desktop-managed CLI install status for tray surfaces.
+    #[prost(message, optional, tag="13")]
+    pub cli_install: ::core::option::Option<DesktopRuntimeCliInstallSummary>,
+}
+/// DesktopCLIEntrypointIdentity describes a detected or available CLI entrypoint.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DesktopCliEntrypointIdentity {
+    /// Path is the local command path when known.
+    #[prost(string, tag="1")]
+    pub path: ::prost::alloc::string::String,
+    /// ProjectId is the Spacewave project id reported by version JSON.
+    #[prost(string, tag="2")]
+    pub project_id: ::prost::alloc::string::String,
+    /// EntrypointRole is managed role identity such as cli or standalone.
+    #[prost(string, tag="3")]
+    pub entrypoint_role: ::prost::alloc::string::String,
+    /// ChannelKey is the release channel reported by the entrypoint.
+    #[prost(string, tag="4")]
+    pub channel_key: ::prost::alloc::string::String,
+    /// ManifestId is the selected Manifest id.
+    #[prost(string, tag="5")]
+    pub manifest_id: ::prost::alloc::string::String,
+    /// ManifestRev is the selected Manifest revision.
+    #[prost(uint64, tag="6")]
+    pub manifest_rev: u64,
+    /// PlatformId is the native platform id.
+    #[prost(string, tag="7")]
+    pub platform_id: ::prost::alloc::string::String,
+}
+/// DesktopCLIInstallTarget describes one user-level install target candidate.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DesktopCliInstallTarget {
+    /// Id identifies the target within the desktop CLI install resource.
+    #[prost(string, tag="1")]
+    pub id: ::prost::alloc::string::String,
+    /// Label is primary display text.
+    #[prost(string, tag="2")]
+    pub label: ::prost::alloc::string::String,
+    /// Path is the filesystem path for the command.
+    #[prost(string, tag="3")]
+    pub path: ::prost::alloc::string::String,
+    /// Writable indicates detection believes the target can be written.
+    #[prost(bool, tag="4")]
+    pub writable: bool,
+    /// Selected indicates the default target.
+    #[prost(bool, tag="5")]
+    pub selected: bool,
+    /// Detail is secondary display text.
+    #[prost(string, tag="6")]
+    pub detail: ::prost::alloc::string::String,
+    /// Generation is the state generation this target was built from.
+    #[prost(uint64, tag="7")]
+    pub generation: u64,
+    /// PathState describes whether process PATH evidence reaches this target.
+    #[prost(enumeration="DesktopCliInstallTargetPathState", tag="8")]
+    pub path_state: i32,
+    /// BlockedReason explains why target policy rejected this target.
+    #[prost(string, tag="9")]
+    pub blocked_reason: ::prost::alloc::string::String,
+}
+/// DesktopCLIInstallActionItem describes one generation-bound user action.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DesktopCliInstallActionItem {
+    /// Id identifies the action within the current state generation.
+    #[prost(string, tag="1")]
+    pub id: ::prost::alloc::string::String,
+    /// Kind is the action type.
+    #[prost(enumeration="DesktopCliInstallActionKind", tag="2")]
+    pub kind: i32,
+    /// Label is primary display text.
+    #[prost(string, tag="3")]
+    pub label: ::prost::alloc::string::String,
+    /// Enabled indicates the action can be invoked.
+    #[prost(bool, tag="4")]
+    pub enabled: bool,
+    /// TargetId identifies the target affected by the action when applicable.
+    #[prost(string, tag="5")]
+    pub target_id: ::prost::alloc::string::String,
+    /// Generation is the state generation this action was built from.
+    #[prost(uint64, tag="6")]
+    pub generation: u64,
+    /// Detail is secondary display text.
+    #[prost(string, tag="7")]
+    pub detail: ::prost::alloc::string::String,
+}
+/// DesktopCLIInstallState describes desktop-managed CLI install state.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DesktopCliInstallState {
+    /// Status is the collapsed install/update state.
+    #[prost(enumeration="DesktopCliInstallStatus", tag="1")]
+    pub status: i32,
+    /// Label is primary display text.
+    #[prost(string, tag="2")]
+    pub label: ::prost::alloc::string::String,
+    /// Detail is secondary display text.
+    #[prost(string, tag="3")]
+    pub detail: ::prost::alloc::string::String,
+    /// Installed is the detected local CLI identity.
+    #[prost(message, optional, tag="4")]
+    pub installed: ::core::option::Option<DesktopCliEntrypointIdentity>,
+    /// Available is the release-world CLI identity selected for install/update.
+    #[prost(message, optional, tag="5")]
+    pub available: ::core::option::Option<DesktopCliEntrypointIdentity>,
+    /// Targets contains user-level install target candidates.
+    #[prost(message, repeated, tag="6")]
+    pub targets: ::prost::alloc::vec::Vec<DesktopCliInstallTarget>,
+    /// ConflictPath is the conflicting command path when status is CONFLICT.
+    #[prost(string, tag="7")]
+    pub conflict_path: ::prost::alloc::string::String,
+    /// ErrorMessage is the latest detection error.
+    #[prost(string, tag="8")]
+    pub error_message: ::prost::alloc::string::String,
+    /// Generation increments every time detection state changes.
+    #[prost(uint64, tag="9")]
+    pub generation: u64,
+    /// SelectedTargetId identifies the target selected by the resource owner.
+    #[prost(string, tag="10")]
+    pub selected_target_id: ::prost::alloc::string::String,
+    /// Actions contains generation-bound resource actions.
+    #[prost(message, repeated, tag="11")]
+    pub actions: ::prost::alloc::vec::Vec<DesktopCliInstallActionItem>,
 }
 /// DesktopRuntimeListenerStatus describes background listener and CLI state.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -115,6 +236,22 @@ pub struct DesktopRuntimeUpdateStatus {
     /// Detail is secondary display text.
     #[prost(string, tag="4")]
     pub detail: ::prost::alloc::string::String,
+}
+/// DesktopRuntimeCLIInstallSummary is compact CLI install state for tray readback.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DesktopRuntimeCliInstallSummary {
+    /// Status mirrors the desktop CLI install child resource status.
+    #[prost(enumeration="DesktopCliInstallStatus", tag="1")]
+    pub status: i32,
+    /// Label is primary display text.
+    #[prost(string, tag="2")]
+    pub label: ::prost::alloc::string::String,
+    /// Detail is secondary display text.
+    #[prost(string, tag="3")]
+    pub detail: ::prost::alloc::string::String,
+    /// Route opens the settings surface that owns install/update actions.
+    #[prost(string, tag="4")]
+    pub route: ::prost::alloc::string::String,
 }
 /// DesktopRuntimeAttentionItem describes a user-actionable attention row.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -200,6 +337,166 @@ pub struct QuitDesktopRuntimeRequest {
 /// QuitDesktopRuntimeResponse is the response for QuitDesktopRuntime.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct QuitDesktopRuntimeResponse {
+}
+/// WatchCLIInstallStateRequest is the request for WatchCLIInstallState.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WatchCliInstallStateRequest {
+}
+/// WatchCLIInstallStateResponse is the response for WatchCLIInstallState.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WatchCliInstallStateResponse {
+    /// State is the current CLI install state.
+    #[prost(message, optional, tag="1")]
+    pub state: ::core::option::Option<DesktopCliInstallState>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InvokeCliInstallActionRequest {
+    #[prost(string, tag="1")]
+    pub action_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag="2")]
+    pub generation: u64,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InvokeCliInstallActionResponse {
+}
+/// DesktopCLIInstallStatus describes managed CLI install/update state.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DesktopCliInstallStatus {
+    /// DESKTOP_CLI_INSTALL_STATUS_UNSPECIFIED leaves state unset.
+    Unspecified = 0,
+    /// DESKTOP_CLI_INSTALL_STATUS_UNKNOWN indicates detection has not completed.
+    Unknown = 1,
+    /// DESKTOP_CLI_INSTALL_STATUS_MISSING indicates no managed CLI was detected.
+    Missing = 2,
+    /// DESKTOP_CLI_INSTALL_STATUS_INSTALLED indicates the managed CLI is current.
+    Installed = 3,
+    /// DESKTOP_CLI_INSTALL_STATUS_UPDATE_AVAILABLE indicates a release CLI is newer.
+    UpdateAvailable = 4,
+    /// DESKTOP_CLI_INSTALL_STATUS_CONFLICT indicates an unmanaged command is first on PATH.
+    Conflict = 5,
+    /// DESKTOP_CLI_INSTALL_STATUS_ERROR indicates detection failed.
+    Error = 6,
+    /// DESKTOP_CLI_INSTALL_STATUS_INSTALLING indicates a managed install is running.
+    Installing = 7,
+    /// DESKTOP_CLI_INSTALL_STATUS_UPDATING indicates a managed update is running.
+    Updating = 8,
+}
+impl DesktopCliInstallStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "DESKTOP_CLI_INSTALL_STATUS_UNSPECIFIED",
+            Self::Unknown => "DESKTOP_CLI_INSTALL_STATUS_UNKNOWN",
+            Self::Missing => "DESKTOP_CLI_INSTALL_STATUS_MISSING",
+            Self::Installed => "DESKTOP_CLI_INSTALL_STATUS_INSTALLED",
+            Self::UpdateAvailable => "DESKTOP_CLI_INSTALL_STATUS_UPDATE_AVAILABLE",
+            Self::Conflict => "DESKTOP_CLI_INSTALL_STATUS_CONFLICT",
+            Self::Error => "DESKTOP_CLI_INSTALL_STATUS_ERROR",
+            Self::Installing => "DESKTOP_CLI_INSTALL_STATUS_INSTALLING",
+            Self::Updating => "DESKTOP_CLI_INSTALL_STATUS_UPDATING",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DESKTOP_CLI_INSTALL_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "DESKTOP_CLI_INSTALL_STATUS_UNKNOWN" => Some(Self::Unknown),
+            "DESKTOP_CLI_INSTALL_STATUS_MISSING" => Some(Self::Missing),
+            "DESKTOP_CLI_INSTALL_STATUS_INSTALLED" => Some(Self::Installed),
+            "DESKTOP_CLI_INSTALL_STATUS_UPDATE_AVAILABLE" => Some(Self::UpdateAvailable),
+            "DESKTOP_CLI_INSTALL_STATUS_CONFLICT" => Some(Self::Conflict),
+            "DESKTOP_CLI_INSTALL_STATUS_ERROR" => Some(Self::Error),
+            "DESKTOP_CLI_INSTALL_STATUS_INSTALLING" => Some(Self::Installing),
+            "DESKTOP_CLI_INSTALL_STATUS_UPDATING" => Some(Self::Updating),
+            _ => None,
+        }
+    }
+}
+/// DesktopCLIInstallActionKind describes desktop-owned install actions.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DesktopCliInstallActionKind {
+    /// DESKTOP_CLI_INSTALL_ACTION_KIND_UNSPECIFIED leaves the action unset.
+    Unspecified = 0,
+    /// DESKTOP_CLI_INSTALL_ACTION_KIND_RECHECK reruns detection.
+    Recheck = 1,
+    /// DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS opens CLI settings.
+    OpenSettings = 2,
+    /// DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL installs a missing managed CLI.
+    Install = 3,
+    /// DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE updates an existing managed CLI.
+    Update = 4,
+}
+impl DesktopCliInstallActionKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "DESKTOP_CLI_INSTALL_ACTION_KIND_UNSPECIFIED",
+            Self::Recheck => "DESKTOP_CLI_INSTALL_ACTION_KIND_RECHECK",
+            Self::OpenSettings => "DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS",
+            Self::Install => "DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL",
+            Self::Update => "DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DESKTOP_CLI_INSTALL_ACTION_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "DESKTOP_CLI_INSTALL_ACTION_KIND_RECHECK" => Some(Self::Recheck),
+            "DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS" => Some(Self::OpenSettings),
+            "DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL" => Some(Self::Install),
+            "DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE" => Some(Self::Update),
+            _ => None,
+        }
+    }
+}
+/// DesktopCLIInstallTargetPathState describes PATH evidence for a target.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DesktopCliInstallTargetPathState {
+    /// DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNSPECIFIED leaves PATH evidence unset.
+    Unspecified = 0,
+    /// DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNKNOWN means process evidence is weak.
+    Unknown = 1,
+    /// DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_ON_PATH means the target directory is on PATH.
+    OnPath = 2,
+    /// DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_OFF_PATH means manual PATH remediation is needed.
+    OffPath = 3,
+    /// DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_BLOCKED means policy rejects this target.
+    Blocked = 4,
+}
+impl DesktopCliInstallTargetPathState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNSPECIFIED",
+            Self::Unknown => "DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNKNOWN",
+            Self::OnPath => "DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_ON_PATH",
+            Self::OffPath => "DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_OFF_PATH",
+            Self::Blocked => "DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_BLOCKED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNKNOWN" => Some(Self::Unknown),
+            "DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_ON_PATH" => Some(Self::OnPath),
+            "DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_OFF_PATH" => Some(Self::OffPath),
+            "DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_BLOCKED" => Some(Self::Blocked),
+            _ => None,
+        }
+    }
 }
 /// DesktopRuntimeHealth describes the collapsed tray icon status.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]

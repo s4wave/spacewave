@@ -65,19 +65,6 @@ const resourceClientInitTimeoutMS = 30000
 const resourceClientInitTimeoutMessage =
   'ResourceClient stream did not initialize before timeout'
 
-function logQuickstartResourceClient(
-  message: string,
-  fields: Record<string, unknown>,
-): void {
-  if (
-    !(globalThis as { __s4waveLogQuickstartTiming?: boolean })
-      .__s4waveLogQuickstartTiming
-  ) {
-    return
-  }
-  console.log(message + ': ' + JSON.stringify(fields))
-}
-
 function withResourceClientInitTimeout<T>(promise: Promise<T>): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     let settled = false
@@ -231,36 +218,15 @@ function createResourceRef(
   let srpcClient: SRPCClient | null = null
   const getSrpcClient = (): SRPCClient => {
     if (!srpcClient) {
-      logQuickstartResourceClient('quickstart resource ref client create', {
-        resourceId: id,
-      })
-      srpcClient = new SRPCClient(async () => {
-        logQuickstartResourceClient('quickstart resource ref stream open', {
-          resourceId: id,
-        })
-        const stream = withResourceClientInitTimeout(
+      srpcClient = new SRPCClient(async () =>
+        withResourceClientInitTimeout(
           openRpcStream(
             id.toString(),
             client.service.ResourceRpc.bind(client.service),
             false,
           ),
-        )
-        stream.then(
-          () =>
-            logQuickstartResourceClient('quickstart resource ref stream open ok', {
-              resourceId: id,
-            }),
-          (err: unknown) =>
-            logQuickstartResourceClient(
-              'quickstart resource ref stream open error',
-              {
-                resourceId: id,
-                error: err instanceof Error ? err.message : String(err),
-              },
-            ),
-        )
-        return stream
-      })
+        ),
+      )
     }
     return srpcClient
   }
@@ -275,10 +241,6 @@ function createResourceRef(
     },
 
     get client(): SRPCClient | ReleasedResourceClient {
-      logQuickstartResourceClient('quickstart resource ref client access', {
-        resourceId: id,
-        released,
-      })
       if (released) {
         return releasedResourceClient
       }

@@ -194,3 +194,146 @@ impl<S: DesktopRuntimeResourceServiceServer + 'static> starpc::Handler for Deskt
     }
 }
 
+/// Service ID for DesktopCLIInstallResourceService.
+pub const DESKTOP_C_L_I_INSTALL_RESOURCE_SERVICE_SERVICE_ID: &str = "electron.desktop_runtime.DesktopCLIInstallResourceService";
+
+/// Stream trait for DesktopCLIInstallResourceService.WatchCLIInstallState.
+#[starpc::async_trait]
+pub trait DesktopCLIInstallResourceServiceWatchCLIInstallStateStream: Send + Sync {
+    /// Returns the context for this stream.
+    fn context(&self) -> &starpc::Context;
+    /// Receives a message from the stream.
+    async fn recv(&self) -> starpc::Result<WatchCLIInstallStateResponse>;
+    /// Closes the stream.
+    async fn close(&self) -> starpc::Result<()>;
+}
+
+/// Client trait for DesktopCLIInstallResourceService.
+#[starpc::async_trait]
+pub trait DesktopCLIInstallResourceServiceClient: Send + Sync {
+    /// WatchCLIInstallState.
+    async fn watch_c_l_i_install_state(&self, request: &WatchCLIInstallStateRequest) -> starpc::Result<Box<dyn DesktopCLIInstallResourceServiceWatchCLIInstallStateStream>>;
+    /// InvokeCLIInstallAction.
+    async fn invoke_c_l_i_install_action(&self, request: &InvokeCLIInstallActionRequest) -> starpc::Result<InvokeCLIInstallActionResponse>;
+}
+
+/// Client implementation for DesktopCLIInstallResourceService.
+pub struct DesktopCLIInstallResourceServiceClientImpl<C> {
+    client: C,
+}
+
+impl<C: starpc::Client> DesktopCLIInstallResourceServiceClientImpl<C> {
+    /// Creates a new client.
+    pub fn new(client: C) -> Self {
+        Self { client }
+    }
+}
+
+#[starpc::async_trait]
+impl<C: starpc::Client + 'static> DesktopCLIInstallResourceServiceClient for DesktopCLIInstallResourceServiceClientImpl<C> {
+    async fn watch_c_l_i_install_state(&self, request: &WatchCLIInstallStateRequest) -> starpc::Result<Box<dyn DesktopCLIInstallResourceServiceWatchCLIInstallStateStream>> {
+        use starpc::ProstMessage;
+        let data = request.encode_to_vec();
+        let stream = self.client.new_stream("electron.desktop_runtime.DesktopCLIInstallResourceService", "WatchCLIInstallState", Some(&data)).await?;
+        stream.close_send().await?;
+        Ok(Box::new(DesktopCLIInstallResourceServiceWatchCLIInstallStateStreamImpl { stream }))
+    }
+    async fn invoke_c_l_i_install_action(&self, request: &InvokeCLIInstallActionRequest) -> starpc::Result<InvokeCLIInstallActionResponse> {
+        self.client.exec_call("electron.desktop_runtime.DesktopCLIInstallResourceService", "InvokeCLIInstallAction", request).await
+    }
+}
+
+struct DesktopCLIInstallResourceServiceWatchCLIInstallStateStreamImpl {
+    stream: Box<dyn starpc::Stream>,
+}
+
+#[starpc::async_trait]
+impl DesktopCLIInstallResourceServiceWatchCLIInstallStateStream for DesktopCLIInstallResourceServiceWatchCLIInstallStateStreamImpl {
+    fn context(&self) -> &starpc::Context {
+        self.stream.context()
+    }
+    async fn recv(&self) -> starpc::Result<WatchCLIInstallStateResponse> {
+        self.stream.msg_recv().await
+    }
+    async fn close(&self) -> starpc::Result<()> {
+        self.stream.close().await
+    }
+}
+
+/// Server trait for DesktopCLIInstallResourceService.
+#[starpc::async_trait]
+pub trait DesktopCLIInstallResourceServiceServer: Send + Sync {
+    /// WatchCLIInstallState.
+    async fn watch_c_l_i_install_state(&self, request: WatchCLIInstallStateRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
+    /// InvokeCLIInstallAction.
+    async fn invoke_c_l_i_install_action(&self, request: InvokeCLIInstallActionRequest) -> starpc::Result<InvokeCLIInstallActionResponse>;
+}
+
+const DESKTOP_C_L_I_INSTALL_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
+    "WatchCLIInstallState",
+    "InvokeCLIInstallAction",
+];
+
+/// Handler for DesktopCLIInstallResourceService.
+pub struct DesktopCLIInstallResourceServiceHandler<S: DesktopCLIInstallResourceServiceServer> {
+    server: std::sync::Arc<S>,
+}
+
+impl<S: DesktopCLIInstallResourceServiceServer + 'static> DesktopCLIInstallResourceServiceHandler<S> {
+    /// Creates a new handler wrapping the server implementation.
+    pub fn new(server: S) -> Self {
+        Self { server: std::sync::Arc::new(server) }
+    }
+
+    /// Creates a new handler with a shared server.
+    pub fn with_arc(server: std::sync::Arc<S>) -> Self {
+        Self { server }
+    }
+}
+
+#[starpc::async_trait]
+impl<S: DesktopCLIInstallResourceServiceServer + 'static> starpc::Invoker for DesktopCLIInstallResourceServiceHandler<S> {
+    async fn invoke_method(
+        &self,
+        _service_id: &str,
+        method_id: &str,
+        stream: Box<dyn starpc::Stream>,
+    ) -> (bool, starpc::Result<()>) {
+        match method_id {
+            "WatchCLIInstallState" => {
+                let request: WatchCLIInstallStateRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                (true, self.server.watch_c_l_i_install_state(request, stream).await)
+            }
+            "InvokeCLIInstallAction" => {
+                let request: InvokeCLIInstallActionRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.invoke_c_l_i_install_action(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            _ => (false, Err(starpc::Error::Unimplemented)),
+        }
+    }
+}
+
+impl<S: DesktopCLIInstallResourceServiceServer + 'static> starpc::Handler for DesktopCLIInstallResourceServiceHandler<S> {
+    fn service_id(&self) -> &'static str {
+        "electron.desktop_runtime.DesktopCLIInstallResourceService"
+    }
+
+    fn method_ids(&self) -> &'static [&'static str] {
+        DESKTOP_C_L_I_INSTALL_RESOURCE_SERVICE_METHOD_IDS
+    }
+}
+

@@ -21,5 +21,18 @@ pub struct DistMeta {
     /// DistObjectKey is the root object key to search for manifests in the dist world.
     #[prost(string, tag="5")]
     pub dist_object_key: ::prost::alloc::string::String,
+    /// EntrypointRole is the release role for this entrypoint.
+    /// Expected values are "desktop", "browser", and "cli".
+    #[prost(string, tag="6")]
+    pub entrypoint_role: ::prost::alloc::string::String,
+    /// ChannelKey is the release channel this entrypoint was built for.
+    #[prost(string, tag="7")]
+    pub channel_key: ::prost::alloc::string::String,
+    /// ManifestId is the Bldr Manifest id for this entrypoint binary.
+    #[prost(string, tag="8")]
+    pub manifest_id: ::prost::alloc::string::String,
+    /// ManifestRev is the Bldr Manifest revision for this entrypoint binary.
+    #[prost(uint64, tag="9")]
+    pub manifest_rev: u64,
 }
 // @@protoc_insertion_point(module)

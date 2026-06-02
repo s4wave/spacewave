@@ -27,6 +27,7 @@ const (
 	releaseWorldEngineID              = "spacewave-release-world"
 	releaseMetadataDirectoryObjectKey = "release/metadata"
 	nativeEntrypointManifestID        = "spacewave-dist"
+	cliEntrypointManifestID           = "spacewave-cli"
 )
 
 func (c *Controller) refreshCurrentReleaseMetadataStatus(ctx context.Context) error {
@@ -367,6 +368,22 @@ func selectReleaseManifestRef(
 	metadata *spacewave_release.ReleaseMetadata,
 	platformID string,
 ) (*bldr_manifest.ManifestRef, error) {
+	return selectReleaseManifestRefByID(metadata, platformID, nativeEntrypointManifestID, "native")
+}
+
+func selectCLIReleaseManifestRef(
+	metadata *spacewave_release.ReleaseMetadata,
+	platformID string,
+) (*bldr_manifest.ManifestRef, error) {
+	return selectReleaseManifestRefByID(metadata, platformID, cliEntrypointManifestID, "cli")
+}
+
+func selectReleaseManifestRefByID(
+	metadata *spacewave_release.ReleaseMetadata,
+	platformID string,
+	manifestID string,
+	roleName string,
+) (*bldr_manifest.ManifestRef, error) {
 	var selected *bldr_manifest.ManifestRef
 	var nonEntrypoint []string
 	for _, ref := range metadata.GetManifestRefs() {
@@ -374,14 +391,15 @@ func selectReleaseManifestRef(
 		if meta.GetPlatformId() != platformID {
 			continue
 		}
-		if meta.GetManifestId() != nativeEntrypointManifestID {
+		if meta.GetManifestId() != manifestID {
 			nonEntrypoint = append(nonEntrypoint, meta.GetManifestId())
 			continue
 		}
 		if selected != nil {
 			return nil, errors.Errorf(
-				"release metadata has duplicate native entrypoint manifest %s for platform %s",
-				nativeEntrypointManifestID,
+				"release metadata has duplicate %s entrypoint manifest %s for platform %s",
+				roleName,
+				manifestID,
 				platformID,
 			)
 		}
@@ -392,13 +410,14 @@ func selectReleaseManifestRef(
 	}
 	if len(nonEntrypoint) != 0 {
 		return nil, errors.Errorf(
-			"release metadata has non-entrypoint native manifests for platform %s (%s), missing %s",
+			"release metadata has non-entrypoint %s manifests for platform %s (%s), missing %s",
+			roleName,
 			platformID,
 			strings.Join(nonEntrypoint, ", "),
-			nativeEntrypointManifestID,
+			manifestID,
 		)
 	}
-	return nil, errors.Errorf("release metadata missing native entrypoint manifest %s for platform %s", nativeEntrypointManifestID, platformID)
+	return nil, errors.Errorf("release metadata missing %s entrypoint manifest %s for platform %s", roleName, manifestID, platformID)
 }
 
 func checkoutReleaseManifest(

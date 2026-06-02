@@ -15,6 +15,166 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
+// DesktopCLIInstallStatus describes managed CLI install/update state.
+type DesktopCLIInstallStatus int32
+
+const (
+	// DESKTOP_CLI_INSTALL_STATUS_UNSPECIFIED leaves state unset.
+	DesktopCLIInstallStatus_DESKTOP_CLI_INSTALL_STATUS_UNSPECIFIED DesktopCLIInstallStatus = 0
+	// DESKTOP_CLI_INSTALL_STATUS_UNKNOWN indicates detection has not completed.
+	DesktopCLIInstallStatus_DESKTOP_CLI_INSTALL_STATUS_UNKNOWN DesktopCLIInstallStatus = 1
+	// DESKTOP_CLI_INSTALL_STATUS_MISSING indicates no managed CLI was detected.
+	DesktopCLIInstallStatus_DESKTOP_CLI_INSTALL_STATUS_MISSING DesktopCLIInstallStatus = 2
+	// DESKTOP_CLI_INSTALL_STATUS_INSTALLED indicates the managed CLI is current.
+	DesktopCLIInstallStatus_DESKTOP_CLI_INSTALL_STATUS_INSTALLED DesktopCLIInstallStatus = 3
+	// DESKTOP_CLI_INSTALL_STATUS_UPDATE_AVAILABLE indicates a release CLI is newer.
+	DesktopCLIInstallStatus_DESKTOP_CLI_INSTALL_STATUS_UPDATE_AVAILABLE DesktopCLIInstallStatus = 4
+	// DESKTOP_CLI_INSTALL_STATUS_CONFLICT indicates an unmanaged command is first on PATH.
+	DesktopCLIInstallStatus_DESKTOP_CLI_INSTALL_STATUS_CONFLICT DesktopCLIInstallStatus = 5
+	// DESKTOP_CLI_INSTALL_STATUS_ERROR indicates detection failed.
+	DesktopCLIInstallStatus_DESKTOP_CLI_INSTALL_STATUS_ERROR DesktopCLIInstallStatus = 6
+	// DESKTOP_CLI_INSTALL_STATUS_INSTALLING indicates a managed install is running.
+	DesktopCLIInstallStatus_DESKTOP_CLI_INSTALL_STATUS_INSTALLING DesktopCLIInstallStatus = 7
+	// DESKTOP_CLI_INSTALL_STATUS_UPDATING indicates a managed update is running.
+	DesktopCLIInstallStatus_DESKTOP_CLI_INSTALL_STATUS_UPDATING DesktopCLIInstallStatus = 8
+)
+
+// Enum value maps for DesktopCLIInstallStatus.
+var (
+	DesktopCLIInstallStatus_name = map[int32]string{
+		0: "DESKTOP_CLI_INSTALL_STATUS_UNSPECIFIED",
+		1: "DESKTOP_CLI_INSTALL_STATUS_UNKNOWN",
+		2: "DESKTOP_CLI_INSTALL_STATUS_MISSING",
+		3: "DESKTOP_CLI_INSTALL_STATUS_INSTALLED",
+		4: "DESKTOP_CLI_INSTALL_STATUS_UPDATE_AVAILABLE",
+		5: "DESKTOP_CLI_INSTALL_STATUS_CONFLICT",
+		6: "DESKTOP_CLI_INSTALL_STATUS_ERROR",
+		7: "DESKTOP_CLI_INSTALL_STATUS_INSTALLING",
+		8: "DESKTOP_CLI_INSTALL_STATUS_UPDATING",
+	}
+	DesktopCLIInstallStatus_value = map[string]int32{
+		"DESKTOP_CLI_INSTALL_STATUS_UNSPECIFIED":      0,
+		"DESKTOP_CLI_INSTALL_STATUS_UNKNOWN":          1,
+		"DESKTOP_CLI_INSTALL_STATUS_MISSING":          2,
+		"DESKTOP_CLI_INSTALL_STATUS_INSTALLED":        3,
+		"DESKTOP_CLI_INSTALL_STATUS_UPDATE_AVAILABLE": 4,
+		"DESKTOP_CLI_INSTALL_STATUS_CONFLICT":         5,
+		"DESKTOP_CLI_INSTALL_STATUS_ERROR":            6,
+		"DESKTOP_CLI_INSTALL_STATUS_INSTALLING":       7,
+		"DESKTOP_CLI_INSTALL_STATUS_UPDATING":         8,
+	}
+)
+
+func (x DesktopCLIInstallStatus) Enum() *DesktopCLIInstallStatus {
+	p := new(DesktopCLIInstallStatus)
+	*p = x
+	return p
+}
+
+func (x DesktopCLIInstallStatus) String() string {
+	name, valid := DesktopCLIInstallStatus_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// DesktopCLIInstallActionKind describes desktop-owned install actions.
+type DesktopCLIInstallActionKind int32
+
+const (
+	// DESKTOP_CLI_INSTALL_ACTION_KIND_UNSPECIFIED leaves the action unset.
+	DesktopCLIInstallActionKind_DESKTOP_CLI_INSTALL_ACTION_KIND_UNSPECIFIED DesktopCLIInstallActionKind = 0
+	// DESKTOP_CLI_INSTALL_ACTION_KIND_RECHECK reruns detection.
+	DesktopCLIInstallActionKind_DESKTOP_CLI_INSTALL_ACTION_KIND_RECHECK DesktopCLIInstallActionKind = 1
+	// DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS opens CLI settings.
+	DesktopCLIInstallActionKind_DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS DesktopCLIInstallActionKind = 2
+	// DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL installs a missing managed CLI.
+	DesktopCLIInstallActionKind_DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL DesktopCLIInstallActionKind = 3
+	// DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE updates an existing managed CLI.
+	DesktopCLIInstallActionKind_DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE DesktopCLIInstallActionKind = 4
+)
+
+// Enum value maps for DesktopCLIInstallActionKind.
+var (
+	DesktopCLIInstallActionKind_name = map[int32]string{
+		0: "DESKTOP_CLI_INSTALL_ACTION_KIND_UNSPECIFIED",
+		1: "DESKTOP_CLI_INSTALL_ACTION_KIND_RECHECK",
+		2: "DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS",
+		3: "DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL",
+		4: "DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE",
+	}
+	DesktopCLIInstallActionKind_value = map[string]int32{
+		"DESKTOP_CLI_INSTALL_ACTION_KIND_UNSPECIFIED":   0,
+		"DESKTOP_CLI_INSTALL_ACTION_KIND_RECHECK":       1,
+		"DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS": 2,
+		"DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL":       3,
+		"DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE":        4,
+	}
+)
+
+func (x DesktopCLIInstallActionKind) Enum() *DesktopCLIInstallActionKind {
+	p := new(DesktopCLIInstallActionKind)
+	*p = x
+	return p
+}
+
+func (x DesktopCLIInstallActionKind) String() string {
+	name, valid := DesktopCLIInstallActionKind_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// DesktopCLIInstallTargetPathState describes PATH evidence for a target.
+type DesktopCLIInstallTargetPathState int32
+
+const (
+	// DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNSPECIFIED leaves PATH evidence unset.
+	DesktopCLIInstallTargetPathState_DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNSPECIFIED DesktopCLIInstallTargetPathState = 0
+	// DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNKNOWN means process evidence is weak.
+	DesktopCLIInstallTargetPathState_DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNKNOWN DesktopCLIInstallTargetPathState = 1
+	// DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_ON_PATH means the target directory is on PATH.
+	DesktopCLIInstallTargetPathState_DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_ON_PATH DesktopCLIInstallTargetPathState = 2
+	// DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_OFF_PATH means manual PATH remediation is needed.
+	DesktopCLIInstallTargetPathState_DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_OFF_PATH DesktopCLIInstallTargetPathState = 3
+	// DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_BLOCKED means policy rejects this target.
+	DesktopCLIInstallTargetPathState_DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_BLOCKED DesktopCLIInstallTargetPathState = 4
+)
+
+// Enum value maps for DesktopCLIInstallTargetPathState.
+var (
+	DesktopCLIInstallTargetPathState_name = map[int32]string{
+		0: "DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNSPECIFIED",
+		1: "DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNKNOWN",
+		2: "DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_ON_PATH",
+		3: "DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_OFF_PATH",
+		4: "DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_BLOCKED",
+	}
+	DesktopCLIInstallTargetPathState_value = map[string]int32{
+		"DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNSPECIFIED": 0,
+		"DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNKNOWN":     1,
+		"DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_ON_PATH":     2,
+		"DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_OFF_PATH":    3,
+		"DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_BLOCKED":     4,
+	}
+)
+
+func (x DesktopCLIInstallTargetPathState) Enum() *DesktopCLIInstallTargetPathState {
+	p := new(DesktopCLIInstallTargetPathState)
+	*p = x
+	return p
+}
+
+func (x DesktopCLIInstallTargetPathState) String() string {
+	name, valid := DesktopCLIInstallTargetPathState_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // DesktopRuntimeHealth describes the collapsed tray icon status.
 type DesktopRuntimeHealth int32
 
@@ -406,6 +566,8 @@ type DesktopRuntimeState struct {
 	AttentionItems []*DesktopRuntimeAttentionItem `protobuf:"bytes,11,rep,name=attention_items,json=attentionItems,proto3" json:"attentionItems,omitempty"`
 	// Actions contains bounded explicit command rows.
 	Actions []*DesktopRuntimeActionItem `protobuf:"bytes,12,rep,name=actions,proto3" json:"actions,omitempty"`
+	// CliInstall contains compact desktop-managed CLI install status for tray surfaces.
+	CliInstall *DesktopRuntimeCLIInstallSummary `protobuf:"bytes,13,opt,name=cli_install,json=cliInstall,proto3" json:"cliInstall,omitempty"`
 }
 
 func (x *DesktopRuntimeState) Reset() {
@@ -492,6 +654,363 @@ func (x *DesktopRuntimeState) GetAttentionItems() []*DesktopRuntimeAttentionItem
 }
 
 func (x *DesktopRuntimeState) GetActions() []*DesktopRuntimeActionItem {
+	if x != nil {
+		return x.Actions
+	}
+	return nil
+}
+
+func (x *DesktopRuntimeState) GetCliInstall() *DesktopRuntimeCLIInstallSummary {
+	if x != nil {
+		return x.CliInstall
+	}
+	return nil
+}
+
+// DesktopCLIEntrypointIdentity describes a detected or available CLI entrypoint.
+type DesktopCLIEntrypointIdentity struct {
+	unknownFields []byte
+	// Path is the local command path when known.
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// ProjectId is the Spacewave project id reported by version JSON.
+	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"projectId,omitempty"`
+	// EntrypointRole is managed role identity such as cli or standalone.
+	EntrypointRole string `protobuf:"bytes,3,opt,name=entrypoint_role,json=entrypointRole,proto3" json:"entrypointRole,omitempty"`
+	// ChannelKey is the release channel reported by the entrypoint.
+	ChannelKey string `protobuf:"bytes,4,opt,name=channel_key,json=channelKey,proto3" json:"channelKey,omitempty"`
+	// ManifestId is the selected Manifest id.
+	ManifestId string `protobuf:"bytes,5,opt,name=manifest_id,json=manifestId,proto3" json:"manifestId,omitempty"`
+	// ManifestRev is the selected Manifest revision.
+	ManifestRev uint64 `protobuf:"varint,6,opt,name=manifest_rev,json=manifestRev,proto3" json:"manifestRev,omitempty"`
+	// PlatformId is the native platform id.
+	PlatformId string `protobuf:"bytes,7,opt,name=platform_id,json=platformId,proto3" json:"platformId,omitempty"`
+}
+
+func (x *DesktopCLIEntrypointIdentity) Reset() {
+	*x = DesktopCLIEntrypointIdentity{}
+}
+
+func (*DesktopCLIEntrypointIdentity) ProtoMessage() {}
+
+func (x *DesktopCLIEntrypointIdentity) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *DesktopCLIEntrypointIdentity) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *DesktopCLIEntrypointIdentity) GetEntrypointRole() string {
+	if x != nil {
+		return x.EntrypointRole
+	}
+	return ""
+}
+
+func (x *DesktopCLIEntrypointIdentity) GetChannelKey() string {
+	if x != nil {
+		return x.ChannelKey
+	}
+	return ""
+}
+
+func (x *DesktopCLIEntrypointIdentity) GetManifestId() string {
+	if x != nil {
+		return x.ManifestId
+	}
+	return ""
+}
+
+func (x *DesktopCLIEntrypointIdentity) GetManifestRev() uint64 {
+	if x != nil {
+		return x.ManifestRev
+	}
+	return 0
+}
+
+func (x *DesktopCLIEntrypointIdentity) GetPlatformId() string {
+	if x != nil {
+		return x.PlatformId
+	}
+	return ""
+}
+
+// DesktopCLIInstallTarget describes one user-level install target candidate.
+type DesktopCLIInstallTarget struct {
+	unknownFields []byte
+	// Id identifies the target within the desktop CLI install resource.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Label is primary display text.
+	Label string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	// Path is the filesystem path for the command.
+	Path string `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
+	// Writable indicates detection believes the target can be written.
+	Writable bool `protobuf:"varint,4,opt,name=writable,proto3" json:"writable,omitempty"`
+	// Selected indicates the default target.
+	Selected bool `protobuf:"varint,5,opt,name=selected,proto3" json:"selected,omitempty"`
+	// Detail is secondary display text.
+	Detail string `protobuf:"bytes,6,opt,name=detail,proto3" json:"detail,omitempty"`
+	// Generation is the state generation this target was built from.
+	Generation uint64 `protobuf:"varint,7,opt,name=generation,proto3" json:"generation,omitempty"`
+	// PathState describes whether process PATH evidence reaches this target.
+	PathState DesktopCLIInstallTargetPathState `protobuf:"varint,8,opt,name=path_state,json=pathState,proto3" json:"pathState,omitempty"`
+	// BlockedReason explains why target policy rejected this target.
+	BlockedReason string `protobuf:"bytes,9,opt,name=blocked_reason,json=blockedReason,proto3" json:"blockedReason,omitempty"`
+}
+
+func (x *DesktopCLIInstallTarget) Reset() {
+	*x = DesktopCLIInstallTarget{}
+}
+
+func (*DesktopCLIInstallTarget) ProtoMessage() {}
+
+func (x *DesktopCLIInstallTarget) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *DesktopCLIInstallTarget) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *DesktopCLIInstallTarget) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *DesktopCLIInstallTarget) GetWritable() bool {
+	if x != nil {
+		return x.Writable
+	}
+	return false
+}
+
+func (x *DesktopCLIInstallTarget) GetSelected() bool {
+	if x != nil {
+		return x.Selected
+	}
+	return false
+}
+
+func (x *DesktopCLIInstallTarget) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+func (x *DesktopCLIInstallTarget) GetGeneration() uint64 {
+	if x != nil {
+		return x.Generation
+	}
+	return 0
+}
+
+func (x *DesktopCLIInstallTarget) GetPathState() DesktopCLIInstallTargetPathState {
+	if x != nil {
+		return x.PathState
+	}
+	return DesktopCLIInstallTargetPathState_DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNSPECIFIED
+}
+
+func (x *DesktopCLIInstallTarget) GetBlockedReason() string {
+	if x != nil {
+		return x.BlockedReason
+	}
+	return ""
+}
+
+// DesktopCLIInstallActionItem describes one generation-bound user action.
+type DesktopCLIInstallActionItem struct {
+	unknownFields []byte
+	// Id identifies the action within the current state generation.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Kind is the action type.
+	Kind DesktopCLIInstallActionKind `protobuf:"varint,2,opt,name=kind,proto3" json:"kind,omitempty"`
+	// Label is primary display text.
+	Label string `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
+	// Enabled indicates the action can be invoked.
+	Enabled bool `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// TargetId identifies the target affected by the action when applicable.
+	TargetId string `protobuf:"bytes,5,opt,name=target_id,json=targetId,proto3" json:"targetId,omitempty"`
+	// Generation is the state generation this action was built from.
+	Generation uint64 `protobuf:"varint,6,opt,name=generation,proto3" json:"generation,omitempty"`
+	// Detail is secondary display text.
+	Detail string `protobuf:"bytes,7,opt,name=detail,proto3" json:"detail,omitempty"`
+}
+
+func (x *DesktopCLIInstallActionItem) Reset() {
+	*x = DesktopCLIInstallActionItem{}
+}
+
+func (*DesktopCLIInstallActionItem) ProtoMessage() {}
+
+func (x *DesktopCLIInstallActionItem) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *DesktopCLIInstallActionItem) GetKind() DesktopCLIInstallActionKind {
+	if x != nil {
+		return x.Kind
+	}
+	return DesktopCLIInstallActionKind_DESKTOP_CLI_INSTALL_ACTION_KIND_UNSPECIFIED
+}
+
+func (x *DesktopCLIInstallActionItem) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *DesktopCLIInstallActionItem) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *DesktopCLIInstallActionItem) GetTargetId() string {
+	if x != nil {
+		return x.TargetId
+	}
+	return ""
+}
+
+func (x *DesktopCLIInstallActionItem) GetGeneration() uint64 {
+	if x != nil {
+		return x.Generation
+	}
+	return 0
+}
+
+func (x *DesktopCLIInstallActionItem) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+// DesktopCLIInstallState describes desktop-managed CLI install state.
+type DesktopCLIInstallState struct {
+	unknownFields []byte
+	// Status is the collapsed install/update state.
+	Status DesktopCLIInstallStatus `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
+	// Label is primary display text.
+	Label string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	// Detail is secondary display text.
+	Detail string `protobuf:"bytes,3,opt,name=detail,proto3" json:"detail,omitempty"`
+	// Installed is the detected local CLI identity.
+	Installed *DesktopCLIEntrypointIdentity `protobuf:"bytes,4,opt,name=installed,proto3" json:"installed,omitempty"`
+	// Available is the release-world CLI identity selected for install/update.
+	Available *DesktopCLIEntrypointIdentity `protobuf:"bytes,5,opt,name=available,proto3" json:"available,omitempty"`
+	// Targets contains user-level install target candidates.
+	Targets []*DesktopCLIInstallTarget `protobuf:"bytes,6,rep,name=targets,proto3" json:"targets,omitempty"`
+	// ConflictPath is the conflicting command path when status is CONFLICT.
+	ConflictPath string `protobuf:"bytes,7,opt,name=conflict_path,json=conflictPath,proto3" json:"conflictPath,omitempty"`
+	// ErrorMessage is the latest detection error.
+	ErrorMessage string `protobuf:"bytes,8,opt,name=error_message,json=errorMessage,proto3" json:"errorMessage,omitempty"`
+	// Generation increments every time detection state changes.
+	Generation uint64 `protobuf:"varint,9,opt,name=generation,proto3" json:"generation,omitempty"`
+	// SelectedTargetId identifies the target selected by the resource owner.
+	SelectedTargetId string `protobuf:"bytes,10,opt,name=selected_target_id,json=selectedTargetId,proto3" json:"selectedTargetId,omitempty"`
+	// Actions contains generation-bound resource actions.
+	Actions []*DesktopCLIInstallActionItem `protobuf:"bytes,11,rep,name=actions,proto3" json:"actions,omitempty"`
+}
+
+func (x *DesktopCLIInstallState) Reset() {
+	*x = DesktopCLIInstallState{}
+}
+
+func (*DesktopCLIInstallState) ProtoMessage() {}
+
+func (x *DesktopCLIInstallState) GetStatus() DesktopCLIInstallStatus {
+	if x != nil {
+		return x.Status
+	}
+	return DesktopCLIInstallStatus_DESKTOP_CLI_INSTALL_STATUS_UNSPECIFIED
+}
+
+func (x *DesktopCLIInstallState) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *DesktopCLIInstallState) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+func (x *DesktopCLIInstallState) GetInstalled() *DesktopCLIEntrypointIdentity {
+	if x != nil {
+		return x.Installed
+	}
+	return nil
+}
+
+func (x *DesktopCLIInstallState) GetAvailable() *DesktopCLIEntrypointIdentity {
+	if x != nil {
+		return x.Available
+	}
+	return nil
+}
+
+func (x *DesktopCLIInstallState) GetTargets() []*DesktopCLIInstallTarget {
+	if x != nil {
+		return x.Targets
+	}
+	return nil
+}
+
+func (x *DesktopCLIInstallState) GetConflictPath() string {
+	if x != nil {
+		return x.ConflictPath
+	}
+	return ""
+}
+
+func (x *DesktopCLIInstallState) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+func (x *DesktopCLIInstallState) GetGeneration() uint64 {
+	if x != nil {
+		return x.Generation
+	}
+	return 0
+}
+
+func (x *DesktopCLIInstallState) GetSelectedTargetId() string {
+	if x != nil {
+		return x.SelectedTargetId
+	}
+	return ""
+}
+
+func (x *DesktopCLIInstallState) GetActions() []*DesktopCLIInstallActionItem {
 	if x != nil {
 		return x.Actions
 	}
@@ -718,6 +1237,53 @@ func (x *DesktopRuntimeUpdateStatus) GetLabel() string {
 func (x *DesktopRuntimeUpdateStatus) GetDetail() string {
 	if x != nil {
 		return x.Detail
+	}
+	return ""
+}
+
+// DesktopRuntimeCLIInstallSummary is compact CLI install state for tray readback.
+type DesktopRuntimeCLIInstallSummary struct {
+	unknownFields []byte
+	// Status mirrors the desktop CLI install child resource status.
+	Status DesktopCLIInstallStatus `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
+	// Label is primary display text.
+	Label string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	// Detail is secondary display text.
+	Detail string `protobuf:"bytes,3,opt,name=detail,proto3" json:"detail,omitempty"`
+	// Route opens the settings surface that owns install/update actions.
+	Route string `protobuf:"bytes,4,opt,name=route,proto3" json:"route,omitempty"`
+}
+
+func (x *DesktopRuntimeCLIInstallSummary) Reset() {
+	*x = DesktopRuntimeCLIInstallSummary{}
+}
+
+func (*DesktopRuntimeCLIInstallSummary) ProtoMessage() {}
+
+func (x *DesktopRuntimeCLIInstallSummary) GetStatus() DesktopCLIInstallStatus {
+	if x != nil {
+		return x.Status
+	}
+	return DesktopCLIInstallStatus_DESKTOP_CLI_INSTALL_STATUS_UNSPECIFIED
+}
+
+func (x *DesktopRuntimeCLIInstallSummary) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeCLIInstallSummary) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+func (x *DesktopRuntimeCLIInstallSummary) GetRoute() string {
+	if x != nil {
+		return x.Route
 	}
 	return ""
 }
@@ -967,6 +1533,73 @@ func (x *QuitDesktopRuntimeResponse) Reset() {
 
 func (*QuitDesktopRuntimeResponse) ProtoMessage() {}
 
+// WatchCLIInstallStateRequest is the request for WatchCLIInstallState.
+type WatchCLIInstallStateRequest struct {
+	unknownFields []byte
+}
+
+func (x *WatchCLIInstallStateRequest) Reset() {
+	*x = WatchCLIInstallStateRequest{}
+}
+
+func (*WatchCLIInstallStateRequest) ProtoMessage() {}
+
+// WatchCLIInstallStateResponse is the response for WatchCLIInstallState.
+type WatchCLIInstallStateResponse struct {
+	unknownFields []byte
+	// State is the current CLI install state.
+	State *DesktopCLIInstallState `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
+}
+
+func (x *WatchCLIInstallStateResponse) Reset() {
+	*x = WatchCLIInstallStateResponse{}
+}
+
+func (*WatchCLIInstallStateResponse) ProtoMessage() {}
+
+func (x *WatchCLIInstallStateResponse) GetState() *DesktopCLIInstallState {
+	if x != nil {
+		return x.State
+	}
+	return nil
+}
+
+type InvokeCLIInstallActionRequest struct {
+	unknownFields []byte
+	ActionId      string `protobuf:"bytes,1,opt,name=action_id,json=actionId,proto3" json:"actionId,omitempty"`
+	Generation    uint64 `protobuf:"varint,2,opt,name=generation,proto3" json:"generation,omitempty"`
+}
+
+func (x *InvokeCLIInstallActionRequest) Reset() {
+	*x = InvokeCLIInstallActionRequest{}
+}
+
+func (*InvokeCLIInstallActionRequest) ProtoMessage() {}
+
+func (x *InvokeCLIInstallActionRequest) GetActionId() string {
+	if x != nil {
+		return x.ActionId
+	}
+	return ""
+}
+
+func (x *InvokeCLIInstallActionRequest) GetGeneration() uint64 {
+	if x != nil {
+		return x.Generation
+	}
+	return 0
+}
+
+type InvokeCLIInstallActionResponse struct {
+	unknownFields []byte
+}
+
+func (x *InvokeCLIInstallActionResponse) Reset() {
+	*x = InvokeCLIInstallActionResponse{}
+}
+
+func (*InvokeCLIInstallActionResponse) ProtoMessage() {}
+
 func (m *DesktopRuntimeState) CloneVT() *DesktopRuntimeState {
 	if m == nil {
 		return (*DesktopRuntimeState)(nil)
@@ -979,6 +1612,7 @@ func (m *DesktopRuntimeState) CloneVT() *DesktopRuntimeState {
 	r.Lifecycle = m.Lifecycle
 	r.Listener = m.Listener.CloneVT()
 	r.Update = m.Update.CloneVT()
+	r.CliInstall = m.CliInstall.CloneVT()
 	if rhs := m.Sessions; rhs != nil {
 		r.Sessions = make([]*DesktopRuntimeNavigationItem, len(rhs))
 		for k, v := range rhs {
@@ -1016,6 +1650,110 @@ func (m *DesktopRuntimeState) CloneVT() *DesktopRuntimeState {
 }
 
 func (m *DesktopRuntimeState) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DesktopCLIEntrypointIdentity) CloneVT() *DesktopCLIEntrypointIdentity {
+	if m == nil {
+		return (*DesktopCLIEntrypointIdentity)(nil)
+	}
+	r := new(DesktopCLIEntrypointIdentity)
+	r.Path = m.Path
+	r.ProjectId = m.ProjectId
+	r.EntrypointRole = m.EntrypointRole
+	r.ChannelKey = m.ChannelKey
+	r.ManifestId = m.ManifestId
+	r.ManifestRev = m.ManifestRev
+	r.PlatformId = m.PlatformId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DesktopCLIEntrypointIdentity) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DesktopCLIInstallTarget) CloneVT() *DesktopCLIInstallTarget {
+	if m == nil {
+		return (*DesktopCLIInstallTarget)(nil)
+	}
+	r := new(DesktopCLIInstallTarget)
+	r.Id = m.Id
+	r.Label = m.Label
+	r.Path = m.Path
+	r.Writable = m.Writable
+	r.Selected = m.Selected
+	r.Detail = m.Detail
+	r.Generation = m.Generation
+	r.PathState = m.PathState
+	r.BlockedReason = m.BlockedReason
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DesktopCLIInstallTarget) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DesktopCLIInstallActionItem) CloneVT() *DesktopCLIInstallActionItem {
+	if m == nil {
+		return (*DesktopCLIInstallActionItem)(nil)
+	}
+	r := new(DesktopCLIInstallActionItem)
+	r.Id = m.Id
+	r.Kind = m.Kind
+	r.Label = m.Label
+	r.Enabled = m.Enabled
+	r.TargetId = m.TargetId
+	r.Generation = m.Generation
+	r.Detail = m.Detail
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DesktopCLIInstallActionItem) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DesktopCLIInstallState) CloneVT() *DesktopCLIInstallState {
+	if m == nil {
+		return (*DesktopCLIInstallState)(nil)
+	}
+	r := new(DesktopCLIInstallState)
+	r.Status = m.Status
+	r.Label = m.Label
+	r.Detail = m.Detail
+	r.Installed = m.Installed.CloneVT()
+	r.Available = m.Available.CloneVT()
+	r.ConflictPath = m.ConflictPath
+	r.ErrorMessage = m.ErrorMessage
+	r.Generation = m.Generation
+	r.SelectedTargetId = m.SelectedTargetId
+	if rhs := m.Targets; rhs != nil {
+		r.Targets = make([]*DesktopCLIInstallTarget, len(rhs))
+		for k, v := range rhs {
+			r.Targets[k] = v.CloneVT()
+		}
+	}
+	if rhs := m.Actions; rhs != nil {
+		r.Actions = make([]*DesktopCLIInstallActionItem, len(rhs))
+		for k, v := range rhs {
+			r.Actions[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DesktopCLIInstallState) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1096,6 +1834,25 @@ func (m *DesktopRuntimeUpdateStatus) CloneVT() *DesktopRuntimeUpdateStatus {
 }
 
 func (m *DesktopRuntimeUpdateStatus) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DesktopRuntimeCLIInstallSummary) CloneVT() *DesktopRuntimeCLIInstallSummary {
+	if m == nil {
+		return (*DesktopRuntimeCLIInstallSummary)(nil)
+	}
+	r := new(DesktopRuntimeCLIInstallSummary)
+	r.Status = m.Status
+	r.Label = m.Label
+	r.Detail = m.Detail
+	r.Route = m.Route
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DesktopRuntimeCLIInstallSummary) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1264,6 +2021,69 @@ func (m *QuitDesktopRuntimeResponse) CloneMessageVT() protobuf_go_lite.CloneMess
 	return m.CloneVT()
 }
 
+func (m *WatchCLIInstallStateRequest) CloneVT() *WatchCLIInstallStateRequest {
+	if m == nil {
+		return (*WatchCLIInstallStateRequest)(nil)
+	}
+	r := new(WatchCLIInstallStateRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchCLIInstallStateRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchCLIInstallStateResponse) CloneVT() *WatchCLIInstallStateResponse {
+	if m == nil {
+		return (*WatchCLIInstallStateResponse)(nil)
+	}
+	r := new(WatchCLIInstallStateResponse)
+	r.State = m.State.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchCLIInstallStateResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *InvokeCLIInstallActionRequest) CloneVT() *InvokeCLIInstallActionRequest {
+	if m == nil {
+		return (*InvokeCLIInstallActionRequest)(nil)
+	}
+	r := new(InvokeCLIInstallActionRequest)
+	r.ActionId = m.ActionId
+	r.Generation = m.Generation
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *InvokeCLIInstallActionRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *InvokeCLIInstallActionResponse) CloneVT() *InvokeCLIInstallActionResponse {
+	if m == nil {
+		return (*InvokeCLIInstallActionResponse)(nil)
+	}
+	r := new(InvokeCLIInstallActionResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *InvokeCLIInstallActionResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (this *DesktopRuntimeState) EqualVT(that *DesktopRuntimeState) bool {
 	if this == that {
 		return true
@@ -1376,11 +2196,212 @@ func (this *DesktopRuntimeState) EqualVT(that *DesktopRuntimeState) bool {
 			}
 		}
 	}
+	if !this.CliInstall.EqualVT(that.CliInstall) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *DesktopRuntimeState) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*DesktopRuntimeState)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DesktopCLIEntrypointIdentity) EqualVT(that *DesktopCLIEntrypointIdentity) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Path != that.Path {
+		return false
+	}
+	if this.ProjectId != that.ProjectId {
+		return false
+	}
+	if this.EntrypointRole != that.EntrypointRole {
+		return false
+	}
+	if this.ChannelKey != that.ChannelKey {
+		return false
+	}
+	if this.ManifestId != that.ManifestId {
+		return false
+	}
+	if this.ManifestRev != that.ManifestRev {
+		return false
+	}
+	if this.PlatformId != that.PlatformId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DesktopCLIEntrypointIdentity) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DesktopCLIEntrypointIdentity)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DesktopCLIInstallTarget) EqualVT(that *DesktopCLIInstallTarget) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if this.Label != that.Label {
+		return false
+	}
+	if this.Path != that.Path {
+		return false
+	}
+	if this.Writable != that.Writable {
+		return false
+	}
+	if this.Selected != that.Selected {
+		return false
+	}
+	if this.Detail != that.Detail {
+		return false
+	}
+	if this.Generation != that.Generation {
+		return false
+	}
+	if this.PathState != that.PathState {
+		return false
+	}
+	if this.BlockedReason != that.BlockedReason {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DesktopCLIInstallTarget) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DesktopCLIInstallTarget)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DesktopCLIInstallActionItem) EqualVT(that *DesktopCLIInstallActionItem) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if this.Kind != that.Kind {
+		return false
+	}
+	if this.Label != that.Label {
+		return false
+	}
+	if this.Enabled != that.Enabled {
+		return false
+	}
+	if this.TargetId != that.TargetId {
+		return false
+	}
+	if this.Generation != that.Generation {
+		return false
+	}
+	if this.Detail != that.Detail {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DesktopCLIInstallActionItem) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DesktopCLIInstallActionItem)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DesktopCLIInstallState) EqualVT(that *DesktopCLIInstallState) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Status != that.Status {
+		return false
+	}
+	if this.Label != that.Label {
+		return false
+	}
+	if this.Detail != that.Detail {
+		return false
+	}
+	if !this.Installed.EqualVT(that.Installed) {
+		return false
+	}
+	if !this.Available.EqualVT(that.Available) {
+		return false
+	}
+	if len(this.Targets) != len(that.Targets) {
+		return false
+	}
+	for i, vx := range this.Targets {
+		vy := that.Targets[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &DesktopCLIInstallTarget{}
+			}
+			if q == nil {
+				q = &DesktopCLIInstallTarget{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if this.ConflictPath != that.ConflictPath {
+		return false
+	}
+	if this.ErrorMessage != that.ErrorMessage {
+		return false
+	}
+	if this.Generation != that.Generation {
+		return false
+	}
+	if this.SelectedTargetId != that.SelectedTargetId {
+		return false
+	}
+	if len(this.Actions) != len(that.Actions) {
+		return false
+	}
+	for i, vx := range this.Actions {
+		vy := that.Actions[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &DesktopCLIInstallActionItem{}
+			}
+			if q == nil {
+				q = &DesktopCLIInstallActionItem{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DesktopCLIInstallState) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DesktopCLIInstallState)
 	if !ok {
 		return false
 	}
@@ -1509,6 +2530,35 @@ func (this *DesktopRuntimeUpdateStatus) EqualVT(that *DesktopRuntimeUpdateStatus
 
 func (this *DesktopRuntimeUpdateStatus) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*DesktopRuntimeUpdateStatus)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DesktopRuntimeCLIInstallSummary) EqualVT(that *DesktopRuntimeCLIInstallSummary) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Status != that.Status {
+		return false
+	}
+	if this.Label != that.Label {
+		return false
+	}
+	if this.Detail != that.Detail {
+		return false
+	}
+	if this.Route != that.Route {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DesktopRuntimeCLIInstallSummary) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DesktopRuntimeCLIInstallSummary)
 	if !ok {
 		return false
 	}
@@ -1728,6 +2778,203 @@ func (this *QuitDesktopRuntimeResponse) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+func (this *WatchCLIInstallStateRequest) EqualVT(that *WatchCLIInstallStateRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchCLIInstallStateRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchCLIInstallStateRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchCLIInstallStateResponse) EqualVT(that *WatchCLIInstallStateResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.State.EqualVT(that.State) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchCLIInstallStateResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchCLIInstallStateResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *InvokeCLIInstallActionRequest) EqualVT(that *InvokeCLIInstallActionRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ActionId != that.ActionId {
+		return false
+	}
+	if this.Generation != that.Generation {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *InvokeCLIInstallActionRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*InvokeCLIInstallActionRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *InvokeCLIInstallActionResponse) EqualVT(that *InvokeCLIInstallActionResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *InvokeCLIInstallActionResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*InvokeCLIInstallActionResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the DesktopCLIInstallStatus to JSON.
+func (x DesktopCLIInstallStatus) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DesktopCLIInstallStatus_name)
+}
+
+// MarshalText marshals the DesktopCLIInstallStatus to text.
+func (x DesktopCLIInstallStatus) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DesktopCLIInstallStatus_name)), nil
+}
+
+// MarshalJSON marshals the DesktopCLIInstallStatus to JSON.
+func (x DesktopCLIInstallStatus) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopCLIInstallStatus from JSON.
+func (x *DesktopCLIInstallStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DesktopCLIInstallStatus_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read DesktopCLIInstallStatus enum: %v", err)
+		return
+	}
+	*x = DesktopCLIInstallStatus(v)
+}
+
+// UnmarshalText unmarshals the DesktopCLIInstallStatus from text.
+func (x *DesktopCLIInstallStatus) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DesktopCLIInstallStatus_value)
+	if err != nil {
+		return err
+	}
+	*x = DesktopCLIInstallStatus(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the DesktopCLIInstallStatus from JSON.
+func (x *DesktopCLIInstallStatus) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DesktopCLIInstallActionKind to JSON.
+func (x DesktopCLIInstallActionKind) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DesktopCLIInstallActionKind_name)
+}
+
+// MarshalText marshals the DesktopCLIInstallActionKind to text.
+func (x DesktopCLIInstallActionKind) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DesktopCLIInstallActionKind_name)), nil
+}
+
+// MarshalJSON marshals the DesktopCLIInstallActionKind to JSON.
+func (x DesktopCLIInstallActionKind) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopCLIInstallActionKind from JSON.
+func (x *DesktopCLIInstallActionKind) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DesktopCLIInstallActionKind_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read DesktopCLIInstallActionKind enum: %v", err)
+		return
+	}
+	*x = DesktopCLIInstallActionKind(v)
+}
+
+// UnmarshalText unmarshals the DesktopCLIInstallActionKind from text.
+func (x *DesktopCLIInstallActionKind) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DesktopCLIInstallActionKind_value)
+	if err != nil {
+		return err
+	}
+	*x = DesktopCLIInstallActionKind(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the DesktopCLIInstallActionKind from JSON.
+func (x *DesktopCLIInstallActionKind) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DesktopCLIInstallTargetPathState to JSON.
+func (x DesktopCLIInstallTargetPathState) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DesktopCLIInstallTargetPathState_name)
+}
+
+// MarshalText marshals the DesktopCLIInstallTargetPathState to text.
+func (x DesktopCLIInstallTargetPathState) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DesktopCLIInstallTargetPathState_name)), nil
+}
+
+// MarshalJSON marshals the DesktopCLIInstallTargetPathState to JSON.
+func (x DesktopCLIInstallTargetPathState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopCLIInstallTargetPathState from JSON.
+func (x *DesktopCLIInstallTargetPathState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DesktopCLIInstallTargetPathState_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read DesktopCLIInstallTargetPathState enum: %v", err)
+		return
+	}
+	*x = DesktopCLIInstallTargetPathState(v)
+}
+
+// UnmarshalText unmarshals the DesktopCLIInstallTargetPathState from text.
+func (x *DesktopCLIInstallTargetPathState) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DesktopCLIInstallTargetPathState_value)
+	if err != nil {
+		return err
+	}
+	*x = DesktopCLIInstallTargetPathState(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the DesktopCLIInstallTargetPathState from JSON.
+func (x *DesktopCLIInstallTargetPathState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the DesktopRuntimeHealth to JSON.
@@ -2108,6 +3355,11 @@ func (x *DesktopRuntimeState) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.CliInstall != nil || s.HasField("cliInstall") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cliInstall")
+		x.CliInstall.MarshalProtoJSON(s.WithField("cliInstall"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2244,12 +3496,477 @@ func (x *DesktopRuntimeState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Actions = append(x.Actions, v)
 			})
+		case "cli_install", "cliInstall":
+			if s.ReadNil() {
+				x.CliInstall = nil
+				return
+			}
+			x.CliInstall = &DesktopRuntimeCLIInstallSummary{}
+			x.CliInstall.UnmarshalProtoJSON(s.WithField("cli_install", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the DesktopRuntimeState from JSON.
 func (x *DesktopRuntimeState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DesktopCLIEntrypointIdentity message to JSON.
+func (x *DesktopCLIEntrypointIdentity) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Path != "" || s.HasField("path") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("path")
+		s.WriteString(x.Path)
+	}
+	if x.ProjectId != "" || s.HasField("projectId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("projectId")
+		s.WriteString(x.ProjectId)
+	}
+	if x.EntrypointRole != "" || s.HasField("entrypointRole") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entrypointRole")
+		s.WriteString(x.EntrypointRole)
+	}
+	if x.ChannelKey != "" || s.HasField("channelKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("channelKey")
+		s.WriteString(x.ChannelKey)
+	}
+	if x.ManifestId != "" || s.HasField("manifestId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("manifestId")
+		s.WriteString(x.ManifestId)
+	}
+	if x.ManifestRev != 0 || s.HasField("manifestRev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("manifestRev")
+		s.WriteUint64(x.ManifestRev)
+	}
+	if x.PlatformId != "" || s.HasField("platformId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("platformId")
+		s.WriteString(x.PlatformId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DesktopCLIEntrypointIdentity to JSON.
+func (x *DesktopCLIEntrypointIdentity) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopCLIEntrypointIdentity message from JSON.
+func (x *DesktopCLIEntrypointIdentity) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "path":
+			s.AddField("path")
+			x.Path = s.ReadString()
+		case "project_id", "projectId":
+			s.AddField("project_id")
+			x.ProjectId = s.ReadString()
+		case "entrypoint_role", "entrypointRole":
+			s.AddField("entrypoint_role")
+			x.EntrypointRole = s.ReadString()
+		case "channel_key", "channelKey":
+			s.AddField("channel_key")
+			x.ChannelKey = s.ReadString()
+		case "manifest_id", "manifestId":
+			s.AddField("manifest_id")
+			x.ManifestId = s.ReadString()
+		case "manifest_rev", "manifestRev":
+			s.AddField("manifest_rev")
+			x.ManifestRev = s.ReadUint64()
+		case "platform_id", "platformId":
+			s.AddField("platform_id")
+			x.PlatformId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DesktopCLIEntrypointIdentity from JSON.
+func (x *DesktopCLIEntrypointIdentity) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DesktopCLIInstallTarget message to JSON.
+func (x *DesktopCLIInstallTarget) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(x.Id)
+	}
+	if x.Label != "" || s.HasField("label") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("label")
+		s.WriteString(x.Label)
+	}
+	if x.Path != "" || s.HasField("path") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("path")
+		s.WriteString(x.Path)
+	}
+	if x.Writable || s.HasField("writable") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("writable")
+		s.WriteBool(x.Writable)
+	}
+	if x.Selected || s.HasField("selected") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("selected")
+		s.WriteBool(x.Selected)
+	}
+	if x.Detail != "" || s.HasField("detail") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("detail")
+		s.WriteString(x.Detail)
+	}
+	if x.Generation != 0 || s.HasField("generation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("generation")
+		s.WriteUint64(x.Generation)
+	}
+	if x.PathState != 0 || s.HasField("pathState") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pathState")
+		x.PathState.MarshalProtoJSON(s)
+	}
+	if x.BlockedReason != "" || s.HasField("blockedReason") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("blockedReason")
+		s.WriteString(x.BlockedReason)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DesktopCLIInstallTarget to JSON.
+func (x *DesktopCLIInstallTarget) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopCLIInstallTarget message from JSON.
+func (x *DesktopCLIInstallTarget) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadString()
+		case "label":
+			s.AddField("label")
+			x.Label = s.ReadString()
+		case "path":
+			s.AddField("path")
+			x.Path = s.ReadString()
+		case "writable":
+			s.AddField("writable")
+			x.Writable = s.ReadBool()
+		case "selected":
+			s.AddField("selected")
+			x.Selected = s.ReadBool()
+		case "detail":
+			s.AddField("detail")
+			x.Detail = s.ReadString()
+		case "generation":
+			s.AddField("generation")
+			x.Generation = s.ReadUint64()
+		case "path_state", "pathState":
+			s.AddField("path_state")
+			x.PathState.UnmarshalProtoJSON(s)
+		case "blocked_reason", "blockedReason":
+			s.AddField("blocked_reason")
+			x.BlockedReason = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DesktopCLIInstallTarget from JSON.
+func (x *DesktopCLIInstallTarget) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DesktopCLIInstallActionItem message to JSON.
+func (x *DesktopCLIInstallActionItem) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(x.Id)
+	}
+	if x.Kind != 0 || s.HasField("kind") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("kind")
+		x.Kind.MarshalProtoJSON(s)
+	}
+	if x.Label != "" || s.HasField("label") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("label")
+		s.WriteString(x.Label)
+	}
+	if x.Enabled || s.HasField("enabled") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("enabled")
+		s.WriteBool(x.Enabled)
+	}
+	if x.TargetId != "" || s.HasField("targetId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targetId")
+		s.WriteString(x.TargetId)
+	}
+	if x.Generation != 0 || s.HasField("generation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("generation")
+		s.WriteUint64(x.Generation)
+	}
+	if x.Detail != "" || s.HasField("detail") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("detail")
+		s.WriteString(x.Detail)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DesktopCLIInstallActionItem to JSON.
+func (x *DesktopCLIInstallActionItem) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopCLIInstallActionItem message from JSON.
+func (x *DesktopCLIInstallActionItem) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadString()
+		case "kind":
+			s.AddField("kind")
+			x.Kind.UnmarshalProtoJSON(s)
+		case "label":
+			s.AddField("label")
+			x.Label = s.ReadString()
+		case "enabled":
+			s.AddField("enabled")
+			x.Enabled = s.ReadBool()
+		case "target_id", "targetId":
+			s.AddField("target_id")
+			x.TargetId = s.ReadString()
+		case "generation":
+			s.AddField("generation")
+			x.Generation = s.ReadUint64()
+		case "detail":
+			s.AddField("detail")
+			x.Detail = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DesktopCLIInstallActionItem from JSON.
+func (x *DesktopCLIInstallActionItem) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DesktopCLIInstallState message to JSON.
+func (x *DesktopCLIInstallState) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Status != 0 || s.HasField("status") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("status")
+		x.Status.MarshalProtoJSON(s)
+	}
+	if x.Label != "" || s.HasField("label") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("label")
+		s.WriteString(x.Label)
+	}
+	if x.Detail != "" || s.HasField("detail") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("detail")
+		s.WriteString(x.Detail)
+	}
+	if x.Installed != nil || s.HasField("installed") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("installed")
+		x.Installed.MarshalProtoJSON(s.WithField("installed"))
+	}
+	if x.Available != nil || s.HasField("available") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("available")
+		x.Available.MarshalProtoJSON(s.WithField("available"))
+	}
+	if len(x.Targets) > 0 || s.HasField("targets") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targets")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Targets {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("targets"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.ConflictPath != "" || s.HasField("conflictPath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("conflictPath")
+		s.WriteString(x.ConflictPath)
+	}
+	if x.ErrorMessage != "" || s.HasField("errorMessage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("errorMessage")
+		s.WriteString(x.ErrorMessage)
+	}
+	if x.Generation != 0 || s.HasField("generation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("generation")
+		s.WriteUint64(x.Generation)
+	}
+	if x.SelectedTargetId != "" || s.HasField("selectedTargetId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("selectedTargetId")
+		s.WriteString(x.SelectedTargetId)
+	}
+	if len(x.Actions) > 0 || s.HasField("actions") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("actions")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Actions {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("actions"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DesktopCLIInstallState to JSON.
+func (x *DesktopCLIInstallState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopCLIInstallState message from JSON.
+func (x *DesktopCLIInstallState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "status":
+			s.AddField("status")
+			x.Status.UnmarshalProtoJSON(s)
+		case "label":
+			s.AddField("label")
+			x.Label = s.ReadString()
+		case "detail":
+			s.AddField("detail")
+			x.Detail = s.ReadString()
+		case "installed":
+			if s.ReadNil() {
+				x.Installed = nil
+				return
+			}
+			x.Installed = &DesktopCLIEntrypointIdentity{}
+			x.Installed.UnmarshalProtoJSON(s.WithField("installed", true))
+		case "available":
+			if s.ReadNil() {
+				x.Available = nil
+				return
+			}
+			x.Available = &DesktopCLIEntrypointIdentity{}
+			x.Available.UnmarshalProtoJSON(s.WithField("available", true))
+		case "targets":
+			s.AddField("targets")
+			if s.ReadNil() {
+				x.Targets = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Targets = append(x.Targets, nil)
+					return
+				}
+				v := &DesktopCLIInstallTarget{}
+				v.UnmarshalProtoJSON(s.WithField("targets", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Targets = append(x.Targets, v)
+			})
+		case "conflict_path", "conflictPath":
+			s.AddField("conflict_path")
+			x.ConflictPath = s.ReadString()
+		case "error_message", "errorMessage":
+			s.AddField("error_message")
+			x.ErrorMessage = s.ReadString()
+		case "generation":
+			s.AddField("generation")
+			x.Generation = s.ReadUint64()
+		case "selected_target_id", "selectedTargetId":
+			s.AddField("selected_target_id")
+			x.SelectedTargetId = s.ReadString()
+		case "actions":
+			s.AddField("actions")
+			if s.ReadNil() {
+				x.Actions = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Actions = append(x.Actions, nil)
+					return
+				}
+				v := &DesktopCLIInstallActionItem{}
+				v.UnmarshalProtoJSON(s.WithField("actions", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Actions = append(x.Actions, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DesktopCLIInstallState from JSON.
+func (x *DesktopCLIInstallState) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2546,6 +4263,72 @@ func (x *DesktopRuntimeUpdateStatus) UnmarshalProtoJSON(s *json.UnmarshalState) 
 
 // UnmarshalJSON unmarshals the DesktopRuntimeUpdateStatus from JSON.
 func (x *DesktopRuntimeUpdateStatus) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DesktopRuntimeCLIInstallSummary message to JSON.
+func (x *DesktopRuntimeCLIInstallSummary) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Status != 0 || s.HasField("status") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("status")
+		x.Status.MarshalProtoJSON(s)
+	}
+	if x.Label != "" || s.HasField("label") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("label")
+		s.WriteString(x.Label)
+	}
+	if x.Detail != "" || s.HasField("detail") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("detail")
+		s.WriteString(x.Detail)
+	}
+	if x.Route != "" || s.HasField("route") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("route")
+		s.WriteString(x.Route)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DesktopRuntimeCLIInstallSummary to JSON.
+func (x *DesktopRuntimeCLIInstallSummary) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopRuntimeCLIInstallSummary message from JSON.
+func (x *DesktopRuntimeCLIInstallSummary) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "status":
+			s.AddField("status")
+			x.Status.UnmarshalProtoJSON(s)
+		case "label":
+			s.AddField("label")
+			x.Label = s.ReadString()
+		case "detail":
+			s.AddField("detail")
+			x.Detail = s.ReadString()
+		case "route":
+			s.AddField("route")
+			x.Route = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DesktopRuntimeCLIInstallSummary from JSON.
+func (x *DesktopRuntimeCLIInstallSummary) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2997,6 +4780,162 @@ func (x *QuitDesktopRuntimeResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the WatchCLIInstallStateRequest message to JSON.
+func (x *WatchCLIInstallStateRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchCLIInstallStateRequest to JSON.
+func (x *WatchCLIInstallStateRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchCLIInstallStateRequest message from JSON.
+func (x *WatchCLIInstallStateRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchCLIInstallStateRequest from JSON.
+func (x *WatchCLIInstallStateRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchCLIInstallStateResponse message to JSON.
+func (x *WatchCLIInstallStateResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.State != nil || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s.WithField("state"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchCLIInstallStateResponse to JSON.
+func (x *WatchCLIInstallStateResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchCLIInstallStateResponse message from JSON.
+func (x *WatchCLIInstallStateResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "state":
+			if s.ReadNil() {
+				x.State = nil
+				return
+			}
+			x.State = &DesktopCLIInstallState{}
+			x.State.UnmarshalProtoJSON(s.WithField("state", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchCLIInstallStateResponse from JSON.
+func (x *WatchCLIInstallStateResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the InvokeCLIInstallActionRequest message to JSON.
+func (x *InvokeCLIInstallActionRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ActionId != "" || s.HasField("actionId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("actionId")
+		s.WriteString(x.ActionId)
+	}
+	if x.Generation != 0 || s.HasField("generation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("generation")
+		s.WriteUint64(x.Generation)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the InvokeCLIInstallActionRequest to JSON.
+func (x *InvokeCLIInstallActionRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the InvokeCLIInstallActionRequest message from JSON.
+func (x *InvokeCLIInstallActionRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "action_id", "actionId":
+			s.AddField("action_id")
+			x.ActionId = s.ReadString()
+		case "generation":
+			s.AddField("generation")
+			x.Generation = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the InvokeCLIInstallActionRequest from JSON.
+func (x *InvokeCLIInstallActionRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the InvokeCLIInstallActionResponse message to JSON.
+func (x *InvokeCLIInstallActionResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the InvokeCLIInstallActionResponse to JSON.
+func (x *InvokeCLIInstallActionResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the InvokeCLIInstallActionResponse message from JSON.
+func (x *InvokeCLIInstallActionResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the InvokeCLIInstallActionResponse from JSON.
+func (x *InvokeCLIInstallActionResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *DesktopRuntimeState) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -3026,6 +4965,16 @@ func (m *DesktopRuntimeState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.CliInstall != nil {
+		size, err := m.CliInstall.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x6a
 	}
 	if len(m.Actions) > 0 {
 		for iNdEx := len(m.Actions) - 1; iNdEx >= 0; iNdEx-- {
@@ -3141,6 +5090,387 @@ func (m *DesktopRuntimeState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		} else {
 			dAtA[i] = 0
 		}
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DesktopCLIEntrypointIdentity) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DesktopCLIEntrypointIdentity) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DesktopCLIEntrypointIdentity) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.PlatformId) > 0 {
+		i -= len(m.PlatformId)
+		copy(dAtA[i:], m.PlatformId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PlatformId)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if m.ManifestRev != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ManifestRev))
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.ManifestId) > 0 {
+		i -= len(m.ManifestId)
+		copy(dAtA[i:], m.ManifestId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ManifestId)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.ChannelKey) > 0 {
+		i -= len(m.ChannelKey)
+		copy(dAtA[i:], m.ChannelKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ChannelKey)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.EntrypointRole) > 0 {
+		i -= len(m.EntrypointRole)
+		copy(dAtA[i:], m.EntrypointRole)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.EntrypointRole)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.ProjectId) > 0 {
+		i -= len(m.ProjectId)
+		copy(dAtA[i:], m.ProjectId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ProjectId)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Path) > 0 {
+		i -= len(m.Path)
+		copy(dAtA[i:], m.Path)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Path)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DesktopCLIInstallTarget) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DesktopCLIInstallTarget) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DesktopCLIInstallTarget) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.BlockedReason) > 0 {
+		i -= len(m.BlockedReason)
+		copy(dAtA[i:], m.BlockedReason)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.BlockedReason)))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if m.PathState != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PathState))
+		i--
+		dAtA[i] = 0x40
+	}
+	if m.Generation != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Generation))
+		i--
+		dAtA[i] = 0x38
+	}
+	if len(m.Detail) > 0 {
+		i -= len(m.Detail)
+		copy(dAtA[i:], m.Detail)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Detail)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.Selected {
+		i--
+		if m.Selected {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.Writable {
+		i--
+		if m.Writable {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.Path) > 0 {
+		i -= len(m.Path)
+		copy(dAtA[i:], m.Path)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Path)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Label) > 0 {
+		i -= len(m.Label)
+		copy(dAtA[i:], m.Label)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Label)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Id) > 0 {
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DesktopCLIInstallActionItem) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DesktopCLIInstallActionItem) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DesktopCLIInstallActionItem) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Detail) > 0 {
+		i -= len(m.Detail)
+		copy(dAtA[i:], m.Detail)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Detail)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if m.Generation != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Generation))
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.TargetId) > 0 {
+		i -= len(m.TargetId)
+		copy(dAtA[i:], m.TargetId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.TargetId)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.Enabled {
+		i--
+		if m.Enabled {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.Label) > 0 {
+		i -= len(m.Label)
+		copy(dAtA[i:], m.Label)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Label)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Kind != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Kind))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Id) > 0 {
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DesktopCLIInstallState) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DesktopCLIInstallState) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DesktopCLIInstallState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Actions) > 0 {
+		for iNdEx := len(m.Actions) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Actions[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x5a
+		}
+	}
+	if len(m.SelectedTargetId) > 0 {
+		i -= len(m.SelectedTargetId)
+		copy(dAtA[i:], m.SelectedTargetId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SelectedTargetId)))
+		i--
+		dAtA[i] = 0x52
+	}
+	if m.Generation != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Generation))
+		i--
+		dAtA[i] = 0x48
+	}
+	if len(m.ErrorMessage) > 0 {
+		i -= len(m.ErrorMessage)
+		copy(dAtA[i:], m.ErrorMessage)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ErrorMessage)))
+		i--
+		dAtA[i] = 0x42
+	}
+	if len(m.ConflictPath) > 0 {
+		i -= len(m.ConflictPath)
+		copy(dAtA[i:], m.ConflictPath)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ConflictPath)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.Targets) > 0 {
+		for iNdEx := len(m.Targets) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Targets[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x32
+		}
+	}
+	if m.Available != nil {
+		size, err := m.Available.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.Installed != nil {
+		size, err := m.Installed.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Detail) > 0 {
+		i -= len(m.Detail)
+		copy(dAtA[i:], m.Detail)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Detail)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Label) > 0 {
+		i -= len(m.Label)
+		copy(dAtA[i:], m.Label)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Label)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Status != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Status))
 		i--
 		dAtA[i] = 0x8
 	}
@@ -3411,6 +5741,65 @@ func (m *DesktopRuntimeUpdateStatus) MarshalToSizedBufferVT(dAtA []byte) (int, e
 		} else {
 			dAtA[i] = 0
 		}
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DesktopRuntimeCLIInstallSummary) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DesktopRuntimeCLIInstallSummary) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DesktopRuntimeCLIInstallSummary) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Route) > 0 {
+		i -= len(m.Route)
+		copy(dAtA[i:], m.Route)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Route)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Detail) > 0 {
+		i -= len(m.Detail)
+		copy(dAtA[i:], m.Detail)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Detail)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Label) > 0 {
+		i -= len(m.Label)
+		copy(dAtA[i:], m.Label)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Label)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Status != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Status))
 		i--
 		dAtA[i] = 0x8
 	}
@@ -3855,6 +6244,160 @@ func (m *QuitDesktopRuntimeResponse) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	return len(dAtA) - i, nil
 }
 
+func (m *WatchCLIInstallStateRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchCLIInstallStateRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchCLIInstallStateRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchCLIInstallStateResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchCLIInstallStateResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchCLIInstallStateResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.State != nil {
+		size, err := m.State.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *InvokeCLIInstallActionRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InvokeCLIInstallActionRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *InvokeCLIInstallActionRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Generation != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Generation))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.ActionId) > 0 {
+		i -= len(m.ActionId)
+		copy(dAtA[i:], m.ActionId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ActionId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *InvokeCLIInstallActionResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InvokeCLIInstallActionResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *InvokeCLIInstallActionResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *DesktopRuntimeState) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -3908,6 +6451,180 @@ func (m *DesktopRuntimeState) SizeVT() (n int) {
 			l = e.SizeVT()
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
+	}
+	if len(m.Actions) > 0 {
+		for _, e := range m.Actions {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if m.CliInstall != nil {
+		l = m.CliInstall.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DesktopCLIEntrypointIdentity) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Path)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ProjectId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.EntrypointRole)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ChannelKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ManifestId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.ManifestRev != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ManifestRev))
+	}
+	l = len(m.PlatformId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DesktopCLIInstallTarget) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Id)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Label)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Path)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Writable {
+		n += 2
+	}
+	if m.Selected {
+		n += 2
+	}
+	l = len(m.Detail)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Generation != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Generation))
+	}
+	if m.PathState != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.PathState))
+	}
+	l = len(m.BlockedReason)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DesktopCLIInstallActionItem) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Id)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Kind != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Kind))
+	}
+	l = len(m.Label)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Enabled {
+		n += 2
+	}
+	l = len(m.TargetId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Generation != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Generation))
+	}
+	l = len(m.Detail)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DesktopCLIInstallState) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Status != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Status))
+	}
+	l = len(m.Label)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Detail)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Installed != nil {
+		l = m.Installed.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Available != nil {
+		l = m.Available.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.Targets) > 0 {
+		for _, e := range m.Targets {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	l = len(m.ConflictPath)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ErrorMessage)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Generation != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Generation))
+	}
+	l = len(m.SelectedTargetId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	if len(m.Actions) > 0 {
 		for _, e := range m.Actions {
@@ -4026,6 +6743,31 @@ func (m *DesktopRuntimeUpdateStatus) SizeVT() (n int) {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	l = len(m.Detail)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DesktopRuntimeCLIInstallSummary) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Status != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Status))
+	}
+	l = len(m.Label)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Detail)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Route)
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
@@ -4187,6 +6929,69 @@ func (m *QuitDesktopRuntimeResponse) SizeVT() (n int) {
 	_ = l
 	n += len(m.unknownFields)
 	return n
+}
+
+func (m *WatchCLIInstallStateRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchCLIInstallStateResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.State != nil {
+		l = m.State.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *InvokeCLIInstallActionRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ActionId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Generation != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Generation))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *InvokeCLIInstallActionResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (x DesktopCLIInstallStatus) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x DesktopCLIInstallActionKind) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x DesktopCLIInstallTargetPathState) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x DesktopRuntimeHealth) MarshalProtoText() string {
@@ -4358,11 +7163,326 @@ func (x *DesktopRuntimeState) MarshalProtoText() string {
 		}
 		sb.WriteString("]")
 	}
+	if x.CliInstall != nil {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("cli_install: ")
+		sb.WriteString(x.CliInstall.MarshalProtoText())
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
 
 func (x *DesktopRuntimeState) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DesktopCLIEntrypointIdentity) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("DesktopCLIEntrypointIdentity {")
+	if x.Path != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("path: ")
+		sb.WriteString(strconv.Quote(x.Path))
+	}
+	if x.ProjectId != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("project_id: ")
+		sb.WriteString(strconv.Quote(x.ProjectId))
+	}
+	if x.EntrypointRole != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("entrypoint_role: ")
+		sb.WriteString(strconv.Quote(x.EntrypointRole))
+	}
+	if x.ChannelKey != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("channel_key: ")
+		sb.WriteString(strconv.Quote(x.ChannelKey))
+	}
+	if x.ManifestId != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("manifest_id: ")
+		sb.WriteString(strconv.Quote(x.ManifestId))
+	}
+	if x.ManifestRev != 0 {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("manifest_rev: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.ManifestRev), 10))
+	}
+	if x.PlatformId != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("platform_id: ")
+		sb.WriteString(strconv.Quote(x.PlatformId))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *DesktopCLIEntrypointIdentity) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DesktopCLIInstallTarget) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("DesktopCLIInstallTarget {")
+	if x.Id != "" {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("id: ")
+		sb.WriteString(strconv.Quote(x.Id))
+	}
+	if x.Label != "" {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("label: ")
+		sb.WriteString(strconv.Quote(x.Label))
+	}
+	if x.Path != "" {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("path: ")
+		sb.WriteString(strconv.Quote(x.Path))
+	}
+	if x.Writable != false {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("writable: ")
+		sb.WriteString(strconv.FormatBool(x.Writable))
+	}
+	if x.Selected != false {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("selected: ")
+		sb.WriteString(strconv.FormatBool(x.Selected))
+	}
+	if x.Detail != "" {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("detail: ")
+		sb.WriteString(strconv.Quote(x.Detail))
+	}
+	if x.Generation != 0 {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("generation: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.Generation), 10))
+	}
+	if x.PathState != 0 {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("path_state: ")
+		sb.WriteString("\"")
+		sb.WriteString(DesktopCLIInstallTargetPathState(x.PathState).String())
+		sb.WriteString("\"")
+	}
+	if x.BlockedReason != "" {
+		if sb.Len() > 25 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("blocked_reason: ")
+		sb.WriteString(strconv.Quote(x.BlockedReason))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *DesktopCLIInstallTarget) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DesktopCLIInstallActionItem) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("DesktopCLIInstallActionItem {")
+	if x.Id != "" {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("id: ")
+		sb.WriteString(strconv.Quote(x.Id))
+	}
+	if x.Kind != 0 {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("kind: ")
+		sb.WriteString("\"")
+		sb.WriteString(DesktopCLIInstallActionKind(x.Kind).String())
+		sb.WriteString("\"")
+	}
+	if x.Label != "" {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("label: ")
+		sb.WriteString(strconv.Quote(x.Label))
+	}
+	if x.Enabled != false {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("enabled: ")
+		sb.WriteString(strconv.FormatBool(x.Enabled))
+	}
+	if x.TargetId != "" {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("target_id: ")
+		sb.WriteString(strconv.Quote(x.TargetId))
+	}
+	if x.Generation != 0 {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("generation: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.Generation), 10))
+	}
+	if x.Detail != "" {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("detail: ")
+		sb.WriteString(strconv.Quote(x.Detail))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *DesktopCLIInstallActionItem) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DesktopCLIInstallState) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("DesktopCLIInstallState {")
+	if x.Status != 0 {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("status: ")
+		sb.WriteString("\"")
+		sb.WriteString(DesktopCLIInstallStatus(x.Status).String())
+		sb.WriteString("\"")
+	}
+	if x.Label != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("label: ")
+		sb.WriteString(strconv.Quote(x.Label))
+	}
+	if x.Detail != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("detail: ")
+		sb.WriteString(strconv.Quote(x.Detail))
+	}
+	if x.Installed != nil {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("installed: ")
+		sb.WriteString(x.Installed.MarshalProtoText())
+	}
+	if x.Available != nil {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("available: ")
+		sb.WriteString(x.Available.MarshalProtoText())
+	}
+	if len(x.Targets) > 0 {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("targets: [")
+		for i, v := range x.Targets {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			if v == nil {
+				sb.WriteString((&DesktopCLIInstallTarget{}).MarshalProtoText())
+			} else {
+				sb.WriteString(v.MarshalProtoText())
+			}
+		}
+		sb.WriteString("]")
+	}
+	if x.ConflictPath != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("conflict_path: ")
+		sb.WriteString(strconv.Quote(x.ConflictPath))
+	}
+	if x.ErrorMessage != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("error_message: ")
+		sb.WriteString(strconv.Quote(x.ErrorMessage))
+	}
+	if x.Generation != 0 {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("generation: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.Generation), 10))
+	}
+	if x.SelectedTargetId != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("selected_target_id: ")
+		sb.WriteString(strconv.Quote(x.SelectedTargetId))
+	}
+	if len(x.Actions) > 0 {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("actions: [")
+		for i, v := range x.Actions {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			if v == nil {
+				sb.WriteString((&DesktopCLIInstallActionItem{}).MarshalProtoText())
+			} else {
+				sb.WriteString(v.MarshalProtoText())
+			}
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *DesktopCLIInstallState) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -4551,6 +7671,47 @@ func (x *DesktopRuntimeUpdateStatus) MarshalProtoText() string {
 }
 
 func (x *DesktopRuntimeUpdateStatus) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DesktopRuntimeCLIInstallSummary) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("DesktopRuntimeCLIInstallSummary {")
+	if x.Status != 0 {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("status: ")
+		sb.WriteString("\"")
+		sb.WriteString(DesktopCLIInstallStatus(x.Status).String())
+		sb.WriteString("\"")
+	}
+	if x.Label != "" {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("label: ")
+		sb.WriteString(strconv.Quote(x.Label))
+	}
+	if x.Detail != "" {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("detail: ")
+		sb.WriteString(strconv.Quote(x.Detail))
+	}
+	if x.Route != "" {
+		if sb.Len() > 33 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("route: ")
+		sb.WriteString(strconv.Quote(x.Route))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *DesktopRuntimeCLIInstallSummary) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -4772,6 +7933,71 @@ func (x *QuitDesktopRuntimeResponse) MarshalProtoText() string {
 }
 
 func (x *QuitDesktopRuntimeResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchCLIInstallStateRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("WatchCLIInstallStateRequest {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *WatchCLIInstallStateRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchCLIInstallStateResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("WatchCLIInstallStateResponse {")
+	if x.State != nil {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("state: ")
+		sb.WriteString(x.State.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *WatchCLIInstallStateResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *InvokeCLIInstallActionRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("InvokeCLIInstallActionRequest {")
+	if x.ActionId != "" {
+		if sb.Len() > 31 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("action_id: ")
+		sb.WriteString(strconv.Quote(x.ActionId))
+	}
+	if x.Generation != 0 {
+		if sb.Len() > 31 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("generation: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.Generation), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *InvokeCLIInstallActionRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *InvokeCLIInstallActionResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("InvokeCLIInstallActionResponse {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *InvokeCLIInstallActionResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -5045,6 +8271,859 @@ func (m *DesktopRuntimeState) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Actions = append(m.Actions, &DesktopRuntimeActionItem{})
+			if err := m.Actions[len(m.Actions)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CliInstall", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.CliInstall == nil {
+				m.CliInstall = &DesktopRuntimeCLIInstallSummary{}
+			}
+			if err := m.CliInstall.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DesktopCLIEntrypointIdentity) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DesktopCLIEntrypointIdentity: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DesktopCLIEntrypointIdentity: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Path = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProjectId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ProjectId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EntrypointRole", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EntrypointRole = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChannelKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ChannelKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ManifestId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ManifestId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ManifestRev", wireType)
+			}
+			m.ManifestRev = 0
+			m.ManifestRev, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PlatformId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PlatformId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DesktopCLIInstallTarget) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DesktopCLIInstallTarget: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DesktopCLIInstallTarget: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Id = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Label", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Label = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Path = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Writable", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Writable = bool(v != 0)
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Selected", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Selected = bool(v != 0)
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Detail", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Detail = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Generation", wireType)
+			}
+			m.Generation = 0
+			m.Generation, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PathState", wireType)
+			}
+			m.PathState = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.PathState = DesktopCLIInstallTargetPathState(_v)
+			if err != nil {
+				return err
+			}
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockedReason", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BlockedReason = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DesktopCLIInstallActionItem) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DesktopCLIInstallActionItem: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DesktopCLIInstallActionItem: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Id = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Kind", wireType)
+			}
+			m.Kind = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Kind = DesktopCLIInstallActionKind(_v)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Label", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Label = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Enabled", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Enabled = bool(v != 0)
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TargetId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Generation", wireType)
+			}
+			m.Generation = 0
+			m.Generation, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Detail", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Detail = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DesktopCLIInstallState) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DesktopCLIInstallState: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DesktopCLIInstallState: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			m.Status = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Status = DesktopCLIInstallStatus(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Label", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Label = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Detail", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Detail = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Installed", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Installed == nil {
+				m.Installed = &DesktopCLIEntrypointIdentity{}
+			}
+			if err := m.Installed.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Available", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Available == nil {
+				m.Available = &DesktopCLIEntrypointIdentity{}
+			}
+			if err := m.Available.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Targets", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Targets = append(m.Targets, &DesktopCLIInstallTarget{})
+			if err := m.Targets[len(m.Targets)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConflictPath", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ConflictPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ErrorMessage", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ErrorMessage = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Generation", wireType)
+			}
+			m.Generation = 0
+			m.Generation, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SelectedTargetId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SelectedTargetId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Actions", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Actions = append(m.Actions, &DesktopCLIInstallActionItem{})
 			if err := m.Actions[len(m.Actions)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
@@ -5592,6 +9671,126 @@ func (m *DesktopRuntimeUpdateStatus) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Detail = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DesktopRuntimeCLIInstallSummary) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DesktopRuntimeCLIInstallSummary: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DesktopRuntimeCLIInstallSummary: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			m.Status = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Status = DesktopCLIInstallStatus(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Label", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Label = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Detail", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Detail = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Route", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Route = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -6320,6 +10519,237 @@ func (m *QuitDesktopRuntimeResponse) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: QuitDesktopRuntimeResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchCLIInstallStateRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchCLIInstallStateRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchCLIInstallStateRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchCLIInstallStateResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchCLIInstallStateResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchCLIInstallStateResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.State == nil {
+				m.State = &DesktopCLIInstallState{}
+			}
+			if err := m.State.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *InvokeCLIInstallActionRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InvokeCLIInstallActionRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InvokeCLIInstallActionRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ActionId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ActionId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Generation", wireType)
+			}
+			m.Generation = 0
+			m.Generation, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *InvokeCLIInstallActionResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InvokeCLIInstallActionResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InvokeCLIInstallActionResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:

@@ -258,7 +258,7 @@ func (SRPCResourceServiceHandler) InvokeMethod_ResourceClient(impl SRPCResourceS
 }
 
 func (SRPCResourceServiceHandler) InvokeMethod_ResourceRpc(impl SRPCResourceServiceServer, strm srpc.Stream) error {
-	clientStrm := &srpcResourceService_ResourceRpcStream{Stream: strm}
+	clientStrm := &srpcResourceService_ResourceRpcStream{strm}
 	return impl.ResourceRpc(clientStrm)
 }
 

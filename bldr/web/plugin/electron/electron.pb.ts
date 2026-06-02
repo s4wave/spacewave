@@ -115,6 +115,71 @@ export const DesktopPresencePolicy_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * ManagedCLIRelease identifies a release-selected managed CLI binary.
+ *
+ * @generated from message electron.ManagedCLIRelease
+ */
+export interface ManagedCLIRelease {
+  /**
+   * BinaryPath is the local release binary path Electron main may copy.
+   *
+   * @generated from field: string binary_path = 1;
+   */
+  binaryPath?: string
+  /**
+   * ProjectId is the release project id.
+   *
+   * @generated from field: string project_id = 2;
+   */
+  projectId?: string
+  /**
+   * EntrypointRole must be cli.
+   *
+   * @generated from field: string entrypoint_role = 3;
+   */
+  entrypointRole?: string
+  /**
+   * ChannelKey is the selected release channel.
+   *
+   * @generated from field: string channel_key = 4;
+   */
+  channelKey?: string
+  /**
+   * ManifestId is the selected CLI Manifest id.
+   *
+   * @generated from field: string manifest_id = 5;
+   */
+  manifestId?: string
+  /**
+   * ManifestRev is the selected CLI Manifest revision.
+   *
+   * @generated from field: uint64 manifest_rev = 6;
+   */
+  manifestRev?: bigint
+  /**
+   * PlatformId is the selected native platform id.
+   *
+   * @generated from field: string platform_id = 7;
+   */
+  platformId?: string
+}
+
+export const ManagedCLIRelease: MessageType<ManagedCLIRelease> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'electron.ManagedCLIRelease',
+    fields: [
+      { no: 1, name: 'binary_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'entrypoint_role', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'channel_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'manifest_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'manifest_rev', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 7, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * ElectronInit is passed from Go to the Electron main process on startup.
  *
  * @generated from message electron.ElectronInit
@@ -186,6 +251,12 @@ export interface ElectronInit {
    * @generated from field: string macos_template_tray_icon_path = 11;
    */
   macosTemplateTrayIconPath?: string
+  /**
+   * ManagedCliRelease identifies the release-selected CLI source for desktop-managed installs.
+   *
+   * @generated from field: electron.ManagedCLIRelease managed_cli_release = 12;
+   */
+  managedCliRelease?: ManagedCLIRelease
 }
 
 export const ElectronInit: MessageType<ElectronInit> =
@@ -212,6 +283,12 @@ export const ElectronInit: MessageType<ElectronInit> =
         name: 'macos_template_tray_icon_path',
         kind: 'scalar',
         T: ScalarType.STRING,
+      },
+      {
+        no: 12,
+        name: 'managed_cli_release',
+        kind: 'message',
+        T: () => ManagedCLIRelease,
       },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
@@ -325,6 +402,12 @@ export interface Config {
    * @generated from field: string macos_template_tray_icon_path = 16;
    */
   macosTemplateTrayIconPath?: string
+  /**
+   * ManagedCliRelease identifies the release-selected CLI source for desktop-managed installs.
+   *
+   * @generated from field: electron.ManagedCLIRelease managed_cli_release = 17;
+   */
+  managedCliRelease?: ManagedCLIRelease
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -361,6 +444,12 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       name: 'macos_template_tray_icon_path',
       kind: 'scalar',
       T: ScalarType.STRING,
+    },
+    {
+      no: 17,
+      name: 'managed_cli_release',
+      kind: 'message',
+      T: () => ManagedCLIRelease,
     },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,

@@ -8,12 +8,14 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/aperturerobotics/cli"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
@@ -138,6 +140,9 @@ func runCliMain(
 	}
 
 	app.Before = func(c *cli.Context) error {
+		if c.Command != nil && c.Command.Name == "version" {
+			return nil
+		}
 		log := logrus.New()
 		log.SetFormatter(&logrus.TextFormatter{
 			DisableColors:    false,
@@ -187,6 +192,7 @@ func runCliMain(
 		return nil
 	}
 
+	app.Commands = append(app.Commands, newDistVersionCommand(distMeta))
 	app.After = func(c *cli.Context) error {
 		if dtBus != nil {
 			dtBus.Release()
@@ -207,4 +213,69 @@ func runCliMain(
 	}
 
 	return app.RunContext(ctx, os.Args)
+}
+
+type distVersionIdentity struct {
+	SchemaVersion  int
+	ProjectID      string
+	EntrypointRole string
+	ChannelKey     string
+	PlatformID     string
+	StartupPlugins []string
+	Manifest       distVersionManifestIdentity
+}
+
+type distVersionManifestIdentity struct {
+	ManifestID string
+	Rev        uint64
+}
+
+func newDistVersionCommand(distMeta *bldr_dist.DistMeta) *cli.Command {
+	return &cli.Command{
+		Name:  "version",
+		Usage: "print entrypoint version and release identity",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{Name: "json", Usage: "print machine-readable JSON"},
+		},
+		Action: func(c *cli.Context) error {
+			identity := distVersionIdentity{
+				SchemaVersion:  1,
+				ProjectID:      distMeta.GetProjectId(),
+				EntrypointRole: distMeta.GetEntrypointRole(),
+				ChannelKey:     distMeta.GetChannelKey(),
+				PlatformID:     distMeta.GetPlatformId(),
+				StartupPlugins: append([]string(nil), distMeta.GetStartupPlugins()...),
+				Manifest: distVersionManifestIdentity{
+					ManifestID: distMeta.GetManifestId(),
+					Rev:        distMeta.GetManifestRev(),
+				},
+			}
+			if c.Bool("json") {
+				_, err := c.App.Writer.Write(marshalDistVersionIdentity(identity))
+				return err
+			}
+			_, err := c.App.Writer.Write([]byte(identity.ProjectID + " " + identity.EntrypointRole + "\n"))
+			return err
+		},
+	}
+}
+
+func marshalDistVersionIdentity(identity distVersionIdentity) []byte {
+	var arena fastjson.Arena
+	obj := arena.NewObject()
+	obj.Set("schemaVersion", arena.NewNumberInt(identity.SchemaVersion))
+	obj.Set("projectId", arena.NewString(identity.ProjectID))
+	obj.Set("entrypointRole", arena.NewString(identity.EntrypointRole))
+	obj.Set("channelKey", arena.NewString(identity.ChannelKey))
+	obj.Set("platformId", arena.NewString(identity.PlatformID))
+	plugins := arena.NewArray()
+	for idx, plugin := range identity.StartupPlugins {
+		plugins.SetArrayItem(idx, arena.NewString(plugin))
+	}
+	obj.Set("startupPlugins", plugins)
+	manifest := arena.NewObject()
+	manifest.Set("manifestId", arena.NewString(identity.Manifest.ManifestID))
+	manifest.Set("rev", arena.NewNumberString(strconv.FormatUint(identity.Manifest.Rev, 10)))
+	obj.Set("manifest", manifest)
+	return append(obj.MarshalTo(nil), '\n')
 }

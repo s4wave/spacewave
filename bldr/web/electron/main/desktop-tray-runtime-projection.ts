@@ -7,6 +7,7 @@ import {
   type DesktopTrayEntry,
 } from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray.pb.js'
 import {
+  DesktopCLIInstallStatus,
   DesktopRuntimeActionKind,
   DesktopRuntimeHealth,
   DesktopRuntimeSeverity,
@@ -15,7 +16,32 @@ import {
   type DesktopRuntimeAttentionItem,
   type DesktopRuntimeNavigationItem,
   type DesktopRuntimeState,
+  type DesktopRuntimeCLIInstallSummary,
 } from '../desktop-runtime/desktop-runtime.pb.js'
+
+export function buildDesktopTrayCLIInstallEntries(
+  summary: DesktopRuntimeCLIInstallSummary | undefined,
+): DesktopTrayEntry[] {
+  if (!hasCLIInstallSummary(summary)) return []
+  return [
+    separatorEntry('cli-install-separator'),
+    sectionEntry('cli-install-section', 'Command Line'),
+    statusEntry(
+      'cli-install-status',
+      compactLabel(['Command line', summary?.label, summary?.detail]),
+      { severity: cliInstallSeverity(summary?.status) },
+    ),
+    actionEntry(
+      'cli-install-settings',
+      'Command Line Settings',
+      DesktopTrayActionKind.OPEN_ROUTE,
+      {
+        route: summary?.route || '/settings',
+        enabled: true,
+      },
+    ),
+  ]
+}
 
 export function buildDesktopTrayEntriesFromRuntimeState(
   state: DesktopRuntimeState,
@@ -95,6 +121,19 @@ function buildStatusSection(state: DesktopRuntimeState): DesktopTrayEntry[] {
       statusEntry(
         'status-update',
         compactLabel(['Update', state.update.label, state.update.detail]),
+      ),
+    )
+  }
+  if (hasCLIInstallSummary(state.cliInstall)) {
+    rows.push(
+      statusEntry(
+        'status-cli-install',
+        compactLabel([
+          'Command line',
+          state.cliInstall?.label,
+          state.cliInstall?.detail,
+        ]),
+        { severity: cliInstallSeverity(state.cliInstall?.status) },
       ),
     )
   }
@@ -193,25 +232,36 @@ function buildSyntheticActions(
   state: DesktopRuntimeState,
 ): DesktopRuntimeActionItem[] {
   const socketPath = state.listener?.socketPath
-  if (!socketPath) {
-    return []
+  const actions: DesktopRuntimeActionItem[] = []
+  if (socketPath) {
+    actions.push(
+      {
+        id: 'copy-cli-socket',
+        kind: DesktopRuntimeActionKind.COPY_TEXT,
+        label: 'Copy Socket Path',
+        value: socketPath,
+        enabled: true,
+      },
+      {
+        id: 'copy-diagnostics',
+        kind: DesktopRuntimeActionKind.COPY_TEXT,
+        label: 'Copy Diagnostics',
+        value: buildDiagnosticText(state),
+        enabled: true,
+      },
+    )
   }
-  return [
-    {
-      id: 'copy-cli-socket',
-      kind: DesktopRuntimeActionKind.COPY_TEXT,
-      label: 'Copy Socket Path',
-      value: socketPath,
+  if (hasCLIInstallSummary(state.cliInstall)) {
+    actions.push({
+      id: 'open-cli-settings',
+      kind: DesktopRuntimeActionKind.OPEN_ROUTE,
+      label: 'Command Line Settings',
+      detail: state.cliInstall?.label,
+      route: state.cliInstall?.route || settingsRoute(state),
       enabled: true,
-    },
-    {
-      id: 'copy-diagnostics',
-      kind: DesktopRuntimeActionKind.COPY_TEXT,
-      label: 'Copy Diagnostics',
-      value: buildDiagnosticText(state),
-      enabled: true,
-    },
-  ]
+    })
+  }
+  return actions
 }
 
 function buildActionItem(item: DesktopRuntimeActionItem): DesktopTrayEntry {
@@ -332,6 +382,36 @@ function severityFromRuntimeSeverity(
       return DesktopTraySeverity.WARNING
     case DesktopRuntimeSeverity.INFO:
       return DesktopTraySeverity.INFO
+    default:
+      return DesktopTraySeverity.UNSPECIFIED
+  }
+}
+
+function hasCLIInstallSummary(
+  summary: DesktopRuntimeCLIInstallSummary | undefined,
+): boolean {
+  const status =
+    summary?.status ??
+    DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_UNSPECIFIED
+  return !!(
+    summary?.label ||
+    summary?.detail ||
+    status !== DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_UNSPECIFIED
+  )
+}
+
+function cliInstallSeverity(
+  status: DesktopCLIInstallStatus | undefined,
+): DesktopTraySeverity {
+  switch (status) {
+    case DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_INSTALLED:
+      return DesktopTraySeverity.INFO
+    case DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_UPDATE_AVAILABLE:
+    case DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_CONFLICT:
+    case DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_MISSING:
+      return DesktopTraySeverity.WARNING
+    case DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_ERROR:
+      return DesktopTraySeverity.CRITICAL
     default:
       return DesktopTraySeverity.UNSPECIFIED
   }

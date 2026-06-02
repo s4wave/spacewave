@@ -47,6 +47,24 @@ struct WatchDesktopStateRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchDesktopStateRequestDefaultTypeInternal _WatchDesktopStateRequest_default_instance_;
 template <typename>
+PROTOBUF_CONSTEXPR WatchCLIInstallStateRequest::WatchCLIInstallStateRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(WatchCLIInstallStateRequest_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct WatchCLIInstallStateRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR WatchCLIInstallStateRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~WatchCLIInstallStateRequestDefaultTypeInternal() {}
+  union {
+    WatchCLIInstallStateRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchCLIInstallStateRequestDefaultTypeInternal _WatchCLIInstallStateRequest_default_instance_;
+template <typename>
 PROTOBUF_CONSTEXPR SetDesktopStateResponse::SetDesktopStateResponse(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::internal::ZeroFieldsBase(SetDesktopStateResponse_class_data_.base()){}
@@ -145,6 +163,52 @@ struct OpenOrFocusMainWindowRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 OpenOrFocusMainWindowRequestDefaultTypeInternal _OpenOrFocusMainWindowRequest_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR InvokeCLIInstallActionResponse::InvokeCLIInstallActionResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(InvokeCLIInstallActionResponse_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct InvokeCLIInstallActionResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR InvokeCLIInstallActionResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~InvokeCLIInstallActionResponseDefaultTypeInternal() {}
+  union {
+    InvokeCLIInstallActionResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 InvokeCLIInstallActionResponseDefaultTypeInternal _InvokeCLIInstallActionResponse_default_instance_;
+
+inline constexpr InvokeCLIInstallActionRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        action_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        generation_{::uint64_t{0u}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR InvokeCLIInstallActionRequest::InvokeCLIInstallActionRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(InvokeCLIInstallActionRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct InvokeCLIInstallActionRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR InvokeCLIInstallActionRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~InvokeCLIInstallActionRequestDefaultTypeInternal() {}
+  union {
+    InvokeCLIInstallActionRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 InvokeCLIInstallActionRequestDefaultTypeInternal _InvokeCLIInstallActionRequest_default_instance_;
 
 inline constexpr DesktopRuntimeUpdateStatus::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -254,6 +318,40 @@ struct DesktopRuntimeListenerStatusDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DesktopRuntimeListenerStatusDefaultTypeInternal _DesktopRuntimeListenerStatus_default_instance_;
+
+inline constexpr DesktopRuntimeCLIInstallSummary::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        label_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        detail_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        route_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        status_{static_cast< ::electron::desktop_runtime::DesktopCLIInstallStatus >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DesktopRuntimeCLIInstallSummary::DesktopRuntimeCLIInstallSummary(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(DesktopRuntimeCLIInstallSummary_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DesktopRuntimeCLIInstallSummaryDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DesktopRuntimeCLIInstallSummaryDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DesktopRuntimeCLIInstallSummaryDefaultTypeInternal() {}
+  union {
+    DesktopRuntimeCLIInstallSummary _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DesktopRuntimeCLIInstallSummaryDefaultTypeInternal _DesktopRuntimeCLIInstallSummary_default_instance_;
 
 inline constexpr DesktopRuntimeAttentionItem::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -366,6 +464,131 @@ struct DesktopRuntimeActionItemDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DesktopRuntimeActionItemDefaultTypeInternal _DesktopRuntimeActionItem_default_instance_;
 
+inline constexpr DesktopCLIInstallTarget::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        label_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        path_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        detail_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        blocked_reason_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        writable_{false},
+        selected_{false},
+        path_state_{static_cast< ::electron::desktop_runtime::DesktopCLIInstallTargetPathState >(0)},
+        generation_{::uint64_t{0u}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DesktopCLIInstallTarget::DesktopCLIInstallTarget(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(DesktopCLIInstallTarget_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DesktopCLIInstallTargetDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DesktopCLIInstallTargetDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DesktopCLIInstallTargetDefaultTypeInternal() {}
+  union {
+    DesktopCLIInstallTarget _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DesktopCLIInstallTargetDefaultTypeInternal _DesktopCLIInstallTarget_default_instance_;
+
+inline constexpr DesktopCLIInstallActionItem::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        label_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        target_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        detail_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        kind_{static_cast< ::electron::desktop_runtime::DesktopCLIInstallActionKind >(0)},
+        enabled_{false},
+        generation_{::uint64_t{0u}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DesktopCLIInstallActionItem::DesktopCLIInstallActionItem(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(DesktopCLIInstallActionItem_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DesktopCLIInstallActionItemDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DesktopCLIInstallActionItemDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DesktopCLIInstallActionItemDefaultTypeInternal() {}
+  union {
+    DesktopCLIInstallActionItem _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DesktopCLIInstallActionItemDefaultTypeInternal _DesktopCLIInstallActionItem_default_instance_;
+
+inline constexpr DesktopCLIEntrypointIdentity::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        path_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        project_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        entrypoint_role_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        channel_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        manifest_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        platform_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        manifest_rev_{::uint64_t{0u}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DesktopCLIEntrypointIdentity::DesktopCLIEntrypointIdentity(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(DesktopCLIEntrypointIdentity_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DesktopCLIEntrypointIdentityDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DesktopCLIEntrypointIdentityDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DesktopCLIEntrypointIdentityDefaultTypeInternal() {}
+  union {
+    DesktopCLIEntrypointIdentity _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DesktopCLIEntrypointIdentityDefaultTypeInternal _DesktopCLIEntrypointIdentity_default_instance_;
+
 inline constexpr DesktopRuntimeState::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -379,6 +602,7 @@ inline constexpr DesktopRuntimeState::Impl_::Impl_(
             ::_pbi::ConstantInitialized()),
         listener_{nullptr},
         update_{nullptr},
+        cli_install_{nullptr},
         main_window_open_{false},
         quitting_{false},
         health_{static_cast< ::electron::desktop_runtime::DesktopRuntimeHealth >(0)},
@@ -404,6 +628,51 @@ struct DesktopRuntimeStateDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DesktopRuntimeStateDefaultTypeInternal _DesktopRuntimeState_default_instance_;
 
+inline constexpr DesktopCLIInstallState::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        targets_{},
+        actions_{},
+        label_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        detail_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        conflict_path_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        error_message_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        selected_target_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        installed_{nullptr},
+        available_{nullptr},
+        generation_{::uint64_t{0u}},
+        status_{static_cast< ::electron::desktop_runtime::DesktopCLIInstallStatus >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DesktopCLIInstallState::DesktopCLIInstallState(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(DesktopCLIInstallState_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DesktopCLIInstallStateDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DesktopCLIInstallStateDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DesktopCLIInstallStateDefaultTypeInternal() {}
+  union {
+    DesktopCLIInstallState _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DesktopCLIInstallStateDefaultTypeInternal _DesktopCLIInstallState_default_instance_;
+
 inline constexpr WatchDesktopStateResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -428,6 +697,31 @@ struct WatchDesktopStateResponseDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchDesktopStateResponseDefaultTypeInternal _WatchDesktopStateResponse_default_instance_;
+
+inline constexpr WatchCLIInstallStateResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        state_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR WatchCLIInstallStateResponse::WatchCLIInstallStateResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(WatchCLIInstallStateResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct WatchCLIInstallStateResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR WatchCLIInstallStateResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~WatchCLIInstallStateResponseDefaultTypeInternal() {}
+  union {
+    WatchCLIInstallStateResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchCLIInstallStateResponseDefaultTypeInternal _WatchCLIInstallStateResponse_default_instance_;
 
 inline constexpr SetDesktopStateRequest::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -456,7 +750,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace desktop_runtime
 }  // namespace electron
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[7];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[10];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto = nullptr;
 const ::uint32_t
@@ -464,7 +758,7 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeState, _impl_._has_bits_),
-        15, // hasbit index offset
+        16, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeState, _impl_.main_window_open_),
         PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeState, _impl_.quitting_),
         PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeState, _impl_.status_text_),
@@ -477,11 +771,12 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeState, _impl_.update_),
         PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeState, _impl_.attention_items_),
         PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeState, _impl_.actions_),
-        8,
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeState, _impl_.cli_install_),
         9,
-        5,
         10,
+        5,
         11,
+        12,
         6,
         0,
         1,
@@ -489,6 +784,87 @@ const ::uint32_t
         7,
         3,
         4,
+        8,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIEntrypointIdentity, _impl_._has_bits_),
+        10, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIEntrypointIdentity, _impl_.path_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIEntrypointIdentity, _impl_.project_id_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIEntrypointIdentity, _impl_.entrypoint_role_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIEntrypointIdentity, _impl_.channel_key_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIEntrypointIdentity, _impl_.manifest_id_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIEntrypointIdentity, _impl_.manifest_rev_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIEntrypointIdentity, _impl_.platform_id_),
+        0,
+        1,
+        2,
+        3,
+        4,
+        6,
+        5,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallTarget, _impl_._has_bits_),
+        12, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallTarget, _impl_.id_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallTarget, _impl_.label_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallTarget, _impl_.path_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallTarget, _impl_.writable_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallTarget, _impl_.selected_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallTarget, _impl_.detail_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallTarget, _impl_.generation_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallTarget, _impl_.path_state_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallTarget, _impl_.blocked_reason_),
+        0,
+        1,
+        2,
+        5,
+        6,
+        3,
+        8,
+        7,
+        4,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallActionItem, _impl_._has_bits_),
+        10, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallActionItem, _impl_.id_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallActionItem, _impl_.kind_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallActionItem, _impl_.label_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallActionItem, _impl_.enabled_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallActionItem, _impl_.target_id_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallActionItem, _impl_.generation_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallActionItem, _impl_.detail_),
+        0,
+        4,
+        1,
+        5,
+        2,
+        6,
+        3,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallState, _impl_._has_bits_),
+        14, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallState, _impl_.status_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallState, _impl_.label_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallState, _impl_.detail_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallState, _impl_.installed_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallState, _impl_.available_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallState, _impl_.targets_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallState, _impl_.conflict_path_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallState, _impl_.error_message_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallState, _impl_.generation_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallState, _impl_.selected_target_id_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopCLIInstallState, _impl_.actions_),
+        10,
+        2,
+        3,
+        7,
+        8,
+        0,
+        4,
+        5,
+        9,
+        6,
+        1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeListenerStatus, _impl_._has_bits_),
         8, // hasbit index offset
@@ -537,6 +913,17 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeUpdateStatus, _impl_.version_),
         PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeUpdateStatus, _impl_.label_),
         PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeUpdateStatus, _impl_.detail_),
+        3,
+        0,
+        1,
+        2,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary, _impl_.status_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary, _impl_.label_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary, _impl_.detail_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary, _impl_.route_),
         3,
         0,
         1,
@@ -591,32 +978,60 @@ const ::uint32_t
         0x000, // bitmap
         0x000, // bitmap
         0x000, // bitmap
+        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::WatchCLIInstallStateResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::WatchCLIInstallStateResponse, _impl_.state_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::InvokeCLIInstallActionRequest, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::InvokeCLIInstallActionRequest, _impl_.action_id_),
+        PROTOBUF_FIELD_OFFSET(::electron::desktop_runtime::InvokeCLIInstallActionRequest, _impl_.generation_),
+        0,
+        1,
+        0x000, // bitmap
 };
 
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::electron::desktop_runtime::DesktopRuntimeState)},
-        {27, sizeof(::electron::desktop_runtime::DesktopRuntimeListenerStatus)},
-        {40, sizeof(::electron::desktop_runtime::DesktopRuntimeNavigationItem)},
-        {55, sizeof(::electron::desktop_runtime::DesktopRuntimeActivityItem)},
-        {68, sizeof(::electron::desktop_runtime::DesktopRuntimeUpdateStatus)},
-        {79, sizeof(::electron::desktop_runtime::DesktopRuntimeAttentionItem)},
-        {92, sizeof(::electron::desktop_runtime::DesktopRuntimeActionItem)},
-        {109, sizeof(::electron::desktop_runtime::WatchDesktopStateRequest)},
-        {110, sizeof(::electron::desktop_runtime::WatchDesktopStateResponse)},
-        {115, sizeof(::electron::desktop_runtime::SetDesktopStateRequest)},
-        {120, sizeof(::electron::desktop_runtime::SetDesktopStateResponse)},
-        {121, sizeof(::electron::desktop_runtime::OpenOrFocusMainWindowRequest)},
-        {126, sizeof(::electron::desktop_runtime::OpenOrFocusMainWindowResponse)},
-        {127, sizeof(::electron::desktop_runtime::QuitDesktopRuntimeRequest)},
-        {128, sizeof(::electron::desktop_runtime::QuitDesktopRuntimeResponse)},
+        {29, sizeof(::electron::desktop_runtime::DesktopCLIEntrypointIdentity)},
+        {46, sizeof(::electron::desktop_runtime::DesktopCLIInstallTarget)},
+        {67, sizeof(::electron::desktop_runtime::DesktopCLIInstallActionItem)},
+        {84, sizeof(::electron::desktop_runtime::DesktopCLIInstallState)},
+        {109, sizeof(::electron::desktop_runtime::DesktopRuntimeListenerStatus)},
+        {122, sizeof(::electron::desktop_runtime::DesktopRuntimeNavigationItem)},
+        {137, sizeof(::electron::desktop_runtime::DesktopRuntimeActivityItem)},
+        {150, sizeof(::electron::desktop_runtime::DesktopRuntimeUpdateStatus)},
+        {161, sizeof(::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary)},
+        {172, sizeof(::electron::desktop_runtime::DesktopRuntimeAttentionItem)},
+        {185, sizeof(::electron::desktop_runtime::DesktopRuntimeActionItem)},
+        {202, sizeof(::electron::desktop_runtime::WatchDesktopStateRequest)},
+        {203, sizeof(::electron::desktop_runtime::WatchDesktopStateResponse)},
+        {208, sizeof(::electron::desktop_runtime::SetDesktopStateRequest)},
+        {213, sizeof(::electron::desktop_runtime::SetDesktopStateResponse)},
+        {214, sizeof(::electron::desktop_runtime::OpenOrFocusMainWindowRequest)},
+        {219, sizeof(::electron::desktop_runtime::OpenOrFocusMainWindowResponse)},
+        {220, sizeof(::electron::desktop_runtime::QuitDesktopRuntimeRequest)},
+        {221, sizeof(::electron::desktop_runtime::QuitDesktopRuntimeResponse)},
+        {222, sizeof(::electron::desktop_runtime::WatchCLIInstallStateRequest)},
+        {223, sizeof(::electron::desktop_runtime::WatchCLIInstallStateResponse)},
+        {228, sizeof(::electron::desktop_runtime::InvokeCLIInstallActionRequest)},
+        {235, sizeof(::electron::desktop_runtime::InvokeCLIInstallActionResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::electron::desktop_runtime::_DesktopRuntimeState_default_instance_._instance,
+    &::electron::desktop_runtime::_DesktopCLIEntrypointIdentity_default_instance_._instance,
+    &::electron::desktop_runtime::_DesktopCLIInstallTarget_default_instance_._instance,
+    &::electron::desktop_runtime::_DesktopCLIInstallActionItem_default_instance_._instance,
+    &::electron::desktop_runtime::_DesktopCLIInstallState_default_instance_._instance,
     &::electron::desktop_runtime::_DesktopRuntimeListenerStatus_default_instance_._instance,
     &::electron::desktop_runtime::_DesktopRuntimeNavigationItem_default_instance_._instance,
     &::electron::desktop_runtime::_DesktopRuntimeActivityItem_default_instance_._instance,
     &::electron::desktop_runtime::_DesktopRuntimeUpdateStatus_default_instance_._instance,
+    &::electron::desktop_runtime::_DesktopRuntimeCLIInstallSummary_default_instance_._instance,
     &::electron::desktop_runtime::_DesktopRuntimeAttentionItem_default_instance_._instance,
     &::electron::desktop_runtime::_DesktopRuntimeActionItem_default_instance_._instance,
     &::electron::desktop_runtime::_WatchDesktopStateRequest_default_instance_._instance,
@@ -627,12 +1042,16 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::electron::desktop_runtime::_OpenOrFocusMainWindowResponse_default_instance_._instance,
     &::electron::desktop_runtime::_QuitDesktopRuntimeRequest_default_instance_._instance,
     &::electron::desktop_runtime::_QuitDesktopRuntimeResponse_default_instance_._instance,
+    &::electron::desktop_runtime::_WatchCLIInstallStateRequest_default_instance_._instance,
+    &::electron::desktop_runtime::_WatchCLIInstallStateResponse_default_instance_._instance,
+    &::electron::desktop_runtime::_InvokeCLIInstallActionRequest_default_instance_._instance,
+    &::electron::desktop_runtime::_InvokeCLIInstallActionResponse_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\nSgithub.com/s4wave/spacewave/bldr/web/e"
     "lectron/desktop-runtime/desktop-runtime."
-    "proto\022\030electron.desktop_runtime\"\333\005\n\023Desk"
+    "proto\022\030electron.desktop_runtime\"\253\006\n\023Desk"
     "topRuntimeState\022\030\n\020main_window_open\030\001 \001("
     "\010\022\020\n\010quitting\030\002 \001(\010\022\023\n\013status_text\030\003 \001(\t"
     "\022>\n\006health\030\004 \001(\0162..electron.desktop_runt"
@@ -651,21 +1070,55 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "\01325.electron.desktop_runtime.DesktopRunt"
     "imeAttentionItem\022C\n\007actions\030\014 \003(\01322.elec"
     "tron.desktop_runtime.DesktopRuntimeActio"
-    "nItem\"\271\001\n\034DesktopRuntimeListenerStatus\022J"
-    "\n\014reachability\030\001 \001(\01624.electron.desktop_"
-    "runtime.DesktopRuntimeReachability\022\r\n\005la"
-    "bel\030\002 \001(\t\022\016\n\006detail\030\003 \001(\t\022\023\n\013socket_path"
-    "\030\004 \001(\t\022\031\n\021connected_clients\030\005 \001(\r\"}\n\034Des"
-    "ktopRuntimeNavigationItem\022\n\n\002id\030\001 \001(\t\022\r\n"
-    "\005label\030\002 \001(\t\022\016\n\006detail\030\003 \001(\t\022\r\n\005route\030\004 "
-    "\001(\t\022\016\n\006active\030\005 \001(\010\022\023\n\013status_text\030\006 \001(\t"
-    "\"\251\001\n\032DesktopRuntimeActivityItem\022\n\n\002id\030\001 "
-    "\001(\t\022\r\n\005label\030\002 \001(\t\022\016\n\006detail\030\003 \001(\t\022D\n\005st"
-    "ate\030\004 \001(\01625.electron.desktop_runtime.Des"
-    "ktopRuntimeActivityState\022\032\n\022updated_at_u"
-    "nix_ms\030\005 \001(\003\"[\n\032DesktopRuntimeUpdateStat"
-    "us\022\r\n\005ready\030\001 \001(\010\022\017\n\007version\030\002 \001(\t\022\r\n\005la"
-    "bel\030\003 \001(\t\022\016\n\006detail\030\004 \001(\t\"\324\001\n\033DesktopRun"
+    "nItem\022N\n\013cli_install\030\r \001(\01329.electron.de"
+    "sktop_runtime.DesktopRuntimeCLIInstallSu"
+    "mmary\"\256\001\n\034DesktopCLIEntrypointIdentity\022\014"
+    "\n\004path\030\001 \001(\t\022\022\n\nproject_id\030\002 \001(\t\022\027\n\017entr"
+    "ypoint_role\030\003 \001(\t\022\023\n\013channel_key\030\004 \001(\t\022\023"
+    "\n\013manifest_id\030\005 \001(\t\022\024\n\014manifest_rev\030\006 \001("
+    "\004\022\023\n\013platform_id\030\007 \001(\t\"\362\001\n\027DesktopCLIIns"
+    "tallTarget\022\n\n\002id\030\001 \001(\t\022\r\n\005label\030\002 \001(\t\022\014\n"
+    "\004path\030\003 \001(\t\022\020\n\010writable\030\004 \001(\010\022\020\n\010selecte"
+    "d\030\005 \001(\010\022\016\n\006detail\030\006 \001(\t\022\022\n\ngeneration\030\007 "
+    "\001(\004\022N\n\npath_state\030\010 \001(\0162:.electron.deskt"
+    "op_runtime.DesktopCLIInstallTargetPathSt"
+    "ate\022\026\n\016blocked_reason\030\t \001(\t\"\305\001\n\033DesktopC"
+    "LIInstallActionItem\022\n\n\002id\030\001 \001(\t\022C\n\004kind\030"
+    "\002 \001(\01625.electron.desktop_runtime.Desktop"
+    "CLIInstallActionKind\022\r\n\005label\030\003 \001(\t\022\017\n\007e"
+    "nabled\030\004 \001(\010\022\021\n\ttarget_id\030\005 \001(\t\022\022\n\ngener"
+    "ation\030\006 \001(\004\022\016\n\006detail\030\007 \001(\t\"\372\003\n\026DesktopC"
+    "LIInstallState\022A\n\006status\030\001 \001(\01621.electro"
+    "n.desktop_runtime.DesktopCLIInstallStatu"
+    "s\022\r\n\005label\030\002 \001(\t\022\016\n\006detail\030\003 \001(\t\022I\n\tinst"
+    "alled\030\004 \001(\01326.electron.desktop_runtime.D"
+    "esktopCLIEntrypointIdentity\022I\n\tavailable"
+    "\030\005 \001(\01326.electron.desktop_runtime.Deskto"
+    "pCLIEntrypointIdentity\022B\n\007targets\030\006 \003(\0132"
+    "1.electron.desktop_runtime.DesktopCLIIns"
+    "tallTarget\022\025\n\rconflict_path\030\007 \001(\t\022\025\n\rerr"
+    "or_message\030\010 \001(\t\022\022\n\ngeneration\030\t \001(\004\022\032\n\022"
+    "selected_target_id\030\n \001(\t\022F\n\007actions\030\013 \003("
+    "\01325.electron.desktop_runtime.DesktopCLII"
+    "nstallActionItem\"\271\001\n\034DesktopRuntimeListe"
+    "nerStatus\022J\n\014reachability\030\001 \001(\01624.electr"
+    "on.desktop_runtime.DesktopRuntimeReachab"
+    "ility\022\r\n\005label\030\002 \001(\t\022\016\n\006detail\030\003 \001(\t\022\023\n\013"
+    "socket_path\030\004 \001(\t\022\031\n\021connected_clients\030\005"
+    " \001(\r\"}\n\034DesktopRuntimeNavigationItem\022\n\n\002"
+    "id\030\001 \001(\t\022\r\n\005label\030\002 \001(\t\022\016\n\006detail\030\003 \001(\t\022"
+    "\r\n\005route\030\004 \001(\t\022\016\n\006active\030\005 \001(\010\022\023\n\013status"
+    "_text\030\006 \001(\t\"\251\001\n\032DesktopRuntimeActivityIt"
+    "em\022\n\n\002id\030\001 \001(\t\022\r\n\005label\030\002 \001(\t\022\016\n\006detail\030"
+    "\003 \001(\t\022D\n\005state\030\004 \001(\01625.electron.desktop_"
+    "runtime.DesktopRuntimeActivityState\022\032\n\022u"
+    "pdated_at_unix_ms\030\005 \001(\003\"[\n\032DesktopRuntim"
+    "eUpdateStatus\022\r\n\005ready\030\001 \001(\010\022\017\n\007version\030"
+    "\002 \001(\t\022\r\n\005label\030\003 \001(\t\022\016\n\006detail\030\004 \001(\t\"\222\001\n"
+    "\037DesktopRuntimeCLIInstallSummary\022A\n\006stat"
+    "us\030\001 \001(\01621.electron.desktop_runtime.Desk"
+    "topCLIInstallStatus\022\r\n\005label\030\002 \001(\t\022\016\n\006de"
+    "tail\030\003 \001(\t\022\r\n\005route\030\004 \001(\t\"\324\001\n\033DesktopRun"
     "timeAttentionItem\022C\n\004kind\030\001 \001(\01625.electr"
     "on.desktop_runtime.DesktopRuntimeAttenti"
     "onKind\022B\n\010severity\030\002 \001(\01620.electron.desk"
@@ -684,72 +1137,110 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "esktopStateResponse\"-\n\034OpenOrFocusMainWi"
     "ndowRequest\022\r\n\005route\030\001 \001(\t\"\037\n\035OpenOrFocu"
     "sMainWindowResponse\"\033\n\031QuitDesktopRuntim"
-    "eRequest\"\034\n\032QuitDesktopRuntimeResponse*\244"
-    "\002\n\024DesktopRuntimeHealth\022&\n\"DESKTOP_RUNTI"
-    "ME_HEALTH_UNSPECIFIED\020\000\022#\n\037DESKTOP_RUNTI"
-    "ME_HEALTH_STARTING\020\001\022\"\n\036DESKTOP_RUNTIME_"
-    "HEALTH_HEALTHY\020\002\022!\n\035DESKTOP_RUNTIME_HEAL"
-    "TH_ACTIVE\020\003\022*\n&DESKTOP_RUNTIME_HEALTH_NE"
-    "EDS_ATTENTION\020\004\022\'\n#DESKTOP_RUNTIME_HEALT"
-    "H_DISCONNECTED\020\005\022#\n\037DESKTOP_RUNTIME_HEAL"
-    "TH_QUITTING\020\006*\347\001\n\027DesktopRuntimeLifecycl"
-    "e\022)\n%DESKTOP_RUNTIME_LIFECYCLE_UNSPECIFI"
-    "ED\020\000\022&\n\"DESKTOP_RUNTIME_LIFECYCLE_STARTI"
-    "NG\020\001\022%\n!DESKTOP_RUNTIME_LIFECYCLE_RUNNIN"
-    "G\020\002\022*\n&DESKTOP_RUNTIME_LIFECYCLE_DISCONN"
-    "ECTED\020\003\022&\n\"DESKTOP_RUNTIME_LIFECYCLE_QUI"
-    "TTING\020\004*\317\001\n\032DesktopRuntimeReachability\022,"
-    "\n(DESKTOP_RUNTIME_REACHABILITY_UNSPECIFI"
-    "ED\020\000\022)\n%DESKTOP_RUNTIME_REACHABILITY_STA"
-    "RTING\020\001\022*\n&DESKTOP_RUNTIME_REACHABILITY_"
-    "REACHABLE\020\002\022,\n(DESKTOP_RUNTIME_REACHABIL"
-    "ITY_UNREACHABLE\020\003*\243\002\n\033DesktopRuntimeActi"
-    "vityState\022.\n*DESKTOP_RUNTIME_ACTIVITY_ST"
-    "ATE_UNSPECIFIED\020\000\022\'\n#DESKTOP_RUNTIME_ACT"
-    "IVITY_STATE_IDLE\020\001\022*\n&DESKTOP_RUNTIME_AC"
-    "TIVITY_STATE_RUNNING\020\002\022\'\n#DESKTOP_RUNTIM"
-    "E_ACTIVITY_STATE_DONE\020\003\022,\n(DESKTOP_RUNTI"
-    "ME_ACTIVITY_STATE_ATTENTION\020\004\022(\n$DESKTOP"
-    "_RUNTIME_ACTIVITY_STATE_ERROR\020\005*\247\004\n\033Desk"
-    "topRuntimeAttentionKind\022.\n*DESKTOP_RUNTI"
-    "ME_ATTENTION_KIND_UNSPECIFIED\020\000\0223\n/DESKT"
-    "OP_RUNTIME_ATTENTION_KIND_RUNTIME_STARTI"
-    "NG\020\001\0227\n3DESKTOP_RUNTIME_ATTENTION_KIND_R"
-    "UNTIME_DISCONNECTED\020\002\0227\n3DESKTOP_RUNTIME"
-    "_ATTENTION_KIND_LISTENER_UNAVAILABLE\020\003\0220"
-    "\n,DESKTOP_RUNTIME_ATTENTION_KIND_AUTH_RE"
-    "QUIRED\020\004\0223\n/DESKTOP_RUNTIME_ATTENTION_KI"
-    "ND_STEP_UP_REQUIRED\020\005\022-\n)DESKTOP_RUNTIME"
-    "_ATTENTION_KIND_SYNC_ERROR\020\006\022/\n+DESKTOP_"
-    "RUNTIME_ATTENTION_KIND_UPDATE_READY\020\007\0225\n"
-    "1DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_"
-    "RESTARTING\020\010\0223\n/DESKTOP_RUNTIME_ATTENTIO"
-    "N_KIND_RUNTIME_QUITTING\020\t*\262\001\n\026DesktopRun"
-    "timeSeverity\022(\n$DESKTOP_RUNTIME_SEVERITY"
-    "_UNSPECIFIED\020\000\022!\n\035DESKTOP_RUNTIME_SEVERI"
-    "TY_INFO\020\001\022$\n DESKTOP_RUNTIME_SEVERITY_WA"
-    "RNING\020\002\022%\n!DESKTOP_RUNTIME_SEVERITY_CRIT"
-    "ICAL\020\003*\235\002\n\030DesktopRuntimeActionKind\022+\n\'D"
-    "ESKTOP_RUNTIME_ACTION_KIND_UNSPECIFIED\020\000"
-    "\022*\n&DESKTOP_RUNTIME_ACTION_KIND_OPEN_ROU"
-    "TE\020\001\022*\n&DESKTOP_RUNTIME_ACTION_KIND_NEW_"
-    "WINDOW\020\002\022)\n%DESKTOP_RUNTIME_ACTION_KIND_"
-    "COPY_TEXT\020\003\022+\n\'DESKTOP_RUNTIME_ACTION_KI"
-    "ND_REVEAL_PATH\020\004\022$\n DESKTOP_RUNTIME_ACTI"
-    "ON_KIND_QUIT\020\0052\243\004\n\035DesktopRuntimeResourc"
-    "eService\022~\n\021WatchDesktopState\0222.electron"
-    ".desktop_runtime.WatchDesktopStateReques"
-    "t\0323.electron.desktop_runtime.WatchDeskto"
-    "pStateResponse0\001\022v\n\017SetDesktopState\0220.el"
-    "ectron.desktop_runtime.SetDesktopStateRe"
-    "quest\0321.electron.desktop_runtime.SetDesk"
-    "topStateResponse\022\210\001\n\025OpenOrFocusMainWind"
-    "ow\0226.electron.desktop_runtime.OpenOrFocu"
-    "sMainWindowRequest\0327.electron.desktop_ru"
-    "ntime.OpenOrFocusMainWindowResponse\022\177\n\022Q"
-    "uitDesktopRuntime\0223.electron.desktop_run"
-    "time.QuitDesktopRuntimeRequest\0324.electro"
-    "n.desktop_runtime.QuitDesktopRuntimeResp"
+    "eRequest\"\034\n\032QuitDesktopRuntimeResponse\"\035"
+    "\n\033WatchCLIInstallStateRequest\"_\n\034WatchCL"
+    "IInstallStateResponse\022\?\n\005state\030\001 \001(\01320.e"
+    "lectron.desktop_runtime.DesktopCLIInstal"
+    "lState\"F\n\035InvokeCLIInstallActionRequest\022"
+    "\021\n\taction_id\030\001 \001(\t\022\022\n\ngeneration\030\002 \001(\004\" "
+    "\n\036InvokeCLIInstallActionResponse*\223\003\n\027Des"
+    "ktopCLIInstallStatus\022*\n&DESKTOP_CLI_INST"
+    "ALL_STATUS_UNSPECIFIED\020\000\022&\n\"DESKTOP_CLI_"
+    "INSTALL_STATUS_UNKNOWN\020\001\022&\n\"DESKTOP_CLI_"
+    "INSTALL_STATUS_MISSING\020\002\022(\n$DESKTOP_CLI_"
+    "INSTALL_STATUS_INSTALLED\020\003\022/\n+DESKTOP_CL"
+    "I_INSTALL_STATUS_UPDATE_AVAILABLE\020\004\022\'\n#D"
+    "ESKTOP_CLI_INSTALL_STATUS_CONFLICT\020\005\022$\n "
+    "DESKTOP_CLI_INSTALL_STATUS_ERROR\020\006\022)\n%DE"
+    "SKTOP_CLI_INSTALL_STATUS_INSTALLING\020\007\022\'\n"
+    "#DESKTOP_CLI_INSTALL_STATUS_UPDATING\020\010*\207"
+    "\002\n\033DesktopCLIInstallActionKind\022/\n+DESKTO"
+    "P_CLI_INSTALL_ACTION_KIND_UNSPECIFIED\020\000\022"
+    "+\n\'DESKTOP_CLI_INSTALL_ACTION_KIND_RECHE"
+    "CK\020\001\0221\n-DESKTOP_CLI_INSTALL_ACTION_KIND_"
+    "OPEN_SETTINGS\020\002\022+\n\'DESKTOP_CLI_INSTALL_A"
+    "CTION_KIND_INSTALL\020\003\022*\n&DESKTOP_CLI_INST"
+    "ALL_ACTION_KIND_UPDATE\020\004*\246\002\n DesktopCLII"
+    "nstallTargetPathState\0225\n1DESKTOP_CLI_INS"
+    "TALL_TARGET_PATH_STATE_UNSPECIFIED\020\000\0221\n-"
+    "DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UN"
+    "KNOWN\020\001\0221\n-DESKTOP_CLI_INSTALL_TARGET_PA"
+    "TH_STATE_ON_PATH\020\002\0222\n.DESKTOP_CLI_INSTAL"
+    "L_TARGET_PATH_STATE_OFF_PATH\020\003\0221\n-DESKTO"
+    "P_CLI_INSTALL_TARGET_PATH_STATE_BLOCKED\020"
+    "\004*\244\002\n\024DesktopRuntimeHealth\022&\n\"DESKTOP_RU"
+    "NTIME_HEALTH_UNSPECIFIED\020\000\022#\n\037DESKTOP_RU"
+    "NTIME_HEALTH_STARTING\020\001\022\"\n\036DESKTOP_RUNTI"
+    "ME_HEALTH_HEALTHY\020\002\022!\n\035DESKTOP_RUNTIME_H"
+    "EALTH_ACTIVE\020\003\022*\n&DESKTOP_RUNTIME_HEALTH"
+    "_NEEDS_ATTENTION\020\004\022\'\n#DESKTOP_RUNTIME_HE"
+    "ALTH_DISCONNECTED\020\005\022#\n\037DESKTOP_RUNTIME_H"
+    "EALTH_QUITTING\020\006*\347\001\n\027DesktopRuntimeLifec"
+    "ycle\022)\n%DESKTOP_RUNTIME_LIFECYCLE_UNSPEC"
+    "IFIED\020\000\022&\n\"DESKTOP_RUNTIME_LIFECYCLE_STA"
+    "RTING\020\001\022%\n!DESKTOP_RUNTIME_LIFECYCLE_RUN"
+    "NING\020\002\022*\n&DESKTOP_RUNTIME_LIFECYCLE_DISC"
+    "ONNECTED\020\003\022&\n\"DESKTOP_RUNTIME_LIFECYCLE_"
+    "QUITTING\020\004*\317\001\n\032DesktopRuntimeReachabilit"
+    "y\022,\n(DESKTOP_RUNTIME_REACHABILITY_UNSPEC"
+    "IFIED\020\000\022)\n%DESKTOP_RUNTIME_REACHABILITY_"
+    "STARTING\020\001\022*\n&DESKTOP_RUNTIME_REACHABILI"
+    "TY_REACHABLE\020\002\022,\n(DESKTOP_RUNTIME_REACHA"
+    "BILITY_UNREACHABLE\020\003*\243\002\n\033DesktopRuntimeA"
+    "ctivityState\022.\n*DESKTOP_RUNTIME_ACTIVITY"
+    "_STATE_UNSPECIFIED\020\000\022\'\n#DESKTOP_RUNTIME_"
+    "ACTIVITY_STATE_IDLE\020\001\022*\n&DESKTOP_RUNTIME"
+    "_ACTIVITY_STATE_RUNNING\020\002\022\'\n#DESKTOP_RUN"
+    "TIME_ACTIVITY_STATE_DONE\020\003\022,\n(DESKTOP_RU"
+    "NTIME_ACTIVITY_STATE_ATTENTION\020\004\022(\n$DESK"
+    "TOP_RUNTIME_ACTIVITY_STATE_ERROR\020\005*\247\004\n\033D"
+    "esktopRuntimeAttentionKind\022.\n*DESKTOP_RU"
+    "NTIME_ATTENTION_KIND_UNSPECIFIED\020\000\0223\n/DE"
+    "SKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_STA"
+    "RTING\020\001\0227\n3DESKTOP_RUNTIME_ATTENTION_KIN"
+    "D_RUNTIME_DISCONNECTED\020\002\0227\n3DESKTOP_RUNT"
+    "IME_ATTENTION_KIND_LISTENER_UNAVAILABLE\020"
+    "\003\0220\n,DESKTOP_RUNTIME_ATTENTION_KIND_AUTH"
+    "_REQUIRED\020\004\0223\n/DESKTOP_RUNTIME_ATTENTION"
+    "_KIND_STEP_UP_REQUIRED\020\005\022-\n)DESKTOP_RUNT"
+    "IME_ATTENTION_KIND_SYNC_ERROR\020\006\022/\n+DESKT"
+    "OP_RUNTIME_ATTENTION_KIND_UPDATE_READY\020\007"
+    "\0225\n1DESKTOP_RUNTIME_ATTENTION_KIND_RUNTI"
+    "ME_RESTARTING\020\010\0223\n/DESKTOP_RUNTIME_ATTEN"
+    "TION_KIND_RUNTIME_QUITTING\020\t*\262\001\n\026Desktop"
+    "RuntimeSeverity\022(\n$DESKTOP_RUNTIME_SEVER"
+    "ITY_UNSPECIFIED\020\000\022!\n\035DESKTOP_RUNTIME_SEV"
+    "ERITY_INFO\020\001\022$\n DESKTOP_RUNTIME_SEVERITY"
+    "_WARNING\020\002\022%\n!DESKTOP_RUNTIME_SEVERITY_C"
+    "RITICAL\020\003*\235\002\n\030DesktopRuntimeActionKind\022+"
+    "\n\'DESKTOP_RUNTIME_ACTION_KIND_UNSPECIFIE"
+    "D\020\000\022*\n&DESKTOP_RUNTIME_ACTION_KIND_OPEN_"
+    "ROUTE\020\001\022*\n&DESKTOP_RUNTIME_ACTION_KIND_N"
+    "EW_WINDOW\020\002\022)\n%DESKTOP_RUNTIME_ACTION_KI"
+    "ND_COPY_TEXT\020\003\022+\n\'DESKTOP_RUNTIME_ACTION"
+    "_KIND_REVEAL_PATH\020\004\022$\n DESKTOP_RUNTIME_A"
+    "CTION_KIND_QUIT\020\0052\243\004\n\035DesktopRuntimeReso"
+    "urceService\022~\n\021WatchDesktopState\0222.elect"
+    "ron.desktop_runtime.WatchDesktopStateReq"
+    "uest\0323.electron.desktop_runtime.WatchDes"
+    "ktopStateResponse0\001\022v\n\017SetDesktopState\0220"
+    ".electron.desktop_runtime.SetDesktopStat"
+    "eRequest\0321.electron.desktop_runtime.SetD"
+    "esktopStateResponse\022\210\001\n\025OpenOrFocusMainW"
+    "indow\0226.electron.desktop_runtime.OpenOrF"
+    "ocusMainWindowRequest\0327.electron.desktop"
+    "_runtime.OpenOrFocusMainWindowResponse\022\177"
+    "\n\022QuitDesktopRuntime\0223.electron.desktop_"
+    "runtime.QuitDesktopRuntimeRequest\0324.elec"
+    "tron.desktop_runtime.QuitDesktopRuntimeR"
+    "esponse2\272\002\n DesktopCLIInstallResourceSer"
+    "vice\022\207\001\n\024WatchCLIInstallState\0225.electron"
+    ".desktop_runtime.WatchCLIInstallStateReq"
+    "uest\0326.electron.desktop_runtime.WatchCLI"
+    "InstallStateResponse0\001\022\213\001\n\026InvokeCLIInst"
+    "allAction\0227.electron.desktop_runtime.Inv"
+    "okeCLIInstallActionRequest\0328.electron.de"
+    "sktop_runtime.InvokeCLIInstallActionResp"
     "onseBOZMgithub.com/s4wave/spacewave/bldr"
     "/web/electron/desktop-runtime;desktop_ru"
     "ntimeb\006proto3"
@@ -758,13 +1249,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbl
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto = {
     false,
     false,
-    4893,
+    7773,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto,
     "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime/desktop-runtime.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto_once,
     nullptr,
     0,
-    15,
+    24,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto::offsets,
@@ -773,45 +1264,63 @@ PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2
 };
 namespace electron {
 namespace desktop_runtime {
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopRuntimeHealth_descriptor() {
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopCLIInstallStatus_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto);
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[0];
+}
+PROTOBUF_CONSTINIT const uint32_t DesktopCLIInstallStatus_internal_data_[] = {
+    589824u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopCLIInstallActionKind_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[1];
+}
+PROTOBUF_CONSTINIT const uint32_t DesktopCLIInstallActionKind_internal_data_[] = {
+    327680u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopCLIInstallTargetPathState_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[2];
+}
+PROTOBUF_CONSTINIT const uint32_t DesktopCLIInstallTargetPathState_internal_data_[] = {
+    327680u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopRuntimeHealth_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[3];
 }
 PROTOBUF_CONSTINIT const uint32_t DesktopRuntimeHealth_internal_data_[] = {
     458752u, 0u, };
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopRuntimeLifecycle_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[1];
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[4];
 }
 PROTOBUF_CONSTINIT const uint32_t DesktopRuntimeLifecycle_internal_data_[] = {
     327680u, 0u, };
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopRuntimeReachability_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[2];
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[5];
 }
 PROTOBUF_CONSTINIT const uint32_t DesktopRuntimeReachability_internal_data_[] = {
     262144u, 0u, };
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopRuntimeActivityState_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[3];
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[6];
 }
 PROTOBUF_CONSTINIT const uint32_t DesktopRuntimeActivityState_internal_data_[] = {
     393216u, 0u, };
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopRuntimeAttentionKind_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[4];
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[7];
 }
 PROTOBUF_CONSTINIT const uint32_t DesktopRuntimeAttentionKind_internal_data_[] = {
     655360u, 0u, };
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopRuntimeSeverity_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[5];
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[8];
 }
 PROTOBUF_CONSTINIT const uint32_t DesktopRuntimeSeverity_internal_data_[] = {
     262144u, 0u, };
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopRuntimeActionKind_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[6];
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto[9];
 }
 PROTOBUF_CONSTINIT const uint32_t DesktopRuntimeActionKind_internal_data_[] = {
     393216u, 0u, };
@@ -867,6 +1376,9 @@ DesktopRuntimeState::DesktopRuntimeState(
   _impl_.update_ = (CheckHasBit(cached_has_bits, 0x00000080U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.update_)
                 : nullptr;
+  _impl_.cli_install_ = (CheckHasBit(cached_has_bits, 0x00000100U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.cli_install_)
+                : nullptr;
   ::memcpy(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, main_window_open_),
            reinterpret_cast<const char*>(&from._impl_) +
@@ -911,6 +1423,7 @@ inline void DesktopRuntimeState::SharedDtor(MessageLite& self) {
   this_._impl_.status_text_.Destroy();
   delete this_._impl_.listener_;
   delete this_._impl_.update_;
+  delete this_._impl_.cli_install_;
   this_._impl_.~Impl_();
 }
 
@@ -985,17 +1498,17 @@ DesktopRuntimeState::GetClassData() const {
   return DesktopRuntimeState_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 12, 7, 72, 2>
+const ::_pbi::TcParseTable<4, 13, 8, 72, 2>
 DesktopRuntimeState::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_._has_bits_),
     0, // no _extensions_
-    12, 120,  // max_field_number, fast_idx_mask
+    13, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294963200,  // skipmap
+    4294959104,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    12,  // num_field_entries
-    7,  // num_aux_entries
+    13,  // num_field_entries
+    8,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     DesktopRuntimeState_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -1006,24 +1519,24 @@ DesktopRuntimeState::_table_ = {
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
     // bool main_window_open = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DesktopRuntimeState, _impl_.main_window_open_), 8>(),
-     {8, 8, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DesktopRuntimeState, _impl_.main_window_open_), 9>(),
+     {8, 9, 0,
       PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.main_window_open_)}},
     // bool quitting = 2;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DesktopRuntimeState, _impl_.quitting_), 9>(),
-     {16, 9, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DesktopRuntimeState, _impl_.quitting_), 10>(),
+     {16, 10, 0,
       PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.quitting_)}},
     // string status_text = 3;
     {::_pbi::TcParser::FastUS1,
      {26, 5, 0,
       PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.status_text_)}},
     // .electron.desktop_runtime.DesktopRuntimeHealth health = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DesktopRuntimeState, _impl_.health_), 10>(),
-     {32, 10, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DesktopRuntimeState, _impl_.health_), 11>(),
+     {32, 11, 0,
       PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.health_)}},
     // .electron.desktop_runtime.DesktopRuntimeLifecycle lifecycle = 5;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DesktopRuntimeState, _impl_.lifecycle_), 11>(),
-     {40, 11, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DesktopRuntimeState, _impl_.lifecycle_), 12>(),
+     {40, 12, 0,
       PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.lifecycle_)}},
     // .electron.desktop_runtime.DesktopRuntimeListenerStatus listener = 6;
     {::_pbi::TcParser::FastMtS1,
@@ -1053,22 +1566,25 @@ DesktopRuntimeState::_table_ = {
     {::_pbi::TcParser::FastMtR1,
      {98, 4, 6,
       PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.actions_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // .electron.desktop_runtime.DesktopRuntimeCLIInstallSummary cli_install = 13;
+    {::_pbi::TcParser::FastMtS1,
+     {106, 8, 7,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.cli_install_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
     // bool main_window_open = 1;
-    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.main_window_open_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.main_window_open_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // bool quitting = 2;
-    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.quitting_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.quitting_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string status_text = 3;
     {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.status_text_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // .electron.desktop_runtime.DesktopRuntimeHealth health = 4;
-    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.health_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.health_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // .electron.desktop_runtime.DesktopRuntimeLifecycle lifecycle = 5;
-    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.lifecycle_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.lifecycle_), _Internal::kHasBitsOffset + 12, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // .electron.desktop_runtime.DesktopRuntimeListenerStatus listener = 6;
     {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.listener_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // repeated .electron.desktop_runtime.DesktopRuntimeNavigationItem sessions = 7;
@@ -1083,6 +1599,8 @@ DesktopRuntimeState::_table_ = {
     {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.attention_items_), _Internal::kHasBitsOffset + 3, 5, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
     // repeated .electron.desktop_runtime.DesktopRuntimeActionItem actions = 12;
     {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.actions_), _Internal::kHasBitsOffset + 4, 6, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .electron.desktop_runtime.DesktopRuntimeCLIInstallSummary cli_install = 13;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeState, _impl_.cli_install_), _Internal::kHasBitsOffset + 8, 7, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopRuntimeListenerStatus>()},
@@ -1092,6 +1610,7 @@ DesktopRuntimeState::_table_ = {
       {::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopRuntimeUpdateStatus>()},
       {::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopRuntimeAttentionItem>()},
       {::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopRuntimeActionItem>()},
+      {::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary>()},
   }},
   {{
     "\54\0\0\13\0\0\0\0\0\0\0\0\0\0\0\0"
@@ -1135,7 +1654,11 @@ PROTOBUF_NOINLINE void DesktopRuntimeState::Clear() {
       _impl_.update_->Clear();
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    ABSL_DCHECK(_impl_.cli_install_ != nullptr);
+    _impl_.cli_install_->Clear();
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00001e00U)) {
     ::memset(&_impl_.main_window_open_, 0, static_cast<::size_t>(
         reinterpret_cast<char*>(&_impl_.lifecycle_) -
         reinterpret_cast<char*>(&_impl_.main_window_open_)) + sizeof(_impl_.lifecycle_));
@@ -1164,7 +1687,7 @@ PROTOBUF_NOINLINE void DesktopRuntimeState::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // bool main_window_open = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
     if (this_._internal_main_window_open() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -1173,7 +1696,7 @@ PROTOBUF_NOINLINE void DesktopRuntimeState::Clear() {
   }
 
   // bool quitting = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
     if (this_._internal_quitting() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -1192,7 +1715,7 @@ PROTOBUF_NOINLINE void DesktopRuntimeState::Clear() {
   }
 
   // .electron.desktop_runtime.DesktopRuntimeHealth health = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
     if (this_._internal_health() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -1201,7 +1724,7 @@ PROTOBUF_NOINLINE void DesktopRuntimeState::Clear() {
   }
 
   // .electron.desktop_runtime.DesktopRuntimeLifecycle lifecycle = 5;
-  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+  if (CheckHasBit(cached_has_bits, 0x00001000U)) {
     if (this_._internal_lifecycle() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -1288,6 +1811,13 @@ PROTOBUF_NOINLINE void DesktopRuntimeState::Clear() {
     }
   }
 
+  // .electron.desktop_runtime.DesktopRuntimeCLIInstallSummary cli_install = 13;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        13, *this_._impl_.cli_install_, this_._impl_.cli_install_->GetCachedSize(), target,
+        stream);
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1367,28 +1897,33 @@ PROTOBUF_NOINLINE void DesktopRuntimeState::Clear() {
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.update_);
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
-    // bool main_window_open = 1;
+  if (BatchCheckHasBit(cached_has_bits, 0x00001f00U)) {
+    // .electron.desktop_runtime.DesktopRuntimeCLIInstallSummary cli_install = 13;
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.cli_install_);
+    }
+    // bool main_window_open = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       if (this_._internal_main_window_open() != 0) {
         total_size += 2;
       }
     }
     // bool quitting = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
       if (this_._internal_quitting() != 0) {
         total_size += 2;
       }
     }
     // .electron.desktop_runtime.DesktopRuntimeHealth health = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
       if (this_._internal_health() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_health());
       }
     }
     // .electron.desktop_runtime.DesktopRuntimeLifecycle lifecycle = 5;
-    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
       if (this_._internal_lifecycle() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_lifecycle());
@@ -1466,23 +2001,31 @@ void DesktopRuntimeState::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00001f00U)) {
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      ABSL_DCHECK(from._impl_.cli_install_ != nullptr);
+      if (_this->_impl_.cli_install_ == nullptr) {
+        _this->_impl_.cli_install_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.cli_install_);
+      } else {
+        _this->_impl_.cli_install_->MergeFrom(*from._impl_.cli_install_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       if (from._internal_main_window_open() != 0) {
         _this->_impl_.main_window_open_ = from._impl_.main_window_open_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
       if (from._internal_quitting() != 0) {
         _this->_impl_.quitting_ = from._impl_.quitting_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
       if (from._internal_health() != 0) {
         _this->_impl_.health_ = from._impl_.health_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
       if (from._internal_lifecycle() != 0) {
         _this->_impl_.lifecycle_ = from._impl_.lifecycle_;
       }
@@ -1522,6 +2065,2295 @@ void DesktopRuntimeState::InternalSwap(DesktopRuntimeState* PROTOBUF_RESTRICT PR
 }
 
 ::google::protobuf::Metadata DesktopRuntimeState::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DesktopCLIEntrypointIdentity::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<DesktopCLIEntrypointIdentity>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(DesktopCLIEntrypointIdentity, _impl_._has_bits_);
+};
+
+DesktopCLIEntrypointIdentity::DesktopCLIEntrypointIdentity(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DesktopCLIEntrypointIdentity_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:electron.desktop_runtime.DesktopCLIEntrypointIdentity)
+}
+PROTOBUF_NDEBUG_INLINE DesktopCLIEntrypointIdentity::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::electron::desktop_runtime::DesktopCLIEntrypointIdentity& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        path_(arena, from.path_),
+        project_id_(arena, from.project_id_),
+        entrypoint_role_(arena, from.entrypoint_role_),
+        channel_key_(arena, from.channel_key_),
+        manifest_id_(arena, from.manifest_id_),
+        platform_id_(arena, from.platform_id_) {}
+
+DesktopCLIEntrypointIdentity::DesktopCLIEntrypointIdentity(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const DesktopCLIEntrypointIdentity& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DesktopCLIEntrypointIdentity_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  DesktopCLIEntrypointIdentity* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.manifest_rev_ = from._impl_.manifest_rev_;
+
+  // @@protoc_insertion_point(copy_constructor:electron.desktop_runtime.DesktopCLIEntrypointIdentity)
+}
+PROTOBUF_NDEBUG_INLINE DesktopCLIEntrypointIdentity::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        path_(arena),
+        project_id_(arena),
+        entrypoint_role_(arena),
+        channel_key_(arena),
+        manifest_id_(arena),
+        platform_id_(arena) {}
+
+inline void DesktopCLIEntrypointIdentity::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.manifest_rev_ = {};
+}
+DesktopCLIEntrypointIdentity::~DesktopCLIEntrypointIdentity() {
+  // @@protoc_insertion_point(destructor:electron.desktop_runtime.DesktopCLIEntrypointIdentity)
+  SharedDtor(*this);
+}
+inline void DesktopCLIEntrypointIdentity::SharedDtor(MessageLite& self) {
+  DesktopCLIEntrypointIdentity& this_ = static_cast<DesktopCLIEntrypointIdentity&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.path_.Destroy();
+  this_._impl_.project_id_.Destroy();
+  this_._impl_.entrypoint_role_.Destroy();
+  this_._impl_.channel_key_.Destroy();
+  this_._impl_.manifest_id_.Destroy();
+  this_._impl_.platform_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL DesktopCLIEntrypointIdentity::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) DesktopCLIEntrypointIdentity(arena);
+}
+constexpr auto DesktopCLIEntrypointIdentity::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DesktopCLIEntrypointIdentity),
+                                            alignof(DesktopCLIEntrypointIdentity));
+}
+constexpr auto DesktopCLIEntrypointIdentity::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_DesktopCLIEntrypointIdentity_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &DesktopCLIEntrypointIdentity::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DesktopCLIEntrypointIdentity>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &DesktopCLIEntrypointIdentity::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DesktopCLIEntrypointIdentity>(), &DesktopCLIEntrypointIdentity::ByteSizeLong,
+              &DesktopCLIEntrypointIdentity::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(DesktopCLIEntrypointIdentity, _impl_._cached_size_),
+          false,
+      },
+      &DesktopCLIEntrypointIdentity::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull DesktopCLIEntrypointIdentity_class_data_ =
+        DesktopCLIEntrypointIdentity::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+DesktopCLIEntrypointIdentity::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DesktopCLIEntrypointIdentity_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DesktopCLIEntrypointIdentity_class_data_.tc_table);
+  return DesktopCLIEntrypointIdentity_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 7, 0, 124, 2>
+DesktopCLIEntrypointIdentity::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(DesktopCLIEntrypointIdentity, _impl_._has_bits_),
+    0, // no _extensions_
+    7, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967168,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    7,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    DesktopCLIEntrypointIdentity_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopCLIEntrypointIdentity>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string path = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIEntrypointIdentity, _impl_.path_)}},
+    // string project_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIEntrypointIdentity, _impl_.project_id_)}},
+    // string entrypoint_role = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIEntrypointIdentity, _impl_.entrypoint_role_)}},
+    // string channel_key = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 3, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIEntrypointIdentity, _impl_.channel_key_)}},
+    // string manifest_id = 5;
+    {::_pbi::TcParser::FastUS1,
+     {42, 4, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIEntrypointIdentity, _impl_.manifest_id_)}},
+    // uint64 manifest_rev = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(DesktopCLIEntrypointIdentity, _impl_.manifest_rev_), 6>(),
+     {48, 6, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIEntrypointIdentity, _impl_.manifest_rev_)}},
+    // string platform_id = 7;
+    {::_pbi::TcParser::FastUS1,
+     {58, 5, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIEntrypointIdentity, _impl_.platform_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string path = 1;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIEntrypointIdentity, _impl_.path_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string project_id = 2;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIEntrypointIdentity, _impl_.project_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string entrypoint_role = 3;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIEntrypointIdentity, _impl_.entrypoint_role_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string channel_key = 4;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIEntrypointIdentity, _impl_.channel_key_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string manifest_id = 5;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIEntrypointIdentity, _impl_.manifest_id_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint64 manifest_rev = 6;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIEntrypointIdentity, _impl_.manifest_rev_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // string platform_id = 7;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIEntrypointIdentity, _impl_.platform_id_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\65\4\12\17\13\13\0\13"
+    "electron.desktop_runtime.DesktopCLIEntrypointIdentity"
+    "path"
+    "project_id"
+    "entrypoint_role"
+    "channel_key"
+    "manifest_id"
+    "platform_id"
+  }},
+};
+PROTOBUF_NOINLINE void DesktopCLIEntrypointIdentity::Clear() {
+// @@protoc_insertion_point(message_clear_start:electron.desktop_runtime.DesktopCLIEntrypointIdentity)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.path_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.project_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.entrypoint_role_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.channel_key_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.manifest_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      _impl_.platform_id_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_.manifest_rev_ = ::uint64_t{0u};
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL DesktopCLIEntrypointIdentity::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const DesktopCLIEntrypointIdentity& this_ = static_cast<const DesktopCLIEntrypointIdentity&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL DesktopCLIEntrypointIdentity::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const DesktopCLIEntrypointIdentity& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:electron.desktop_runtime.DesktopCLIEntrypointIdentity)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string path = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_path().empty()) {
+      const ::std::string& _s = this_._internal_path();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopCLIEntrypointIdentity.path");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string project_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_project_id().empty()) {
+      const ::std::string& _s = this_._internal_project_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopCLIEntrypointIdentity.project_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string entrypoint_role = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_entrypoint_role().empty()) {
+      const ::std::string& _s = this_._internal_entrypoint_role();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopCLIEntrypointIdentity.entrypoint_role");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string channel_key = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_channel_key().empty()) {
+      const ::std::string& _s = this_._internal_channel_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopCLIEntrypointIdentity.channel_key");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  // string manifest_id = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_manifest_id().empty()) {
+      const ::std::string& _s = this_._internal_manifest_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopCLIEntrypointIdentity.manifest_id");
+      target = stream->WriteStringMaybeAliased(5, _s, target);
+    }
+  }
+
+  // uint64 manifest_rev = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (this_._internal_manifest_rev() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          6, this_._internal_manifest_rev(), target);
+    }
+  }
+
+  // string platform_id = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (!this_._internal_platform_id().empty()) {
+      const ::std::string& _s = this_._internal_platform_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopCLIEntrypointIdentity.platform_id");
+      target = stream->WriteStringMaybeAliased(7, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:electron.desktop_runtime.DesktopCLIEntrypointIdentity)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t DesktopCLIEntrypointIdentity::ByteSizeLong(const MessageLite& base) {
+  const DesktopCLIEntrypointIdentity& this_ = static_cast<const DesktopCLIEntrypointIdentity&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t DesktopCLIEntrypointIdentity::ByteSizeLong() const {
+  const DesktopCLIEntrypointIdentity& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:electron.desktop_runtime.DesktopCLIEntrypointIdentity)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+    // string path = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_path().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_path());
+      }
+    }
+    // string project_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_project_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_project_id());
+      }
+    }
+    // string entrypoint_role = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_entrypoint_role().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_entrypoint_role());
+      }
+    }
+    // string channel_key = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_channel_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_channel_key());
+      }
+    }
+    // string manifest_id = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_manifest_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_manifest_id());
+      }
+    }
+    // string platform_id = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!this_._internal_platform_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_platform_id());
+      }
+    }
+    // uint64 manifest_rev = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (this_._internal_manifest_rev() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_manifest_rev());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void DesktopCLIEntrypointIdentity::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<DesktopCLIEntrypointIdentity*>(&to_msg);
+  auto& from = static_cast<const DesktopCLIEntrypointIdentity&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:electron.desktop_runtime.DesktopCLIEntrypointIdentity)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_path().empty()) {
+        _this->_internal_set_path(from._internal_path());
+      } else {
+        if (_this->_impl_.path_.IsDefault()) {
+          _this->_internal_set_path("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_project_id().empty()) {
+        _this->_internal_set_project_id(from._internal_project_id());
+      } else {
+        if (_this->_impl_.project_id_.IsDefault()) {
+          _this->_internal_set_project_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_entrypoint_role().empty()) {
+        _this->_internal_set_entrypoint_role(from._internal_entrypoint_role());
+      } else {
+        if (_this->_impl_.entrypoint_role_.IsDefault()) {
+          _this->_internal_set_entrypoint_role("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_channel_key().empty()) {
+        _this->_internal_set_channel_key(from._internal_channel_key());
+      } else {
+        if (_this->_impl_.channel_key_.IsDefault()) {
+          _this->_internal_set_channel_key("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_manifest_id().empty()) {
+        _this->_internal_set_manifest_id(from._internal_manifest_id());
+      } else {
+        if (_this->_impl_.manifest_id_.IsDefault()) {
+          _this->_internal_set_manifest_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!from._internal_platform_id().empty()) {
+        _this->_internal_set_platform_id(from._internal_platform_id());
+      } else {
+        if (_this->_impl_.platform_id_.IsDefault()) {
+          _this->_internal_set_platform_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (from._internal_manifest_rev() != 0) {
+        _this->_impl_.manifest_rev_ = from._impl_.manifest_rev_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void DesktopCLIEntrypointIdentity::CopyFrom(const DesktopCLIEntrypointIdentity& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:electron.desktop_runtime.DesktopCLIEntrypointIdentity)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DesktopCLIEntrypointIdentity::InternalSwap(DesktopCLIEntrypointIdentity* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.path_, &other->_impl_.path_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.project_id_, &other->_impl_.project_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.entrypoint_role_, &other->_impl_.entrypoint_role_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.channel_key_, &other->_impl_.channel_key_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.manifest_id_, &other->_impl_.manifest_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.platform_id_, &other->_impl_.platform_id_, arena);
+  swap(_impl_.manifest_rev_, other->_impl_.manifest_rev_);
+}
+
+::google::protobuf::Metadata DesktopCLIEntrypointIdentity::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DesktopCLIInstallTarget::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<DesktopCLIInstallTarget>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_._has_bits_);
+};
+
+DesktopCLIInstallTarget::DesktopCLIInstallTarget(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DesktopCLIInstallTarget_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:electron.desktop_runtime.DesktopCLIInstallTarget)
+}
+PROTOBUF_NDEBUG_INLINE DesktopCLIInstallTarget::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::electron::desktop_runtime::DesktopCLIInstallTarget& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        id_(arena, from.id_),
+        label_(arena, from.label_),
+        path_(arena, from.path_),
+        detail_(arena, from.detail_),
+        blocked_reason_(arena, from.blocked_reason_) {}
+
+DesktopCLIInstallTarget::DesktopCLIInstallTarget(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const DesktopCLIInstallTarget& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DesktopCLIInstallTarget_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  DesktopCLIInstallTarget* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, writable_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, writable_),
+           offsetof(Impl_, generation_) -
+               offsetof(Impl_, writable_) +
+               sizeof(Impl_::generation_));
+
+  // @@protoc_insertion_point(copy_constructor:electron.desktop_runtime.DesktopCLIInstallTarget)
+}
+PROTOBUF_NDEBUG_INLINE DesktopCLIInstallTarget::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        id_(arena),
+        label_(arena),
+        path_(arena),
+        detail_(arena),
+        blocked_reason_(arena) {}
+
+inline void DesktopCLIInstallTarget::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, writable_),
+           0,
+           offsetof(Impl_, generation_) -
+               offsetof(Impl_, writable_) +
+               sizeof(Impl_::generation_));
+}
+DesktopCLIInstallTarget::~DesktopCLIInstallTarget() {
+  // @@protoc_insertion_point(destructor:electron.desktop_runtime.DesktopCLIInstallTarget)
+  SharedDtor(*this);
+}
+inline void DesktopCLIInstallTarget::SharedDtor(MessageLite& self) {
+  DesktopCLIInstallTarget& this_ = static_cast<DesktopCLIInstallTarget&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.id_.Destroy();
+  this_._impl_.label_.Destroy();
+  this_._impl_.path_.Destroy();
+  this_._impl_.detail_.Destroy();
+  this_._impl_.blocked_reason_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL DesktopCLIInstallTarget::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) DesktopCLIInstallTarget(arena);
+}
+constexpr auto DesktopCLIInstallTarget::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DesktopCLIInstallTarget),
+                                            alignof(DesktopCLIInstallTarget));
+}
+constexpr auto DesktopCLIInstallTarget::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_DesktopCLIInstallTarget_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &DesktopCLIInstallTarget::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DesktopCLIInstallTarget>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &DesktopCLIInstallTarget::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DesktopCLIInstallTarget>(), &DesktopCLIInstallTarget::ByteSizeLong,
+              &DesktopCLIInstallTarget::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_._cached_size_),
+          false,
+      },
+      &DesktopCLIInstallTarget::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull DesktopCLIInstallTarget_class_data_ =
+        DesktopCLIInstallTarget::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+DesktopCLIInstallTarget::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DesktopCLIInstallTarget_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DesktopCLIInstallTarget_class_data_.tc_table);
+  return DesktopCLIInstallTarget_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<4, 9, 0, 96, 2>
+DesktopCLIInstallTarget::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_._has_bits_),
+    0, // no _extensions_
+    9, 120,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294966784,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    9,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    DesktopCLIInstallTarget_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopCLIInstallTarget>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_.id_)}},
+    // string label = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_.label_)}},
+    // string path = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_.path_)}},
+    // bool writable = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DesktopCLIInstallTarget, _impl_.writable_), 5>(),
+     {32, 5, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_.writable_)}},
+    // bool selected = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DesktopCLIInstallTarget, _impl_.selected_), 6>(),
+     {40, 6, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_.selected_)}},
+    // string detail = 6;
+    {::_pbi::TcParser::FastUS1,
+     {50, 3, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_.detail_)}},
+    // uint64 generation = 7;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(DesktopCLIInstallTarget, _impl_.generation_), 8>(),
+     {56, 8, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_.generation_)}},
+    // .electron.desktop_runtime.DesktopCLIInstallTargetPathState path_state = 8;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DesktopCLIInstallTarget, _impl_.path_state_), 7>(),
+     {64, 7, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_.path_state_)}},
+    // string blocked_reason = 9;
+    {::_pbi::TcParser::FastUS1,
+     {74, 4, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_.blocked_reason_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string id = 1;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string label = 2;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_.label_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string path = 3;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_.path_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bool writable = 4;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_.writable_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // bool selected = 5;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_.selected_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string detail = 6;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_.detail_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint64 generation = 7;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_.generation_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // .electron.desktop_runtime.DesktopCLIInstallTargetPathState path_state = 8;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_.path_state_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string blocked_reason = 9;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_.blocked_reason_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\60\2\5\4\0\0\6\0\0\16\0\0\0\0\0\0"
+    "electron.desktop_runtime.DesktopCLIInstallTarget"
+    "id"
+    "label"
+    "path"
+    "detail"
+    "blocked_reason"
+  }},
+};
+PROTOBUF_NOINLINE void DesktopCLIInstallTarget::Clear() {
+// @@protoc_insertion_point(message_clear_start:electron.desktop_runtime.DesktopCLIInstallTarget)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.label_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.path_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.detail_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.blocked_reason_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x000000e0U)) {
+    ::memset(&_impl_.writable_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.path_state_) -
+        reinterpret_cast<char*>(&_impl_.writable_)) + sizeof(_impl_.path_state_));
+  }
+  _impl_.generation_ = ::uint64_t{0u};
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL DesktopCLIInstallTarget::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const DesktopCLIInstallTarget& this_ = static_cast<const DesktopCLIInstallTarget&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL DesktopCLIInstallTarget::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const DesktopCLIInstallTarget& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:electron.desktop_runtime.DesktopCLIInstallTarget)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_id().empty()) {
+      const ::std::string& _s = this_._internal_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopCLIInstallTarget.id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string label = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_label().empty()) {
+      const ::std::string& _s = this_._internal_label();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopCLIInstallTarget.label");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string path = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_path().empty()) {
+      const ::std::string& _s = this_._internal_path();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopCLIInstallTarget.path");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // bool writable = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_writable() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          4, this_._internal_writable(), target);
+    }
+  }
+
+  // bool selected = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (this_._internal_selected() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          5, this_._internal_selected(), target);
+    }
+  }
+
+  // string detail = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_detail().empty()) {
+      const ::std::string& _s = this_._internal_detail();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopCLIInstallTarget.detail");
+      target = stream->WriteStringMaybeAliased(6, _s, target);
+    }
+  }
+
+  // uint64 generation = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (this_._internal_generation() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          7, this_._internal_generation(), target);
+    }
+  }
+
+  // .electron.desktop_runtime.DesktopCLIInstallTargetPathState path_state = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (this_._internal_path_state() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          8, this_._internal_path_state(), target);
+    }
+  }
+
+  // string blocked_reason = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_blocked_reason().empty()) {
+      const ::std::string& _s = this_._internal_blocked_reason();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopCLIInstallTarget.blocked_reason");
+      target = stream->WriteStringMaybeAliased(9, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:electron.desktop_runtime.DesktopCLIInstallTarget)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t DesktopCLIInstallTarget::ByteSizeLong(const MessageLite& base) {
+  const DesktopCLIInstallTarget& this_ = static_cast<const DesktopCLIInstallTarget&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t DesktopCLIInstallTarget::ByteSizeLong() const {
+  const DesktopCLIInstallTarget& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:electron.desktop_runtime.DesktopCLIInstallTarget)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // string id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_id());
+      }
+    }
+    // string label = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_label().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_label());
+      }
+    }
+    // string path = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_path().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_path());
+      }
+    }
+    // string detail = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_detail().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_detail());
+      }
+    }
+    // string blocked_reason = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_blocked_reason().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_blocked_reason());
+      }
+    }
+    // bool writable = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_writable() != 0) {
+        total_size += 2;
+      }
+    }
+    // bool selected = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (this_._internal_selected() != 0) {
+        total_size += 2;
+      }
+    }
+    // .electron.desktop_runtime.DesktopCLIInstallTargetPathState path_state = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (this_._internal_path_state() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_path_state());
+      }
+    }
+  }
+   {
+    // uint64 generation = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (this_._internal_generation() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_generation());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void DesktopCLIInstallTarget::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<DesktopCLIInstallTarget*>(&to_msg);
+  auto& from = static_cast<const DesktopCLIInstallTarget&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:electron.desktop_runtime.DesktopCLIInstallTarget)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_id().empty()) {
+        _this->_internal_set_id(from._internal_id());
+      } else {
+        if (_this->_impl_.id_.IsDefault()) {
+          _this->_internal_set_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_label().empty()) {
+        _this->_internal_set_label(from._internal_label());
+      } else {
+        if (_this->_impl_.label_.IsDefault()) {
+          _this->_internal_set_label("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_path().empty()) {
+        _this->_internal_set_path(from._internal_path());
+      } else {
+        if (_this->_impl_.path_.IsDefault()) {
+          _this->_internal_set_path("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_detail().empty()) {
+        _this->_internal_set_detail(from._internal_detail());
+      } else {
+        if (_this->_impl_.detail_.IsDefault()) {
+          _this->_internal_set_detail("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_blocked_reason().empty()) {
+        _this->_internal_set_blocked_reason(from._internal_blocked_reason());
+      } else {
+        if (_this->_impl_.blocked_reason_.IsDefault()) {
+          _this->_internal_set_blocked_reason("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_writable() != 0) {
+        _this->_impl_.writable_ = from._impl_.writable_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (from._internal_selected() != 0) {
+        _this->_impl_.selected_ = from._impl_.selected_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (from._internal_path_state() != 0) {
+        _this->_impl_.path_state_ = from._impl_.path_state_;
+      }
+    }
+  }
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (from._internal_generation() != 0) {
+      _this->_impl_.generation_ = from._impl_.generation_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void DesktopCLIInstallTarget::CopyFrom(const DesktopCLIInstallTarget& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:electron.desktop_runtime.DesktopCLIInstallTarget)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DesktopCLIInstallTarget::InternalSwap(DesktopCLIInstallTarget* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.label_, &other->_impl_.label_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.path_, &other->_impl_.path_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.detail_, &other->_impl_.detail_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.blocked_reason_, &other->_impl_.blocked_reason_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_.generation_)
+      + sizeof(DesktopCLIInstallTarget::_impl_.generation_)
+      - PROTOBUF_FIELD_OFFSET(DesktopCLIInstallTarget, _impl_.writable_)>(
+          reinterpret_cast<char*>(&_impl_.writable_),
+          reinterpret_cast<char*>(&other->_impl_.writable_));
+}
+
+::google::protobuf::Metadata DesktopCLIInstallTarget::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DesktopCLIInstallActionItem::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<DesktopCLIInstallActionItem>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(DesktopCLIInstallActionItem, _impl_._has_bits_);
+};
+
+DesktopCLIInstallActionItem::DesktopCLIInstallActionItem(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DesktopCLIInstallActionItem_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:electron.desktop_runtime.DesktopCLIInstallActionItem)
+}
+PROTOBUF_NDEBUG_INLINE DesktopCLIInstallActionItem::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::electron::desktop_runtime::DesktopCLIInstallActionItem& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        id_(arena, from.id_),
+        label_(arena, from.label_),
+        target_id_(arena, from.target_id_),
+        detail_(arena, from.detail_) {}
+
+DesktopCLIInstallActionItem::DesktopCLIInstallActionItem(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const DesktopCLIInstallActionItem& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DesktopCLIInstallActionItem_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  DesktopCLIInstallActionItem* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, kind_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, kind_),
+           offsetof(Impl_, generation_) -
+               offsetof(Impl_, kind_) +
+               sizeof(Impl_::generation_));
+
+  // @@protoc_insertion_point(copy_constructor:electron.desktop_runtime.DesktopCLIInstallActionItem)
+}
+PROTOBUF_NDEBUG_INLINE DesktopCLIInstallActionItem::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        id_(arena),
+        label_(arena),
+        target_id_(arena),
+        detail_(arena) {}
+
+inline void DesktopCLIInstallActionItem::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, kind_),
+           0,
+           offsetof(Impl_, generation_) -
+               offsetof(Impl_, kind_) +
+               sizeof(Impl_::generation_));
+}
+DesktopCLIInstallActionItem::~DesktopCLIInstallActionItem() {
+  // @@protoc_insertion_point(destructor:electron.desktop_runtime.DesktopCLIInstallActionItem)
+  SharedDtor(*this);
+}
+inline void DesktopCLIInstallActionItem::SharedDtor(MessageLite& self) {
+  DesktopCLIInstallActionItem& this_ = static_cast<DesktopCLIInstallActionItem&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.id_.Destroy();
+  this_._impl_.label_.Destroy();
+  this_._impl_.target_id_.Destroy();
+  this_._impl_.detail_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL DesktopCLIInstallActionItem::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) DesktopCLIInstallActionItem(arena);
+}
+constexpr auto DesktopCLIInstallActionItem::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DesktopCLIInstallActionItem),
+                                            alignof(DesktopCLIInstallActionItem));
+}
+constexpr auto DesktopCLIInstallActionItem::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_DesktopCLIInstallActionItem_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &DesktopCLIInstallActionItem::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DesktopCLIInstallActionItem>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &DesktopCLIInstallActionItem::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DesktopCLIInstallActionItem>(), &DesktopCLIInstallActionItem::ByteSizeLong,
+              &DesktopCLIInstallActionItem::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(DesktopCLIInstallActionItem, _impl_._cached_size_),
+          false,
+      },
+      &DesktopCLIInstallActionItem::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull DesktopCLIInstallActionItem_class_data_ =
+        DesktopCLIInstallActionItem::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+DesktopCLIInstallActionItem::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DesktopCLIInstallActionItem_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DesktopCLIInstallActionItem_class_data_.tc_table);
+  return DesktopCLIInstallActionItem_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 7, 0, 83, 2>
+DesktopCLIInstallActionItem::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(DesktopCLIInstallActionItem, _impl_._has_bits_),
+    0, // no _extensions_
+    7, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967168,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    7,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    DesktopCLIInstallActionItem_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopCLIInstallActionItem>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallActionItem, _impl_.id_)}},
+    // .electron.desktop_runtime.DesktopCLIInstallActionKind kind = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DesktopCLIInstallActionItem, _impl_.kind_), 4>(),
+     {16, 4, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallActionItem, _impl_.kind_)}},
+    // string label = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 1, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallActionItem, _impl_.label_)}},
+    // bool enabled = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DesktopCLIInstallActionItem, _impl_.enabled_), 5>(),
+     {32, 5, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallActionItem, _impl_.enabled_)}},
+    // string target_id = 5;
+    {::_pbi::TcParser::FastUS1,
+     {42, 2, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallActionItem, _impl_.target_id_)}},
+    // uint64 generation = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(DesktopCLIInstallActionItem, _impl_.generation_), 6>(),
+     {48, 6, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallActionItem, _impl_.generation_)}},
+    // string detail = 7;
+    {::_pbi::TcParser::FastUS1,
+     {58, 3, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallActionItem, _impl_.detail_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string id = 1;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallActionItem, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .electron.desktop_runtime.DesktopCLIInstallActionKind kind = 2;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallActionItem, _impl_.kind_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string label = 3;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallActionItem, _impl_.label_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bool enabled = 4;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallActionItem, _impl_.enabled_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string target_id = 5;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallActionItem, _impl_.target_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint64 generation = 6;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallActionItem, _impl_.generation_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // string detail = 7;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallActionItem, _impl_.detail_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\64\2\0\5\0\11\0\6"
+    "electron.desktop_runtime.DesktopCLIInstallActionItem"
+    "id"
+    "label"
+    "target_id"
+    "detail"
+  }},
+};
+PROTOBUF_NOINLINE void DesktopCLIInstallActionItem::Clear() {
+// @@protoc_insertion_point(message_clear_start:electron.desktop_runtime.DesktopCLIInstallActionItem)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.label_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.target_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.detail_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000070U)) {
+    ::memset(&_impl_.kind_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.generation_) -
+        reinterpret_cast<char*>(&_impl_.kind_)) + sizeof(_impl_.generation_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL DesktopCLIInstallActionItem::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const DesktopCLIInstallActionItem& this_ = static_cast<const DesktopCLIInstallActionItem&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL DesktopCLIInstallActionItem::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const DesktopCLIInstallActionItem& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:electron.desktop_runtime.DesktopCLIInstallActionItem)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_id().empty()) {
+      const ::std::string& _s = this_._internal_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopCLIInstallActionItem.id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // .electron.desktop_runtime.DesktopCLIInstallActionKind kind = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_kind() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          2, this_._internal_kind(), target);
+    }
+  }
+
+  // string label = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_label().empty()) {
+      const ::std::string& _s = this_._internal_label();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopCLIInstallActionItem.label");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // bool enabled = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_enabled() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          4, this_._internal_enabled(), target);
+    }
+  }
+
+  // string target_id = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_target_id().empty()) {
+      const ::std::string& _s = this_._internal_target_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopCLIInstallActionItem.target_id");
+      target = stream->WriteStringMaybeAliased(5, _s, target);
+    }
+  }
+
+  // uint64 generation = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (this_._internal_generation() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          6, this_._internal_generation(), target);
+    }
+  }
+
+  // string detail = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_detail().empty()) {
+      const ::std::string& _s = this_._internal_detail();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopCLIInstallActionItem.detail");
+      target = stream->WriteStringMaybeAliased(7, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:electron.desktop_runtime.DesktopCLIInstallActionItem)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t DesktopCLIInstallActionItem::ByteSizeLong(const MessageLite& base) {
+  const DesktopCLIInstallActionItem& this_ = static_cast<const DesktopCLIInstallActionItem&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t DesktopCLIInstallActionItem::ByteSizeLong() const {
+  const DesktopCLIInstallActionItem& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:electron.desktop_runtime.DesktopCLIInstallActionItem)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+    // string id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_id());
+      }
+    }
+    // string label = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_label().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_label());
+      }
+    }
+    // string target_id = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_target_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_target_id());
+      }
+    }
+    // string detail = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_detail().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_detail());
+      }
+    }
+    // .electron.desktop_runtime.DesktopCLIInstallActionKind kind = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_kind() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_kind());
+      }
+    }
+    // bool enabled = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_enabled() != 0) {
+        total_size += 2;
+      }
+    }
+    // uint64 generation = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (this_._internal_generation() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_generation());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void DesktopCLIInstallActionItem::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<DesktopCLIInstallActionItem*>(&to_msg);
+  auto& from = static_cast<const DesktopCLIInstallActionItem&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:electron.desktop_runtime.DesktopCLIInstallActionItem)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_id().empty()) {
+        _this->_internal_set_id(from._internal_id());
+      } else {
+        if (_this->_impl_.id_.IsDefault()) {
+          _this->_internal_set_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_label().empty()) {
+        _this->_internal_set_label(from._internal_label());
+      } else {
+        if (_this->_impl_.label_.IsDefault()) {
+          _this->_internal_set_label("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_target_id().empty()) {
+        _this->_internal_set_target_id(from._internal_target_id());
+      } else {
+        if (_this->_impl_.target_id_.IsDefault()) {
+          _this->_internal_set_target_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_detail().empty()) {
+        _this->_internal_set_detail(from._internal_detail());
+      } else {
+        if (_this->_impl_.detail_.IsDefault()) {
+          _this->_internal_set_detail("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_kind() != 0) {
+        _this->_impl_.kind_ = from._impl_.kind_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_enabled() != 0) {
+        _this->_impl_.enabled_ = from._impl_.enabled_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (from._internal_generation() != 0) {
+        _this->_impl_.generation_ = from._impl_.generation_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void DesktopCLIInstallActionItem::CopyFrom(const DesktopCLIInstallActionItem& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:electron.desktop_runtime.DesktopCLIInstallActionItem)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DesktopCLIInstallActionItem::InternalSwap(DesktopCLIInstallActionItem* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.label_, &other->_impl_.label_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.target_id_, &other->_impl_.target_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.detail_, &other->_impl_.detail_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallActionItem, _impl_.generation_)
+      + sizeof(DesktopCLIInstallActionItem::_impl_.generation_)
+      - PROTOBUF_FIELD_OFFSET(DesktopCLIInstallActionItem, _impl_.kind_)>(
+          reinterpret_cast<char*>(&_impl_.kind_),
+          reinterpret_cast<char*>(&other->_impl_.kind_));
+}
+
+::google::protobuf::Metadata DesktopCLIInstallActionItem::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DesktopCLIInstallState::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<DesktopCLIInstallState>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_._has_bits_);
+};
+
+DesktopCLIInstallState::DesktopCLIInstallState(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DesktopCLIInstallState_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:electron.desktop_runtime.DesktopCLIInstallState)
+}
+PROTOBUF_NDEBUG_INLINE DesktopCLIInstallState::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::electron::desktop_runtime::DesktopCLIInstallState& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        targets_{visibility, arena, from.targets_},
+        actions_{visibility, arena, from.actions_},
+        label_(arena, from.label_),
+        detail_(arena, from.detail_),
+        conflict_path_(arena, from.conflict_path_),
+        error_message_(arena, from.error_message_),
+        selected_target_id_(arena, from.selected_target_id_) {}
+
+DesktopCLIInstallState::DesktopCLIInstallState(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const DesktopCLIInstallState& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DesktopCLIInstallState_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  DesktopCLIInstallState* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.installed_ = (CheckHasBit(cached_has_bits, 0x00000080U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.installed_)
+                : nullptr;
+  _impl_.available_ = (CheckHasBit(cached_has_bits, 0x00000100U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.available_)
+                : nullptr;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, generation_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, generation_),
+           offsetof(Impl_, status_) -
+               offsetof(Impl_, generation_) +
+               sizeof(Impl_::status_));
+
+  // @@protoc_insertion_point(copy_constructor:electron.desktop_runtime.DesktopCLIInstallState)
+}
+PROTOBUF_NDEBUG_INLINE DesktopCLIInstallState::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        targets_{visibility, arena},
+        actions_{visibility, arena},
+        label_(arena),
+        detail_(arena),
+        conflict_path_(arena),
+        error_message_(arena),
+        selected_target_id_(arena) {}
+
+inline void DesktopCLIInstallState::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, installed_),
+           0,
+           offsetof(Impl_, status_) -
+               offsetof(Impl_, installed_) +
+               sizeof(Impl_::status_));
+}
+DesktopCLIInstallState::~DesktopCLIInstallState() {
+  // @@protoc_insertion_point(destructor:electron.desktop_runtime.DesktopCLIInstallState)
+  SharedDtor(*this);
+}
+inline void DesktopCLIInstallState::SharedDtor(MessageLite& self) {
+  DesktopCLIInstallState& this_ = static_cast<DesktopCLIInstallState&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.label_.Destroy();
+  this_._impl_.detail_.Destroy();
+  this_._impl_.conflict_path_.Destroy();
+  this_._impl_.error_message_.Destroy();
+  this_._impl_.selected_target_id_.Destroy();
+  delete this_._impl_.installed_;
+  delete this_._impl_.available_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL DesktopCLIInstallState::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) DesktopCLIInstallState(arena);
+}
+constexpr auto DesktopCLIInstallState::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.targets_) +
+          decltype(DesktopCLIInstallState::_impl_.targets_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.actions_) +
+          decltype(DesktopCLIInstallState::_impl_.actions_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(DesktopCLIInstallState), alignof(DesktopCLIInstallState), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&DesktopCLIInstallState::PlacementNew_,
+                                 sizeof(DesktopCLIInstallState),
+                                 alignof(DesktopCLIInstallState));
+  }
+}
+constexpr auto DesktopCLIInstallState::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_DesktopCLIInstallState_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &DesktopCLIInstallState::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DesktopCLIInstallState>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &DesktopCLIInstallState::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DesktopCLIInstallState>(), &DesktopCLIInstallState::ByteSizeLong,
+              &DesktopCLIInstallState::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_._cached_size_),
+          false,
+      },
+      &DesktopCLIInstallState::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull DesktopCLIInstallState_class_data_ =
+        DesktopCLIInstallState::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+DesktopCLIInstallState::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DesktopCLIInstallState_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DesktopCLIInstallState_class_data_.tc_table);
+  return DesktopCLIInstallState_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<4, 11, 4, 119, 2>
+DesktopCLIInstallState::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_._has_bits_),
+    0, // no _extensions_
+    11, 120,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294965248,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    11,  // num_field_entries
+    4,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    DesktopCLIInstallState_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopCLIInstallState>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .electron.desktop_runtime.DesktopCLIInstallStatus status = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DesktopCLIInstallState, _impl_.status_), 10>(),
+     {8, 10, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.status_)}},
+    // string label = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 2, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.label_)}},
+    // string detail = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 3, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.detail_)}},
+    // .electron.desktop_runtime.DesktopCLIEntrypointIdentity installed = 4;
+    {::_pbi::TcParser::FastMtS1,
+     {34, 7, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.installed_)}},
+    // .electron.desktop_runtime.DesktopCLIEntrypointIdentity available = 5;
+    {::_pbi::TcParser::FastMtS1,
+     {42, 8, 1,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.available_)}},
+    // repeated .electron.desktop_runtime.DesktopCLIInstallTarget targets = 6;
+    {::_pbi::TcParser::FastMtR1,
+     {50, 0, 2,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.targets_)}},
+    // string conflict_path = 7;
+    {::_pbi::TcParser::FastUS1,
+     {58, 4, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.conflict_path_)}},
+    // string error_message = 8;
+    {::_pbi::TcParser::FastUS1,
+     {66, 5, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.error_message_)}},
+    // uint64 generation = 9;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(DesktopCLIInstallState, _impl_.generation_), 9>(),
+     {72, 9, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.generation_)}},
+    // string selected_target_id = 10;
+    {::_pbi::TcParser::FastUS1,
+     {82, 6, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.selected_target_id_)}},
+    // repeated .electron.desktop_runtime.DesktopCLIInstallActionItem actions = 11;
+    {::_pbi::TcParser::FastMtR1,
+     {90, 1, 3,
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.actions_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .electron.desktop_runtime.DesktopCLIInstallStatus status = 1;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.status_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string label = 2;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.label_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string detail = 3;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.detail_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .electron.desktop_runtime.DesktopCLIEntrypointIdentity installed = 4;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.installed_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .electron.desktop_runtime.DesktopCLIEntrypointIdentity available = 5;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.available_), _Internal::kHasBitsOffset + 8, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // repeated .electron.desktop_runtime.DesktopCLIInstallTarget targets = 6;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.targets_), _Internal::kHasBitsOffset + 0, 2, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // string conflict_path = 7;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.conflict_path_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string error_message = 8;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.error_message_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint64 generation = 9;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.generation_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // string selected_target_id = 10;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.selected_target_id_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated .electron.desktop_runtime.DesktopCLIInstallActionItem actions = 11;
+    {PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.actions_), _Internal::kHasBitsOffset + 1, 3, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopCLIEntrypointIdentity>()},
+      {::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopCLIEntrypointIdentity>()},
+      {::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopCLIInstallTarget>()},
+      {::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopCLIInstallActionItem>()},
+  }},
+  {{
+    "\57\0\5\6\0\0\0\15\15\0\22\0\0\0\0\0"
+    "electron.desktop_runtime.DesktopCLIInstallState"
+    "label"
+    "detail"
+    "conflict_path"
+    "error_message"
+    "selected_target_id"
+  }},
+};
+PROTOBUF_NOINLINE void DesktopCLIInstallState::Clear() {
+// @@protoc_insertion_point(message_clear_start:electron.desktop_runtime.DesktopCLIInstallState)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.targets_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _impl_.actions_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.label_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.detail_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.conflict_path_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      _impl_.error_message_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      _impl_.selected_target_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      ABSL_DCHECK(_impl_.installed_ != nullptr);
+      _impl_.installed_->Clear();
+    }
+  }
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    ABSL_DCHECK(_impl_.available_ != nullptr);
+    _impl_.available_->Clear();
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000600U)) {
+    ::memset(&_impl_.generation_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.status_) -
+        reinterpret_cast<char*>(&_impl_.generation_)) + sizeof(_impl_.status_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL DesktopCLIInstallState::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const DesktopCLIInstallState& this_ = static_cast<const DesktopCLIInstallState&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL DesktopCLIInstallState::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const DesktopCLIInstallState& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:electron.desktop_runtime.DesktopCLIInstallState)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .electron.desktop_runtime.DesktopCLIInstallStatus status = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (this_._internal_status() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_status(), target);
+    }
+  }
+
+  // string label = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_label().empty()) {
+      const ::std::string& _s = this_._internal_label();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopCLIInstallState.label");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string detail = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_detail().empty()) {
+      const ::std::string& _s = this_._internal_detail();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopCLIInstallState.detail");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // .electron.desktop_runtime.DesktopCLIEntrypointIdentity installed = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        4, *this_._impl_.installed_, this_._impl_.installed_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .electron.desktop_runtime.DesktopCLIEntrypointIdentity available = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        5, *this_._impl_.available_, this_._impl_.available_->GetCachedSize(), target,
+        stream);
+  }
+
+  // repeated .electron.desktop_runtime.DesktopCLIInstallTarget targets = 6;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_targets_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_targets().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              6, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // string conflict_path = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_conflict_path().empty()) {
+      const ::std::string& _s = this_._internal_conflict_path();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopCLIInstallState.conflict_path");
+      target = stream->WriteStringMaybeAliased(7, _s, target);
+    }
+  }
+
+  // string error_message = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (!this_._internal_error_message().empty()) {
+      const ::std::string& _s = this_._internal_error_message();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopCLIInstallState.error_message");
+      target = stream->WriteStringMaybeAliased(8, _s, target);
+    }
+  }
+
+  // uint64 generation = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (this_._internal_generation() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          9, this_._internal_generation(), target);
+    }
+  }
+
+  // string selected_target_id = 10;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (!this_._internal_selected_target_id().empty()) {
+      const ::std::string& _s = this_._internal_selected_target_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopCLIInstallState.selected_target_id");
+      target = stream->WriteStringMaybeAliased(10, _s, target);
+    }
+  }
+
+  // repeated .electron.desktop_runtime.DesktopCLIInstallActionItem actions = 11;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_actions_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_actions().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              11, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:electron.desktop_runtime.DesktopCLIInstallState)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t DesktopCLIInstallState::ByteSizeLong(const MessageLite& base) {
+  const DesktopCLIInstallState& this_ = static_cast<const DesktopCLIInstallState&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t DesktopCLIInstallState::ByteSizeLong() const {
+  const DesktopCLIInstallState& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:electron.desktop_runtime.DesktopCLIInstallState)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // repeated .electron.desktop_runtime.DesktopCLIInstallTarget targets = 6;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_targets_size();
+      for (const auto& msg : this_._internal_targets()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // repeated .electron.desktop_runtime.DesktopCLIInstallActionItem actions = 11;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      total_size += 1UL * this_._internal_actions_size();
+      for (const auto& msg : this_._internal_actions()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // string label = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_label().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_label());
+      }
+    }
+    // string detail = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_detail().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_detail());
+      }
+    }
+    // string conflict_path = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_conflict_path().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_conflict_path());
+      }
+    }
+    // string error_message = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!this_._internal_error_message().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_error_message());
+      }
+    }
+    // string selected_target_id = 10;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (!this_._internal_selected_target_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_selected_target_id());
+      }
+    }
+    // .electron.desktop_runtime.DesktopCLIEntrypointIdentity installed = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.installed_);
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
+    // .electron.desktop_runtime.DesktopCLIEntrypointIdentity available = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.available_);
+    }
+    // uint64 generation = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (this_._internal_generation() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_generation());
+      }
+    }
+    // .electron.desktop_runtime.DesktopCLIInstallStatus status = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (this_._internal_status() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_status());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void DesktopCLIInstallState::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<DesktopCLIInstallState*>(&to_msg);
+  auto& from = static_cast<const DesktopCLIInstallState&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:electron.desktop_runtime.DesktopCLIInstallState)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_targets()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_targets());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _this->_internal_mutable_actions()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_actions());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_label().empty()) {
+        _this->_internal_set_label(from._internal_label());
+      } else {
+        if (_this->_impl_.label_.IsDefault()) {
+          _this->_internal_set_label("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_detail().empty()) {
+        _this->_internal_set_detail(from._internal_detail());
+      } else {
+        if (_this->_impl_.detail_.IsDefault()) {
+          _this->_internal_set_detail("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_conflict_path().empty()) {
+        _this->_internal_set_conflict_path(from._internal_conflict_path());
+      } else {
+        if (_this->_impl_.conflict_path_.IsDefault()) {
+          _this->_internal_set_conflict_path("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!from._internal_error_message().empty()) {
+        _this->_internal_set_error_message(from._internal_error_message());
+      } else {
+        if (_this->_impl_.error_message_.IsDefault()) {
+          _this->_internal_set_error_message("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (!from._internal_selected_target_id().empty()) {
+        _this->_internal_set_selected_target_id(from._internal_selected_target_id());
+      } else {
+        if (_this->_impl_.selected_target_id_.IsDefault()) {
+          _this->_internal_set_selected_target_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      ABSL_DCHECK(from._impl_.installed_ != nullptr);
+      if (_this->_impl_.installed_ == nullptr) {
+        _this->_impl_.installed_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.installed_);
+      } else {
+        _this->_impl_.installed_->MergeFrom(*from._impl_.installed_);
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      ABSL_DCHECK(from._impl_.available_ != nullptr);
+      if (_this->_impl_.available_ == nullptr) {
+        _this->_impl_.available_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.available_);
+      } else {
+        _this->_impl_.available_->MergeFrom(*from._impl_.available_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (from._internal_generation() != 0) {
+        _this->_impl_.generation_ = from._impl_.generation_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (from._internal_status() != 0) {
+        _this->_impl_.status_ = from._impl_.status_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void DesktopCLIInstallState::CopyFrom(const DesktopCLIInstallState& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:electron.desktop_runtime.DesktopCLIInstallState)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DesktopCLIInstallState::InternalSwap(DesktopCLIInstallState* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.targets_.InternalSwap(&other->_impl_.targets_);
+  _impl_.actions_.InternalSwap(&other->_impl_.actions_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.label_, &other->_impl_.label_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.detail_, &other->_impl_.detail_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.conflict_path_, &other->_impl_.conflict_path_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.error_message_, &other->_impl_.error_message_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.selected_target_id_, &other->_impl_.selected_target_id_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.status_)
+      + sizeof(DesktopCLIInstallState::_impl_.status_)
+      - PROTOBUF_FIELD_OFFSET(DesktopCLIInstallState, _impl_.installed_)>(
+          reinterpret_cast<char*>(&_impl_.installed_),
+          reinterpret_cast<char*>(&other->_impl_.installed_));
+}
+
+::google::protobuf::Metadata DesktopCLIInstallState::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
@@ -3266,6 +6098,397 @@ void DesktopRuntimeUpdateStatus::InternalSwap(DesktopRuntimeUpdateStatus* PROTOB
 }
 
 ::google::protobuf::Metadata DesktopRuntimeUpdateStatus::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DesktopRuntimeCLIInstallSummary::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<DesktopRuntimeCLIInstallSummary>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(DesktopRuntimeCLIInstallSummary, _impl_._has_bits_);
+};
+
+DesktopRuntimeCLIInstallSummary::DesktopRuntimeCLIInstallSummary(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DesktopRuntimeCLIInstallSummary_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary)
+}
+PROTOBUF_NDEBUG_INLINE DesktopRuntimeCLIInstallSummary::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        label_(arena, from.label_),
+        detail_(arena, from.detail_),
+        route_(arena, from.route_) {}
+
+DesktopRuntimeCLIInstallSummary::DesktopRuntimeCLIInstallSummary(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const DesktopRuntimeCLIInstallSummary& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DesktopRuntimeCLIInstallSummary_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  DesktopRuntimeCLIInstallSummary* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.status_ = from._impl_.status_;
+
+  // @@protoc_insertion_point(copy_constructor:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary)
+}
+PROTOBUF_NDEBUG_INLINE DesktopRuntimeCLIInstallSummary::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        label_(arena),
+        detail_(arena),
+        route_(arena) {}
+
+inline void DesktopRuntimeCLIInstallSummary::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.status_ = {};
+}
+DesktopRuntimeCLIInstallSummary::~DesktopRuntimeCLIInstallSummary() {
+  // @@protoc_insertion_point(destructor:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary)
+  SharedDtor(*this);
+}
+inline void DesktopRuntimeCLIInstallSummary::SharedDtor(MessageLite& self) {
+  DesktopRuntimeCLIInstallSummary& this_ = static_cast<DesktopRuntimeCLIInstallSummary&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.label_.Destroy();
+  this_._impl_.detail_.Destroy();
+  this_._impl_.route_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL DesktopRuntimeCLIInstallSummary::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) DesktopRuntimeCLIInstallSummary(arena);
+}
+constexpr auto DesktopRuntimeCLIInstallSummary::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DesktopRuntimeCLIInstallSummary),
+                                            alignof(DesktopRuntimeCLIInstallSummary));
+}
+constexpr auto DesktopRuntimeCLIInstallSummary::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_DesktopRuntimeCLIInstallSummary_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &DesktopRuntimeCLIInstallSummary::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DesktopRuntimeCLIInstallSummary>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &DesktopRuntimeCLIInstallSummary::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DesktopRuntimeCLIInstallSummary>(), &DesktopRuntimeCLIInstallSummary::ByteSizeLong,
+              &DesktopRuntimeCLIInstallSummary::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(DesktopRuntimeCLIInstallSummary, _impl_._cached_size_),
+          false,
+      },
+      &DesktopRuntimeCLIInstallSummary::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull DesktopRuntimeCLIInstallSummary_class_data_ =
+        DesktopRuntimeCLIInstallSummary::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+DesktopRuntimeCLIInstallSummary::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DesktopRuntimeCLIInstallSummary_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DesktopRuntimeCLIInstallSummary_class_data_.tc_table);
+  return DesktopRuntimeCLIInstallSummary_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 0, 81, 2>
+DesktopRuntimeCLIInstallSummary::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(DesktopRuntimeCLIInstallSummary, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    DesktopRuntimeCLIInstallSummary_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string route = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 2, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeCLIInstallSummary, _impl_.route_)}},
+    // .electron.desktop_runtime.DesktopCLIInstallStatus status = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DesktopRuntimeCLIInstallSummary, _impl_.status_), 3>(),
+     {8, 3, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeCLIInstallSummary, _impl_.status_)}},
+    // string label = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeCLIInstallSummary, _impl_.label_)}},
+    // string detail = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 1, 0,
+      PROTOBUF_FIELD_OFFSET(DesktopRuntimeCLIInstallSummary, _impl_.detail_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .electron.desktop_runtime.DesktopCLIInstallStatus status = 1;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeCLIInstallSummary, _impl_.status_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string label = 2;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeCLIInstallSummary, _impl_.label_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string detail = 3;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeCLIInstallSummary, _impl_.detail_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string route = 4;
+    {PROTOBUF_FIELD_OFFSET(DesktopRuntimeCLIInstallSummary, _impl_.route_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\70\0\5\6\5\0\0\0"
+    "electron.desktop_runtime.DesktopRuntimeCLIInstallSummary"
+    "label"
+    "detail"
+    "route"
+  }},
+};
+PROTOBUF_NOINLINE void DesktopRuntimeCLIInstallSummary::Clear() {
+// @@protoc_insertion_point(message_clear_start:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.label_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.detail_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.route_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_.status_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL DesktopRuntimeCLIInstallSummary::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const DesktopRuntimeCLIInstallSummary& this_ = static_cast<const DesktopRuntimeCLIInstallSummary&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL DesktopRuntimeCLIInstallSummary::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const DesktopRuntimeCLIInstallSummary& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .electron.desktop_runtime.DesktopCLIInstallStatus status = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_status() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_status(), target);
+    }
+  }
+
+  // string label = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_label().empty()) {
+      const ::std::string& _s = this_._internal_label();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeCLIInstallSummary.label");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string detail = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_detail().empty()) {
+      const ::std::string& _s = this_._internal_detail();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeCLIInstallSummary.detail");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string route = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_route().empty()) {
+      const ::std::string& _s = this_._internal_route();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.DesktopRuntimeCLIInstallSummary.route");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t DesktopRuntimeCLIInstallSummary::ByteSizeLong(const MessageLite& base) {
+  const DesktopRuntimeCLIInstallSummary& this_ = static_cast<const DesktopRuntimeCLIInstallSummary&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t DesktopRuntimeCLIInstallSummary::ByteSizeLong() const {
+  const DesktopRuntimeCLIInstallSummary& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // string label = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_label().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_label());
+      }
+    }
+    // string detail = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_detail().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_detail());
+      }
+    }
+    // string route = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_route().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_route());
+      }
+    }
+    // .electron.desktop_runtime.DesktopCLIInstallStatus status = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_status() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_status());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void DesktopRuntimeCLIInstallSummary::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<DesktopRuntimeCLIInstallSummary*>(&to_msg);
+  auto& from = static_cast<const DesktopRuntimeCLIInstallSummary&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_label().empty()) {
+        _this->_internal_set_label(from._internal_label());
+      } else {
+        if (_this->_impl_.label_.IsDefault()) {
+          _this->_internal_set_label("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_detail().empty()) {
+        _this->_internal_set_detail(from._internal_detail());
+      } else {
+        if (_this->_impl_.detail_.IsDefault()) {
+          _this->_internal_set_detail("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_route().empty()) {
+        _this->_internal_set_route(from._internal_route());
+      } else {
+        if (_this->_impl_.route_.IsDefault()) {
+          _this->_internal_set_route("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_status() != 0) {
+        _this->_impl_.status_ = from._impl_.status_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void DesktopRuntimeCLIInstallSummary::CopyFrom(const DesktopRuntimeCLIInstallSummary& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DesktopRuntimeCLIInstallSummary::InternalSwap(DesktopRuntimeCLIInstallSummary* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.label_, &other->_impl_.label_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.detail_, &other->_impl_.detail_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.route_, &other->_impl_.route_, arena);
+  swap(_impl_.status_, other->_impl_.status_);
+}
+
+::google::protobuf::Metadata DesktopRuntimeCLIInstallSummary::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
@@ -5587,6 +8810,804 @@ QuitDesktopRuntimeResponse::_table_ = {
 
 
 ::google::protobuf::Metadata QuitDesktopRuntimeResponse::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class WatchCLIInstallStateRequest::_Internal {
+ public:
+};
+
+WatchCLIInstallStateRequest::WatchCLIInstallStateRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, WatchCLIInstallStateRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:electron.desktop_runtime.WatchCLIInstallStateRequest)
+}
+WatchCLIInstallStateRequest::WatchCLIInstallStateRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const WatchCLIInstallStateRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, WatchCLIInstallStateRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  WatchCLIInstallStateRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:electron.desktop_runtime.WatchCLIInstallStateRequest)
+}
+
+inline void* PROTOBUF_NONNULL WatchCLIInstallStateRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) WatchCLIInstallStateRequest(arena);
+}
+constexpr auto WatchCLIInstallStateRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(WatchCLIInstallStateRequest),
+                                            alignof(WatchCLIInstallStateRequest));
+}
+constexpr auto WatchCLIInstallStateRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_WatchCLIInstallStateRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &WatchCLIInstallStateRequest::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<WatchCLIInstallStateRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &WatchCLIInstallStateRequest::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<WatchCLIInstallStateRequest>(), &WatchCLIInstallStateRequest::ByteSizeLong,
+              &WatchCLIInstallStateRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(WatchCLIInstallStateRequest, _impl_._cached_size_),
+          false,
+      },
+      &WatchCLIInstallStateRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull WatchCLIInstallStateRequest_class_data_ =
+        WatchCLIInstallStateRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+WatchCLIInstallStateRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&WatchCLIInstallStateRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(WatchCLIInstallStateRequest_class_data_.tc_table);
+  return WatchCLIInstallStateRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+WatchCLIInstallStateRequest::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    WatchCLIInstallStateRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::electron::desktop_runtime::WatchCLIInstallStateRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata WatchCLIInstallStateRequest::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class WatchCLIInstallStateResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<WatchCLIInstallStateResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(WatchCLIInstallStateResponse, _impl_._has_bits_);
+};
+
+WatchCLIInstallStateResponse::WatchCLIInstallStateResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, WatchCLIInstallStateResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:electron.desktop_runtime.WatchCLIInstallStateResponse)
+}
+PROTOBUF_NDEBUG_INLINE WatchCLIInstallStateResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::electron::desktop_runtime::WatchCLIInstallStateResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0} {}
+
+WatchCLIInstallStateResponse::WatchCLIInstallStateResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const WatchCLIInstallStateResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, WatchCLIInstallStateResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  WatchCLIInstallStateResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.state_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.state_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:electron.desktop_runtime.WatchCLIInstallStateResponse)
+}
+PROTOBUF_NDEBUG_INLINE WatchCLIInstallStateResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void WatchCLIInstallStateResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.state_ = {};
+}
+WatchCLIInstallStateResponse::~WatchCLIInstallStateResponse() {
+  // @@protoc_insertion_point(destructor:electron.desktop_runtime.WatchCLIInstallStateResponse)
+  SharedDtor(*this);
+}
+inline void WatchCLIInstallStateResponse::SharedDtor(MessageLite& self) {
+  WatchCLIInstallStateResponse& this_ = static_cast<WatchCLIInstallStateResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.state_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL WatchCLIInstallStateResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) WatchCLIInstallStateResponse(arena);
+}
+constexpr auto WatchCLIInstallStateResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(WatchCLIInstallStateResponse),
+                                            alignof(WatchCLIInstallStateResponse));
+}
+constexpr auto WatchCLIInstallStateResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_WatchCLIInstallStateResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &WatchCLIInstallStateResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<WatchCLIInstallStateResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &WatchCLIInstallStateResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<WatchCLIInstallStateResponse>(), &WatchCLIInstallStateResponse::ByteSizeLong,
+              &WatchCLIInstallStateResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(WatchCLIInstallStateResponse, _impl_._cached_size_),
+          false,
+      },
+      &WatchCLIInstallStateResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull WatchCLIInstallStateResponse_class_data_ =
+        WatchCLIInstallStateResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+WatchCLIInstallStateResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&WatchCLIInstallStateResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(WatchCLIInstallStateResponse_class_data_.tc_table);
+  return WatchCLIInstallStateResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+WatchCLIInstallStateResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(WatchCLIInstallStateResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    WatchCLIInstallStateResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::electron::desktop_runtime::WatchCLIInstallStateResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .electron.desktop_runtime.DesktopCLIInstallState state = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(WatchCLIInstallStateResponse, _impl_.state_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .electron.desktop_runtime.DesktopCLIInstallState state = 1;
+    {PROTOBUF_FIELD_OFFSET(WatchCLIInstallStateResponse, _impl_.state_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::electron::desktop_runtime::DesktopCLIInstallState>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void WatchCLIInstallStateResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:electron.desktop_runtime.WatchCLIInstallStateResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(_impl_.state_ != nullptr);
+    _impl_.state_->Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL WatchCLIInstallStateResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const WatchCLIInstallStateResponse& this_ = static_cast<const WatchCLIInstallStateResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL WatchCLIInstallStateResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const WatchCLIInstallStateResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:electron.desktop_runtime.WatchCLIInstallStateResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .electron.desktop_runtime.DesktopCLIInstallState state = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.state_, this_._impl_.state_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:electron.desktop_runtime.WatchCLIInstallStateResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t WatchCLIInstallStateResponse::ByteSizeLong(const MessageLite& base) {
+  const WatchCLIInstallStateResponse& this_ = static_cast<const WatchCLIInstallStateResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t WatchCLIInstallStateResponse::ByteSizeLong() const {
+  const WatchCLIInstallStateResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:electron.desktop_runtime.WatchCLIInstallStateResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .electron.desktop_runtime.DesktopCLIInstallState state = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.state_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void WatchCLIInstallStateResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<WatchCLIInstallStateResponse*>(&to_msg);
+  auto& from = static_cast<const WatchCLIInstallStateResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:electron.desktop_runtime.WatchCLIInstallStateResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(from._impl_.state_ != nullptr);
+    if (_this->_impl_.state_ == nullptr) {
+      _this->_impl_.state_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.state_);
+    } else {
+      _this->_impl_.state_->MergeFrom(*from._impl_.state_);
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void WatchCLIInstallStateResponse::CopyFrom(const WatchCLIInstallStateResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:electron.desktop_runtime.WatchCLIInstallStateResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void WatchCLIInstallStateResponse::InternalSwap(WatchCLIInstallStateResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.state_, other->_impl_.state_);
+}
+
+::google::protobuf::Metadata WatchCLIInstallStateResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class InvokeCLIInstallActionRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<InvokeCLIInstallActionRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(InvokeCLIInstallActionRequest, _impl_._has_bits_);
+};
+
+InvokeCLIInstallActionRequest::InvokeCLIInstallActionRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, InvokeCLIInstallActionRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:electron.desktop_runtime.InvokeCLIInstallActionRequest)
+}
+PROTOBUF_NDEBUG_INLINE InvokeCLIInstallActionRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::electron::desktop_runtime::InvokeCLIInstallActionRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        action_id_(arena, from.action_id_) {}
+
+InvokeCLIInstallActionRequest::InvokeCLIInstallActionRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const InvokeCLIInstallActionRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, InvokeCLIInstallActionRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  InvokeCLIInstallActionRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.generation_ = from._impl_.generation_;
+
+  // @@protoc_insertion_point(copy_constructor:electron.desktop_runtime.InvokeCLIInstallActionRequest)
+}
+PROTOBUF_NDEBUG_INLINE InvokeCLIInstallActionRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        action_id_(arena) {}
+
+inline void InvokeCLIInstallActionRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.generation_ = {};
+}
+InvokeCLIInstallActionRequest::~InvokeCLIInstallActionRequest() {
+  // @@protoc_insertion_point(destructor:electron.desktop_runtime.InvokeCLIInstallActionRequest)
+  SharedDtor(*this);
+}
+inline void InvokeCLIInstallActionRequest::SharedDtor(MessageLite& self) {
+  InvokeCLIInstallActionRequest& this_ = static_cast<InvokeCLIInstallActionRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.action_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL InvokeCLIInstallActionRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) InvokeCLIInstallActionRequest(arena);
+}
+constexpr auto InvokeCLIInstallActionRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(InvokeCLIInstallActionRequest),
+                                            alignof(InvokeCLIInstallActionRequest));
+}
+constexpr auto InvokeCLIInstallActionRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_InvokeCLIInstallActionRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &InvokeCLIInstallActionRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<InvokeCLIInstallActionRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &InvokeCLIInstallActionRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<InvokeCLIInstallActionRequest>(), &InvokeCLIInstallActionRequest::ByteSizeLong,
+              &InvokeCLIInstallActionRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(InvokeCLIInstallActionRequest, _impl_._cached_size_),
+          false,
+      },
+      &InvokeCLIInstallActionRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull InvokeCLIInstallActionRequest_class_data_ =
+        InvokeCLIInstallActionRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+InvokeCLIInstallActionRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&InvokeCLIInstallActionRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(InvokeCLIInstallActionRequest_class_data_.tc_table);
+  return InvokeCLIInstallActionRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 72, 2>
+InvokeCLIInstallActionRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(InvokeCLIInstallActionRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    InvokeCLIInstallActionRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::electron::desktop_runtime::InvokeCLIInstallActionRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // uint64 generation = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(InvokeCLIInstallActionRequest, _impl_.generation_), 1>(),
+     {16, 1, 0,
+      PROTOBUF_FIELD_OFFSET(InvokeCLIInstallActionRequest, _impl_.generation_)}},
+    // string action_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(InvokeCLIInstallActionRequest, _impl_.action_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string action_id = 1;
+    {PROTOBUF_FIELD_OFFSET(InvokeCLIInstallActionRequest, _impl_.action_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint64 generation = 2;
+    {PROTOBUF_FIELD_OFFSET(InvokeCLIInstallActionRequest, _impl_.generation_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+  }},
+  // no aux_entries
+  {{
+    "\66\11\0\0\0\0\0\0"
+    "electron.desktop_runtime.InvokeCLIInstallActionRequest"
+    "action_id"
+  }},
+};
+PROTOBUF_NOINLINE void InvokeCLIInstallActionRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:electron.desktop_runtime.InvokeCLIInstallActionRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.action_id_.ClearNonDefaultToEmpty();
+  }
+  _impl_.generation_ = ::uint64_t{0u};
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL InvokeCLIInstallActionRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const InvokeCLIInstallActionRequest& this_ = static_cast<const InvokeCLIInstallActionRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL InvokeCLIInstallActionRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const InvokeCLIInstallActionRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:electron.desktop_runtime.InvokeCLIInstallActionRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string action_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_action_id().empty()) {
+      const ::std::string& _s = this_._internal_action_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "electron.desktop_runtime.InvokeCLIInstallActionRequest.action_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // uint64 generation = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (this_._internal_generation() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          2, this_._internal_generation(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:electron.desktop_runtime.InvokeCLIInstallActionRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t InvokeCLIInstallActionRequest::ByteSizeLong(const MessageLite& base) {
+  const InvokeCLIInstallActionRequest& this_ = static_cast<const InvokeCLIInstallActionRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t InvokeCLIInstallActionRequest::ByteSizeLong() const {
+  const InvokeCLIInstallActionRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:electron.desktop_runtime.InvokeCLIInstallActionRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // string action_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_action_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_action_id());
+      }
+    }
+    // uint64 generation = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (this_._internal_generation() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_generation());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void InvokeCLIInstallActionRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<InvokeCLIInstallActionRequest*>(&to_msg);
+  auto& from = static_cast<const InvokeCLIInstallActionRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:electron.desktop_runtime.InvokeCLIInstallActionRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_action_id().empty()) {
+        _this->_internal_set_action_id(from._internal_action_id());
+      } else {
+        if (_this->_impl_.action_id_.IsDefault()) {
+          _this->_internal_set_action_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (from._internal_generation() != 0) {
+        _this->_impl_.generation_ = from._impl_.generation_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void InvokeCLIInstallActionRequest::CopyFrom(const InvokeCLIInstallActionRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:electron.desktop_runtime.InvokeCLIInstallActionRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void InvokeCLIInstallActionRequest::InternalSwap(InvokeCLIInstallActionRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.action_id_, &other->_impl_.action_id_, arena);
+  swap(_impl_.generation_, other->_impl_.generation_);
+}
+
+::google::protobuf::Metadata InvokeCLIInstallActionRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class InvokeCLIInstallActionResponse::_Internal {
+ public:
+};
+
+InvokeCLIInstallActionResponse::InvokeCLIInstallActionResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, InvokeCLIInstallActionResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:electron.desktop_runtime.InvokeCLIInstallActionResponse)
+}
+InvokeCLIInstallActionResponse::InvokeCLIInstallActionResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const InvokeCLIInstallActionResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, InvokeCLIInstallActionResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  InvokeCLIInstallActionResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:electron.desktop_runtime.InvokeCLIInstallActionResponse)
+}
+
+inline void* PROTOBUF_NONNULL InvokeCLIInstallActionResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) InvokeCLIInstallActionResponse(arena);
+}
+constexpr auto InvokeCLIInstallActionResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(InvokeCLIInstallActionResponse),
+                                            alignof(InvokeCLIInstallActionResponse));
+}
+constexpr auto InvokeCLIInstallActionResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_InvokeCLIInstallActionResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &InvokeCLIInstallActionResponse::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<InvokeCLIInstallActionResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &InvokeCLIInstallActionResponse::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<InvokeCLIInstallActionResponse>(), &InvokeCLIInstallActionResponse::ByteSizeLong,
+              &InvokeCLIInstallActionResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(InvokeCLIInstallActionResponse, _impl_._cached_size_),
+          false,
+      },
+      &InvokeCLIInstallActionResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull InvokeCLIInstallActionResponse_class_data_ =
+        InvokeCLIInstallActionResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+InvokeCLIInstallActionResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&InvokeCLIInstallActionResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(InvokeCLIInstallActionResponse_class_data_.tc_table);
+  return InvokeCLIInstallActionResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+InvokeCLIInstallActionResponse::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    InvokeCLIInstallActionResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::electron::desktop_runtime::InvokeCLIInstallActionResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata InvokeCLIInstallActionResponse::GetMetadata() const {
   return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

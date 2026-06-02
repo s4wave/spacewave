@@ -58,6 +58,12 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace electron {
 namespace desktop_runtime {
+enum DesktopCLIInstallActionKind : int;
+extern const uint32_t DesktopCLIInstallActionKind_internal_data_[];
+enum DesktopCLIInstallStatus : int;
+extern const uint32_t DesktopCLIInstallStatus_internal_data_[];
+enum DesktopCLIInstallTargetPathState : int;
+extern const uint32_t DesktopCLIInstallTargetPathState_internal_data_[];
 enum DesktopRuntimeActionKind : int;
 extern const uint32_t DesktopRuntimeActionKind_internal_data_[];
 enum DesktopRuntimeActivityState : int;
@@ -72,6 +78,22 @@ enum DesktopRuntimeReachability : int;
 extern const uint32_t DesktopRuntimeReachability_internal_data_[];
 enum DesktopRuntimeSeverity : int;
 extern const uint32_t DesktopRuntimeSeverity_internal_data_[];
+class DesktopCLIEntrypointIdentity;
+struct DesktopCLIEntrypointIdentityDefaultTypeInternal;
+extern DesktopCLIEntrypointIdentityDefaultTypeInternal _DesktopCLIEntrypointIdentity_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DesktopCLIEntrypointIdentity_class_data_;
+class DesktopCLIInstallActionItem;
+struct DesktopCLIInstallActionItemDefaultTypeInternal;
+extern DesktopCLIInstallActionItemDefaultTypeInternal _DesktopCLIInstallActionItem_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DesktopCLIInstallActionItem_class_data_;
+class DesktopCLIInstallState;
+struct DesktopCLIInstallStateDefaultTypeInternal;
+extern DesktopCLIInstallStateDefaultTypeInternal _DesktopCLIInstallState_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DesktopCLIInstallState_class_data_;
+class DesktopCLIInstallTarget;
+struct DesktopCLIInstallTargetDefaultTypeInternal;
+extern DesktopCLIInstallTargetDefaultTypeInternal _DesktopCLIInstallTarget_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DesktopCLIInstallTarget_class_data_;
 class DesktopRuntimeActionItem;
 struct DesktopRuntimeActionItemDefaultTypeInternal;
 extern DesktopRuntimeActionItemDefaultTypeInternal _DesktopRuntimeActionItem_default_instance_;
@@ -84,6 +106,10 @@ class DesktopRuntimeAttentionItem;
 struct DesktopRuntimeAttentionItemDefaultTypeInternal;
 extern DesktopRuntimeAttentionItemDefaultTypeInternal _DesktopRuntimeAttentionItem_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull DesktopRuntimeAttentionItem_class_data_;
+class DesktopRuntimeCLIInstallSummary;
+struct DesktopRuntimeCLIInstallSummaryDefaultTypeInternal;
+extern DesktopRuntimeCLIInstallSummaryDefaultTypeInternal _DesktopRuntimeCLIInstallSummary_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DesktopRuntimeCLIInstallSummary_class_data_;
 class DesktopRuntimeListenerStatus;
 struct DesktopRuntimeListenerStatusDefaultTypeInternal;
 extern DesktopRuntimeListenerStatusDefaultTypeInternal _DesktopRuntimeListenerStatus_default_instance_;
@@ -100,6 +126,14 @@ class DesktopRuntimeUpdateStatus;
 struct DesktopRuntimeUpdateStatusDefaultTypeInternal;
 extern DesktopRuntimeUpdateStatusDefaultTypeInternal _DesktopRuntimeUpdateStatus_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull DesktopRuntimeUpdateStatus_class_data_;
+class InvokeCLIInstallActionRequest;
+struct InvokeCLIInstallActionRequestDefaultTypeInternal;
+extern InvokeCLIInstallActionRequestDefaultTypeInternal _InvokeCLIInstallActionRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull InvokeCLIInstallActionRequest_class_data_;
+class InvokeCLIInstallActionResponse;
+struct InvokeCLIInstallActionResponseDefaultTypeInternal;
+extern InvokeCLIInstallActionResponseDefaultTypeInternal _InvokeCLIInstallActionResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull InvokeCLIInstallActionResponse_class_data_;
 class OpenOrFocusMainWindowRequest;
 struct OpenOrFocusMainWindowRequestDefaultTypeInternal;
 extern OpenOrFocusMainWindowRequestDefaultTypeInternal _OpenOrFocusMainWindowRequest_default_instance_;
@@ -124,6 +158,14 @@ class SetDesktopStateResponse;
 struct SetDesktopStateResponseDefaultTypeInternal;
 extern SetDesktopStateResponseDefaultTypeInternal _SetDesktopStateResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull SetDesktopStateResponse_class_data_;
+class WatchCLIInstallStateRequest;
+struct WatchCLIInstallStateRequestDefaultTypeInternal;
+extern WatchCLIInstallStateRequestDefaultTypeInternal _WatchCLIInstallStateRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull WatchCLIInstallStateRequest_class_data_;
+class WatchCLIInstallStateResponse;
+struct WatchCLIInstallStateResponseDefaultTypeInternal;
+extern WatchCLIInstallStateResponseDefaultTypeInternal _WatchCLIInstallStateResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull WatchCLIInstallStateResponse_class_data_;
 class WatchDesktopStateRequest;
 struct WatchDesktopStateRequestDefaultTypeInternal;
 extern WatchDesktopStateRequestDefaultTypeInternal _WatchDesktopStateRequest_default_instance_;
@@ -136,6 +178,15 @@ extern const ::google::protobuf::internal::ClassDataFull WatchDesktopStateRespon
 }  // namespace electron
 namespace google {
 namespace protobuf {
+template <>
+internal::EnumTraitsT<::electron::desktop_runtime::DesktopCLIInstallActionKind_internal_data_>
+    internal::EnumTraitsImpl::value<::electron::desktop_runtime::DesktopCLIInstallActionKind>;
+template <>
+internal::EnumTraitsT<::electron::desktop_runtime::DesktopCLIInstallStatus_internal_data_>
+    internal::EnumTraitsImpl::value<::electron::desktop_runtime::DesktopCLIInstallStatus>;
+template <>
+internal::EnumTraitsT<::electron::desktop_runtime::DesktopCLIInstallTargetPathState_internal_data_>
+    internal::EnumTraitsImpl::value<::electron::desktop_runtime::DesktopCLIInstallTargetPathState>;
 template <>
 internal::EnumTraitsT<::electron::desktop_runtime::DesktopRuntimeActionKind_internal_data_>
     internal::EnumTraitsImpl::value<::electron::desktop_runtime::DesktopRuntimeActionKind>;
@@ -162,6 +213,127 @@ internal::EnumTraitsT<::electron::desktop_runtime::DesktopRuntimeSeverity_intern
 
 namespace electron {
 namespace desktop_runtime {
+enum DesktopCLIInstallStatus : int {
+  DESKTOP_CLI_INSTALL_STATUS_UNSPECIFIED = 0,
+  DESKTOP_CLI_INSTALL_STATUS_UNKNOWN = 1,
+  DESKTOP_CLI_INSTALL_STATUS_MISSING = 2,
+  DESKTOP_CLI_INSTALL_STATUS_INSTALLED = 3,
+  DESKTOP_CLI_INSTALL_STATUS_UPDATE_AVAILABLE = 4,
+  DESKTOP_CLI_INSTALL_STATUS_CONFLICT = 5,
+  DESKTOP_CLI_INSTALL_STATUS_ERROR = 6,
+  DESKTOP_CLI_INSTALL_STATUS_INSTALLING = 7,
+  DESKTOP_CLI_INSTALL_STATUS_UPDATING = 8,
+  DesktopCLIInstallStatus_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  DesktopCLIInstallStatus_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t DesktopCLIInstallStatus_internal_data_[];
+inline constexpr DesktopCLIInstallStatus DesktopCLIInstallStatus_MIN =
+    static_cast<DesktopCLIInstallStatus>(0);
+inline constexpr DesktopCLIInstallStatus DesktopCLIInstallStatus_MAX =
+    static_cast<DesktopCLIInstallStatus>(8);
+inline bool DesktopCLIInstallStatus_IsValid(int value) {
+  return 0 <= value && value <= 8;
+}
+inline constexpr int DesktopCLIInstallStatus_ARRAYSIZE = 8 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopCLIInstallStatus_descriptor();
+template <typename T>
+const ::std::string& DesktopCLIInstallStatus_Name(T value) {
+  static_assert(::std::is_same<T, DesktopCLIInstallStatus>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to DesktopCLIInstallStatus_Name().");
+  return DesktopCLIInstallStatus_Name(static_cast<DesktopCLIInstallStatus>(value));
+}
+template <>
+inline const ::std::string& DesktopCLIInstallStatus_Name(DesktopCLIInstallStatus value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<DesktopCLIInstallStatus_descriptor, 0, 8>(
+      static_cast<int>(value));
+}
+inline bool DesktopCLIInstallStatus_Parse(
+    ::absl::string_view name, DesktopCLIInstallStatus* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<DesktopCLIInstallStatus>(DesktopCLIInstallStatus_descriptor(), name,
+                                           value);
+}
+enum DesktopCLIInstallActionKind : int {
+  DESKTOP_CLI_INSTALL_ACTION_KIND_UNSPECIFIED = 0,
+  DESKTOP_CLI_INSTALL_ACTION_KIND_RECHECK = 1,
+  DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS = 2,
+  DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL = 3,
+  DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE = 4,
+  DesktopCLIInstallActionKind_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  DesktopCLIInstallActionKind_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t DesktopCLIInstallActionKind_internal_data_[];
+inline constexpr DesktopCLIInstallActionKind DesktopCLIInstallActionKind_MIN =
+    static_cast<DesktopCLIInstallActionKind>(0);
+inline constexpr DesktopCLIInstallActionKind DesktopCLIInstallActionKind_MAX =
+    static_cast<DesktopCLIInstallActionKind>(4);
+inline bool DesktopCLIInstallActionKind_IsValid(int value) {
+  return 0 <= value && value <= 4;
+}
+inline constexpr int DesktopCLIInstallActionKind_ARRAYSIZE = 4 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopCLIInstallActionKind_descriptor();
+template <typename T>
+const ::std::string& DesktopCLIInstallActionKind_Name(T value) {
+  static_assert(::std::is_same<T, DesktopCLIInstallActionKind>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to DesktopCLIInstallActionKind_Name().");
+  return DesktopCLIInstallActionKind_Name(static_cast<DesktopCLIInstallActionKind>(value));
+}
+template <>
+inline const ::std::string& DesktopCLIInstallActionKind_Name(DesktopCLIInstallActionKind value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<DesktopCLIInstallActionKind_descriptor, 0, 4>(
+      static_cast<int>(value));
+}
+inline bool DesktopCLIInstallActionKind_Parse(
+    ::absl::string_view name, DesktopCLIInstallActionKind* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<DesktopCLIInstallActionKind>(DesktopCLIInstallActionKind_descriptor(), name,
+                                           value);
+}
+enum DesktopCLIInstallTargetPathState : int {
+  DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNSPECIFIED = 0,
+  DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNKNOWN = 1,
+  DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_ON_PATH = 2,
+  DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_OFF_PATH = 3,
+  DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_BLOCKED = 4,
+  DesktopCLIInstallTargetPathState_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  DesktopCLIInstallTargetPathState_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t DesktopCLIInstallTargetPathState_internal_data_[];
+inline constexpr DesktopCLIInstallTargetPathState DesktopCLIInstallTargetPathState_MIN =
+    static_cast<DesktopCLIInstallTargetPathState>(0);
+inline constexpr DesktopCLIInstallTargetPathState DesktopCLIInstallTargetPathState_MAX =
+    static_cast<DesktopCLIInstallTargetPathState>(4);
+inline bool DesktopCLIInstallTargetPathState_IsValid(int value) {
+  return 0 <= value && value <= 4;
+}
+inline constexpr int DesktopCLIInstallTargetPathState_ARRAYSIZE = 4 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopCLIInstallTargetPathState_descriptor();
+template <typename T>
+const ::std::string& DesktopCLIInstallTargetPathState_Name(T value) {
+  static_assert(::std::is_same<T, DesktopCLIInstallTargetPathState>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to DesktopCLIInstallTargetPathState_Name().");
+  return DesktopCLIInstallTargetPathState_Name(static_cast<DesktopCLIInstallTargetPathState>(value));
+}
+template <>
+inline const ::std::string& DesktopCLIInstallTargetPathState_Name(DesktopCLIInstallTargetPathState value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<DesktopCLIInstallTargetPathState_descriptor, 0, 4>(
+      static_cast<int>(value));
+}
+inline bool DesktopCLIInstallTargetPathState_Parse(
+    ::absl::string_view name, DesktopCLIInstallTargetPathState* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<DesktopCLIInstallTargetPathState>(DesktopCLIInstallTargetPathState_descriptor(), name,
+                                           value);
+}
 enum DesktopRuntimeHealth : int {
   DESKTOP_RUNTIME_HEALTH_UNSPECIFIED = 0,
   DESKTOP_RUNTIME_HEALTH_STARTING = 1,
@@ -502,7 +674,7 @@ class WatchDesktopStateRequest final : public ::google::protobuf::internal::Zero
     return *reinterpret_cast<const WatchDesktopStateRequest*>(
         &_WatchDesktopStateRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 7;
+  static constexpr int kIndexInFileMessages = 12;
   friend void swap(WatchDesktopStateRequest& a, WatchDesktopStateRequest& b) { a.Swap(&b); }
   inline void Swap(WatchDesktopStateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -582,6 +754,140 @@ class WatchDesktopStateRequest final : public ::google::protobuf::internal::Zero
 extern const ::google::protobuf::internal::ClassDataFull WatchDesktopStateRequest_class_data_;
 // -------------------------------------------------------------------
 
+class WatchCLIInstallStateRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:electron.desktop_runtime.WatchCLIInstallStateRequest) */ {
+ public:
+  inline WatchCLIInstallStateRequest() : WatchCLIInstallStateRequest(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(WatchCLIInstallStateRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(WatchCLIInstallStateRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR WatchCLIInstallStateRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline WatchCLIInstallStateRequest(const WatchCLIInstallStateRequest& from) : WatchCLIInstallStateRequest(nullptr, from) {}
+  inline WatchCLIInstallStateRequest(WatchCLIInstallStateRequest&& from) noexcept
+      : WatchCLIInstallStateRequest(nullptr, ::std::move(from)) {}
+  inline WatchCLIInstallStateRequest& operator=(const WatchCLIInstallStateRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WatchCLIInstallStateRequest& operator=(WatchCLIInstallStateRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WatchCLIInstallStateRequest& default_instance() {
+    return *reinterpret_cast<const WatchCLIInstallStateRequest*>(
+        &_WatchCLIInstallStateRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 20;
+  friend void swap(WatchCLIInstallStateRequest& a, WatchCLIInstallStateRequest& b) { a.Swap(&b); }
+  inline void Swap(WatchCLIInstallStateRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WatchCLIInstallStateRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WatchCLIInstallStateRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<WatchCLIInstallStateRequest>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const WatchCLIInstallStateRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const WatchCLIInstallStateRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "electron.desktop_runtime.WatchCLIInstallStateRequest"; }
+
+  explicit WatchCLIInstallStateRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  WatchCLIInstallStateRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchCLIInstallStateRequest& from);
+  WatchCLIInstallStateRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WatchCLIInstallStateRequest&& from) noexcept
+      : WatchCLIInstallStateRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:electron.desktop_runtime.WatchCLIInstallStateRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull WatchCLIInstallStateRequest_class_data_;
+// -------------------------------------------------------------------
+
 class SetDesktopStateResponse final : public ::google::protobuf::internal::ZeroFieldsBase
 /* @@protoc_insertion_point(class_definition:electron.desktop_runtime.SetDesktopStateResponse) */ {
  public:
@@ -636,7 +942,7 @@ class SetDesktopStateResponse final : public ::google::protobuf::internal::ZeroF
     return *reinterpret_cast<const SetDesktopStateResponse*>(
         &_SetDesktopStateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 10;
+  static constexpr int kIndexInFileMessages = 15;
   friend void swap(SetDesktopStateResponse& a, SetDesktopStateResponse& b) { a.Swap(&b); }
   inline void Swap(SetDesktopStateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -770,7 +1076,7 @@ class QuitDesktopRuntimeResponse final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const QuitDesktopRuntimeResponse*>(
         &_QuitDesktopRuntimeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 14;
+  static constexpr int kIndexInFileMessages = 19;
   friend void swap(QuitDesktopRuntimeResponse& a, QuitDesktopRuntimeResponse& b) { a.Swap(&b); }
   inline void Swap(QuitDesktopRuntimeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -904,7 +1210,7 @@ class QuitDesktopRuntimeRequest final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const QuitDesktopRuntimeRequest*>(
         &_QuitDesktopRuntimeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 13;
+  static constexpr int kIndexInFileMessages = 18;
   friend void swap(QuitDesktopRuntimeRequest& a, QuitDesktopRuntimeRequest& b) { a.Swap(&b); }
   inline void Swap(QuitDesktopRuntimeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1038,7 +1344,7 @@ class OpenOrFocusMainWindowResponse final : public ::google::protobuf::internal:
     return *reinterpret_cast<const OpenOrFocusMainWindowResponse*>(
         &_OpenOrFocusMainWindowResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 12;
+  static constexpr int kIndexInFileMessages = 17;
   friend void swap(OpenOrFocusMainWindowResponse& a, OpenOrFocusMainWindowResponse& b) { a.Swap(&b); }
   inline void Swap(OpenOrFocusMainWindowResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1173,7 +1479,7 @@ class OpenOrFocusMainWindowRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const OpenOrFocusMainWindowRequest*>(
         &_OpenOrFocusMainWindowRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 11;
+  static constexpr int kIndexInFileMessages = 16;
   friend void swap(OpenOrFocusMainWindowRequest& a, OpenOrFocusMainWindowRequest& b) { a.Swap(&b); }
   inline void Swap(OpenOrFocusMainWindowRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1313,6 +1619,347 @@ class OpenOrFocusMainWindowRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull OpenOrFocusMainWindowRequest_class_data_;
 // -------------------------------------------------------------------
 
+class InvokeCLIInstallActionResponse final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:electron.desktop_runtime.InvokeCLIInstallActionResponse) */ {
+ public:
+  inline InvokeCLIInstallActionResponse() : InvokeCLIInstallActionResponse(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(InvokeCLIInstallActionResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(InvokeCLIInstallActionResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR InvokeCLIInstallActionResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline InvokeCLIInstallActionResponse(const InvokeCLIInstallActionResponse& from) : InvokeCLIInstallActionResponse(nullptr, from) {}
+  inline InvokeCLIInstallActionResponse(InvokeCLIInstallActionResponse&& from) noexcept
+      : InvokeCLIInstallActionResponse(nullptr, ::std::move(from)) {}
+  inline InvokeCLIInstallActionResponse& operator=(const InvokeCLIInstallActionResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline InvokeCLIInstallActionResponse& operator=(InvokeCLIInstallActionResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const InvokeCLIInstallActionResponse& default_instance() {
+    return *reinterpret_cast<const InvokeCLIInstallActionResponse*>(
+        &_InvokeCLIInstallActionResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 23;
+  friend void swap(InvokeCLIInstallActionResponse& a, InvokeCLIInstallActionResponse& b) { a.Swap(&b); }
+  inline void Swap(InvokeCLIInstallActionResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(InvokeCLIInstallActionResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  InvokeCLIInstallActionResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<InvokeCLIInstallActionResponse>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const InvokeCLIInstallActionResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const InvokeCLIInstallActionResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "electron.desktop_runtime.InvokeCLIInstallActionResponse"; }
+
+  explicit InvokeCLIInstallActionResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  InvokeCLIInstallActionResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const InvokeCLIInstallActionResponse& from);
+  InvokeCLIInstallActionResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, InvokeCLIInstallActionResponse&& from) noexcept
+      : InvokeCLIInstallActionResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:electron.desktop_runtime.InvokeCLIInstallActionResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull InvokeCLIInstallActionResponse_class_data_;
+// -------------------------------------------------------------------
+
+class InvokeCLIInstallActionRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:electron.desktop_runtime.InvokeCLIInstallActionRequest) */ {
+ public:
+  inline InvokeCLIInstallActionRequest() : InvokeCLIInstallActionRequest(nullptr) {}
+  ~InvokeCLIInstallActionRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(InvokeCLIInstallActionRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(InvokeCLIInstallActionRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR InvokeCLIInstallActionRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline InvokeCLIInstallActionRequest(const InvokeCLIInstallActionRequest& from) : InvokeCLIInstallActionRequest(nullptr, from) {}
+  inline InvokeCLIInstallActionRequest(InvokeCLIInstallActionRequest&& from) noexcept
+      : InvokeCLIInstallActionRequest(nullptr, ::std::move(from)) {}
+  inline InvokeCLIInstallActionRequest& operator=(const InvokeCLIInstallActionRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline InvokeCLIInstallActionRequest& operator=(InvokeCLIInstallActionRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const InvokeCLIInstallActionRequest& default_instance() {
+    return *reinterpret_cast<const InvokeCLIInstallActionRequest*>(
+        &_InvokeCLIInstallActionRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 22;
+  friend void swap(InvokeCLIInstallActionRequest& a, InvokeCLIInstallActionRequest& b) { a.Swap(&b); }
+  inline void Swap(InvokeCLIInstallActionRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(InvokeCLIInstallActionRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  InvokeCLIInstallActionRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<InvokeCLIInstallActionRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const InvokeCLIInstallActionRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const InvokeCLIInstallActionRequest& from) { InvokeCLIInstallActionRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(InvokeCLIInstallActionRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "electron.desktop_runtime.InvokeCLIInstallActionRequest"; }
+
+  explicit InvokeCLIInstallActionRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  InvokeCLIInstallActionRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const InvokeCLIInstallActionRequest& from);
+  InvokeCLIInstallActionRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, InvokeCLIInstallActionRequest&& from) noexcept
+      : InvokeCLIInstallActionRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kActionIdFieldNumber = 1,
+    kGenerationFieldNumber = 2,
+  };
+  // string action_id = 1;
+  void clear_action_id() ;
+  const ::std::string& action_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_action_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_action_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_action_id();
+  void set_allocated_action_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_action_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_action_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_action_id();
+
+  public:
+  // uint64 generation = 2;
+  void clear_generation() ;
+  ::uint64_t generation() const;
+  void set_generation(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_generation() const;
+  void _internal_set_generation(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:electron.desktop_runtime.InvokeCLIInstallActionRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 72,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const InvokeCLIInstallActionRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr action_id_;
+    ::uint64_t generation_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull InvokeCLIInstallActionRequest_class_data_;
+// -------------------------------------------------------------------
+
 class DesktopRuntimeUpdateStatus final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:electron.desktop_runtime.DesktopRuntimeUpdateStatus) */ {
  public:
@@ -1368,7 +2015,7 @@ class DesktopRuntimeUpdateStatus final : public ::google::protobuf::Message
     return *reinterpret_cast<const DesktopRuntimeUpdateStatus*>(
         &_DesktopRuntimeUpdateStatus_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 8;
   friend void swap(DesktopRuntimeUpdateStatus& a, DesktopRuntimeUpdateStatus& b) { a.Swap(&b); }
   inline void Swap(DesktopRuntimeUpdateStatus* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1609,7 +2256,7 @@ class DesktopRuntimeNavigationItem final : public ::google::protobuf::Message
     return *reinterpret_cast<const DesktopRuntimeNavigationItem*>(
         &_DesktopRuntimeNavigationItem_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 2;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(DesktopRuntimeNavigationItem& a, DesktopRuntimeNavigationItem& b) { a.Swap(&b); }
   inline void Swap(DesktopRuntimeNavigationItem* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1884,7 +2531,7 @@ class DesktopRuntimeListenerStatus final : public ::google::protobuf::Message
     return *reinterpret_cast<const DesktopRuntimeListenerStatus*>(
         &_DesktopRuntimeListenerStatus_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 1;
+  static constexpr int kIndexInFileMessages = 5;
   friend void swap(DesktopRuntimeListenerStatus& a, DesktopRuntimeListenerStatus& b) { a.Swap(&b); }
   inline void Swap(DesktopRuntimeListenerStatus* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2082,6 +2729,247 @@ class DesktopRuntimeListenerStatus final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull DesktopRuntimeListenerStatus_class_data_;
 // -------------------------------------------------------------------
 
+class DesktopRuntimeCLIInstallSummary final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary) */ {
+ public:
+  inline DesktopRuntimeCLIInstallSummary() : DesktopRuntimeCLIInstallSummary(nullptr) {}
+  ~DesktopRuntimeCLIInstallSummary() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(DesktopRuntimeCLIInstallSummary* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DesktopRuntimeCLIInstallSummary));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR DesktopRuntimeCLIInstallSummary(::google::protobuf::internal::ConstantInitialized);
+
+  inline DesktopRuntimeCLIInstallSummary(const DesktopRuntimeCLIInstallSummary& from) : DesktopRuntimeCLIInstallSummary(nullptr, from) {}
+  inline DesktopRuntimeCLIInstallSummary(DesktopRuntimeCLIInstallSummary&& from) noexcept
+      : DesktopRuntimeCLIInstallSummary(nullptr, ::std::move(from)) {}
+  inline DesktopRuntimeCLIInstallSummary& operator=(const DesktopRuntimeCLIInstallSummary& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DesktopRuntimeCLIInstallSummary& operator=(DesktopRuntimeCLIInstallSummary&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DesktopRuntimeCLIInstallSummary& default_instance() {
+    return *reinterpret_cast<const DesktopRuntimeCLIInstallSummary*>(
+        &_DesktopRuntimeCLIInstallSummary_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 9;
+  friend void swap(DesktopRuntimeCLIInstallSummary& a, DesktopRuntimeCLIInstallSummary& b) { a.Swap(&b); }
+  inline void Swap(DesktopRuntimeCLIInstallSummary* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DesktopRuntimeCLIInstallSummary* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DesktopRuntimeCLIInstallSummary* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DesktopRuntimeCLIInstallSummary>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const DesktopRuntimeCLIInstallSummary& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const DesktopRuntimeCLIInstallSummary& from) { DesktopRuntimeCLIInstallSummary::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(DesktopRuntimeCLIInstallSummary* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "electron.desktop_runtime.DesktopRuntimeCLIInstallSummary"; }
+
+  explicit DesktopRuntimeCLIInstallSummary(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DesktopRuntimeCLIInstallSummary(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DesktopRuntimeCLIInstallSummary& from);
+  DesktopRuntimeCLIInstallSummary(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DesktopRuntimeCLIInstallSummary&& from) noexcept
+      : DesktopRuntimeCLIInstallSummary(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kLabelFieldNumber = 2,
+    kDetailFieldNumber = 3,
+    kRouteFieldNumber = 4,
+    kStatusFieldNumber = 1,
+  };
+  // string label = 2;
+  void clear_label() ;
+  const ::std::string& label() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_label(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_label();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_label();
+  void set_allocated_label(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_label() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_label(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_label();
+
+  public:
+  // string detail = 3;
+  void clear_detail() ;
+  const ::std::string& detail() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_detail(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_detail();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_detail();
+  void set_allocated_detail(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_detail() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_detail(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_detail();
+
+  public:
+  // string route = 4;
+  void clear_route() ;
+  const ::std::string& route() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_route(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_route();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_route();
+  void set_allocated_route(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_route() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_route(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_route();
+
+  public:
+  // .electron.desktop_runtime.DesktopCLIInstallStatus status = 1;
+  void clear_status() ;
+  ::electron::desktop_runtime::DesktopCLIInstallStatus status() const;
+  void set_status(::electron::desktop_runtime::DesktopCLIInstallStatus value);
+
+  private:
+  ::electron::desktop_runtime::DesktopCLIInstallStatus _internal_status() const;
+  void _internal_set_status(::electron::desktop_runtime::DesktopCLIInstallStatus value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   0, 81,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const DesktopRuntimeCLIInstallSummary& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr label_;
+    ::google::protobuf::internal::ArenaStringPtr detail_;
+    ::google::protobuf::internal::ArenaStringPtr route_;
+    int status_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull DesktopRuntimeCLIInstallSummary_class_data_;
+// -------------------------------------------------------------------
+
 class DesktopRuntimeAttentionItem final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:electron.desktop_runtime.DesktopRuntimeAttentionItem) */ {
  public:
@@ -2137,7 +3025,7 @@ class DesktopRuntimeAttentionItem final : public ::google::protobuf::Message
     return *reinterpret_cast<const DesktopRuntimeAttentionItem*>(
         &_DesktopRuntimeAttentionItem_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 10;
   friend void swap(DesktopRuntimeAttentionItem& a, DesktopRuntimeAttentionItem& b) { a.Swap(&b); }
   inline void Swap(DesktopRuntimeAttentionItem* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2390,7 +3278,7 @@ class DesktopRuntimeActivityItem final : public ::google::protobuf::Message
     return *reinterpret_cast<const DesktopRuntimeActivityItem*>(
         &_DesktopRuntimeActivityItem_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 7;
   friend void swap(DesktopRuntimeActivityItem& a, DesktopRuntimeActivityItem& b) { a.Swap(&b); }
   inline void Swap(DesktopRuntimeActivityItem* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2643,7 +3531,7 @@ class DesktopRuntimeActionItem final : public ::google::protobuf::Message
     return *reinterpret_cast<const DesktopRuntimeActionItem*>(
         &_DesktopRuntimeActionItem_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 11;
   friend void swap(DesktopRuntimeActionItem& a, DesktopRuntimeActionItem& b) { a.Swap(&b); }
   inline void Swap(DesktopRuntimeActionItem* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2875,6 +3763,891 @@ class DesktopRuntimeActionItem final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull DesktopRuntimeActionItem_class_data_;
 // -------------------------------------------------------------------
 
+class DesktopCLIInstallTarget final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:electron.desktop_runtime.DesktopCLIInstallTarget) */ {
+ public:
+  inline DesktopCLIInstallTarget() : DesktopCLIInstallTarget(nullptr) {}
+  ~DesktopCLIInstallTarget() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(DesktopCLIInstallTarget* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DesktopCLIInstallTarget));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR DesktopCLIInstallTarget(::google::protobuf::internal::ConstantInitialized);
+
+  inline DesktopCLIInstallTarget(const DesktopCLIInstallTarget& from) : DesktopCLIInstallTarget(nullptr, from) {}
+  inline DesktopCLIInstallTarget(DesktopCLIInstallTarget&& from) noexcept
+      : DesktopCLIInstallTarget(nullptr, ::std::move(from)) {}
+  inline DesktopCLIInstallTarget& operator=(const DesktopCLIInstallTarget& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DesktopCLIInstallTarget& operator=(DesktopCLIInstallTarget&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DesktopCLIInstallTarget& default_instance() {
+    return *reinterpret_cast<const DesktopCLIInstallTarget*>(
+        &_DesktopCLIInstallTarget_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 2;
+  friend void swap(DesktopCLIInstallTarget& a, DesktopCLIInstallTarget& b) { a.Swap(&b); }
+  inline void Swap(DesktopCLIInstallTarget* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DesktopCLIInstallTarget* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DesktopCLIInstallTarget* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DesktopCLIInstallTarget>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const DesktopCLIInstallTarget& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const DesktopCLIInstallTarget& from) { DesktopCLIInstallTarget::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(DesktopCLIInstallTarget* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "electron.desktop_runtime.DesktopCLIInstallTarget"; }
+
+  explicit DesktopCLIInstallTarget(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DesktopCLIInstallTarget(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DesktopCLIInstallTarget& from);
+  DesktopCLIInstallTarget(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DesktopCLIInstallTarget&& from) noexcept
+      : DesktopCLIInstallTarget(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kIdFieldNumber = 1,
+    kLabelFieldNumber = 2,
+    kPathFieldNumber = 3,
+    kDetailFieldNumber = 6,
+    kBlockedReasonFieldNumber = 9,
+    kWritableFieldNumber = 4,
+    kSelectedFieldNumber = 5,
+    kPathStateFieldNumber = 8,
+    kGenerationFieldNumber = 7,
+  };
+  // string id = 1;
+  void clear_id() ;
+  const ::std::string& id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_id();
+  void set_allocated_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_id();
+
+  public:
+  // string label = 2;
+  void clear_label() ;
+  const ::std::string& label() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_label(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_label();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_label();
+  void set_allocated_label(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_label() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_label(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_label();
+
+  public:
+  // string path = 3;
+  void clear_path() ;
+  const ::std::string& path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_path();
+  void set_allocated_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_path();
+
+  public:
+  // string detail = 6;
+  void clear_detail() ;
+  const ::std::string& detail() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_detail(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_detail();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_detail();
+  void set_allocated_detail(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_detail() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_detail(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_detail();
+
+  public:
+  // string blocked_reason = 9;
+  void clear_blocked_reason() ;
+  const ::std::string& blocked_reason() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_blocked_reason(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_blocked_reason();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_blocked_reason();
+  void set_allocated_blocked_reason(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_blocked_reason() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_blocked_reason(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_blocked_reason();
+
+  public:
+  // bool writable = 4;
+  void clear_writable() ;
+  bool writable() const;
+  void set_writable(bool value);
+
+  private:
+  bool _internal_writable() const;
+  void _internal_set_writable(bool value);
+
+  public:
+  // bool selected = 5;
+  void clear_selected() ;
+  bool selected() const;
+  void set_selected(bool value);
+
+  private:
+  bool _internal_selected() const;
+  void _internal_set_selected(bool value);
+
+  public:
+  // .electron.desktop_runtime.DesktopCLIInstallTargetPathState path_state = 8;
+  void clear_path_state() ;
+  ::electron::desktop_runtime::DesktopCLIInstallTargetPathState path_state() const;
+  void set_path_state(::electron::desktop_runtime::DesktopCLIInstallTargetPathState value);
+
+  private:
+  ::electron::desktop_runtime::DesktopCLIInstallTargetPathState _internal_path_state() const;
+  void _internal_set_path_state(::electron::desktop_runtime::DesktopCLIInstallTargetPathState value);
+
+  public:
+  // uint64 generation = 7;
+  void clear_generation() ;
+  ::uint64_t generation() const;
+  void set_generation(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_generation() const;
+  void _internal_set_generation(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:electron.desktop_runtime.DesktopCLIInstallTarget)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<4, 9,
+                                   0, 96,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const DesktopCLIInstallTarget& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr id_;
+    ::google::protobuf::internal::ArenaStringPtr label_;
+    ::google::protobuf::internal::ArenaStringPtr path_;
+    ::google::protobuf::internal::ArenaStringPtr detail_;
+    ::google::protobuf::internal::ArenaStringPtr blocked_reason_;
+    bool writable_;
+    bool selected_;
+    int path_state_;
+    ::uint64_t generation_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull DesktopCLIInstallTarget_class_data_;
+// -------------------------------------------------------------------
+
+class DesktopCLIInstallActionItem final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:electron.desktop_runtime.DesktopCLIInstallActionItem) */ {
+ public:
+  inline DesktopCLIInstallActionItem() : DesktopCLIInstallActionItem(nullptr) {}
+  ~DesktopCLIInstallActionItem() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(DesktopCLIInstallActionItem* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DesktopCLIInstallActionItem));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR DesktopCLIInstallActionItem(::google::protobuf::internal::ConstantInitialized);
+
+  inline DesktopCLIInstallActionItem(const DesktopCLIInstallActionItem& from) : DesktopCLIInstallActionItem(nullptr, from) {}
+  inline DesktopCLIInstallActionItem(DesktopCLIInstallActionItem&& from) noexcept
+      : DesktopCLIInstallActionItem(nullptr, ::std::move(from)) {}
+  inline DesktopCLIInstallActionItem& operator=(const DesktopCLIInstallActionItem& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DesktopCLIInstallActionItem& operator=(DesktopCLIInstallActionItem&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DesktopCLIInstallActionItem& default_instance() {
+    return *reinterpret_cast<const DesktopCLIInstallActionItem*>(
+        &_DesktopCLIInstallActionItem_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 3;
+  friend void swap(DesktopCLIInstallActionItem& a, DesktopCLIInstallActionItem& b) { a.Swap(&b); }
+  inline void Swap(DesktopCLIInstallActionItem* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DesktopCLIInstallActionItem* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DesktopCLIInstallActionItem* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DesktopCLIInstallActionItem>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const DesktopCLIInstallActionItem& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const DesktopCLIInstallActionItem& from) { DesktopCLIInstallActionItem::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(DesktopCLIInstallActionItem* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "electron.desktop_runtime.DesktopCLIInstallActionItem"; }
+
+  explicit DesktopCLIInstallActionItem(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DesktopCLIInstallActionItem(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DesktopCLIInstallActionItem& from);
+  DesktopCLIInstallActionItem(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DesktopCLIInstallActionItem&& from) noexcept
+      : DesktopCLIInstallActionItem(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kIdFieldNumber = 1,
+    kLabelFieldNumber = 3,
+    kTargetIdFieldNumber = 5,
+    kDetailFieldNumber = 7,
+    kKindFieldNumber = 2,
+    kEnabledFieldNumber = 4,
+    kGenerationFieldNumber = 6,
+  };
+  // string id = 1;
+  void clear_id() ;
+  const ::std::string& id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_id();
+  void set_allocated_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_id();
+
+  public:
+  // string label = 3;
+  void clear_label() ;
+  const ::std::string& label() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_label(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_label();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_label();
+  void set_allocated_label(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_label() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_label(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_label();
+
+  public:
+  // string target_id = 5;
+  void clear_target_id() ;
+  const ::std::string& target_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_target_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_target_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_target_id();
+  void set_allocated_target_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_target_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_target_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_target_id();
+
+  public:
+  // string detail = 7;
+  void clear_detail() ;
+  const ::std::string& detail() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_detail(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_detail();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_detail();
+  void set_allocated_detail(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_detail() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_detail(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_detail();
+
+  public:
+  // .electron.desktop_runtime.DesktopCLIInstallActionKind kind = 2;
+  void clear_kind() ;
+  ::electron::desktop_runtime::DesktopCLIInstallActionKind kind() const;
+  void set_kind(::electron::desktop_runtime::DesktopCLIInstallActionKind value);
+
+  private:
+  ::electron::desktop_runtime::DesktopCLIInstallActionKind _internal_kind() const;
+  void _internal_set_kind(::electron::desktop_runtime::DesktopCLIInstallActionKind value);
+
+  public:
+  // bool enabled = 4;
+  void clear_enabled() ;
+  bool enabled() const;
+  void set_enabled(bool value);
+
+  private:
+  bool _internal_enabled() const;
+  void _internal_set_enabled(bool value);
+
+  public:
+  // uint64 generation = 6;
+  void clear_generation() ;
+  ::uint64_t generation() const;
+  void set_generation(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_generation() const;
+  void _internal_set_generation(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:electron.desktop_runtime.DesktopCLIInstallActionItem)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   0, 83,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const DesktopCLIInstallActionItem& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr id_;
+    ::google::protobuf::internal::ArenaStringPtr label_;
+    ::google::protobuf::internal::ArenaStringPtr target_id_;
+    ::google::protobuf::internal::ArenaStringPtr detail_;
+    int kind_;
+    bool enabled_;
+    ::uint64_t generation_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull DesktopCLIInstallActionItem_class_data_;
+// -------------------------------------------------------------------
+
+class DesktopCLIEntrypointIdentity final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:electron.desktop_runtime.DesktopCLIEntrypointIdentity) */ {
+ public:
+  inline DesktopCLIEntrypointIdentity() : DesktopCLIEntrypointIdentity(nullptr) {}
+  ~DesktopCLIEntrypointIdentity() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(DesktopCLIEntrypointIdentity* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DesktopCLIEntrypointIdentity));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR DesktopCLIEntrypointIdentity(::google::protobuf::internal::ConstantInitialized);
+
+  inline DesktopCLIEntrypointIdentity(const DesktopCLIEntrypointIdentity& from) : DesktopCLIEntrypointIdentity(nullptr, from) {}
+  inline DesktopCLIEntrypointIdentity(DesktopCLIEntrypointIdentity&& from) noexcept
+      : DesktopCLIEntrypointIdentity(nullptr, ::std::move(from)) {}
+  inline DesktopCLIEntrypointIdentity& operator=(const DesktopCLIEntrypointIdentity& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DesktopCLIEntrypointIdentity& operator=(DesktopCLIEntrypointIdentity&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DesktopCLIEntrypointIdentity& default_instance() {
+    return *reinterpret_cast<const DesktopCLIEntrypointIdentity*>(
+        &_DesktopCLIEntrypointIdentity_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 1;
+  friend void swap(DesktopCLIEntrypointIdentity& a, DesktopCLIEntrypointIdentity& b) { a.Swap(&b); }
+  inline void Swap(DesktopCLIEntrypointIdentity* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DesktopCLIEntrypointIdentity* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DesktopCLIEntrypointIdentity* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DesktopCLIEntrypointIdentity>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const DesktopCLIEntrypointIdentity& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const DesktopCLIEntrypointIdentity& from) { DesktopCLIEntrypointIdentity::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(DesktopCLIEntrypointIdentity* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "electron.desktop_runtime.DesktopCLIEntrypointIdentity"; }
+
+  explicit DesktopCLIEntrypointIdentity(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DesktopCLIEntrypointIdentity(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DesktopCLIEntrypointIdentity& from);
+  DesktopCLIEntrypointIdentity(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DesktopCLIEntrypointIdentity&& from) noexcept
+      : DesktopCLIEntrypointIdentity(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kPathFieldNumber = 1,
+    kProjectIdFieldNumber = 2,
+    kEntrypointRoleFieldNumber = 3,
+    kChannelKeyFieldNumber = 4,
+    kManifestIdFieldNumber = 5,
+    kPlatformIdFieldNumber = 7,
+    kManifestRevFieldNumber = 6,
+  };
+  // string path = 1;
+  void clear_path() ;
+  const ::std::string& path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_path();
+  void set_allocated_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_path();
+
+  public:
+  // string project_id = 2;
+  void clear_project_id() ;
+  const ::std::string& project_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_project_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_project_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_project_id();
+  void set_allocated_project_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_project_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_project_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_project_id();
+
+  public:
+  // string entrypoint_role = 3;
+  void clear_entrypoint_role() ;
+  const ::std::string& entrypoint_role() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_entrypoint_role(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_entrypoint_role();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_entrypoint_role();
+  void set_allocated_entrypoint_role(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_entrypoint_role() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_entrypoint_role(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_entrypoint_role();
+
+  public:
+  // string channel_key = 4;
+  void clear_channel_key() ;
+  const ::std::string& channel_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_channel_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_channel_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_channel_key();
+  void set_allocated_channel_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_channel_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_channel_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_channel_key();
+
+  public:
+  // string manifest_id = 5;
+  void clear_manifest_id() ;
+  const ::std::string& manifest_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_manifest_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_manifest_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_manifest_id();
+  void set_allocated_manifest_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_manifest_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_manifest_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_manifest_id();
+
+  public:
+  // string platform_id = 7;
+  void clear_platform_id() ;
+  const ::std::string& platform_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_platform_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_platform_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_platform_id();
+  void set_allocated_platform_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_platform_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_platform_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_platform_id();
+
+  public:
+  // uint64 manifest_rev = 6;
+  void clear_manifest_rev() ;
+  ::uint64_t manifest_rev() const;
+  void set_manifest_rev(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_manifest_rev() const;
+  void _internal_set_manifest_rev(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:electron.desktop_runtime.DesktopCLIEntrypointIdentity)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   0, 124,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const DesktopCLIEntrypointIdentity& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr path_;
+    ::google::protobuf::internal::ArenaStringPtr project_id_;
+    ::google::protobuf::internal::ArenaStringPtr entrypoint_role_;
+    ::google::protobuf::internal::ArenaStringPtr channel_key_;
+    ::google::protobuf::internal::ArenaStringPtr manifest_id_;
+    ::google::protobuf::internal::ArenaStringPtr platform_id_;
+    ::uint64_t manifest_rev_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull DesktopCLIEntrypointIdentity_class_data_;
+// -------------------------------------------------------------------
+
 class DesktopRuntimeState final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:electron.desktop_runtime.DesktopRuntimeState) */ {
  public:
@@ -3025,6 +4798,7 @@ class DesktopRuntimeState final : public ::google::protobuf::Message
     kStatusTextFieldNumber = 3,
     kListenerFieldNumber = 6,
     kUpdateFieldNumber = 10,
+    kCliInstallFieldNumber = 13,
     kMainWindowOpenFieldNumber = 1,
     kQuittingFieldNumber = 2,
     kHealthFieldNumber = 4,
@@ -3160,6 +4934,21 @@ class DesktopRuntimeState final : public ::google::protobuf::Message
   ::electron::desktop_runtime::DesktopRuntimeUpdateStatus* PROTOBUF_NONNULL _internal_mutable_update();
 
   public:
+  // .electron.desktop_runtime.DesktopRuntimeCLIInstallSummary cli_install = 13;
+  bool has_cli_install() const;
+  void clear_cli_install() ;
+  const ::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary& cli_install() const;
+  [[nodiscard]] ::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary* PROTOBUF_NULLABLE release_cli_install();
+  ::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary* PROTOBUF_NONNULL mutable_cli_install();
+  void set_allocated_cli_install(::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_cli_install(::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary* PROTOBUF_NULLABLE value);
+  ::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary* PROTOBUF_NULLABLE unsafe_arena_release_cli_install();
+
+  private:
+  const ::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary& _internal_cli_install() const;
+  ::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary* PROTOBUF_NONNULL _internal_mutable_cli_install();
+
+  public:
   // bool main_window_open = 1;
   void clear_main_window_open() ;
   bool main_window_open() const;
@@ -3204,8 +4993,8 @@ class DesktopRuntimeState final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 12,
-                                   7, 72,
+  static const ::google::protobuf::internal::TcParseTable<4, 13,
+                                   8, 72,
                                    2>
       _table_;
 
@@ -3234,6 +5023,7 @@ class DesktopRuntimeState final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr status_text_;
     ::electron::desktop_runtime::DesktopRuntimeListenerStatus* PROTOBUF_NULLABLE listener_;
     ::electron::desktop_runtime::DesktopRuntimeUpdateStatus* PROTOBUF_NULLABLE update_;
+    ::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary* PROTOBUF_NULLABLE cli_install_;
     bool main_window_open_;
     bool quitting_;
     int health_;
@@ -3245,6 +5035,365 @@ class DesktopRuntimeState final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull DesktopRuntimeState_class_data_;
+// -------------------------------------------------------------------
+
+class DesktopCLIInstallState final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:electron.desktop_runtime.DesktopCLIInstallState) */ {
+ public:
+  inline DesktopCLIInstallState() : DesktopCLIInstallState(nullptr) {}
+  ~DesktopCLIInstallState() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(DesktopCLIInstallState* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DesktopCLIInstallState));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR DesktopCLIInstallState(::google::protobuf::internal::ConstantInitialized);
+
+  inline DesktopCLIInstallState(const DesktopCLIInstallState& from) : DesktopCLIInstallState(nullptr, from) {}
+  inline DesktopCLIInstallState(DesktopCLIInstallState&& from) noexcept
+      : DesktopCLIInstallState(nullptr, ::std::move(from)) {}
+  inline DesktopCLIInstallState& operator=(const DesktopCLIInstallState& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DesktopCLIInstallState& operator=(DesktopCLIInstallState&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DesktopCLIInstallState& default_instance() {
+    return *reinterpret_cast<const DesktopCLIInstallState*>(
+        &_DesktopCLIInstallState_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 4;
+  friend void swap(DesktopCLIInstallState& a, DesktopCLIInstallState& b) { a.Swap(&b); }
+  inline void Swap(DesktopCLIInstallState* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DesktopCLIInstallState* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DesktopCLIInstallState* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DesktopCLIInstallState>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const DesktopCLIInstallState& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const DesktopCLIInstallState& from) { DesktopCLIInstallState::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(DesktopCLIInstallState* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "electron.desktop_runtime.DesktopCLIInstallState"; }
+
+  explicit DesktopCLIInstallState(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DesktopCLIInstallState(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DesktopCLIInstallState& from);
+  DesktopCLIInstallState(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DesktopCLIInstallState&& from) noexcept
+      : DesktopCLIInstallState(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kTargetsFieldNumber = 6,
+    kActionsFieldNumber = 11,
+    kLabelFieldNumber = 2,
+    kDetailFieldNumber = 3,
+    kConflictPathFieldNumber = 7,
+    kErrorMessageFieldNumber = 8,
+    kSelectedTargetIdFieldNumber = 10,
+    kInstalledFieldNumber = 4,
+    kAvailableFieldNumber = 5,
+    kGenerationFieldNumber = 9,
+    kStatusFieldNumber = 1,
+  };
+  // repeated .electron.desktop_runtime.DesktopCLIInstallTarget targets = 6;
+  int targets_size() const;
+  private:
+  int _internal_targets_size() const;
+
+  public:
+  void clear_targets() ;
+  ::electron::desktop_runtime::DesktopCLIInstallTarget* PROTOBUF_NONNULL mutable_targets(int index);
+  ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopCLIInstallTarget>* PROTOBUF_NONNULL mutable_targets();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopCLIInstallTarget>& _internal_targets() const;
+  ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopCLIInstallTarget>* PROTOBUF_NONNULL _internal_mutable_targets();
+  public:
+  const ::electron::desktop_runtime::DesktopCLIInstallTarget& targets(int index) const;
+  ::electron::desktop_runtime::DesktopCLIInstallTarget* PROTOBUF_NONNULL add_targets();
+  const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopCLIInstallTarget>& targets() const;
+  // repeated .electron.desktop_runtime.DesktopCLIInstallActionItem actions = 11;
+  int actions_size() const;
+  private:
+  int _internal_actions_size() const;
+
+  public:
+  void clear_actions() ;
+  ::electron::desktop_runtime::DesktopCLIInstallActionItem* PROTOBUF_NONNULL mutable_actions(int index);
+  ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopCLIInstallActionItem>* PROTOBUF_NONNULL mutable_actions();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopCLIInstallActionItem>& _internal_actions() const;
+  ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopCLIInstallActionItem>* PROTOBUF_NONNULL _internal_mutable_actions();
+  public:
+  const ::electron::desktop_runtime::DesktopCLIInstallActionItem& actions(int index) const;
+  ::electron::desktop_runtime::DesktopCLIInstallActionItem* PROTOBUF_NONNULL add_actions();
+  const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopCLIInstallActionItem>& actions() const;
+  // string label = 2;
+  void clear_label() ;
+  const ::std::string& label() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_label(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_label();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_label();
+  void set_allocated_label(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_label() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_label(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_label();
+
+  public:
+  // string detail = 3;
+  void clear_detail() ;
+  const ::std::string& detail() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_detail(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_detail();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_detail();
+  void set_allocated_detail(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_detail() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_detail(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_detail();
+
+  public:
+  // string conflict_path = 7;
+  void clear_conflict_path() ;
+  const ::std::string& conflict_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_conflict_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_conflict_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_conflict_path();
+  void set_allocated_conflict_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_conflict_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_conflict_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_conflict_path();
+
+  public:
+  // string error_message = 8;
+  void clear_error_message() ;
+  const ::std::string& error_message() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_error_message(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_error_message();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_error_message();
+  void set_allocated_error_message(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_error_message() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_error_message(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_error_message();
+
+  public:
+  // string selected_target_id = 10;
+  void clear_selected_target_id() ;
+  const ::std::string& selected_target_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_selected_target_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_selected_target_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_selected_target_id();
+  void set_allocated_selected_target_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_selected_target_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_selected_target_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_selected_target_id();
+
+  public:
+  // .electron.desktop_runtime.DesktopCLIEntrypointIdentity installed = 4;
+  bool has_installed() const;
+  void clear_installed() ;
+  const ::electron::desktop_runtime::DesktopCLIEntrypointIdentity& installed() const;
+  [[nodiscard]] ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NULLABLE release_installed();
+  ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NONNULL mutable_installed();
+  void set_allocated_installed(::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_installed(::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NULLABLE value);
+  ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NULLABLE unsafe_arena_release_installed();
+
+  private:
+  const ::electron::desktop_runtime::DesktopCLIEntrypointIdentity& _internal_installed() const;
+  ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NONNULL _internal_mutable_installed();
+
+  public:
+  // .electron.desktop_runtime.DesktopCLIEntrypointIdentity available = 5;
+  bool has_available() const;
+  void clear_available() ;
+  const ::electron::desktop_runtime::DesktopCLIEntrypointIdentity& available() const;
+  [[nodiscard]] ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NULLABLE release_available();
+  ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NONNULL mutable_available();
+  void set_allocated_available(::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_available(::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NULLABLE value);
+  ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NULLABLE unsafe_arena_release_available();
+
+  private:
+  const ::electron::desktop_runtime::DesktopCLIEntrypointIdentity& _internal_available() const;
+  ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NONNULL _internal_mutable_available();
+
+  public:
+  // uint64 generation = 9;
+  void clear_generation() ;
+  ::uint64_t generation() const;
+  void set_generation(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_generation() const;
+  void _internal_set_generation(::uint64_t value);
+
+  public:
+  // .electron.desktop_runtime.DesktopCLIInstallStatus status = 1;
+  void clear_status() ;
+  ::electron::desktop_runtime::DesktopCLIInstallStatus status() const;
+  void set_status(::electron::desktop_runtime::DesktopCLIInstallStatus value);
+
+  private:
+  ::electron::desktop_runtime::DesktopCLIInstallStatus _internal_status() const;
+  void _internal_set_status(::electron::desktop_runtime::DesktopCLIInstallStatus value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:electron.desktop_runtime.DesktopCLIInstallState)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<4, 11,
+                                   4, 119,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const DesktopCLIInstallState& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::electron::desktop_runtime::DesktopCLIInstallTarget > targets_;
+    ::google::protobuf::RepeatedPtrField< ::electron::desktop_runtime::DesktopCLIInstallActionItem > actions_;
+    ::google::protobuf::internal::ArenaStringPtr label_;
+    ::google::protobuf::internal::ArenaStringPtr detail_;
+    ::google::protobuf::internal::ArenaStringPtr conflict_path_;
+    ::google::protobuf::internal::ArenaStringPtr error_message_;
+    ::google::protobuf::internal::ArenaStringPtr selected_target_id_;
+    ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NULLABLE installed_;
+    ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NULLABLE available_;
+    ::uint64_t generation_;
+    int status_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull DesktopCLIInstallState_class_data_;
 // -------------------------------------------------------------------
 
 class WatchDesktopStateResponse final : public ::google::protobuf::Message
@@ -3302,7 +5451,7 @@ class WatchDesktopStateResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchDesktopStateResponse*>(
         &_WatchDesktopStateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
+  static constexpr int kIndexInFileMessages = 13;
   friend void swap(WatchDesktopStateResponse& a, WatchDesktopStateResponse& b) { a.Swap(&b); }
   inline void Swap(WatchDesktopStateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3442,6 +5591,201 @@ class WatchDesktopStateResponse final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull WatchDesktopStateResponse_class_data_;
 // -------------------------------------------------------------------
 
+class WatchCLIInstallStateResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:electron.desktop_runtime.WatchCLIInstallStateResponse) */ {
+ public:
+  inline WatchCLIInstallStateResponse() : WatchCLIInstallStateResponse(nullptr) {}
+  ~WatchCLIInstallStateResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(WatchCLIInstallStateResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(WatchCLIInstallStateResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR WatchCLIInstallStateResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline WatchCLIInstallStateResponse(const WatchCLIInstallStateResponse& from) : WatchCLIInstallStateResponse(nullptr, from) {}
+  inline WatchCLIInstallStateResponse(WatchCLIInstallStateResponse&& from) noexcept
+      : WatchCLIInstallStateResponse(nullptr, ::std::move(from)) {}
+  inline WatchCLIInstallStateResponse& operator=(const WatchCLIInstallStateResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WatchCLIInstallStateResponse& operator=(WatchCLIInstallStateResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WatchCLIInstallStateResponse& default_instance() {
+    return *reinterpret_cast<const WatchCLIInstallStateResponse*>(
+        &_WatchCLIInstallStateResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 21;
+  friend void swap(WatchCLIInstallStateResponse& a, WatchCLIInstallStateResponse& b) { a.Swap(&b); }
+  inline void Swap(WatchCLIInstallStateResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WatchCLIInstallStateResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WatchCLIInstallStateResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<WatchCLIInstallStateResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const WatchCLIInstallStateResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const WatchCLIInstallStateResponse& from) { WatchCLIInstallStateResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(WatchCLIInstallStateResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "electron.desktop_runtime.WatchCLIInstallStateResponse"; }
+
+  explicit WatchCLIInstallStateResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  WatchCLIInstallStateResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchCLIInstallStateResponse& from);
+  WatchCLIInstallStateResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WatchCLIInstallStateResponse&& from) noexcept
+      : WatchCLIInstallStateResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kStateFieldNumber = 1,
+  };
+  // .electron.desktop_runtime.DesktopCLIInstallState state = 1;
+  bool has_state() const;
+  void clear_state() ;
+  const ::electron::desktop_runtime::DesktopCLIInstallState& state() const;
+  [[nodiscard]] ::electron::desktop_runtime::DesktopCLIInstallState* PROTOBUF_NULLABLE release_state();
+  ::electron::desktop_runtime::DesktopCLIInstallState* PROTOBUF_NONNULL mutable_state();
+  void set_allocated_state(::electron::desktop_runtime::DesktopCLIInstallState* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_state(::electron::desktop_runtime::DesktopCLIInstallState* PROTOBUF_NULLABLE value);
+  ::electron::desktop_runtime::DesktopCLIInstallState* PROTOBUF_NULLABLE unsafe_arena_release_state();
+
+  private:
+  const ::electron::desktop_runtime::DesktopCLIInstallState& _internal_state() const;
+  ::electron::desktop_runtime::DesktopCLIInstallState* PROTOBUF_NONNULL _internal_mutable_state();
+
+  public:
+  // @@protoc_insertion_point(class_scope:electron.desktop_runtime.WatchCLIInstallStateResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const WatchCLIInstallStateResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::electron::desktop_runtime::DesktopCLIInstallState* PROTOBUF_NULLABLE state_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2felectron_2fdesktop_2druntime_2fdesktop_2druntime_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull WatchCLIInstallStateResponse_class_data_;
+// -------------------------------------------------------------------
+
 class SetDesktopStateRequest final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:electron.desktop_runtime.SetDesktopStateRequest) */ {
  public:
@@ -3497,7 +5841,7 @@ class SetDesktopStateRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetDesktopStateRequest*>(
         &_SetDesktopStateRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 9;
+  static constexpr int kIndexInFileMessages = 14;
   friend void swap(SetDesktopStateRequest& a, SetDesktopStateRequest& b) { a.Swap(&b); }
   inline void Swap(SetDesktopStateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3657,7 +6001,7 @@ inline void DesktopRuntimeState::clear_main_window_open() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.main_window_open_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000100U);
+                  0x00000200U);
 }
 inline bool DesktopRuntimeState::main_window_open() const {
   // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeState.main_window_open)
@@ -3665,7 +6009,7 @@ inline bool DesktopRuntimeState::main_window_open() const {
 }
 inline void DesktopRuntimeState::set_main_window_open(bool value) {
   _internal_set_main_window_open(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeState.main_window_open)
 }
 inline bool DesktopRuntimeState::_internal_main_window_open() const {
@@ -3682,7 +6026,7 @@ inline void DesktopRuntimeState::clear_quitting() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.quitting_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000200U);
+                  0x00000400U);
 }
 inline bool DesktopRuntimeState::quitting() const {
   // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeState.quitting)
@@ -3690,7 +6034,7 @@ inline bool DesktopRuntimeState::quitting() const {
 }
 inline void DesktopRuntimeState::set_quitting(bool value) {
   _internal_set_quitting(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
   // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeState.quitting)
 }
 inline bool DesktopRuntimeState::_internal_quitting() const {
@@ -3772,7 +6116,7 @@ inline void DesktopRuntimeState::clear_health() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.health_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000400U);
+                  0x00000800U);
 }
 inline ::electron::desktop_runtime::DesktopRuntimeHealth DesktopRuntimeState::health() const {
   // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeState.health)
@@ -3780,7 +6124,7 @@ inline ::electron::desktop_runtime::DesktopRuntimeHealth DesktopRuntimeState::he
 }
 inline void DesktopRuntimeState::set_health(::electron::desktop_runtime::DesktopRuntimeHealth value) {
   _internal_set_health(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
   // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeState.health)
 }
 inline ::electron::desktop_runtime::DesktopRuntimeHealth DesktopRuntimeState::_internal_health() const {
@@ -3797,7 +6141,7 @@ inline void DesktopRuntimeState::clear_lifecycle() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.lifecycle_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000800U);
+                  0x00001000U);
 }
 inline ::electron::desktop_runtime::DesktopRuntimeLifecycle DesktopRuntimeState::lifecycle() const {
   // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeState.lifecycle)
@@ -3805,7 +6149,7 @@ inline ::electron::desktop_runtime::DesktopRuntimeLifecycle DesktopRuntimeState:
 }
 inline void DesktopRuntimeState::set_lifecycle(::electron::desktop_runtime::DesktopRuntimeLifecycle value) {
   _internal_set_lifecycle(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
   // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeState.lifecycle)
 }
 inline ::electron::desktop_runtime::DesktopRuntimeLifecycle DesktopRuntimeState::_internal_lifecycle() const {
@@ -4291,6 +6635,1981 @@ DesktopRuntimeState::_internal_actions() const {
 }
 inline ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopRuntimeActionItem>* PROTOBUF_NONNULL
 DesktopRuntimeState::_internal_mutable_actions() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.actions_;
+}
+
+// .electron.desktop_runtime.DesktopRuntimeCLIInstallSummary cli_install = 13;
+inline bool DesktopRuntimeState::has_cli_install() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000100U);
+  PROTOBUF_ASSUME(!value || _impl_.cli_install_ != nullptr);
+  return value;
+}
+inline void DesktopRuntimeState::clear_cli_install() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.cli_install_ != nullptr) _impl_.cli_install_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline const ::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary& DesktopRuntimeState::_internal_cli_install() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary* p = _impl_.cli_install_;
+  return p != nullptr ? *p : reinterpret_cast<const ::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary&>(::electron::desktop_runtime::_DesktopRuntimeCLIInstallSummary_default_instance_);
+}
+inline const ::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary& DesktopRuntimeState::cli_install() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeState.cli_install)
+  return _internal_cli_install();
+}
+inline void DesktopRuntimeState::unsafe_arena_set_allocated_cli_install(
+    ::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.cli_install_);
+  }
+  _impl_.cli_install_ = reinterpret_cast<::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:electron.desktop_runtime.DesktopRuntimeState.cli_install)
+}
+inline ::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary* PROTOBUF_NULLABLE DesktopRuntimeState::release_cli_install() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary* released = _impl_.cli_install_;
+  _impl_.cli_install_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary* PROTOBUF_NULLABLE DesktopRuntimeState::unsafe_arena_release_cli_install() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeState.cli_install)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary* temp = _impl_.cli_install_;
+  _impl_.cli_install_ = nullptr;
+  return temp;
+}
+inline ::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary* PROTOBUF_NONNULL DesktopRuntimeState::_internal_mutable_cli_install() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.cli_install_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary>(GetArena());
+    _impl_.cli_install_ = reinterpret_cast<::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary*>(p);
+  }
+  return _impl_.cli_install_;
+}
+inline ::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary* PROTOBUF_NONNULL DesktopRuntimeState::mutable_cli_install()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary* _msg = _internal_mutable_cli_install();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeState.cli_install)
+  return _msg;
+}
+inline void DesktopRuntimeState::set_allocated_cli_install(::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.cli_install_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  }
+
+  _impl_.cli_install_ = reinterpret_cast<::electron::desktop_runtime::DesktopRuntimeCLIInstallSummary*>(value);
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeState.cli_install)
+}
+
+// -------------------------------------------------------------------
+
+// DesktopCLIEntrypointIdentity
+
+// string path = 1;
+inline void DesktopCLIEntrypointIdentity::clear_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& DesktopCLIEntrypointIdentity::path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIEntrypointIdentity.path)
+  return _internal_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopCLIEntrypointIdentity::set_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIEntrypointIdentity.path)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIEntrypointIdentity::mutable_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_path();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIEntrypointIdentity.path)
+  return _s;
+}
+inline const ::std::string& DesktopCLIEntrypointIdentity::_internal_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.path_.Get();
+}
+inline void DesktopCLIEntrypointIdentity::_internal_set_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIEntrypointIdentity::_internal_mutable_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopCLIEntrypointIdentity::release_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIEntrypointIdentity.path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopCLIEntrypointIdentity::set_allocated_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.path_.IsDefault()) {
+    _impl_.path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIEntrypointIdentity.path)
+}
+
+// string project_id = 2;
+inline void DesktopCLIEntrypointIdentity::clear_project_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.project_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& DesktopCLIEntrypointIdentity::project_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIEntrypointIdentity.project_id)
+  return _internal_project_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopCLIEntrypointIdentity::set_project_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.project_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIEntrypointIdentity.project_id)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIEntrypointIdentity::mutable_project_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_project_id();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIEntrypointIdentity.project_id)
+  return _s;
+}
+inline const ::std::string& DesktopCLIEntrypointIdentity::_internal_project_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.project_id_.Get();
+}
+inline void DesktopCLIEntrypointIdentity::_internal_set_project_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.project_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIEntrypointIdentity::_internal_mutable_project_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.project_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopCLIEntrypointIdentity::release_project_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIEntrypointIdentity.project_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.project_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.project_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopCLIEntrypointIdentity::set_allocated_project_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.project_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.project_id_.IsDefault()) {
+    _impl_.project_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIEntrypointIdentity.project_id)
+}
+
+// string entrypoint_role = 3;
+inline void DesktopCLIEntrypointIdentity::clear_entrypoint_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.entrypoint_role_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& DesktopCLIEntrypointIdentity::entrypoint_role() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIEntrypointIdentity.entrypoint_role)
+  return _internal_entrypoint_role();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopCLIEntrypointIdentity::set_entrypoint_role(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.entrypoint_role_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIEntrypointIdentity.entrypoint_role)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIEntrypointIdentity::mutable_entrypoint_role()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_entrypoint_role();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIEntrypointIdentity.entrypoint_role)
+  return _s;
+}
+inline const ::std::string& DesktopCLIEntrypointIdentity::_internal_entrypoint_role() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.entrypoint_role_.Get();
+}
+inline void DesktopCLIEntrypointIdentity::_internal_set_entrypoint_role(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.entrypoint_role_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIEntrypointIdentity::_internal_mutable_entrypoint_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.entrypoint_role_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopCLIEntrypointIdentity::release_entrypoint_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIEntrypointIdentity.entrypoint_role)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.entrypoint_role_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.entrypoint_role_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopCLIEntrypointIdentity::set_allocated_entrypoint_role(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.entrypoint_role_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.entrypoint_role_.IsDefault()) {
+    _impl_.entrypoint_role_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIEntrypointIdentity.entrypoint_role)
+}
+
+// string channel_key = 4;
+inline void DesktopCLIEntrypointIdentity::clear_channel_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.channel_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& DesktopCLIEntrypointIdentity::channel_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIEntrypointIdentity.channel_key)
+  return _internal_channel_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopCLIEntrypointIdentity::set_channel_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.channel_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIEntrypointIdentity.channel_key)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIEntrypointIdentity::mutable_channel_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_channel_key();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIEntrypointIdentity.channel_key)
+  return _s;
+}
+inline const ::std::string& DesktopCLIEntrypointIdentity::_internal_channel_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.channel_key_.Get();
+}
+inline void DesktopCLIEntrypointIdentity::_internal_set_channel_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.channel_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIEntrypointIdentity::_internal_mutable_channel_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.channel_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopCLIEntrypointIdentity::release_channel_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIEntrypointIdentity.channel_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.channel_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.channel_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopCLIEntrypointIdentity::set_allocated_channel_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.channel_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.channel_key_.IsDefault()) {
+    _impl_.channel_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIEntrypointIdentity.channel_key)
+}
+
+// string manifest_id = 5;
+inline void DesktopCLIEntrypointIdentity::clear_manifest_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.manifest_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& DesktopCLIEntrypointIdentity::manifest_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIEntrypointIdentity.manifest_id)
+  return _internal_manifest_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopCLIEntrypointIdentity::set_manifest_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.manifest_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIEntrypointIdentity.manifest_id)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIEntrypointIdentity::mutable_manifest_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_manifest_id();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIEntrypointIdentity.manifest_id)
+  return _s;
+}
+inline const ::std::string& DesktopCLIEntrypointIdentity::_internal_manifest_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.manifest_id_.Get();
+}
+inline void DesktopCLIEntrypointIdentity::_internal_set_manifest_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.manifest_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIEntrypointIdentity::_internal_mutable_manifest_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.manifest_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopCLIEntrypointIdentity::release_manifest_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIEntrypointIdentity.manifest_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.manifest_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.manifest_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopCLIEntrypointIdentity::set_allocated_manifest_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.manifest_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.manifest_id_.IsDefault()) {
+    _impl_.manifest_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIEntrypointIdentity.manifest_id)
+}
+
+// uint64 manifest_rev = 6;
+inline void DesktopCLIEntrypointIdentity::clear_manifest_rev() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.manifest_rev_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline ::uint64_t DesktopCLIEntrypointIdentity::manifest_rev() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIEntrypointIdentity.manifest_rev)
+  return _internal_manifest_rev();
+}
+inline void DesktopCLIEntrypointIdentity::set_manifest_rev(::uint64_t value) {
+  _internal_set_manifest_rev(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIEntrypointIdentity.manifest_rev)
+}
+inline ::uint64_t DesktopCLIEntrypointIdentity::_internal_manifest_rev() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.manifest_rev_;
+}
+inline void DesktopCLIEntrypointIdentity::_internal_set_manifest_rev(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.manifest_rev_ = value;
+}
+
+// string platform_id = 7;
+inline void DesktopCLIEntrypointIdentity::clear_platform_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.platform_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::std::string& DesktopCLIEntrypointIdentity::platform_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIEntrypointIdentity.platform_id)
+  return _internal_platform_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopCLIEntrypointIdentity::set_platform_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  _impl_.platform_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIEntrypointIdentity.platform_id)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIEntrypointIdentity::mutable_platform_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::std::string* _s = _internal_mutable_platform_id();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIEntrypointIdentity.platform_id)
+  return _s;
+}
+inline const ::std::string& DesktopCLIEntrypointIdentity::_internal_platform_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.platform_id_.Get();
+}
+inline void DesktopCLIEntrypointIdentity::_internal_set_platform_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.platform_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIEntrypointIdentity::_internal_mutable_platform_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.platform_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopCLIEntrypointIdentity::release_platform_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIEntrypointIdentity.platform_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  auto* released = _impl_.platform_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.platform_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopCLIEntrypointIdentity::set_allocated_platform_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  _impl_.platform_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.platform_id_.IsDefault()) {
+    _impl_.platform_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIEntrypointIdentity.platform_id)
+}
+
+// -------------------------------------------------------------------
+
+// DesktopCLIInstallTarget
+
+// string id = 1;
+inline void DesktopCLIInstallTarget::clear_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& DesktopCLIInstallTarget::id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallTarget.id)
+  return _internal_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopCLIInstallTarget::set_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallTarget.id)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallTarget::mutable_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_id();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIInstallTarget.id)
+  return _s;
+}
+inline const ::std::string& DesktopCLIInstallTarget::_internal_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.id_.Get();
+}
+inline void DesktopCLIInstallTarget::_internal_set_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallTarget::_internal_mutable_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopCLIInstallTarget::release_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIInstallTarget.id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopCLIInstallTarget::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIInstallTarget.id)
+}
+
+// string label = 2;
+inline void DesktopCLIInstallTarget::clear_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.label_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& DesktopCLIInstallTarget::label() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallTarget.label)
+  return _internal_label();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopCLIInstallTarget::set_label(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.label_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallTarget.label)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallTarget::mutable_label()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_label();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIInstallTarget.label)
+  return _s;
+}
+inline const ::std::string& DesktopCLIInstallTarget::_internal_label() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.label_.Get();
+}
+inline void DesktopCLIInstallTarget::_internal_set_label(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.label_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallTarget::_internal_mutable_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.label_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopCLIInstallTarget::release_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIInstallTarget.label)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.label_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.label_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopCLIInstallTarget::set_allocated_label(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.label_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.label_.IsDefault()) {
+    _impl_.label_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIInstallTarget.label)
+}
+
+// string path = 3;
+inline void DesktopCLIInstallTarget::clear_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& DesktopCLIInstallTarget::path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallTarget.path)
+  return _internal_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopCLIInstallTarget::set_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallTarget.path)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallTarget::mutable_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_path();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIInstallTarget.path)
+  return _s;
+}
+inline const ::std::string& DesktopCLIInstallTarget::_internal_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.path_.Get();
+}
+inline void DesktopCLIInstallTarget::_internal_set_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallTarget::_internal_mutable_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopCLIInstallTarget::release_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIInstallTarget.path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopCLIInstallTarget::set_allocated_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.path_.IsDefault()) {
+    _impl_.path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIInstallTarget.path)
+}
+
+// bool writable = 4;
+inline void DesktopCLIInstallTarget::clear_writable() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.writable_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline bool DesktopCLIInstallTarget::writable() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallTarget.writable)
+  return _internal_writable();
+}
+inline void DesktopCLIInstallTarget::set_writable(bool value) {
+  _internal_set_writable(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallTarget.writable)
+}
+inline bool DesktopCLIInstallTarget::_internal_writable() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.writable_;
+}
+inline void DesktopCLIInstallTarget::_internal_set_writable(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.writable_ = value;
+}
+
+// bool selected = 5;
+inline void DesktopCLIInstallTarget::clear_selected() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.selected_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline bool DesktopCLIInstallTarget::selected() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallTarget.selected)
+  return _internal_selected();
+}
+inline void DesktopCLIInstallTarget::set_selected(bool value) {
+  _internal_set_selected(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallTarget.selected)
+}
+inline bool DesktopCLIInstallTarget::_internal_selected() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.selected_;
+}
+inline void DesktopCLIInstallTarget::_internal_set_selected(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.selected_ = value;
+}
+
+// string detail = 6;
+inline void DesktopCLIInstallTarget::clear_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& DesktopCLIInstallTarget::detail() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallTarget.detail)
+  return _internal_detail();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopCLIInstallTarget::set_detail(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.detail_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallTarget.detail)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallTarget::mutable_detail()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_detail();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIInstallTarget.detail)
+  return _s;
+}
+inline const ::std::string& DesktopCLIInstallTarget::_internal_detail() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.detail_.Get();
+}
+inline void DesktopCLIInstallTarget::_internal_set_detail(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallTarget::_internal_mutable_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.detail_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopCLIInstallTarget::release_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIInstallTarget.detail)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.detail_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopCLIInstallTarget::set_allocated_detail(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.detail_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.detail_.IsDefault()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIInstallTarget.detail)
+}
+
+// uint64 generation = 7;
+inline void DesktopCLIInstallTarget::clear_generation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.generation_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline ::uint64_t DesktopCLIInstallTarget::generation() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallTarget.generation)
+  return _internal_generation();
+}
+inline void DesktopCLIInstallTarget::set_generation(::uint64_t value) {
+  _internal_set_generation(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallTarget.generation)
+}
+inline ::uint64_t DesktopCLIInstallTarget::_internal_generation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.generation_;
+}
+inline void DesktopCLIInstallTarget::_internal_set_generation(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.generation_ = value;
+}
+
+// .electron.desktop_runtime.DesktopCLIInstallTargetPathState path_state = 8;
+inline void DesktopCLIInstallTarget::clear_path_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.path_state_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline ::electron::desktop_runtime::DesktopCLIInstallTargetPathState DesktopCLIInstallTarget::path_state() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallTarget.path_state)
+  return _internal_path_state();
+}
+inline void DesktopCLIInstallTarget::set_path_state(::electron::desktop_runtime::DesktopCLIInstallTargetPathState value) {
+  _internal_set_path_state(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallTarget.path_state)
+}
+inline ::electron::desktop_runtime::DesktopCLIInstallTargetPathState DesktopCLIInstallTarget::_internal_path_state() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::electron::desktop_runtime::DesktopCLIInstallTargetPathState>(_impl_.path_state_);
+}
+inline void DesktopCLIInstallTarget::_internal_set_path_state(::electron::desktop_runtime::DesktopCLIInstallTargetPathState value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.path_state_ = value;
+}
+
+// string blocked_reason = 9;
+inline void DesktopCLIInstallTarget::clear_blocked_reason() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.blocked_reason_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& DesktopCLIInstallTarget::blocked_reason() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallTarget.blocked_reason)
+  return _internal_blocked_reason();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopCLIInstallTarget::set_blocked_reason(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.blocked_reason_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallTarget.blocked_reason)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallTarget::mutable_blocked_reason()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_blocked_reason();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIInstallTarget.blocked_reason)
+  return _s;
+}
+inline const ::std::string& DesktopCLIInstallTarget::_internal_blocked_reason() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.blocked_reason_.Get();
+}
+inline void DesktopCLIInstallTarget::_internal_set_blocked_reason(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.blocked_reason_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallTarget::_internal_mutable_blocked_reason() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.blocked_reason_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopCLIInstallTarget::release_blocked_reason() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIInstallTarget.blocked_reason)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.blocked_reason_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.blocked_reason_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopCLIInstallTarget::set_allocated_blocked_reason(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.blocked_reason_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.blocked_reason_.IsDefault()) {
+    _impl_.blocked_reason_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIInstallTarget.blocked_reason)
+}
+
+// -------------------------------------------------------------------
+
+// DesktopCLIInstallActionItem
+
+// string id = 1;
+inline void DesktopCLIInstallActionItem::clear_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& DesktopCLIInstallActionItem::id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallActionItem.id)
+  return _internal_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopCLIInstallActionItem::set_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallActionItem.id)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallActionItem::mutable_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_id();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIInstallActionItem.id)
+  return _s;
+}
+inline const ::std::string& DesktopCLIInstallActionItem::_internal_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.id_.Get();
+}
+inline void DesktopCLIInstallActionItem::_internal_set_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallActionItem::_internal_mutable_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopCLIInstallActionItem::release_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIInstallActionItem.id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopCLIInstallActionItem::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIInstallActionItem.id)
+}
+
+// .electron.desktop_runtime.DesktopCLIInstallActionKind kind = 2;
+inline void DesktopCLIInstallActionItem::clear_kind() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.kind_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::electron::desktop_runtime::DesktopCLIInstallActionKind DesktopCLIInstallActionItem::kind() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallActionItem.kind)
+  return _internal_kind();
+}
+inline void DesktopCLIInstallActionItem::set_kind(::electron::desktop_runtime::DesktopCLIInstallActionKind value) {
+  _internal_set_kind(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallActionItem.kind)
+}
+inline ::electron::desktop_runtime::DesktopCLIInstallActionKind DesktopCLIInstallActionItem::_internal_kind() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::electron::desktop_runtime::DesktopCLIInstallActionKind>(_impl_.kind_);
+}
+inline void DesktopCLIInstallActionItem::_internal_set_kind(::electron::desktop_runtime::DesktopCLIInstallActionKind value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.kind_ = value;
+}
+
+// string label = 3;
+inline void DesktopCLIInstallActionItem::clear_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.label_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& DesktopCLIInstallActionItem::label() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallActionItem.label)
+  return _internal_label();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopCLIInstallActionItem::set_label(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.label_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallActionItem.label)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallActionItem::mutable_label()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_label();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIInstallActionItem.label)
+  return _s;
+}
+inline const ::std::string& DesktopCLIInstallActionItem::_internal_label() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.label_.Get();
+}
+inline void DesktopCLIInstallActionItem::_internal_set_label(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.label_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallActionItem::_internal_mutable_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.label_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopCLIInstallActionItem::release_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIInstallActionItem.label)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.label_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.label_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopCLIInstallActionItem::set_allocated_label(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.label_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.label_.IsDefault()) {
+    _impl_.label_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIInstallActionItem.label)
+}
+
+// bool enabled = 4;
+inline void DesktopCLIInstallActionItem::clear_enabled() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.enabled_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline bool DesktopCLIInstallActionItem::enabled() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallActionItem.enabled)
+  return _internal_enabled();
+}
+inline void DesktopCLIInstallActionItem::set_enabled(bool value) {
+  _internal_set_enabled(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallActionItem.enabled)
+}
+inline bool DesktopCLIInstallActionItem::_internal_enabled() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.enabled_;
+}
+inline void DesktopCLIInstallActionItem::_internal_set_enabled(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.enabled_ = value;
+}
+
+// string target_id = 5;
+inline void DesktopCLIInstallActionItem::clear_target_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& DesktopCLIInstallActionItem::target_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallActionItem.target_id)
+  return _internal_target_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopCLIInstallActionItem::set_target_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.target_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallActionItem.target_id)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallActionItem::mutable_target_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_target_id();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIInstallActionItem.target_id)
+  return _s;
+}
+inline const ::std::string& DesktopCLIInstallActionItem::_internal_target_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.target_id_.Get();
+}
+inline void DesktopCLIInstallActionItem::_internal_set_target_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallActionItem::_internal_mutable_target_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.target_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopCLIInstallActionItem::release_target_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIInstallActionItem.target_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.target_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.target_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopCLIInstallActionItem::set_allocated_target_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.target_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.target_id_.IsDefault()) {
+    _impl_.target_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIInstallActionItem.target_id)
+}
+
+// uint64 generation = 6;
+inline void DesktopCLIInstallActionItem::clear_generation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.generation_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline ::uint64_t DesktopCLIInstallActionItem::generation() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallActionItem.generation)
+  return _internal_generation();
+}
+inline void DesktopCLIInstallActionItem::set_generation(::uint64_t value) {
+  _internal_set_generation(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallActionItem.generation)
+}
+inline ::uint64_t DesktopCLIInstallActionItem::_internal_generation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.generation_;
+}
+inline void DesktopCLIInstallActionItem::_internal_set_generation(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.generation_ = value;
+}
+
+// string detail = 7;
+inline void DesktopCLIInstallActionItem::clear_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& DesktopCLIInstallActionItem::detail() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallActionItem.detail)
+  return _internal_detail();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopCLIInstallActionItem::set_detail(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.detail_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallActionItem.detail)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallActionItem::mutable_detail()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_detail();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIInstallActionItem.detail)
+  return _s;
+}
+inline const ::std::string& DesktopCLIInstallActionItem::_internal_detail() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.detail_.Get();
+}
+inline void DesktopCLIInstallActionItem::_internal_set_detail(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallActionItem::_internal_mutable_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.detail_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopCLIInstallActionItem::release_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIInstallActionItem.detail)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.detail_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopCLIInstallActionItem::set_allocated_detail(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.detail_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.detail_.IsDefault()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIInstallActionItem.detail)
+}
+
+// -------------------------------------------------------------------
+
+// DesktopCLIInstallState
+
+// .electron.desktop_runtime.DesktopCLIInstallStatus status = 1;
+inline void DesktopCLIInstallState::clear_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
+}
+inline ::electron::desktop_runtime::DesktopCLIInstallStatus DesktopCLIInstallState::status() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallState.status)
+  return _internal_status();
+}
+inline void DesktopCLIInstallState::set_status(::electron::desktop_runtime::DesktopCLIInstallStatus value) {
+  _internal_set_status(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallState.status)
+}
+inline ::electron::desktop_runtime::DesktopCLIInstallStatus DesktopCLIInstallState::_internal_status() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::electron::desktop_runtime::DesktopCLIInstallStatus>(_impl_.status_);
+}
+inline void DesktopCLIInstallState::_internal_set_status(::electron::desktop_runtime::DesktopCLIInstallStatus value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = value;
+}
+
+// string label = 2;
+inline void DesktopCLIInstallState::clear_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.label_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& DesktopCLIInstallState::label() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallState.label)
+  return _internal_label();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopCLIInstallState::set_label(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.label_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallState.label)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallState::mutable_label()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_label();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIInstallState.label)
+  return _s;
+}
+inline const ::std::string& DesktopCLIInstallState::_internal_label() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.label_.Get();
+}
+inline void DesktopCLIInstallState::_internal_set_label(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.label_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallState::_internal_mutable_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.label_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopCLIInstallState::release_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIInstallState.label)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.label_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.label_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopCLIInstallState::set_allocated_label(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.label_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.label_.IsDefault()) {
+    _impl_.label_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIInstallState.label)
+}
+
+// string detail = 3;
+inline void DesktopCLIInstallState::clear_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& DesktopCLIInstallState::detail() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallState.detail)
+  return _internal_detail();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopCLIInstallState::set_detail(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.detail_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallState.detail)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallState::mutable_detail()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_detail();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIInstallState.detail)
+  return _s;
+}
+inline const ::std::string& DesktopCLIInstallState::_internal_detail() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.detail_.Get();
+}
+inline void DesktopCLIInstallState::_internal_set_detail(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallState::_internal_mutable_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.detail_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopCLIInstallState::release_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIInstallState.detail)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.detail_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopCLIInstallState::set_allocated_detail(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.detail_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.detail_.IsDefault()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIInstallState.detail)
+}
+
+// .electron.desktop_runtime.DesktopCLIEntrypointIdentity installed = 4;
+inline bool DesktopCLIInstallState::has_installed() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000080U);
+  PROTOBUF_ASSUME(!value || _impl_.installed_ != nullptr);
+  return value;
+}
+inline void DesktopCLIInstallState::clear_installed() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.installed_ != nullptr) _impl_.installed_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline const ::electron::desktop_runtime::DesktopCLIEntrypointIdentity& DesktopCLIInstallState::_internal_installed() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* p = _impl_.installed_;
+  return p != nullptr ? *p : reinterpret_cast<const ::electron::desktop_runtime::DesktopCLIEntrypointIdentity&>(::electron::desktop_runtime::_DesktopCLIEntrypointIdentity_default_instance_);
+}
+inline const ::electron::desktop_runtime::DesktopCLIEntrypointIdentity& DesktopCLIInstallState::installed() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallState.installed)
+  return _internal_installed();
+}
+inline void DesktopCLIInstallState::unsafe_arena_set_allocated_installed(
+    ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.installed_);
+  }
+  _impl_.installed_ = reinterpret_cast<::electron::desktop_runtime::DesktopCLIEntrypointIdentity*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:electron.desktop_runtime.DesktopCLIInstallState.installed)
+}
+inline ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NULLABLE DesktopCLIInstallState::release_installed() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* released = _impl_.installed_;
+  _impl_.installed_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NULLABLE DesktopCLIInstallState::unsafe_arena_release_installed() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIInstallState.installed)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* temp = _impl_.installed_;
+  _impl_.installed_ = nullptr;
+  return temp;
+}
+inline ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NONNULL DesktopCLIInstallState::_internal_mutable_installed() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.installed_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::electron::desktop_runtime::DesktopCLIEntrypointIdentity>(GetArena());
+    _impl_.installed_ = reinterpret_cast<::electron::desktop_runtime::DesktopCLIEntrypointIdentity*>(p);
+  }
+  return _impl_.installed_;
+}
+inline ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NONNULL DesktopCLIInstallState::mutable_installed()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* _msg = _internal_mutable_installed();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIInstallState.installed)
+  return _msg;
+}
+inline void DesktopCLIInstallState::set_allocated_installed(::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.installed_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  }
+
+  _impl_.installed_ = reinterpret_cast<::electron::desktop_runtime::DesktopCLIEntrypointIdentity*>(value);
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIInstallState.installed)
+}
+
+// .electron.desktop_runtime.DesktopCLIEntrypointIdentity available = 5;
+inline bool DesktopCLIInstallState::has_available() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000100U);
+  PROTOBUF_ASSUME(!value || _impl_.available_ != nullptr);
+  return value;
+}
+inline void DesktopCLIInstallState::clear_available() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.available_ != nullptr) _impl_.available_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline const ::electron::desktop_runtime::DesktopCLIEntrypointIdentity& DesktopCLIInstallState::_internal_available() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* p = _impl_.available_;
+  return p != nullptr ? *p : reinterpret_cast<const ::electron::desktop_runtime::DesktopCLIEntrypointIdentity&>(::electron::desktop_runtime::_DesktopCLIEntrypointIdentity_default_instance_);
+}
+inline const ::electron::desktop_runtime::DesktopCLIEntrypointIdentity& DesktopCLIInstallState::available() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallState.available)
+  return _internal_available();
+}
+inline void DesktopCLIInstallState::unsafe_arena_set_allocated_available(
+    ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.available_);
+  }
+  _impl_.available_ = reinterpret_cast<::electron::desktop_runtime::DesktopCLIEntrypointIdentity*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:electron.desktop_runtime.DesktopCLIInstallState.available)
+}
+inline ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NULLABLE DesktopCLIInstallState::release_available() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* released = _impl_.available_;
+  _impl_.available_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NULLABLE DesktopCLIInstallState::unsafe_arena_release_available() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIInstallState.available)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* temp = _impl_.available_;
+  _impl_.available_ = nullptr;
+  return temp;
+}
+inline ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NONNULL DesktopCLIInstallState::_internal_mutable_available() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.available_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::electron::desktop_runtime::DesktopCLIEntrypointIdentity>(GetArena());
+    _impl_.available_ = reinterpret_cast<::electron::desktop_runtime::DesktopCLIEntrypointIdentity*>(p);
+  }
+  return _impl_.available_;
+}
+inline ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NONNULL DesktopCLIInstallState::mutable_available()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ::electron::desktop_runtime::DesktopCLIEntrypointIdentity* _msg = _internal_mutable_available();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIInstallState.available)
+  return _msg;
+}
+inline void DesktopCLIInstallState::set_allocated_available(::electron::desktop_runtime::DesktopCLIEntrypointIdentity* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.available_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  }
+
+  _impl_.available_ = reinterpret_cast<::electron::desktop_runtime::DesktopCLIEntrypointIdentity*>(value);
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIInstallState.available)
+}
+
+// repeated .electron.desktop_runtime.DesktopCLIInstallTarget targets = 6;
+inline int DesktopCLIInstallState::_internal_targets_size() const {
+  return _internal_targets().size();
+}
+inline int DesktopCLIInstallState::targets_size() const {
+  return _internal_targets_size();
+}
+inline void DesktopCLIInstallState::clear_targets() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.targets_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::electron::desktop_runtime::DesktopCLIInstallTarget* PROTOBUF_NONNULL DesktopCLIInstallState::mutable_targets(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIInstallState.targets)
+  return _internal_mutable_targets()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopCLIInstallTarget>* PROTOBUF_NONNULL DesktopCLIInstallState::mutable_targets()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:electron.desktop_runtime.DesktopCLIInstallState.targets)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_targets();
+}
+inline const ::electron::desktop_runtime::DesktopCLIInstallTarget& DesktopCLIInstallState::targets(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallState.targets)
+  return _internal_targets().Get(index);
+}
+inline ::electron::desktop_runtime::DesktopCLIInstallTarget* PROTOBUF_NONNULL DesktopCLIInstallState::add_targets()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::electron::desktop_runtime::DesktopCLIInstallTarget* _add =
+      _internal_mutable_targets()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:electron.desktop_runtime.DesktopCLIInstallState.targets)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopCLIInstallTarget>& DesktopCLIInstallState::targets() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:electron.desktop_runtime.DesktopCLIInstallState.targets)
+  return _internal_targets();
+}
+inline const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopCLIInstallTarget>&
+DesktopCLIInstallState::_internal_targets() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.targets_;
+}
+inline ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopCLIInstallTarget>* PROTOBUF_NONNULL
+DesktopCLIInstallState::_internal_mutable_targets() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.targets_;
+}
+
+// string conflict_path = 7;
+inline void DesktopCLIInstallState::clear_conflict_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.conflict_path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& DesktopCLIInstallState::conflict_path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallState.conflict_path)
+  return _internal_conflict_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopCLIInstallState::set_conflict_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.conflict_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallState.conflict_path)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallState::mutable_conflict_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_conflict_path();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIInstallState.conflict_path)
+  return _s;
+}
+inline const ::std::string& DesktopCLIInstallState::_internal_conflict_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.conflict_path_.Get();
+}
+inline void DesktopCLIInstallState::_internal_set_conflict_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.conflict_path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallState::_internal_mutable_conflict_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.conflict_path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopCLIInstallState::release_conflict_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIInstallState.conflict_path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.conflict_path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.conflict_path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopCLIInstallState::set_allocated_conflict_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.conflict_path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.conflict_path_.IsDefault()) {
+    _impl_.conflict_path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIInstallState.conflict_path)
+}
+
+// string error_message = 8;
+inline void DesktopCLIInstallState::clear_error_message() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_message_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::std::string& DesktopCLIInstallState::error_message() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallState.error_message)
+  return _internal_error_message();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopCLIInstallState::set_error_message(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  _impl_.error_message_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallState.error_message)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallState::mutable_error_message()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::std::string* _s = _internal_mutable_error_message();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIInstallState.error_message)
+  return _s;
+}
+inline const ::std::string& DesktopCLIInstallState::_internal_error_message() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.error_message_.Get();
+}
+inline void DesktopCLIInstallState::_internal_set_error_message(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_message_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallState::_internal_mutable_error_message() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.error_message_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopCLIInstallState::release_error_message() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIInstallState.error_message)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  auto* released = _impl_.error_message_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.error_message_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopCLIInstallState::set_allocated_error_message(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  _impl_.error_message_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.error_message_.IsDefault()) {
+    _impl_.error_message_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIInstallState.error_message)
+}
+
+// uint64 generation = 9;
+inline void DesktopCLIInstallState::clear_generation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.generation_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline ::uint64_t DesktopCLIInstallState::generation() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallState.generation)
+  return _internal_generation();
+}
+inline void DesktopCLIInstallState::set_generation(::uint64_t value) {
+  _internal_set_generation(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallState.generation)
+}
+inline ::uint64_t DesktopCLIInstallState::_internal_generation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.generation_;
+}
+inline void DesktopCLIInstallState::_internal_set_generation(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.generation_ = value;
+}
+
+// string selected_target_id = 10;
+inline void DesktopCLIInstallState::clear_selected_target_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.selected_target_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::std::string& DesktopCLIInstallState::selected_target_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallState.selected_target_id)
+  return _internal_selected_target_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopCLIInstallState::set_selected_target_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  _impl_.selected_target_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopCLIInstallState.selected_target_id)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallState::mutable_selected_target_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::std::string* _s = _internal_mutable_selected_target_id();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIInstallState.selected_target_id)
+  return _s;
+}
+inline const ::std::string& DesktopCLIInstallState::_internal_selected_target_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.selected_target_id_.Get();
+}
+inline void DesktopCLIInstallState::_internal_set_selected_target_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.selected_target_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopCLIInstallState::_internal_mutable_selected_target_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.selected_target_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopCLIInstallState::release_selected_target_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopCLIInstallState.selected_target_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  auto* released = _impl_.selected_target_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.selected_target_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopCLIInstallState::set_allocated_selected_target_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  _impl_.selected_target_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.selected_target_id_.IsDefault()) {
+    _impl_.selected_target_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopCLIInstallState.selected_target_id)
+}
+
+// repeated .electron.desktop_runtime.DesktopCLIInstallActionItem actions = 11;
+inline int DesktopCLIInstallState::_internal_actions_size() const {
+  return _internal_actions().size();
+}
+inline int DesktopCLIInstallState::actions_size() const {
+  return _internal_actions_size();
+}
+inline void DesktopCLIInstallState::clear_actions() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.actions_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::electron::desktop_runtime::DesktopCLIInstallActionItem* PROTOBUF_NONNULL DesktopCLIInstallState::mutable_actions(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopCLIInstallState.actions)
+  return _internal_mutable_actions()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopCLIInstallActionItem>* PROTOBUF_NONNULL DesktopCLIInstallState::mutable_actions()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:electron.desktop_runtime.DesktopCLIInstallState.actions)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_actions();
+}
+inline const ::electron::desktop_runtime::DesktopCLIInstallActionItem& DesktopCLIInstallState::actions(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopCLIInstallState.actions)
+  return _internal_actions().Get(index);
+}
+inline ::electron::desktop_runtime::DesktopCLIInstallActionItem* PROTOBUF_NONNULL DesktopCLIInstallState::add_actions()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::electron::desktop_runtime::DesktopCLIInstallActionItem* _add =
+      _internal_mutable_actions()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:electron.desktop_runtime.DesktopCLIInstallState.actions)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopCLIInstallActionItem>& DesktopCLIInstallState::actions() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:electron.desktop_runtime.DesktopCLIInstallState.actions)
+  return _internal_actions();
+}
+inline const ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopCLIInstallActionItem>&
+DesktopCLIInstallState::_internal_actions() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.actions_;
+}
+inline ::google::protobuf::RepeatedPtrField<::electron::desktop_runtime::DesktopCLIInstallActionItem>* PROTOBUF_NONNULL
+DesktopCLIInstallState::_internal_mutable_actions() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.actions_;
 }
@@ -5373,6 +9692,230 @@ inline void DesktopRuntimeUpdateStatus::set_allocated_detail(::std::string* PROT
 
 // -------------------------------------------------------------------
 
+// DesktopRuntimeCLIInstallSummary
+
+// .electron.desktop_runtime.DesktopCLIInstallStatus status = 1;
+inline void DesktopRuntimeCLIInstallSummary::clear_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::electron::desktop_runtime::DesktopCLIInstallStatus DesktopRuntimeCLIInstallSummary::status() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary.status)
+  return _internal_status();
+}
+inline void DesktopRuntimeCLIInstallSummary::set_status(::electron::desktop_runtime::DesktopCLIInstallStatus value) {
+  _internal_set_status(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary.status)
+}
+inline ::electron::desktop_runtime::DesktopCLIInstallStatus DesktopRuntimeCLIInstallSummary::_internal_status() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::electron::desktop_runtime::DesktopCLIInstallStatus>(_impl_.status_);
+}
+inline void DesktopRuntimeCLIInstallSummary::_internal_set_status(::electron::desktop_runtime::DesktopCLIInstallStatus value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = value;
+}
+
+// string label = 2;
+inline void DesktopRuntimeCLIInstallSummary::clear_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.label_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& DesktopRuntimeCLIInstallSummary::label() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary.label)
+  return _internal_label();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopRuntimeCLIInstallSummary::set_label(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.label_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary.label)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeCLIInstallSummary::mutable_label()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_label();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary.label)
+  return _s;
+}
+inline const ::std::string& DesktopRuntimeCLIInstallSummary::_internal_label() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.label_.Get();
+}
+inline void DesktopRuntimeCLIInstallSummary::_internal_set_label(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.label_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeCLIInstallSummary::_internal_mutable_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.label_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeCLIInstallSummary::release_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary.label)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.label_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.label_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopRuntimeCLIInstallSummary::set_allocated_label(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.label_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.label_.IsDefault()) {
+    _impl_.label_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary.label)
+}
+
+// string detail = 3;
+inline void DesktopRuntimeCLIInstallSummary::clear_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& DesktopRuntimeCLIInstallSummary::detail() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary.detail)
+  return _internal_detail();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopRuntimeCLIInstallSummary::set_detail(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.detail_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary.detail)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeCLIInstallSummary::mutable_detail()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_detail();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary.detail)
+  return _s;
+}
+inline const ::std::string& DesktopRuntimeCLIInstallSummary::_internal_detail() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.detail_.Get();
+}
+inline void DesktopRuntimeCLIInstallSummary::_internal_set_detail(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeCLIInstallSummary::_internal_mutable_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.detail_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeCLIInstallSummary::release_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary.detail)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.detail_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopRuntimeCLIInstallSummary::set_allocated_detail(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.detail_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.detail_.IsDefault()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary.detail)
+}
+
+// string route = 4;
+inline void DesktopRuntimeCLIInstallSummary::clear_route() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.route_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& DesktopRuntimeCLIInstallSummary::route() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary.route)
+  return _internal_route();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DesktopRuntimeCLIInstallSummary::set_route(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.route_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary.route)
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeCLIInstallSummary::mutable_route()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_route();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary.route)
+  return _s;
+}
+inline const ::std::string& DesktopRuntimeCLIInstallSummary::_internal_route() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.route_.Get();
+}
+inline void DesktopRuntimeCLIInstallSummary::_internal_set_route(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.route_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DesktopRuntimeCLIInstallSummary::_internal_mutable_route() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.route_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DesktopRuntimeCLIInstallSummary::release_route() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary.route)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.route_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.route_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DesktopRuntimeCLIInstallSummary::set_allocated_route(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.route_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.route_.IsDefault()) {
+    _impl_.route_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.DesktopRuntimeCLIInstallSummary.route)
+}
+
+// -------------------------------------------------------------------
+
 // DesktopRuntimeAttentionItem
 
 // .electron.desktop_runtime.DesktopRuntimeAttentionKind kind = 1;
@@ -6294,6 +10837,211 @@ inline void OpenOrFocusMainWindowRequest::set_allocated_route(::std::string* PRO
 
 // QuitDesktopRuntimeResponse
 
+// -------------------------------------------------------------------
+
+// WatchCLIInstallStateRequest
+
+// -------------------------------------------------------------------
+
+// WatchCLIInstallStateResponse
+
+// .electron.desktop_runtime.DesktopCLIInstallState state = 1;
+inline bool WatchCLIInstallStateResponse::has_state() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.state_ != nullptr);
+  return value;
+}
+inline void WatchCLIInstallStateResponse::clear_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.state_ != nullptr) _impl_.state_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::electron::desktop_runtime::DesktopCLIInstallState& WatchCLIInstallStateResponse::_internal_state() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::electron::desktop_runtime::DesktopCLIInstallState* p = _impl_.state_;
+  return p != nullptr ? *p : reinterpret_cast<const ::electron::desktop_runtime::DesktopCLIInstallState&>(::electron::desktop_runtime::_DesktopCLIInstallState_default_instance_);
+}
+inline const ::electron::desktop_runtime::DesktopCLIInstallState& WatchCLIInstallStateResponse::state() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.WatchCLIInstallStateResponse.state)
+  return _internal_state();
+}
+inline void WatchCLIInstallStateResponse::unsafe_arena_set_allocated_state(
+    ::electron::desktop_runtime::DesktopCLIInstallState* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.state_);
+  }
+  _impl_.state_ = reinterpret_cast<::electron::desktop_runtime::DesktopCLIInstallState*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:electron.desktop_runtime.WatchCLIInstallStateResponse.state)
+}
+inline ::electron::desktop_runtime::DesktopCLIInstallState* PROTOBUF_NULLABLE WatchCLIInstallStateResponse::release_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::electron::desktop_runtime::DesktopCLIInstallState* released = _impl_.state_;
+  _impl_.state_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::electron::desktop_runtime::DesktopCLIInstallState* PROTOBUF_NULLABLE WatchCLIInstallStateResponse::unsafe_arena_release_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.WatchCLIInstallStateResponse.state)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::electron::desktop_runtime::DesktopCLIInstallState* temp = _impl_.state_;
+  _impl_.state_ = nullptr;
+  return temp;
+}
+inline ::electron::desktop_runtime::DesktopCLIInstallState* PROTOBUF_NONNULL WatchCLIInstallStateResponse::_internal_mutable_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.state_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::electron::desktop_runtime::DesktopCLIInstallState>(GetArena());
+    _impl_.state_ = reinterpret_cast<::electron::desktop_runtime::DesktopCLIInstallState*>(p);
+  }
+  return _impl_.state_;
+}
+inline ::electron::desktop_runtime::DesktopCLIInstallState* PROTOBUF_NONNULL WatchCLIInstallStateResponse::mutable_state()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::electron::desktop_runtime::DesktopCLIInstallState* _msg = _internal_mutable_state();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.WatchCLIInstallStateResponse.state)
+  return _msg;
+}
+inline void WatchCLIInstallStateResponse::set_allocated_state(::electron::desktop_runtime::DesktopCLIInstallState* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.state_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.state_ = reinterpret_cast<::electron::desktop_runtime::DesktopCLIInstallState*>(value);
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.WatchCLIInstallStateResponse.state)
+}
+
+// -------------------------------------------------------------------
+
+// InvokeCLIInstallActionRequest
+
+// string action_id = 1;
+inline void InvokeCLIInstallActionRequest::clear_action_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.action_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& InvokeCLIInstallActionRequest::action_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.InvokeCLIInstallActionRequest.action_id)
+  return _internal_action_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void InvokeCLIInstallActionRequest::set_action_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.action_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.InvokeCLIInstallActionRequest.action_id)
+}
+inline ::std::string* PROTOBUF_NONNULL InvokeCLIInstallActionRequest::mutable_action_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_action_id();
+  // @@protoc_insertion_point(field_mutable:electron.desktop_runtime.InvokeCLIInstallActionRequest.action_id)
+  return _s;
+}
+inline const ::std::string& InvokeCLIInstallActionRequest::_internal_action_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.action_id_.Get();
+}
+inline void InvokeCLIInstallActionRequest::_internal_set_action_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.action_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL InvokeCLIInstallActionRequest::_internal_mutable_action_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.action_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE InvokeCLIInstallActionRequest::release_action_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.desktop_runtime.InvokeCLIInstallActionRequest.action_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.action_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.action_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void InvokeCLIInstallActionRequest::set_allocated_action_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.action_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.action_id_.IsDefault()) {
+    _impl_.action_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.desktop_runtime.InvokeCLIInstallActionRequest.action_id)
+}
+
+// uint64 generation = 2;
+inline void InvokeCLIInstallActionRequest::clear_generation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.generation_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::uint64_t InvokeCLIInstallActionRequest::generation() const {
+  // @@protoc_insertion_point(field_get:electron.desktop_runtime.InvokeCLIInstallActionRequest.generation)
+  return _internal_generation();
+}
+inline void InvokeCLIInstallActionRequest::set_generation(::uint64_t value) {
+  _internal_set_generation(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:electron.desktop_runtime.InvokeCLIInstallActionRequest.generation)
+}
+inline ::uint64_t InvokeCLIInstallActionRequest::_internal_generation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.generation_;
+}
+inline void InvokeCLIInstallActionRequest::_internal_set_generation(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.generation_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// InvokeCLIInstallActionResponse
+
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif  // __GNUC__
@@ -6306,6 +11054,24 @@ inline void OpenOrFocusMainWindowRequest::set_allocated_route(::std::string* PRO
 namespace google {
 namespace protobuf {
 
+template <>
+struct is_proto_enum<::electron::desktop_runtime::DesktopCLIInstallStatus> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::electron::desktop_runtime::DesktopCLIInstallStatus>() {
+  return ::electron::desktop_runtime::DesktopCLIInstallStatus_descriptor();
+}
+template <>
+struct is_proto_enum<::electron::desktop_runtime::DesktopCLIInstallActionKind> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::electron::desktop_runtime::DesktopCLIInstallActionKind>() {
+  return ::electron::desktop_runtime::DesktopCLIInstallActionKind_descriptor();
+}
+template <>
+struct is_proto_enum<::electron::desktop_runtime::DesktopCLIInstallTargetPathState> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::electron::desktop_runtime::DesktopCLIInstallTargetPathState>() {
+  return ::electron::desktop_runtime::DesktopCLIInstallTargetPathState_descriptor();
+}
 template <>
 struct is_proto_enum<::electron::desktop_runtime::DesktopRuntimeHealth> : std::true_type {};
 template <>

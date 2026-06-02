@@ -91,19 +91,6 @@ import {
   releaseQuickstartSharedObjectHandoff,
 } from '@s4wave/app/quickstart/session-handoff.js'
 
-function logQuickstartRouteDiagnostic(
-  message: string,
-  fields: Record<string, unknown>,
-): void {
-  if (
-    !(globalThis as { __s4waveLogQuickstartTiming?: boolean })
-      .__s4waveLogQuickstartTiming
-  ) {
-    return
-  }
-  console.log(message + ': ' + JSON.stringify(fields))
-}
-
 interface SharedObjectMutationPermission {
   canMutate: boolean
   disabledReason: string
@@ -695,36 +682,11 @@ export function SessionSharedObjectContainer() {
         sharedObjectId,
       )
       if (handoff) {
-        logQuickstartRouteDiagnostic(
-          'quickstart route using shared object handoff',
-          {
-            sessionIndex,
-            sharedObjectId,
-            sharedObjectReleased: handoff.released,
-          },
-        )
         return cleanup(handoff)
       }
 
       const req: MountSharedObjectRequest = { sharedObjectId }
-      logQuickstartRouteDiagnostic(
-        'quickstart route mount shared object start',
-        {
-          sessionIndex,
-          sharedObjectId,
-          sessionReleased: session.released,
-        },
-      )
       const result = await session.mountSharedObject(req, signal)
-      logQuickstartRouteDiagnostic(
-        'quickstart route mount shared object finish',
-        {
-          sessionIndex,
-          sharedObjectId,
-          found: !!result,
-          resourceId: result?.id ?? 0,
-        },
-      )
       if (!result) {
         console.warn(
           'mount shared object returned not found, redirecting to session',
@@ -752,27 +714,9 @@ export function SessionSharedObjectContainer() {
         sharedObjectId,
       )
       if (handoff) {
-        logQuickstartRouteDiagnostic(
-          'quickstart route using shared object body handoff',
-          {
-            sessionIndex,
-            sharedObjectId,
-            bodyReleased: handoff.released,
-          },
-        )
         return cleanup(handoff)
       }
-      logQuickstartRouteDiagnostic('quickstart route mount body start', {
-        sessionIndex,
-        sharedObjectId,
-        sharedObjectReleased: sobject.released,
-      })
       const body = await sobject.mountSharedObjectBody({}, signal)
-      logQuickstartRouteDiagnostic('quickstart route mount body finish', {
-        sessionIndex,
-        sharedObjectId,
-        resourceId: body.id,
-      })
       return cleanup(body)
     },
     [sessionIndex, sharedObjectId],

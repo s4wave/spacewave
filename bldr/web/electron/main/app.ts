@@ -36,6 +36,11 @@ import {
   ExternalLinks,
   type ElectronInit,
 } from '../../plugin/electron/electron.pb.js'
+import {
+  buildDesktopCLIInstallDetector,
+  buildDesktopCLIInstallProbe,
+  readManagedCLIReleaseBinary,
+} from './desktop-cli-install-node.js'
 import { DesktopRuntimeResource } from './desktop-runtime.js'
 import {
   buildDesktopTrayEntriesFromRuntimeState,
@@ -123,13 +128,26 @@ export class BldrElectronApp {
       this.serviceWorkerHostClient,
     )
 
+    const cliInstallProbe = buildDesktopCLIInstallProbe()
+    const cliRelease = this.electronInit.managedCliRelease
     this.desktopRuntimeResource = new DesktopRuntimeResource({
       openOrFocusMainWindow: this.openOrFocusMainWindow.bind(this),
       quitDesktopRuntime: this.quitDesktopRuntime.bind(this),
+      desktopCLIInstall: {
+        detectCLIInstallState: buildDesktopCLIInstallDetector(
+          cliRelease,
+          cliInstallProbe,
+        ),
+        openCLISettings: () =>
+          this.openOrFocusMainWindow({ route: '/settings' }),
+        readReleaseBinary: readManagedCLIReleaseBinary(cliRelease),
+        probe: cliInstallProbe,
+      },
     })
     this.webRuntime.registerServerExtension(
       this.desktopRuntimeResource.resourceServer,
     )
+    void this.desktopRuntimeResource.desktopCLIInstallResource.recheck()
   }
 
   // init initializes the app

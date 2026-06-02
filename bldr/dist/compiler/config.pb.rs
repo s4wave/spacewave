@@ -52,6 +52,13 @@ pub struct Config {
     /// ProjectId overrides the project id set in the project config.
     #[prost(string, tag="4")]
     pub project_id: ::prost::alloc::string::String,
+    /// EntrypointRole identifies the release role for the dist binary.
+    /// Expected values are "desktop", "browser", and "cli".
+    #[prost(string, tag="10")]
+    pub entrypoint_role: ::prost::alloc::string::String,
+    /// ChannelKey is the release channel this entrypoint targets.
+    #[prost(string, tag="11")]
+    pub channel_key: ::prost::alloc::string::String,
     /// EnableCgo enables cgo in the Go compiler.
     ///
     /// Cgo is disabled by default as it may cause non-reproducible builds.

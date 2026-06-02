@@ -36,6 +36,34 @@ pub struct ElectronInit {
     /// MacosTemplateTrayIconPath is the path to the macOS template tray icon.
     #[prost(string, tag="11")]
     pub macos_template_tray_icon_path: ::prost::alloc::string::String,
+    /// ManagedCliRelease identifies the release-selected CLI source for desktop-managed installs.
+    #[prost(message, optional, tag="12")]
+    pub managed_cli_release: ::core::option::Option<ManagedCliRelease>,
+}
+/// ManagedCLIRelease identifies a release-selected managed CLI binary.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ManagedCliRelease {
+    /// BinaryPath is the local release binary path Electron main may copy.
+    #[prost(string, tag="1")]
+    pub binary_path: ::prost::alloc::string::String,
+    /// ProjectId is the release project id.
+    #[prost(string, tag="2")]
+    pub project_id: ::prost::alloc::string::String,
+    /// EntrypointRole must be cli.
+    #[prost(string, tag="3")]
+    pub entrypoint_role: ::prost::alloc::string::String,
+    /// ChannelKey is the selected release channel.
+    #[prost(string, tag="4")]
+    pub channel_key: ::prost::alloc::string::String,
+    /// ManifestId is the selected CLI Manifest id.
+    #[prost(string, tag="5")]
+    pub manifest_id: ::prost::alloc::string::String,
+    /// ManifestRev is the selected CLI Manifest revision.
+    #[prost(uint64, tag="6")]
+    pub manifest_rev: u64,
+    /// PlatformId is the selected native platform id.
+    #[prost(string, tag="7")]
+    pub platform_id: ::prost::alloc::string::String,
 }
 /// Config is the configuration for the electron runtime.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -94,6 +122,9 @@ pub struct Config {
     /// MacosTemplateTrayIconPath is the path to the macOS template tray icon.
     #[prost(string, tag="16")]
     pub macos_template_tray_icon_path: ::prost::alloc::string::String,
+    /// ManagedCliRelease identifies the release-selected CLI source for desktop-managed installs.
+    #[prost(message, optional, tag="17")]
+    pub managed_cli_release: ::core::option::Option<ManagedCliRelease>,
 }
 /// ExternalLinks configures how external links are handled.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]

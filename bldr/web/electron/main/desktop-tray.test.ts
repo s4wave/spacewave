@@ -18,6 +18,7 @@ import {
   type DesktopTrayActionHandlerService,
 } from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray_srpc.pb.js'
 import {
+  DesktopCLIInstallStatus,
   DesktopRuntimeActionKind,
   DesktopRuntimeHealth,
   DesktopRuntimeSeverity,
@@ -613,6 +614,48 @@ describe('DesktopTrayController', () => {
     })
     expect(mockResource.OpenOrFocusMainWindow).toHaveBeenNthCalledWith(7, {
       route: '/about',
+    })
+  })
+
+  it('projects compact CLI install status and settings action without install actions', async () => {
+    const state = {
+      ...defaultRuntimeState(),
+      cliInstall: {
+        status:
+          DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_UPDATE_AVAILABLE,
+        label: 'CLI update available',
+        detail: 'spacewave-cli rev 9',
+        route: '/u/2/settings/cli',
+      },
+      sessions: [
+        {
+          label: 'coolguy@spacewave.app',
+          route: '/u/2/',
+          active: true,
+        },
+      ] satisfies DesktopRuntimeNavigationItem[],
+    }
+    setMockRuntimeState(state)
+    const { DesktopTrayController } = await import('./desktop-tray.js')
+    const controller = new DesktopTrayController({
+      init: { appName: 'Spacewave' },
+      resource: mockResource,
+    })
+    controller.init()
+
+    expect(templateLabels(menuTemplates[0])).toContain(
+      'Command line - CLI update available - spacewave-cli rev 9',
+    )
+    expect(templateLabels(menuTemplates[0])).toContain(
+      'Command Line Settings - CLI update available',
+    )
+    expect(templateLabels(menuTemplates[0])).not.toContain('Install')
+    expect(templateLabels(menuTemplates[0])).not.toContain('Update')
+
+    await clickMenuItem('Command Line Settings - CLI update available')
+
+    expect(mockResource.OpenOrFocusMainWindow).toHaveBeenCalledWith({
+      route: '/u/2/settings/cli',
     })
   })
 

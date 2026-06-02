@@ -84,4 +84,54 @@ std::pair<bool, starpc::Error> SRPCDesktopRuntimeResourceServiceHandler::InvokeM
   return {false, starpc::Error::OK};
 }
 
+std::pair<std::unique_ptr<SRPCDesktopCLIInstallResourceService_WatchCLIInstallStateClient>, starpc::Error> SRPCDesktopCLIInstallResourceServiceClientImpl::WatchCLIInstallState(const electron::desktop_runtime::WatchCLIInstallStateRequest& in) {
+  auto [strm, err] = cc_->NewStream(service_id_, "WatchCLIInstallState", &in);
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  err = strm->CloseSend();
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::make_unique<SRPCDesktopCLIInstallResourceService_WatchCLIInstallStateClient>(std::move(strm)), starpc::Error::OK};
+}
+
+starpc::Error SRPCDesktopCLIInstallResourceServiceClientImpl::InvokeCLIInstallAction(const electron::desktop_runtime::InvokeCLIInstallActionRequest& in, electron::desktop_runtime::InvokeCLIInstallActionResponse* out) {
+  return cc_->ExecCall(service_id_, "InvokeCLIInstallAction", in, out);
+}
+
+std::vector<std::string> SRPCDesktopCLIInstallResourceServiceHandler::GetMethodIDs() const {
+  return {
+    "WatchCLIInstallState",
+    "InvokeCLIInstallAction",
+  };
+}
+
+std::pair<bool, starpc::Error> SRPCDesktopCLIInstallResourceServiceHandler::InvokeMethod(
+    const std::string& service_id,
+    const std::string& method_id,
+    starpc::Stream* strm) {
+  if (!service_id.empty() && service_id != service_id_) {
+    return {false, starpc::Error::OK};
+  }
+
+  if (method_id == "WatchCLIInstallState") {
+    electron::desktop_runtime::WatchCLIInstallStateRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    SRPCDesktopCLIInstallResourceService_WatchCLIInstallStateStream serverStrm(strm);
+    return {true, impl_->WatchCLIInstallState(req, &serverStrm)};
+  } else if (method_id == "InvokeCLIInstallAction") {
+    electron::desktop_runtime::InvokeCLIInstallActionRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    electron::desktop_runtime::InvokeCLIInstallActionResponse resp;
+    err = impl_->InvokeCLIInstallAction(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  }
+
+  return {false, starpc::Error::OK};
+}
+
 }  // namespace electron::desktop_runtime

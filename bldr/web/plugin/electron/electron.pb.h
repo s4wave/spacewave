@@ -70,6 +70,10 @@ class ElectronInit;
 struct ElectronInitDefaultTypeInternal;
 extern ElectronInitDefaultTypeInternal _ElectronInit_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull ElectronInit_class_data_;
+class ManagedCLIRelease;
+struct ManagedCLIReleaseDefaultTypeInternal;
+extern ManagedCLIReleaseDefaultTypeInternal _ManagedCLIRelease_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ManagedCLIRelease_class_data_;
 }  // namespace electron
 namespace google {
 namespace protobuf {
@@ -200,6 +204,298 @@ inline bool DesktopPresencePolicy_Parse(
 // ===================================================================
 
 
+// -------------------------------------------------------------------
+
+class ManagedCLIRelease final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:electron.ManagedCLIRelease) */ {
+ public:
+  inline ManagedCLIRelease() : ManagedCLIRelease(nullptr) {}
+  ~ManagedCLIRelease() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ManagedCLIRelease* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ManagedCLIRelease));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ManagedCLIRelease(::google::protobuf::internal::ConstantInitialized);
+
+  inline ManagedCLIRelease(const ManagedCLIRelease& from) : ManagedCLIRelease(nullptr, from) {}
+  inline ManagedCLIRelease(ManagedCLIRelease&& from) noexcept
+      : ManagedCLIRelease(nullptr, ::std::move(from)) {}
+  inline ManagedCLIRelease& operator=(const ManagedCLIRelease& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ManagedCLIRelease& operator=(ManagedCLIRelease&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ManagedCLIRelease& default_instance() {
+    return *reinterpret_cast<const ManagedCLIRelease*>(
+        &_ManagedCLIRelease_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 1;
+  friend void swap(ManagedCLIRelease& a, ManagedCLIRelease& b) { a.Swap(&b); }
+  inline void Swap(ManagedCLIRelease* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ManagedCLIRelease* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ManagedCLIRelease* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ManagedCLIRelease>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ManagedCLIRelease& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ManagedCLIRelease& from) { ManagedCLIRelease::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ManagedCLIRelease* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "electron.ManagedCLIRelease"; }
+
+  explicit ManagedCLIRelease(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ManagedCLIRelease(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ManagedCLIRelease& from);
+  ManagedCLIRelease(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ManagedCLIRelease&& from) noexcept
+      : ManagedCLIRelease(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kBinaryPathFieldNumber = 1,
+    kProjectIdFieldNumber = 2,
+    kEntrypointRoleFieldNumber = 3,
+    kChannelKeyFieldNumber = 4,
+    kManifestIdFieldNumber = 5,
+    kPlatformIdFieldNumber = 7,
+    kManifestRevFieldNumber = 6,
+  };
+  // string binary_path = 1;
+  void clear_binary_path() ;
+  const ::std::string& binary_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_binary_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_binary_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_binary_path();
+  void set_allocated_binary_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_binary_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_binary_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_binary_path();
+
+  public:
+  // string project_id = 2;
+  void clear_project_id() ;
+  const ::std::string& project_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_project_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_project_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_project_id();
+  void set_allocated_project_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_project_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_project_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_project_id();
+
+  public:
+  // string entrypoint_role = 3;
+  void clear_entrypoint_role() ;
+  const ::std::string& entrypoint_role() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_entrypoint_role(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_entrypoint_role();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_entrypoint_role();
+  void set_allocated_entrypoint_role(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_entrypoint_role() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_entrypoint_role(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_entrypoint_role();
+
+  public:
+  // string channel_key = 4;
+  void clear_channel_key() ;
+  const ::std::string& channel_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_channel_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_channel_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_channel_key();
+  void set_allocated_channel_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_channel_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_channel_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_channel_key();
+
+  public:
+  // string manifest_id = 5;
+  void clear_manifest_id() ;
+  const ::std::string& manifest_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_manifest_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_manifest_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_manifest_id();
+  void set_allocated_manifest_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_manifest_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_manifest_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_manifest_id();
+
+  public:
+  // string platform_id = 7;
+  void clear_platform_id() ;
+  const ::std::string& platform_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_platform_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_platform_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_platform_id();
+  void set_allocated_platform_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_platform_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_platform_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_platform_id();
+
+  public:
+  // uint64 manifest_rev = 6;
+  void clear_manifest_rev() ;
+  ::uint64_t manifest_rev() const;
+  void set_manifest_rev(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_manifest_rev() const;
+  void _internal_set_manifest_rev(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:electron.ManagedCLIRelease)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   0, 104,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ManagedCLIRelease& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr binary_path_;
+    ::google::protobuf::internal::ArenaStringPtr project_id_;
+    ::google::protobuf::internal::ArenaStringPtr entrypoint_role_;
+    ::google::protobuf::internal::ArenaStringPtr channel_key_;
+    ::google::protobuf::internal::ArenaStringPtr manifest_id_;
+    ::google::protobuf::internal::ArenaStringPtr platform_id_;
+    ::uint64_t manifest_rev_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2felectron_2felectron_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ManagedCLIRelease_class_data_;
 // -------------------------------------------------------------------
 
 class ElectronInit final : public ::google::protobuf::Message
@@ -349,6 +645,7 @@ class ElectronInit final : public ::google::protobuf::Message
     kThemeSourceFieldNumber = 7,
     kTrayIconPathFieldNumber = 10,
     kMacosTemplateTrayIconPathFieldNumber = 11,
+    kManagedCliReleaseFieldNumber = 12,
     kExternalLinksFieldNumber = 1,
     kWindowWidthFieldNumber = 4,
     kWindowHeightFieldNumber = 5,
@@ -431,6 +728,21 @@ class ElectronInit final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_macos_template_tray_icon_path();
 
   public:
+  // .electron.ManagedCLIRelease managed_cli_release = 12;
+  bool has_managed_cli_release() const;
+  void clear_managed_cli_release() ;
+  const ::electron::ManagedCLIRelease& managed_cli_release() const;
+  [[nodiscard]] ::electron::ManagedCLIRelease* PROTOBUF_NULLABLE release_managed_cli_release();
+  ::electron::ManagedCLIRelease* PROTOBUF_NONNULL mutable_managed_cli_release();
+  void set_allocated_managed_cli_release(::electron::ManagedCLIRelease* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_managed_cli_release(::electron::ManagedCLIRelease* PROTOBUF_NULLABLE value);
+  ::electron::ManagedCLIRelease* PROTOBUF_NULLABLE unsafe_arena_release_managed_cli_release();
+
+  private:
+  const ::electron::ManagedCLIRelease& _internal_managed_cli_release() const;
+  ::electron::ManagedCLIRelease* PROTOBUF_NONNULL _internal_mutable_managed_cli_release();
+
+  public:
   // .electron.ExternalLinks external_links = 1;
   void clear_external_links() ;
   ::electron::ExternalLinks external_links() const;
@@ -495,8 +807,8 @@ class ElectronInit final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 11,
-                                   0, 113,
+  static const ::google::protobuf::internal::TcParseTable<4, 12,
+                                   1, 113,
                                    2>
       _table_;
 
@@ -522,6 +834,7 @@ class ElectronInit final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr theme_source_;
     ::google::protobuf::internal::ArenaStringPtr tray_icon_path_;
     ::google::protobuf::internal::ArenaStringPtr macos_template_tray_icon_path_;
+    ::electron::ManagedCLIRelease* PROTOBUF_NULLABLE managed_cli_release_;
     int external_links_;
     ::uint32_t window_width_;
     ::uint32_t window_height_;
@@ -592,7 +905,7 @@ class Config final : public ::google::protobuf::Message
     return *reinterpret_cast<const Config*>(
         &_Config_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 1;
+  static constexpr int kIndexInFileMessages = 2;
   friend void swap(Config& a, Config& b) { a.Swap(&b); }
   inline void Swap(Config* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -689,6 +1002,7 @@ class Config final : public ::google::protobuf::Message
     kThemeSourceFieldNumber = 12,
     kTrayIconPathFieldNumber = 15,
     kMacosTemplateTrayIconPathFieldNumber = 16,
+    kManagedCliReleaseFieldNumber = 17,
     kExternalLinksFieldNumber = 6,
     kWindowWidthFieldNumber = 9,
     kWindowHeightFieldNumber = 10,
@@ -853,6 +1167,21 @@ class Config final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_macos_template_tray_icon_path();
 
   public:
+  // .electron.ManagedCLIRelease managed_cli_release = 17;
+  bool has_managed_cli_release() const;
+  void clear_managed_cli_release() ;
+  const ::electron::ManagedCLIRelease& managed_cli_release() const;
+  [[nodiscard]] ::electron::ManagedCLIRelease* PROTOBUF_NULLABLE release_managed_cli_release();
+  ::electron::ManagedCLIRelease* PROTOBUF_NONNULL mutable_managed_cli_release();
+  void set_allocated_managed_cli_release(::electron::ManagedCLIRelease* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_managed_cli_release(::electron::ManagedCLIRelease* PROTOBUF_NULLABLE value);
+  ::electron::ManagedCLIRelease* PROTOBUF_NULLABLE unsafe_arena_release_managed_cli_release();
+
+  private:
+  const ::electron::ManagedCLIRelease& _internal_managed_cli_release() const;
+  ::electron::ManagedCLIRelease* PROTOBUF_NONNULL _internal_mutable_managed_cli_release();
+
+  public:
   // .electron.ExternalLinks external_links = 6;
   void clear_external_links() ;
   ::electron::ExternalLinks external_links() const;
@@ -917,8 +1246,8 @@ class Config final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 16,
-                                   0, 181,
+  static const ::google::protobuf::internal::TcParseTable<5, 17,
+                                   1, 181,
                                    2>
       _table_;
 
@@ -949,6 +1278,7 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr theme_source_;
     ::google::protobuf::internal::ArenaStringPtr tray_icon_path_;
     ::google::protobuf::internal::ArenaStringPtr macos_template_tray_icon_path_;
+    ::electron::ManagedCLIRelease* PROTOBUF_NULLABLE managed_cli_release_;
     int external_links_;
     ::uint32_t window_width_;
     ::uint32_t window_height_;
@@ -984,7 +1314,7 @@ inline void ElectronInit::clear_external_links() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.external_links_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000040U);
 }
 inline ::electron::ExternalLinks ElectronInit::external_links() const {
   // @@protoc_insertion_point(field_get:electron.ElectronInit.external_links)
@@ -992,7 +1322,7 @@ inline ::electron::ExternalLinks ElectronInit::external_links() const {
 }
 inline void ElectronInit::set_external_links(::electron::ExternalLinks value) {
   _internal_set_external_links(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_set:electron.ElectronInit.external_links)
 }
 inline ::electron::ExternalLinks ElectronInit::_internal_external_links() const {
@@ -1139,7 +1469,7 @@ inline void ElectronInit::clear_window_width() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.window_width_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000040U);
+                  0x00000080U);
 }
 inline ::uint32_t ElectronInit::window_width() const {
   // @@protoc_insertion_point(field_get:electron.ElectronInit.window_width)
@@ -1147,7 +1477,7 @@ inline ::uint32_t ElectronInit::window_width() const {
 }
 inline void ElectronInit::set_window_width(::uint32_t value) {
   _internal_set_window_width(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   // @@protoc_insertion_point(field_set:electron.ElectronInit.window_width)
 }
 inline ::uint32_t ElectronInit::_internal_window_width() const {
@@ -1164,7 +1494,7 @@ inline void ElectronInit::clear_window_height() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.window_height_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000080U);
+                  0x00000100U);
 }
 inline ::uint32_t ElectronInit::window_height() const {
   // @@protoc_insertion_point(field_get:electron.ElectronInit.window_height)
@@ -1172,7 +1502,7 @@ inline ::uint32_t ElectronInit::window_height() const {
 }
 inline void ElectronInit::set_window_height(::uint32_t value) {
   _internal_set_window_height(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   // @@protoc_insertion_point(field_set:electron.ElectronInit.window_height)
 }
 inline ::uint32_t ElectronInit::_internal_window_height() const {
@@ -1189,7 +1519,7 @@ inline void ElectronInit::clear_dev_tools() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.dev_tools_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000100U);
+                  0x00000200U);
 }
 inline bool ElectronInit::dev_tools() const {
   // @@protoc_insertion_point(field_get:electron.ElectronInit.dev_tools)
@@ -1197,7 +1527,7 @@ inline bool ElectronInit::dev_tools() const {
 }
 inline void ElectronInit::set_dev_tools(bool value) {
   _internal_set_dev_tools(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   // @@protoc_insertion_point(field_set:electron.ElectronInit.dev_tools)
 }
 inline bool ElectronInit::_internal_dev_tools() const {
@@ -1279,7 +1609,7 @@ inline void ElectronInit::clear_quit_policy() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.quit_policy_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000200U);
+                  0x00000400U);
 }
 inline ::electron::QuitPolicy ElectronInit::quit_policy() const {
   // @@protoc_insertion_point(field_get:electron.ElectronInit.quit_policy)
@@ -1287,7 +1617,7 @@ inline ::electron::QuitPolicy ElectronInit::quit_policy() const {
 }
 inline void ElectronInit::set_quit_policy(::electron::QuitPolicy value) {
   _internal_set_quit_policy(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
   // @@protoc_insertion_point(field_set:electron.ElectronInit.quit_policy)
 }
 inline ::electron::QuitPolicy ElectronInit::_internal_quit_policy() const {
@@ -1304,7 +1634,7 @@ inline void ElectronInit::clear_desktop_presence_policy() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.desktop_presence_policy_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000400U);
+                  0x00000800U);
 }
 inline ::electron::DesktopPresencePolicy ElectronInit::desktop_presence_policy() const {
   // @@protoc_insertion_point(field_get:electron.ElectronInit.desktop_presence_policy)
@@ -1312,7 +1642,7 @@ inline ::electron::DesktopPresencePolicy ElectronInit::desktop_presence_policy()
 }
 inline void ElectronInit::set_desktop_presence_policy(::electron::DesktopPresencePolicy value) {
   _internal_set_desktop_presence_policy(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
   // @@protoc_insertion_point(field_set:electron.ElectronInit.desktop_presence_policy)
 }
 inline ::electron::DesktopPresencePolicy ElectronInit::_internal_desktop_presence_policy() const {
@@ -1452,6 +1782,524 @@ inline void ElectronInit::set_allocated_macos_template_tray_icon_path(::std::str
     _impl_.macos_template_tray_icon_path_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:electron.ElectronInit.macos_template_tray_icon_path)
+}
+
+// .electron.ManagedCLIRelease managed_cli_release = 12;
+inline bool ElectronInit::has_managed_cli_release() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
+  PROTOBUF_ASSUME(!value || _impl_.managed_cli_release_ != nullptr);
+  return value;
+}
+inline void ElectronInit::clear_managed_cli_release() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.managed_cli_release_ != nullptr) _impl_.managed_cli_release_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::electron::ManagedCLIRelease& ElectronInit::_internal_managed_cli_release() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::electron::ManagedCLIRelease* p = _impl_.managed_cli_release_;
+  return p != nullptr ? *p : reinterpret_cast<const ::electron::ManagedCLIRelease&>(::electron::_ManagedCLIRelease_default_instance_);
+}
+inline const ::electron::ManagedCLIRelease& ElectronInit::managed_cli_release() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.ElectronInit.managed_cli_release)
+  return _internal_managed_cli_release();
+}
+inline void ElectronInit::unsafe_arena_set_allocated_managed_cli_release(
+    ::electron::ManagedCLIRelease* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.managed_cli_release_);
+  }
+  _impl_.managed_cli_release_ = reinterpret_cast<::electron::ManagedCLIRelease*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:electron.ElectronInit.managed_cli_release)
+}
+inline ::electron::ManagedCLIRelease* PROTOBUF_NULLABLE ElectronInit::release_managed_cli_release() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::electron::ManagedCLIRelease* released = _impl_.managed_cli_release_;
+  _impl_.managed_cli_release_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::electron::ManagedCLIRelease* PROTOBUF_NULLABLE ElectronInit::unsafe_arena_release_managed_cli_release() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.ElectronInit.managed_cli_release)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::electron::ManagedCLIRelease* temp = _impl_.managed_cli_release_;
+  _impl_.managed_cli_release_ = nullptr;
+  return temp;
+}
+inline ::electron::ManagedCLIRelease* PROTOBUF_NONNULL ElectronInit::_internal_mutable_managed_cli_release() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.managed_cli_release_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::electron::ManagedCLIRelease>(GetArena());
+    _impl_.managed_cli_release_ = reinterpret_cast<::electron::ManagedCLIRelease*>(p);
+  }
+  return _impl_.managed_cli_release_;
+}
+inline ::electron::ManagedCLIRelease* PROTOBUF_NONNULL ElectronInit::mutable_managed_cli_release()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::electron::ManagedCLIRelease* _msg = _internal_mutable_managed_cli_release();
+  // @@protoc_insertion_point(field_mutable:electron.ElectronInit.managed_cli_release)
+  return _msg;
+}
+inline void ElectronInit::set_allocated_managed_cli_release(::electron::ManagedCLIRelease* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.managed_cli_release_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+
+  _impl_.managed_cli_release_ = reinterpret_cast<::electron::ManagedCLIRelease*>(value);
+  // @@protoc_insertion_point(field_set_allocated:electron.ElectronInit.managed_cli_release)
+}
+
+// -------------------------------------------------------------------
+
+// ManagedCLIRelease
+
+// string binary_path = 1;
+inline void ManagedCLIRelease::clear_binary_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.binary_path_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& ManagedCLIRelease::binary_path() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.ManagedCLIRelease.binary_path)
+  return _internal_binary_path();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ManagedCLIRelease::set_binary_path(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.binary_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.ManagedCLIRelease.binary_path)
+}
+inline ::std::string* PROTOBUF_NONNULL ManagedCLIRelease::mutable_binary_path()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_binary_path();
+  // @@protoc_insertion_point(field_mutable:electron.ManagedCLIRelease.binary_path)
+  return _s;
+}
+inline const ::std::string& ManagedCLIRelease::_internal_binary_path() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.binary_path_.Get();
+}
+inline void ManagedCLIRelease::_internal_set_binary_path(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.binary_path_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ManagedCLIRelease::_internal_mutable_binary_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.binary_path_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ManagedCLIRelease::release_binary_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.ManagedCLIRelease.binary_path)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.binary_path_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.binary_path_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ManagedCLIRelease::set_allocated_binary_path(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.binary_path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.binary_path_.IsDefault()) {
+    _impl_.binary_path_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.ManagedCLIRelease.binary_path)
+}
+
+// string project_id = 2;
+inline void ManagedCLIRelease::clear_project_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.project_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& ManagedCLIRelease::project_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.ManagedCLIRelease.project_id)
+  return _internal_project_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ManagedCLIRelease::set_project_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.project_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.ManagedCLIRelease.project_id)
+}
+inline ::std::string* PROTOBUF_NONNULL ManagedCLIRelease::mutable_project_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_project_id();
+  // @@protoc_insertion_point(field_mutable:electron.ManagedCLIRelease.project_id)
+  return _s;
+}
+inline const ::std::string& ManagedCLIRelease::_internal_project_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.project_id_.Get();
+}
+inline void ManagedCLIRelease::_internal_set_project_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.project_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ManagedCLIRelease::_internal_mutable_project_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.project_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ManagedCLIRelease::release_project_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.ManagedCLIRelease.project_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.project_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.project_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ManagedCLIRelease::set_allocated_project_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.project_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.project_id_.IsDefault()) {
+    _impl_.project_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.ManagedCLIRelease.project_id)
+}
+
+// string entrypoint_role = 3;
+inline void ManagedCLIRelease::clear_entrypoint_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.entrypoint_role_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& ManagedCLIRelease::entrypoint_role() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.ManagedCLIRelease.entrypoint_role)
+  return _internal_entrypoint_role();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ManagedCLIRelease::set_entrypoint_role(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.entrypoint_role_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.ManagedCLIRelease.entrypoint_role)
+}
+inline ::std::string* PROTOBUF_NONNULL ManagedCLIRelease::mutable_entrypoint_role()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_entrypoint_role();
+  // @@protoc_insertion_point(field_mutable:electron.ManagedCLIRelease.entrypoint_role)
+  return _s;
+}
+inline const ::std::string& ManagedCLIRelease::_internal_entrypoint_role() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.entrypoint_role_.Get();
+}
+inline void ManagedCLIRelease::_internal_set_entrypoint_role(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.entrypoint_role_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ManagedCLIRelease::_internal_mutable_entrypoint_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.entrypoint_role_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ManagedCLIRelease::release_entrypoint_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.ManagedCLIRelease.entrypoint_role)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.entrypoint_role_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.entrypoint_role_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ManagedCLIRelease::set_allocated_entrypoint_role(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.entrypoint_role_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.entrypoint_role_.IsDefault()) {
+    _impl_.entrypoint_role_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.ManagedCLIRelease.entrypoint_role)
+}
+
+// string channel_key = 4;
+inline void ManagedCLIRelease::clear_channel_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.channel_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& ManagedCLIRelease::channel_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.ManagedCLIRelease.channel_key)
+  return _internal_channel_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ManagedCLIRelease::set_channel_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.channel_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.ManagedCLIRelease.channel_key)
+}
+inline ::std::string* PROTOBUF_NONNULL ManagedCLIRelease::mutable_channel_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_channel_key();
+  // @@protoc_insertion_point(field_mutable:electron.ManagedCLIRelease.channel_key)
+  return _s;
+}
+inline const ::std::string& ManagedCLIRelease::_internal_channel_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.channel_key_.Get();
+}
+inline void ManagedCLIRelease::_internal_set_channel_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.channel_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ManagedCLIRelease::_internal_mutable_channel_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.channel_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ManagedCLIRelease::release_channel_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.ManagedCLIRelease.channel_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.channel_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.channel_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ManagedCLIRelease::set_allocated_channel_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.channel_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.channel_key_.IsDefault()) {
+    _impl_.channel_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.ManagedCLIRelease.channel_key)
+}
+
+// string manifest_id = 5;
+inline void ManagedCLIRelease::clear_manifest_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.manifest_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& ManagedCLIRelease::manifest_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.ManagedCLIRelease.manifest_id)
+  return _internal_manifest_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ManagedCLIRelease::set_manifest_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.manifest_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.ManagedCLIRelease.manifest_id)
+}
+inline ::std::string* PROTOBUF_NONNULL ManagedCLIRelease::mutable_manifest_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_manifest_id();
+  // @@protoc_insertion_point(field_mutable:electron.ManagedCLIRelease.manifest_id)
+  return _s;
+}
+inline const ::std::string& ManagedCLIRelease::_internal_manifest_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.manifest_id_.Get();
+}
+inline void ManagedCLIRelease::_internal_set_manifest_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.manifest_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ManagedCLIRelease::_internal_mutable_manifest_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.manifest_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ManagedCLIRelease::release_manifest_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.ManagedCLIRelease.manifest_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.manifest_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.manifest_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ManagedCLIRelease::set_allocated_manifest_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.manifest_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.manifest_id_.IsDefault()) {
+    _impl_.manifest_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.ManagedCLIRelease.manifest_id)
+}
+
+// uint64 manifest_rev = 6;
+inline void ManagedCLIRelease::clear_manifest_rev() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.manifest_rev_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline ::uint64_t ManagedCLIRelease::manifest_rev() const {
+  // @@protoc_insertion_point(field_get:electron.ManagedCLIRelease.manifest_rev)
+  return _internal_manifest_rev();
+}
+inline void ManagedCLIRelease::set_manifest_rev(::uint64_t value) {
+  _internal_set_manifest_rev(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:electron.ManagedCLIRelease.manifest_rev)
+}
+inline ::uint64_t ManagedCLIRelease::_internal_manifest_rev() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.manifest_rev_;
+}
+inline void ManagedCLIRelease::_internal_set_manifest_rev(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.manifest_rev_ = value;
+}
+
+// string platform_id = 7;
+inline void ManagedCLIRelease::clear_platform_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.platform_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::std::string& ManagedCLIRelease::platform_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.ManagedCLIRelease.platform_id)
+  return _internal_platform_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ManagedCLIRelease::set_platform_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  _impl_.platform_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:electron.ManagedCLIRelease.platform_id)
+}
+inline ::std::string* PROTOBUF_NONNULL ManagedCLIRelease::mutable_platform_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::std::string* _s = _internal_mutable_platform_id();
+  // @@protoc_insertion_point(field_mutable:electron.ManagedCLIRelease.platform_id)
+  return _s;
+}
+inline const ::std::string& ManagedCLIRelease::_internal_platform_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.platform_id_.Get();
+}
+inline void ManagedCLIRelease::_internal_set_platform_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.platform_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ManagedCLIRelease::_internal_mutable_platform_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.platform_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ManagedCLIRelease::release_platform_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.ManagedCLIRelease.platform_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  auto* released = _impl_.platform_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.platform_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ManagedCLIRelease::set_allocated_platform_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  _impl_.platform_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.platform_id_.IsDefault()) {
+    _impl_.platform_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:electron.ManagedCLIRelease.platform_id)
 }
 
 // -------------------------------------------------------------------
@@ -1795,7 +2643,7 @@ inline void Config::clear_external_links() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.external_links_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000400U);
+                  0x00000800U);
 }
 inline ::electron::ExternalLinks Config::external_links() const {
   // @@protoc_insertion_point(field_get:electron.Config.external_links)
@@ -1803,7 +2651,7 @@ inline ::electron::ExternalLinks Config::external_links() const {
 }
 inline void Config::set_external_links(::electron::ExternalLinks value) {
   _internal_set_external_links(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
   // @@protoc_insertion_point(field_set:electron.Config.external_links)
 }
 inline ::electron::ExternalLinks Config::_internal_external_links() const {
@@ -1950,7 +2798,7 @@ inline void Config::clear_window_width() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.window_width_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000800U);
+                  0x00001000U);
 }
 inline ::uint32_t Config::window_width() const {
   // @@protoc_insertion_point(field_get:electron.Config.window_width)
@@ -1958,7 +2806,7 @@ inline ::uint32_t Config::window_width() const {
 }
 inline void Config::set_window_width(::uint32_t value) {
   _internal_set_window_width(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
   // @@protoc_insertion_point(field_set:electron.Config.window_width)
 }
 inline ::uint32_t Config::_internal_window_width() const {
@@ -1975,7 +2823,7 @@ inline void Config::clear_window_height() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.window_height_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00001000U);
+                  0x00002000U);
 }
 inline ::uint32_t Config::window_height() const {
   // @@protoc_insertion_point(field_get:electron.Config.window_height)
@@ -1983,7 +2831,7 @@ inline ::uint32_t Config::window_height() const {
 }
 inline void Config::set_window_height(::uint32_t value) {
   _internal_set_window_height(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
+  SetHasBit(_impl_._has_bits_[0], 0x00002000U);
   // @@protoc_insertion_point(field_set:electron.Config.window_height)
 }
 inline ::uint32_t Config::_internal_window_height() const {
@@ -2000,7 +2848,7 @@ inline void Config::clear_dev_tools() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.dev_tools_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00002000U);
+                  0x00004000U);
 }
 inline bool Config::dev_tools() const {
   // @@protoc_insertion_point(field_get:electron.Config.dev_tools)
@@ -2008,7 +2856,7 @@ inline bool Config::dev_tools() const {
 }
 inline void Config::set_dev_tools(bool value) {
   _internal_set_dev_tools(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00002000U);
+  SetHasBit(_impl_._has_bits_[0], 0x00004000U);
   // @@protoc_insertion_point(field_set:electron.Config.dev_tools)
 }
 inline bool Config::_internal_dev_tools() const {
@@ -2090,7 +2938,7 @@ inline void Config::clear_quit_policy() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.quit_policy_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00004000U);
+                  0x00008000U);
 }
 inline ::electron::QuitPolicy Config::quit_policy() const {
   // @@protoc_insertion_point(field_get:electron.Config.quit_policy)
@@ -2098,7 +2946,7 @@ inline ::electron::QuitPolicy Config::quit_policy() const {
 }
 inline void Config::set_quit_policy(::electron::QuitPolicy value) {
   _internal_set_quit_policy(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00004000U);
+  SetHasBit(_impl_._has_bits_[0], 0x00008000U);
   // @@protoc_insertion_point(field_set:electron.Config.quit_policy)
 }
 inline ::electron::QuitPolicy Config::_internal_quit_policy() const {
@@ -2115,7 +2963,7 @@ inline void Config::clear_desktop_presence_policy() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.desktop_presence_policy_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00008000U);
+                  0x00010000U);
 }
 inline ::electron::DesktopPresencePolicy Config::desktop_presence_policy() const {
   // @@protoc_insertion_point(field_get:electron.Config.desktop_presence_policy)
@@ -2123,7 +2971,7 @@ inline ::electron::DesktopPresencePolicy Config::desktop_presence_policy() const
 }
 inline void Config::set_desktop_presence_policy(::electron::DesktopPresencePolicy value) {
   _internal_set_desktop_presence_policy(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00008000U);
+  SetHasBit(_impl_._has_bits_[0], 0x00010000U);
   // @@protoc_insertion_point(field_set:electron.Config.desktop_presence_policy)
 }
 inline ::electron::DesktopPresencePolicy Config::_internal_desktop_presence_policy() const {
@@ -2263,6 +3111,105 @@ inline void Config::set_allocated_macos_template_tray_icon_path(::std::string* P
     _impl_.macos_template_tray_icon_path_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:electron.Config.macos_template_tray_icon_path)
+}
+
+// .electron.ManagedCLIRelease managed_cli_release = 17;
+inline bool Config::has_managed_cli_release() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000400U);
+  PROTOBUF_ASSUME(!value || _impl_.managed_cli_release_ != nullptr);
+  return value;
+}
+inline void Config::clear_managed_cli_release() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.managed_cli_release_ != nullptr) _impl_.managed_cli_release_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
+}
+inline const ::electron::ManagedCLIRelease& Config::_internal_managed_cli_release() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::electron::ManagedCLIRelease* p = _impl_.managed_cli_release_;
+  return p != nullptr ? *p : reinterpret_cast<const ::electron::ManagedCLIRelease&>(::electron::_ManagedCLIRelease_default_instance_);
+}
+inline const ::electron::ManagedCLIRelease& Config::managed_cli_release() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:electron.Config.managed_cli_release)
+  return _internal_managed_cli_release();
+}
+inline void Config::unsafe_arena_set_allocated_managed_cli_release(
+    ::electron::ManagedCLIRelease* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.managed_cli_release_);
+  }
+  _impl_.managed_cli_release_ = reinterpret_cast<::electron::ManagedCLIRelease*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000400U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:electron.Config.managed_cli_release)
+}
+inline ::electron::ManagedCLIRelease* PROTOBUF_NULLABLE Config::release_managed_cli_release() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000400U);
+  ::electron::ManagedCLIRelease* released = _impl_.managed_cli_release_;
+  _impl_.managed_cli_release_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::electron::ManagedCLIRelease* PROTOBUF_NULLABLE Config::unsafe_arena_release_managed_cli_release() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:electron.Config.managed_cli_release)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000400U);
+  ::electron::ManagedCLIRelease* temp = _impl_.managed_cli_release_;
+  _impl_.managed_cli_release_ = nullptr;
+  return temp;
+}
+inline ::electron::ManagedCLIRelease* PROTOBUF_NONNULL Config::_internal_mutable_managed_cli_release() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.managed_cli_release_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::electron::ManagedCLIRelease>(GetArena());
+    _impl_.managed_cli_release_ = reinterpret_cast<::electron::ManagedCLIRelease*>(p);
+  }
+  return _impl_.managed_cli_release_;
+}
+inline ::electron::ManagedCLIRelease* PROTOBUF_NONNULL Config::mutable_managed_cli_release()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  ::electron::ManagedCLIRelease* _msg = _internal_mutable_managed_cli_release();
+  // @@protoc_insertion_point(field_mutable:electron.Config.managed_cli_release)
+  return _msg;
+}
+inline void Config::set_allocated_managed_cli_release(::electron::ManagedCLIRelease* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.managed_cli_release_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000400U);
+  }
+
+  _impl_.managed_cli_release_ = reinterpret_cast<::electron::ManagedCLIRelease*>(value);
+  // @@protoc_insertion_point(field_set_allocated:electron.Config.managed_cli_release)
 }
 
 #ifdef __GNUC__

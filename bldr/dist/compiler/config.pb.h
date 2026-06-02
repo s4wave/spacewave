@@ -494,6 +494,8 @@ class Config final : public ::google::protobuf::Message
     kCliPkgsFieldNumber = 9,
     kProjectIdFieldNumber = 4,
     kLoadWebStartupFieldNumber = 8,
+    kEntrypointRoleFieldNumber = 10,
+    kChannelKeyFieldNumber = 11,
     kEnableCgoFieldNumber = 5,
     kEnableTinygoFieldNumber = 6,
     kEnableCompressionFieldNumber = 7,
@@ -590,6 +592,36 @@ class Config final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_load_web_startup();
 
   public:
+  // string entrypoint_role = 10;
+  void clear_entrypoint_role() ;
+  const ::std::string& entrypoint_role() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_entrypoint_role(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_entrypoint_role();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_entrypoint_role();
+  void set_allocated_entrypoint_role(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_entrypoint_role() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_entrypoint_role(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_entrypoint_role();
+
+  public:
+  // string channel_key = 11;
+  void clear_channel_key() ;
+  const ::std::string& channel_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_channel_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_channel_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_channel_key();
+  void set_allocated_channel_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_channel_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_channel_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_channel_key();
+
+  public:
   // .enabled.Enabled enable_cgo = 5;
   void clear_enable_cgo() ;
   ::enabled::Enabled enable_cgo() const;
@@ -639,8 +671,8 @@ class Config final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 9,
-                                   3, 103,
+  static const ::google::protobuf::internal::TcParseTable<4, 11,
+                                   3, 129,
                                    2>
       _table_;
 
@@ -666,6 +698,8 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::RepeatedPtrField<::std::string> cli_pkgs_;
     ::google::protobuf::internal::ArenaStringPtr project_id_;
     ::google::protobuf::internal::ArenaStringPtr load_web_startup_;
+    ::google::protobuf::internal::ArenaStringPtr entrypoint_role_;
+    ::google::protobuf::internal::ArenaStringPtr channel_key_;
     int enable_cgo_;
     int enable_tinygo_;
     int enable_compression_;
@@ -1242,7 +1276,7 @@ inline ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConf
 }
 inline ::google::protobuf::Map<::std::string, ::configset::proto::ControllerConfig>* PROTOBUF_NONNULL Config::mutable_host_config_set()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000100U);
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000400U);
   // @@protoc_insertion_point(field_mutable_map:bldr.dist.compiler.Config.host_config_set)
   return _internal_mutable_host_config_set();
 }
@@ -1312,12 +1346,142 @@ inline void Config::set_allocated_project_id(::std::string* PROTOBUF_NULLABLE va
   // @@protoc_insertion_point(field_set_allocated:bldr.dist.compiler.Config.project_id)
 }
 
+// string entrypoint_role = 10;
+inline void Config::clear_entrypoint_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.entrypoint_role_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::std::string& Config::entrypoint_role() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.dist.compiler.Config.entrypoint_role)
+  return _internal_entrypoint_role();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Config::set_entrypoint_role(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  _impl_.entrypoint_role_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.dist.compiler.Config.entrypoint_role)
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_entrypoint_role()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::std::string* _s = _internal_mutable_entrypoint_role();
+  // @@protoc_insertion_point(field_mutable:bldr.dist.compiler.Config.entrypoint_role)
+  return _s;
+}
+inline const ::std::string& Config::_internal_entrypoint_role() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.entrypoint_role_.Get();
+}
+inline void Config::_internal_set_entrypoint_role(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.entrypoint_role_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_entrypoint_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.entrypoint_role_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Config::release_entrypoint_role() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.dist.compiler.Config.entrypoint_role)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  auto* released = _impl_.entrypoint_role_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.entrypoint_role_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Config::set_allocated_entrypoint_role(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  _impl_.entrypoint_role_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.entrypoint_role_.IsDefault()) {
+    _impl_.entrypoint_role_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.dist.compiler.Config.entrypoint_role)
+}
+
+// string channel_key = 11;
+inline void Config::clear_channel_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.channel_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::std::string& Config::channel_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.dist.compiler.Config.channel_key)
+  return _internal_channel_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Config::set_channel_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  _impl_.channel_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.dist.compiler.Config.channel_key)
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_channel_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::std::string* _s = _internal_mutable_channel_key();
+  // @@protoc_insertion_point(field_mutable:bldr.dist.compiler.Config.channel_key)
+  return _s;
+}
+inline const ::std::string& Config::_internal_channel_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.channel_key_.Get();
+}
+inline void Config::_internal_set_channel_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.channel_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_channel_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.channel_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Config::release_channel_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.dist.compiler.Config.channel_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  auto* released = _impl_.channel_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.channel_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Config::set_allocated_channel_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  _impl_.channel_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.channel_key_.IsDefault()) {
+    _impl_.channel_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.dist.compiler.Config.channel_key)
+}
+
 // .enabled.Enabled enable_cgo = 5;
 inline void Config::clear_enable_cgo() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.enable_cgo_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000080U);
 }
 inline ::enabled::Enabled Config::enable_cgo() const {
   // @@protoc_insertion_point(field_get:bldr.dist.compiler.Config.enable_cgo)
@@ -1325,7 +1489,7 @@ inline ::enabled::Enabled Config::enable_cgo() const {
 }
 inline void Config::set_enable_cgo(::enabled::Enabled value) {
   _internal_set_enable_cgo(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   // @@protoc_insertion_point(field_set:bldr.dist.compiler.Config.enable_cgo)
 }
 inline ::enabled::Enabled Config::_internal_enable_cgo() const {
@@ -1342,7 +1506,7 @@ inline void Config::clear_enable_tinygo() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.enable_tinygo_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000040U);
+                  0x00000100U);
 }
 inline ::enabled::Enabled Config::enable_tinygo() const {
   // @@protoc_insertion_point(field_get:bldr.dist.compiler.Config.enable_tinygo)
@@ -1350,7 +1514,7 @@ inline ::enabled::Enabled Config::enable_tinygo() const {
 }
 inline void Config::set_enable_tinygo(::enabled::Enabled value) {
   _internal_set_enable_tinygo(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   // @@protoc_insertion_point(field_set:bldr.dist.compiler.Config.enable_tinygo)
 }
 inline ::enabled::Enabled Config::_internal_enable_tinygo() const {
@@ -1367,7 +1531,7 @@ inline void Config::clear_enable_compression() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.enable_compression_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000080U);
+                  0x00000200U);
 }
 inline ::enabled::Enabled Config::enable_compression() const {
   // @@protoc_insertion_point(field_get:bldr.dist.compiler.Config.enable_compression)
@@ -1375,7 +1539,7 @@ inline ::enabled::Enabled Config::enable_compression() const {
 }
 inline void Config::set_enable_compression(::enabled::Enabled value) {
   _internal_set_enable_compression(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   // @@protoc_insertion_point(field_set:bldr.dist.compiler.Config.enable_compression)
 }
 inline ::enabled::Enabled Config::_internal_enable_compression() const {

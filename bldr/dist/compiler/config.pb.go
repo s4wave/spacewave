@@ -84,6 +84,11 @@ type Config struct {
 	HostConfigSet map[string]*proto.ControllerConfig `protobuf:"bytes,3,rep,name=host_config_set,json=hostConfigSet,proto3" json:"hostConfigSet,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// ProjectId overrides the project id set in the project config.
 	ProjectId string `protobuf:"bytes,4,opt,name=project_id,json=projectId,proto3" json:"projectId,omitempty"`
+	// EntrypointRole identifies the release role for the dist binary.
+	// Expected values are "desktop", "browser", and "cli".
+	EntrypointRole string `protobuf:"bytes,10,opt,name=entrypoint_role,json=entrypointRole,proto3" json:"entrypointRole,omitempty"`
+	// ChannelKey is the release channel this entrypoint targets.
+	ChannelKey string `protobuf:"bytes,11,opt,name=channel_key,json=channelKey,proto3" json:"channelKey,omitempty"`
 	// EnableCgo enables cgo in the Go compiler.
 	//
 	// Cgo is disabled by default as it may cause non-reproducible builds.
@@ -142,6 +147,20 @@ func (x *Config) GetHostConfigSet() map[string]*proto.ControllerConfig {
 func (x *Config) GetProjectId() string {
 	if x != nil {
 		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *Config) GetEntrypointRole() string {
+	if x != nil {
+		return x.EntrypointRole
+	}
+	return ""
+}
+
+func (x *Config) GetChannelKey() string {
+	if x != nil {
+		return x.ChannelKey
 	}
 	return ""
 }
@@ -245,6 +264,8 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.LoadWebStartup = m.LoadWebStartup
 	r.ProjectId = m.ProjectId
+	r.EntrypointRole = m.EntrypointRole
+	r.ChannelKey = m.ChannelKey
 	r.EnableCgo = m.EnableCgo
 	r.EnableTinygo = m.EnableTinygo
 	r.EnableCompression = m.EnableCompression
@@ -390,6 +411,12 @@ func (this *Config) EqualVT(that *Config) bool {
 		if vx != vy {
 			return false
 		}
+	}
+	if this.EntrypointRole != that.EntrypointRole {
+		return false
+	}
+	if this.ChannelKey != that.ChannelKey {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -592,6 +619,16 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("cliPkgs")
 		s.WriteStringArray(x.CliPkgs)
 	}
+	if x.EntrypointRole != "" || s.HasField("entrypointRole") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entrypointRole")
+		s.WriteString(x.EntrypointRole)
+	}
+	if x.ChannelKey != "" || s.HasField("channelKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("channelKey")
+		s.WriteString(x.ChannelKey)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -668,6 +705,12 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.CliPkgs = s.ReadStringArray()
+		case "entrypoint_role", "entrypointRole":
+			s.AddField("entrypoint_role")
+			x.EntrypointRole = s.ReadString()
+		case "channel_key", "channelKey":
+			s.AddField("channel_key")
+			x.ChannelKey = s.ReadString()
 		}
 	})
 }
@@ -799,6 +842,20 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ChannelKey) > 0 {
+		i -= len(m.ChannelKey)
+		copy(dAtA[i:], m.ChannelKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ChannelKey)))
+		i--
+		dAtA[i] = 0x5a
+	}
+	if len(m.EntrypointRole) > 0 {
+		i -= len(m.EntrypointRole)
+		copy(dAtA[i:], m.EntrypointRole)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.EntrypointRole)))
+		i--
+		dAtA[i] = 0x52
 	}
 	if len(m.CliPkgs) > 0 {
 		for iNdEx := len(m.CliPkgs) - 1; iNdEx >= 0; iNdEx-- {
@@ -999,6 +1056,14 @@ func (m *Config) SizeVT() (n int) {
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
+	l = len(m.EntrypointRole)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ChannelKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1171,6 +1236,20 @@ func (x *Config) MarshalProtoText() string {
 			sb.WriteString(strconv.Quote(v))
 		}
 		sb.WriteString("]")
+	}
+	if x.EntrypointRole != "" {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("entrypoint_role: ")
+		sb.WriteString(strconv.Quote(x.EntrypointRole))
+	}
+	if x.ChannelKey != "" {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("channel_key: ")
+		sb.WriteString(strconv.Quote(x.ChannelKey))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1544,6 +1623,50 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.CliPkgs = append(m.CliPkgs, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EntrypointRole", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EntrypointRole = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChannelKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ChannelKey = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

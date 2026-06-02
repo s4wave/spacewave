@@ -103,6 +103,19 @@ export interface Config {
    */
   projectId?: string
   /**
+   * EntrypointRole identifies the release role for the dist binary.
+   * Expected values are "desktop", "browser", and "cli".
+   *
+   * @generated from field: string entrypoint_role = 10;
+   */
+  entrypointRole?: string
+  /**
+   * ChannelKey is the release channel this entrypoint targets.
+   *
+   * @generated from field: string channel_key = 11;
+   */
+  channelKey?: string
+  /**
    * EnableCgo enables cgo in the Go compiler.
    *
    * Cgo is disabled by default as it may cause non-reproducible builds.
@@ -165,6 +178,8 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       V: { kind: 'message', T: () => ControllerConfig },
     },
     { no: 4, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 10, name: 'entrypoint_role', kind: 'scalar', T: ScalarType.STRING },
+    { no: 11, name: 'channel_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 5, name: 'enable_cgo', kind: 'enum', T: Enabled_Enum },
     { no: 6, name: 'enable_tinygo', kind: 'enum', T: Enabled_Enum },
     { no: 7, name: 'enable_compression', kind: 'enum', T: Enabled_Enum },

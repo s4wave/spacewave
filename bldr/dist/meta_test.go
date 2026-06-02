@@ -1,6 +1,7 @@
 package bldr_dist
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/bucket"
@@ -32,5 +33,27 @@ func TestDistMetaValidate(t *testing.T) {
 	}
 	if err := input.Validate(); err != nil {
 		t.Fatal(err.Error())
+	}
+}
+
+func TestDistMetaValidateEntrypointRole(t *testing.T) {
+	input := NewDistEntrypointMeta(
+		"project",
+		"desktop/darwin/arm64",
+		[]string{"test-plugin"},
+		&bucket.ObjectRef{},
+		"dist",
+		EntrypointRoleCLI,
+		"stable",
+		"spacewave-dist",
+		42,
+	)
+	if err := input.Validate(); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	input.EntrypointRole = "plugin"
+	if err := input.Validate(); err == nil || !strings.Contains(err.Error(), "entrypoint_role") {
+		t.Fatalf("expected entrypoint role error, got %v", err)
 	}
 }

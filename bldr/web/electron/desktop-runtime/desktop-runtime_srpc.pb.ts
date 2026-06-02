@@ -3,12 +3,16 @@
 /* eslint-disable */
 
 import {
+  InvokeCLIInstallActionRequest,
+  InvokeCLIInstallActionResponse,
   OpenOrFocusMainWindowRequest,
   OpenOrFocusMainWindowResponse,
   QuitDesktopRuntimeRequest,
   QuitDesktopRuntimeResponse,
   SetDesktopStateRequest,
   SetDesktopStateResponse,
+  WatchCLIInstallStateRequest,
+  WatchCLIInstallStateResponse,
   WatchDesktopStateRequest,
   WatchDesktopStateResponse,
 } from './desktop-runtime.pb.js'
@@ -206,5 +210,117 @@ export class DesktopRuntimeResourceServiceClient implements DesktopRuntimeResour
       abortSignal || undefined,
     )
     return QuitDesktopRuntimeResponse.fromBinary(result)
+  }
+}
+/**
+ * DesktopCLIInstallResourceService exposes desktop-owned CLI install state.
+ *
+ * @generated from service electron.desktop_runtime.DesktopCLIInstallResourceService
+ */
+export const DesktopCLIInstallResourceServiceDefinition = {
+  typeName: 'electron.desktop_runtime.DesktopCLIInstallResourceService',
+  methods: {
+    /**
+     * WatchCLIInstallState streams detected CLI install state.
+     *
+     * @generated from rpc electron.desktop_runtime.DesktopCLIInstallResourceService.WatchCLIInstallState
+     */
+    WatchCLIInstallState: {
+      name: 'WatchCLIInstallState',
+      I: WatchCLIInstallStateRequest,
+      O: WatchCLIInstallStateResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * InvokeCLIInstallAction invokes a generation-bound CLI install action.
+     *
+     * @generated from rpc electron.desktop_runtime.DesktopCLIInstallResourceService.InvokeCLIInstallAction
+     */
+    InvokeCLIInstallAction: {
+      name: 'InvokeCLIInstallAction',
+      I: InvokeCLIInstallActionRequest,
+      O: InvokeCLIInstallActionResponse,
+      kind: MethodKind.Unary,
+    },
+  },
+} as const
+
+/**
+ * DesktopCLIInstallResourceService exposes desktop-owned CLI install state.
+ *
+ * @generated from service electron.desktop_runtime.DesktopCLIInstallResourceService
+ */
+export interface DesktopCLIInstallResourceService {
+  /**
+   * WatchCLIInstallState streams detected CLI install state.
+   *
+   * @generated from rpc electron.desktop_runtime.DesktopCLIInstallResourceService.WatchCLIInstallState
+   */
+  WatchCLIInstallState(
+    request: WatchCLIInstallStateRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchCLIInstallStateResponse>
+
+  /**
+   * InvokeCLIInstallAction invokes a generation-bound CLI install action.
+   *
+   * @generated from rpc electron.desktop_runtime.DesktopCLIInstallResourceService.InvokeCLIInstallAction
+   */
+  InvokeCLIInstallAction(
+    request: InvokeCLIInstallActionRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<InvokeCLIInstallActionResponse>
+}
+
+export const DesktopCLIInstallResourceServiceServiceName =
+  DesktopCLIInstallResourceServiceDefinition.typeName
+
+export class DesktopCLIInstallResourceServiceClient implements DesktopCLIInstallResourceService {
+  private readonly rpc: ProtoRpc
+  private readonly service: string
+  constructor(rpc: ProtoRpc, opts?: { service?: string }) {
+    this.service = opts?.service || DesktopCLIInstallResourceServiceServiceName
+    this.rpc = rpc
+    this.WatchCLIInstallState = this.WatchCLIInstallState.bind(this)
+    this.InvokeCLIInstallAction = this.InvokeCLIInstallAction.bind(this)
+  }
+  /**
+   * WatchCLIInstallState streams detected CLI install state.
+   *
+   * @generated from rpc electron.desktop_runtime.DesktopCLIInstallResourceService.WatchCLIInstallState
+   */
+  WatchCLIInstallState(
+    request: WatchCLIInstallStateRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchCLIInstallStateResponse> {
+    const requestMsg = WatchCLIInstallStateRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      DesktopCLIInstallResourceServiceDefinition.methods.WatchCLIInstallState
+        .name,
+      WatchCLIInstallStateRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchCLIInstallStateResponse)(result)
+  }
+
+  /**
+   * InvokeCLIInstallAction invokes a generation-bound CLI install action.
+   *
+   * @generated from rpc electron.desktop_runtime.DesktopCLIInstallResourceService.InvokeCLIInstallAction
+   */
+  async InvokeCLIInstallAction(
+    request: InvokeCLIInstallActionRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<InvokeCLIInstallActionResponse> {
+    const requestMsg = InvokeCLIInstallActionRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      DesktopCLIInstallResourceServiceDefinition.methods.InvokeCLIInstallAction
+        .name,
+      InvokeCLIInstallActionRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return InvokeCLIInstallActionResponse.fromBinary(result)
   }
 }

@@ -79,6 +79,7 @@ func (t *Factory) Construct(
 			DesktopPresencePolicy:     cc.GetDesktopPresencePolicy(),
 			TrayIconPath:              cc.GetTrayIconPath(),
 			MacosTemplateTrayIconPath: cc.GetMacosTemplateTrayIconPath(),
+			ManagedCliRelease:         cc.GetManagedCliRelease().CloneVT(),
 		},
 	)
 }

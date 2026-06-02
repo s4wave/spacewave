@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  DesktopCLIInstallActionKind,
+  DesktopCLIInstallStatus,
   DesktopRuntimeActivityState,
   DesktopRuntimeActionKind,
   DesktopRuntimeAttentionKind,
@@ -10,6 +12,7 @@ import {
   DesktopRuntimeSeverity,
 } from '../desktop-runtime/desktop-runtime.pb.js'
 import { DesktopRuntimeResource } from './desktop-runtime.js'
+import { detectDesktopCLIInstallState } from './desktop-cli-install-detector.js'
 
 describe('DesktopRuntimeResource', () => {
   it('streams initial state and window presence changes', async () => {
@@ -289,6 +292,318 @@ describe('DesktopRuntimeResource', () => {
     expect(resource.resourceServer).toBeDefined()
   })
 
+  it('owns desktop CLI install detection state as a child resource', async () => {
+    const resource = new DesktopRuntimeResource({
+      openOrFocusMainWindow: vi.fn(),
+      quitDesktopRuntime: vi.fn(),
+    })
+    const iter = resource.desktopCLIInstallResource
+      .WatchCLIInstallState({})
+      [Symbol.asyncIterator]()
+
+    await expect(iter.next()).resolves.toMatchObject({
+      value: {
+        state: {
+          status: DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_UNKNOWN,
+          label: 'Checking command line tool',
+          generation: 1n,
+          installed: {},
+          available: {},
+          targets: [],
+          actions: [
+            {
+              id: 'recheck',
+              kind: DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_RECHECK,
+              generation: 1n,
+            },
+            {
+              id: 'open-settings',
+              kind: DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS,
+              generation: 1n,
+            },
+          ],
+        },
+      },
+      done: false,
+    })
+
+    resource.desktopCLIInstallResource.setDetectedState({
+      status: DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_INSTALLED,
+      label: 'Command line tool installed',
+      installed: {
+        path: '/Users/test/bin/spacewave',
+        projectId: 'spacewave',
+        entrypointRole: 'cli',
+        channelKey: 'stable',
+        manifestId: 'spacewave-cli',
+        manifestRev: 8n,
+        platformId: 'desktop/darwin/arm64',
+      },
+      available: {
+        projectId: 'spacewave',
+        entrypointRole: 'cli',
+        channelKey: 'stable',
+        manifestId: 'spacewave-cli',
+        manifestRev: 8n,
+        platformId: 'desktop/darwin/arm64',
+      },
+      targets: [
+        {
+          id: 'user-bin',
+          label: 'User bin',
+          path: '/Users/test/bin/spacewave',
+          writable: true,
+          selected: true,
+        },
+      ],
+      selectedTargetId: 'user-bin',
+    })
+
+    await expect(iter.next()).resolves.toMatchObject({
+      value: {
+        state: {
+          status: DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_INSTALLED,
+          generation: 2n,
+          installed: {
+            entrypointRole: 'cli',
+            manifestId: 'spacewave-cli',
+            manifestRev: 8n,
+          },
+          targets: [{ id: 'user-bin', selected: true, generation: 2n }],
+          selectedTargetId: 'user-bin',
+          actions: [
+            { id: 'recheck', generation: 2n },
+            { id: 'open-settings', generation: 2n },
+          ],
+        },
+      },
+      done: false,
+    })
+
+    const state = resource.desktopCLIInstallResource.getState()
+    state.targets?.push({ id: 'mutated' })
+    state.actions?.push({ id: 'mutated' })
+    expect(resource.desktopCLIInstallResource.getState().targets).toHaveLength(
+      1,
+    )
+    expect(resource.desktopCLIInstallResource.getState().actions).toHaveLength(
+      2,
+    )
+    await expect(
+      resource.desktopCLIInstallResource.InvokeCLIInstallAction({
+        actionId: 'recheck',
+        generation: 1n,
+      }),
+    ).rejects.toThrow('desktop CLI install action generation is stale')
+    await iter.return?.()
+  })
+
+  it('invokes only current-generation desktop CLI install actions', async () => {
+    const openCLISettings = vi.fn()
+    const detectCLIInstallState = vi.fn(async () => ({
+      status: DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_MISSING,
+      label: 'Command line tool not installed',
+      targets: [{ id: 'home-bin', selected: true }],
+    }))
+    const resource = new DesktopRuntimeResource({
+      openOrFocusMainWindow: vi.fn(),
+      quitDesktopRuntime: vi.fn(),
+      desktopCLIInstall: {
+        detectCLIInstallState,
+        openCLISettings,
+      },
+    })
+
+    await resource.desktopCLIInstallResource.InvokeCLIInstallAction({
+      actionId: 'recheck',
+      generation: 1n,
+    })
+    expect(detectCLIInstallState).toHaveBeenCalledTimes(1)
+    expect(resource.desktopCLIInstallResource.getState()).toMatchObject({
+      status: DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_MISSING,
+      generation: 2n,
+      selectedTargetId: 'home-bin',
+      targets: [{ id: 'home-bin', generation: 2n }],
+    })
+
+    await resource.desktopCLIInstallResource.InvokeCLIInstallAction({
+      actionId: 'open-settings',
+      generation: 2n,
+    })
+    expect(openCLISettings).toHaveBeenCalledTimes(1)
+  })
+
+  it('runs user-level CLI install actions through the desktop resource owner', async () => {
+    const targetPath = '/Users/test/bin/spacewave'
+    const fs = new TestInstallFilesystem()
+    const identity = {
+      projectId: 'spacewave',
+      entrypointRole: 'cli',
+      channelKey: 'stable',
+      manifestId: 'spacewave-cli',
+      manifestRev: 9n,
+      platformId: 'desktop/darwin/arm64',
+    }
+    const detectCLIInstallState = vi.fn(async () => {
+      const installed = fs.exists(targetPath)
+      return {
+        status: installed
+          ? DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_INSTALLED
+          : DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_MISSING,
+        label: installed
+          ? 'Command line tool installed'
+          : 'Command line tool not installed',
+        installed: installed ? { ...identity, path: targetPath } : {},
+        available: identity,
+        targets: [
+          {
+            id: 'home-bin',
+            path: targetPath,
+            writable: true,
+            selected: true,
+          },
+        ],
+      }
+    })
+    const resource = new DesktopRuntimeResource({
+      openOrFocusMainWindow: vi.fn(),
+      quitDesktopRuntime: vi.fn(),
+      desktopCLIInstall: {
+        detectCLIInstallState,
+        readReleaseBinary: async () => new TextEncoder().encode('managed-cli'),
+        probe: {
+          fileExists: async (path) => fs.exists(path),
+          readEntrypointIdentity: async (path) => {
+            if (!fs.exists(path)) return undefined
+            return { ...identity, path }
+          },
+        },
+        filesystem: fs,
+        now: () => 11,
+      },
+    })
+
+    await resource.desktopCLIInstallResource.InvokeCLIInstallAction({
+      actionId: 'recheck',
+      generation: 1n,
+    })
+    const installAction = resource.desktopCLIInstallResource
+      .getState()
+      .actions?.find((action) => action.id === 'install')
+    expect(installAction).toMatchObject({
+      kind: DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL,
+      targetId: 'home-bin',
+    })
+
+    await resource.desktopCLIInstallResource.InvokeCLIInstallAction({
+      actionId: 'install',
+      generation: installAction?.generation,
+    })
+
+    expect(new TextDecoder().decode(fs.files.get(targetPath))).toBe(
+      'managed-cli',
+    )
+    expect(resource.desktopCLIInstallResource.getState()).toMatchObject({
+      status: DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_INSTALLED,
+      installed: {
+        manifestId: 'spacewave-cli',
+        manifestRev: 9n,
+      },
+    })
+  })
+
+  it('detects desktop CLI install state from injected native probes', async () => {
+    const homeDir = '/Users/test'
+    const targetPath = '/Users/test/bin/spacewave'
+    const unmanagedPath = '/opt/homebrew/bin/spacewave'
+    const available = {
+      projectId: 'spacewave',
+      entrypointRole: 'cli',
+      channelKey: 'stable',
+      manifestId: 'spacewave-cli',
+      manifestRev: 9n,
+      platformId: 'desktop/darwin/arm64',
+    }
+    const probe = {
+      fileExists: vi.fn(async (candidate: string) => {
+        return candidate === targetPath || candidate === unmanagedPath
+      }),
+      targetWritable: vi.fn(async (candidate: string) => {
+        return candidate === targetPath
+      }),
+      readEntrypointIdentity: vi.fn(async (candidate: string) => {
+        if (candidate === targetPath) {
+          return {
+            path: candidate,
+            projectId: 'spacewave',
+            entrypointRole: 'cli',
+            channelKey: 'stable',
+            manifestId: 'spacewave-cli',
+            manifestRev: 8n,
+            platformId: 'desktop/darwin/arm64',
+          }
+        }
+        return {
+          path: candidate,
+          entrypointRole: 'standalone',
+          platformId: 'desktop/darwin/arm64',
+        }
+      }),
+    }
+
+    await expect(
+      detectDesktopCLIInstallState({
+        homeDir,
+        pathEntries: ['/opt/homebrew/bin', '/Users/test/bin'],
+        platformId: 'desktop/darwin/arm64',
+        available,
+        probe,
+      }),
+    ).resolves.toMatchObject({
+      status: DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_CONFLICT,
+      conflictPath: unmanagedPath,
+      selectedTargetId: 'home-bin',
+      installed: {
+        manifestId: 'spacewave-cli',
+        manifestRev: 8n,
+      },
+      available: {
+        manifestRev: 9n,
+      },
+      targets: [
+        { id: 'home-bin', writable: true, selected: true },
+        { id: 'home-local-bin', writable: false, selected: false },
+      ],
+    })
+
+    probe.fileExists = vi.fn(async (candidate: string) => {
+      return candidate === targetPath
+    })
+    await expect(
+      detectDesktopCLIInstallState({
+        homeDir,
+        pathEntries: ['/Users/test/bin'],
+        platformId: 'desktop/darwin/arm64',
+        available,
+        probe,
+      }),
+    ).resolves.toMatchObject({
+      status:
+        DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_UPDATE_AVAILABLE,
+      selectedTargetId: 'home-bin',
+      actions: [
+        {
+          id: 'recheck',
+          kind: DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_RECHECK,
+        },
+        {
+          id: 'open-settings',
+          kind: DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS,
+        },
+      ],
+    })
+  })
+
   it('releases ResourceServer client sessions without changing desktop state', async () => {
     const resource = new DesktopRuntimeResource({
       openOrFocusMainWindow: vi.fn(),
@@ -321,3 +636,50 @@ describe('DesktopRuntimeResource', () => {
     })
   })
 })
+
+class TestInstallFilesystem {
+  public readonly files = new Map<string, Uint8Array>()
+  public readonly modes = new Map<string, number>()
+
+  public exists(path: string): boolean {
+    return this.files.has(path)
+  }
+
+  public async readFile(path: string): Promise<Uint8Array> {
+    const data = this.files.get(path)
+    if (!data) throw new Error('not found')
+    return data
+  }
+
+  public async writeFileExclusive(
+    path: string,
+    data: Uint8Array,
+  ): Promise<void> {
+    if (this.files.has(path)) throw new Error('exists')
+    this.files.set(path, new Uint8Array(data))
+  }
+
+  public async rename(oldPath: string, newPath: string): Promise<void> {
+    const data = this.files.get(oldPath)
+    if (!data) throw new Error('not found')
+    this.files.set(newPath, data)
+    this.files.delete(oldPath)
+  }
+
+  public async mkdir(_path: string): Promise<void> {}
+
+  public async chmod(path: string, mode: number): Promise<void> {
+    this.modes.set(path, mode)
+  }
+
+  public async remove(path: string): Promise<void> {
+    this.files.delete(path)
+    this.modes.delete(path)
+  }
+
+  public async pathKind(
+    path: string,
+  ): Promise<'missing' | 'file' | 'symlink' | 'other'> {
+    return this.files.has(path) ? 'file' : 'missing'
+  }
+}
