@@ -1588,7 +1588,7 @@ func createStartupGraphBuildResultMarker(ctx context.Context, ws world.WorldStat
 
 func assertStartupGraphDumpLine(t *testing.T, dump string, prefix string, parts ...string) {
 	t.Helper()
-	for _, line := range strings.Split(dump, "\n") {
+	for line := range strings.SplitSeq(dump, "\n") {
 		if !strings.HasPrefix(line, prefix) {
 			continue
 		}

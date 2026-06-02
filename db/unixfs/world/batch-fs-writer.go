@@ -485,11 +485,9 @@ func (b *BatchFSWriter) syncExistingFile(
 		}
 		compareChunk = compareChunk[:nreadDst]
 		if !bytes.Equal(readChunk[:len(compareChunk)], compareChunk) {
-			// WriteBlob overlays ranges. Clear the existing file first so an
-			// overwrite cannot leave stale tail ranges behind a replacement blob.
-			if err := unixfs_block.TruncateFile(ctx, root, path, 0, ts); err != nil {
-				return err
-			}
+			// TruncateFile already matched the source size above, so writing the
+			// incoming blob as an overlay preserves the per-op range history
+			// without leaving stale tail ranges behind it.
 			if err := unixfs_block.WriteBlob(ctx, root, path, 0, blobRef, false, false, ts); err != nil {
 				return err
 			}

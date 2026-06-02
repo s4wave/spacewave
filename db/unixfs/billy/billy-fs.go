@@ -188,6 +188,16 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 		}
 		return nil, &os.PathError{Op: "openfile-reopen", Path: filepath, Err: err}
 	}
+	if unixfs.FlagIsTruncate(flag) && !unixfs.FlagIsWriteOnly(flag) && !unixfs.FlagIsReadAndWrite(flag) {
+		fileHandle.Release()
+		return nil, &os.PathError{Op: "openfile-truncate", Path: filepath, Err: billy.ErrReadOnly}
+	}
+	if unixfs.FlagIsTruncate(flag) {
+		if err := fileHandle.Truncate(f.ctx, 0, f.timestamp()); err != nil {
+			fileHandle.Release()
+			return nil, &os.PathError{Op: "openfile-truncate", Path: filepath, Err: err}
+		}
+	}
 	return NewBillyFSFile(f.ctx, fileHandle.GetName(), fileHandle, flag, f.timestamp()), nil
 }
 

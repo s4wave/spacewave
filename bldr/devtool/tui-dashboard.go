@@ -365,7 +365,7 @@ func devtoolTUIBrowserURL(snapshot *devtool_status.BldrDevtoolStatus) string {
 	if snapshot == nil {
 		return ""
 	}
-	for _, field := range strings.Fields(cleanTUIText(snapshot.GetCommand().Summary)) {
+	for field := range strings.FieldsSeq(cleanTUIText(snapshot.GetCommand().Summary)) {
 		if browserURL := devtoolTUIBrowserURLToken(field); browserURL != "" {
 			return browserURL
 		}

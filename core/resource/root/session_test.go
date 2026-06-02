@@ -10,7 +10,6 @@ func TestWaitAnyWaitsForEverySource(t *testing.T) {
 	t.Parallel()
 
 	for sourceIdx := range 5 {
-		sourceIdx := sourceIdx
 		t.Run(fmt.Sprintf("source-%d", sourceIdx), func(t *testing.T) {
 			t.Parallel()
 

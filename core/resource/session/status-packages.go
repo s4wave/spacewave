@@ -14,7 +14,6 @@ import (
 
 func (r *StatusResource) watchRecoveryPackageChanges(ctx context.Context, notify func()) {
 	for _, ctr := range r.findPackageStatusCtrs() {
-		ctr := ctr
 		go func() {
 			current := ctr.GetValue()
 			_ = ccontainer.WatchChanges(

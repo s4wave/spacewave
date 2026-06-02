@@ -378,7 +378,7 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 		return false, err
 	}
 	if changeBcs != nil {
-		changeBcs.SetRef(7, nbcs)
+		changeBcs.SetRef(6, nbcs)
 	}
 
 	// success

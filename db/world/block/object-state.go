@@ -98,10 +98,10 @@ func (o *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (u
 	}
 	if changeBcs != nil {
 		nbcs := o.bcs
-		changeBcs.SetRef(6, nbcs)
+		changeBcs.SetRef(5, nbcs)
 		prevBcs := o.bcs.Detach(false) // clone bcs for previous revision
 		prevBcs.SetBlock(prevBlk, true)
-		changeBcs.SetRef(7, prevBcs)
+		changeBcs.SetRef(6, prevBcs)
 	}
 
 	// GC: swap object -> block edge (old -> new).

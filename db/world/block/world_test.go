@@ -877,6 +877,119 @@ func TestWorldState_DeleteObjectWithMalformedGraphQuad(t *testing.T) {
 	}
 }
 
+func TestWorldState_ChangelogObjectSetStoresCurrentAndPreviousObjectRefs(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	obj, err := ws.CreateObject(ctx, "changelog-set-ref", &bucket.ObjectRef{BucketId: "initial-bucket"})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := obj.SetRootRef(ctx, &bucket.ObjectRef{BucketId: "next-bucket"}); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	worldRoot, err := ws.GetRoot(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	lastChange := worldRoot.GetLastChange()
+	if ct := lastChange.GetChangeType(); ct != world_block.WorldChangeType_WorldChange_OBJECT_SET {
+		t.Fatalf("expected last change type OBJECT_SET, got %s", ct.String())
+	}
+
+	var foundSetRootRefChange bool
+	for _, change := range lastChange.GetChangeBatch().GetChanges() {
+		if change.GetKey() != "changelog-set-ref" || change.GetPrevObjectRef().GetEmpty() {
+			continue
+		}
+		foundSetRootRefChange = true
+		if change.GetObjectRef().GetEmpty() {
+			t.Fatal("expected SetRootRef changelog change to store object_ref")
+		}
+	}
+	if !foundSetRootRefChange {
+		t.Fatal("expected SetRootRef changelog change to store prev_object_ref")
+	}
+}
+
+func TestWorldState_ChangelogDeleteObjectStoresPreviousObjectRef(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if _, err := ws.CreateObject(ctx, "changelog-delete-ref", &bucket.ObjectRef{BucketId: "deleted-bucket"}); err != nil {
+		t.Fatal(err.Error())
+	}
+	deleted, err := ws.DeleteObject(ctx, "changelog-delete-ref")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !deleted {
+		t.Fatal("expected object to be deleted")
+	}
+	if err := ws.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	worldRoot, err := ws.GetRoot(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	lastChange := worldRoot.GetLastChange()
+	if ct := lastChange.GetChangeType(); ct != world_block.WorldChangeType_WorldChange_OBJECT_DELETE {
+		t.Fatalf("expected last change type OBJECT_DELETE, got %s", ct.String())
+	}
+	changes := lastChange.GetChangeBatch().GetChanges()
+	if len(changes) != 1 {
+		t.Fatalf("expected one object delete change, got %d", len(changes))
+	}
+	if changes[0].GetPrevObjectRef().GetEmpty() {
+		t.Fatal("expected delete changelog change to store prev_object_ref")
+	}
+	if !changes[0].GetObjectRef().GetEmpty() {
+		t.Fatal("expected delete changelog change not to store object_ref")
+	}
+}
+
 // TestWorldEngine_Fork tests forking the block-backed world state.
 //
 // Applies the result to the original WorldState & checks.

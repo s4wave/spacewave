@@ -107,7 +107,6 @@ func TestTrayPanelScreenshotEvidence(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			captureTrayPanelScreenshotCase(t, ctx, h, tc)
 		})

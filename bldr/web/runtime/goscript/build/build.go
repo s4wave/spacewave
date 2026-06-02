@@ -168,7 +168,7 @@ func goScriptImportResolverPlugin(outputRoot string) esbuild_api.Plugin {
 			})
 			build.OnLoad(esbuild_api.OnLoadOptions{Filter: `.*`, Namespace: "goscript-node-events"}, func(args esbuild_api.OnLoadArgs) (esbuild_api.OnLoadResult, error) {
 				return esbuild_api.OnLoadResult{
-					Contents: ptrString("export function setMaxListeners() {}\n"),
+					Contents: new("export function setMaxListeners() {}\n"),
 					Loader:   esbuild_api.LoaderJS,
 				}, nil
 			})
@@ -190,8 +190,9 @@ func goScriptImportResolverPlugin(outputRoot string) esbuild_api.Plugin {
 	}
 }
 
+//go:fix inline
 func ptrString(value string) *string {
-	return &value
+	return new(value)
 }
 
 func resolveGoScriptImport(outputRoot, rel string) (esbuild_api.OnResolveResult, error) {

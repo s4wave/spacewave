@@ -278,7 +278,7 @@ func TestBuildDevtoolTUIDashboardAlignsRowsForFastScan(t *testing.T) {
 			t.Fatalf("dashboard text missing aligned row %q:\n%s", want, text)
 		}
 	}
-	for _, line := range strings.Split(strings.TrimRight(text, "\n"), "\n") {
+	for line := range strings.SplitSeq(strings.TrimRight(text, "\n"), "\n") {
 		if len([]rune(line)) > 80 {
 			t.Fatalf("dashboard line too wide (%d): %q\n%s", len([]rune(line)), line, text)
 		}

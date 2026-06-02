@@ -194,6 +194,83 @@ func TestBillyFS_FileRoundtrip(t *testing.T) {
 	}
 }
 
+func TestBillyFS_OpenFileTruncatesExisting(t *testing.T) {
+	billyFS, _ := newTestBillyFS(t)
+
+	f, err := billyFS.OpenFile("testfile", os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		t.Fatalf("OpenFile create: %v", err)
+	}
+	if _, err := f.Write([]byte("long original content")); err != nil {
+		t.Fatalf("Write original: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatalf("Close original: %v", err)
+	}
+
+	f, err = billyFS.OpenFile("testfile", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	if err != nil {
+		t.Fatalf("OpenFile truncate: %v", err)
+	}
+	if _, err := f.Write([]byte("short")); err != nil {
+		t.Fatalf("Write replacement: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatalf("Close replacement: %v", err)
+	}
+
+	f, err = billyFS.Open("testfile")
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	got, err := io.ReadAll(f)
+	if err != nil {
+		t.Fatalf("ReadAll: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+	if string(got) != "short" {
+		t.Fatalf("content = %q, want %q", got, "short")
+	}
+}
+
+func TestBillyFS_OpenFileTruncateRequiresWriteAccess(t *testing.T) {
+	billyFS, _ := newTestBillyFS(t)
+
+	f, err := billyFS.OpenFile("testfile", os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		t.Fatalf("OpenFile create: %v", err)
+	}
+	if _, err := f.Write([]byte("preserve")); err != nil {
+		t.Fatalf("Write original: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatalf("Close original: %v", err)
+	}
+
+	f, err = billyFS.OpenFile("testfile", os.O_TRUNC, 0o644)
+	if err == nil {
+		_ = f.Close()
+		t.Fatal("OpenFile O_TRUNC without write access succeeded")
+	}
+
+	f, err = billyFS.Open("testfile")
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	got, err := io.ReadAll(f)
+	if err != nil {
+		t.Fatalf("ReadAll: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+	if string(got) != "preserve" {
+		t.Fatalf("content = %q, want %q", got, "preserve")
+	}
+}
+
 func TestBillyFS_ReadDir(t *testing.T) {
 	billyFS, _ := newTestBillyFS(t)
 
