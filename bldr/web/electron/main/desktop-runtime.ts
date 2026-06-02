@@ -32,7 +32,10 @@ import {
   type WatchDesktopStateResponse,
 } from '../desktop-runtime/desktop-runtime.pb.js'
 import { DesktopTrayResource } from './desktop-tray-resource.js'
-import { buildDesktopTrayCLIInstallEntries } from './desktop-tray-runtime-projection.js'
+import {
+  buildDesktopTrayCLIInstallEntries,
+  desktopRuntimeCLISettingsRoute,
+} from './desktop-tray-runtime-projection.js'
 import {
   DesktopCLIInstallResource,
   type DesktopCLIInstallResourceOpts,
@@ -119,6 +122,7 @@ export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
     const next = cloneDesktopRuntimeState(state)
     if (DesktopRuntimeState.equals(this.state, next)) return
     this.state = next
+    this.refreshDesktopCLIInstallTrayEntries()
     this.pushState()
   }
 
@@ -157,6 +161,7 @@ export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
       ...state,
       mainWindowOpen: this.state.mainWindowOpen,
       quitting: this.state.quitting,
+      cliInstall: this.state.cliInstall,
     })
     if (this.state.quitting) {
       next.statusText = this.state.statusText
@@ -165,6 +170,7 @@ export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
     }
     if (DesktopRuntimeState.equals(this.state, next)) return
     this.state = next
+    this.refreshDesktopCLIInstallTrayEntries()
     this.pushState()
   }
 
@@ -182,18 +188,35 @@ export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
           status: resp.state?.status,
           label: resp.state?.label || '',
           detail: resp.state?.detail || resp.state?.errorMessage || '',
-          route: '/settings',
+          route: '',
         }
         this.state = {
           ...this.state,
           cliInstall,
         }
-        this.desktopTrayResource.replaceOwnerEntries(
-          buildDesktopTrayCLIInstallEntries(cliInstall),
-        )
+        this.refreshDesktopCLIInstallTrayEntries()
         this.pushState()
       }
     })()
+  }
+
+  private refreshDesktopCLIInstallTrayEntries(): void {
+    const current = this.state.cliInstall
+    if (!current?.label && !current?.detail && !current?.status) {
+      this.desktopTrayResource.replaceOwnerEntries([])
+      return
+    }
+    const cliInstall = {
+      ...current,
+      route: desktopRuntimeCLISettingsRoute(this.state),
+    }
+    this.state = {
+      ...this.state,
+      cliInstall,
+    }
+    this.desktopTrayResource.replaceOwnerEntries(
+      buildDesktopTrayCLIInstallEntries(cliInstall),
+    )
   }
 }
 

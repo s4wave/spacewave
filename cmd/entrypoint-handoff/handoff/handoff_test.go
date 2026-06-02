@@ -141,6 +141,31 @@ func TestWriteEntrypointHandoffManifestRejectsSymlink(t *testing.T) {
 	}
 }
 
+func TestStageCLIHandoffArtifactsUsesNativeCLIRoot(t *testing.T) {
+	root := t.TempDir()
+	artifactsDir := filepath.Join(t.TempDir(), "cli")
+	writeTestFileBytes(t, filepath.Join(artifactsDir, "spacewave-cli-linux-amd64.tar.gz"), []byte("cli archive"))
+
+	artifacts, err := stageCLIHandoffArtifacts(root, artifactsDir)
+	if err != nil {
+		t.Fatalf("stageCLIHandoffArtifacts() error = %v", err)
+	}
+	if len(artifacts) != 1 {
+		t.Fatalf("artifacts = %d, want 1", len(artifacts))
+	}
+	if got := artifacts[0].Path; got != "cli/spacewave-cli-linux-amd64.tar.gz" {
+		t.Fatalf("artifact path = %q", got)
+	}
+	staged := filepath.Join(root, "native", "cli", "spacewave-cli-linux-amd64.tar.gz")
+	data, err := os.ReadFile(staged)
+	if err != nil {
+		t.Fatalf("read staged artifact: %v", err)
+	}
+	if string(data) != "cli archive" {
+		t.Fatalf("staged artifact data = %q", string(data))
+	}
+}
+
 func TestStageStaticHTMLCopiesXML(t *testing.T) {
 	prerenderDir := t.TempDir()
 	stagingDir := t.TempDir()

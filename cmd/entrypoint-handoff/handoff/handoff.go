@@ -49,11 +49,13 @@ type Args struct {
 	OutDir                    string
 	BrowserStagingDir         string
 	StaticManifestPath        string
+	CLIArtifactsDir           string
 	ReactDev                  bool
 	SkipNotarize              bool
 	IncludeBrowser            bool
 	BrowserOnly               bool
 	WriteHandoffManifest      bool
+	WriteCLIHandoffManifest   bool
 	SkipBuild                 bool
 	SkipPackage               bool
 	StageBuildInputs          bool
@@ -82,6 +84,9 @@ func Run(ctx context.Context, args *Args) error {
 		return errors.New("args is nil")
 	}
 	args.FillDefaults()
+	if args.WriteHandoffManifest && args.WriteCLIHandoffManifest {
+		return errors.New("--write-handoff-manifest and --write-cli-handoff-manifest cannot be combined")
+	}
 	if args.WriteHandoffManifest {
 		return WriteEntrypointHandoffManifest(EntrypointHandoffOptions{
 			RootDir:            args.OutDir,
@@ -96,6 +101,26 @@ func Run(ctx context.Context, args *Args) error {
 			RunAttempt:         args.RunAttempt,
 			SourceRepo:         args.SourceRepo,
 			Workflow:           args.Workflow,
+		})
+	}
+	repoDir, err := os.Getwd()
+	if err != nil {
+		return errors.Wrap(err, "resolve repo dir")
+	}
+	le := logrus.NewEntry(logrus.StandardLogger())
+	if args.WriteCLIHandoffManifest {
+		return WriteCLIHandoffManifest(ctx, le, repoDir, CLIHandoffOptions{
+			RootDir:             args.OutDir,
+			CLIArtifactsDir:     args.CLIArtifactsDir,
+			ManifestPackDirsCSV: args.ManifestPackImportDirsCSV,
+			CLIRev:              args.Rev,
+			GitSHA:              args.GitSHA,
+			Tag:                 args.Tag,
+			ReleaseEnvironment:  args.ReleaseEnvironment,
+			RunID:               args.RunID,
+			RunAttempt:          args.RunAttempt,
+			SourceRepo:          args.SourceRepo,
+			Workflow:            args.Workflow,
 		})
 	}
 	if args.Version == "" || args.OutDir == "" {
@@ -120,16 +145,11 @@ func Run(ctx context.Context, args *Args) error {
 		return errors.New("--manifest-pack-produce cannot be combined with remote/browser/platform packaging flags")
 	}
 
-	repoDir, err := os.Getwd()
-	if err != nil {
-		return errors.Wrap(err, "resolve repo dir")
-	}
 	platforms := splitCSV(args.PlatformsCSV)
 	if !args.BrowserOnly && !args.RemoteOnly && !args.ManifestPackProduce && len(platforms) == 0 {
 		return errors.New("at least one platform is required")
 	}
 
-	le := logrus.NewEntry(logrus.StandardLogger())
 	le.WithField("platforms", strings.Join(platforms, ",")).
 		WithField("include_browser", args.IncludeBrowser).
 		Info("building entrypoint handoff slice")
@@ -559,6 +579,10 @@ func importManifestPacks(ctx context.Context, le *logrus.Entry, repoDir string, 
 		return err
 	}
 	defer busHandle.Release()
+	return importManifestPacksIntoBus(ctx, busHandle, dirs)
+}
+
+func importManifestPacksIntoBus(ctx context.Context, busHandle *bldr_devtool.DevtoolBus, dirs []string) error {
 	for _, dir := range dirs {
 		metaData, err := os.ReadFile(filepath.Join(dir, manifestPackMetadataFilename))
 		if err != nil {

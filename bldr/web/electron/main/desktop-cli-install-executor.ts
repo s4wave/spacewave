@@ -32,7 +32,9 @@ export interface DesktopCLIInstallExecutorOpts {
   installed?: DesktopCLIEntrypointIdentity
   available?: DesktopCLIEntrypointIdentity
   operation: 'install' | 'update'
-  readReleaseBinary: () => Promise<Uint8Array>
+  readReleaseBinary: (
+    expected?: DesktopCLIEntrypointIdentity,
+  ) => Promise<Uint8Array>
   probe: Pick<DesktopCLIInstallProbe, 'fileExists' | 'readEntrypointIdentity'>
   filesystem?: DesktopCLIInstallFilesystem
   now?: () => number
@@ -59,7 +61,7 @@ export async function executeDesktopCLIInstall(
       await fs.rename(targetPath, backupPath)
       backupCreated = true
     }
-    const bytes = await opts.readReleaseBinary()
+    const bytes = await opts.readReleaseBinary(opts.available)
     if (bytes.byteLength === 0) {
       throw new Error('release CLI binary is empty')
     }

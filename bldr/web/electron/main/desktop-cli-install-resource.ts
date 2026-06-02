@@ -2,8 +2,10 @@ import type { MessageStream } from 'starpc'
 
 import { ItState } from '../../bldr/it-state.js'
 import {
+  DesktopCLIInstallActionKind,
   DesktopCLIInstallStatus,
   DesktopCLIInstallState,
+  type DesktopCLIEntrypointIdentity,
   type DesktopCLIInstallActionItem,
   type InvokeCLIInstallActionRequest,
   type InvokeCLIInstallActionResponse,
@@ -23,9 +25,13 @@ import {
 } from './desktop-cli-install-executor.js'
 
 interface DesktopCLIInstallResourceOpts {
-  detectCLIInstallState?: () => Promise<DesktopCLIInstallState>
+  detectCLIInstallState?: (
+    selectedTargetId?: string,
+  ) => Promise<DesktopCLIInstallState>
   openCLISettings?: () => Promise<void> | void
-  readReleaseBinary?: () => Promise<Uint8Array>
+  readReleaseBinary?: (
+    expected?: DesktopCLIEntrypointIdentity,
+  ) => Promise<Uint8Array>
   probe?: Pick<DesktopCLIInstallProbe, 'fileExists' | 'readEntrypointIdentity'>
   filesystem?: DesktopCLIInstallFilesystem
   now?: () => number
@@ -60,6 +66,13 @@ export class DesktopCLIInstallResource implements DesktopCLIInstallResourceServi
     _abortSignal?: AbortSignal,
   ): Promise<InvokeCLIInstallActionResponse> {
     const action = this.findCurrentAction(request)
+    if (
+      action.kind ===
+      DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_SELECT_TARGET
+    ) {
+      await this.selectTarget(action)
+      return {}
+    }
     switch (action.id) {
       case 'recheck':
         await this.recheck()
@@ -100,7 +113,9 @@ export class DesktopCLIInstallResource implements DesktopCLIInstallResourceServi
   public async recheck(): Promise<void> {
     const detector = this.opts.detectCLIInstallState
     if (!detector) return
-    this.setDetectedState(await detector())
+    this.setDetectedState(
+      await detector(this.state.selectedTargetId || undefined),
+    )
   }
 
   private async installOrUpdate(
@@ -155,6 +170,33 @@ export class DesktopCLIInstallResource implements DesktopCLIInstallResourceServi
       detail: 'Writing the managed CLI into the selected user target.',
       errorMessage: '',
     })
+  }
+
+  private async selectTarget(
+    action: DesktopCLIInstallActionItem,
+  ): Promise<void> {
+    const targetId = action.targetId || ''
+    if (!targetId) throw new Error('desktop CLI install target is required')
+    if (!this.state.targets?.some((target) => target.id === targetId)) {
+      throw new Error('desktop CLI install target not found')
+    }
+    if (this.opts.detectCLIInstallState) {
+      this.setDetectedState(await this.opts.detectCLIInstallState(targetId))
+      return
+    }
+    const currentGeneration = this.state.generation ?? this.generation
+    const next = cloneCLIInstallState(this.state)
+    next.selectedTargetId = targetId
+    next.targets = next.targets?.map((target) => ({
+      ...target,
+      selected: target.id === targetId,
+    }))
+    this.state = bindCLIInstallStateGeneration(
+      next,
+      currentGeneration + 1n,
+      this.buildGenerationOpts(),
+    )
+    this.pushState()
   }
 
   public getState(): DesktopCLIInstallState {

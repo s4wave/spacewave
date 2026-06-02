@@ -430,6 +430,8 @@ pub enum DesktopCliInstallActionKind {
     Install = 3,
     /// DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE updates an existing managed CLI.
     Update = 4,
+    /// DESKTOP_CLI_INSTALL_ACTION_KIND_SELECT_TARGET selects an install target.
+    SelectTarget = 5,
 }
 impl DesktopCliInstallActionKind {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -443,6 +445,7 @@ impl DesktopCliInstallActionKind {
             Self::OpenSettings => "DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS",
             Self::Install => "DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL",
             Self::Update => "DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE",
+            Self::SelectTarget => "DESKTOP_CLI_INSTALL_ACTION_KIND_SELECT_TARGET",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -453,6 +456,7 @@ impl DesktopCliInstallActionKind {
             "DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS" => Some(Self::OpenSettings),
             "DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL" => Some(Self::Install),
             "DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE" => Some(Self::Update),
+            "DESKTOP_CLI_INSTALL_ACTION_KIND_SELECT_TARGET" => Some(Self::SelectTarget),
             _ => None,
         }
     }

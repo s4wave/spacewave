@@ -200,7 +200,8 @@ jobs:
           path: |
             .tmp/entrypoint-handoff/linux-${{ matrix.arch }}
             .tmp/entrypoint-native-manifest-packs/linux-${{ matrix.arch }}
-          key: entrypoint-part-linux-${{ matrix.arch }}-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-${{ github.sha }}-nativepackv1
+            .tmp/entrypoint-cli-manifest-packs/linux-${{ matrix.arch }}
+          key: entrypoint-part-linux-${{ matrix.arch }}-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-${{ github.sha }}-nativepackv2
 
       - name: Setup Go
         if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
@@ -283,6 +284,21 @@ jobs:
             --manifest-producer-target "release-desktop-linux-${{ matrix.arch }}" \
             --out-dir .tmp/entrypoint-native-manifest-packs/linux-${{ matrix.arch }}
 
+      - name: Produce Linux ${{ matrix.arch }} CLI entrypoint manifest pack
+        if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          go run ./cmd/entrypoint-handoff \
+            --version "${{ needs.prep.outputs.version }}" \
+            --manifest-pack-produce \
+            --manifest-id spacewave-cli \
+            --manifest-platform "desktop/linux/${{ matrix.arch }}" \
+            --manifest-object-key "spacewave/release/manifests/spacewave-cli/desktop/linux/${{ matrix.arch }}" \
+            --manifest-link-object-keys "devtool,spacewave/release/manifests" \
+            --manifest-producer-target "release-cli-linux-${{ matrix.arch }}" \
+            --out-dir .tmp/entrypoint-cli-manifest-packs/linux-${{ matrix.arch }}
+
       - name: Upload Linux handoff part
         uses: actions/upload-artifact@v7
         with:
@@ -296,6 +312,14 @@ jobs:
         with:
           name: entrypoint-native-manifest-pack-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-spacewave-dist-desktop-linux-${{ matrix.arch }}
           path: .tmp/entrypoint-native-manifest-packs/linux-${{ matrix.arch }}
+          include-hidden-files: true
+          if-no-files-found: error
+
+      - name: Upload Linux ${{ matrix.arch }} CLI entrypoint manifest pack
+        uses: actions/upload-artifact@v7
+        with:
+          name: entrypoint-cli-manifest-pack-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-spacewave-cli-desktop-linux-${{ matrix.arch }}
+          path: .tmp/entrypoint-cli-manifest-packs/linux-${{ matrix.arch }}
           include-hidden-files: true
           if-no-files-found: error
 
@@ -459,7 +483,8 @@ jobs:
           path: |
             .tmp/entrypoint-handoff/windows-${{ matrix.arch }}
             .tmp/entrypoint-native-manifest-packs/windows-${{ matrix.arch }}
-          key: entrypoint-part-windows-${{ matrix.arch }}-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-${{ github.sha }}-sign${{ inputs.sign_artifacts }}-nativepackv1
+            .tmp/entrypoint-cli-manifest-packs/windows-${{ matrix.arch }}
+          key: entrypoint-part-windows-${{ matrix.arch }}-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-${{ github.sha }}-sign${{ inputs.sign_artifacts }}-nativepackv2
 
       - name: Setup Go
         if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
@@ -637,6 +662,26 @@ jobs:
             --manifest-producer-target "release-desktop-windows-${{ matrix.arch }}" \
             --out-dir .tmp/entrypoint-native-manifest-packs/windows-${{ matrix.arch }}
 
+      - name: Produce Windows ${{ matrix.arch }} CLI entrypoint manifest pack
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
+        shell: bash
+        env:
+          BLDR_WINDOWS_SIGN_PROFILE: ${{ inputs.sign_artifacts && vars.BLDR_WINDOWS_SIGN_PROFILE || '' }}
+          BLDR_WINDOWS_SIGN_ACCOUNT: ${{ inputs.sign_artifacts && vars.BLDR_WINDOWS_SIGN_ACCOUNT || '' }}
+          BLDR_WINDOWS_SIGN_ENDPOINT: ${{ inputs.sign_artifacts && vars.BLDR_WINDOWS_SIGN_ENDPOINT || '' }}
+          BLDR_WINDOWS_SIGN_MSIX: '0'
+        run: |
+          set -euo pipefail
+          go run ./cmd/entrypoint-handoff \
+            --version "${{ needs.prep.outputs.version }}" \
+            --manifest-pack-produce \
+            --manifest-id spacewave-cli \
+            --manifest-platform "desktop/windows/${{ matrix.arch }}" \
+            --manifest-object-key "spacewave/release/manifests/spacewave-cli/desktop/windows/${{ matrix.arch }}" \
+            --manifest-link-object-keys "devtool,spacewave/release/manifests" \
+            --manifest-producer-target "release-cli-windows-${{ matrix.arch }}" \
+            --out-dir .tmp/entrypoint-cli-manifest-packs/windows-${{ matrix.arch }}
+
       - name: Collect Windows MSIX installer
         if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         id: windows_msix_paths
@@ -706,6 +751,14 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
 
+      - name: Upload Windows ${{ matrix.arch }} CLI entrypoint manifest pack
+        uses: actions/upload-artifact@v7
+        with:
+          name: entrypoint-cli-manifest-pack-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-spacewave-cli-desktop-windows-${{ matrix.arch }}
+          path: .tmp/entrypoint-cli-manifest-packs/windows-${{ matrix.arch }}
+          include-hidden-files: true
+          if-no-files-found: error
+
   macos:
     needs:
       - prep
@@ -733,7 +786,8 @@ jobs:
           path: |
             .tmp/entrypoint-handoff/macos-${{ matrix.arch }}
             .tmp/entrypoint-native-manifest-packs/macos-${{ matrix.arch }}
-          key: entrypoint-part-macos-${{ matrix.arch }}-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-${{ github.sha }}-sign${{ inputs.sign_artifacts }}-skipnotarize${{ inputs.skip_notarize }}-nativepackv1
+            .tmp/entrypoint-cli-manifest-packs/macos-${{ matrix.arch }}
+          key: entrypoint-part-macos-${{ matrix.arch }}-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-${{ github.sha }}-sign${{ inputs.sign_artifacts }}-skipnotarize${{ inputs.skip_notarize }}-nativepackv2
 
       - name: Setup Go
         if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
@@ -871,6 +925,27 @@ jobs:
             --manifest-producer-target "release-desktop-darwin-${{ matrix.arch }}" \
             --out-dir .tmp/entrypoint-native-manifest-packs/macos-${{ matrix.arch }}
 
+      - name: Produce macOS ${{ matrix.arch }} CLI entrypoint manifest pack
+        if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
+        shell: bash
+        env:
+          BLDR_MACOS_SIGN_IDENTITY: ${{ inputs.sign_artifacts && vars.BLDR_MACOS_SIGN_IDENTITY || '-' }}
+          BLDR_MACOS_SIGN_ENTITLEMENTS: ${{ vars.BLDR_MACOS_SIGN_ENTITLEMENTS }}
+          BLDR_MACOS_SIGN_OPTIONS: ${{ vars.BLDR_MACOS_SIGN_OPTIONS }}
+          BLDR_MACOS_NOTARIZE_PROFILE: ${{ vars.BLDR_MACOS_NOTARIZE_PROFILE }}
+          BLDR_MACOS_ADHOC_SIGN: ${{ inputs.sign_artifacts && '0' || '1' }}
+        run: |
+          set -euo pipefail
+          go run ./cmd/entrypoint-handoff \
+            --version "${{ needs.prep.outputs.version }}" \
+            --manifest-pack-produce \
+            --manifest-id spacewave-cli \
+            --manifest-platform "desktop/darwin/${{ matrix.arch }}" \
+            --manifest-object-key "spacewave/release/manifests/spacewave-cli/desktop/darwin/${{ matrix.arch }}" \
+            --manifest-link-object-keys "devtool,spacewave/release/manifests" \
+            --manifest-producer-target "release-cli-darwin-${{ matrix.arch }}" \
+            --out-dir .tmp/entrypoint-cli-manifest-packs/macos-${{ matrix.arch }}
+
       - name: Upload macOS handoff part
         uses: actions/upload-artifact@v7
         with:
@@ -884,6 +959,14 @@ jobs:
         with:
           name: entrypoint-native-manifest-pack-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-spacewave-dist-desktop-darwin-${{ matrix.arch }}
           path: .tmp/entrypoint-native-manifest-packs/macos-${{ matrix.arch }}
+          include-hidden-files: true
+          if-no-files-found: error
+
+      - name: Upload macOS ${{ matrix.arch }} CLI entrypoint manifest pack
+        uses: actions/upload-artifact@v7
+        with:
+          name: entrypoint-cli-manifest-pack-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-spacewave-cli-desktop-darwin-${{ matrix.arch }}
+          path: .tmp/entrypoint-cli-manifest-packs/macos-${{ matrix.arch }}
           include-hidden-files: true
           if-no-files-found: error
 
@@ -946,6 +1029,12 @@ jobs:
         with:
           name: entrypoint-part-windows-arm64-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
           path: .tmp/entrypoint-parts/windows-arm64
+
+      - name: Download CLI entrypoint manifest packs
+        uses: actions/download-artifact@v8
+        with:
+          pattern: entrypoint-cli-manifest-pack-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-*
+          path: .tmp/entrypoint-cli-manifest-packs
 
       - name: Assemble entrypoint handoff bundle
         shell: bash
@@ -1025,6 +1114,24 @@ jobs:
             --source-repo "${GITHUB_REPOSITORY}" \
             --workflow "${GITHUB_WORKFLOW}"
 
+      - name: Write typed CLI handoff manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          go run ./cmd/entrypoint-handoff \
+            --write-cli-handoff-manifest \
+            --out-dir .tmp/cli-handoff \
+            --cli-artifacts-dir .tmp/entrypoint-public-assets/cli \
+            --manifest-pack-import-dirs .tmp/entrypoint-cli-manifest-packs \
+            --rev "${{ needs.prep.outputs.rev }}" \
+            --tag "${{ needs.prep.outputs.tag }}" \
+            --release-environment "${{ needs.prep.outputs.release_env }}" \
+            --git-sha "${GITHUB_SHA}" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --run-attempt "${GITHUB_RUN_ATTEMPT}" \
+            --source-repo "${GITHUB_REPOSITORY}" \
+            --workflow "${GITHUB_WORKFLOW}"
+
       - name: Archive entrypoint handoff bundle
         shell: bash
         run: |
@@ -1038,6 +1145,21 @@ jobs:
         with:
           name: entrypoint-handoff-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
           path: .tmp/entrypoint-handoff.tar
+          if-no-files-found: error
+
+      - name: Archive CLI handoff bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -cf .tmp/cli-handoff.tar -C .tmp/cli-handoff .
+          du -sh .tmp/cli-handoff .tmp/cli-handoff.tar
+          tar -tf .tmp/cli-handoff.tar | sort
+
+      - name: Upload CLI handoff artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: cli-handoff-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/cli-handoff.tar
           if-no-files-found: error
 
       - name: Write release notes

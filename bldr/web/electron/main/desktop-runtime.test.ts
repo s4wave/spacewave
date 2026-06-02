@@ -398,13 +398,55 @@ describe('DesktopRuntimeResource', () => {
     await iter.return?.()
   })
 
-  it('invokes only current-generation desktop CLI install actions', async () => {
-    const openCLISettings = vi.fn()
-    const detectCLIInstallState = vi.fn(async () => ({
+  it('refreshes CLI tray settings route when sessions arrive after CLI state', async () => {
+    const resource = new DesktopRuntimeResource({
+      openOrFocusMainWindow: vi.fn(),
+      quitDesktopRuntime: vi.fn(),
+    })
+    resource.desktopCLIInstallResource.setDetectedState({
       status: DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_MISSING,
       label: 'Command line tool not installed',
-      targets: [{ id: 'home-bin', selected: true }],
-    }))
+      targets: [],
+    })
+
+    await waitForCLITraySettingsRoute(resource, '/')
+    await resource.SetDesktopState({
+      state: {
+        statusText: 'Running',
+        health: DesktopRuntimeHealth.HEALTHY,
+        lifecycle: DesktopRuntimeLifecycle.RUNNING,
+        listener: {
+          reachability: DesktopRuntimeReachability.UNSPECIFIED,
+        },
+        sessions: [
+          {
+            id: 'session-2',
+            label: 'coolguy@spacewave.app',
+            route: '/u/2',
+            active: true,
+          },
+        ],
+      },
+    })
+
+    await waitForCLITraySettingsRoute(resource, '/u/2/settings/cli')
+  })
+
+  it('invokes only current-generation desktop CLI install actions', async () => {
+    const openCLISettings = vi.fn()
+    const detectCLIInstallState = vi.fn(
+      async (selectedTargetId = 'home-bin') => ({
+        status: DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_MISSING,
+        label: 'Command line tool not installed',
+        targets: [
+          { id: 'home-bin', selected: selectedTargetId === 'home-bin' },
+          {
+            id: 'home-local-bin',
+            selected: selectedTargetId === 'home-local-bin',
+          },
+        ],
+      }),
+    )
     const resource = new DesktopRuntimeResource({
       openOrFocusMainWindow: vi.fn(),
       quitDesktopRuntime: vi.fn(),
@@ -423,12 +465,49 @@ describe('DesktopRuntimeResource', () => {
       status: DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_MISSING,
       generation: 2n,
       selectedTargetId: 'home-bin',
-      targets: [{ id: 'home-bin', generation: 2n }],
+      targets: [
+        { id: 'home-bin', generation: 2n, selected: true },
+        { id: 'home-local-bin', generation: 2n, selected: false },
+      ],
+      actions: [
+        { id: 'recheck', generation: 2n },
+        { id: 'open-settings', generation: 2n },
+        {
+          id: 'select-target:home-local-bin',
+          kind: DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_SELECT_TARGET,
+          targetId: 'home-local-bin',
+          generation: 2n,
+        },
+      ],
+    })
+
+    await resource.desktopCLIInstallResource.InvokeCLIInstallAction({
+      actionId: 'select-target:home-local-bin',
+      generation: 2n,
+    })
+    expect(detectCLIInstallState).toHaveBeenLastCalledWith('home-local-bin')
+    expect(resource.desktopCLIInstallResource.getState()).toMatchObject({
+      generation: 3n,
+      selectedTargetId: 'home-local-bin',
+      targets: [
+        { id: 'home-bin', generation: 3n, selected: false },
+        { id: 'home-local-bin', generation: 3n, selected: true },
+      ],
+      actions: [
+        { id: 'recheck', generation: 3n },
+        { id: 'open-settings', generation: 3n },
+        {
+          id: 'select-target:home-bin',
+          kind: DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_SELECT_TARGET,
+          targetId: 'home-bin',
+          generation: 3n,
+        },
+      ],
     })
 
     await resource.desktopCLIInstallResource.InvokeCLIInstallAction({
       actionId: 'open-settings',
-      generation: 2n,
+      generation: 3n,
     })
     expect(openCLISettings).toHaveBeenCalledTimes(1)
   })
@@ -600,6 +679,11 @@ describe('DesktopRuntimeResource', () => {
           id: 'open-settings',
           kind: DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS,
         },
+        {
+          id: 'select-target:home-local-bin',
+          kind: DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_SELECT_TARGET,
+          targetId: 'home-local-bin',
+        },
       ],
     })
   })
@@ -682,4 +766,25 @@ class TestInstallFilesystem {
   ): Promise<'missing' | 'file' | 'symlink' | 'other'> {
     return this.files.has(path) ? 'file' : 'missing'
   }
+}
+
+async function waitForCLITraySettingsRoute(
+  resource: DesktopRuntimeResource,
+  want: string,
+  attempts = 20,
+): Promise<void> {
+  const route =
+    resource.desktopTrayResource
+      .getState()
+      .entries?.find((entry) => entry.id === 'cli-install-settings')?.action
+      ?.route ?? ''
+  if (route === want) {
+    return
+  }
+  if (attempts <= 0) {
+    expect(route).toBe(want)
+    return
+  }
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  await waitForCLITraySettingsRoute(resource, want, attempts - 1)
 }

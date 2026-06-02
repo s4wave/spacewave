@@ -36,7 +36,7 @@ export function buildDesktopTrayCLIInstallEntries(
       'Command Line Settings',
       DesktopTrayActionKind.OPEN_ROUTE,
       {
-        route: summary?.route || '/settings',
+        route: summary?.route || '/',
         enabled: true,
       },
     ),
@@ -204,12 +204,18 @@ function buildNavigationItem(
   )
 }
 
-function settingsRoute(state: DesktopRuntimeState): string {
-  const session = selectSettingsSession(state.sessions)
+export function desktopRuntimeCLISettingsRoute(
+  state: Pick<DesktopRuntimeState, 'sessions'> | undefined,
+): string {
+  const session = selectSettingsSession(state?.sessions)
   if (!session?.route) {
-    return '/settings'
+    return ''
   }
   return `${session.route.replace(/\/+$/, '')}/settings/cli`
+}
+
+function settingsRoute(state: DesktopRuntimeState): string {
+  return desktopRuntimeCLISettingsRoute(state) || '/'
 }
 
 function selectSettingsSession(

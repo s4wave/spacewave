@@ -108,6 +108,45 @@ describe('DesktopCLIInstallCard', () => {
     })
   })
 
+  it('invokes resource-owned target selection actions', () => {
+    const onInvokeAction = vi.fn()
+    const cliState = state({})
+    cliState.targets?.push({
+      id: 'home-local-bin',
+      label: 'Local user bin',
+      path: '/Users/test/.local/bin/spacewave',
+      writable: true,
+      selected: false,
+      generation: 3n,
+      detail: 'Manual PATH update needed',
+    })
+    cliState.actions?.push({
+      id: 'select-target:home-local-bin',
+      kind: DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_SELECT_TARGET,
+      label: 'Use Local user bin',
+      enabled: true,
+      targetId: 'home-local-bin',
+      generation: 3n,
+    })
+    render(
+      <DesktopCLIInstallCard
+        state={cliState}
+        onInvokeAction={onInvokeAction}
+      />,
+    )
+
+    expect(screen.getByText('Install target')).toBeDefined()
+    fireEvent.click(screen.getByLabelText('Use Local user bin'))
+
+    expect(onInvokeAction).toHaveBeenCalledTimes(1)
+    expect(onInvokeAction.mock.calls[0][0]).toMatchObject({
+      id: 'select-target:home-local-bin',
+      kind: DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_SELECT_TARGET,
+      targetId: 'home-local-bin',
+      generation: 3n,
+    })
+  })
+
   it('keeps the session-local walkthrough bound to selected session socket options', () => {
     render(
       <WalkthroughSection

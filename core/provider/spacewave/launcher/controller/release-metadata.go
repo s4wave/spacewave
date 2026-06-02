@@ -4,6 +4,7 @@ package spacewave_launcher_controller
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path"
 	"path/filepath"
@@ -28,6 +29,7 @@ const (
 	releaseMetadataDirectoryObjectKey = "release/metadata"
 	nativeEntrypointManifestID        = "spacewave-dist"
 	cliEntrypointManifestID           = "spacewave-cli"
+	managedCLIReleaseSidecarFilename  = "managed-cli-release.json"
 )
 
 func (c *Controller) refreshCurrentReleaseMetadataStatus(ctx context.Context) error {
@@ -43,12 +45,16 @@ func (c *Controller) refreshReleaseMetadataStatus(ctx context.Context, distConf 
 	if distConf.GetRev() == 0 {
 		c.clearUpdateState()
 		c.setSelectedEntrypointManifestRef(nil)
+		c.setSelectedCLIManifestRef(nil, "")
 		c.setReleaseMetadataOutcome("idle")
+		_ = c.clearManagedCLIReleaseSidecar()
 		return nil
 	}
 	c.setReleaseMetadataOutcome("resolving")
 	c.setSelectedEntrypointManifestRef(nil)
+	c.setSelectedCLIManifestRef(nil, "")
 	c.setReleaseWorldHeadRef("")
+	_ = c.clearManagedCLIReleaseSidecar()
 	metadata, err := c.resolveReleaseMetadata(ctx, distConf.ResolvedChannelKey())
 	if err != nil {
 		c.setUpdateError(err)
@@ -67,7 +73,13 @@ func (c *Controller) refreshReleaseMetadataStatus(ctx context.Context, distConf 
 		c.setReleaseMetadataOutcome("error")
 		return err
 	}
-	if err := c.stageReleaseManifestUpdate(ctx, metadata, platformID, manifestRef); err != nil {
+	cliManifestRef, err := selectCLIReleaseManifestRef(metadata, platformID)
+	if err != nil {
+		c.setUpdateError(err)
+		c.setReleaseMetadataOutcome("error")
+		return err
+	}
+	if err := c.stageReleaseManifestUpdate(ctx, metadata, platformID, manifestRef, cliManifestRef); err != nil {
 		c.setUpdateError(err)
 		c.setReleaseMetadataOutcome("error")
 		return err
@@ -100,20 +112,30 @@ func (c *Controller) stageReleaseManifestUpdate(
 	metadata *spacewave_release.ReleaseMetadata,
 	platformID string,
 	manifestRef *bldr_manifest.ManifestRef,
+	cliManifestRef *bldr_manifest.ManifestRef,
 ) error {
 	if manifestRef == nil {
 		return errors.New("release metadata missing native entrypoint manifest " + nativeEntrypointManifestID + " for platform " + platformID)
 	}
+	if cliManifestRef == nil {
+		return errors.New("release metadata missing cli entrypoint manifest " + cliEntrypointManifestID + " for platform " + platformID)
+	}
 	c.setSelectedEntrypointManifestRef(manifestRef)
+	c.setSelectedCLIManifestRef(cliManifestRef, "")
 	stagingDir, err := c.resolveStagingDir()
 	if err != nil {
 		return errors.Wrap(err, "get staging dir")
 	}
-	stageRoot := filepath.Join(stagingDir, metadata.GetVersion())
+	stageRoot, err := releaseVersionStagingRoot(stagingDir, metadata.GetVersion())
+	if err != nil {
+		return err
+	}
 	distPath := filepath.Join(stageRoot, "dist")
 	assetsPath := filepath.Join(stageRoot, "assets")
-	if err := os.MkdirAll(stageRoot, 0o755); err != nil {
-		return errors.Wrap(err, "create update staging dir")
+	cliDistPath := filepath.Join(stageRoot, "cli-dist")
+	cliAssetsPath := filepath.Join(stageRoot, "cli-assets")
+	if err := prepareReleaseStagingRoot(stagingDir, stageRoot, distPath, assetsPath, cliDistPath, cliAssetsPath); err != nil {
+		return errors.Wrap(err, "prepare update staging dir")
 	}
 	c.setUpdateDownloading(metadata.GetVersion())
 
@@ -124,12 +146,24 @@ func (c *Controller) stageReleaseManifestUpdate(
 	defer ref.Release()
 
 	var stagedPath string
+	var cliStagedPath string
 	err = world.ExecTransaction(ctx, eng, false, func(ctx context.Context, wtx world.WorldState) error {
 		manifest, err := checkoutReleaseManifest(ctx, c.le, wtx, manifestRef, distPath, assetsPath)
 		if err != nil {
 			return err
 		}
-		stagedPath = filepath.Join(distPath, manifest.GetEntrypoint())
+		stagedPath, err = stagedManifestEntrypointPath(distPath, manifest.GetEntrypoint())
+		if err != nil {
+			return errors.Wrap(err, "resolve release manifest entrypoint")
+		}
+		cliManifest, err := checkoutReleaseManifest(ctx, c.le, wtx, cliManifestRef, cliDistPath, cliAssetsPath)
+		if err != nil {
+			return errors.Wrap(err, "checkout cli release manifest")
+		}
+		cliStagedPath, err = stagedManifestEntrypointPath(cliDistPath, cliManifest.GetEntrypoint())
+		if err != nil {
+			return errors.Wrap(err, "resolve cli release manifest entrypoint")
+		}
 		return nil
 	})
 	if err != nil {
@@ -138,6 +172,13 @@ func (c *Controller) stageReleaseManifestUpdate(
 	if err := c.verifyStagedReleaseEntrypoint(ctx, platformID, stageRoot, stagedPath); err != nil {
 		return err
 	}
+	if err := verifyStagedCLIEntrypoint(stageRoot, cliDistPath, cliStagedPath); err != nil {
+		return err
+	}
+	if err := c.writeManagedCLIReleaseSidecar(stagingDir, metadata, cliManifestRef, cliStagedPath); err != nil {
+		return err
+	}
+	c.setSelectedCLIManifestRef(cliManifestRef, cliStagedPath)
 	c.setUpdateStaged(metadata.GetVersion(), stagedPath)
 	return nil
 }
@@ -199,6 +240,249 @@ func (c *Controller) setSelectedEntrypointManifestRef(ref *bldr_manifest.Manifes
 		next.SelectedEntrypointManifestRev = ref.GetMeta().GetRev()
 		next.SelectedEntrypointManifestRef = ref.GetManifestRef().MarshalString()
 	})
+}
+
+func (c *Controller) setSelectedCLIManifestRef(ref *bldr_manifest.ManifestRef, stagedPath string) {
+	c.updateFetchStatus(func(next *spacewave_launcher.FetchStatus) {
+		next.SelectedCLIManifestID = ""
+		next.SelectedCLIPlatformID = ""
+		next.SelectedCLIManifestRev = 0
+		next.SelectedCLIManifestRef = ""
+		next.SelectedCLIBinaryPath = ""
+		if ref == nil {
+			return
+		}
+		next.SelectedCLIManifestID = ref.GetMeta().GetManifestId()
+		next.SelectedCLIPlatformID = ref.GetMeta().GetPlatformId()
+		next.SelectedCLIManifestRev = ref.GetMeta().GetRev()
+		next.SelectedCLIManifestRef = ref.GetManifestRef().MarshalString()
+		next.SelectedCLIBinaryPath = stagedPath
+	})
+}
+
+func stagedManifestEntrypointPath(distPath string, entrypoint string) (string, error) {
+	clean := path.Clean(entrypoint)
+	if clean == "." || clean == ".." || path.IsAbs(clean) || strings.HasPrefix(clean, "../") || strings.Contains(clean, "\\") {
+		return "", errors.New("manifest entrypoint must be a local relative path")
+	}
+	stagedPath := filepath.Join(distPath, filepath.FromSlash(clean))
+	rel, err := filepath.Rel(distPath, stagedPath)
+	if err != nil {
+		return "", err
+	}
+	if rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", errors.New("manifest entrypoint escapes staged dist root")
+	}
+	return stagedPath, nil
+}
+
+func releaseVersionStagingRoot(stagingDir string, version string) (string, error) {
+	clean := path.Clean(version)
+	if clean == "." || clean == ".." || clean != version || path.IsAbs(clean) ||
+		strings.Contains(clean, "/") || strings.Contains(version, "\\") {
+		return "", errors.New("release version must be a local path segment")
+	}
+	stageRoot := filepath.Join(stagingDir, filepath.FromSlash(clean))
+	if err := verifyPathInsideRoot(stagingDir, stageRoot, "release staging root"); err != nil {
+		return "", err
+	}
+	return stageRoot, nil
+}
+
+func prepareReleaseStagingRoot(stagingDir string, stageRoot string, checkoutRoots ...string) error {
+	if err := os.MkdirAll(stagingDir, 0o755); err != nil {
+		return errors.Wrap(err, "create update staging dir")
+	}
+	if err := rejectExistingNonDirectoryOrSymlink(stageRoot, "release staging root"); err != nil {
+		return err
+	}
+	if err := os.Mkdir(stageRoot, 0o755); err != nil && !os.IsExist(err) {
+		return errors.Wrap(err, "create update version staging dir")
+	}
+	if err := requireDirectoryNotSymlink(stageRoot, "release staging root"); err != nil {
+		return err
+	}
+	for _, root := range checkoutRoots {
+		if err := verifyPathInsideRoot(stageRoot, root, "release checkout root"); err != nil {
+			return err
+		}
+		if err := rejectExistingNonDirectoryOrSymlink(root, "release checkout root"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func verifyStagedCLIEntrypoint(stageRoot string, cliDistPath string, stagedPath string) error {
+	if err := requireDirectoryNotSymlink(stageRoot, "release staging root"); err != nil {
+		_ = os.RemoveAll(stageRoot)
+		return err
+	}
+	if err := requireDirectoryNotSymlink(cliDistPath, "staged cli dist root"); err != nil {
+		_ = os.RemoveAll(stageRoot)
+		return err
+	}
+	if err := verifyNoSymlinkPath(stageRoot, stagedPath); err != nil {
+		_ = os.RemoveAll(stageRoot)
+		return err
+	}
+	if err := verifyNoSymlinkPath(cliDistPath, stagedPath); err != nil {
+		_ = os.RemoveAll(stageRoot)
+		return err
+	}
+	stagedInfo, err := os.Lstat(stagedPath)
+	if err != nil {
+		return errors.Wrap(err, "stat staged cli entrypoint")
+	}
+	if stagedInfo.Mode()&os.ModeSymlink != 0 {
+		_ = os.RemoveAll(stageRoot)
+		return errors.New("staged cli entrypoint must not be a symlink")
+	}
+	if stagedInfo.IsDir() {
+		_ = os.RemoveAll(stageRoot)
+		return errors.New("staged cli entrypoint must be a file")
+	}
+	if !stagedInfo.Mode().IsRegular() {
+		_ = os.RemoveAll(stageRoot)
+		return errors.New("staged cli entrypoint must be a regular file")
+	}
+	if err := os.Chmod(stagedPath, 0o755); err != nil {
+		return errors.Wrap(err, "chmod staged cli entrypoint")
+	}
+	return nil
+}
+
+func verifyPathInsideRoot(rootPath string, filePath string, label string) error {
+	rel, err := filepath.Rel(rootPath, filePath)
+	if err != nil {
+		return err
+	}
+	if rel == "." || rel == ".." || filepath.IsAbs(rel) || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return errors.New(label + " escapes root")
+	}
+	return nil
+}
+
+func rejectExistingNonDirectoryOrSymlink(dir string, label string) error {
+	info, err := os.Lstat(dir)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return errors.Wrap(err, "stat "+label)
+	}
+	return validateDirectoryNotSymlink(info, label)
+}
+
+func requireDirectoryNotSymlink(dir string, label string) error {
+	info, err := os.Lstat(dir)
+	if err != nil {
+		return errors.Wrap(err, "stat "+label)
+	}
+	return validateDirectoryNotSymlink(info, label)
+}
+
+func validateDirectoryNotSymlink(info os.FileInfo, label string) error {
+	if info.Mode()&os.ModeSymlink != 0 {
+		return errors.New(label + " must not be a symlink")
+	}
+	if !info.IsDir() {
+		return errors.New(label + " must be a directory")
+	}
+	return nil
+}
+
+func verifyNoSymlinkPath(rootPath string, filePath string) error {
+	rel, err := filepath.Rel(rootPath, filePath)
+	if err != nil {
+		return err
+	}
+	if rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return errors.New("staged cli entrypoint escapes cli dist root")
+	}
+	dir := rootPath
+	elems := strings.Split(rel, string(filepath.Separator))
+	for _, elem := range elems[:len(elems)-1] {
+		if elem == "" || elem == "." {
+			continue
+		}
+		dir = filepath.Join(dir, elem)
+		info, err := os.Lstat(dir)
+		if err != nil {
+			return errors.Wrap(err, "stat staged cli entrypoint parent")
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			return errors.New("staged cli entrypoint parent must not be a symlink")
+		}
+		if !info.IsDir() {
+			return errors.New("staged cli entrypoint parent must be a directory")
+		}
+	}
+	return nil
+}
+
+func (c *Controller) clearManagedCLIReleaseSidecar() error {
+	stagingDir, err := c.resolveStagingDir()
+	if err != nil {
+		return err
+	}
+	err = os.Remove(filepath.Join(stagingDir, managedCLIReleaseSidecarFilename))
+	if err == nil || os.IsNotExist(err) {
+		return nil
+	}
+	return err
+}
+
+func (c *Controller) writeManagedCLIReleaseSidecar(
+	stagingDir string,
+	metadata *spacewave_release.ReleaseMetadata,
+	ref *bldr_manifest.ManifestRef,
+	binaryPath string,
+) error {
+	if err := os.MkdirAll(stagingDir, 0o755); err != nil {
+		return errors.Wrap(err, "create managed cli release sidecar dir")
+	}
+	sidecarPath := filepath.Join(stagingDir, managedCLIReleaseSidecarFilename)
+	tempPath := sidecarPath + ".tmp"
+	data := marshalManagedCLIReleaseSidecar(metadata, ref, binaryPath)
+	if err := os.WriteFile(tempPath, []byte(data), 0o644); err != nil {
+		return errors.Wrap(err, "write managed cli release sidecar")
+	}
+	if err := os.Rename(tempPath, sidecarPath); err != nil {
+		return errors.Wrap(err, "commit managed cli release sidecar")
+	}
+	return nil
+}
+
+func marshalManagedCLIReleaseSidecar(
+	metadata *spacewave_release.ReleaseMetadata,
+	ref *bldr_manifest.ManifestRef,
+	binaryPath string,
+) string {
+	meta := ref.GetMeta()
+	data, err := json.MarshalIndent(struct {
+		BinaryPath     string `json:"binary_path"`
+		ProjectID      string `json:"project_id"`
+		EntrypointRole string `json:"entrypoint_role"`
+		ChannelKey     string `json:"channel_key"`
+		ManifestID     string `json:"manifest_id"`
+		ManifestRev    uint64 `json:"manifest_rev"`
+		PlatformID     string `json:"platform_id"`
+		ManifestRef    string `json:"manifest_ref"`
+	}{
+		BinaryPath:     binaryPath,
+		ProjectID:      metadata.GetProjectId(),
+		EntrypointRole: "cli",
+		ChannelKey:     metadata.GetChannelKey(),
+		ManifestID:     meta.GetManifestId(),
+		ManifestRev:    meta.GetRev(),
+		PlatformID:     meta.GetPlatformId(),
+		ManifestRef:    ref.GetManifestRef().MarshalString(),
+	}, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	return string(data) + "\n"
 }
 
 func (c *Controller) verifyStagedReleaseEntrypoint(

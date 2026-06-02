@@ -206,6 +206,12 @@ export function DesktopCLIInstallCard({
         </div>
       </div>
 
+      <TargetOptions
+        state={state}
+        actions={actions}
+        onInvokeAction={onInvokeAction}
+      />
+
       {state?.conflictPath && (
         <div className="mt-3 rounded-md border border-amber-500/20 bg-amber-500/5 p-3">
           <p className="text-foreground text-xs font-medium">PATH conflict</p>
@@ -219,6 +225,66 @@ export function DesktopCLIInstallCard({
         <p className="text-danger mt-3 text-xs">{state.errorMessage}</p>
       )}
     </section>
+  )
+}
+
+function TargetOptions({
+  state,
+  actions,
+  onInvokeAction,
+}: {
+  state?: DesktopCLIInstallState
+  actions: DesktopCLIInstallActionItem[]
+  onInvokeAction?: (action: DesktopCLIInstallActionItem) => void | Promise<void>
+}) {
+  const targets = state?.targets ?? []
+  if (targets.length <= 1) return null
+  return (
+    <div className="border-foreground/10 mt-3 border-t pt-3">
+      <p className="text-foreground-alt mb-2 text-[0.7rem] font-medium uppercase">
+        Install target
+      </p>
+      <div className="grid gap-2">
+        {targets.map((target) => {
+          const action = actions.find(
+            (item) =>
+              item.kind ===
+                DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_SELECT_TARGET &&
+              item.targetId === target.id,
+          )
+          const selected = target.selected ?? false
+          return (
+            <button
+              key={target.id || target.path}
+              type="button"
+              disabled={selected || !(action?.enabled ?? false)}
+              aria-pressed={selected}
+              aria-label={`Use ${target.label || target.path || target.id}`}
+              onClick={() => action && void onInvokeAction?.(action)}
+              className={cn(
+                'border-foreground/10 bg-foreground/[0.02] text-left transition-colors',
+                'hover:border-foreground/20 hover:bg-foreground/5 rounded-md border px-3 py-2',
+                'disabled:cursor-not-allowed disabled:opacity-70',
+                selected && 'border-brand/40 bg-brand/10',
+              )}
+            >
+              <span className="text-foreground block text-xs font-medium">
+                {target.label || target.id || 'Target'}
+              </span>
+              <code className="text-foreground-alt/90 mt-1 block truncate font-mono text-[0.68rem]">
+                {target.path}
+              </code>
+              <span className="text-foreground-alt mt-1 block text-[0.68rem]">
+                {target.detail ||
+                  (target.writable
+                    ? 'Writable user target'
+                    : 'Manual target review')}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 

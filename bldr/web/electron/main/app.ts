@@ -39,11 +39,13 @@ import {
 import {
   buildDesktopCLIInstallDetector,
   buildDesktopCLIInstallProbe,
+  buildManagedCLIReleaseResolver,
   readManagedCLIReleaseBinary,
 } from './desktop-cli-install-node.js'
 import { DesktopRuntimeResource } from './desktop-runtime.js'
 import {
   buildDesktopTrayEntriesFromRuntimeState,
+  desktopRuntimeCLISettingsRoute,
   iconStateForRuntimeHealth,
 } from './desktop-tray-runtime-projection.js'
 import { DesktopTrayController } from './desktop-tray.js'
@@ -129,18 +131,25 @@ export class BldrElectronApp {
     )
 
     const cliInstallProbe = buildDesktopCLIInstallProbe()
-    const cliRelease = this.electronInit.managedCliRelease
+    const cliReleaseResolver = buildManagedCLIReleaseResolver(
+      this.electronInit.managedCliRelease,
+    )
     this.desktopRuntimeResource = new DesktopRuntimeResource({
       openOrFocusMainWindow: this.openOrFocusMainWindow.bind(this),
       quitDesktopRuntime: this.quitDesktopRuntime.bind(this),
       desktopCLIInstall: {
         detectCLIInstallState: buildDesktopCLIInstallDetector(
-          cliRelease,
+          cliReleaseResolver,
           cliInstallProbe,
         ),
         openCLISettings: () =>
-          this.openOrFocusMainWindow({ route: '/settings' }),
-        readReleaseBinary: readManagedCLIReleaseBinary(cliRelease),
+          this.openOrFocusMainWindow({
+            route:
+              desktopRuntimeCLISettingsRoute(
+                this.desktopRuntimeResource.getState(),
+              ) || '/',
+          }),
+        readReleaseBinary: readManagedCLIReleaseBinary(cliReleaseResolver),
         probe: cliInstallProbe,
       },
     })

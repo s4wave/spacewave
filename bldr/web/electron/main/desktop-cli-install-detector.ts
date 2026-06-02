@@ -22,6 +22,7 @@ export interface DesktopCLIInstallDetectionOpts {
   homeDir: string
   pathEntries: string[]
   platformId: string
+  selectedTargetId?: string
   available?: DesktopCLIEntrypointIdentity
   probe: DesktopCLIInstallProbe
 }
@@ -34,7 +35,10 @@ export async function detectDesktopCLIInstallState(
   opts: DesktopCLIInstallDetectionOpts,
 ): Promise<DesktopCLIInstallState> {
   try {
-    const targets = await buildTargetCandidates(opts)
+    const targets = selectTargetCandidate(
+      await buildTargetCandidates(opts),
+      opts.selectedTargetId,
+    )
     const selectedTarget = targets.find((target) => target.selected)
     const installed = selectedTarget?.path
       ? await readManagedEntrypoint(opts.probe, selectedTarget.path)
@@ -173,11 +177,23 @@ function buildDetectionActions(
       generation,
     },
   ]
-  if (!opts.installActionsEnabled) return actions
   const selectedTargetId = state.selectedTargetId || ''
   const selectedTarget = state.targets?.find(
     (target) => target.id === selectedTargetId,
   )
+  for (const target of state.targets ?? []) {
+    if (!target.id || target.id === selectedTargetId) continue
+    actions.push({
+      id: `select-target:${target.id}`,
+      kind: DesktopCLIInstallActionKind.DESKTOP_CLI_INSTALL_ACTION_KIND_SELECT_TARGET,
+      label: `Use ${target.label || target.path || target.id}`,
+      enabled: true,
+      targetId: target.id,
+      generation,
+      detail: target.detail,
+    })
+  }
+  if (!opts.installActionsEnabled) return actions
   const canWrite = selectedTarget?.writable ?? false
   const hasTrustedRelease =
     state.available?.entrypointRole === 'cli' &&
@@ -232,10 +248,29 @@ async function safeBuildTargetCandidates(
   opts: DesktopCLIInstallDetectionOpts,
 ): Promise<DesktopCLIInstallTarget[]> {
   try {
-    return await buildTargetCandidates(opts)
+    return selectTargetCandidate(
+      await buildTargetCandidates(opts),
+      opts.selectedTargetId,
+    )
   } catch {
     return []
   }
+}
+
+function selectTargetCandidate(
+  targets: DesktopCLIInstallTarget[],
+  selectedTargetId: string | undefined,
+): DesktopCLIInstallTarget[] {
+  if (
+    !selectedTargetId ||
+    !targets.some((target) => target.id === selectedTargetId)
+  ) {
+    return targets
+  }
+  return targets.map((target) => ({
+    ...target,
+    selected: target.id === selectedTargetId,
+  }))
 }
 
 async function findFirstPathCommand(

@@ -138,6 +138,13 @@ export enum DesktopCLIInstallActionKind {
    * @generated from enum value: DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE = 4;
    */
   DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE = 4,
+
+  /**
+   * DESKTOP_CLI_INSTALL_ACTION_KIND_SELECT_TARGET selects an install target.
+   *
+   * @generated from enum value: DESKTOP_CLI_INSTALL_ACTION_KIND_SELECT_TARGET = 5;
+   */
+  DESKTOP_CLI_INSTALL_ACTION_KIND_SELECT_TARGET = 5,
 }
 
 export const DesktopCLIInstallActionKind_Enum = /* @__PURE__ */ createEnumType(
@@ -148,6 +155,7 @@ export const DesktopCLIInstallActionKind_Enum = /* @__PURE__ */ createEnumType(
     [2, 'DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS'],
     [3, 'DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL'],
     [4, 'DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE'],
+    [5, 'DESKTOP_CLI_INSTALL_ACTION_KIND_SELECT_TARGET'],
   ],
 )
 

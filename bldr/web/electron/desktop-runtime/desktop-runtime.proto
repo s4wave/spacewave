@@ -91,6 +91,8 @@ enum DesktopCLIInstallActionKind {
   DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL = 3;
   // DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE updates an existing managed CLI.
   DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE = 4;
+  // DESKTOP_CLI_INSTALL_ACTION_KIND_SELECT_TARGET selects an install target.
+  DESKTOP_CLI_INSTALL_ACTION_KIND_SELECT_TARGET = 5;
 }
 
 // DesktopCLIInstallTargetPathState describes PATH evidence for a target.

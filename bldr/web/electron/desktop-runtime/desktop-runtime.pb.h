@@ -262,6 +262,7 @@ enum DesktopCLIInstallActionKind : int {
   DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS = 2,
   DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL = 3,
   DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE = 4,
+  DESKTOP_CLI_INSTALL_ACTION_KIND_SELECT_TARGET = 5,
   DesktopCLIInstallActionKind_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
   DesktopCLIInstallActionKind_INT_MAX_SENTINEL_DO_NOT_USE_ =
@@ -272,11 +273,11 @@ extern const uint32_t DesktopCLIInstallActionKind_internal_data_[];
 inline constexpr DesktopCLIInstallActionKind DesktopCLIInstallActionKind_MIN =
     static_cast<DesktopCLIInstallActionKind>(0);
 inline constexpr DesktopCLIInstallActionKind DesktopCLIInstallActionKind_MAX =
-    static_cast<DesktopCLIInstallActionKind>(4);
+    static_cast<DesktopCLIInstallActionKind>(5);
 inline bool DesktopCLIInstallActionKind_IsValid(int value) {
-  return 0 <= value && value <= 4;
+  return 0 <= value && value <= 5;
 }
-inline constexpr int DesktopCLIInstallActionKind_ARRAYSIZE = 4 + 1;
+inline constexpr int DesktopCLIInstallActionKind_ARRAYSIZE = 5 + 1;
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DesktopCLIInstallActionKind_descriptor();
 template <typename T>
 const ::std::string& DesktopCLIInstallActionKind_Name(T value) {
@@ -287,7 +288,7 @@ const ::std::string& DesktopCLIInstallActionKind_Name(T value) {
 }
 template <>
 inline const ::std::string& DesktopCLIInstallActionKind_Name(DesktopCLIInstallActionKind value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<DesktopCLIInstallActionKind_descriptor, 0, 4>(
+  return ::google::protobuf::internal::NameOfDenseEnum<DesktopCLIInstallActionKind_descriptor, 0, 5>(
       static_cast<int>(value));
 }
 inline bool DesktopCLIInstallActionKind_Parse(

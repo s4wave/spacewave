@@ -36,6 +36,8 @@ func main() {
 		&appcli.BoolFlag{Name: "include-browser", Usage: "include browser staging tree and static-manifest.ts", Destination: &args.IncludeBrowser},
 		&appcli.BoolFlag{Name: "browser-only", Usage: "build only browser staging tree and static-manifest.ts", Destination: &args.BrowserOnly},
 		&appcli.BoolFlag{Name: "write-handoff-manifest", Usage: "write entrypoint-handoff.v1 manifest.json for a staged handoff root", Destination: &args.WriteHandoffManifest},
+		&appcli.BoolFlag{Name: "write-cli-handoff-manifest", Usage: "write cli-handoff.v1 manifest.json and staged CLI handoff root", Destination: &args.WriteCLIHandoffManifest},
+		&appcli.StringFlag{Name: "cli-artifacts-dir", Usage: "public CLI artifact directory for cli-handoff.v1", Destination: &args.CLIArtifactsDir},
 		&appcli.BoolFlag{Name: "skip-build", Usage: "skip helper and entrypoint builds and package existing artifacts", Destination: &args.SkipBuild},
 		&appcli.BoolFlag{Name: "skip-package", Usage: "skip installer packaging", Destination: &args.SkipPackage},
 		&appcli.BoolFlag{Name: "stage-build-inputs", Usage: "stage raw dist/helper/icon inputs into out-dir", Destination: &args.StageBuildInputs},

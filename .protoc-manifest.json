@@ -659,7 +659,7 @@
       "protoFiles": ["bldr/web/document/document.proto"]
     },
     "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime": {
-      "hash": "348235abe1ca8beae34afb2fbbf66f91c700f685b9892121b7ed12535d556b55",
+      "hash": "ff97834d197ae82e0e3df89eef874304ae4fe8d1bf7d1953eb5aadd0a3ada88b",
       "generatedFiles": [
         "bldr/web/electron/desktop-runtime/desktop-runtime.pb.cc",
         "bldr/web/electron/desktop-runtime/desktop-runtime.pb.go",

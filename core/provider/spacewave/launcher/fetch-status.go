@@ -42,6 +42,21 @@ type FetchStatus struct {
 	// SelectedEntrypointManifestRef is the selected native entrypoint object
 	// ref in string form.
 	SelectedEntrypointManifestRef string
+	// SelectedCLIManifestID is the CLI entrypoint manifest selected from release
+	// metadata for desktop-managed CLI install/update.
+	SelectedCLIManifestID string
+	// SelectedCLIPlatformID is the native desktop platform of the selected CLI
+	// entrypoint manifest.
+	SelectedCLIPlatformID string
+	// SelectedCLIManifestRev is the revision of the selected CLI entrypoint
+	// manifest.
+	SelectedCLIManifestRev uint64
+	// SelectedCLIManifestRef is the selected CLI entrypoint object ref in string
+	// form.
+	SelectedCLIManifestRef string
+	// SelectedCLIBinaryPath is the local staged binary path written to the
+	// managed CLI release sidecar.
+	SelectedCLIBinaryPath string
 	// LastErr is the most recent endpoint-fetch error string, or empty when
 	// the last attempt succeeded or no fetch has run yet.
 	LastErr string

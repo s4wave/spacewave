@@ -14,6 +14,12 @@ import {
 
 const execFile = promisify(childProcess.execFile)
 const versionProbeTimeoutMs = 2_000
+const managedCLIReleaseSidecarFilename = 'managed-cli-release.json'
+const managedCLIReleaseRoots = new WeakMap<ManagedCLIRelease, string>()
+
+export type ManagedCLIReleaseResolver = () => Promise<
+  ManagedCLIRelease | undefined
+>
 
 export function buildDesktopCLIInstallProbe(): DesktopCLIInstallProbe {
   return {
@@ -26,30 +32,56 @@ export function buildDesktopCLIInstallProbe(): DesktopCLIInstallProbe {
       }
     },
     targetWritable: async (targetPath) => {
-      try {
-        await fs.access(path.dirname(targetPath), fsConstants.W_OK)
-        return true
-      } catch {
-        return false
-      }
+      return isDesktopCLIInstallTargetWritable(targetPath)
     },
     readEntrypointIdentity: readEntrypointIdentity,
   }
 }
 
+export async function isDesktopCLIInstallTargetWritable(
+  targetPath: string,
+): Promise<boolean> {
+  return isDesktopCLIInstallDirWritable(path.dirname(targetPath))
+}
+
+async function isDesktopCLIInstallDirWritable(dir: string): Promise<boolean> {
+  const parent = path.dirname(dir)
+  if (!dir || dir === parent) return false
+  try {
+    const stat = await fs.lstat(dir)
+    if (!stat.isDirectory()) return false
+    await fs.access(dir, fsConstants.W_OK)
+    return true
+  } catch (err) {
+    if (!isNodeErrorCode(err, 'ENOENT')) return false
+    return isDesktopCLIInstallDirWritable(parent)
+  }
+}
+
 export function buildDesktopCLIInstallDetector(
-  release: ManagedCLIRelease | undefined,
+  resolveRelease: ManagedCLIReleaseResolver,
   probe: DesktopCLIInstallProbe,
 ) {
-  const available = managedCLIReleaseIdentity(release)
-  return () =>
-    detectDesktopCLIInstallState({
+  return async (selectedTargetId?: string) => {
+    const release = await resolveRelease()
+    return detectDesktopCLIInstallState({
       homeDir: os.homedir(),
       pathEntries: processPathEntries(),
       platformId: nativePlatformId(),
-      available,
+      selectedTargetId,
+      available: managedCLIReleaseIdentity(release),
       probe,
     })
+  }
+}
+
+export function buildManagedCLIReleaseResolver(
+  release: ManagedCLIRelease | undefined,
+): ManagedCLIReleaseResolver {
+  if (release?.binaryPath) {
+    return async () => release
+  }
+  return readManagedCLIReleaseSidecar
 }
 
 export function managedCLIReleaseIdentity(
@@ -68,11 +100,151 @@ export function managedCLIReleaseIdentity(
 }
 
 export function readManagedCLIReleaseBinary(
-  release: ManagedCLIRelease | undefined,
-): (() => Promise<Uint8Array>) | undefined {
+  resolveRelease: ManagedCLIReleaseResolver,
+): (expected?: DesktopCLIEntrypointIdentity) => Promise<Uint8Array> {
+  return async (expected) => {
+    const release = await resolveRelease()
+    if (!release?.binaryPath)
+      throw new Error('release CLI binary is unavailable')
+    const available = managedCLIReleaseIdentity(release)
+    if (!identityMatchesExpected(available, expected)) {
+      throw new Error('release CLI binary changed; check again')
+    }
+    const trustedRoot = managedCLIReleaseRoots.get(release)
+    if (trustedRoot) {
+      await verifyNoSymlinkPath(trustedRoot, release.binaryPath)
+    }
+    return readRegularReleaseBinary(release.binaryPath)
+  }
+}
+
+async function readRegularReleaseBinary(
+  binaryPath: string,
+): Promise<Uint8Array> {
+  const stat = await fs.lstat(binaryPath)
+  if (!stat.isFile())
+    throw new Error('release CLI binary must be a regular file')
+  return fs.readFile(binaryPath)
+}
+
+export function parseManagedCLIReleaseSidecar(
+  data: string,
+): ManagedCLIRelease | undefined {
+  const parsed: unknown = JSON.parse(data)
+  if (!isRecord(parsed)) return undefined
+  return {
+    binaryPath: stringField(parsed.binary_path ?? parsed.binaryPath),
+    projectId: stringField(parsed.project_id ?? parsed.projectId),
+    entrypointRole: stringField(
+      parsed.entrypoint_role ?? parsed.entrypointRole,
+    ),
+    channelKey: stringField(parsed.channel_key ?? parsed.channelKey),
+    manifestId: stringField(parsed.manifest_id ?? parsed.manifestId),
+    manifestRev: bigintField(parsed.manifest_rev ?? parsed.manifestRev),
+    platformId: stringField(parsed.platform_id ?? parsed.platformId),
+  }
+}
+
+async function readManagedCLIReleaseSidecar(): Promise<
+  ManagedCLIRelease | undefined
+> {
+  const stagingDir = managedCLIReleaseStagingDir()
+  if (!stagingDir) return undefined
+  const sidecarPath = path.join(stagingDir, managedCLIReleaseSidecarFilename)
+  const data = await readOptionalTextFile(sidecarPath)
+  if (!data) return undefined
+  const release = parseManagedCLIReleaseSidecar(data)
   if (!release?.binaryPath) return undefined
-  const binaryPath = release.binaryPath
-  return () => fs.readFile(binaryPath)
+  if (!path.isAbsolute(release.binaryPath)) return undefined
+  if (!isPathInside(stagingDir, release.binaryPath)) return undefined
+  try {
+    await verifyNoSymlinkPath(stagingDir, release.binaryPath)
+  } catch {
+    return undefined
+  }
+  managedCLIReleaseRoots.set(release, stagingDir)
+  return release
+}
+
+async function readOptionalTextFile(filePath: string): Promise<string> {
+  try {
+    return await fs.readFile(filePath, 'utf8')
+  } catch (err) {
+    if (isNodeErrorCode(err, 'ENOENT')) return ''
+    throw err
+  }
+}
+
+function managedCLIReleaseStagingDir(): string | undefined {
+  if (process.platform === 'darwin') {
+    return path.join(
+      os.homedir(),
+      'Library',
+      'Application Support',
+      'Spacewave',
+      'updates',
+    )
+  }
+  if (process.platform === 'win32') {
+    const appData = process.env.APPDATA
+    if (!appData) return undefined
+    return path.join(appData, 'Spacewave', 'updates')
+  }
+  const dataHome =
+    process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share')
+  return path.join(dataHome, 'spacewave', 'updates')
+}
+
+function isPathInside(parent: string, candidate: string): boolean {
+  const rel = path.relative(parent, candidate)
+  return !!rel && !rel.startsWith('..') && !path.isAbsolute(rel)
+}
+
+async function verifyNoSymlinkPath(
+  rootPath: string,
+  filePath: string,
+): Promise<void> {
+  const rel = path.relative(rootPath, filePath)
+  if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) {
+    throw new Error('release CLI binary escapes staging root')
+  }
+  await verifyNoSymlinkPathParts(
+    rootPath,
+    rel.split(path.sep).filter(Boolean).slice(0, -1),
+  )
+}
+
+async function verifyNoSymlinkPathParts(
+  current: string,
+  parts: string[],
+): Promise<void> {
+  const [head, ...tail] = parts
+  if (!head) return
+  const next = path.join(current, head)
+  const stat = await fs.lstat(next)
+  if (stat.isSymbolicLink()) {
+    throw new Error('release CLI binary path must not contain symlink parents')
+  }
+  if (!stat.isDirectory()) {
+    throw new Error('release CLI binary parent must be a directory')
+  }
+  await verifyNoSymlinkPathParts(next, tail)
+}
+
+function identityMatchesExpected(
+  actual: DesktopCLIEntrypointIdentity | undefined,
+  expected: DesktopCLIEntrypointIdentity | undefined,
+): boolean {
+  if (!actual) return false
+  if (!expected?.manifestId) return true
+  if (actual.projectId !== expected.projectId) return false
+  if (actual.entrypointRole !== expected.entrypointRole) return false
+  if (actual.channelKey !== expected.channelKey) return false
+  if (actual.manifestId !== expected.manifestId) return false
+  if ((actual.manifestRev ?? 0n) !== (expected.manifestRev ?? 0n)) return false
+  if (actual.platformId !== expected.platformId) return false
+  if (expected.path && actual.path !== expected.path) return false
+  return true
 }
 
 async function readEntrypointIdentity(
@@ -143,4 +315,13 @@ function bigintField(value: unknown): bigint {
     return BigInt(value)
   }
   return 0n
+}
+
+function isNodeErrorCode(err: unknown, code: string): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    err.code === code
+  )
 }
