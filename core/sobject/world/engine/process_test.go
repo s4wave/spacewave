@@ -67,6 +67,71 @@ func TestProcessApplyTxOpRejectsUninitializedWorld(t *testing.T) {
 	}
 }
 
+func TestProcessInitWorldOpWritesDisabledChangelogRoot(t *testing.T) {
+	ctx := context.Background()
+	tb, err := alpha_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(tb.Release)
+
+	store := newTestBlockStore(tb.EngineBucketID, tb.Volume)
+	pid := newProcessTestPeerID(t)
+	opData, err := (&SOWorldOp{
+		Body: &SOWorldOp_InitWorld{
+			InitWorld: &InitWorldOp{LastChangeDisable: true},
+		},
+	}).MarshalVT()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	nextState, res, err := (&Controller{
+		le:   tb.Logger,
+		bus:  tb.Bus,
+		conf: &Config{},
+		sfs:  tb.StepFactorySet,
+	}).processOp(
+		ctx,
+		tb.Logger,
+		&testSharedObject{blockStore: store},
+		opData,
+		"test-op",
+		pid,
+		1,
+		0,
+		&InnerState{},
+	)
+	if err != nil {
+		t.Fatalf("process op returned error: %v", err)
+	}
+	if res == nil || !res.GetSuccess() {
+		t.Fatalf("expected init success, got %#v", res)
+	}
+	headRef := nextState.GetHeadRef()
+	if headRef.GetRootRef().GetEmpty() {
+		t.Fatal("expected disabled changelog init to write an initial world root")
+	}
+
+	xfrm, err := block_transform.NewTransformer(
+		controller.ConstructOpts{Logger: tb.Logger},
+		tb.StepFactorySet,
+		headRef.GetTransformConf(),
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, bcs := block.NewTransaction(store, xfrm, headRef.GetRootRef(), nil)
+	wi, err := bcs.Unmarshal(ctx, world_block.NewWorldBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	worldState := wi.(*world_block.World)
+	if !worldState.GetLastChangeDisable() {
+		t.Fatal("expected initial world root to disable changelog")
+	}
+}
+
 func TestSOWorldOpSpeculativeLocalQueueSafeSkipsGCSweep(t *testing.T) {
 	gcTx, err := world_block_tx.NewTxGCSweep()
 	if err != nil {

@@ -3,8 +3,11 @@ package sobject_world_engine
 import (
 	"context"
 
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -54,7 +57,9 @@ func (c *Controller) processOp(
 	switch body := op.GetBody().(type) {
 	case *SOWorldOp_InitWorld:
 		return c.processInitWorldOp(
+			ctx,
 			ole,
+			so,
 			body.InitWorld,
 			headState,
 			peerID,
@@ -135,7 +140,9 @@ func (c *Controller) processOp(
 
 // processInitWorldOp processes an InitWorld operation.
 func (c *Controller) processInitWorldOp(
+	ctx context.Context,
 	le *logrus.Entry,
+	so sobject.SharedObject,
 	initOp *InitWorldOp,
 	headState *InnerState,
 	peerID peer.ID,
@@ -166,8 +173,46 @@ func (c *Controller) processInitWorldOp(
 	if err != nil {
 		return nil, nil, err
 	}
+	if err := c.writeInitialWorldRoot(ctx, le, so, initOp, finalState.GetHeadRef()); err != nil {
+		return nil, nil, err
+	}
 
 	return finalState, opResult, nil
+}
+
+func (c *Controller) writeInitialWorldRoot(
+	ctx context.Context,
+	le *logrus.Entry,
+	so sobject.SharedObject,
+	initOp *InitWorldOp,
+	headRef *bucket.ObjectRef,
+) error {
+	if !initOp.GetLastChangeDisable() {
+		return nil
+	}
+	if so == nil {
+		return errors.New("shared object is required to initialize disabled changelog world")
+	}
+	if headRef.GetTransformConf().GetEmpty() {
+		return errors.New("initial world transform config is empty")
+	}
+
+	xfrm, err := block_transform.NewTransformer(
+		controller.ConstructOpts{Logger: le},
+		c.sfs,
+		headRef.GetTransformConf(),
+	)
+	if err != nil {
+		return err
+	}
+	btx, bcs := block.NewTransaction(so.GetBlockStore(), xfrm, nil, nil)
+	bcs.SetBlock(world_block.NewWorld(true), true)
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		return err
+	}
+	headRef.RootRef = rootRef
+	return nil
 }
 
 // processApplyTxOpWithEngine processes a ApplyTxOp operation with an existing engine.

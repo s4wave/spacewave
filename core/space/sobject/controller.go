@@ -62,15 +62,7 @@ func (c *Controller) resolveMountSharedObjectBody(dir sobject.MountSharedObjectB
 	return directive.R(directive.NewAccessResolver(func(ctx context.Context, released func()) (space.MountSharedObjectBodyValue, func(), error) {
 		mountRef := dir.MountSharedObjectBodyRef()
 		engineID := space.SpaceEngineId(mountRef)
-		conf := &sobject_world_engine.Config{
-			// Refs and engine id
-			EngineId: engineID,
-			Ref:      mountRef,
-
-			// Copy fields from config
-			Verbose:           c.GetConfig().GetVerbose(),
-			ProcessOpsBackoff: c.GetConfig().GetProcessOpsBackoff().CloneVT(),
-		}
+		conf := newSpaceWorldEngineConfig(mountRef, c.GetConfig())
 		if err := conf.Validate(); err != nil {
 			return nil, nil, err
 		}
@@ -109,6 +101,20 @@ func (c *Controller) resolveMountSharedObjectBody(dir sobject.MountSharedObjectB
 			soRef.Release()
 		}, nil
 	}), nil)
+}
+
+// newSpaceWorldEngineConfig builds the SharedObject world engine config for a
+// Space body. Spaces do not retain per-write world changelog entries.
+func newSpaceWorldEngineConfig(mountRef *sobject.SharedObjectRef, conf *Config) *sobject_world_engine.Config {
+	return &sobject_world_engine.Config{
+		EngineId: space.SpaceEngineId(mountRef),
+		Ref:      mountRef,
+		InitWorldOp: &sobject_world_engine.InitWorldOp{
+			LastChangeDisable: true,
+		},
+		Verbose:           conf.GetVerbose(),
+		ProcessOpsBackoff: conf.GetProcessOpsBackoff().CloneVT(),
+	}
 }
 
 // _ is a type assertion
