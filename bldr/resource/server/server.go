@@ -165,10 +165,8 @@ func (s *ResourceServer) ResourceRpc(
 	return rpcstream.HandleRpcStream(
 		strm,
 		func(ctx context.Context, componentID string, released func()) (srpc.Invoker, func(), error) {
-			println("quickstart resource rpc lookup start", componentID)
 			resourceIDU64, err := strconv.ParseUint(componentID, 10, 32)
 			if err != nil {
-				println("quickstart resource rpc lookup parse error", componentID, err.Error())
 				return nil, nil, err
 			}
 			resourceIDU32 := uint32(resourceIDU64)
@@ -197,11 +195,9 @@ func (s *ResourceServer) ResourceRpc(
 			})
 
 			if mux == nil {
-				println("quickstart resource rpc lookup missing", componentID)
 				return nil, nil, resource.ErrResourceOrClientReleased
 			}
 
-			println("quickstart resource rpc lookup found", componentID)
 			return &resourceServerClientInvoker{mux: mux, client: client}, nil, nil
 		},
 	)
@@ -214,26 +210,13 @@ type resourceServerClientInvoker struct {
 }
 
 func (c *resourceServerClientInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-	println("quickstart resource rpc invoke start", serviceID, methodID)
 	// Add client context to the stream
 	if c.client != nil {
 		childCtx := WithResourceClientContext(strm.Context(), c.client)
 		childStrm := srpc.NewStreamWithContext(strm, childCtx)
-		ok, err := c.mux.InvokeMethod(serviceID, methodID, childStrm)
-		if err != nil {
-			println("quickstart resource rpc invoke error", serviceID, methodID, err.Error())
-		} else {
-			println("quickstart resource rpc invoke finish", serviceID, methodID, ok)
-		}
-		return ok, err
+		return c.mux.InvokeMethod(serviceID, methodID, childStrm)
 	}
-	ok, err := c.mux.InvokeMethod(serviceID, methodID, strm)
-	if err != nil {
-		println("quickstart resource rpc invoke error", serviceID, methodID, err.Error())
-	} else {
-		println("quickstart resource rpc invoke finish", serviceID, methodID, ok)
-	}
-	return ok, err
+	return c.mux.InvokeMethod(serviceID, methodID, strm)
 }
 
 // ResourceRefRelease releases a client's resource.
