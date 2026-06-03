@@ -975,6 +975,46 @@ func TestQuickstartDriveDirectRouteStartup(t *testing.T) {
 	AssertBrowserStartupDone(t, testHarness, page)
 }
 
+// TestGoScriptQuickstartDriveDirectRouteMountGate verifies the GoScript direct
+// Drive route reaches the mounted file browser, not only quickstart
+// content-ready.
+func TestGoScriptQuickstartDriveDirectRouteMountGate(t *testing.T) {
+	compiler, err := ResolveE2EWasmCompiler()
+	if err != nil {
+		t.Fatalf("resolve e2e wasm compiler: %v", err)
+	}
+	if compiler != E2EWasmCompilerGoScript {
+		t.Skipf("GoScript-only regression gate; compiler=%s", compiler)
+	}
+
+	sess := testHarness.NewCleanBlankSession(t)
+	script := "globalThis.__s4waveLogQuickstartTiming = true;"
+	if err := sess.BrowserContext().AddInitScript(playwright.Script{Content: &script}); err != nil {
+		t.Fatalf("install quickstart timing init script: %v", err)
+	}
+	console, stopConsole := sess.WatchConsole()
+	defer stopConsole()
+	defer func() {
+		report := DrainCrashReport(console)
+		if report.HasCrash() {
+			t.Errorf("unexpected browser/WASM crash report during direct drive mount gate: %+v", report)
+		}
+		if report.HasExitedGoLoop() {
+			t.Errorf("unexpected exited-Go loop during direct drive mount gate: %+v", report)
+		}
+	}()
+
+	if err := testHarness.loadAppPageURL(sess, testHarness.baseURL+"/#/quickstart/drive"); err != nil {
+		t.Fatalf("load direct drive route: %v", err)
+	}
+	page := sess.Page()
+	WaitForApp(t, page)
+	AssertRootImportMap(t, testHarness, page)
+	ready := WaitForDriveReady(t, testHarness, page)
+	AssertQuickstartContentAfterProgress(t, ready)
+	AssertBrowserStartupDone(t, testHarness, page)
+}
+
 // TestDriveScenarioSequence verifies the owned drive flow as one ordered
 // sequence on a single harness session.
 func TestDriveScenarioSequence(t *testing.T) {
