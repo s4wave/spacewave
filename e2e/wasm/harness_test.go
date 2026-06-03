@@ -1011,6 +1011,21 @@ func TestGoScriptQuickstartDriveDirectRouteMountGate(t *testing.T) {
 	WaitForApp(t, page)
 	AssertRootImportMap(t, testHarness, page)
 	ready := WaitForDriveReady(t, testHarness, page)
+	formatOptionalTiming := func(v *int) string {
+		if v == nil {
+			return "unset"
+		}
+		return strconv.Itoa(*v)
+	}
+	t.Logf(
+		"goscript drive mount gate ready: hash=%s contentReadyMs=%d quickstartState=%s progressReadyMs=%s quickstartContentReadyMs=%s quickstartFinishedMs=%s",
+		ready.Hash,
+		ready.ContentReadyMs,
+		ready.QuickstartState,
+		formatOptionalTiming(ready.QuickstartProgressReadyMs),
+		formatOptionalTiming(ready.QuickstartContentReadyMs),
+		formatOptionalTiming(ready.QuickstartFinishedMs),
+	)
 	AssertQuickstartContentAfterProgress(t, ready)
 	AssertBrowserStartupDone(t, testHarness, page)
 }
