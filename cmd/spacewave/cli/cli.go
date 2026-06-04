@@ -23,6 +23,7 @@ func NewCliCommands(getBus func() cli_entrypoint.CliBus) []*cli.Command {
 		newStopCommand(getBus),
 		newStatusCommand(getBus),
 		newWebCommand(getBus),
+		newDeviceCommand(getBus),
 
 		// Tier 2: auth
 		newAuthCommand(getBus),

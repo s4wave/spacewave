@@ -22,6 +22,7 @@ func TestPluralCommandAliases(t *testing.T) {
 		{name: "provider", plural: "providers", cmd: newProviderCommand(nil)},
 		{name: "plugin", plural: "plugins", cmd: newPluginCommand(nil)},
 		{name: "vm", plural: "vms", cmd: newVmCommand(nil)},
+		{name: "device", plural: "devices", cmd: newDeviceCommand(nil)},
 	}
 	for _, c := range cases {
 		if !hasAlias(c.cmd.Aliases, c.plural) {
