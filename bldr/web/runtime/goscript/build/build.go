@@ -4,23 +4,40 @@ package web_runtime_goscript_build
 
 import (
 	"context"
+	"encoding/base64"
 	"os"
+	oexec "os/exec"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
 
-	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 	bldr_exec "github.com/s4wave/spacewave/bldr/util/exec"
 	"github.com/s4wave/spacewave/bldr/util/npm"
-	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
 	"github.com/sirupsen/logrus"
 )
 
-const webRuntimeGoScriptDir = "web/runtime/goscript"
+const (
+	webRuntimeGoScriptDir = "web/runtime/goscript"
+
+	rolldownCLIRelPath = "node_modules/rolldown/dist/cli.mjs"
+)
+
+type rolldownGoScriptBundleOptions struct {
+	EntrypointPath      string `json:"entrypointPath"`
+	BldrDistRoot        string `json:"bldrDistRoot"`
+	SourceRoot          string `json:"sourceRoot"`
+	GoScriptOutputRoot  string `json:"goScriptOutputRoot"`
+	OutPath             string `json:"outPath"`
+	InputsPath          string `json:"inputsPath"`
+	UndefinedImportPath string `json:"undefinedImportPath"`
+	Banner              string `json:"banner"`
+	Minify              bool   `json:"minify"`
+	Sourcemaps          bool   `json:"sourcemaps"`
+}
 
 // BuildWebGoScriptPluginScript builds the web plugin runtime entrypoint script.
 func BuildWebGoScriptPluginScript(
@@ -57,65 +74,52 @@ func BuildWebGoScriptPluginScript(
 		return nil, errors.Wrap(err, "write goscript entrypoint")
 	}
 
-	le.Infof("building plugin-goscript-entrypoint.ts to %v", filepath.Base(outPath))
-
-	useOxcMinify := minify
-	esbuildOutPath := outPath
-	if useOxcMinify {
-		esbuildOutPath = filepath.Join(workDir, filepath.Base(outPath)+".esbuild.mjs")
-		defer os.Remove(esbuildOutPath)
-		defer os.Remove(esbuildOutPath + ".map")
-	}
-
-	opts := entrypoint_browser_bundle.BrowserBuildOpts(workDir, minify && !useOxcMinify, sourcemaps && !useOxcMinify)
-	opts.EntryPoints = []string{"plugin-goscript-entrypoint.ts"}
-	opts.Outfile = esbuildOutPath
-	opts.Define["BLDR_IS_PLUGIN"] = "true"
-	opts.Metafile = true
-	opts.Write = true
-	opts.Conditions = append(opts.Conditions, "browser")
-	opts.Plugins = append(opts.Plugins, goScriptImportResolverPlugin(goScriptOutputRoot))
-
-	if sourcemaps {
-		opts.Sourcemap = esbuild_api.SourceMapInlineAndExternal
-	}
-
-	res := esbuild_api.Build(opts)
-	if err := bldr_esbuild_build.BuildResultToErr(res); err != nil {
-		return nil, err
-	}
-	if err := buildResultUndefinedImportToErr(res.Warnings); err != nil {
-		return nil, err
-	}
-	inputPaths, err := buildInputPathsFromMetafile(workDir, res.Metafile)
-	if err != nil {
-		return nil, err
-	}
-	if useOxcMinify {
-		if err := runRolldownOxcMinify(ctx, le, workDir, esbuildOutPath, outPath, sourcemaps); err != nil {
-			return nil, err
-		}
-	}
-	return inputPaths, nil
+	return runRolldownGoScriptBundle(ctx, le, bldrDistRoot, workDir, goScriptOutputRoot, entrypointPath, outPath, minify, sourcemaps)
 }
 
-func runRolldownOxcMinify(ctx context.Context, le *logrus.Entry, workDir, inPath, outPath string, sourcemaps bool) error {
-	le.Infof("minifying plugin-goscript bundle with Rolldown/Oxc to %v", filepath.Base(outPath))
+func runRolldownGoScriptBundle(
+	ctx context.Context,
+	le *logrus.Entry,
+	bldrDistRoot,
+	workDir,
+	goScriptOutputRoot,
+	entrypointPath,
+	outPath string,
+	minify,
+	sourcemaps bool,
+) ([]string, error) {
+	le.Infof("building plugin-goscript-entrypoint.ts with Rolldown/Oxc to %v", filepath.Base(outPath))
+	if err := os.MkdirAll(filepath.Dir(outPath), 0o755); err != nil {
+		return nil, errors.Wrap(err, "create goscript bundle output dir")
+	}
+
+	inputsPath := filepath.Join(workDir, "plugin-goscript-inputs.json")
+	undefinedImportPath := filepath.Join(workDir, "plugin-goscript-undefined-import.txt")
+	configPath := filepath.Join(workDir, "plugin-goscript-rolldown.config.mjs")
+	banner := entrypoint_browser_bundle.DefaultBanner()["js"]
+	options := rolldownGoScriptBundleOptions{
+		EntrypointPath:      entrypointPath,
+		BldrDistRoot:        bldrDistRoot,
+		SourceRoot:          resolveGoScriptSourceRoot(bldrDistRoot),
+		GoScriptOutputRoot:  goScriptOutputRoot,
+		OutPath:             outPath,
+		InputsPath:          inputsPath,
+		UndefinedImportPath: undefinedImportPath,
+		Banner:              banner,
+		Minify:              minify,
+		Sourcemaps:          sourcemaps,
+	}
+	if err := os.WriteFile(configPath, renderRolldownGoScriptConfig(options), 0o644); err != nil {
+		return nil, errors.Wrap(err, "write goscript rolldown config")
+	}
+	if err := os.Remove(undefinedImportPath); err != nil && !os.IsNotExist(err) {
+		return nil, errors.Wrap(err, "remove stale goscript undefined-import marker")
+	}
+
 	stateDir := filepath.Join(workDir, "..", "..", "bun")
-	args := []string{
-		inPath,
-		"--file", outPath,
-		"--format", "esm",
-		"--platform", "browser",
-		"--minify",
-		"--log-level", "warn",
-	}
-	if sourcemaps {
-		args = append(args, "--sourcemap")
-	}
-	cmd, err := npm.BunX(ctx, le, stateDir, "rolldown", args...)
+	cmd, err := newRolldownCommand(ctx, le, stateDir, bldrDistRoot, configPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	cmd.Dir = workDir
 	cmd.Env = append(os.Environ(),
@@ -123,25 +127,78 @@ func runRolldownOxcMinify(ctx context.Context, le *logrus.Entry, workDir, inPath
 		"NODE_DISABLE_COLORS=1",
 		"CI=1",
 	)
-	return bldr_exec.StartAndWait(ctx, le, cmd)
-}
-
-func buildResultUndefinedImportToErr(warnings []esbuild_api.Message) error {
-	for _, warning := range warnings {
-		if !isUndefinedImportWarning(warning) {
-			continue
+	if err := bldr_exec.StartAndWait(ctx, le, cmd); err != nil {
+		if undefinedImportErr := readUndefinedImportError(undefinedImportPath); undefinedImportErr != nil {
+			return nil, undefinedImportErr
 		}
-		if warning.Location != nil && warning.Location.File != "" {
-			return errors.Errorf("undefined GoScript import in %s: %s", warning.Location.File, warning.Text)
-		}
-		return errors.Errorf("undefined GoScript import: %s", warning.Text)
+		return nil, err
 	}
-	return nil
+	if sourcemaps {
+		if err := inlineAndExternalSourceMap(outPath); err != nil {
+			return nil, err
+		}
+	}
+	return readRolldownInputPaths(workDir, inputsPath)
 }
 
-func isUndefinedImportWarning(warning esbuild_api.Message) bool {
-	return warning.ID == "import-is-undefined" ||
-		strings.Contains(warning.Text, "will always be undefined because there is no matching export")
+func newRolldownCommand(
+	ctx context.Context,
+	le *logrus.Entry,
+	stateDir,
+	bldrDistRoot,
+	configPath string,
+) (*oexec.Cmd, error) {
+	rolldownCLIPath, err := ensureRolldownCLIPath(ctx, le, stateDir, bldrDistRoot)
+	if err != nil {
+		return nil, err
+	}
+	bunPath, err := npm.ResolveBunPath(ctx, le, stateDir)
+	if err != nil {
+		return nil, err
+	}
+	return bldr_exec.NewCmd(ctx, bunPath, rolldownCLIPath, "--config", configPath), nil
+}
+
+func ensureRolldownCLIPath(ctx context.Context, le *logrus.Entry, stateDir, bldrDistRoot string) (string, error) {
+	depsRoot := filepath.Join(bldrDistRoot, "dist", "deps")
+	if cliPath := installedRolldownCLIPath(depsRoot); cliPath != "" {
+		return cliPath, nil
+	}
+
+	srcPackageJSON := filepath.Join(depsRoot, "package.json")
+	installDir := filepath.Join(stateDir, "goscript-rolldown")
+	if err := npm.EnsureBunInstall(ctx, le, stateDir, srcPackageJSON, installDir); err != nil {
+		return "", errors.Wrap(err, "install bldr rolldown tool dependencies")
+	}
+	if cliPath := installedRolldownCLIPath(installDir); cliPath != "" {
+		return cliPath, nil
+	}
+	return "", errors.Errorf("rolldown CLI missing after installing %s", srcPackageJSON)
+}
+
+func installedRolldownCLIPath(root string) string {
+	if root == "" {
+		return ""
+	}
+	cliPath := filepath.Join(root, filepath.FromSlash(rolldownCLIRelPath))
+	if info, err := os.Stat(cliPath); err == nil && !info.IsDir() {
+		return cliPath
+	}
+	return ""
+}
+
+func resolveGoScriptSourceRoot(bldrDistRoot string) string {
+	dir := bldrDistRoot
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return bldrDistRoot
+		}
+		dir = parent
+	}
 }
 
 func relativeImportPath(fromDir, toPath string) (string, error) {
@@ -156,103 +213,303 @@ func relativeImportPath(fromDir, toPath string) (string, error) {
 	return rel, nil
 }
 
-func goScriptImportResolverPlugin(outputRoot string) esbuild_api.Plugin {
-	return esbuild_api.Plugin{
-		Name: "goscript-import-resolver",
-		Setup: func(build esbuild_api.PluginBuild) {
-			build.OnResolve(esbuild_api.OnResolveOptions{Filter: `^node:events$`}, func(args esbuild_api.OnResolveArgs) (esbuild_api.OnResolveResult, error) {
-				return esbuild_api.OnResolveResult{
-					Path:      args.Path,
-					Namespace: "goscript-node-events",
-				}, nil
-			})
-			build.OnLoad(esbuild_api.OnLoadOptions{Filter: `.*`, Namespace: "goscript-node-events"}, func(args esbuild_api.OnLoadArgs) (esbuild_api.OnLoadResult, error) {
-				return esbuild_api.OnLoadResult{
-					Contents: new("export function setMaxListeners() {}\n"),
-					Loader:   esbuild_api.LoaderJS,
-				}, nil
-			})
-			build.OnResolve(esbuild_api.OnResolveOptions{Filter: `^@goscript/.+`}, func(args esbuild_api.OnResolveArgs) (esbuild_api.OnResolveResult, error) {
-				rel := strings.TrimPrefix(args.Path, "@goscript/")
-				return resolveGoScriptImport(outputRoot, rel)
-			})
-			build.OnResolve(esbuild_api.OnResolveOptions{Filter: `^\.\.?/.+\.js$`}, func(args esbuild_api.OnResolveArgs) (esbuild_api.OnResolveResult, error) {
-				if args.ResolveDir == "" {
-					return esbuild_api.OnResolveResult{}, nil
-				}
-				path := filepath.Join(args.ResolveDir, filepath.FromSlash(args.Path))
-				if resolved := existingTypeScriptSibling(path); resolved != "" {
-					return esbuild_api.OnResolveResult{Path: resolved}, nil
-				}
-				return esbuild_api.OnResolveResult{}, nil
-			})
-		},
+func inlineAndExternalSourceMap(outPath string) error {
+	mapBytes, err := os.ReadFile(outPath + ".map")
+	if err != nil {
+		return errors.Wrap(err, "read goscript rolldown sourcemap")
 	}
+	outBytes, err := os.ReadFile(outPath)
+	if err != nil {
+		return errors.Wrap(err, "read goscript rolldown output")
+	}
+	lines := strings.Split(strings.TrimRight(string(outBytes), "\r\n"), "\n")
+	for len(lines) != 0 && strings.HasPrefix(strings.TrimSpace(lines[len(lines)-1]), "//# sourceMappingURL=") {
+		lines = lines[:len(lines)-1]
+	}
+	inlineURL := "//# sourceMappingURL=data:application/json;base64," + base64.StdEncoding.EncodeToString(mapBytes)
+	lines = append(lines, inlineURL)
+	return os.WriteFile(outPath, []byte(strings.Join(lines, "\n")+"\n"), 0o644)
 }
 
-//go:fix inline
-func ptrString(value string) *string {
-	return new(value)
+func readUndefinedImportError(path string) error {
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+	message := strings.TrimSpace(string(contents))
+	if message == "" {
+		return nil
+	}
+	return errors.New(message)
 }
 
-func resolveGoScriptImport(outputRoot, rel string) (esbuild_api.OnResolveResult, error) {
-	path := filepath.Join(outputRoot, "@goscript", filepath.FromSlash(rel))
-	if resolved := existingTypeScriptSibling(path); resolved != "" {
-		return esbuild_api.OnResolveResult{Path: resolved}, nil
+func readRolldownInputPaths(absWorkingDir, inputsPath string) ([]string, error) {
+	inputBytes, err := os.ReadFile(inputsPath)
+	if os.IsNotExist(err) {
+		return nil, errors.New("goscript rolldown inputs were not written")
 	}
-	if _, err := os.Stat(path); err == nil {
-		return esbuild_api.OnResolveResult{Path: path}, nil
-	}
-	return esbuild_api.OnResolveResult{}, nil
-}
-
-func existingTypeScriptSibling(path string) string {
-	if before, ok := strings.CutSuffix(path, ".js"); ok {
-		tsPath := before + ".ts"
-		if _, err := os.Stat(tsPath); err == nil {
-			return tsPath
-		}
-	}
-	if _, err := os.Stat(path); err == nil {
-		return path
-	}
-	return ""
-}
-
-func buildInputPathsFromMetafile(absWorkingDir, metafile string) ([]string, error) {
-	if metafile == "" {
-		return nil, nil
+	if err != nil {
+		return nil, errors.Wrap(err, "read goscript rolldown inputs")
 	}
 	var parser fastjson.Parser
-	value, err := parser.Parse(metafile)
+	value, err := parser.ParseBytes(inputBytes)
 	if err != nil {
-		return nil, errors.Wrap(err, "parse esbuild metafile")
+		return nil, errors.Wrap(err, "parse goscript rolldown inputs")
 	}
-	inputs := value.GetObject("inputs")
+	inputs := value.GetArray()
 	if inputs == nil {
-		return nil, nil
+		return nil, errors.New("goscript rolldown inputs are not an array")
 	}
 
-	seen := make(map[string]struct{}, inputs.Len())
-	inputPaths := make([]string, 0, inputs.Len())
-	inputs.Visit(func(key []byte, _ *fastjson.Value) {
-		inputPath := string(key)
-		if inputPath == "" || strings.HasPrefix(inputPath, "<") {
-			return
+	seen := make(map[string]struct{}, len(inputs))
+	inputPaths := make([]string, 0, len(inputs))
+	for _, input := range inputs {
+		inputPathBytes := input.GetStringBytes()
+		if len(inputPathBytes) == 0 {
+			continue
+		}
+		inputPath := string(inputPathBytes)
+		if strings.HasPrefix(inputPath, "<") {
+			continue
 		}
 		if !filepath.IsAbs(inputPath) {
 			inputPath = filepath.Join(absWorkingDir, inputPath)
 		}
 		inputPath = filepath.Clean(inputPath)
-		if _, ok := seen[inputPath]; ok {
-			return
-		}
 		if _, err := os.Stat(inputPath); err != nil {
-			return
+			continue
+		}
+		if realPath, err := filepath.EvalSymlinks(inputPath); err == nil {
+			inputPath = filepath.Clean(realPath)
+		}
+		if _, ok := seen[inputPath]; ok {
+			continue
 		}
 		seen[inputPath] = struct{}{}
 		inputPaths = append(inputPaths, inputPath)
-	})
+	}
 	slices.Sort(inputPaths)
 	return inputPaths, nil
 }
+
+func renderRolldownGoScriptConfig(options rolldownGoScriptBundleOptions) []byte {
+	var builder strings.Builder
+	builder.WriteString("const opts = {\n")
+	writeConfigString(&builder, "entrypointPath", options.EntrypointPath)
+	writeConfigString(&builder, "bldrDistRoot", options.BldrDistRoot)
+	writeConfigString(&builder, "sourceRoot", options.SourceRoot)
+	writeConfigString(&builder, "goScriptOutputRoot", options.GoScriptOutputRoot)
+	writeConfigString(&builder, "outPath", options.OutPath)
+	writeConfigString(&builder, "inputsPath", options.InputsPath)
+	writeConfigString(&builder, "undefinedImportPath", options.UndefinedImportPath)
+	writeConfigString(&builder, "banner", options.Banner)
+	writeConfigBool(&builder, "minify", options.Minify)
+	writeConfigBool(&builder, "sourcemaps", options.Sourcemaps)
+	builder.WriteString("}\n")
+	builder.WriteString(rolldownGoScriptConfig)
+	return []byte(builder.String())
+}
+
+func writeConfigString(builder *strings.Builder, name, value string) {
+	builder.WriteString("  ")
+	builder.WriteString(name)
+	builder.WriteString(": ")
+	builder.WriteString(strconv.Quote(value))
+	builder.WriteString(",\n")
+}
+
+func writeConfigBool(builder *strings.Builder, name string, value bool) {
+	builder.WriteString("  ")
+	builder.WriteString(name)
+	builder.WriteString(": ")
+	builder.WriteString(strconv.FormatBool(value))
+	builder.WriteString(",\n")
+}
+
+const rolldownGoScriptConfig = `import fs from "node:fs"
+import path from "node:path"
+
+const nodeEventsModule = "\0goscript-node-events"
+const localModulePrefix = "github.com/s4wave/spacewave/"
+const bldrDistSourcePrefixes = ["devtool/", "manifest/", "plugin/", "resource/", "sdk/", "web/"]
+const inputs = new Set()
+const localModule = readLocalModule(opts.sourceRoot)
+
+function existingFile(filePath) {
+  try {
+    return fs.statSync(filePath).isFile()
+  } catch {
+    return false
+  }
+}
+
+function trackInput(filePath) {
+  if (!filePath || !path.isAbsolute(filePath) || filePath.startsWith("\0")) return
+  if (!existingFile(filePath)) return
+  inputs.add(path.normalize(filePath))
+}
+
+function existingTypeScriptSibling(filePath) {
+  if (filePath.endsWith(".js")) {
+    const tsPath = filePath.slice(0, -".js".length) + ".ts"
+    if (existingFile(tsPath)) return tsPath
+  }
+  if (existingFile(filePath)) return filePath
+  return null
+}
+
+function existingSourcePath(filePath) {
+  if (existingFile(filePath)) return filePath
+  if (filePath.endsWith(".js")) {
+    const tsPath = filePath.slice(0, -".js".length) + ".ts"
+    if (existingFile(tsPath)) return tsPath
+    const tsxPath = filePath.slice(0, -".js".length) + ".tsx"
+    if (existingFile(tsxPath)) return tsxPath
+  }
+  return null
+}
+
+function resolveGoScriptImport(source) {
+  const rel = source.slice("@goscript/".length)
+  return existingTypeScriptSibling(path.join(opts.goScriptOutputRoot, "@goscript", rel))
+}
+
+function readLocalModule(projectRoot) {
+  try {
+    const contents = fs.readFileSync(path.join(projectRoot, "go.mod"), "utf8")
+    const match = contents.match(/^\s*module\s+(\S+)/m)
+    return match ? match[1] : ""
+  } catch {
+    return ""
+  }
+}
+
+function resolveBldrSourcePath(sourceRel) {
+  const monorepoPath = existingSourcePath(path.join(opts.bldrDistRoot, "bldr", sourceRel))
+  if (monorepoPath) return monorepoPath
+  return existingSourcePath(path.join(opts.bldrDistRoot, sourceRel))
+}
+
+function resolveBldrAlias(source) {
+  if (source === "@aptre/bldr-sdk") return resolveBldrSourcePath("sdk/plugin.ts")
+  const bldrSDKPrefix = "@aptre/bldr-sdk/"
+  if (source.startsWith(bldrSDKPrefix)) return resolveBldrSourcePath(path.join("sdk", source.slice(bldrSDKPrefix.length)))
+  if (source === "@aptre/bldr") return resolveBldrSourcePath("web/bldr/index.js")
+  if (source === "@aptre/bldr-react") return resolveBldrSourcePath("web/bldr-react/index.js")
+  return null
+}
+
+function resolveGoImport(source) {
+  if (!source.startsWith("@go/") || !source.endsWith(".js")) return null
+  const importPath = source.slice("@go/".length)
+  if (localModule && importPath.startsWith(localModule + "/")) {
+    return existingSourcePath(path.join(opts.sourceRoot, importPath.slice(localModule.length + 1)))
+  }
+  if (!localModule && importPath.startsWith(localModulePrefix)) {
+    return existingSourcePath(path.join(opts.sourceRoot, importPath.slice(localModulePrefix.length)))
+  }
+  return existingSourcePath(path.join(opts.bldrDistRoot, "vendor", importPath))
+}
+
+function resolveDistSourceImport(source) {
+  if (!source.endsWith(".js")) return null
+  if (!bldrDistSourcePrefixes.some((prefix) => source.startsWith(prefix))) return null
+  return existingSourcePath(path.join(opts.bldrDistRoot, source))
+}
+
+function isUndefinedImport(log) {
+  const message = log?.message || ""
+  const code = log?.code || ""
+  return code === "IMPORT_IS_UNDEFINED" ||
+    code === "import-is-undefined" ||
+    code === "ImportIsUndefined" ||
+    message.includes("will always be undefined because there is no matching export")
+}
+
+const plugin = {
+  name: "goscript-import-resolver",
+  buildStart() {
+    trackInput(opts.entrypointPath)
+  },
+  resolveId(source, importer) {
+    if (source === "node:events") return nodeEventsModule
+    const bldrAlias = resolveBldrAlias(source)
+    if (bldrAlias) {
+      trackInput(bldrAlias)
+      return bldrAlias
+    }
+    const goImport = resolveGoImport(source)
+    if (goImport) {
+      trackInput(goImport)
+      return goImport
+    }
+    const distSourceImport = resolveDistSourceImport(source)
+    if (distSourceImport) {
+      trackInput(distSourceImport)
+      return distSourceImport
+    }
+    if (source.startsWith("@goscript/")) {
+      const resolved = resolveGoScriptImport(source)
+      if (resolved) {
+        trackInput(resolved)
+        return resolved
+      }
+      return null
+    }
+    if (importer && !importer.startsWith("\0") && source.endsWith(".js") && (source.startsWith("./") || source.startsWith("../"))) {
+      const resolved = existingTypeScriptSibling(path.join(path.dirname(importer), source))
+      if (resolved) {
+        trackInput(resolved)
+        return resolved
+      }
+    }
+    return null
+  },
+  load(id) {
+    if (id === nodeEventsModule) return "export function setMaxListeners() {}\n"
+    trackInput(id)
+    return null
+  },
+  writeBundle() {
+    fs.writeFileSync(opts.inputsPath, JSON.stringify(Array.from(inputs).sort(), null, 2) + "\n")
+  },
+}
+
+export default {
+  input: opts.entrypointPath,
+  platform: "browser",
+  treeshake: true,
+  logLevel: "warn",
+  checks: {
+    importIsUndefined: true,
+  },
+  transform: {
+    define: {
+      BLDR_IS_BROWSER: "true",
+      BLDR_IS_PLUGIN: "true",
+    },
+    target: "es2024",
+  },
+  plugins: [plugin],
+  onLog(level, log, defaultHandler) {
+    if (level === "warn" && isUndefinedImport(log)) {
+      const file = log?.loc?.file || log?.id || ""
+      const suffix = file ? " in " + file : ""
+      const message = "undefined GoScript import" + suffix + ": " + (log?.message || log?.code || "missing export")
+      fs.writeFileSync(opts.undefinedImportPath, message + "\n")
+      const err = new Error(message)
+      err.stack = err.message
+      throw err
+    }
+    defaultHandler(level, log)
+  },
+  output: {
+    file: opts.outPath,
+    format: "esm",
+    sourcemap: opts.sourcemaps ? true : false,
+    minify: opts.minify,
+    codeSplitting: false,
+    banner: opts.banner,
+  },
+}
+`
