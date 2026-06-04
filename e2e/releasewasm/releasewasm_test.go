@@ -332,6 +332,10 @@ func beginQuickstartRuntimeTrace(t *testing.T, page playwright.Page) *quickstart
 		info["skippedReason"] = "Chromium tracing is only available for the chromium release WASM browser"
 		return c
 	}
+	if os.Getenv("E2E_RELEASE_WASM_RUNTIME_TRACE") != "1" {
+		info["skippedReason"] = "set E2E_RELEASE_WASM_RUNTIME_TRACE=1 to capture a Chromium runtime trace"
+		return c
+	}
 	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 		t.Fatalf("remove previous runtime trace artifact: %v", err)
 	}

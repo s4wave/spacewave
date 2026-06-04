@@ -135,10 +135,7 @@ func (c *Controller) buildBlkEngine(
 		task.End()
 	}
 
-	var lookupWorldOp world.LookupOp
-	if !c.conf.GetDisableLookup() {
-		lookupWorldOp = world.BuildLookupWorldOpFunc(c.bus, le, c.engineID)
-	}
+	lookupWorldOp := c.buildLookupWorldOp(le)
 
 	// Build the world engine
 	var bengine *world_block.Engine

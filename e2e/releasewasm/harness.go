@@ -4,6 +4,7 @@ package releasewasm
 
 import (
 	"context"
+	stderrors "errors"
 	"io"
 	"net"
 	"net/http"
@@ -331,8 +332,9 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) {
 		}
 	})
 	page.On("pageerror", func(err error) {
-		if !ignoreBrowserError(err.Error()) {
-			errs = append(errs, "page error: "+err.Error())
+		msg := browserPageErrorMessage(err)
+		if !ignoreBrowserError(msg) {
+			errs = append(errs, "page error: "+msg)
 		}
 	})
 	page.On("response", func(resp playwright.Response) {
@@ -351,6 +353,14 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) {
 			t.Fatalf("browser errors: %v", errs)
 		}
 	})
+}
+
+func browserPageErrorMessage(err error) string {
+	var pwErr *playwright.Error
+	if stderrors.As(err, &pwErr) && pwErr.Stack != "" {
+		return pwErr.Stack
+	}
+	return err.Error()
 }
 
 func isRelevantReleaseWasmRequest(url string) bool {
@@ -397,7 +407,9 @@ func (h *harness) newContextOptions(t testing.TB) playwright.BrowserNewContextOp
 func ignoreBrowserError(msg string) bool {
 	return strings.Contains(msg, "cache disabled") ||
 		strings.Contains(msg, "detected ctrl+shift+r") ||
-		strings.Contains(msg, "web document is closed")
+		strings.Contains(msg, "web document is closed") ||
+		strings.HasPrefix(msg, "level=debug ") ||
+		strings.HasPrefix(msg, "level=info ")
 }
 
 func (h *harness) browserRelease(ctx context.Context) (*browserReleaseDescriptor, error) {

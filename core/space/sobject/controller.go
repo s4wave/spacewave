@@ -10,6 +10,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
+	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 )
 
 // ControllerID is the controller id.
@@ -78,6 +79,7 @@ func (c *Controller) resolveMountSharedObjectBody(dir sobject.MountSharedObjectB
 			soRef.Release()
 			return nil, nil, err
 		}
+		ctrl.SetStaticLookupOp(space_world_optypes.LookupWorldOp)
 
 		eng, err := ctrl.GetWorldEngine(ctx)
 		if err != nil {

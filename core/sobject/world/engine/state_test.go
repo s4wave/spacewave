@@ -83,6 +83,29 @@ func TestExecuteWatchSOStateOnceSignalsGCSweepMaintenance(t *testing.T) {
 	}
 }
 
+func TestBuildLookupWorldOpObservesStaticLookupSetAfterBuild(t *testing.T) {
+	ctx := context.Background()
+	c := &Controller{conf: &Config{DisableLookup: true}}
+	lookup := c.buildLookupWorldOp(nil)
+
+	op, err := lookup(ctx, world_mock.MockWorldOpId)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if op != nil {
+		t.Fatal("lookup resolved operation before static lookup was set")
+	}
+
+	c.SetStaticLookupOp(world_mock.LookupMockOp)
+	op, err = lookup(ctx, world_mock.MockWorldOpId)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if op == nil {
+		t.Fatal("lookup did not observe static lookup set after build")
+	}
+}
+
 func TestBuildBlkEngineBorrowsTransformAwareBlockStoreDecodedCache(t *testing.T) {
 	ctx := context.Background()
 

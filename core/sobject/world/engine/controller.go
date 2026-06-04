@@ -2,6 +2,7 @@ package sobject_world_engine
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -43,6 +44,10 @@ type Controller struct {
 
 	// sfs is the step factory set
 	sfs *block_transform.StepFactorySet
+	// staticLookupOp is an optional in-process lookup chain supplied by
+	// domain owners that know this engine's built-in operation surface.
+	staticLookupOpMu sync.RWMutex
+	staticLookupOp   world.LookupOp
 
 	// writeBcast is broadcast after local commits and authoritative state updates.
 	// Used by the GC sweep maintenance routine to detect world-state changes that
@@ -98,6 +103,34 @@ func NewController(
 
 		sfs: sfs,
 	}, nil
+}
+
+// SetStaticLookupOp sets an in-process world operation lookup chain for this
+// engine. It is composed before the bus lookup, so domain-owned built-ins do
+// not depend on an outer controller lifecycle.
+func (c *Controller) SetStaticLookupOp(lookupOp world.LookupOp) {
+	c.staticLookupOpMu.Lock()
+	c.staticLookupOp = lookupOp
+	c.staticLookupOpMu.Unlock()
+}
+
+func (c *Controller) buildLookupWorldOp(le *logrus.Entry) world.LookupOp {
+	var busLookupOp world.LookupOp
+	if !c.conf.GetDisableLookup() {
+		busLookupOp = world.BuildLookupWorldOpFunc(c.bus, le, c.engineID)
+	}
+	return func(ctx context.Context, operationTypeID string) (world.Operation, error) {
+		var lookupOps []world.LookupOp
+		c.staticLookupOpMu.RLock()
+		if c.staticLookupOp != nil {
+			lookupOps = append(lookupOps, c.staticLookupOp)
+		}
+		c.staticLookupOpMu.RUnlock()
+		if busLookupOp != nil {
+			lookupOps = append(lookupOps, busLookupOp)
+		}
+		return world.LookupOpSlice(lookupOps).LookupOp(ctx, operationTypeID)
+	}
 }
 
 // GetControllerInfo returns information about the controller.
