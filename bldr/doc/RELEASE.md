@@ -43,6 +43,18 @@ Upload paths should write this metadata when possible. Serving paths must infer
 the same headers for known immutable `.gz` release assets when object metadata
 is missing or too generic.
 
+Local Bldr entrypoint/static serving, Bldr web package serving, and UnixFS HTTP
+serving use the same encoded-asset file server for release-shaped asset trees.
+That keeps development, local e2e, and Space-hosted file serving aligned with
+Cloud responses for `.wasm.gz`, JavaScript, CSS, and other immutable gzip
+assets.
+
+The browser wasm loader still accepts both historical headerless gzip bytes and
+responses that already carry `Content-Encoding: gzip`. The loader sniffs the
+actual response body before applying `DecompressionStream('gzip')` and removes
+`Content-Encoding` before handing the response to WebAssembly compilation, so a
+browser-decoded response is not decompressed twice.
+
 # Unused
 
 These dependencies may be used in future.
