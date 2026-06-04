@@ -45,9 +45,8 @@ is missing or too generic.
 
 Local Bldr entrypoint/static serving, Bldr web package serving, and UnixFS HTTP
 serving use the same encoded-asset file server for release-shaped asset trees.
-That keeps development, local e2e, and Space-hosted file serving aligned with
-Cloud responses for `.wasm.gz`, JavaScript, CSS, and other immutable gzip
-assets.
+That keeps local development and Space-hosted file serving aligned with Cloud
+responses for `.wasm.gz`, JavaScript, CSS, and other immutable gzip assets.
 
 The browser wasm loader still accepts both historical headerless gzip bytes and
 responses that already carry `Content-Encoding: gzip`. The loader sniffs the
