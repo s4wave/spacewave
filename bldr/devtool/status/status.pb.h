@@ -59,40 +59,48 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 namespace bldr {
 namespace devtool {
 namespace status {
-enum DevtoolAttentionSeverity : int;
-extern const uint32_t DevtoolAttentionSeverity_internal_data_[];
-enum DevtoolCommandState : int;
-extern const uint32_t DevtoolCommandState_internal_data_[];
-enum DevtoolControllerState : int;
-extern const uint32_t DevtoolControllerState_internal_data_[];
-enum DevtoolManifestState : int;
-extern const uint32_t DevtoolManifestState_internal_data_[];
-enum DevtoolPluginState : int;
-extern const uint32_t DevtoolPluginState_internal_data_[];
-class DevtoolAttentionRow;
-struct DevtoolAttentionRowDefaultTypeInternal;
-extern DevtoolAttentionRowDefaultTypeInternal _DevtoolAttentionRow_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull DevtoolAttentionRow_class_data_;
-class DevtoolCommandStatus;
-struct DevtoolCommandStatusDefaultTypeInternal;
-extern DevtoolCommandStatusDefaultTypeInternal _DevtoolCommandStatus_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull DevtoolCommandStatus_class_data_;
-class DevtoolControllerRow;
-struct DevtoolControllerRowDefaultTypeInternal;
-extern DevtoolControllerRowDefaultTypeInternal _DevtoolControllerRow_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull DevtoolControllerRow_class_data_;
-class DevtoolManifestBuildRow;
-struct DevtoolManifestBuildRowDefaultTypeInternal;
-extern DevtoolManifestBuildRowDefaultTypeInternal _DevtoolManifestBuildRow_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull DevtoolManifestBuildRow_class_data_;
-class DevtoolManifestFetchRow;
-struct DevtoolManifestFetchRowDefaultTypeInternal;
-extern DevtoolManifestFetchRowDefaultTypeInternal _DevtoolManifestFetchRow_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull DevtoolManifestFetchRow_class_data_;
-class DevtoolPluginRow;
-struct DevtoolPluginRowDefaultTypeInternal;
-extern DevtoolPluginRowDefaultTypeInternal _DevtoolPluginRow_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull DevtoolPluginRow_class_data_;
+enum DevtoolStatusAttentionSeverity : int;
+extern const uint32_t DevtoolStatusAttentionSeverity_internal_data_[];
+enum DevtoolStatusCommandState : int;
+extern const uint32_t DevtoolStatusCommandState_internal_data_[];
+enum DevtoolStatusControllerState : int;
+extern const uint32_t DevtoolStatusControllerState_internal_data_[];
+enum DevtoolStatusManifestState : int;
+extern const uint32_t DevtoolStatusManifestState_internal_data_[];
+enum DevtoolStatusPluginState : int;
+extern const uint32_t DevtoolStatusPluginState_internal_data_[];
+class DevtoolStatusAttentionRow;
+struct DevtoolStatusAttentionRowDefaultTypeInternal;
+extern DevtoolStatusAttentionRowDefaultTypeInternal _DevtoolStatusAttentionRow_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DevtoolStatusAttentionRow_class_data_;
+class DevtoolStatusBuildTarget;
+struct DevtoolStatusBuildTargetDefaultTypeInternal;
+extern DevtoolStatusBuildTargetDefaultTypeInternal _DevtoolStatusBuildTarget_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DevtoolStatusBuildTarget_class_data_;
+class DevtoolStatusCommand;
+struct DevtoolStatusCommandDefaultTypeInternal;
+extern DevtoolStatusCommandDefaultTypeInternal _DevtoolStatusCommand_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DevtoolStatusCommand_class_data_;
+class DevtoolStatusControllerRow;
+struct DevtoolStatusControllerRowDefaultTypeInternal;
+extern DevtoolStatusControllerRowDefaultTypeInternal _DevtoolStatusControllerRow_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DevtoolStatusControllerRow_class_data_;
+class DevtoolStatusManifestBuildRow;
+struct DevtoolStatusManifestBuildRowDefaultTypeInternal;
+extern DevtoolStatusManifestBuildRowDefaultTypeInternal _DevtoolStatusManifestBuildRow_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DevtoolStatusManifestBuildRow_class_data_;
+class DevtoolStatusManifestFetchRow;
+struct DevtoolStatusManifestFetchRowDefaultTypeInternal;
+extern DevtoolStatusManifestFetchRowDefaultTypeInternal _DevtoolStatusManifestFetchRow_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DevtoolStatusManifestFetchRow_class_data_;
+class DevtoolStatusPluginRow;
+struct DevtoolStatusPluginRowDefaultTypeInternal;
+extern DevtoolStatusPluginRowDefaultTypeInternal _DevtoolStatusPluginRow_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DevtoolStatusPluginRow_class_data_;
+class DevtoolStatusProject;
+struct DevtoolStatusProjectDefaultTypeInternal;
+extern DevtoolStatusProjectDefaultTypeInternal _DevtoolStatusProject_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DevtoolStatusProject_class_data_;
 class DevtoolStatusSnapshot;
 struct DevtoolStatusSnapshotDefaultTypeInternal;
 extern DevtoolStatusSnapshotDefaultTypeInternal _DevtoolStatusSnapshot_default_instance_;
@@ -111,219 +119,219 @@ extern const ::google::protobuf::internal::ClassDataFull WatchDevtoolStatusRespo
 namespace google {
 namespace protobuf {
 template <>
-internal::EnumTraitsT<::bldr::devtool::status::DevtoolAttentionSeverity_internal_data_>
-    internal::EnumTraitsImpl::value<::bldr::devtool::status::DevtoolAttentionSeverity>;
+internal::EnumTraitsT<::bldr::devtool::status::DevtoolStatusAttentionSeverity_internal_data_>
+    internal::EnumTraitsImpl::value<::bldr::devtool::status::DevtoolStatusAttentionSeverity>;
 template <>
-internal::EnumTraitsT<::bldr::devtool::status::DevtoolCommandState_internal_data_>
-    internal::EnumTraitsImpl::value<::bldr::devtool::status::DevtoolCommandState>;
+internal::EnumTraitsT<::bldr::devtool::status::DevtoolStatusCommandState_internal_data_>
+    internal::EnumTraitsImpl::value<::bldr::devtool::status::DevtoolStatusCommandState>;
 template <>
-internal::EnumTraitsT<::bldr::devtool::status::DevtoolControllerState_internal_data_>
-    internal::EnumTraitsImpl::value<::bldr::devtool::status::DevtoolControllerState>;
+internal::EnumTraitsT<::bldr::devtool::status::DevtoolStatusControllerState_internal_data_>
+    internal::EnumTraitsImpl::value<::bldr::devtool::status::DevtoolStatusControllerState>;
 template <>
-internal::EnumTraitsT<::bldr::devtool::status::DevtoolManifestState_internal_data_>
-    internal::EnumTraitsImpl::value<::bldr::devtool::status::DevtoolManifestState>;
+internal::EnumTraitsT<::bldr::devtool::status::DevtoolStatusManifestState_internal_data_>
+    internal::EnumTraitsImpl::value<::bldr::devtool::status::DevtoolStatusManifestState>;
 template <>
-internal::EnumTraitsT<::bldr::devtool::status::DevtoolPluginState_internal_data_>
-    internal::EnumTraitsImpl::value<::bldr::devtool::status::DevtoolPluginState>;
+internal::EnumTraitsT<::bldr::devtool::status::DevtoolStatusPluginState_internal_data_>
+    internal::EnumTraitsImpl::value<::bldr::devtool::status::DevtoolStatusPluginState>;
 }  // namespace protobuf
 }  // namespace google
 
 namespace bldr {
 namespace devtool {
 namespace status {
-enum DevtoolCommandState : int {
-  DEVTOOL_COMMAND_STATE_UNSPECIFIED = 0,
-  DEVTOOL_COMMAND_STATE_STARTING = 1,
-  DEVTOOL_COMMAND_STATE_RUNNING = 2,
-  DEVTOOL_COMMAND_STATE_DONE = 3,
-  DEVTOOL_COMMAND_STATE_ERROR = 4,
-  DEVTOOL_COMMAND_STATE_CANCELED = 5,
-  DevtoolCommandState_INT_MIN_SENTINEL_DO_NOT_USE_ =
+enum DevtoolStatusCommandState : int {
+  DevtoolStatusCommandState_UNKNOWN = 0,
+  DevtoolStatusCommandState_STARTING = 1,
+  DevtoolStatusCommandState_RUNNING = 2,
+  DevtoolStatusCommandState_DONE = 3,
+  DevtoolStatusCommandState_ERROR = 4,
+  DevtoolStatusCommandState_CANCELED = 5,
+  DevtoolStatusCommandState_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
-  DevtoolCommandState_INT_MAX_SENTINEL_DO_NOT_USE_ =
+  DevtoolStatusCommandState_INT_MAX_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::max(),
 };
 
-extern const uint32_t DevtoolCommandState_internal_data_[];
-inline constexpr DevtoolCommandState DevtoolCommandState_MIN =
-    static_cast<DevtoolCommandState>(0);
-inline constexpr DevtoolCommandState DevtoolCommandState_MAX =
-    static_cast<DevtoolCommandState>(5);
-inline bool DevtoolCommandState_IsValid(int value) {
+extern const uint32_t DevtoolStatusCommandState_internal_data_[];
+inline constexpr DevtoolStatusCommandState DevtoolStatusCommandState_MIN =
+    static_cast<DevtoolStatusCommandState>(0);
+inline constexpr DevtoolStatusCommandState DevtoolStatusCommandState_MAX =
+    static_cast<DevtoolStatusCommandState>(5);
+inline bool DevtoolStatusCommandState_IsValid(int value) {
   return 0 <= value && value <= 5;
 }
-inline constexpr int DevtoolCommandState_ARRAYSIZE = 5 + 1;
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DevtoolCommandState_descriptor();
+inline constexpr int DevtoolStatusCommandState_ARRAYSIZE = 5 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DevtoolStatusCommandState_descriptor();
 template <typename T>
-const ::std::string& DevtoolCommandState_Name(T value) {
-  static_assert(::std::is_same<T, DevtoolCommandState>::value ||
+const ::std::string& DevtoolStatusCommandState_Name(T value) {
+  static_assert(::std::is_same<T, DevtoolStatusCommandState>::value ||
                     ::std::is_integral<T>::value,
-                "Incorrect type passed to DevtoolCommandState_Name().");
-  return DevtoolCommandState_Name(static_cast<DevtoolCommandState>(value));
+                "Incorrect type passed to DevtoolStatusCommandState_Name().");
+  return DevtoolStatusCommandState_Name(static_cast<DevtoolStatusCommandState>(value));
 }
 template <>
-inline const ::std::string& DevtoolCommandState_Name(DevtoolCommandState value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<DevtoolCommandState_descriptor, 0, 5>(
+inline const ::std::string& DevtoolStatusCommandState_Name(DevtoolStatusCommandState value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<DevtoolStatusCommandState_descriptor, 0, 5>(
       static_cast<int>(value));
 }
-inline bool DevtoolCommandState_Parse(
-    ::absl::string_view name, DevtoolCommandState* PROTOBUF_NONNULL value) {
-  return ::google::protobuf::internal::ParseNamedEnum<DevtoolCommandState>(DevtoolCommandState_descriptor(), name,
+inline bool DevtoolStatusCommandState_Parse(
+    ::absl::string_view name, DevtoolStatusCommandState* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<DevtoolStatusCommandState>(DevtoolStatusCommandState_descriptor(), name,
                                            value);
 }
-enum DevtoolManifestState : int {
-  DEVTOOL_MANIFEST_STATE_UNSPECIFIED = 0,
-  DEVTOOL_MANIFEST_STATE_QUEUED = 1,
-  DEVTOOL_MANIFEST_STATE_RUNNING = 2,
-  DEVTOOL_MANIFEST_STATE_READY = 3,
-  DEVTOOL_MANIFEST_STATE_ERROR = 4,
-  DEVTOOL_MANIFEST_STATE_CANCELED = 5,
-  DevtoolManifestState_INT_MIN_SENTINEL_DO_NOT_USE_ =
+enum DevtoolStatusManifestState : int {
+  DevtoolStatusManifestState_UNKNOWN = 0,
+  DevtoolStatusManifestState_QUEUED = 1,
+  DevtoolStatusManifestState_RUNNING = 2,
+  DevtoolStatusManifestState_READY = 3,
+  DevtoolStatusManifestState_ERROR = 4,
+  DevtoolStatusManifestState_CANCELED = 5,
+  DevtoolStatusManifestState_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
-  DevtoolManifestState_INT_MAX_SENTINEL_DO_NOT_USE_ =
+  DevtoolStatusManifestState_INT_MAX_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::max(),
 };
 
-extern const uint32_t DevtoolManifestState_internal_data_[];
-inline constexpr DevtoolManifestState DevtoolManifestState_MIN =
-    static_cast<DevtoolManifestState>(0);
-inline constexpr DevtoolManifestState DevtoolManifestState_MAX =
-    static_cast<DevtoolManifestState>(5);
-inline bool DevtoolManifestState_IsValid(int value) {
+extern const uint32_t DevtoolStatusManifestState_internal_data_[];
+inline constexpr DevtoolStatusManifestState DevtoolStatusManifestState_MIN =
+    static_cast<DevtoolStatusManifestState>(0);
+inline constexpr DevtoolStatusManifestState DevtoolStatusManifestState_MAX =
+    static_cast<DevtoolStatusManifestState>(5);
+inline bool DevtoolStatusManifestState_IsValid(int value) {
   return 0 <= value && value <= 5;
 }
-inline constexpr int DevtoolManifestState_ARRAYSIZE = 5 + 1;
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DevtoolManifestState_descriptor();
+inline constexpr int DevtoolStatusManifestState_ARRAYSIZE = 5 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DevtoolStatusManifestState_descriptor();
 template <typename T>
-const ::std::string& DevtoolManifestState_Name(T value) {
-  static_assert(::std::is_same<T, DevtoolManifestState>::value ||
+const ::std::string& DevtoolStatusManifestState_Name(T value) {
+  static_assert(::std::is_same<T, DevtoolStatusManifestState>::value ||
                     ::std::is_integral<T>::value,
-                "Incorrect type passed to DevtoolManifestState_Name().");
-  return DevtoolManifestState_Name(static_cast<DevtoolManifestState>(value));
+                "Incorrect type passed to DevtoolStatusManifestState_Name().");
+  return DevtoolStatusManifestState_Name(static_cast<DevtoolStatusManifestState>(value));
 }
 template <>
-inline const ::std::string& DevtoolManifestState_Name(DevtoolManifestState value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<DevtoolManifestState_descriptor, 0, 5>(
+inline const ::std::string& DevtoolStatusManifestState_Name(DevtoolStatusManifestState value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<DevtoolStatusManifestState_descriptor, 0, 5>(
       static_cast<int>(value));
 }
-inline bool DevtoolManifestState_Parse(
-    ::absl::string_view name, DevtoolManifestState* PROTOBUF_NONNULL value) {
-  return ::google::protobuf::internal::ParseNamedEnum<DevtoolManifestState>(DevtoolManifestState_descriptor(), name,
+inline bool DevtoolStatusManifestState_Parse(
+    ::absl::string_view name, DevtoolStatusManifestState* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<DevtoolStatusManifestState>(DevtoolStatusManifestState_descriptor(), name,
                                            value);
 }
-enum DevtoolPluginState : int {
-  DEVTOOL_PLUGIN_STATE_UNSPECIFIED = 0,
-  DEVTOOL_PLUGIN_STATE_REQUESTED = 1,
-  DEVTOOL_PLUGIN_STATE_RUNNING = 2,
-  DEVTOOL_PLUGIN_STATE_ERRORED = 3,
-  DevtoolPluginState_INT_MIN_SENTINEL_DO_NOT_USE_ =
+enum DevtoolStatusControllerState : int {
+  DevtoolStatusControllerState_UNKNOWN = 0,
+  DevtoolStatusControllerState_REQUESTED = 1,
+  DevtoolStatusControllerState_RUNNING = 2,
+  DevtoolStatusControllerState_IDLE = 3,
+  DevtoolStatusControllerState_ERROR = 4,
+  DevtoolStatusControllerState_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
-  DevtoolPluginState_INT_MAX_SENTINEL_DO_NOT_USE_ =
+  DevtoolStatusControllerState_INT_MAX_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::max(),
 };
 
-extern const uint32_t DevtoolPluginState_internal_data_[];
-inline constexpr DevtoolPluginState DevtoolPluginState_MIN =
-    static_cast<DevtoolPluginState>(0);
-inline constexpr DevtoolPluginState DevtoolPluginState_MAX =
-    static_cast<DevtoolPluginState>(3);
-inline bool DevtoolPluginState_IsValid(int value) {
-  return 0 <= value && value <= 3;
-}
-inline constexpr int DevtoolPluginState_ARRAYSIZE = 3 + 1;
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DevtoolPluginState_descriptor();
-template <typename T>
-const ::std::string& DevtoolPluginState_Name(T value) {
-  static_assert(::std::is_same<T, DevtoolPluginState>::value ||
-                    ::std::is_integral<T>::value,
-                "Incorrect type passed to DevtoolPluginState_Name().");
-  return DevtoolPluginState_Name(static_cast<DevtoolPluginState>(value));
-}
-template <>
-inline const ::std::string& DevtoolPluginState_Name(DevtoolPluginState value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<DevtoolPluginState_descriptor, 0, 3>(
-      static_cast<int>(value));
-}
-inline bool DevtoolPluginState_Parse(
-    ::absl::string_view name, DevtoolPluginState* PROTOBUF_NONNULL value) {
-  return ::google::protobuf::internal::ParseNamedEnum<DevtoolPluginState>(DevtoolPluginState_descriptor(), name,
-                                           value);
-}
-enum DevtoolControllerState : int {
-  DEVTOOL_CONTROLLER_STATE_UNSPECIFIED = 0,
-  DEVTOOL_CONTROLLER_STATE_REQUESTED = 1,
-  DEVTOOL_CONTROLLER_STATE_RUNNING = 2,
-  DEVTOOL_CONTROLLER_STATE_IDLE = 3,
-  DEVTOOL_CONTROLLER_STATE_ERROR = 4,
-  DevtoolControllerState_INT_MIN_SENTINEL_DO_NOT_USE_ =
-      ::std::numeric_limits<::int32_t>::min(),
-  DevtoolControllerState_INT_MAX_SENTINEL_DO_NOT_USE_ =
-      ::std::numeric_limits<::int32_t>::max(),
-};
-
-extern const uint32_t DevtoolControllerState_internal_data_[];
-inline constexpr DevtoolControllerState DevtoolControllerState_MIN =
-    static_cast<DevtoolControllerState>(0);
-inline constexpr DevtoolControllerState DevtoolControllerState_MAX =
-    static_cast<DevtoolControllerState>(4);
-inline bool DevtoolControllerState_IsValid(int value) {
+extern const uint32_t DevtoolStatusControllerState_internal_data_[];
+inline constexpr DevtoolStatusControllerState DevtoolStatusControllerState_MIN =
+    static_cast<DevtoolStatusControllerState>(0);
+inline constexpr DevtoolStatusControllerState DevtoolStatusControllerState_MAX =
+    static_cast<DevtoolStatusControllerState>(4);
+inline bool DevtoolStatusControllerState_IsValid(int value) {
   return 0 <= value && value <= 4;
 }
-inline constexpr int DevtoolControllerState_ARRAYSIZE = 4 + 1;
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DevtoolControllerState_descriptor();
+inline constexpr int DevtoolStatusControllerState_ARRAYSIZE = 4 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DevtoolStatusControllerState_descriptor();
 template <typename T>
-const ::std::string& DevtoolControllerState_Name(T value) {
-  static_assert(::std::is_same<T, DevtoolControllerState>::value ||
+const ::std::string& DevtoolStatusControllerState_Name(T value) {
+  static_assert(::std::is_same<T, DevtoolStatusControllerState>::value ||
                     ::std::is_integral<T>::value,
-                "Incorrect type passed to DevtoolControllerState_Name().");
-  return DevtoolControllerState_Name(static_cast<DevtoolControllerState>(value));
+                "Incorrect type passed to DevtoolStatusControllerState_Name().");
+  return DevtoolStatusControllerState_Name(static_cast<DevtoolStatusControllerState>(value));
 }
 template <>
-inline const ::std::string& DevtoolControllerState_Name(DevtoolControllerState value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<DevtoolControllerState_descriptor, 0, 4>(
+inline const ::std::string& DevtoolStatusControllerState_Name(DevtoolStatusControllerState value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<DevtoolStatusControllerState_descriptor, 0, 4>(
       static_cast<int>(value));
 }
-inline bool DevtoolControllerState_Parse(
-    ::absl::string_view name, DevtoolControllerState* PROTOBUF_NONNULL value) {
-  return ::google::protobuf::internal::ParseNamedEnum<DevtoolControllerState>(DevtoolControllerState_descriptor(), name,
+inline bool DevtoolStatusControllerState_Parse(
+    ::absl::string_view name, DevtoolStatusControllerState* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<DevtoolStatusControllerState>(DevtoolStatusControllerState_descriptor(), name,
                                            value);
 }
-enum DevtoolAttentionSeverity : int {
-  DEVTOOL_ATTENTION_SEVERITY_UNSPECIFIED = 0,
-  DEVTOOL_ATTENTION_SEVERITY_INFO = 1,
-  DEVTOOL_ATTENTION_SEVERITY_WARNING = 2,
-  DEVTOOL_ATTENTION_SEVERITY_ERROR = 3,
-  DevtoolAttentionSeverity_INT_MIN_SENTINEL_DO_NOT_USE_ =
+enum DevtoolStatusPluginState : int {
+  DevtoolStatusPluginState_UNKNOWN = 0,
+  DevtoolStatusPluginState_REQUESTED = 1,
+  DevtoolStatusPluginState_RUNNING = 2,
+  DevtoolStatusPluginState_ERRORED = 3,
+  DevtoolStatusPluginState_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
-  DevtoolAttentionSeverity_INT_MAX_SENTINEL_DO_NOT_USE_ =
+  DevtoolStatusPluginState_INT_MAX_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::max(),
 };
 
-extern const uint32_t DevtoolAttentionSeverity_internal_data_[];
-inline constexpr DevtoolAttentionSeverity DevtoolAttentionSeverity_MIN =
-    static_cast<DevtoolAttentionSeverity>(0);
-inline constexpr DevtoolAttentionSeverity DevtoolAttentionSeverity_MAX =
-    static_cast<DevtoolAttentionSeverity>(3);
-inline bool DevtoolAttentionSeverity_IsValid(int value) {
+extern const uint32_t DevtoolStatusPluginState_internal_data_[];
+inline constexpr DevtoolStatusPluginState DevtoolStatusPluginState_MIN =
+    static_cast<DevtoolStatusPluginState>(0);
+inline constexpr DevtoolStatusPluginState DevtoolStatusPluginState_MAX =
+    static_cast<DevtoolStatusPluginState>(3);
+inline bool DevtoolStatusPluginState_IsValid(int value) {
   return 0 <= value && value <= 3;
 }
-inline constexpr int DevtoolAttentionSeverity_ARRAYSIZE = 3 + 1;
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DevtoolAttentionSeverity_descriptor();
+inline constexpr int DevtoolStatusPluginState_ARRAYSIZE = 3 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DevtoolStatusPluginState_descriptor();
 template <typename T>
-const ::std::string& DevtoolAttentionSeverity_Name(T value) {
-  static_assert(::std::is_same<T, DevtoolAttentionSeverity>::value ||
+const ::std::string& DevtoolStatusPluginState_Name(T value) {
+  static_assert(::std::is_same<T, DevtoolStatusPluginState>::value ||
                     ::std::is_integral<T>::value,
-                "Incorrect type passed to DevtoolAttentionSeverity_Name().");
-  return DevtoolAttentionSeverity_Name(static_cast<DevtoolAttentionSeverity>(value));
+                "Incorrect type passed to DevtoolStatusPluginState_Name().");
+  return DevtoolStatusPluginState_Name(static_cast<DevtoolStatusPluginState>(value));
 }
 template <>
-inline const ::std::string& DevtoolAttentionSeverity_Name(DevtoolAttentionSeverity value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<DevtoolAttentionSeverity_descriptor, 0, 3>(
+inline const ::std::string& DevtoolStatusPluginState_Name(DevtoolStatusPluginState value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<DevtoolStatusPluginState_descriptor, 0, 3>(
       static_cast<int>(value));
 }
-inline bool DevtoolAttentionSeverity_Parse(
-    ::absl::string_view name, DevtoolAttentionSeverity* PROTOBUF_NONNULL value) {
-  return ::google::protobuf::internal::ParseNamedEnum<DevtoolAttentionSeverity>(DevtoolAttentionSeverity_descriptor(), name,
+inline bool DevtoolStatusPluginState_Parse(
+    ::absl::string_view name, DevtoolStatusPluginState* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<DevtoolStatusPluginState>(DevtoolStatusPluginState_descriptor(), name,
+                                           value);
+}
+enum DevtoolStatusAttentionSeverity : int {
+  DevtoolStatusAttentionSeverity_UNKNOWN = 0,
+  DevtoolStatusAttentionSeverity_INFO = 1,
+  DevtoolStatusAttentionSeverity_WARNING = 2,
+  DevtoolStatusAttentionSeverity_ERROR = 3,
+  DevtoolStatusAttentionSeverity_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  DevtoolStatusAttentionSeverity_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t DevtoolStatusAttentionSeverity_internal_data_[];
+inline constexpr DevtoolStatusAttentionSeverity DevtoolStatusAttentionSeverity_MIN =
+    static_cast<DevtoolStatusAttentionSeverity>(0);
+inline constexpr DevtoolStatusAttentionSeverity DevtoolStatusAttentionSeverity_MAX =
+    static_cast<DevtoolStatusAttentionSeverity>(3);
+inline bool DevtoolStatusAttentionSeverity_IsValid(int value) {
+  return 0 <= value && value <= 3;
+}
+inline constexpr int DevtoolStatusAttentionSeverity_ARRAYSIZE = 3 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DevtoolStatusAttentionSeverity_descriptor();
+template <typename T>
+const ::std::string& DevtoolStatusAttentionSeverity_Name(T value) {
+  static_assert(::std::is_same<T, DevtoolStatusAttentionSeverity>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to DevtoolStatusAttentionSeverity_Name().");
+  return DevtoolStatusAttentionSeverity_Name(static_cast<DevtoolStatusAttentionSeverity>(value));
+}
+template <>
+inline const ::std::string& DevtoolStatusAttentionSeverity_Name(DevtoolStatusAttentionSeverity value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<DevtoolStatusAttentionSeverity_descriptor, 0, 3>(
+      static_cast<int>(value));
+}
+inline bool DevtoolStatusAttentionSeverity_Parse(
+    ::absl::string_view name, DevtoolStatusAttentionSeverity* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<DevtoolStatusAttentionSeverity>(DevtoolStatusAttentionSeverity_descriptor(), name,
                                            value);
 }
 
@@ -466,30 +474,30 @@ class WatchDevtoolStatusRequest final : public ::google::protobuf::internal::Zer
 extern const ::google::protobuf::internal::ClassDataFull WatchDevtoolStatusRequest_class_data_;
 // -------------------------------------------------------------------
 
-class DevtoolPluginRow final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:bldr.devtool.status.DevtoolPluginRow) */ {
+class DevtoolStatusPluginRow final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:bldr.devtool.status.DevtoolStatusPluginRow) */ {
  public:
-  inline DevtoolPluginRow() : DevtoolPluginRow(nullptr) {}
-  ~DevtoolPluginRow() PROTOBUF_FINAL;
+  inline DevtoolStatusPluginRow() : DevtoolStatusPluginRow(nullptr) {}
+  ~DevtoolStatusPluginRow() PROTOBUF_FINAL;
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(DevtoolPluginRow* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+  void operator delete(DevtoolStatusPluginRow* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
     SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(DevtoolPluginRow));
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DevtoolStatusPluginRow));
   }
 #endif
 
   template <typename = void>
-  explicit PROTOBUF_CONSTEXPR DevtoolPluginRow(::google::protobuf::internal::ConstantInitialized);
+  explicit PROTOBUF_CONSTEXPR DevtoolStatusPluginRow(::google::protobuf::internal::ConstantInitialized);
 
-  inline DevtoolPluginRow(const DevtoolPluginRow& from) : DevtoolPluginRow(nullptr, from) {}
-  inline DevtoolPluginRow(DevtoolPluginRow&& from) noexcept
-      : DevtoolPluginRow(nullptr, ::std::move(from)) {}
-  inline DevtoolPluginRow& operator=(const DevtoolPluginRow& from) {
+  inline DevtoolStatusPluginRow(const DevtoolStatusPluginRow& from) : DevtoolStatusPluginRow(nullptr, from) {}
+  inline DevtoolStatusPluginRow(DevtoolStatusPluginRow&& from) noexcept
+      : DevtoolStatusPluginRow(nullptr, ::std::move(from)) {}
+  inline DevtoolStatusPluginRow& operator=(const DevtoolStatusPluginRow& from) {
     CopyFrom(from);
     return *this;
   }
-  inline DevtoolPluginRow& operator=(DevtoolPluginRow&& from) noexcept {
+  inline DevtoolStatusPluginRow& operator=(DevtoolStatusPluginRow&& from) noexcept {
     if (this == &from) return *this;
     if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
       InternalSwap(&from);
@@ -517,13 +525,13 @@ class DevtoolPluginRow final : public ::google::protobuf::Message
   static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
     return default_instance().GetMetadata().reflection;
   }
-  static const DevtoolPluginRow& default_instance() {
-    return *reinterpret_cast<const DevtoolPluginRow*>(
-        &_DevtoolPluginRow_default_instance_);
+  static const DevtoolStatusPluginRow& default_instance() {
+    return *reinterpret_cast<const DevtoolStatusPluginRow*>(
+        &_DevtoolStatusPluginRow_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
-  friend void swap(DevtoolPluginRow& a, DevtoolPluginRow& b) { a.Swap(&b); }
-  inline void Swap(DevtoolPluginRow* PROTOBUF_NONNULL other) {
+  static constexpr int kIndexInFileMessages = 9;
+  friend void swap(DevtoolStatusPluginRow& a, DevtoolStatusPluginRow& b) { a.Swap(&b); }
+  inline void Swap(DevtoolStatusPluginRow* PROTOBUF_NONNULL other) {
     if (other == this) return;
     if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
       InternalSwap(other);
@@ -531,7 +539,7 @@ class DevtoolPluginRow final : public ::google::protobuf::Message
       ::google::protobuf::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(DevtoolPluginRow* PROTOBUF_NONNULL other) {
+  void UnsafeArenaSwap(DevtoolStatusPluginRow* PROTOBUF_NONNULL other) {
     if (other == this) return;
     ABSL_DCHECK(GetArena() == other->GetArena());
     InternalSwap(other);
@@ -539,13 +547,13 @@ class DevtoolPluginRow final : public ::google::protobuf::Message
 
   // implements Message ----------------------------------------------
 
-  DevtoolPluginRow* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<DevtoolPluginRow>(arena);
+  DevtoolStatusPluginRow* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DevtoolStatusPluginRow>(arena);
   }
   using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const DevtoolPluginRow& from);
+  void CopyFrom(const DevtoolStatusPluginRow& from);
   using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const DevtoolPluginRow& from) { DevtoolPluginRow::MergeImpl(*this, from); }
+  void MergeFrom(const DevtoolStatusPluginRow& from) { DevtoolStatusPluginRow::MergeImpl(*this, from); }
 
   private:
   static void MergeImpl(::google::protobuf::MessageLite& to_msg,
@@ -581,17 +589,17 @@ class DevtoolPluginRow final : public ::google::protobuf::Message
   private:
   void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
   static void SharedDtor(MessageLite& self);
-  void InternalSwap(DevtoolPluginRow* PROTOBUF_NONNULL other);
+  void InternalSwap(DevtoolStatusPluginRow* PROTOBUF_NONNULL other);
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "bldr.devtool.status.DevtoolPluginRow"; }
+  static ::absl::string_view FullMessageName() { return "bldr.devtool.status.DevtoolStatusPluginRow"; }
 
-  explicit DevtoolPluginRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  DevtoolPluginRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DevtoolPluginRow& from);
-  DevtoolPluginRow(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DevtoolPluginRow&& from) noexcept
-      : DevtoolPluginRow(arena) {
+  explicit DevtoolStatusPluginRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DevtoolStatusPluginRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DevtoolStatusPluginRow& from);
+  DevtoolStatusPluginRow(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DevtoolStatusPluginRow&& from) noexcept
+      : DevtoolStatusPluginRow(arena) {
     *this = ::std::move(from);
   }
   const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
@@ -706,22 +714,22 @@ class DevtoolPluginRow final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_last_error_at();
 
   public:
-  // .bldr.devtool.status.DevtoolPluginState state = 4;
+  // .bldr.devtool.status.DevtoolStatusPluginState state = 4;
   void clear_state() ;
-  ::bldr::devtool::status::DevtoolPluginState state() const;
-  void set_state(::bldr::devtool::status::DevtoolPluginState value);
+  ::bldr::devtool::status::DevtoolStatusPluginState state() const;
+  void set_state(::bldr::devtool::status::DevtoolStatusPluginState value);
 
   private:
-  ::bldr::devtool::status::DevtoolPluginState _internal_state() const;
-  void _internal_set_state(::bldr::devtool::status::DevtoolPluginState value);
+  ::bldr::devtool::status::DevtoolStatusPluginState _internal_state() const;
+  void _internal_set_state(::bldr::devtool::status::DevtoolStatusPluginState value);
 
   public:
-  // @@protoc_insertion_point(class_scope:bldr.devtool.status.DevtoolPluginRow)
+  // @@protoc_insertion_point(class_scope:bldr.devtool.status.DevtoolStatusPluginRow)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<3, 7,
-                                   0, 93,
+                                   0, 99,
                                    2>
       _table_;
 
@@ -739,7 +747,7 @@ class DevtoolPluginRow final : public ::google::protobuf::Message
     inline explicit Impl_(
         ::google::protobuf::internal::InternalVisibility visibility,
         ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const DevtoolPluginRow& from_msg);
+        const DevtoolStatusPluginRow& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr id_;
@@ -755,33 +763,33 @@ class DevtoolPluginRow final : public ::google::protobuf::Message
   friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto;
 };
 
-extern const ::google::protobuf::internal::ClassDataFull DevtoolPluginRow_class_data_;
+extern const ::google::protobuf::internal::ClassDataFull DevtoolStatusPluginRow_class_data_;
 // -------------------------------------------------------------------
 
-class DevtoolManifestFetchRow final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:bldr.devtool.status.DevtoolManifestFetchRow) */ {
+class DevtoolStatusManifestFetchRow final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:bldr.devtool.status.DevtoolStatusManifestFetchRow) */ {
  public:
-  inline DevtoolManifestFetchRow() : DevtoolManifestFetchRow(nullptr) {}
-  ~DevtoolManifestFetchRow() PROTOBUF_FINAL;
+  inline DevtoolStatusManifestFetchRow() : DevtoolStatusManifestFetchRow(nullptr) {}
+  ~DevtoolStatusManifestFetchRow() PROTOBUF_FINAL;
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(DevtoolManifestFetchRow* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+  void operator delete(DevtoolStatusManifestFetchRow* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
     SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(DevtoolManifestFetchRow));
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DevtoolStatusManifestFetchRow));
   }
 #endif
 
   template <typename = void>
-  explicit PROTOBUF_CONSTEXPR DevtoolManifestFetchRow(::google::protobuf::internal::ConstantInitialized);
+  explicit PROTOBUF_CONSTEXPR DevtoolStatusManifestFetchRow(::google::protobuf::internal::ConstantInitialized);
 
-  inline DevtoolManifestFetchRow(const DevtoolManifestFetchRow& from) : DevtoolManifestFetchRow(nullptr, from) {}
-  inline DevtoolManifestFetchRow(DevtoolManifestFetchRow&& from) noexcept
-      : DevtoolManifestFetchRow(nullptr, ::std::move(from)) {}
-  inline DevtoolManifestFetchRow& operator=(const DevtoolManifestFetchRow& from) {
+  inline DevtoolStatusManifestFetchRow(const DevtoolStatusManifestFetchRow& from) : DevtoolStatusManifestFetchRow(nullptr, from) {}
+  inline DevtoolStatusManifestFetchRow(DevtoolStatusManifestFetchRow&& from) noexcept
+      : DevtoolStatusManifestFetchRow(nullptr, ::std::move(from)) {}
+  inline DevtoolStatusManifestFetchRow& operator=(const DevtoolStatusManifestFetchRow& from) {
     CopyFrom(from);
     return *this;
   }
-  inline DevtoolManifestFetchRow& operator=(DevtoolManifestFetchRow&& from) noexcept {
+  inline DevtoolStatusManifestFetchRow& operator=(DevtoolStatusManifestFetchRow&& from) noexcept {
     if (this == &from) return *this;
     if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
       InternalSwap(&from);
@@ -809,13 +817,13 @@ class DevtoolManifestFetchRow final : public ::google::protobuf::Message
   static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
     return default_instance().GetMetadata().reflection;
   }
-  static const DevtoolManifestFetchRow& default_instance() {
-    return *reinterpret_cast<const DevtoolManifestFetchRow*>(
-        &_DevtoolManifestFetchRow_default_instance_);
+  static const DevtoolStatusManifestFetchRow& default_instance() {
+    return *reinterpret_cast<const DevtoolStatusManifestFetchRow*>(
+        &_DevtoolStatusManifestFetchRow_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
-  friend void swap(DevtoolManifestFetchRow& a, DevtoolManifestFetchRow& b) { a.Swap(&b); }
-  inline void Swap(DevtoolManifestFetchRow* PROTOBUF_NONNULL other) {
+  static constexpr int kIndexInFileMessages = 6;
+  friend void swap(DevtoolStatusManifestFetchRow& a, DevtoolStatusManifestFetchRow& b) { a.Swap(&b); }
+  inline void Swap(DevtoolStatusManifestFetchRow* PROTOBUF_NONNULL other) {
     if (other == this) return;
     if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
       InternalSwap(other);
@@ -823,7 +831,7 @@ class DevtoolManifestFetchRow final : public ::google::protobuf::Message
       ::google::protobuf::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(DevtoolManifestFetchRow* PROTOBUF_NONNULL other) {
+  void UnsafeArenaSwap(DevtoolStatusManifestFetchRow* PROTOBUF_NONNULL other) {
     if (other == this) return;
     ABSL_DCHECK(GetArena() == other->GetArena());
     InternalSwap(other);
@@ -831,13 +839,13 @@ class DevtoolManifestFetchRow final : public ::google::protobuf::Message
 
   // implements Message ----------------------------------------------
 
-  DevtoolManifestFetchRow* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<DevtoolManifestFetchRow>(arena);
+  DevtoolStatusManifestFetchRow* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DevtoolStatusManifestFetchRow>(arena);
   }
   using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const DevtoolManifestFetchRow& from);
+  void CopyFrom(const DevtoolStatusManifestFetchRow& from);
   using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const DevtoolManifestFetchRow& from) { DevtoolManifestFetchRow::MergeImpl(*this, from); }
+  void MergeFrom(const DevtoolStatusManifestFetchRow& from) { DevtoolStatusManifestFetchRow::MergeImpl(*this, from); }
 
   private:
   static void MergeImpl(::google::protobuf::MessageLite& to_msg,
@@ -873,17 +881,17 @@ class DevtoolManifestFetchRow final : public ::google::protobuf::Message
   private:
   void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
   static void SharedDtor(MessageLite& self);
-  void InternalSwap(DevtoolManifestFetchRow* PROTOBUF_NONNULL other);
+  void InternalSwap(DevtoolStatusManifestFetchRow* PROTOBUF_NONNULL other);
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "bldr.devtool.status.DevtoolManifestFetchRow"; }
+  static ::absl::string_view FullMessageName() { return "bldr.devtool.status.DevtoolStatusManifestFetchRow"; }
 
-  explicit DevtoolManifestFetchRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  DevtoolManifestFetchRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DevtoolManifestFetchRow& from);
-  DevtoolManifestFetchRow(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DevtoolManifestFetchRow&& from) noexcept
-      : DevtoolManifestFetchRow(arena) {
+  explicit DevtoolStatusManifestFetchRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DevtoolStatusManifestFetchRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DevtoolStatusManifestFetchRow& from);
+  DevtoolStatusManifestFetchRow(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DevtoolStatusManifestFetchRow&& from) noexcept
+      : DevtoolStatusManifestFetchRow(arena) {
     *this = ::std::move(from);
   }
   const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
@@ -900,19 +908,107 @@ class DevtoolManifestFetchRow final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
+    kPlatformIdsFieldNumber = 3,
+    kBuildTypesFieldNumber = 4,
+    kRemoteIdsFieldNumber = 5,
+    kLocalBuildIdsFieldNumber = 9,
     kIdFieldNumber = 1,
     kManifestIdFieldNumber = 2,
-    kPlatformIdFieldNumber = 3,
-    kBuildTypeFieldNumber = 4,
-    kRemoteIdFieldNumber = 5,
     kReadyRefsFieldNumber = 8,
-    kLocalBuildIdsFieldNumber = 9,
     kSummaryFieldNumber = 11,
     kErrorFieldNumber = 12,
     kStateFieldNumber = 6,
     kReadyRefCountFieldNumber = 7,
     kBlockedOnLocalBuildFieldNumber = 10,
   };
+  // repeated string platform_ids = 3;
+  int platform_ids_size() const;
+  private:
+  int _internal_platform_ids_size() const;
+
+  public:
+  void clear_platform_ids() ;
+  const ::std::string& platform_ids(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_platform_ids(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_platform_ids(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_platform_ids();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_platform_ids(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& platform_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_platform_ids();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_platform_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_platform_ids();
+
+  public:
+  // repeated string build_types = 4;
+  int build_types_size() const;
+  private:
+  int _internal_build_types_size() const;
+
+  public:
+  void clear_build_types() ;
+  const ::std::string& build_types(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_build_types(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_build_types(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_build_types();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_build_types(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& build_types() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_build_types();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_build_types() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_build_types();
+
+  public:
+  // repeated string remote_ids = 5;
+  int remote_ids_size() const;
+  private:
+  int _internal_remote_ids_size() const;
+
+  public:
+  void clear_remote_ids() ;
+  const ::std::string& remote_ids(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_remote_ids(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_remote_ids(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_remote_ids();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_remote_ids(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& remote_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_remote_ids();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_remote_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_remote_ids();
+
+  public:
+  // repeated string local_build_ids = 9;
+  int local_build_ids_size() const;
+  private:
+  int _internal_local_build_ids_size() const;
+
+  public:
+  void clear_local_build_ids() ;
+  const ::std::string& local_build_ids(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_local_build_ids(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_local_build_ids(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_local_build_ids();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_local_build_ids(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& local_build_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_local_build_ids();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_local_build_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_local_build_ids();
+
+  public:
   // string id = 1;
   void clear_id() ;
   const ::std::string& id() const;
@@ -943,51 +1039,6 @@ class DevtoolManifestFetchRow final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_manifest_id();
 
   public:
-  // string platform_id = 3;
-  void clear_platform_id() ;
-  const ::std::string& platform_id() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_platform_id(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_platform_id();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_platform_id();
-  void set_allocated_platform_id(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_platform_id() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_platform_id(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_platform_id();
-
-  public:
-  // string build_type = 4;
-  void clear_build_type() ;
-  const ::std::string& build_type() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_build_type(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_build_type();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_build_type();
-  void set_allocated_build_type(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_build_type() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_build_type(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_build_type();
-
-  public:
-  // string remote_id = 5;
-  void clear_remote_id() ;
-  const ::std::string& remote_id() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_remote_id(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_remote_id();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_remote_id();
-  void set_allocated_remote_id(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_remote_id() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_remote_id(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_remote_id();
-
-  public:
   // string ready_refs = 8;
   void clear_ready_refs() ;
   const ::std::string& ready_refs() const;
@@ -1001,21 +1052,6 @@ class DevtoolManifestFetchRow final : public ::google::protobuf::Message
   const ::std::string& _internal_ready_refs() const;
   PROTOBUF_ALWAYS_INLINE void _internal_set_ready_refs(const ::std::string& value);
   ::std::string* PROTOBUF_NONNULL _internal_mutable_ready_refs();
-
-  public:
-  // string local_build_ids = 9;
-  void clear_local_build_ids() ;
-  const ::std::string& local_build_ids() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_local_build_ids(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_local_build_ids();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_local_build_ids();
-  void set_allocated_local_build_ids(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_local_build_ids() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_local_build_ids(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_local_build_ids();
 
   public:
   // string summary = 11;
@@ -1048,24 +1084,24 @@ class DevtoolManifestFetchRow final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_error();
 
   public:
-  // .bldr.devtool.status.DevtoolManifestState state = 6;
+  // .bldr.devtool.status.DevtoolStatusManifestState state = 6;
   void clear_state() ;
-  ::bldr::devtool::status::DevtoolManifestState state() const;
-  void set_state(::bldr::devtool::status::DevtoolManifestState value);
+  ::bldr::devtool::status::DevtoolStatusManifestState state() const;
+  void set_state(::bldr::devtool::status::DevtoolStatusManifestState value);
 
   private:
-  ::bldr::devtool::status::DevtoolManifestState _internal_state() const;
-  void _internal_set_state(::bldr::devtool::status::DevtoolManifestState value);
+  ::bldr::devtool::status::DevtoolStatusManifestState _internal_state() const;
+  void _internal_set_state(::bldr::devtool::status::DevtoolStatusManifestState value);
 
   public:
-  // int32 ready_ref_count = 7;
+  // uint32 ready_ref_count = 7;
   void clear_ready_ref_count() ;
-  ::int32_t ready_ref_count() const;
-  void set_ready_ref_count(::int32_t value);
+  ::uint32_t ready_ref_count() const;
+  void set_ready_ref_count(::uint32_t value);
 
   private:
-  ::int32_t _internal_ready_ref_count() const;
-  void _internal_set_ready_ref_count(::int32_t value);
+  ::uint32_t _internal_ready_ref_count() const;
+  void _internal_set_ready_ref_count(::uint32_t value);
 
   public:
   // bool blocked_on_local_build = 10;
@@ -1078,12 +1114,12 @@ class DevtoolManifestFetchRow final : public ::google::protobuf::Message
   void _internal_set_blocked_on_local_build(bool value);
 
   public:
-  // @@protoc_insertion_point(class_scope:bldr.devtool.status.DevtoolManifestFetchRow)
+  // @@protoc_insertion_point(class_scope:bldr.devtool.status.DevtoolStatusManifestFetchRow)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<4, 12,
-                                   0, 140,
+                                   0, 149,
                                    2>
       _table_;
 
@@ -1101,20 +1137,20 @@ class DevtoolManifestFetchRow final : public ::google::protobuf::Message
     inline explicit Impl_(
         ::google::protobuf::internal::InternalVisibility visibility,
         ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const DevtoolManifestFetchRow& from_msg);
+        const DevtoolStatusManifestFetchRow& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> platform_ids_;
+    ::google::protobuf::RepeatedPtrField<::std::string> build_types_;
+    ::google::protobuf::RepeatedPtrField<::std::string> remote_ids_;
+    ::google::protobuf::RepeatedPtrField<::std::string> local_build_ids_;
     ::google::protobuf::internal::ArenaStringPtr id_;
     ::google::protobuf::internal::ArenaStringPtr manifest_id_;
-    ::google::protobuf::internal::ArenaStringPtr platform_id_;
-    ::google::protobuf::internal::ArenaStringPtr build_type_;
-    ::google::protobuf::internal::ArenaStringPtr remote_id_;
     ::google::protobuf::internal::ArenaStringPtr ready_refs_;
-    ::google::protobuf::internal::ArenaStringPtr local_build_ids_;
     ::google::protobuf::internal::ArenaStringPtr summary_;
     ::google::protobuf::internal::ArenaStringPtr error_;
     int state_;
-    ::int32_t ready_ref_count_;
+    ::uint32_t ready_ref_count_;
     bool blocked_on_local_build_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -1122,33 +1158,33 @@ class DevtoolManifestFetchRow final : public ::google::protobuf::Message
   friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto;
 };
 
-extern const ::google::protobuf::internal::ClassDataFull DevtoolManifestFetchRow_class_data_;
+extern const ::google::protobuf::internal::ClassDataFull DevtoolStatusManifestFetchRow_class_data_;
 // -------------------------------------------------------------------
 
-class DevtoolManifestBuildRow final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:bldr.devtool.status.DevtoolManifestBuildRow) */ {
+class DevtoolStatusManifestBuildRow final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:bldr.devtool.status.DevtoolStatusManifestBuildRow) */ {
  public:
-  inline DevtoolManifestBuildRow() : DevtoolManifestBuildRow(nullptr) {}
-  ~DevtoolManifestBuildRow() PROTOBUF_FINAL;
+  inline DevtoolStatusManifestBuildRow() : DevtoolStatusManifestBuildRow(nullptr) {}
+  ~DevtoolStatusManifestBuildRow() PROTOBUF_FINAL;
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(DevtoolManifestBuildRow* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+  void operator delete(DevtoolStatusManifestBuildRow* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
     SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(DevtoolManifestBuildRow));
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DevtoolStatusManifestBuildRow));
   }
 #endif
 
   template <typename = void>
-  explicit PROTOBUF_CONSTEXPR DevtoolManifestBuildRow(::google::protobuf::internal::ConstantInitialized);
+  explicit PROTOBUF_CONSTEXPR DevtoolStatusManifestBuildRow(::google::protobuf::internal::ConstantInitialized);
 
-  inline DevtoolManifestBuildRow(const DevtoolManifestBuildRow& from) : DevtoolManifestBuildRow(nullptr, from) {}
-  inline DevtoolManifestBuildRow(DevtoolManifestBuildRow&& from) noexcept
-      : DevtoolManifestBuildRow(nullptr, ::std::move(from)) {}
-  inline DevtoolManifestBuildRow& operator=(const DevtoolManifestBuildRow& from) {
+  inline DevtoolStatusManifestBuildRow(const DevtoolStatusManifestBuildRow& from) : DevtoolStatusManifestBuildRow(nullptr, from) {}
+  inline DevtoolStatusManifestBuildRow(DevtoolStatusManifestBuildRow&& from) noexcept
+      : DevtoolStatusManifestBuildRow(nullptr, ::std::move(from)) {}
+  inline DevtoolStatusManifestBuildRow& operator=(const DevtoolStatusManifestBuildRow& from) {
     CopyFrom(from);
     return *this;
   }
-  inline DevtoolManifestBuildRow& operator=(DevtoolManifestBuildRow&& from) noexcept {
+  inline DevtoolStatusManifestBuildRow& operator=(DevtoolStatusManifestBuildRow&& from) noexcept {
     if (this == &from) return *this;
     if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
       InternalSwap(&from);
@@ -1176,13 +1212,13 @@ class DevtoolManifestBuildRow final : public ::google::protobuf::Message
   static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
     return default_instance().GetMetadata().reflection;
   }
-  static const DevtoolManifestBuildRow& default_instance() {
-    return *reinterpret_cast<const DevtoolManifestBuildRow*>(
-        &_DevtoolManifestBuildRow_default_instance_);
+  static const DevtoolStatusManifestBuildRow& default_instance() {
+    return *reinterpret_cast<const DevtoolStatusManifestBuildRow*>(
+        &_DevtoolStatusManifestBuildRow_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
-  friend void swap(DevtoolManifestBuildRow& a, DevtoolManifestBuildRow& b) { a.Swap(&b); }
-  inline void Swap(DevtoolManifestBuildRow* PROTOBUF_NONNULL other) {
+  static constexpr int kIndexInFileMessages = 7;
+  friend void swap(DevtoolStatusManifestBuildRow& a, DevtoolStatusManifestBuildRow& b) { a.Swap(&b); }
+  inline void Swap(DevtoolStatusManifestBuildRow* PROTOBUF_NONNULL other) {
     if (other == this) return;
     if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
       InternalSwap(other);
@@ -1190,7 +1226,7 @@ class DevtoolManifestBuildRow final : public ::google::protobuf::Message
       ::google::protobuf::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(DevtoolManifestBuildRow* PROTOBUF_NONNULL other) {
+  void UnsafeArenaSwap(DevtoolStatusManifestBuildRow* PROTOBUF_NONNULL other) {
     if (other == this) return;
     ABSL_DCHECK(GetArena() == other->GetArena());
     InternalSwap(other);
@@ -1198,13 +1234,13 @@ class DevtoolManifestBuildRow final : public ::google::protobuf::Message
 
   // implements Message ----------------------------------------------
 
-  DevtoolManifestBuildRow* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<DevtoolManifestBuildRow>(arena);
+  DevtoolStatusManifestBuildRow* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DevtoolStatusManifestBuildRow>(arena);
   }
   using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const DevtoolManifestBuildRow& from);
+  void CopyFrom(const DevtoolStatusManifestBuildRow& from);
   using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const DevtoolManifestBuildRow& from) { DevtoolManifestBuildRow::MergeImpl(*this, from); }
+  void MergeFrom(const DevtoolStatusManifestBuildRow& from) { DevtoolStatusManifestBuildRow::MergeImpl(*this, from); }
 
   private:
   static void MergeImpl(::google::protobuf::MessageLite& to_msg,
@@ -1240,17 +1276,17 @@ class DevtoolManifestBuildRow final : public ::google::protobuf::Message
   private:
   void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
   static void SharedDtor(MessageLite& self);
-  void InternalSwap(DevtoolManifestBuildRow* PROTOBUF_NONNULL other);
+  void InternalSwap(DevtoolStatusManifestBuildRow* PROTOBUF_NONNULL other);
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "bldr.devtool.status.DevtoolManifestBuildRow"; }
+  static ::absl::string_view FullMessageName() { return "bldr.devtool.status.DevtoolStatusManifestBuildRow"; }
 
-  explicit DevtoolManifestBuildRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  DevtoolManifestBuildRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DevtoolManifestBuildRow& from);
-  DevtoolManifestBuildRow(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DevtoolManifestBuildRow&& from) noexcept
-      : DevtoolManifestBuildRow(arena) {
+  explicit DevtoolStatusManifestBuildRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DevtoolStatusManifestBuildRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DevtoolStatusManifestBuildRow& from);
+  DevtoolStatusManifestBuildRow(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DevtoolStatusManifestBuildRow&& from) noexcept
+      : DevtoolStatusManifestBuildRow(arena) {
     *this = ::std::move(from);
   }
   const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
@@ -1267,11 +1303,11 @@ class DevtoolManifestBuildRow final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
+    kBuildTargetIdsFieldNumber = 2,
+    kTargetPlatformIdsFieldNumber = 5,
     kIdFieldNumber = 1,
-    kBuildTargetsFieldNumber = 2,
     kManifestIdFieldNumber = 3,
     kPlatformIdFieldNumber = 4,
-    kTargetPlatformIdsFieldNumber = 5,
     kBuildTypeFieldNumber = 6,
     kRemoteIdFieldNumber = 7,
     kDependencyRebuildReasonFieldNumber = 13,
@@ -1283,6 +1319,50 @@ class DevtoolManifestBuildRow final : public ::google::protobuf::Message
     kHotRebuildFieldNumber = 11,
     kWatchedFileCountFieldNumber = 12,
   };
+  // repeated string build_target_ids = 2;
+  int build_target_ids_size() const;
+  private:
+  int _internal_build_target_ids_size() const;
+
+  public:
+  void clear_build_target_ids() ;
+  const ::std::string& build_target_ids(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_build_target_ids(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_build_target_ids(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_build_target_ids();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_build_target_ids(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& build_target_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_build_target_ids();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_build_target_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_build_target_ids();
+
+  public:
+  // repeated string target_platform_ids = 5;
+  int target_platform_ids_size() const;
+  private:
+  int _internal_target_platform_ids_size() const;
+
+  public:
+  void clear_target_platform_ids() ;
+  const ::std::string& target_platform_ids(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_target_platform_ids(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_target_platform_ids(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_target_platform_ids();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_target_platform_ids(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& target_platform_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_target_platform_ids();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_target_platform_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_target_platform_ids();
+
+  public:
   // string id = 1;
   void clear_id() ;
   const ::std::string& id() const;
@@ -1296,21 +1376,6 @@ class DevtoolManifestBuildRow final : public ::google::protobuf::Message
   const ::std::string& _internal_id() const;
   PROTOBUF_ALWAYS_INLINE void _internal_set_id(const ::std::string& value);
   ::std::string* PROTOBUF_NONNULL _internal_mutable_id();
-
-  public:
-  // string build_targets = 2;
-  void clear_build_targets() ;
-  const ::std::string& build_targets() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_build_targets(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_build_targets();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_build_targets();
-  void set_allocated_build_targets(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_build_targets() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_build_targets(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_build_targets();
 
   public:
   // string manifest_id = 3;
@@ -1341,21 +1406,6 @@ class DevtoolManifestBuildRow final : public ::google::protobuf::Message
   const ::std::string& _internal_platform_id() const;
   PROTOBUF_ALWAYS_INLINE void _internal_set_platform_id(const ::std::string& value);
   ::std::string* PROTOBUF_NONNULL _internal_mutable_platform_id();
-
-  public:
-  // string target_platform_ids = 5;
-  void clear_target_platform_ids() ;
-  const ::std::string& target_platform_ids() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_target_platform_ids(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_target_platform_ids();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_target_platform_ids();
-  void set_allocated_target_platform_ids(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_target_platform_ids() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_target_platform_ids(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_target_platform_ids();
 
   public:
   // string build_type = 6;
@@ -1433,14 +1483,14 @@ class DevtoolManifestBuildRow final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_error();
 
   public:
-  // .bldr.devtool.status.DevtoolManifestState state = 8;
+  // .bldr.devtool.status.DevtoolStatusManifestState state = 8;
   void clear_state() ;
-  ::bldr::devtool::status::DevtoolManifestState state() const;
-  void set_state(::bldr::devtool::status::DevtoolManifestState value);
+  ::bldr::devtool::status::DevtoolStatusManifestState state() const;
+  void set_state(::bldr::devtool::status::DevtoolStatusManifestState value);
 
   private:
-  ::bldr::devtool::status::DevtoolManifestState _internal_state() const;
-  void _internal_set_state(::bldr::devtool::status::DevtoolManifestState value);
+  ::bldr::devtool::status::DevtoolStatusManifestState _internal_state() const;
+  void _internal_set_state(::bldr::devtool::status::DevtoolStatusManifestState value);
 
   public:
   // bool cache_hit = 9;
@@ -1473,22 +1523,22 @@ class DevtoolManifestBuildRow final : public ::google::protobuf::Message
   void _internal_set_hot_rebuild(bool value);
 
   public:
-  // int32 watched_file_count = 12;
+  // uint32 watched_file_count = 12;
   void clear_watched_file_count() ;
-  ::int32_t watched_file_count() const;
-  void set_watched_file_count(::int32_t value);
+  ::uint32_t watched_file_count() const;
+  void set_watched_file_count(::uint32_t value);
 
   private:
-  ::int32_t _internal_watched_file_count() const;
-  void _internal_set_watched_file_count(::int32_t value);
+  ::uint32_t _internal_watched_file_count() const;
+  void _internal_set_watched_file_count(::uint32_t value);
 
   public:
-  // @@protoc_insertion_point(class_scope:bldr.devtool.status.DevtoolManifestBuildRow)
+  // @@protoc_insertion_point(class_scope:bldr.devtool.status.DevtoolStatusManifestBuildRow)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<4, 15,
-                                   0, 172,
+                                   0, 181,
                                    2>
       _table_;
 
@@ -1506,14 +1556,14 @@ class DevtoolManifestBuildRow final : public ::google::protobuf::Message
     inline explicit Impl_(
         ::google::protobuf::internal::InternalVisibility visibility,
         ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const DevtoolManifestBuildRow& from_msg);
+        const DevtoolStatusManifestBuildRow& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> build_target_ids_;
+    ::google::protobuf::RepeatedPtrField<::std::string> target_platform_ids_;
     ::google::protobuf::internal::ArenaStringPtr id_;
-    ::google::protobuf::internal::ArenaStringPtr build_targets_;
     ::google::protobuf::internal::ArenaStringPtr manifest_id_;
     ::google::protobuf::internal::ArenaStringPtr platform_id_;
-    ::google::protobuf::internal::ArenaStringPtr target_platform_ids_;
     ::google::protobuf::internal::ArenaStringPtr build_type_;
     ::google::protobuf::internal::ArenaStringPtr remote_id_;
     ::google::protobuf::internal::ArenaStringPtr dependency_rebuild_reason_;
@@ -1523,40 +1573,40 @@ class DevtoolManifestBuildRow final : public ::google::protobuf::Message
     bool cache_hit_;
     bool full_rebuild_;
     bool hot_rebuild_;
-    ::int32_t watched_file_count_;
+    ::uint32_t watched_file_count_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
   friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto;
 };
 
-extern const ::google::protobuf::internal::ClassDataFull DevtoolManifestBuildRow_class_data_;
+extern const ::google::protobuf::internal::ClassDataFull DevtoolStatusManifestBuildRow_class_data_;
 // -------------------------------------------------------------------
 
-class DevtoolControllerRow final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:bldr.devtool.status.DevtoolControllerRow) */ {
+class DevtoolStatusControllerRow final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:bldr.devtool.status.DevtoolStatusControllerRow) */ {
  public:
-  inline DevtoolControllerRow() : DevtoolControllerRow(nullptr) {}
-  ~DevtoolControllerRow() PROTOBUF_FINAL;
+  inline DevtoolStatusControllerRow() : DevtoolStatusControllerRow(nullptr) {}
+  ~DevtoolStatusControllerRow() PROTOBUF_FINAL;
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(DevtoolControllerRow* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+  void operator delete(DevtoolStatusControllerRow* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
     SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(DevtoolControllerRow));
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DevtoolStatusControllerRow));
   }
 #endif
 
   template <typename = void>
-  explicit PROTOBUF_CONSTEXPR DevtoolControllerRow(::google::protobuf::internal::ConstantInitialized);
+  explicit PROTOBUF_CONSTEXPR DevtoolStatusControllerRow(::google::protobuf::internal::ConstantInitialized);
 
-  inline DevtoolControllerRow(const DevtoolControllerRow& from) : DevtoolControllerRow(nullptr, from) {}
-  inline DevtoolControllerRow(DevtoolControllerRow&& from) noexcept
-      : DevtoolControllerRow(nullptr, ::std::move(from)) {}
-  inline DevtoolControllerRow& operator=(const DevtoolControllerRow& from) {
+  inline DevtoolStatusControllerRow(const DevtoolStatusControllerRow& from) : DevtoolStatusControllerRow(nullptr, from) {}
+  inline DevtoolStatusControllerRow(DevtoolStatusControllerRow&& from) noexcept
+      : DevtoolStatusControllerRow(nullptr, ::std::move(from)) {}
+  inline DevtoolStatusControllerRow& operator=(const DevtoolStatusControllerRow& from) {
     CopyFrom(from);
     return *this;
   }
-  inline DevtoolControllerRow& operator=(DevtoolControllerRow&& from) noexcept {
+  inline DevtoolStatusControllerRow& operator=(DevtoolStatusControllerRow&& from) noexcept {
     if (this == &from) return *this;
     if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
       InternalSwap(&from);
@@ -1584,13 +1634,13 @@ class DevtoolControllerRow final : public ::google::protobuf::Message
   static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
     return default_instance().GetMetadata().reflection;
   }
-  static const DevtoolControllerRow& default_instance() {
-    return *reinterpret_cast<const DevtoolControllerRow*>(
-        &_DevtoolControllerRow_default_instance_);
+  static const DevtoolStatusControllerRow& default_instance() {
+    return *reinterpret_cast<const DevtoolStatusControllerRow*>(
+        &_DevtoolStatusControllerRow_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 7;
-  friend void swap(DevtoolControllerRow& a, DevtoolControllerRow& b) { a.Swap(&b); }
-  inline void Swap(DevtoolControllerRow* PROTOBUF_NONNULL other) {
+  static constexpr int kIndexInFileMessages = 8;
+  friend void swap(DevtoolStatusControllerRow& a, DevtoolStatusControllerRow& b) { a.Swap(&b); }
+  inline void Swap(DevtoolStatusControllerRow* PROTOBUF_NONNULL other) {
     if (other == this) return;
     if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
       InternalSwap(other);
@@ -1598,7 +1648,7 @@ class DevtoolControllerRow final : public ::google::protobuf::Message
       ::google::protobuf::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(DevtoolControllerRow* PROTOBUF_NONNULL other) {
+  void UnsafeArenaSwap(DevtoolStatusControllerRow* PROTOBUF_NONNULL other) {
     if (other == this) return;
     ABSL_DCHECK(GetArena() == other->GetArena());
     InternalSwap(other);
@@ -1606,13 +1656,13 @@ class DevtoolControllerRow final : public ::google::protobuf::Message
 
   // implements Message ----------------------------------------------
 
-  DevtoolControllerRow* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<DevtoolControllerRow>(arena);
+  DevtoolStatusControllerRow* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DevtoolStatusControllerRow>(arena);
   }
   using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const DevtoolControllerRow& from);
+  void CopyFrom(const DevtoolStatusControllerRow& from);
   using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const DevtoolControllerRow& from) { DevtoolControllerRow::MergeImpl(*this, from); }
+  void MergeFrom(const DevtoolStatusControllerRow& from) { DevtoolStatusControllerRow::MergeImpl(*this, from); }
 
   private:
   static void MergeImpl(::google::protobuf::MessageLite& to_msg,
@@ -1648,17 +1698,17 @@ class DevtoolControllerRow final : public ::google::protobuf::Message
   private:
   void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
   static void SharedDtor(MessageLite& self);
-  void InternalSwap(DevtoolControllerRow* PROTOBUF_NONNULL other);
+  void InternalSwap(DevtoolStatusControllerRow* PROTOBUF_NONNULL other);
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "bldr.devtool.status.DevtoolControllerRow"; }
+  static ::absl::string_view FullMessageName() { return "bldr.devtool.status.DevtoolStatusControllerRow"; }
 
-  explicit DevtoolControllerRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  DevtoolControllerRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DevtoolControllerRow& from);
-  DevtoolControllerRow(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DevtoolControllerRow&& from) noexcept
-      : DevtoolControllerRow(arena) {
+  explicit DevtoolStatusControllerRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DevtoolStatusControllerRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DevtoolStatusControllerRow& from);
+  DevtoolStatusControllerRow(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DevtoolStatusControllerRow&& from) noexcept
+      : DevtoolStatusControllerRow(arena) {
     *this = ::std::move(from);
   }
   const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
@@ -1757,22 +1807,22 @@ class DevtoolControllerRow final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_error();
 
   public:
-  // .bldr.devtool.status.DevtoolControllerState state = 4;
+  // .bldr.devtool.status.DevtoolStatusControllerState state = 4;
   void clear_state() ;
-  ::bldr::devtool::status::DevtoolControllerState state() const;
-  void set_state(::bldr::devtool::status::DevtoolControllerState value);
+  ::bldr::devtool::status::DevtoolStatusControllerState state() const;
+  void set_state(::bldr::devtool::status::DevtoolStatusControllerState value);
 
   private:
-  ::bldr::devtool::status::DevtoolControllerState _internal_state() const;
-  void _internal_set_state(::bldr::devtool::status::DevtoolControllerState value);
+  ::bldr::devtool::status::DevtoolStatusControllerState _internal_state() const;
+  void _internal_set_state(::bldr::devtool::status::DevtoolStatusControllerState value);
 
   public:
-  // @@protoc_insertion_point(class_scope:bldr.devtool.status.DevtoolControllerRow)
+  // @@protoc_insertion_point(class_scope:bldr.devtool.status.DevtoolStatusControllerRow)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<3, 6,
-                                   0, 80,
+                                   0, 86,
                                    2>
       _table_;
 
@@ -1790,7 +1840,7 @@ class DevtoolControllerRow final : public ::google::protobuf::Message
     inline explicit Impl_(
         ::google::protobuf::internal::InternalVisibility visibility,
         ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const DevtoolControllerRow& from_msg);
+        const DevtoolStatusControllerRow& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr id_;
@@ -1805,33 +1855,33 @@ class DevtoolControllerRow final : public ::google::protobuf::Message
   friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto;
 };
 
-extern const ::google::protobuf::internal::ClassDataFull DevtoolControllerRow_class_data_;
+extern const ::google::protobuf::internal::ClassDataFull DevtoolStatusControllerRow_class_data_;
 // -------------------------------------------------------------------
 
-class DevtoolCommandStatus final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:bldr.devtool.status.DevtoolCommandStatus) */ {
+class DevtoolStatusCommand final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:bldr.devtool.status.DevtoolStatusCommand) */ {
  public:
-  inline DevtoolCommandStatus() : DevtoolCommandStatus(nullptr) {}
-  ~DevtoolCommandStatus() PROTOBUF_FINAL;
+  inline DevtoolStatusCommand() : DevtoolStatusCommand(nullptr) {}
+  ~DevtoolStatusCommand() PROTOBUF_FINAL;
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(DevtoolCommandStatus* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+  void operator delete(DevtoolStatusCommand* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
     SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(DevtoolCommandStatus));
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DevtoolStatusCommand));
   }
 #endif
 
   template <typename = void>
-  explicit PROTOBUF_CONSTEXPR DevtoolCommandStatus(::google::protobuf::internal::ConstantInitialized);
+  explicit PROTOBUF_CONSTEXPR DevtoolStatusCommand(::google::protobuf::internal::ConstantInitialized);
 
-  inline DevtoolCommandStatus(const DevtoolCommandStatus& from) : DevtoolCommandStatus(nullptr, from) {}
-  inline DevtoolCommandStatus(DevtoolCommandStatus&& from) noexcept
-      : DevtoolCommandStatus(nullptr, ::std::move(from)) {}
-  inline DevtoolCommandStatus& operator=(const DevtoolCommandStatus& from) {
+  inline DevtoolStatusCommand(const DevtoolStatusCommand& from) : DevtoolStatusCommand(nullptr, from) {}
+  inline DevtoolStatusCommand(DevtoolStatusCommand&& from) noexcept
+      : DevtoolStatusCommand(nullptr, ::std::move(from)) {}
+  inline DevtoolStatusCommand& operator=(const DevtoolStatusCommand& from) {
     CopyFrom(from);
     return *this;
   }
-  inline DevtoolCommandStatus& operator=(DevtoolCommandStatus&& from) noexcept {
+  inline DevtoolStatusCommand& operator=(DevtoolStatusCommand&& from) noexcept {
     if (this == &from) return *this;
     if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
       InternalSwap(&from);
@@ -1859,13 +1909,13 @@ class DevtoolCommandStatus final : public ::google::protobuf::Message
   static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
     return default_instance().GetMetadata().reflection;
   }
-  static const DevtoolCommandStatus& default_instance() {
-    return *reinterpret_cast<const DevtoolCommandStatus*>(
-        &_DevtoolCommandStatus_default_instance_);
+  static const DevtoolStatusCommand& default_instance() {
+    return *reinterpret_cast<const DevtoolStatusCommand*>(
+        &_DevtoolStatusCommand_default_instance_);
   }
   static constexpr int kIndexInFileMessages = 3;
-  friend void swap(DevtoolCommandStatus& a, DevtoolCommandStatus& b) { a.Swap(&b); }
-  inline void Swap(DevtoolCommandStatus* PROTOBUF_NONNULL other) {
+  friend void swap(DevtoolStatusCommand& a, DevtoolStatusCommand& b) { a.Swap(&b); }
+  inline void Swap(DevtoolStatusCommand* PROTOBUF_NONNULL other) {
     if (other == this) return;
     if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
       InternalSwap(other);
@@ -1873,7 +1923,7 @@ class DevtoolCommandStatus final : public ::google::protobuf::Message
       ::google::protobuf::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(DevtoolCommandStatus* PROTOBUF_NONNULL other) {
+  void UnsafeArenaSwap(DevtoolStatusCommand* PROTOBUF_NONNULL other) {
     if (other == this) return;
     ABSL_DCHECK(GetArena() == other->GetArena());
     InternalSwap(other);
@@ -1881,13 +1931,13 @@ class DevtoolCommandStatus final : public ::google::protobuf::Message
 
   // implements Message ----------------------------------------------
 
-  DevtoolCommandStatus* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<DevtoolCommandStatus>(arena);
+  DevtoolStatusCommand* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DevtoolStatusCommand>(arena);
   }
   using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const DevtoolCommandStatus& from);
+  void CopyFrom(const DevtoolStatusCommand& from);
   using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const DevtoolCommandStatus& from) { DevtoolCommandStatus::MergeImpl(*this, from); }
+  void MergeFrom(const DevtoolStatusCommand& from) { DevtoolStatusCommand::MergeImpl(*this, from); }
 
   private:
   static void MergeImpl(::google::protobuf::MessageLite& to_msg,
@@ -1923,17 +1973,17 @@ class DevtoolCommandStatus final : public ::google::protobuf::Message
   private:
   void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
   static void SharedDtor(MessageLite& self);
-  void InternalSwap(DevtoolCommandStatus* PROTOBUF_NONNULL other);
+  void InternalSwap(DevtoolStatusCommand* PROTOBUF_NONNULL other);
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "bldr.devtool.status.DevtoolCommandStatus"; }
+  static ::absl::string_view FullMessageName() { return "bldr.devtool.status.DevtoolStatusCommand"; }
 
-  explicit DevtoolCommandStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  DevtoolCommandStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DevtoolCommandStatus& from);
-  DevtoolCommandStatus(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DevtoolCommandStatus&& from) noexcept
-      : DevtoolCommandStatus(arena) {
+  explicit DevtoolStatusCommand(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DevtoolStatusCommand(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DevtoolStatusCommand& from);
+  DevtoolStatusCommand(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DevtoolStatusCommand&& from) noexcept
+      : DevtoolStatusCommand(arena) {
     *this = ::std::move(from);
   }
   const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
@@ -2016,17 +2066,17 @@ class DevtoolCommandStatus final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_log_file();
 
   public:
-  // .bldr.devtool.status.DevtoolCommandState state = 2;
+  // .bldr.devtool.status.DevtoolStatusCommandState state = 2;
   void clear_state() ;
-  ::bldr::devtool::status::DevtoolCommandState state() const;
-  void set_state(::bldr::devtool::status::DevtoolCommandState value);
+  ::bldr::devtool::status::DevtoolStatusCommandState state() const;
+  void set_state(::bldr::devtool::status::DevtoolStatusCommandState value);
 
   private:
-  ::bldr::devtool::status::DevtoolCommandState _internal_state() const;
-  void _internal_set_state(::bldr::devtool::status::DevtoolCommandState value);
+  ::bldr::devtool::status::DevtoolStatusCommandState _internal_state() const;
+  void _internal_set_state(::bldr::devtool::status::DevtoolStatusCommandState value);
 
   public:
-  // @@protoc_insertion_point(class_scope:bldr.devtool.status.DevtoolCommandStatus)
+  // @@protoc_insertion_point(class_scope:bldr.devtool.status.DevtoolStatusCommand)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
@@ -2049,7 +2099,7 @@ class DevtoolCommandStatus final : public ::google::protobuf::Message
     inline explicit Impl_(
         ::google::protobuf::internal::InternalVisibility visibility,
         ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const DevtoolCommandStatus& from_msg);
+        const DevtoolStatusCommand& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr name_;
@@ -2063,33 +2113,33 @@ class DevtoolCommandStatus final : public ::google::protobuf::Message
   friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto;
 };
 
-extern const ::google::protobuf::internal::ClassDataFull DevtoolCommandStatus_class_data_;
+extern const ::google::protobuf::internal::ClassDataFull DevtoolStatusCommand_class_data_;
 // -------------------------------------------------------------------
 
-class DevtoolAttentionRow final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:bldr.devtool.status.DevtoolAttentionRow) */ {
+class DevtoolStatusBuildTarget final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:bldr.devtool.status.DevtoolStatusBuildTarget) */ {
  public:
-  inline DevtoolAttentionRow() : DevtoolAttentionRow(nullptr) {}
-  ~DevtoolAttentionRow() PROTOBUF_FINAL;
+  inline DevtoolStatusBuildTarget() : DevtoolStatusBuildTarget(nullptr) {}
+  ~DevtoolStatusBuildTarget() PROTOBUF_FINAL;
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(DevtoolAttentionRow* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+  void operator delete(DevtoolStatusBuildTarget* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
     SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(DevtoolAttentionRow));
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DevtoolStatusBuildTarget));
   }
 #endif
 
   template <typename = void>
-  explicit PROTOBUF_CONSTEXPR DevtoolAttentionRow(::google::protobuf::internal::ConstantInitialized);
+  explicit PROTOBUF_CONSTEXPR DevtoolStatusBuildTarget(::google::protobuf::internal::ConstantInitialized);
 
-  inline DevtoolAttentionRow(const DevtoolAttentionRow& from) : DevtoolAttentionRow(nullptr, from) {}
-  inline DevtoolAttentionRow(DevtoolAttentionRow&& from) noexcept
-      : DevtoolAttentionRow(nullptr, ::std::move(from)) {}
-  inline DevtoolAttentionRow& operator=(const DevtoolAttentionRow& from) {
+  inline DevtoolStatusBuildTarget(const DevtoolStatusBuildTarget& from) : DevtoolStatusBuildTarget(nullptr, from) {}
+  inline DevtoolStatusBuildTarget(DevtoolStatusBuildTarget&& from) noexcept
+      : DevtoolStatusBuildTarget(nullptr, ::std::move(from)) {}
+  inline DevtoolStatusBuildTarget& operator=(const DevtoolStatusBuildTarget& from) {
     CopyFrom(from);
     return *this;
   }
-  inline DevtoolAttentionRow& operator=(DevtoolAttentionRow&& from) noexcept {
+  inline DevtoolStatusBuildTarget& operator=(DevtoolStatusBuildTarget&& from) noexcept {
     if (this == &from) return *this;
     if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
       InternalSwap(&from);
@@ -2117,13 +2167,13 @@ class DevtoolAttentionRow final : public ::google::protobuf::Message
   static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
     return default_instance().GetMetadata().reflection;
   }
-  static const DevtoolAttentionRow& default_instance() {
-    return *reinterpret_cast<const DevtoolAttentionRow*>(
-        &_DevtoolAttentionRow_default_instance_);
+  static const DevtoolStatusBuildTarget& default_instance() {
+    return *reinterpret_cast<const DevtoolStatusBuildTarget*>(
+        &_DevtoolStatusBuildTarget_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
-  friend void swap(DevtoolAttentionRow& a, DevtoolAttentionRow& b) { a.Swap(&b); }
-  inline void Swap(DevtoolAttentionRow* PROTOBUF_NONNULL other) {
+  static constexpr int kIndexInFileMessages = 5;
+  friend void swap(DevtoolStatusBuildTarget& a, DevtoolStatusBuildTarget& b) { a.Swap(&b); }
+  inline void Swap(DevtoolStatusBuildTarget* PROTOBUF_NONNULL other) {
     if (other == this) return;
     if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
       InternalSwap(other);
@@ -2131,7 +2181,7 @@ class DevtoolAttentionRow final : public ::google::protobuf::Message
       ::google::protobuf::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(DevtoolAttentionRow* PROTOBUF_NONNULL other) {
+  void UnsafeArenaSwap(DevtoolStatusBuildTarget* PROTOBUF_NONNULL other) {
     if (other == this) return;
     ABSL_DCHECK(GetArena() == other->GetArena());
     InternalSwap(other);
@@ -2139,13 +2189,13 @@ class DevtoolAttentionRow final : public ::google::protobuf::Message
 
   // implements Message ----------------------------------------------
 
-  DevtoolAttentionRow* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<DevtoolAttentionRow>(arena);
+  DevtoolStatusBuildTarget* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DevtoolStatusBuildTarget>(arena);
   }
   using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const DevtoolAttentionRow& from);
+  void CopyFrom(const DevtoolStatusBuildTarget& from);
   using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const DevtoolAttentionRow& from) { DevtoolAttentionRow::MergeImpl(*this, from); }
+  void MergeFrom(const DevtoolStatusBuildTarget& from) { DevtoolStatusBuildTarget::MergeImpl(*this, from); }
 
   private:
   static void MergeImpl(::google::protobuf::MessageLite& to_msg,
@@ -2181,17 +2231,349 @@ class DevtoolAttentionRow final : public ::google::protobuf::Message
   private:
   void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
   static void SharedDtor(MessageLite& self);
-  void InternalSwap(DevtoolAttentionRow* PROTOBUF_NONNULL other);
+  void InternalSwap(DevtoolStatusBuildTarget* PROTOBUF_NONNULL other);
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "bldr.devtool.status.DevtoolAttentionRow"; }
+  static ::absl::string_view FullMessageName() { return "bldr.devtool.status.DevtoolStatusBuildTarget"; }
 
-  explicit DevtoolAttentionRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  DevtoolAttentionRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DevtoolAttentionRow& from);
-  DevtoolAttentionRow(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DevtoolAttentionRow&& from) noexcept
-      : DevtoolAttentionRow(arena) {
+  explicit DevtoolStatusBuildTarget(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DevtoolStatusBuildTarget(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DevtoolStatusBuildTarget& from);
+  DevtoolStatusBuildTarget(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DevtoolStatusBuildTarget&& from) noexcept
+      : DevtoolStatusBuildTarget(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kManifestIdsFieldNumber = 2,
+    kConfiguredTargetIdsFieldNumber = 3,
+    kExplicitPlatformIdsFieldNumber = 4,
+    kResolvedPlatformIdsFieldNumber = 5,
+    kBuildTypesFieldNumber = 6,
+    kIdFieldNumber = 1,
+    kErrorFieldNumber = 7,
+  };
+  // repeated string manifest_ids = 2;
+  int manifest_ids_size() const;
+  private:
+  int _internal_manifest_ids_size() const;
+
+  public:
+  void clear_manifest_ids() ;
+  const ::std::string& manifest_ids(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_manifest_ids(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_manifest_ids(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_manifest_ids();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_manifest_ids(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& manifest_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_manifest_ids();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_manifest_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_manifest_ids();
+
+  public:
+  // repeated string configured_target_ids = 3;
+  int configured_target_ids_size() const;
+  private:
+  int _internal_configured_target_ids_size() const;
+
+  public:
+  void clear_configured_target_ids() ;
+  const ::std::string& configured_target_ids(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_configured_target_ids(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_configured_target_ids(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_configured_target_ids();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_configured_target_ids(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& configured_target_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_configured_target_ids();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_configured_target_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_configured_target_ids();
+
+  public:
+  // repeated string explicit_platform_ids = 4;
+  int explicit_platform_ids_size() const;
+  private:
+  int _internal_explicit_platform_ids_size() const;
+
+  public:
+  void clear_explicit_platform_ids() ;
+  const ::std::string& explicit_platform_ids(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_explicit_platform_ids(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_explicit_platform_ids(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_explicit_platform_ids();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_explicit_platform_ids(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& explicit_platform_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_explicit_platform_ids();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_explicit_platform_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_explicit_platform_ids();
+
+  public:
+  // repeated string resolved_platform_ids = 5;
+  int resolved_platform_ids_size() const;
+  private:
+  int _internal_resolved_platform_ids_size() const;
+
+  public:
+  void clear_resolved_platform_ids() ;
+  const ::std::string& resolved_platform_ids(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_resolved_platform_ids(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_resolved_platform_ids(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_resolved_platform_ids();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_resolved_platform_ids(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& resolved_platform_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_resolved_platform_ids();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_resolved_platform_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_resolved_platform_ids();
+
+  public:
+  // repeated string build_types = 6;
+  int build_types_size() const;
+  private:
+  int _internal_build_types_size() const;
+
+  public:
+  void clear_build_types() ;
+  const ::std::string& build_types(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_build_types(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_build_types(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_build_types();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_build_types(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& build_types() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_build_types();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_build_types() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_build_types();
+
+  public:
+  // string id = 1;
+  void clear_id() ;
+  const ::std::string& id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_id();
+  void set_allocated_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_id();
+
+  public:
+  // string error = 7;
+  void clear_error() ;
+  const ::std::string& error() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_error(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_error();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_error();
+  void set_allocated_error(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_error() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_error(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_error();
+
+  public:
+  // @@protoc_insertion_point(class_scope:bldr.devtool.status.DevtoolStatusBuildTarget)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   0, 146,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const DevtoolStatusBuildTarget& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> manifest_ids_;
+    ::google::protobuf::RepeatedPtrField<::std::string> configured_target_ids_;
+    ::google::protobuf::RepeatedPtrField<::std::string> explicit_platform_ids_;
+    ::google::protobuf::RepeatedPtrField<::std::string> resolved_platform_ids_;
+    ::google::protobuf::RepeatedPtrField<::std::string> build_types_;
+    ::google::protobuf::internal::ArenaStringPtr id_;
+    ::google::protobuf::internal::ArenaStringPtr error_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull DevtoolStatusBuildTarget_class_data_;
+// -------------------------------------------------------------------
+
+class DevtoolStatusAttentionRow final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:bldr.devtool.status.DevtoolStatusAttentionRow) */ {
+ public:
+  inline DevtoolStatusAttentionRow() : DevtoolStatusAttentionRow(nullptr) {}
+  ~DevtoolStatusAttentionRow() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(DevtoolStatusAttentionRow* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DevtoolStatusAttentionRow));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR DevtoolStatusAttentionRow(::google::protobuf::internal::ConstantInitialized);
+
+  inline DevtoolStatusAttentionRow(const DevtoolStatusAttentionRow& from) : DevtoolStatusAttentionRow(nullptr, from) {}
+  inline DevtoolStatusAttentionRow(DevtoolStatusAttentionRow&& from) noexcept
+      : DevtoolStatusAttentionRow(nullptr, ::std::move(from)) {}
+  inline DevtoolStatusAttentionRow& operator=(const DevtoolStatusAttentionRow& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DevtoolStatusAttentionRow& operator=(DevtoolStatusAttentionRow&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DevtoolStatusAttentionRow& default_instance() {
+    return *reinterpret_cast<const DevtoolStatusAttentionRow*>(
+        &_DevtoolStatusAttentionRow_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 10;
+  friend void swap(DevtoolStatusAttentionRow& a, DevtoolStatusAttentionRow& b) { a.Swap(&b); }
+  inline void Swap(DevtoolStatusAttentionRow* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DevtoolStatusAttentionRow* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DevtoolStatusAttentionRow* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DevtoolStatusAttentionRow>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const DevtoolStatusAttentionRow& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const DevtoolStatusAttentionRow& from) { DevtoolStatusAttentionRow::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(DevtoolStatusAttentionRow* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "bldr.devtool.status.DevtoolStatusAttentionRow"; }
+
+  explicit DevtoolStatusAttentionRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DevtoolStatusAttentionRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DevtoolStatusAttentionRow& from);
+  DevtoolStatusAttentionRow(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DevtoolStatusAttentionRow&& from) noexcept
+      : DevtoolStatusAttentionRow(arena) {
     *this = ::std::move(from);
   }
   const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
@@ -2274,22 +2656,22 @@ class DevtoolAttentionRow final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_detail();
 
   public:
-  // .bldr.devtool.status.DevtoolAttentionSeverity severity = 5;
+  // .bldr.devtool.status.DevtoolStatusAttentionSeverity severity = 5;
   void clear_severity() ;
-  ::bldr::devtool::status::DevtoolAttentionSeverity severity() const;
-  void set_severity(::bldr::devtool::status::DevtoolAttentionSeverity value);
+  ::bldr::devtool::status::DevtoolStatusAttentionSeverity severity() const;
+  void set_severity(::bldr::devtool::status::DevtoolStatusAttentionSeverity value);
 
   private:
-  ::bldr::devtool::status::DevtoolAttentionSeverity _internal_severity() const;
-  void _internal_set_severity(::bldr::devtool::status::DevtoolAttentionSeverity value);
+  ::bldr::devtool::status::DevtoolStatusAttentionSeverity _internal_severity() const;
+  void _internal_set_severity(::bldr::devtool::status::DevtoolStatusAttentionSeverity value);
 
   public:
-  // @@protoc_insertion_point(class_scope:bldr.devtool.status.DevtoolAttentionRow)
+  // @@protoc_insertion_point(class_scope:bldr.devtool.status.DevtoolStatusAttentionRow)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<3, 5,
-                                   0, 69,
+                                   0, 75,
                                    2>
       _table_;
 
@@ -2307,7 +2689,7 @@ class DevtoolAttentionRow final : public ::google::protobuf::Message
     inline explicit Impl_(
         ::google::protobuf::internal::InternalVisibility visibility,
         ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const DevtoolAttentionRow& from_msg);
+        const DevtoolStatusAttentionRow& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr id_;
@@ -2321,7 +2703,286 @@ class DevtoolAttentionRow final : public ::google::protobuf::Message
   friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto;
 };
 
-extern const ::google::protobuf::internal::ClassDataFull DevtoolAttentionRow_class_data_;
+extern const ::google::protobuf::internal::ClassDataFull DevtoolStatusAttentionRow_class_data_;
+// -------------------------------------------------------------------
+
+class DevtoolStatusProject final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:bldr.devtool.status.DevtoolStatusProject) */ {
+ public:
+  inline DevtoolStatusProject() : DevtoolStatusProject(nullptr) {}
+  ~DevtoolStatusProject() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(DevtoolStatusProject* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DevtoolStatusProject));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR DevtoolStatusProject(::google::protobuf::internal::ConstantInitialized);
+
+  inline DevtoolStatusProject(const DevtoolStatusProject& from) : DevtoolStatusProject(nullptr, from) {}
+  inline DevtoolStatusProject(DevtoolStatusProject&& from) noexcept
+      : DevtoolStatusProject(nullptr, ::std::move(from)) {}
+  inline DevtoolStatusProject& operator=(const DevtoolStatusProject& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DevtoolStatusProject& operator=(DevtoolStatusProject&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DevtoolStatusProject& default_instance() {
+    return *reinterpret_cast<const DevtoolStatusProject*>(
+        &_DevtoolStatusProject_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 4;
+  friend void swap(DevtoolStatusProject& a, DevtoolStatusProject& b) { a.Swap(&b); }
+  inline void Swap(DevtoolStatusProject* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DevtoolStatusProject* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DevtoolStatusProject* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DevtoolStatusProject>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const DevtoolStatusProject& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const DevtoolStatusProject& from) { DevtoolStatusProject::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(DevtoolStatusProject* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "bldr.devtool.status.DevtoolStatusProject"; }
+
+  explicit DevtoolStatusProject(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DevtoolStatusProject(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DevtoolStatusProject& from);
+  DevtoolStatusProject(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DevtoolStatusProject&& from) noexcept
+      : DevtoolStatusProject(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kStartupPluginsFieldNumber = 2,
+    kManifestIdsFieldNumber = 4,
+    kBuildTargetsFieldNumber = 5,
+    kProjectIdFieldNumber = 1,
+    kWebStartupPathFieldNumber = 3,
+  };
+  // repeated string startup_plugins = 2;
+  int startup_plugins_size() const;
+  private:
+  int _internal_startup_plugins_size() const;
+
+  public:
+  void clear_startup_plugins() ;
+  const ::std::string& startup_plugins(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_startup_plugins(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_startup_plugins(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_startup_plugins();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_startup_plugins(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& startup_plugins() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_startup_plugins();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_startup_plugins() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_startup_plugins();
+
+  public:
+  // repeated string manifest_ids = 4;
+  int manifest_ids_size() const;
+  private:
+  int _internal_manifest_ids_size() const;
+
+  public:
+  void clear_manifest_ids() ;
+  const ::std::string& manifest_ids(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_manifest_ids(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_manifest_ids(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_manifest_ids();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_manifest_ids(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& manifest_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_manifest_ids();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_manifest_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_manifest_ids();
+
+  public:
+  // repeated .bldr.devtool.status.DevtoolStatusBuildTarget build_targets = 5;
+  int build_targets_size() const;
+  private:
+  int _internal_build_targets_size() const;
+
+  public:
+  void clear_build_targets() ;
+  ::bldr::devtool::status::DevtoolStatusBuildTarget* PROTOBUF_NONNULL mutable_build_targets(int index);
+  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusBuildTarget>* PROTOBUF_NONNULL mutable_build_targets();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusBuildTarget>& _internal_build_targets() const;
+  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusBuildTarget>* PROTOBUF_NONNULL _internal_mutable_build_targets();
+  public:
+  const ::bldr::devtool::status::DevtoolStatusBuildTarget& build_targets(int index) const;
+  ::bldr::devtool::status::DevtoolStatusBuildTarget* PROTOBUF_NONNULL add_build_targets();
+  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusBuildTarget>& build_targets() const;
+  // string project_id = 1;
+  void clear_project_id() ;
+  const ::std::string& project_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_project_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_project_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_project_id();
+  void set_allocated_project_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_project_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_project_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_project_id();
+
+  public:
+  // string web_startup_path = 3;
+  void clear_web_startup_path() ;
+  const ::std::string& web_startup_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_web_startup_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_web_startup_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_web_startup_path();
+  void set_allocated_web_startup_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_web_startup_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_web_startup_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_web_startup_path();
+
+  public:
+  // @@protoc_insertion_point(class_scope:bldr.devtool.status.DevtoolStatusProject)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   1, 102,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const DevtoolStatusProject& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> startup_plugins_;
+    ::google::protobuf::RepeatedPtrField<::std::string> manifest_ids_;
+    ::google::protobuf::RepeatedPtrField< ::bldr::devtool::status::DevtoolStatusBuildTarget > build_targets_;
+    ::google::protobuf::internal::ArenaStringPtr project_id_;
+    ::google::protobuf::internal::ArenaStringPtr web_startup_path_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull DevtoolStatusProject_class_data_;
 // -------------------------------------------------------------------
 
 class DevtoolStatusSnapshot final : public ::google::protobuf::Message
@@ -2466,119 +3127,135 @@ class DevtoolStatusSnapshot final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
-    kManifestFetchRowsFieldNumber = 2,
-    kManifestBuildRowsFieldNumber = 3,
-    kPluginRowsFieldNumber = 4,
+    kManifestFetchRowsFieldNumber = 3,
+    kManifestBuildRowsFieldNumber = 4,
     kControllerRowsFieldNumber = 5,
-    kAttentionRowsFieldNumber = 6,
+    kPluginRowsFieldNumber = 6,
+    kAttentionRowsFieldNumber = 7,
     kCommandFieldNumber = 1,
+    kProjectFieldNumber = 2,
   };
-  // repeated .bldr.devtool.status.DevtoolManifestFetchRow manifest_fetch_rows = 2;
+  // repeated .bldr.devtool.status.DevtoolStatusManifestFetchRow manifest_fetch_rows = 3;
   int manifest_fetch_rows_size() const;
   private:
   int _internal_manifest_fetch_rows_size() const;
 
   public:
   void clear_manifest_fetch_rows() ;
-  ::bldr::devtool::status::DevtoolManifestFetchRow* PROTOBUF_NONNULL mutable_manifest_fetch_rows(int index);
-  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolManifestFetchRow>* PROTOBUF_NONNULL mutable_manifest_fetch_rows();
+  ::bldr::devtool::status::DevtoolStatusManifestFetchRow* PROTOBUF_NONNULL mutable_manifest_fetch_rows(int index);
+  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusManifestFetchRow>* PROTOBUF_NONNULL mutable_manifest_fetch_rows();
 
   private:
-  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolManifestFetchRow>& _internal_manifest_fetch_rows() const;
-  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolManifestFetchRow>* PROTOBUF_NONNULL _internal_mutable_manifest_fetch_rows();
+  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusManifestFetchRow>& _internal_manifest_fetch_rows() const;
+  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusManifestFetchRow>* PROTOBUF_NONNULL _internal_mutable_manifest_fetch_rows();
   public:
-  const ::bldr::devtool::status::DevtoolManifestFetchRow& manifest_fetch_rows(int index) const;
-  ::bldr::devtool::status::DevtoolManifestFetchRow* PROTOBUF_NONNULL add_manifest_fetch_rows();
-  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolManifestFetchRow>& manifest_fetch_rows() const;
-  // repeated .bldr.devtool.status.DevtoolManifestBuildRow manifest_build_rows = 3;
+  const ::bldr::devtool::status::DevtoolStatusManifestFetchRow& manifest_fetch_rows(int index) const;
+  ::bldr::devtool::status::DevtoolStatusManifestFetchRow* PROTOBUF_NONNULL add_manifest_fetch_rows();
+  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusManifestFetchRow>& manifest_fetch_rows() const;
+  // repeated .bldr.devtool.status.DevtoolStatusManifestBuildRow manifest_build_rows = 4;
   int manifest_build_rows_size() const;
   private:
   int _internal_manifest_build_rows_size() const;
 
   public:
   void clear_manifest_build_rows() ;
-  ::bldr::devtool::status::DevtoolManifestBuildRow* PROTOBUF_NONNULL mutable_manifest_build_rows(int index);
-  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolManifestBuildRow>* PROTOBUF_NONNULL mutable_manifest_build_rows();
+  ::bldr::devtool::status::DevtoolStatusManifestBuildRow* PROTOBUF_NONNULL mutable_manifest_build_rows(int index);
+  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusManifestBuildRow>* PROTOBUF_NONNULL mutable_manifest_build_rows();
 
   private:
-  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolManifestBuildRow>& _internal_manifest_build_rows() const;
-  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolManifestBuildRow>* PROTOBUF_NONNULL _internal_mutable_manifest_build_rows();
+  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusManifestBuildRow>& _internal_manifest_build_rows() const;
+  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusManifestBuildRow>* PROTOBUF_NONNULL _internal_mutable_manifest_build_rows();
   public:
-  const ::bldr::devtool::status::DevtoolManifestBuildRow& manifest_build_rows(int index) const;
-  ::bldr::devtool::status::DevtoolManifestBuildRow* PROTOBUF_NONNULL add_manifest_build_rows();
-  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolManifestBuildRow>& manifest_build_rows() const;
-  // repeated .bldr.devtool.status.DevtoolPluginRow plugin_rows = 4;
-  int plugin_rows_size() const;
-  private:
-  int _internal_plugin_rows_size() const;
-
-  public:
-  void clear_plugin_rows() ;
-  ::bldr::devtool::status::DevtoolPluginRow* PROTOBUF_NONNULL mutable_plugin_rows(int index);
-  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolPluginRow>* PROTOBUF_NONNULL mutable_plugin_rows();
-
-  private:
-  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolPluginRow>& _internal_plugin_rows() const;
-  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolPluginRow>* PROTOBUF_NONNULL _internal_mutable_plugin_rows();
-  public:
-  const ::bldr::devtool::status::DevtoolPluginRow& plugin_rows(int index) const;
-  ::bldr::devtool::status::DevtoolPluginRow* PROTOBUF_NONNULL add_plugin_rows();
-  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolPluginRow>& plugin_rows() const;
-  // repeated .bldr.devtool.status.DevtoolControllerRow controller_rows = 5;
+  const ::bldr::devtool::status::DevtoolStatusManifestBuildRow& manifest_build_rows(int index) const;
+  ::bldr::devtool::status::DevtoolStatusManifestBuildRow* PROTOBUF_NONNULL add_manifest_build_rows();
+  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusManifestBuildRow>& manifest_build_rows() const;
+  // repeated .bldr.devtool.status.DevtoolStatusControllerRow controller_rows = 5;
   int controller_rows_size() const;
   private:
   int _internal_controller_rows_size() const;
 
   public:
   void clear_controller_rows() ;
-  ::bldr::devtool::status::DevtoolControllerRow* PROTOBUF_NONNULL mutable_controller_rows(int index);
-  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolControllerRow>* PROTOBUF_NONNULL mutable_controller_rows();
+  ::bldr::devtool::status::DevtoolStatusControllerRow* PROTOBUF_NONNULL mutable_controller_rows(int index);
+  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusControllerRow>* PROTOBUF_NONNULL mutable_controller_rows();
 
   private:
-  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolControllerRow>& _internal_controller_rows() const;
-  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolControllerRow>* PROTOBUF_NONNULL _internal_mutable_controller_rows();
+  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusControllerRow>& _internal_controller_rows() const;
+  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusControllerRow>* PROTOBUF_NONNULL _internal_mutable_controller_rows();
   public:
-  const ::bldr::devtool::status::DevtoolControllerRow& controller_rows(int index) const;
-  ::bldr::devtool::status::DevtoolControllerRow* PROTOBUF_NONNULL add_controller_rows();
-  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolControllerRow>& controller_rows() const;
-  // repeated .bldr.devtool.status.DevtoolAttentionRow attention_rows = 6;
+  const ::bldr::devtool::status::DevtoolStatusControllerRow& controller_rows(int index) const;
+  ::bldr::devtool::status::DevtoolStatusControllerRow* PROTOBUF_NONNULL add_controller_rows();
+  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusControllerRow>& controller_rows() const;
+  // repeated .bldr.devtool.status.DevtoolStatusPluginRow plugin_rows = 6;
+  int plugin_rows_size() const;
+  private:
+  int _internal_plugin_rows_size() const;
+
+  public:
+  void clear_plugin_rows() ;
+  ::bldr::devtool::status::DevtoolStatusPluginRow* PROTOBUF_NONNULL mutable_plugin_rows(int index);
+  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusPluginRow>* PROTOBUF_NONNULL mutable_plugin_rows();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusPluginRow>& _internal_plugin_rows() const;
+  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusPluginRow>* PROTOBUF_NONNULL _internal_mutable_plugin_rows();
+  public:
+  const ::bldr::devtool::status::DevtoolStatusPluginRow& plugin_rows(int index) const;
+  ::bldr::devtool::status::DevtoolStatusPluginRow* PROTOBUF_NONNULL add_plugin_rows();
+  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusPluginRow>& plugin_rows() const;
+  // repeated .bldr.devtool.status.DevtoolStatusAttentionRow attention_rows = 7;
   int attention_rows_size() const;
   private:
   int _internal_attention_rows_size() const;
 
   public:
   void clear_attention_rows() ;
-  ::bldr::devtool::status::DevtoolAttentionRow* PROTOBUF_NONNULL mutable_attention_rows(int index);
-  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolAttentionRow>* PROTOBUF_NONNULL mutable_attention_rows();
+  ::bldr::devtool::status::DevtoolStatusAttentionRow* PROTOBUF_NONNULL mutable_attention_rows(int index);
+  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusAttentionRow>* PROTOBUF_NONNULL mutable_attention_rows();
 
   private:
-  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolAttentionRow>& _internal_attention_rows() const;
-  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolAttentionRow>* PROTOBUF_NONNULL _internal_mutable_attention_rows();
+  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusAttentionRow>& _internal_attention_rows() const;
+  ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusAttentionRow>* PROTOBUF_NONNULL _internal_mutable_attention_rows();
   public:
-  const ::bldr::devtool::status::DevtoolAttentionRow& attention_rows(int index) const;
-  ::bldr::devtool::status::DevtoolAttentionRow* PROTOBUF_NONNULL add_attention_rows();
-  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolAttentionRow>& attention_rows() const;
-  // .bldr.devtool.status.DevtoolCommandStatus command = 1;
+  const ::bldr::devtool::status::DevtoolStatusAttentionRow& attention_rows(int index) const;
+  ::bldr::devtool::status::DevtoolStatusAttentionRow* PROTOBUF_NONNULL add_attention_rows();
+  const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusAttentionRow>& attention_rows() const;
+  // .bldr.devtool.status.DevtoolStatusCommand command = 1;
   bool has_command() const;
   void clear_command() ;
-  const ::bldr::devtool::status::DevtoolCommandStatus& command() const;
-  [[nodiscard]] ::bldr::devtool::status::DevtoolCommandStatus* PROTOBUF_NULLABLE release_command();
-  ::bldr::devtool::status::DevtoolCommandStatus* PROTOBUF_NONNULL mutable_command();
-  void set_allocated_command(::bldr::devtool::status::DevtoolCommandStatus* PROTOBUF_NULLABLE value);
-  void unsafe_arena_set_allocated_command(::bldr::devtool::status::DevtoolCommandStatus* PROTOBUF_NULLABLE value);
-  ::bldr::devtool::status::DevtoolCommandStatus* PROTOBUF_NULLABLE unsafe_arena_release_command();
+  const ::bldr::devtool::status::DevtoolStatusCommand& command() const;
+  [[nodiscard]] ::bldr::devtool::status::DevtoolStatusCommand* PROTOBUF_NULLABLE release_command();
+  ::bldr::devtool::status::DevtoolStatusCommand* PROTOBUF_NONNULL mutable_command();
+  void set_allocated_command(::bldr::devtool::status::DevtoolStatusCommand* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_command(::bldr::devtool::status::DevtoolStatusCommand* PROTOBUF_NULLABLE value);
+  ::bldr::devtool::status::DevtoolStatusCommand* PROTOBUF_NULLABLE unsafe_arena_release_command();
 
   private:
-  const ::bldr::devtool::status::DevtoolCommandStatus& _internal_command() const;
-  ::bldr::devtool::status::DevtoolCommandStatus* PROTOBUF_NONNULL _internal_mutable_command();
+  const ::bldr::devtool::status::DevtoolStatusCommand& _internal_command() const;
+  ::bldr::devtool::status::DevtoolStatusCommand* PROTOBUF_NONNULL _internal_mutable_command();
+
+  public:
+  // .bldr.devtool.status.DevtoolStatusProject project = 2;
+  bool has_project() const;
+  void clear_project() ;
+  const ::bldr::devtool::status::DevtoolStatusProject& project() const;
+  [[nodiscard]] ::bldr::devtool::status::DevtoolStatusProject* PROTOBUF_NULLABLE release_project();
+  ::bldr::devtool::status::DevtoolStatusProject* PROTOBUF_NONNULL mutable_project();
+  void set_allocated_project(::bldr::devtool::status::DevtoolStatusProject* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_project(::bldr::devtool::status::DevtoolStatusProject* PROTOBUF_NULLABLE value);
+  ::bldr::devtool::status::DevtoolStatusProject* PROTOBUF_NULLABLE unsafe_arena_release_project();
+
+  private:
+  const ::bldr::devtool::status::DevtoolStatusProject& _internal_project() const;
+  ::bldr::devtool::status::DevtoolStatusProject* PROTOBUF_NONNULL _internal_mutable_project();
 
   public:
   // @@protoc_insertion_point(class_scope:bldr.devtool.status.DevtoolStatusSnapshot)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 6,
-                                   6, 0,
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   7, 0,
                                    2>
       _table_;
 
@@ -2599,12 +3276,13 @@ class DevtoolStatusSnapshot final : public ::google::protobuf::Message
         const DevtoolStatusSnapshot& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::RepeatedPtrField< ::bldr::devtool::status::DevtoolManifestFetchRow > manifest_fetch_rows_;
-    ::google::protobuf::RepeatedPtrField< ::bldr::devtool::status::DevtoolManifestBuildRow > manifest_build_rows_;
-    ::google::protobuf::RepeatedPtrField< ::bldr::devtool::status::DevtoolPluginRow > plugin_rows_;
-    ::google::protobuf::RepeatedPtrField< ::bldr::devtool::status::DevtoolControllerRow > controller_rows_;
-    ::google::protobuf::RepeatedPtrField< ::bldr::devtool::status::DevtoolAttentionRow > attention_rows_;
-    ::bldr::devtool::status::DevtoolCommandStatus* PROTOBUF_NULLABLE command_;
+    ::google::protobuf::RepeatedPtrField< ::bldr::devtool::status::DevtoolStatusManifestFetchRow > manifest_fetch_rows_;
+    ::google::protobuf::RepeatedPtrField< ::bldr::devtool::status::DevtoolStatusManifestBuildRow > manifest_build_rows_;
+    ::google::protobuf::RepeatedPtrField< ::bldr::devtool::status::DevtoolStatusControllerRow > controller_rows_;
+    ::google::protobuf::RepeatedPtrField< ::bldr::devtool::status::DevtoolStatusPluginRow > plugin_rows_;
+    ::google::protobuf::RepeatedPtrField< ::bldr::devtool::status::DevtoolStatusAttentionRow > attention_rows_;
+    ::bldr::devtool::status::DevtoolStatusCommand* PROTOBUF_NULLABLE command_;
+    ::bldr::devtool::status::DevtoolStatusProject* PROTOBUF_NULLABLE project_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -2931,7 +3609,7 @@ inline void WatchDevtoolStatusResponse::set_allocated_snapshot(::bldr::devtool::
 
 // DevtoolStatusSnapshot
 
-// .bldr.devtool.status.DevtoolCommandStatus command = 1;
+// .bldr.devtool.status.DevtoolStatusCommand command = 1;
 inline bool DevtoolStatusSnapshot::has_command() const {
   bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
   PROTOBUF_ASSUME(!value || _impl_.command_ != nullptr);
@@ -2943,22 +3621,22 @@ inline void DevtoolStatusSnapshot::clear_command() {
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000020U);
 }
-inline const ::bldr::devtool::status::DevtoolCommandStatus& DevtoolStatusSnapshot::_internal_command() const {
+inline const ::bldr::devtool::status::DevtoolStatusCommand& DevtoolStatusSnapshot::_internal_command() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  const ::bldr::devtool::status::DevtoolCommandStatus* p = _impl_.command_;
-  return p != nullptr ? *p : reinterpret_cast<const ::bldr::devtool::status::DevtoolCommandStatus&>(::bldr::devtool::status::_DevtoolCommandStatus_default_instance_);
+  const ::bldr::devtool::status::DevtoolStatusCommand* p = _impl_.command_;
+  return p != nullptr ? *p : reinterpret_cast<const ::bldr::devtool::status::DevtoolStatusCommand&>(::bldr::devtool::status::_DevtoolStatusCommand_default_instance_);
 }
-inline const ::bldr::devtool::status::DevtoolCommandStatus& DevtoolStatusSnapshot::command() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+inline const ::bldr::devtool::status::DevtoolStatusCommand& DevtoolStatusSnapshot::command() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusSnapshot.command)
   return _internal_command();
 }
 inline void DevtoolStatusSnapshot::unsafe_arena_set_allocated_command(
-    ::bldr::devtool::status::DevtoolCommandStatus* PROTOBUF_NULLABLE value) {
+    ::bldr::devtool::status::DevtoolStatusCommand* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (GetArena() == nullptr) {
     delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.command_);
   }
-  _impl_.command_ = reinterpret_cast<::bldr::devtool::status::DevtoolCommandStatus*>(value);
+  _impl_.command_ = reinterpret_cast<::bldr::devtool::status::DevtoolStatusCommand*>(value);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   } else {
@@ -2966,11 +3644,11 @@ inline void DevtoolStatusSnapshot::unsafe_arena_set_allocated_command(
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bldr.devtool.status.DevtoolStatusSnapshot.command)
 }
-inline ::bldr::devtool::status::DevtoolCommandStatus* PROTOBUF_NULLABLE DevtoolStatusSnapshot::release_command() {
+inline ::bldr::devtool::status::DevtoolStatusCommand* PROTOBUF_NULLABLE DevtoolStatusSnapshot::release_command() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
   ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
-  ::bldr::devtool::status::DevtoolCommandStatus* released = _impl_.command_;
+  ::bldr::devtool::status::DevtoolStatusCommand* released = _impl_.command_;
   _impl_.command_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
     auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
@@ -2985,31 +3663,31 @@ inline ::bldr::devtool::status::DevtoolCommandStatus* PROTOBUF_NULLABLE DevtoolS
   }
   return released;
 }
-inline ::bldr::devtool::status::DevtoolCommandStatus* PROTOBUF_NULLABLE DevtoolStatusSnapshot::unsafe_arena_release_command() {
+inline ::bldr::devtool::status::DevtoolStatusCommand* PROTOBUF_NULLABLE DevtoolStatusSnapshot::unsafe_arena_release_command() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusSnapshot.command)
 
   ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
-  ::bldr::devtool::status::DevtoolCommandStatus* temp = _impl_.command_;
+  ::bldr::devtool::status::DevtoolStatusCommand* temp = _impl_.command_;
   _impl_.command_ = nullptr;
   return temp;
 }
-inline ::bldr::devtool::status::DevtoolCommandStatus* PROTOBUF_NONNULL DevtoolStatusSnapshot::_internal_mutable_command() {
+inline ::bldr::devtool::status::DevtoolStatusCommand* PROTOBUF_NONNULL DevtoolStatusSnapshot::_internal_mutable_command() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.command_ == nullptr) {
-    auto* p = ::google::protobuf::Message::DefaultConstruct<::bldr::devtool::status::DevtoolCommandStatus>(GetArena());
-    _impl_.command_ = reinterpret_cast<::bldr::devtool::status::DevtoolCommandStatus*>(p);
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::bldr::devtool::status::DevtoolStatusCommand>(GetArena());
+    _impl_.command_ = reinterpret_cast<::bldr::devtool::status::DevtoolStatusCommand*>(p);
   }
   return _impl_.command_;
 }
-inline ::bldr::devtool::status::DevtoolCommandStatus* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_command()
+inline ::bldr::devtool::status::DevtoolStatusCommand* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_command()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000020U);
-  ::bldr::devtool::status::DevtoolCommandStatus* _msg = _internal_mutable_command();
+  ::bldr::devtool::status::DevtoolStatusCommand* _msg = _internal_mutable_command();
   // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusSnapshot.command)
   return _msg;
 }
-inline void DevtoolStatusSnapshot::set_allocated_command(::bldr::devtool::status::DevtoolCommandStatus* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusSnapshot::set_allocated_command(::bldr::devtool::status::DevtoolStatusCommand* PROTOBUF_NULLABLE value) {
   ::google::protobuf::Arena* message_arena = GetArena();
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (message_arena == nullptr) {
@@ -3026,11 +3704,110 @@ inline void DevtoolStatusSnapshot::set_allocated_command(::bldr::devtool::status
     ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   }
 
-  _impl_.command_ = reinterpret_cast<::bldr::devtool::status::DevtoolCommandStatus*>(value);
+  _impl_.command_ = reinterpret_cast<::bldr::devtool::status::DevtoolStatusCommand*>(value);
   // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusSnapshot.command)
 }
 
-// repeated .bldr.devtool.status.DevtoolManifestFetchRow manifest_fetch_rows = 2;
+// .bldr.devtool.status.DevtoolStatusProject project = 2;
+inline bool DevtoolStatusSnapshot::has_project() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000040U);
+  PROTOBUF_ASSUME(!value || _impl_.project_ != nullptr);
+  return value;
+}
+inline void DevtoolStatusSnapshot::clear_project() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.project_ != nullptr) _impl_.project_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::bldr::devtool::status::DevtoolStatusProject& DevtoolStatusSnapshot::_internal_project() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::bldr::devtool::status::DevtoolStatusProject* p = _impl_.project_;
+  return p != nullptr ? *p : reinterpret_cast<const ::bldr::devtool::status::DevtoolStatusProject&>(::bldr::devtool::status::_DevtoolStatusProject_default_instance_);
+}
+inline const ::bldr::devtool::status::DevtoolStatusProject& DevtoolStatusSnapshot::project() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusSnapshot.project)
+  return _internal_project();
+}
+inline void DevtoolStatusSnapshot::unsafe_arena_set_allocated_project(
+    ::bldr::devtool::status::DevtoolStatusProject* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.project_);
+  }
+  _impl_.project_ = reinterpret_cast<::bldr::devtool::status::DevtoolStatusProject*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bldr.devtool.status.DevtoolStatusSnapshot.project)
+}
+inline ::bldr::devtool::status::DevtoolStatusProject* PROTOBUF_NULLABLE DevtoolStatusSnapshot::release_project() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::bldr::devtool::status::DevtoolStatusProject* released = _impl_.project_;
+  _impl_.project_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::bldr::devtool::status::DevtoolStatusProject* PROTOBUF_NULLABLE DevtoolStatusSnapshot::unsafe_arena_release_project() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusSnapshot.project)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::bldr::devtool::status::DevtoolStatusProject* temp = _impl_.project_;
+  _impl_.project_ = nullptr;
+  return temp;
+}
+inline ::bldr::devtool::status::DevtoolStatusProject* PROTOBUF_NONNULL DevtoolStatusSnapshot::_internal_mutable_project() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.project_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::bldr::devtool::status::DevtoolStatusProject>(GetArena());
+    _impl_.project_ = reinterpret_cast<::bldr::devtool::status::DevtoolStatusProject*>(p);
+  }
+  return _impl_.project_;
+}
+inline ::bldr::devtool::status::DevtoolStatusProject* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_project()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::bldr::devtool::status::DevtoolStatusProject* _msg = _internal_mutable_project();
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusSnapshot.project)
+  return _msg;
+}
+inline void DevtoolStatusSnapshot::set_allocated_project(::bldr::devtool::status::DevtoolStatusProject* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.project_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+
+  _impl_.project_ = reinterpret_cast<::bldr::devtool::status::DevtoolStatusProject*>(value);
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusSnapshot.project)
+}
+
+// repeated .bldr.devtool.status.DevtoolStatusManifestFetchRow manifest_fetch_rows = 3;
 inline int DevtoolStatusSnapshot::_internal_manifest_fetch_rows_size() const {
   return _internal_manifest_fetch_rows().size();
 }
@@ -3043,50 +3820,50 @@ inline void DevtoolStatusSnapshot::clear_manifest_fetch_rows() {
   ClearHasBitForRepeated(_impl_._has_bits_[0],
                   0x00000001U);
 }
-inline ::bldr::devtool::status::DevtoolManifestFetchRow* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_manifest_fetch_rows(int index)
+inline ::bldr::devtool::status::DevtoolStatusManifestFetchRow* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_manifest_fetch_rows(int index)
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusSnapshot.manifest_fetch_rows)
   return _internal_mutable_manifest_fetch_rows()->Mutable(index);
 }
-inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolManifestFetchRow>* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_manifest_fetch_rows()
+inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusManifestFetchRow>* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_manifest_fetch_rows()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
   // @@protoc_insertion_point(field_mutable_list:bldr.devtool.status.DevtoolStatusSnapshot.manifest_fetch_rows)
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _internal_mutable_manifest_fetch_rows();
 }
-inline const ::bldr::devtool::status::DevtoolManifestFetchRow& DevtoolStatusSnapshot::manifest_fetch_rows(int index) const
+inline const ::bldr::devtool::status::DevtoolStatusManifestFetchRow& DevtoolStatusSnapshot::manifest_fetch_rows(int index) const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusSnapshot.manifest_fetch_rows)
   return _internal_manifest_fetch_rows().Get(index);
 }
-inline ::bldr::devtool::status::DevtoolManifestFetchRow* PROTOBUF_NONNULL DevtoolStatusSnapshot::add_manifest_fetch_rows()
+inline ::bldr::devtool::status::DevtoolStatusManifestFetchRow* PROTOBUF_NONNULL DevtoolStatusSnapshot::add_manifest_fetch_rows()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::bldr::devtool::status::DevtoolManifestFetchRow* _add =
+  ::bldr::devtool::status::DevtoolStatusManifestFetchRow* _add =
       _internal_mutable_manifest_fetch_rows()->InternalAddWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), GetArena());
   SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
   // @@protoc_insertion_point(field_add:bldr.devtool.status.DevtoolStatusSnapshot.manifest_fetch_rows)
   return _add;
 }
-inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolManifestFetchRow>& DevtoolStatusSnapshot::manifest_fetch_rows() const
+inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusManifestFetchRow>& DevtoolStatusSnapshot::manifest_fetch_rows() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_list:bldr.devtool.status.DevtoolStatusSnapshot.manifest_fetch_rows)
   return _internal_manifest_fetch_rows();
 }
-inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolManifestFetchRow>&
+inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusManifestFetchRow>&
 DevtoolStatusSnapshot::_internal_manifest_fetch_rows() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.manifest_fetch_rows_;
 }
-inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolManifestFetchRow>* PROTOBUF_NONNULL
+inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusManifestFetchRow>* PROTOBUF_NONNULL
 DevtoolStatusSnapshot::_internal_mutable_manifest_fetch_rows() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.manifest_fetch_rows_;
 }
 
-// repeated .bldr.devtool.status.DevtoolManifestBuildRow manifest_build_rows = 3;
+// repeated .bldr.devtool.status.DevtoolStatusManifestBuildRow manifest_build_rows = 4;
 inline int DevtoolStatusSnapshot::_internal_manifest_build_rows_size() const {
   return _internal_manifest_build_rows().size();
 }
@@ -3099,106 +3876,50 @@ inline void DevtoolStatusSnapshot::clear_manifest_build_rows() {
   ClearHasBitForRepeated(_impl_._has_bits_[0],
                   0x00000002U);
 }
-inline ::bldr::devtool::status::DevtoolManifestBuildRow* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_manifest_build_rows(int index)
+inline ::bldr::devtool::status::DevtoolStatusManifestBuildRow* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_manifest_build_rows(int index)
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusSnapshot.manifest_build_rows)
   return _internal_mutable_manifest_build_rows()->Mutable(index);
 }
-inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolManifestBuildRow>* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_manifest_build_rows()
+inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusManifestBuildRow>* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_manifest_build_rows()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
   // @@protoc_insertion_point(field_mutable_list:bldr.devtool.status.DevtoolStatusSnapshot.manifest_build_rows)
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _internal_mutable_manifest_build_rows();
 }
-inline const ::bldr::devtool::status::DevtoolManifestBuildRow& DevtoolStatusSnapshot::manifest_build_rows(int index) const
+inline const ::bldr::devtool::status::DevtoolStatusManifestBuildRow& DevtoolStatusSnapshot::manifest_build_rows(int index) const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusSnapshot.manifest_build_rows)
   return _internal_manifest_build_rows().Get(index);
 }
-inline ::bldr::devtool::status::DevtoolManifestBuildRow* PROTOBUF_NONNULL DevtoolStatusSnapshot::add_manifest_build_rows()
+inline ::bldr::devtool::status::DevtoolStatusManifestBuildRow* PROTOBUF_NONNULL DevtoolStatusSnapshot::add_manifest_build_rows()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::bldr::devtool::status::DevtoolManifestBuildRow* _add =
+  ::bldr::devtool::status::DevtoolStatusManifestBuildRow* _add =
       _internal_mutable_manifest_build_rows()->InternalAddWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), GetArena());
   SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
   // @@protoc_insertion_point(field_add:bldr.devtool.status.DevtoolStatusSnapshot.manifest_build_rows)
   return _add;
 }
-inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolManifestBuildRow>& DevtoolStatusSnapshot::manifest_build_rows() const
+inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusManifestBuildRow>& DevtoolStatusSnapshot::manifest_build_rows() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_list:bldr.devtool.status.DevtoolStatusSnapshot.manifest_build_rows)
   return _internal_manifest_build_rows();
 }
-inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolManifestBuildRow>&
+inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusManifestBuildRow>&
 DevtoolStatusSnapshot::_internal_manifest_build_rows() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.manifest_build_rows_;
 }
-inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolManifestBuildRow>* PROTOBUF_NONNULL
+inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusManifestBuildRow>* PROTOBUF_NONNULL
 DevtoolStatusSnapshot::_internal_mutable_manifest_build_rows() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.manifest_build_rows_;
 }
 
-// repeated .bldr.devtool.status.DevtoolPluginRow plugin_rows = 4;
-inline int DevtoolStatusSnapshot::_internal_plugin_rows_size() const {
-  return _internal_plugin_rows().size();
-}
-inline int DevtoolStatusSnapshot::plugin_rows_size() const {
-  return _internal_plugin_rows_size();
-}
-inline void DevtoolStatusSnapshot::clear_plugin_rows() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.plugin_rows_.Clear();
-  ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00000004U);
-}
-inline ::bldr::devtool::status::DevtoolPluginRow* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_plugin_rows(int index)
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusSnapshot.plugin_rows)
-  return _internal_mutable_plugin_rows()->Mutable(index);
-}
-inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolPluginRow>* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_plugin_rows()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
-  // @@protoc_insertion_point(field_mutable_list:bldr.devtool.status.DevtoolStatusSnapshot.plugin_rows)
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _internal_mutable_plugin_rows();
-}
-inline const ::bldr::devtool::status::DevtoolPluginRow& DevtoolStatusSnapshot::plugin_rows(int index) const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusSnapshot.plugin_rows)
-  return _internal_plugin_rows().Get(index);
-}
-inline ::bldr::devtool::status::DevtoolPluginRow* PROTOBUF_NONNULL DevtoolStatusSnapshot::add_plugin_rows()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::bldr::devtool::status::DevtoolPluginRow* _add =
-      _internal_mutable_plugin_rows()->InternalAddWithArena(
-          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
-  // @@protoc_insertion_point(field_add:bldr.devtool.status.DevtoolStatusSnapshot.plugin_rows)
-  return _add;
-}
-inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolPluginRow>& DevtoolStatusSnapshot::plugin_rows() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_list:bldr.devtool.status.DevtoolStatusSnapshot.plugin_rows)
-  return _internal_plugin_rows();
-}
-inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolPluginRow>&
-DevtoolStatusSnapshot::_internal_plugin_rows() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.plugin_rows_;
-}
-inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolPluginRow>* PROTOBUF_NONNULL
-DevtoolStatusSnapshot::_internal_mutable_plugin_rows() {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return &_impl_.plugin_rows_;
-}
-
-// repeated .bldr.devtool.status.DevtoolControllerRow controller_rows = 5;
+// repeated .bldr.devtool.status.DevtoolStatusControllerRow controller_rows = 5;
 inline int DevtoolStatusSnapshot::_internal_controller_rows_size() const {
   return _internal_controller_rows().size();
 }
@@ -3209,52 +3930,108 @@ inline void DevtoolStatusSnapshot::clear_controller_rows() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.controller_rows_.Clear();
   ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000004U);
 }
-inline ::bldr::devtool::status::DevtoolControllerRow* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_controller_rows(int index)
+inline ::bldr::devtool::status::DevtoolStatusControllerRow* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_controller_rows(int index)
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusSnapshot.controller_rows)
   return _internal_mutable_controller_rows()->Mutable(index);
 }
-inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolControllerRow>* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_controller_rows()
+inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusControllerRow>* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_controller_rows()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
   // @@protoc_insertion_point(field_mutable_list:bldr.devtool.status.DevtoolStatusSnapshot.controller_rows)
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _internal_mutable_controller_rows();
 }
-inline const ::bldr::devtool::status::DevtoolControllerRow& DevtoolStatusSnapshot::controller_rows(int index) const
+inline const ::bldr::devtool::status::DevtoolStatusControllerRow& DevtoolStatusSnapshot::controller_rows(int index) const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusSnapshot.controller_rows)
   return _internal_controller_rows().Get(index);
 }
-inline ::bldr::devtool::status::DevtoolControllerRow* PROTOBUF_NONNULL DevtoolStatusSnapshot::add_controller_rows()
+inline ::bldr::devtool::status::DevtoolStatusControllerRow* PROTOBUF_NONNULL DevtoolStatusSnapshot::add_controller_rows()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::bldr::devtool::status::DevtoolControllerRow* _add =
+  ::bldr::devtool::status::DevtoolStatusControllerRow* _add =
       _internal_mutable_controller_rows()->InternalAddWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), GetArena());
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
   // @@protoc_insertion_point(field_add:bldr.devtool.status.DevtoolStatusSnapshot.controller_rows)
   return _add;
 }
-inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolControllerRow>& DevtoolStatusSnapshot::controller_rows() const
+inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusControllerRow>& DevtoolStatusSnapshot::controller_rows() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_list:bldr.devtool.status.DevtoolStatusSnapshot.controller_rows)
   return _internal_controller_rows();
 }
-inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolControllerRow>&
+inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusControllerRow>&
 DevtoolStatusSnapshot::_internal_controller_rows() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.controller_rows_;
 }
-inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolControllerRow>* PROTOBUF_NONNULL
+inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusControllerRow>* PROTOBUF_NONNULL
 DevtoolStatusSnapshot::_internal_mutable_controller_rows() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.controller_rows_;
 }
 
-// repeated .bldr.devtool.status.DevtoolAttentionRow attention_rows = 6;
+// repeated .bldr.devtool.status.DevtoolStatusPluginRow plugin_rows = 6;
+inline int DevtoolStatusSnapshot::_internal_plugin_rows_size() const {
+  return _internal_plugin_rows().size();
+}
+inline int DevtoolStatusSnapshot::plugin_rows_size() const {
+  return _internal_plugin_rows_size();
+}
+inline void DevtoolStatusSnapshot::clear_plugin_rows() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.plugin_rows_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::bldr::devtool::status::DevtoolStatusPluginRow* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_plugin_rows(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusSnapshot.plugin_rows)
+  return _internal_mutable_plugin_rows()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusPluginRow>* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_plugin_rows()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.devtool.status.DevtoolStatusSnapshot.plugin_rows)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_plugin_rows();
+}
+inline const ::bldr::devtool::status::DevtoolStatusPluginRow& DevtoolStatusSnapshot::plugin_rows(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusSnapshot.plugin_rows)
+  return _internal_plugin_rows().Get(index);
+}
+inline ::bldr::devtool::status::DevtoolStatusPluginRow* PROTOBUF_NONNULL DevtoolStatusSnapshot::add_plugin_rows()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::bldr::devtool::status::DevtoolStatusPluginRow* _add =
+      _internal_mutable_plugin_rows()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_add:bldr.devtool.status.DevtoolStatusSnapshot.plugin_rows)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusPluginRow>& DevtoolStatusSnapshot::plugin_rows() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.devtool.status.DevtoolStatusSnapshot.plugin_rows)
+  return _internal_plugin_rows();
+}
+inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusPluginRow>&
+DevtoolStatusSnapshot::_internal_plugin_rows() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.plugin_rows_;
+}
+inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusPluginRow>* PROTOBUF_NONNULL
+DevtoolStatusSnapshot::_internal_mutable_plugin_rows() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.plugin_rows_;
+}
+
+// repeated .bldr.devtool.status.DevtoolStatusAttentionRow attention_rows = 7;
 inline int DevtoolStatusSnapshot::_internal_attention_rows_size() const {
   return _internal_attention_rows().size();
 }
@@ -3267,44 +4044,44 @@ inline void DevtoolStatusSnapshot::clear_attention_rows() {
   ClearHasBitForRepeated(_impl_._has_bits_[0],
                   0x00000010U);
 }
-inline ::bldr::devtool::status::DevtoolAttentionRow* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_attention_rows(int index)
+inline ::bldr::devtool::status::DevtoolStatusAttentionRow* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_attention_rows(int index)
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusSnapshot.attention_rows)
   return _internal_mutable_attention_rows()->Mutable(index);
 }
-inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolAttentionRow>* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_attention_rows()
+inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusAttentionRow>* PROTOBUF_NONNULL DevtoolStatusSnapshot::mutable_attention_rows()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000010U);
   // @@protoc_insertion_point(field_mutable_list:bldr.devtool.status.DevtoolStatusSnapshot.attention_rows)
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _internal_mutable_attention_rows();
 }
-inline const ::bldr::devtool::status::DevtoolAttentionRow& DevtoolStatusSnapshot::attention_rows(int index) const
+inline const ::bldr::devtool::status::DevtoolStatusAttentionRow& DevtoolStatusSnapshot::attention_rows(int index) const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusSnapshot.attention_rows)
   return _internal_attention_rows().Get(index);
 }
-inline ::bldr::devtool::status::DevtoolAttentionRow* PROTOBUF_NONNULL DevtoolStatusSnapshot::add_attention_rows()
+inline ::bldr::devtool::status::DevtoolStatusAttentionRow* PROTOBUF_NONNULL DevtoolStatusSnapshot::add_attention_rows()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::bldr::devtool::status::DevtoolAttentionRow* _add =
+  ::bldr::devtool::status::DevtoolStatusAttentionRow* _add =
       _internal_mutable_attention_rows()->InternalAddWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), GetArena());
   SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000010U);
   // @@protoc_insertion_point(field_add:bldr.devtool.status.DevtoolStatusSnapshot.attention_rows)
   return _add;
 }
-inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolAttentionRow>& DevtoolStatusSnapshot::attention_rows() const
+inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusAttentionRow>& DevtoolStatusSnapshot::attention_rows() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_list:bldr.devtool.status.DevtoolStatusSnapshot.attention_rows)
   return _internal_attention_rows();
 }
-inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolAttentionRow>&
+inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusAttentionRow>&
 DevtoolStatusSnapshot::_internal_attention_rows() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.attention_rows_;
 }
-inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolAttentionRow>* PROTOBUF_NONNULL
+inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusAttentionRow>* PROTOBUF_NONNULL
 DevtoolStatusSnapshot::_internal_mutable_attention_rows() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.attention_rows_;
@@ -3312,49 +4089,49 @@ DevtoolStatusSnapshot::_internal_mutable_attention_rows() {
 
 // -------------------------------------------------------------------
 
-// DevtoolCommandStatus
+// DevtoolStatusCommand
 
 // string name = 1;
-inline void DevtoolCommandStatus::clear_name() {
+inline void DevtoolStatusCommand::clear_name() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.name_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000001U);
 }
-inline const ::std::string& DevtoolCommandStatus::name() const
+inline const ::std::string& DevtoolStatusCommand::name() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolCommandStatus.name)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusCommand.name)
   return _internal_name();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolCommandStatus::set_name(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusCommand::set_name(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolCommandStatus.name)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusCommand.name)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolCommandStatus::mutable_name()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusCommand::mutable_name()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   ::std::string* _s = _internal_mutable_name();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolCommandStatus.name)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusCommand.name)
   return _s;
 }
-inline const ::std::string& DevtoolCommandStatus::_internal_name() const {
+inline const ::std::string& DevtoolStatusCommand::_internal_name() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.name_.Get();
 }
-inline void DevtoolCommandStatus::_internal_set_name(const ::std::string& value) {
+inline void DevtoolStatusCommand::_internal_set_name(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.name_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolCommandStatus::_internal_mutable_name() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusCommand::_internal_mutable_name() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.name_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolCommandStatus::release_name() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusCommand::release_name() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolCommandStatus.name)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusCommand.name)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
     return nullptr;
   }
@@ -3365,7 +4142,7 @@ inline ::std::string* PROTOBUF_NULLABLE DevtoolCommandStatus::release_name() {
   }
   return released;
 }
-inline void DevtoolCommandStatus::set_allocated_name(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusCommand::set_allocated_name(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000001U);
@@ -3376,75 +4153,75 @@ inline void DevtoolCommandStatus::set_allocated_name(::std::string* PROTOBUF_NUL
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.name_.IsDefault()) {
     _impl_.name_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolCommandStatus.name)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusCommand.name)
 }
 
-// .bldr.devtool.status.DevtoolCommandState state = 2;
-inline void DevtoolCommandStatus::clear_state() {
+// .bldr.devtool.status.DevtoolStatusCommandState state = 2;
+inline void DevtoolStatusCommand::clear_state() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.state_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000010U);
 }
-inline ::bldr::devtool::status::DevtoolCommandState DevtoolCommandStatus::state() const {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolCommandStatus.state)
+inline ::bldr::devtool::status::DevtoolStatusCommandState DevtoolStatusCommand::state() const {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusCommand.state)
   return _internal_state();
 }
-inline void DevtoolCommandStatus::set_state(::bldr::devtool::status::DevtoolCommandState value) {
+inline void DevtoolStatusCommand::set_state(::bldr::devtool::status::DevtoolStatusCommandState value) {
   _internal_set_state(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000010U);
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolCommandStatus.state)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusCommand.state)
 }
-inline ::bldr::devtool::status::DevtoolCommandState DevtoolCommandStatus::_internal_state() const {
+inline ::bldr::devtool::status::DevtoolStatusCommandState DevtoolStatusCommand::_internal_state() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return static_cast<::bldr::devtool::status::DevtoolCommandState>(_impl_.state_);
+  return static_cast<::bldr::devtool::status::DevtoolStatusCommandState>(_impl_.state_);
 }
-inline void DevtoolCommandStatus::_internal_set_state(::bldr::devtool::status::DevtoolCommandState value) {
+inline void DevtoolStatusCommand::_internal_set_state(::bldr::devtool::status::DevtoolStatusCommandState value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.state_ = value;
 }
 
 // string summary = 3;
-inline void DevtoolCommandStatus::clear_summary() {
+inline void DevtoolStatusCommand::clear_summary() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.summary_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000002U);
 }
-inline const ::std::string& DevtoolCommandStatus::summary() const
+inline const ::std::string& DevtoolStatusCommand::summary() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolCommandStatus.summary)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusCommand.summary)
   return _internal_summary();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolCommandStatus::set_summary(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusCommand::set_summary(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   _impl_.summary_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolCommandStatus.summary)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusCommand.summary)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolCommandStatus::mutable_summary()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusCommand::mutable_summary()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::std::string* _s = _internal_mutable_summary();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolCommandStatus.summary)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusCommand.summary)
   return _s;
 }
-inline const ::std::string& DevtoolCommandStatus::_internal_summary() const {
+inline const ::std::string& DevtoolStatusCommand::_internal_summary() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.summary_.Get();
 }
-inline void DevtoolCommandStatus::_internal_set_summary(const ::std::string& value) {
+inline void DevtoolStatusCommand::_internal_set_summary(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.summary_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolCommandStatus::_internal_mutable_summary() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusCommand::_internal_mutable_summary() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.summary_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolCommandStatus::release_summary() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusCommand::release_summary() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolCommandStatus.summary)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusCommand.summary)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
     return nullptr;
   }
@@ -3455,7 +4232,7 @@ inline ::std::string* PROTOBUF_NULLABLE DevtoolCommandStatus::release_summary() 
   }
   return released;
 }
-inline void DevtoolCommandStatus::set_allocated_summary(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusCommand::set_allocated_summary(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000002U);
@@ -3466,50 +4243,50 @@ inline void DevtoolCommandStatus::set_allocated_summary(::std::string* PROTOBUF_
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.summary_.IsDefault()) {
     _impl_.summary_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolCommandStatus.summary)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusCommand.summary)
 }
 
 // string error = 4;
-inline void DevtoolCommandStatus::clear_error() {
+inline void DevtoolStatusCommand::clear_error() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.error_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000004U);
 }
-inline const ::std::string& DevtoolCommandStatus::error() const
+inline const ::std::string& DevtoolStatusCommand::error() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolCommandStatus.error)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusCommand.error)
   return _internal_error();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolCommandStatus::set_error(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusCommand::set_error(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   _impl_.error_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolCommandStatus.error)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusCommand.error)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolCommandStatus::mutable_error()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusCommand::mutable_error()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::std::string* _s = _internal_mutable_error();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolCommandStatus.error)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusCommand.error)
   return _s;
 }
-inline const ::std::string& DevtoolCommandStatus::_internal_error() const {
+inline const ::std::string& DevtoolStatusCommand::_internal_error() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.error_.Get();
 }
-inline void DevtoolCommandStatus::_internal_set_error(const ::std::string& value) {
+inline void DevtoolStatusCommand::_internal_set_error(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.error_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolCommandStatus::_internal_mutable_error() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusCommand::_internal_mutable_error() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.error_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolCommandStatus::release_error() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusCommand::release_error() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolCommandStatus.error)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusCommand.error)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
     return nullptr;
   }
@@ -3520,7 +4297,7 @@ inline ::std::string* PROTOBUF_NULLABLE DevtoolCommandStatus::release_error() {
   }
   return released;
 }
-inline void DevtoolCommandStatus::set_allocated_error(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusCommand::set_allocated_error(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000004U);
@@ -3531,50 +4308,50 @@ inline void DevtoolCommandStatus::set_allocated_error(::std::string* PROTOBUF_NU
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.error_.IsDefault()) {
     _impl_.error_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolCommandStatus.error)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusCommand.error)
 }
 
 // string log_file = 5;
-inline void DevtoolCommandStatus::clear_log_file() {
+inline void DevtoolStatusCommand::clear_log_file() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.log_file_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000008U);
 }
-inline const ::std::string& DevtoolCommandStatus::log_file() const
+inline const ::std::string& DevtoolStatusCommand::log_file() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolCommandStatus.log_file)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusCommand.log_file)
   return _internal_log_file();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolCommandStatus::set_log_file(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusCommand::set_log_file(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   _impl_.log_file_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolCommandStatus.log_file)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusCommand.log_file)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolCommandStatus::mutable_log_file()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusCommand::mutable_log_file()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::std::string* _s = _internal_mutable_log_file();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolCommandStatus.log_file)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusCommand.log_file)
   return _s;
 }
-inline const ::std::string& DevtoolCommandStatus::_internal_log_file() const {
+inline const ::std::string& DevtoolStatusCommand::_internal_log_file() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.log_file_.Get();
 }
-inline void DevtoolCommandStatus::_internal_set_log_file(const ::std::string& value) {
+inline void DevtoolStatusCommand::_internal_set_log_file(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.log_file_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolCommandStatus::_internal_mutable_log_file() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusCommand::_internal_mutable_log_file() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.log_file_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolCommandStatus::release_log_file() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusCommand::release_log_file() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolCommandStatus.log_file)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusCommand.log_file)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
     return nullptr;
   }
@@ -3585,7 +4362,7 @@ inline ::std::string* PROTOBUF_NULLABLE DevtoolCommandStatus::release_log_file()
   }
   return released;
 }
-inline void DevtoolCommandStatus::set_allocated_log_file(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusCommand::set_allocated_log_file(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000008U);
@@ -3596,584 +4373,1440 @@ inline void DevtoolCommandStatus::set_allocated_log_file(::std::string* PROTOBUF
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.log_file_.IsDefault()) {
     _impl_.log_file_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolCommandStatus.log_file)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusCommand.log_file)
 }
 
 // -------------------------------------------------------------------
 
-// DevtoolManifestFetchRow
+// DevtoolStatusProject
 
-// string id = 1;
-inline void DevtoolManifestFetchRow::clear_id() {
+// string project_id = 1;
+inline void DevtoolStatusProject::clear_project_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.id_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
-}
-inline const ::std::string& DevtoolManifestFetchRow::id() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestFetchRow.id)
-  return _internal_id();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolManifestFetchRow::set_id(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestFetchRow.id)
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestFetchRow::mutable_id()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::std::string* _s = _internal_mutable_id();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolManifestFetchRow.id)
-  return _s;
-}
-inline const ::std::string& DevtoolManifestFetchRow::_internal_id() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.id_.Get();
-}
-inline void DevtoolManifestFetchRow::_internal_set_id(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.id_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestFetchRow::_internal_mutable_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.id_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestFetchRow::release_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolManifestFetchRow.id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  auto* released = _impl_.id_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.id_.Set("", GetArena());
-  }
-  return released;
-}
-inline void DevtoolManifestFetchRow::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  }
-  _impl_.id_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
-    _impl_.id_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolManifestFetchRow.id)
-}
-
-// string manifest_id = 2;
-inline void DevtoolManifestFetchRow::clear_manifest_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.manifest_id_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
-}
-inline const ::std::string& DevtoolManifestFetchRow::manifest_id() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestFetchRow.manifest_id)
-  return _internal_manifest_id();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolManifestFetchRow::set_manifest_id(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  _impl_.manifest_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestFetchRow.manifest_id)
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestFetchRow::mutable_manifest_id()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::std::string* _s = _internal_mutable_manifest_id();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolManifestFetchRow.manifest_id)
-  return _s;
-}
-inline const ::std::string& DevtoolManifestFetchRow::_internal_manifest_id() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.manifest_id_.Get();
-}
-inline void DevtoolManifestFetchRow::_internal_set_manifest_id(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.manifest_id_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestFetchRow::_internal_mutable_manifest_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.manifest_id_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestFetchRow::release_manifest_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolManifestFetchRow.manifest_id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  auto* released = _impl_.manifest_id_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.manifest_id_.Set("", GetArena());
-  }
-  return released;
-}
-inline void DevtoolManifestFetchRow::set_allocated_manifest_id(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  }
-  _impl_.manifest_id_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.manifest_id_.IsDefault()) {
-    _impl_.manifest_id_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolManifestFetchRow.manifest_id)
-}
-
-// string platform_id = 3;
-inline void DevtoolManifestFetchRow::clear_platform_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.platform_id_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
-}
-inline const ::std::string& DevtoolManifestFetchRow::platform_id() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestFetchRow.platform_id)
-  return _internal_platform_id();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolManifestFetchRow::set_platform_id(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  _impl_.platform_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestFetchRow.platform_id)
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestFetchRow::mutable_platform_id()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  ::std::string* _s = _internal_mutable_platform_id();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolManifestFetchRow.platform_id)
-  return _s;
-}
-inline const ::std::string& DevtoolManifestFetchRow::_internal_platform_id() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.platform_id_.Get();
-}
-inline void DevtoolManifestFetchRow::_internal_set_platform_id(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.platform_id_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestFetchRow::_internal_mutable_platform_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.platform_id_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestFetchRow::release_platform_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolManifestFetchRow.platform_id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
-  auto* released = _impl_.platform_id_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.platform_id_.Set("", GetArena());
-  }
-  return released;
-}
-inline void DevtoolManifestFetchRow::set_allocated_platform_id(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
-  }
-  _impl_.platform_id_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.platform_id_.IsDefault()) {
-    _impl_.platform_id_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolManifestFetchRow.platform_id)
-}
-
-// string build_type = 4;
-inline void DevtoolManifestFetchRow::clear_build_type() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.build_type_.ClearToEmpty();
+  _impl_.project_id_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000008U);
 }
-inline const ::std::string& DevtoolManifestFetchRow::build_type() const
+inline const ::std::string& DevtoolStatusProject::project_id() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestFetchRow.build_type)
-  return _internal_build_type();
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusProject.project_id)
+  return _internal_project_id();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolManifestFetchRow::set_build_type(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusProject::set_project_id(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  _impl_.build_type_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestFetchRow.build_type)
+  _impl_.project_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusProject.project_id)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestFetchRow::mutable_build_type()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusProject::mutable_project_id()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  ::std::string* _s = _internal_mutable_build_type();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolManifestFetchRow.build_type)
+  ::std::string* _s = _internal_mutable_project_id();
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusProject.project_id)
   return _s;
 }
-inline const ::std::string& DevtoolManifestFetchRow::_internal_build_type() const {
+inline const ::std::string& DevtoolStatusProject::_internal_project_id() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.build_type_.Get();
+  return _impl_.project_id_.Get();
 }
-inline void DevtoolManifestFetchRow::_internal_set_build_type(const ::std::string& value) {
+inline void DevtoolStatusProject::_internal_set_project_id(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.build_type_.Set(value, GetArena());
+  _impl_.project_id_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestFetchRow::_internal_mutable_build_type() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusProject::_internal_mutable_project_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.build_type_.Mutable( GetArena());
+  return _impl_.project_id_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestFetchRow::release_build_type() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusProject::release_project_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolManifestFetchRow.build_type)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusProject.project_id)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
     return nullptr;
   }
   ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
-  auto* released = _impl_.build_type_.Release();
+  auto* released = _impl_.project_id_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.build_type_.Set("", GetArena());
+    _impl_.project_id_.Set("", GetArena());
   }
   return released;
 }
-inline void DevtoolManifestFetchRow::set_allocated_build_type(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusProject::set_allocated_project_id(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   } else {
     ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   }
-  _impl_.build_type_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.build_type_.IsDefault()) {
-    _impl_.build_type_.Set("", GetArena());
+  _impl_.project_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.project_id_.IsDefault()) {
+    _impl_.project_id_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolManifestFetchRow.build_type)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusProject.project_id)
 }
 
-// string remote_id = 5;
-inline void DevtoolManifestFetchRow::clear_remote_id() {
+// repeated string startup_plugins = 2;
+inline int DevtoolStatusProject::_internal_startup_plugins_size() const {
+  return _internal_startup_plugins().size();
+}
+inline int DevtoolStatusProject::startup_plugins_size() const {
+  return _internal_startup_plugins_size();
+}
+inline void DevtoolStatusProject::clear_startup_plugins() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.remote_id_.ClearToEmpty();
+  _impl_.startup_plugins_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusProject::add_startup_plugins()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_startup_plugins()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.devtool.status.DevtoolStatusProject.startup_plugins)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusProject::startup_plugins(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusProject.startup_plugins)
+  return _internal_startup_plugins().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusProject::mutable_startup_plugins(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusProject.startup_plugins)
+  return _internal_mutable_startup_plugins()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusProject::set_startup_plugins(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_startup_plugins()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusProject.startup_plugins)
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusProject::add_startup_plugins(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_startup_plugins(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:bldr.devtool.status.DevtoolStatusProject.startup_plugins)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& DevtoolStatusProject::startup_plugins()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.devtool.status.DevtoolStatusProject.startup_plugins)
+  return _internal_startup_plugins();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusProject::mutable_startup_plugins() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.devtool.status.DevtoolStatusProject.startup_plugins)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_startup_plugins();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+DevtoolStatusProject::_internal_startup_plugins() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.startup_plugins_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusProject::_internal_mutable_startup_plugins() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.startup_plugins_;
+}
+
+// string web_startup_path = 3;
+inline void DevtoolStatusProject::clear_web_startup_path() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.web_startup_path_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000010U);
 }
-inline const ::std::string& DevtoolManifestFetchRow::remote_id() const
+inline const ::std::string& DevtoolStatusProject::web_startup_path() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestFetchRow.remote_id)
-  return _internal_remote_id();
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusProject.web_startup_path)
+  return _internal_web_startup_path();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolManifestFetchRow::set_remote_id(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusProject::set_web_startup_path(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000010U);
-  _impl_.remote_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestFetchRow.remote_id)
+  _impl_.web_startup_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusProject.web_startup_path)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestFetchRow::mutable_remote_id()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusProject::mutable_web_startup_path()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000010U);
-  ::std::string* _s = _internal_mutable_remote_id();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolManifestFetchRow.remote_id)
+  ::std::string* _s = _internal_mutable_web_startup_path();
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusProject.web_startup_path)
   return _s;
 }
-inline const ::std::string& DevtoolManifestFetchRow::_internal_remote_id() const {
+inline const ::std::string& DevtoolStatusProject::_internal_web_startup_path() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.remote_id_.Get();
+  return _impl_.web_startup_path_.Get();
 }
-inline void DevtoolManifestFetchRow::_internal_set_remote_id(const ::std::string& value) {
+inline void DevtoolStatusProject::_internal_set_web_startup_path(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.remote_id_.Set(value, GetArena());
+  _impl_.web_startup_path_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestFetchRow::_internal_mutable_remote_id() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusProject::_internal_mutable_web_startup_path() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.remote_id_.Mutable( GetArena());
+  return _impl_.web_startup_path_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestFetchRow::release_remote_id() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusProject::release_web_startup_path() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolManifestFetchRow.remote_id)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusProject.web_startup_path)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
     return nullptr;
   }
   ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
-  auto* released = _impl_.remote_id_.Release();
+  auto* released = _impl_.web_startup_path_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.remote_id_.Set("", GetArena());
+    _impl_.web_startup_path_.Set("", GetArena());
   }
   return released;
 }
-inline void DevtoolManifestFetchRow::set_allocated_remote_id(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusProject::set_allocated_web_startup_path(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   } else {
     ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   }
-  _impl_.remote_id_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.remote_id_.IsDefault()) {
-    _impl_.remote_id_.Set("", GetArena());
+  _impl_.web_startup_path_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.web_startup_path_.IsDefault()) {
+    _impl_.web_startup_path_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolManifestFetchRow.remote_id)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusProject.web_startup_path)
 }
 
-// .bldr.devtool.status.DevtoolManifestState state = 6;
-inline void DevtoolManifestFetchRow::clear_state() {
+// repeated string manifest_ids = 4;
+inline int DevtoolStatusProject::_internal_manifest_ids_size() const {
+  return _internal_manifest_ids().size();
+}
+inline int DevtoolStatusProject::manifest_ids_size() const {
+  return _internal_manifest_ids_size();
+}
+inline void DevtoolStatusProject::clear_manifest_ids() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.state_ = 0;
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000200U);
+  _impl_.manifest_ids_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
 }
-inline ::bldr::devtool::status::DevtoolManifestState DevtoolManifestFetchRow::state() const {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestFetchRow.state)
-  return _internal_state();
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusProject::add_manifest_ids()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_manifest_ids()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.devtool.status.DevtoolStatusProject.manifest_ids)
+  return _s;
 }
-inline void DevtoolManifestFetchRow::set_state(::bldr::devtool::status::DevtoolManifestState value) {
-  _internal_set_state(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestFetchRow.state)
+inline const ::std::string& DevtoolStatusProject::manifest_ids(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusProject.manifest_ids)
+  return _internal_manifest_ids().Get(index);
 }
-inline ::bldr::devtool::status::DevtoolManifestState DevtoolManifestFetchRow::_internal_state() const {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusProject::mutable_manifest_ids(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusProject.manifest_ids)
+  return _internal_mutable_manifest_ids()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusProject::set_manifest_ids(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_manifest_ids()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusProject.manifest_ids)
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusProject::add_manifest_ids(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_manifest_ids(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:bldr.devtool.status.DevtoolStatusProject.manifest_ids)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& DevtoolStatusProject::manifest_ids()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.devtool.status.DevtoolStatusProject.manifest_ids)
+  return _internal_manifest_ids();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusProject::mutable_manifest_ids() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.devtool.status.DevtoolStatusProject.manifest_ids)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_manifest_ids();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+DevtoolStatusProject::_internal_manifest_ids() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return static_cast<::bldr::devtool::status::DevtoolManifestState>(_impl_.state_);
+  return _impl_.manifest_ids_;
 }
-inline void DevtoolManifestFetchRow::_internal_set_state(::bldr::devtool::status::DevtoolManifestState value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.state_ = value;
-}
-
-// int32 ready_ref_count = 7;
-inline void DevtoolManifestFetchRow::clear_ready_ref_count() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.ready_ref_count_ = 0;
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000400U);
-}
-inline ::int32_t DevtoolManifestFetchRow::ready_ref_count() const {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestFetchRow.ready_ref_count)
-  return _internal_ready_ref_count();
-}
-inline void DevtoolManifestFetchRow::set_ready_ref_count(::int32_t value) {
-  _internal_set_ready_ref_count(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestFetchRow.ready_ref_count)
-}
-inline ::int32_t DevtoolManifestFetchRow::_internal_ready_ref_count() const {
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusProject::_internal_mutable_manifest_ids() {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.ready_ref_count_;
-}
-inline void DevtoolManifestFetchRow::_internal_set_ready_ref_count(::int32_t value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.ready_ref_count_ = value;
+  return &_impl_.manifest_ids_;
 }
 
-// string ready_refs = 8;
-inline void DevtoolManifestFetchRow::clear_ready_refs() {
+// repeated .bldr.devtool.status.DevtoolStatusBuildTarget build_targets = 5;
+inline int DevtoolStatusProject::_internal_build_targets_size() const {
+  return _internal_build_targets().size();
+}
+inline int DevtoolStatusProject::build_targets_size() const {
+  return _internal_build_targets_size();
+}
+inline void DevtoolStatusProject::clear_build_targets() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.ready_refs_.ClearToEmpty();
+  _impl_.build_targets_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::bldr::devtool::status::DevtoolStatusBuildTarget* PROTOBUF_NONNULL DevtoolStatusProject::mutable_build_targets(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusProject.build_targets)
+  return _internal_mutable_build_targets()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusBuildTarget>* PROTOBUF_NONNULL DevtoolStatusProject::mutable_build_targets()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.devtool.status.DevtoolStatusProject.build_targets)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_build_targets();
+}
+inline const ::bldr::devtool::status::DevtoolStatusBuildTarget& DevtoolStatusProject::build_targets(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusProject.build_targets)
+  return _internal_build_targets().Get(index);
+}
+inline ::bldr::devtool::status::DevtoolStatusBuildTarget* PROTOBUF_NONNULL DevtoolStatusProject::add_build_targets()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::bldr::devtool::status::DevtoolStatusBuildTarget* _add =
+      _internal_mutable_build_targets()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_add:bldr.devtool.status.DevtoolStatusProject.build_targets)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusBuildTarget>& DevtoolStatusProject::build_targets() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.devtool.status.DevtoolStatusProject.build_targets)
+  return _internal_build_targets();
+}
+inline const ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusBuildTarget>&
+DevtoolStatusProject::_internal_build_targets() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.build_targets_;
+}
+inline ::google::protobuf::RepeatedPtrField<::bldr::devtool::status::DevtoolStatusBuildTarget>* PROTOBUF_NONNULL
+DevtoolStatusProject::_internal_mutable_build_targets() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.build_targets_;
+}
+
+// -------------------------------------------------------------------
+
+// DevtoolStatusBuildTarget
+
+// string id = 1;
+inline void DevtoolStatusBuildTarget::clear_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000020U);
 }
-inline const ::std::string& DevtoolManifestFetchRow::ready_refs() const
+inline const ::std::string& DevtoolStatusBuildTarget::id() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestFetchRow.ready_refs)
-  return _internal_ready_refs();
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusBuildTarget.id)
+  return _internal_id();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolManifestFetchRow::set_ready_refs(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusBuildTarget::set_id(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000020U);
-  _impl_.ready_refs_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestFetchRow.ready_refs)
+  _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusBuildTarget.id)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestFetchRow::mutable_ready_refs()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusBuildTarget::mutable_id()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000020U);
-  ::std::string* _s = _internal_mutable_ready_refs();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolManifestFetchRow.ready_refs)
+  ::std::string* _s = _internal_mutable_id();
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusBuildTarget.id)
   return _s;
 }
-inline const ::std::string& DevtoolManifestFetchRow::_internal_ready_refs() const {
+inline const ::std::string& DevtoolStatusBuildTarget::_internal_id() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.ready_refs_.Get();
+  return _impl_.id_.Get();
 }
-inline void DevtoolManifestFetchRow::_internal_set_ready_refs(const ::std::string& value) {
+inline void DevtoolStatusBuildTarget::_internal_set_id(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.ready_refs_.Set(value, GetArena());
+  _impl_.id_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestFetchRow::_internal_mutable_ready_refs() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusBuildTarget::_internal_mutable_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.ready_refs_.Mutable( GetArena());
+  return _impl_.id_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestFetchRow::release_ready_refs() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusBuildTarget::release_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolManifestFetchRow.ready_refs)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusBuildTarget.id)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
     return nullptr;
   }
   ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
-  auto* released = _impl_.ready_refs_.Release();
+  auto* released = _impl_.id_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.ready_refs_.Set("", GetArena());
+    _impl_.id_.Set("", GetArena());
   }
   return released;
 }
-inline void DevtoolManifestFetchRow::set_allocated_ready_refs(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusBuildTarget::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   } else {
     ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   }
-  _impl_.ready_refs_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.ready_refs_.IsDefault()) {
-    _impl_.ready_refs_.Set("", GetArena());
+  _impl_.id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
+    _impl_.id_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolManifestFetchRow.ready_refs)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusBuildTarget.id)
 }
 
-// string local_build_ids = 9;
-inline void DevtoolManifestFetchRow::clear_local_build_ids() {
+// repeated string manifest_ids = 2;
+inline int DevtoolStatusBuildTarget::_internal_manifest_ids_size() const {
+  return _internal_manifest_ids().size();
+}
+inline int DevtoolStatusBuildTarget::manifest_ids_size() const {
+  return _internal_manifest_ids_size();
+}
+inline void DevtoolStatusBuildTarget::clear_manifest_ids() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.local_build_ids_.ClearToEmpty();
+  _impl_.manifest_ids_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusBuildTarget::add_manifest_ids()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_manifest_ids()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.devtool.status.DevtoolStatusBuildTarget.manifest_ids)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusBuildTarget::manifest_ids(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusBuildTarget.manifest_ids)
+  return _internal_manifest_ids().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusBuildTarget::mutable_manifest_ids(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusBuildTarget.manifest_ids)
+  return _internal_mutable_manifest_ids()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusBuildTarget::set_manifest_ids(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_manifest_ids()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusBuildTarget.manifest_ids)
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusBuildTarget::add_manifest_ids(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_manifest_ids(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:bldr.devtool.status.DevtoolStatusBuildTarget.manifest_ids)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& DevtoolStatusBuildTarget::manifest_ids()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.devtool.status.DevtoolStatusBuildTarget.manifest_ids)
+  return _internal_manifest_ids();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusBuildTarget::mutable_manifest_ids() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.devtool.status.DevtoolStatusBuildTarget.manifest_ids)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_manifest_ids();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+DevtoolStatusBuildTarget::_internal_manifest_ids() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.manifest_ids_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusBuildTarget::_internal_mutable_manifest_ids() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.manifest_ids_;
+}
+
+// repeated string configured_target_ids = 3;
+inline int DevtoolStatusBuildTarget::_internal_configured_target_ids_size() const {
+  return _internal_configured_target_ids().size();
+}
+inline int DevtoolStatusBuildTarget::configured_target_ids_size() const {
+  return _internal_configured_target_ids_size();
+}
+inline void DevtoolStatusBuildTarget::clear_configured_target_ids() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.configured_target_ids_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusBuildTarget::add_configured_target_ids()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_configured_target_ids()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.devtool.status.DevtoolStatusBuildTarget.configured_target_ids)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusBuildTarget::configured_target_ids(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusBuildTarget.configured_target_ids)
+  return _internal_configured_target_ids().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusBuildTarget::mutable_configured_target_ids(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusBuildTarget.configured_target_ids)
+  return _internal_mutable_configured_target_ids()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusBuildTarget::set_configured_target_ids(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_configured_target_ids()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusBuildTarget.configured_target_ids)
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusBuildTarget::add_configured_target_ids(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_configured_target_ids(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:bldr.devtool.status.DevtoolStatusBuildTarget.configured_target_ids)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& DevtoolStatusBuildTarget::configured_target_ids()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.devtool.status.DevtoolStatusBuildTarget.configured_target_ids)
+  return _internal_configured_target_ids();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusBuildTarget::mutable_configured_target_ids() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.devtool.status.DevtoolStatusBuildTarget.configured_target_ids)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_configured_target_ids();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+DevtoolStatusBuildTarget::_internal_configured_target_ids() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.configured_target_ids_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusBuildTarget::_internal_mutable_configured_target_ids() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.configured_target_ids_;
+}
+
+// repeated string explicit_platform_ids = 4;
+inline int DevtoolStatusBuildTarget::_internal_explicit_platform_ids_size() const {
+  return _internal_explicit_platform_ids().size();
+}
+inline int DevtoolStatusBuildTarget::explicit_platform_ids_size() const {
+  return _internal_explicit_platform_ids_size();
+}
+inline void DevtoolStatusBuildTarget::clear_explicit_platform_ids() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.explicit_platform_ids_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusBuildTarget::add_explicit_platform_ids()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_explicit_platform_ids()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.devtool.status.DevtoolStatusBuildTarget.explicit_platform_ids)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusBuildTarget::explicit_platform_ids(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusBuildTarget.explicit_platform_ids)
+  return _internal_explicit_platform_ids().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusBuildTarget::mutable_explicit_platform_ids(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusBuildTarget.explicit_platform_ids)
+  return _internal_mutable_explicit_platform_ids()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusBuildTarget::set_explicit_platform_ids(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_explicit_platform_ids()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusBuildTarget.explicit_platform_ids)
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusBuildTarget::add_explicit_platform_ids(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_explicit_platform_ids(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_add:bldr.devtool.status.DevtoolStatusBuildTarget.explicit_platform_ids)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& DevtoolStatusBuildTarget::explicit_platform_ids()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.devtool.status.DevtoolStatusBuildTarget.explicit_platform_ids)
+  return _internal_explicit_platform_ids();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusBuildTarget::mutable_explicit_platform_ids() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.devtool.status.DevtoolStatusBuildTarget.explicit_platform_ids)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_explicit_platform_ids();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+DevtoolStatusBuildTarget::_internal_explicit_platform_ids() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.explicit_platform_ids_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusBuildTarget::_internal_mutable_explicit_platform_ids() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.explicit_platform_ids_;
+}
+
+// repeated string resolved_platform_ids = 5;
+inline int DevtoolStatusBuildTarget::_internal_resolved_platform_ids_size() const {
+  return _internal_resolved_platform_ids().size();
+}
+inline int DevtoolStatusBuildTarget::resolved_platform_ids_size() const {
+  return _internal_resolved_platform_ids_size();
+}
+inline void DevtoolStatusBuildTarget::clear_resolved_platform_ids() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.resolved_platform_ids_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusBuildTarget::add_resolved_platform_ids()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_resolved_platform_ids()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.devtool.status.DevtoolStatusBuildTarget.resolved_platform_ids)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusBuildTarget::resolved_platform_ids(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusBuildTarget.resolved_platform_ids)
+  return _internal_resolved_platform_ids().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusBuildTarget::mutable_resolved_platform_ids(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusBuildTarget.resolved_platform_ids)
+  return _internal_mutable_resolved_platform_ids()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusBuildTarget::set_resolved_platform_ids(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_resolved_platform_ids()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusBuildTarget.resolved_platform_ids)
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusBuildTarget::add_resolved_platform_ids(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_resolved_platform_ids(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_add:bldr.devtool.status.DevtoolStatusBuildTarget.resolved_platform_ids)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& DevtoolStatusBuildTarget::resolved_platform_ids()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.devtool.status.DevtoolStatusBuildTarget.resolved_platform_ids)
+  return _internal_resolved_platform_ids();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusBuildTarget::mutable_resolved_platform_ids() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.devtool.status.DevtoolStatusBuildTarget.resolved_platform_ids)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_resolved_platform_ids();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+DevtoolStatusBuildTarget::_internal_resolved_platform_ids() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.resolved_platform_ids_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusBuildTarget::_internal_mutable_resolved_platform_ids() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.resolved_platform_ids_;
+}
+
+// repeated string build_types = 6;
+inline int DevtoolStatusBuildTarget::_internal_build_types_size() const {
+  return _internal_build_types().size();
+}
+inline int DevtoolStatusBuildTarget::build_types_size() const {
+  return _internal_build_types_size();
+}
+inline void DevtoolStatusBuildTarget::clear_build_types() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.build_types_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusBuildTarget::add_build_types()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_build_types()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.devtool.status.DevtoolStatusBuildTarget.build_types)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusBuildTarget::build_types(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusBuildTarget.build_types)
+  return _internal_build_types().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusBuildTarget::mutable_build_types(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusBuildTarget.build_types)
+  return _internal_mutable_build_types()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusBuildTarget::set_build_types(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_build_types()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusBuildTarget.build_types)
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusBuildTarget::add_build_types(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_build_types(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_add:bldr.devtool.status.DevtoolStatusBuildTarget.build_types)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& DevtoolStatusBuildTarget::build_types()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.devtool.status.DevtoolStatusBuildTarget.build_types)
+  return _internal_build_types();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusBuildTarget::mutable_build_types() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.devtool.status.DevtoolStatusBuildTarget.build_types)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_build_types();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+DevtoolStatusBuildTarget::_internal_build_types() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.build_types_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusBuildTarget::_internal_mutable_build_types() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.build_types_;
+}
+
+// string error = 7;
+inline void DevtoolStatusBuildTarget::clear_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000040U);
 }
-inline const ::std::string& DevtoolManifestFetchRow::local_build_ids() const
+inline const ::std::string& DevtoolStatusBuildTarget::error() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestFetchRow.local_build_ids)
-  return _internal_local_build_ids();
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusBuildTarget.error)
+  return _internal_error();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolManifestFetchRow::set_local_build_ids(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusBuildTarget::set_error(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000040U);
-  _impl_.local_build_ids_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestFetchRow.local_build_ids)
+  _impl_.error_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusBuildTarget.error)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestFetchRow::mutable_local_build_ids()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusBuildTarget::mutable_error()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000040U);
-  ::std::string* _s = _internal_mutable_local_build_ids();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolManifestFetchRow.local_build_ids)
+  ::std::string* _s = _internal_mutable_error();
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusBuildTarget.error)
   return _s;
 }
-inline const ::std::string& DevtoolManifestFetchRow::_internal_local_build_ids() const {
+inline const ::std::string& DevtoolStatusBuildTarget::_internal_error() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.local_build_ids_.Get();
+  return _impl_.error_.Get();
 }
-inline void DevtoolManifestFetchRow::_internal_set_local_build_ids(const ::std::string& value) {
+inline void DevtoolStatusBuildTarget::_internal_set_error(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.local_build_ids_.Set(value, GetArena());
+  _impl_.error_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestFetchRow::_internal_mutable_local_build_ids() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusBuildTarget::_internal_mutable_error() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.local_build_ids_.Mutable( GetArena());
+  return _impl_.error_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestFetchRow::release_local_build_ids() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusBuildTarget::release_error() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolManifestFetchRow.local_build_ids)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusBuildTarget.error)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
     return nullptr;
   }
   ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
-  auto* released = _impl_.local_build_ids_.Release();
+  auto* released = _impl_.error_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.local_build_ids_.Set("", GetArena());
+    _impl_.error_.Set("", GetArena());
   }
   return released;
 }
-inline void DevtoolManifestFetchRow::set_allocated_local_build_ids(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusBuildTarget::set_allocated_error(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   } else {
     ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
   }
-  _impl_.local_build_ids_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.local_build_ids_.IsDefault()) {
-    _impl_.local_build_ids_.Set("", GetArena());
+  _impl_.error_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.error_.IsDefault()) {
+    _impl_.error_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolManifestFetchRow.local_build_ids)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusBuildTarget.error)
+}
+
+// -------------------------------------------------------------------
+
+// DevtoolStatusManifestFetchRow
+
+// string id = 1;
+inline void DevtoolStatusManifestFetchRow::clear_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& DevtoolStatusManifestFetchRow::id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestFetchRow.id)
+  return _internal_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusManifestFetchRow::set_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestFetchRow.id)
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::mutable_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_id();
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusManifestFetchRow.id)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusManifestFetchRow::_internal_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.id_.Get();
+}
+inline void DevtoolStatusManifestFetchRow::_internal_set_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::_internal_mutable_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusManifestFetchRow::release_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusManifestFetchRow.id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DevtoolStatusManifestFetchRow::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusManifestFetchRow.id)
+}
+
+// string manifest_id = 2;
+inline void DevtoolStatusManifestFetchRow::clear_manifest_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.manifest_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::std::string& DevtoolStatusManifestFetchRow::manifest_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestFetchRow.manifest_id)
+  return _internal_manifest_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusManifestFetchRow::set_manifest_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  _impl_.manifest_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestFetchRow.manifest_id)
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::mutable_manifest_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::std::string* _s = _internal_mutable_manifest_id();
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusManifestFetchRow.manifest_id)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusManifestFetchRow::_internal_manifest_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.manifest_id_.Get();
+}
+inline void DevtoolStatusManifestFetchRow::_internal_set_manifest_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.manifest_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::_internal_mutable_manifest_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.manifest_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusManifestFetchRow::release_manifest_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusManifestFetchRow.manifest_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  auto* released = _impl_.manifest_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.manifest_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DevtoolStatusManifestFetchRow::set_allocated_manifest_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  _impl_.manifest_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.manifest_id_.IsDefault()) {
+    _impl_.manifest_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusManifestFetchRow.manifest_id)
+}
+
+// repeated string platform_ids = 3;
+inline int DevtoolStatusManifestFetchRow::_internal_platform_ids_size() const {
+  return _internal_platform_ids().size();
+}
+inline int DevtoolStatusManifestFetchRow::platform_ids_size() const {
+  return _internal_platform_ids_size();
+}
+inline void DevtoolStatusManifestFetchRow::clear_platform_ids() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.platform_ids_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::add_platform_ids()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_platform_ids()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.devtool.status.DevtoolStatusManifestFetchRow.platform_ids)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusManifestFetchRow::platform_ids(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestFetchRow.platform_ids)
+  return _internal_platform_ids().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::mutable_platform_ids(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusManifestFetchRow.platform_ids)
+  return _internal_mutable_platform_ids()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusManifestFetchRow::set_platform_ids(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_platform_ids()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestFetchRow.platform_ids)
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusManifestFetchRow::add_platform_ids(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_platform_ids(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:bldr.devtool.status.DevtoolStatusManifestFetchRow.platform_ids)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& DevtoolStatusManifestFetchRow::platform_ids()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.devtool.status.DevtoolStatusManifestFetchRow.platform_ids)
+  return _internal_platform_ids();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusManifestFetchRow::mutable_platform_ids() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.devtool.status.DevtoolStatusManifestFetchRow.platform_ids)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_platform_ids();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+DevtoolStatusManifestFetchRow::_internal_platform_ids() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.platform_ids_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusManifestFetchRow::_internal_mutable_platform_ids() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.platform_ids_;
+}
+
+// repeated string build_types = 4;
+inline int DevtoolStatusManifestFetchRow::_internal_build_types_size() const {
+  return _internal_build_types().size();
+}
+inline int DevtoolStatusManifestFetchRow::build_types_size() const {
+  return _internal_build_types_size();
+}
+inline void DevtoolStatusManifestFetchRow::clear_build_types() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.build_types_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::add_build_types()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_build_types()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.devtool.status.DevtoolStatusManifestFetchRow.build_types)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusManifestFetchRow::build_types(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestFetchRow.build_types)
+  return _internal_build_types().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::mutable_build_types(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusManifestFetchRow.build_types)
+  return _internal_mutable_build_types()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusManifestFetchRow::set_build_types(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_build_types()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestFetchRow.build_types)
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusManifestFetchRow::add_build_types(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_build_types(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:bldr.devtool.status.DevtoolStatusManifestFetchRow.build_types)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& DevtoolStatusManifestFetchRow::build_types()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.devtool.status.DevtoolStatusManifestFetchRow.build_types)
+  return _internal_build_types();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusManifestFetchRow::mutable_build_types() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.devtool.status.DevtoolStatusManifestFetchRow.build_types)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_build_types();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+DevtoolStatusManifestFetchRow::_internal_build_types() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.build_types_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusManifestFetchRow::_internal_mutable_build_types() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.build_types_;
+}
+
+// repeated string remote_ids = 5;
+inline int DevtoolStatusManifestFetchRow::_internal_remote_ids_size() const {
+  return _internal_remote_ids().size();
+}
+inline int DevtoolStatusManifestFetchRow::remote_ids_size() const {
+  return _internal_remote_ids_size();
+}
+inline void DevtoolStatusManifestFetchRow::clear_remote_ids() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.remote_ids_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::add_remote_ids()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_remote_ids()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.devtool.status.DevtoolStatusManifestFetchRow.remote_ids)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusManifestFetchRow::remote_ids(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestFetchRow.remote_ids)
+  return _internal_remote_ids().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::mutable_remote_ids(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusManifestFetchRow.remote_ids)
+  return _internal_mutable_remote_ids()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusManifestFetchRow::set_remote_ids(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_remote_ids()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestFetchRow.remote_ids)
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusManifestFetchRow::add_remote_ids(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_remote_ids(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_add:bldr.devtool.status.DevtoolStatusManifestFetchRow.remote_ids)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& DevtoolStatusManifestFetchRow::remote_ids()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.devtool.status.DevtoolStatusManifestFetchRow.remote_ids)
+  return _internal_remote_ids();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusManifestFetchRow::mutable_remote_ids() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.devtool.status.DevtoolStatusManifestFetchRow.remote_ids)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_remote_ids();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+DevtoolStatusManifestFetchRow::_internal_remote_ids() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.remote_ids_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusManifestFetchRow::_internal_mutable_remote_ids() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.remote_ids_;
+}
+
+// .bldr.devtool.status.DevtoolStatusManifestState state = 6;
+inline void DevtoolStatusManifestFetchRow::clear_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.state_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline ::bldr::devtool::status::DevtoolStatusManifestState DevtoolStatusManifestFetchRow::state() const {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestFetchRow.state)
+  return _internal_state();
+}
+inline void DevtoolStatusManifestFetchRow::set_state(::bldr::devtool::status::DevtoolStatusManifestState value) {
+  _internal_set_state(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestFetchRow.state)
+}
+inline ::bldr::devtool::status::DevtoolStatusManifestState DevtoolStatusManifestFetchRow::_internal_state() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::bldr::devtool::status::DevtoolStatusManifestState>(_impl_.state_);
+}
+inline void DevtoolStatusManifestFetchRow::_internal_set_state(::bldr::devtool::status::DevtoolStatusManifestState value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.state_ = value;
+}
+
+// uint32 ready_ref_count = 7;
+inline void DevtoolStatusManifestFetchRow::clear_ready_ref_count() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ready_ref_count_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
+}
+inline ::uint32_t DevtoolStatusManifestFetchRow::ready_ref_count() const {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestFetchRow.ready_ref_count)
+  return _internal_ready_ref_count();
+}
+inline void DevtoolStatusManifestFetchRow::set_ready_ref_count(::uint32_t value) {
+  _internal_set_ready_ref_count(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestFetchRow.ready_ref_count)
+}
+inline ::uint32_t DevtoolStatusManifestFetchRow::_internal_ready_ref_count() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.ready_ref_count_;
+}
+inline void DevtoolStatusManifestFetchRow::_internal_set_ready_ref_count(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ready_ref_count_ = value;
+}
+
+// string ready_refs = 8;
+inline void DevtoolStatusManifestFetchRow::clear_ready_refs() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ready_refs_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::std::string& DevtoolStatusManifestFetchRow::ready_refs() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestFetchRow.ready_refs)
+  return _internal_ready_refs();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusManifestFetchRow::set_ready_refs(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  _impl_.ready_refs_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestFetchRow.ready_refs)
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::mutable_ready_refs()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::std::string* _s = _internal_mutable_ready_refs();
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusManifestFetchRow.ready_refs)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusManifestFetchRow::_internal_ready_refs() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.ready_refs_.Get();
+}
+inline void DevtoolStatusManifestFetchRow::_internal_set_ready_refs(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ready_refs_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::_internal_mutable_ready_refs() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.ready_refs_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusManifestFetchRow::release_ready_refs() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusManifestFetchRow.ready_refs)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  auto* released = _impl_.ready_refs_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.ready_refs_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DevtoolStatusManifestFetchRow::set_allocated_ready_refs(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  _impl_.ready_refs_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.ready_refs_.IsDefault()) {
+    _impl_.ready_refs_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusManifestFetchRow.ready_refs)
+}
+
+// repeated string local_build_ids = 9;
+inline int DevtoolStatusManifestFetchRow::_internal_local_build_ids_size() const {
+  return _internal_local_build_ids().size();
+}
+inline int DevtoolStatusManifestFetchRow::local_build_ids_size() const {
+  return _internal_local_build_ids_size();
+}
+inline void DevtoolStatusManifestFetchRow::clear_local_build_ids() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.local_build_ids_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::add_local_build_ids()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_local_build_ids()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.devtool.status.DevtoolStatusManifestFetchRow.local_build_ids)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusManifestFetchRow::local_build_ids(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestFetchRow.local_build_ids)
+  return _internal_local_build_ids().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::mutable_local_build_ids(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusManifestFetchRow.local_build_ids)
+  return _internal_mutable_local_build_ids()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusManifestFetchRow::set_local_build_ids(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_local_build_ids()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestFetchRow.local_build_ids)
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusManifestFetchRow::add_local_build_ids(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_local_build_ids(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_add:bldr.devtool.status.DevtoolStatusManifestFetchRow.local_build_ids)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& DevtoolStatusManifestFetchRow::local_build_ids()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.devtool.status.DevtoolStatusManifestFetchRow.local_build_ids)
+  return _internal_local_build_ids();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusManifestFetchRow::mutable_local_build_ids() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.devtool.status.DevtoolStatusManifestFetchRow.local_build_ids)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_local_build_ids();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+DevtoolStatusManifestFetchRow::_internal_local_build_ids() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.local_build_ids_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusManifestFetchRow::_internal_mutable_local_build_ids() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.local_build_ids_;
 }
 
 // bool blocked_on_local_build = 10;
-inline void DevtoolManifestFetchRow::clear_blocked_on_local_build() {
+inline void DevtoolStatusManifestFetchRow::clear_blocked_on_local_build() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.blocked_on_local_build_ = false;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000800U);
 }
-inline bool DevtoolManifestFetchRow::blocked_on_local_build() const {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestFetchRow.blocked_on_local_build)
+inline bool DevtoolStatusManifestFetchRow::blocked_on_local_build() const {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestFetchRow.blocked_on_local_build)
   return _internal_blocked_on_local_build();
 }
-inline void DevtoolManifestFetchRow::set_blocked_on_local_build(bool value) {
+inline void DevtoolStatusManifestFetchRow::set_blocked_on_local_build(bool value) {
   _internal_set_blocked_on_local_build(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000800U);
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestFetchRow.blocked_on_local_build)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestFetchRow.blocked_on_local_build)
 }
-inline bool DevtoolManifestFetchRow::_internal_blocked_on_local_build() const {
+inline bool DevtoolStatusManifestFetchRow::_internal_blocked_on_local_build() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.blocked_on_local_build_;
 }
-inline void DevtoolManifestFetchRow::_internal_set_blocked_on_local_build(bool value) {
+inline void DevtoolStatusManifestFetchRow::_internal_set_blocked_on_local_build(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.blocked_on_local_build_ = value;
 }
 
 // string summary = 11;
-inline void DevtoolManifestFetchRow::clear_summary() {
+inline void DevtoolStatusManifestFetchRow::clear_summary() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.summary_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000080U);
 }
-inline const ::std::string& DevtoolManifestFetchRow::summary() const
+inline const ::std::string& DevtoolStatusManifestFetchRow::summary() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestFetchRow.summary)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestFetchRow.summary)
   return _internal_summary();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolManifestFetchRow::set_summary(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusManifestFetchRow::set_summary(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   _impl_.summary_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestFetchRow.summary)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestFetchRow.summary)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestFetchRow::mutable_summary()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::mutable_summary()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   ::std::string* _s = _internal_mutable_summary();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolManifestFetchRow.summary)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusManifestFetchRow.summary)
   return _s;
 }
-inline const ::std::string& DevtoolManifestFetchRow::_internal_summary() const {
+inline const ::std::string& DevtoolStatusManifestFetchRow::_internal_summary() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.summary_.Get();
 }
-inline void DevtoolManifestFetchRow::_internal_set_summary(const ::std::string& value) {
+inline void DevtoolStatusManifestFetchRow::_internal_set_summary(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.summary_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestFetchRow::_internal_mutable_summary() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::_internal_mutable_summary() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.summary_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestFetchRow::release_summary() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusManifestFetchRow::release_summary() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolManifestFetchRow.summary)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusManifestFetchRow.summary)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000080U)) {
     return nullptr;
   }
@@ -4184,7 +5817,7 @@ inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestFetchRow::release_summary
   }
   return released;
 }
-inline void DevtoolManifestFetchRow::set_allocated_summary(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusManifestFetchRow::set_allocated_summary(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000080U);
@@ -4195,50 +5828,50 @@ inline void DevtoolManifestFetchRow::set_allocated_summary(::std::string* PROTOB
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.summary_.IsDefault()) {
     _impl_.summary_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolManifestFetchRow.summary)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusManifestFetchRow.summary)
 }
 
 // string error = 12;
-inline void DevtoolManifestFetchRow::clear_error() {
+inline void DevtoolStatusManifestFetchRow::clear_error() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.error_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000100U);
 }
-inline const ::std::string& DevtoolManifestFetchRow::error() const
+inline const ::std::string& DevtoolStatusManifestFetchRow::error() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestFetchRow.error)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestFetchRow.error)
   return _internal_error();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolManifestFetchRow::set_error(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusManifestFetchRow::set_error(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   _impl_.error_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestFetchRow.error)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestFetchRow.error)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestFetchRow::mutable_error()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::mutable_error()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   ::std::string* _s = _internal_mutable_error();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolManifestFetchRow.error)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusManifestFetchRow.error)
   return _s;
 }
-inline const ::std::string& DevtoolManifestFetchRow::_internal_error() const {
+inline const ::std::string& DevtoolStatusManifestFetchRow::_internal_error() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.error_.Get();
 }
-inline void DevtoolManifestFetchRow::_internal_set_error(const ::std::string& value) {
+inline void DevtoolStatusManifestFetchRow::_internal_set_error(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.error_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestFetchRow::_internal_mutable_error() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::_internal_mutable_error() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.error_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestFetchRow::release_error() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusManifestFetchRow::release_error() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolManifestFetchRow.error)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusManifestFetchRow.error)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000100U)) {
     return nullptr;
   }
@@ -4249,7 +5882,7 @@ inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestFetchRow::release_error()
   }
   return released;
 }
-inline void DevtoolManifestFetchRow::set_allocated_error(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusManifestFetchRow::set_allocated_error(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000100U);
@@ -4260,379 +5893,393 @@ inline void DevtoolManifestFetchRow::set_allocated_error(::std::string* PROTOBUF
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.error_.IsDefault()) {
     _impl_.error_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolManifestFetchRow.error)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusManifestFetchRow.error)
 }
 
 // -------------------------------------------------------------------
 
-// DevtoolManifestBuildRow
+// DevtoolStatusManifestBuildRow
 
 // string id = 1;
-inline void DevtoolManifestBuildRow::clear_id() {
+inline void DevtoolStatusManifestBuildRow::clear_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.id_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
+                  0x00000004U);
 }
-inline const ::std::string& DevtoolManifestBuildRow::id() const
+inline const ::std::string& DevtoolStatusManifestBuildRow::id() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestBuildRow.id)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestBuildRow.id)
   return _internal_id();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolManifestBuildRow::set_id(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusManifestBuildRow::set_id(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestBuildRow.id)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestBuildRow.id)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestBuildRow::mutable_id()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::mutable_id()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::std::string* _s = _internal_mutable_id();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolManifestBuildRow.id)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusManifestBuildRow.id)
   return _s;
 }
-inline const ::std::string& DevtoolManifestBuildRow::_internal_id() const {
+inline const ::std::string& DevtoolStatusManifestBuildRow::_internal_id() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.id_.Get();
 }
-inline void DevtoolManifestBuildRow::_internal_set_id(const ::std::string& value) {
+inline void DevtoolStatusManifestBuildRow::_internal_set_id(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.id_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestBuildRow::_internal_mutable_id() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::_internal_mutable_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.id_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestBuildRow::release_id() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusManifestBuildRow::release_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolManifestBuildRow.id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusManifestBuildRow.id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   auto* released = _impl_.id_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.id_.Set("", GetArena());
   }
   return released;
 }
-inline void DevtoolManifestBuildRow::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  }
-  _impl_.id_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
-    _impl_.id_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolManifestBuildRow.id)
-}
-
-// string build_targets = 2;
-inline void DevtoolManifestBuildRow::clear_build_targets() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.build_targets_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
-}
-inline const ::std::string& DevtoolManifestBuildRow::build_targets() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestBuildRow.build_targets)
-  return _internal_build_targets();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolManifestBuildRow::set_build_targets(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  _impl_.build_targets_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestBuildRow.build_targets)
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestBuildRow::mutable_build_targets()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::std::string* _s = _internal_mutable_build_targets();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolManifestBuildRow.build_targets)
-  return _s;
-}
-inline const ::std::string& DevtoolManifestBuildRow::_internal_build_targets() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.build_targets_.Get();
-}
-inline void DevtoolManifestBuildRow::_internal_set_build_targets(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.build_targets_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestBuildRow::_internal_mutable_build_targets() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.build_targets_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestBuildRow::release_build_targets() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolManifestBuildRow.build_targets)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  auto* released = _impl_.build_targets_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.build_targets_.Set("", GetArena());
-  }
-  return released;
-}
-inline void DevtoolManifestBuildRow::set_allocated_build_targets(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  }
-  _impl_.build_targets_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.build_targets_.IsDefault()) {
-    _impl_.build_targets_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolManifestBuildRow.build_targets)
-}
-
-// string manifest_id = 3;
-inline void DevtoolManifestBuildRow::clear_manifest_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.manifest_id_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
-}
-inline const ::std::string& DevtoolManifestBuildRow::manifest_id() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestBuildRow.manifest_id)
-  return _internal_manifest_id();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolManifestBuildRow::set_manifest_id(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  _impl_.manifest_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestBuildRow.manifest_id)
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestBuildRow::mutable_manifest_id()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  ::std::string* _s = _internal_mutable_manifest_id();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolManifestBuildRow.manifest_id)
-  return _s;
-}
-inline const ::std::string& DevtoolManifestBuildRow::_internal_manifest_id() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.manifest_id_.Get();
-}
-inline void DevtoolManifestBuildRow::_internal_set_manifest_id(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.manifest_id_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestBuildRow::_internal_mutable_manifest_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.manifest_id_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestBuildRow::release_manifest_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolManifestBuildRow.manifest_id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
-  auto* released = _impl_.manifest_id_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.manifest_id_.Set("", GetArena());
-  }
-  return released;
-}
-inline void DevtoolManifestBuildRow::set_allocated_manifest_id(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusManifestBuildRow::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
     ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
-  _impl_.manifest_id_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.manifest_id_.IsDefault()) {
-    _impl_.manifest_id_.Set("", GetArena());
+  _impl_.id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
+    _impl_.id_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolManifestBuildRow.manifest_id)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusManifestBuildRow.id)
 }
 
-// string platform_id = 4;
-inline void DevtoolManifestBuildRow::clear_platform_id() {
+// repeated string build_target_ids = 2;
+inline int DevtoolStatusManifestBuildRow::_internal_build_target_ids_size() const {
+  return _internal_build_target_ids().size();
+}
+inline int DevtoolStatusManifestBuildRow::build_target_ids_size() const {
+  return _internal_build_target_ids_size();
+}
+inline void DevtoolStatusManifestBuildRow::clear_build_target_ids() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.platform_id_.ClearToEmpty();
+  _impl_.build_target_ids_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::add_build_target_ids()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_build_target_ids()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.devtool.status.DevtoolStatusManifestBuildRow.build_target_ids)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusManifestBuildRow::build_target_ids(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestBuildRow.build_target_ids)
+  return _internal_build_target_ids().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::mutable_build_target_ids(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusManifestBuildRow.build_target_ids)
+  return _internal_mutable_build_target_ids()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusManifestBuildRow::set_build_target_ids(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_build_target_ids()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestBuildRow.build_target_ids)
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusManifestBuildRow::add_build_target_ids(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_build_target_ids(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:bldr.devtool.status.DevtoolStatusManifestBuildRow.build_target_ids)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& DevtoolStatusManifestBuildRow::build_target_ids()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.devtool.status.DevtoolStatusManifestBuildRow.build_target_ids)
+  return _internal_build_target_ids();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusManifestBuildRow::mutable_build_target_ids() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.devtool.status.DevtoolStatusManifestBuildRow.build_target_ids)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_build_target_ids();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+DevtoolStatusManifestBuildRow::_internal_build_target_ids() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.build_target_ids_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusManifestBuildRow::_internal_mutable_build_target_ids() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.build_target_ids_;
+}
+
+// string manifest_id = 3;
+inline void DevtoolStatusManifestBuildRow::clear_manifest_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.manifest_id_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000008U);
 }
-inline const ::std::string& DevtoolManifestBuildRow::platform_id() const
+inline const ::std::string& DevtoolStatusManifestBuildRow::manifest_id() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestBuildRow.platform_id)
-  return _internal_platform_id();
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestBuildRow.manifest_id)
+  return _internal_manifest_id();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolManifestBuildRow::set_platform_id(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusManifestBuildRow::set_manifest_id(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  _impl_.platform_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestBuildRow.platform_id)
+  _impl_.manifest_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestBuildRow.manifest_id)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestBuildRow::mutable_platform_id()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::mutable_manifest_id()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  ::std::string* _s = _internal_mutable_platform_id();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolManifestBuildRow.platform_id)
+  ::std::string* _s = _internal_mutable_manifest_id();
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusManifestBuildRow.manifest_id)
   return _s;
 }
-inline const ::std::string& DevtoolManifestBuildRow::_internal_platform_id() const {
+inline const ::std::string& DevtoolStatusManifestBuildRow::_internal_manifest_id() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.platform_id_.Get();
+  return _impl_.manifest_id_.Get();
 }
-inline void DevtoolManifestBuildRow::_internal_set_platform_id(const ::std::string& value) {
+inline void DevtoolStatusManifestBuildRow::_internal_set_manifest_id(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.platform_id_.Set(value, GetArena());
+  _impl_.manifest_id_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestBuildRow::_internal_mutable_platform_id() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::_internal_mutable_manifest_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.platform_id_.Mutable( GetArena());
+  return _impl_.manifest_id_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestBuildRow::release_platform_id() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusManifestBuildRow::release_manifest_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolManifestBuildRow.platform_id)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusManifestBuildRow.manifest_id)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
     return nullptr;
   }
   ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
-  auto* released = _impl_.platform_id_.Release();
+  auto* released = _impl_.manifest_id_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.platform_id_.Set("", GetArena());
+    _impl_.manifest_id_.Set("", GetArena());
   }
   return released;
 }
-inline void DevtoolManifestBuildRow::set_allocated_platform_id(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusManifestBuildRow::set_allocated_manifest_id(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   } else {
     ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   }
-  _impl_.platform_id_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.platform_id_.IsDefault()) {
-    _impl_.platform_id_.Set("", GetArena());
+  _impl_.manifest_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.manifest_id_.IsDefault()) {
+    _impl_.manifest_id_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolManifestBuildRow.platform_id)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusManifestBuildRow.manifest_id)
 }
 
-// string target_platform_ids = 5;
-inline void DevtoolManifestBuildRow::clear_target_platform_ids() {
+// string platform_id = 4;
+inline void DevtoolStatusManifestBuildRow::clear_platform_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.target_platform_ids_.ClearToEmpty();
+  _impl_.platform_id_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000010U);
 }
-inline const ::std::string& DevtoolManifestBuildRow::target_platform_ids() const
+inline const ::std::string& DevtoolStatusManifestBuildRow::platform_id() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestBuildRow.target_platform_ids)
-  return _internal_target_platform_ids();
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestBuildRow.platform_id)
+  return _internal_platform_id();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolManifestBuildRow::set_target_platform_ids(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusManifestBuildRow::set_platform_id(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000010U);
-  _impl_.target_platform_ids_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestBuildRow.target_platform_ids)
+  _impl_.platform_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestBuildRow.platform_id)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestBuildRow::mutable_target_platform_ids()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::mutable_platform_id()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000010U);
-  ::std::string* _s = _internal_mutable_target_platform_ids();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolManifestBuildRow.target_platform_ids)
+  ::std::string* _s = _internal_mutable_platform_id();
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusManifestBuildRow.platform_id)
   return _s;
 }
-inline const ::std::string& DevtoolManifestBuildRow::_internal_target_platform_ids() const {
+inline const ::std::string& DevtoolStatusManifestBuildRow::_internal_platform_id() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.target_platform_ids_.Get();
+  return _impl_.platform_id_.Get();
 }
-inline void DevtoolManifestBuildRow::_internal_set_target_platform_ids(const ::std::string& value) {
+inline void DevtoolStatusManifestBuildRow::_internal_set_platform_id(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.target_platform_ids_.Set(value, GetArena());
+  _impl_.platform_id_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestBuildRow::_internal_mutable_target_platform_ids() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::_internal_mutable_platform_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.target_platform_ids_.Mutable( GetArena());
+  return _impl_.platform_id_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestBuildRow::release_target_platform_ids() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusManifestBuildRow::release_platform_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolManifestBuildRow.target_platform_ids)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusManifestBuildRow.platform_id)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
     return nullptr;
   }
   ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
-  auto* released = _impl_.target_platform_ids_.Release();
+  auto* released = _impl_.platform_id_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.target_platform_ids_.Set("", GetArena());
+    _impl_.platform_id_.Set("", GetArena());
   }
   return released;
 }
-inline void DevtoolManifestBuildRow::set_allocated_target_platform_ids(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusManifestBuildRow::set_allocated_platform_id(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   } else {
     ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   }
-  _impl_.target_platform_ids_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.target_platform_ids_.IsDefault()) {
-    _impl_.target_platform_ids_.Set("", GetArena());
+  _impl_.platform_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.platform_id_.IsDefault()) {
+    _impl_.platform_id_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolManifestBuildRow.target_platform_ids)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusManifestBuildRow.platform_id)
+}
+
+// repeated string target_platform_ids = 5;
+inline int DevtoolStatusManifestBuildRow::_internal_target_platform_ids_size() const {
+  return _internal_target_platform_ids().size();
+}
+inline int DevtoolStatusManifestBuildRow::target_platform_ids_size() const {
+  return _internal_target_platform_ids_size();
+}
+inline void DevtoolStatusManifestBuildRow::clear_target_platform_ids() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.target_platform_ids_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::add_target_platform_ids()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_target_platform_ids()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add_mutable:bldr.devtool.status.DevtoolStatusManifestBuildRow.target_platform_ids)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusManifestBuildRow::target_platform_ids(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestBuildRow.target_platform_ids)
+  return _internal_target_platform_ids().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::mutable_target_platform_ids(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusManifestBuildRow.target_platform_ids)
+  return _internal_mutable_target_platform_ids()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusManifestBuildRow::set_target_platform_ids(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_target_platform_ids()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestBuildRow.target_platform_ids)
+}
+template <typename Arg_, typename... Args_>
+inline void DevtoolStatusManifestBuildRow::add_target_platform_ids(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_target_platform_ids(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:bldr.devtool.status.DevtoolStatusManifestBuildRow.target_platform_ids)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& DevtoolStatusManifestBuildRow::target_platform_ids()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:bldr.devtool.status.DevtoolStatusManifestBuildRow.target_platform_ids)
+  return _internal_target_platform_ids();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusManifestBuildRow::mutable_target_platform_ids() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:bldr.devtool.status.DevtoolStatusManifestBuildRow.target_platform_ids)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_target_platform_ids();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+DevtoolStatusManifestBuildRow::_internal_target_platform_ids() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.target_platform_ids_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+DevtoolStatusManifestBuildRow::_internal_mutable_target_platform_ids() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.target_platform_ids_;
 }
 
 // string build_type = 6;
-inline void DevtoolManifestBuildRow::clear_build_type() {
+inline void DevtoolStatusManifestBuildRow::clear_build_type() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.build_type_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000020U);
 }
-inline const ::std::string& DevtoolManifestBuildRow::build_type() const
+inline const ::std::string& DevtoolStatusManifestBuildRow::build_type() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestBuildRow.build_type)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestBuildRow.build_type)
   return _internal_build_type();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolManifestBuildRow::set_build_type(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusManifestBuildRow::set_build_type(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   _impl_.build_type_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestBuildRow.build_type)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestBuildRow.build_type)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestBuildRow::mutable_build_type()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::mutable_build_type()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   ::std::string* _s = _internal_mutable_build_type();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolManifestBuildRow.build_type)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusManifestBuildRow.build_type)
   return _s;
 }
-inline const ::std::string& DevtoolManifestBuildRow::_internal_build_type() const {
+inline const ::std::string& DevtoolStatusManifestBuildRow::_internal_build_type() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.build_type_.Get();
 }
-inline void DevtoolManifestBuildRow::_internal_set_build_type(const ::std::string& value) {
+inline void DevtoolStatusManifestBuildRow::_internal_set_build_type(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.build_type_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestBuildRow::_internal_mutable_build_type() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::_internal_mutable_build_type() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.build_type_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestBuildRow::release_build_type() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusManifestBuildRow::release_build_type() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolManifestBuildRow.build_type)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusManifestBuildRow.build_type)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
     return nullptr;
   }
@@ -4643,7 +6290,7 @@ inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestBuildRow::release_build_t
   }
   return released;
 }
-inline void DevtoolManifestBuildRow::set_allocated_build_type(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusManifestBuildRow::set_allocated_build_type(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000020U);
@@ -4654,50 +6301,50 @@ inline void DevtoolManifestBuildRow::set_allocated_build_type(::std::string* PRO
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.build_type_.IsDefault()) {
     _impl_.build_type_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolManifestBuildRow.build_type)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusManifestBuildRow.build_type)
 }
 
 // string remote_id = 7;
-inline void DevtoolManifestBuildRow::clear_remote_id() {
+inline void DevtoolStatusManifestBuildRow::clear_remote_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.remote_id_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000040U);
 }
-inline const ::std::string& DevtoolManifestBuildRow::remote_id() const
+inline const ::std::string& DevtoolStatusManifestBuildRow::remote_id() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestBuildRow.remote_id)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestBuildRow.remote_id)
   return _internal_remote_id();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolManifestBuildRow::set_remote_id(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusManifestBuildRow::set_remote_id(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   _impl_.remote_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestBuildRow.remote_id)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestBuildRow.remote_id)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestBuildRow::mutable_remote_id()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::mutable_remote_id()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   ::std::string* _s = _internal_mutable_remote_id();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolManifestBuildRow.remote_id)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusManifestBuildRow.remote_id)
   return _s;
 }
-inline const ::std::string& DevtoolManifestBuildRow::_internal_remote_id() const {
+inline const ::std::string& DevtoolStatusManifestBuildRow::_internal_remote_id() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.remote_id_.Get();
 }
-inline void DevtoolManifestBuildRow::_internal_set_remote_id(const ::std::string& value) {
+inline void DevtoolStatusManifestBuildRow::_internal_set_remote_id(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.remote_id_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestBuildRow::_internal_mutable_remote_id() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::_internal_mutable_remote_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.remote_id_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestBuildRow::release_remote_id() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusManifestBuildRow::release_remote_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolManifestBuildRow.remote_id)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusManifestBuildRow.remote_id)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
     return nullptr;
   }
@@ -4708,7 +6355,7 @@ inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestBuildRow::release_remote_
   }
   return released;
 }
-inline void DevtoolManifestBuildRow::set_allocated_remote_id(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusManifestBuildRow::set_allocated_remote_id(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000040U);
@@ -4719,175 +6366,175 @@ inline void DevtoolManifestBuildRow::set_allocated_remote_id(::std::string* PROT
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.remote_id_.IsDefault()) {
     _impl_.remote_id_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolManifestBuildRow.remote_id)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusManifestBuildRow.remote_id)
 }
 
-// .bldr.devtool.status.DevtoolManifestState state = 8;
-inline void DevtoolManifestBuildRow::clear_state() {
+// .bldr.devtool.status.DevtoolStatusManifestState state = 8;
+inline void DevtoolStatusManifestBuildRow::clear_state() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.state_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000400U);
 }
-inline ::bldr::devtool::status::DevtoolManifestState DevtoolManifestBuildRow::state() const {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestBuildRow.state)
+inline ::bldr::devtool::status::DevtoolStatusManifestState DevtoolStatusManifestBuildRow::state() const {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestBuildRow.state)
   return _internal_state();
 }
-inline void DevtoolManifestBuildRow::set_state(::bldr::devtool::status::DevtoolManifestState value) {
+inline void DevtoolStatusManifestBuildRow::set_state(::bldr::devtool::status::DevtoolStatusManifestState value) {
   _internal_set_state(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000400U);
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestBuildRow.state)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestBuildRow.state)
 }
-inline ::bldr::devtool::status::DevtoolManifestState DevtoolManifestBuildRow::_internal_state() const {
+inline ::bldr::devtool::status::DevtoolStatusManifestState DevtoolStatusManifestBuildRow::_internal_state() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return static_cast<::bldr::devtool::status::DevtoolManifestState>(_impl_.state_);
+  return static_cast<::bldr::devtool::status::DevtoolStatusManifestState>(_impl_.state_);
 }
-inline void DevtoolManifestBuildRow::_internal_set_state(::bldr::devtool::status::DevtoolManifestState value) {
+inline void DevtoolStatusManifestBuildRow::_internal_set_state(::bldr::devtool::status::DevtoolStatusManifestState value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.state_ = value;
 }
 
 // bool cache_hit = 9;
-inline void DevtoolManifestBuildRow::clear_cache_hit() {
+inline void DevtoolStatusManifestBuildRow::clear_cache_hit() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.cache_hit_ = false;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000800U);
 }
-inline bool DevtoolManifestBuildRow::cache_hit() const {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestBuildRow.cache_hit)
+inline bool DevtoolStatusManifestBuildRow::cache_hit() const {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestBuildRow.cache_hit)
   return _internal_cache_hit();
 }
-inline void DevtoolManifestBuildRow::set_cache_hit(bool value) {
+inline void DevtoolStatusManifestBuildRow::set_cache_hit(bool value) {
   _internal_set_cache_hit(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000800U);
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestBuildRow.cache_hit)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestBuildRow.cache_hit)
 }
-inline bool DevtoolManifestBuildRow::_internal_cache_hit() const {
+inline bool DevtoolStatusManifestBuildRow::_internal_cache_hit() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.cache_hit_;
 }
-inline void DevtoolManifestBuildRow::_internal_set_cache_hit(bool value) {
+inline void DevtoolStatusManifestBuildRow::_internal_set_cache_hit(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.cache_hit_ = value;
 }
 
 // bool full_rebuild = 10;
-inline void DevtoolManifestBuildRow::clear_full_rebuild() {
+inline void DevtoolStatusManifestBuildRow::clear_full_rebuild() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.full_rebuild_ = false;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00001000U);
 }
-inline bool DevtoolManifestBuildRow::full_rebuild() const {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestBuildRow.full_rebuild)
+inline bool DevtoolStatusManifestBuildRow::full_rebuild() const {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestBuildRow.full_rebuild)
   return _internal_full_rebuild();
 }
-inline void DevtoolManifestBuildRow::set_full_rebuild(bool value) {
+inline void DevtoolStatusManifestBuildRow::set_full_rebuild(bool value) {
   _internal_set_full_rebuild(value);
   SetHasBit(_impl_._has_bits_[0], 0x00001000U);
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestBuildRow.full_rebuild)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestBuildRow.full_rebuild)
 }
-inline bool DevtoolManifestBuildRow::_internal_full_rebuild() const {
+inline bool DevtoolStatusManifestBuildRow::_internal_full_rebuild() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.full_rebuild_;
 }
-inline void DevtoolManifestBuildRow::_internal_set_full_rebuild(bool value) {
+inline void DevtoolStatusManifestBuildRow::_internal_set_full_rebuild(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.full_rebuild_ = value;
 }
 
 // bool hot_rebuild = 11;
-inline void DevtoolManifestBuildRow::clear_hot_rebuild() {
+inline void DevtoolStatusManifestBuildRow::clear_hot_rebuild() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.hot_rebuild_ = false;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00002000U);
 }
-inline bool DevtoolManifestBuildRow::hot_rebuild() const {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestBuildRow.hot_rebuild)
+inline bool DevtoolStatusManifestBuildRow::hot_rebuild() const {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestBuildRow.hot_rebuild)
   return _internal_hot_rebuild();
 }
-inline void DevtoolManifestBuildRow::set_hot_rebuild(bool value) {
+inline void DevtoolStatusManifestBuildRow::set_hot_rebuild(bool value) {
   _internal_set_hot_rebuild(value);
   SetHasBit(_impl_._has_bits_[0], 0x00002000U);
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestBuildRow.hot_rebuild)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestBuildRow.hot_rebuild)
 }
-inline bool DevtoolManifestBuildRow::_internal_hot_rebuild() const {
+inline bool DevtoolStatusManifestBuildRow::_internal_hot_rebuild() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.hot_rebuild_;
 }
-inline void DevtoolManifestBuildRow::_internal_set_hot_rebuild(bool value) {
+inline void DevtoolStatusManifestBuildRow::_internal_set_hot_rebuild(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.hot_rebuild_ = value;
 }
 
-// int32 watched_file_count = 12;
-inline void DevtoolManifestBuildRow::clear_watched_file_count() {
+// uint32 watched_file_count = 12;
+inline void DevtoolStatusManifestBuildRow::clear_watched_file_count() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.watched_file_count_ = 0;
+  _impl_.watched_file_count_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00004000U);
 }
-inline ::int32_t DevtoolManifestBuildRow::watched_file_count() const {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestBuildRow.watched_file_count)
+inline ::uint32_t DevtoolStatusManifestBuildRow::watched_file_count() const {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestBuildRow.watched_file_count)
   return _internal_watched_file_count();
 }
-inline void DevtoolManifestBuildRow::set_watched_file_count(::int32_t value) {
+inline void DevtoolStatusManifestBuildRow::set_watched_file_count(::uint32_t value) {
   _internal_set_watched_file_count(value);
   SetHasBit(_impl_._has_bits_[0], 0x00004000U);
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestBuildRow.watched_file_count)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestBuildRow.watched_file_count)
 }
-inline ::int32_t DevtoolManifestBuildRow::_internal_watched_file_count() const {
+inline ::uint32_t DevtoolStatusManifestBuildRow::_internal_watched_file_count() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.watched_file_count_;
 }
-inline void DevtoolManifestBuildRow::_internal_set_watched_file_count(::int32_t value) {
+inline void DevtoolStatusManifestBuildRow::_internal_set_watched_file_count(::uint32_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.watched_file_count_ = value;
 }
 
 // string dependency_rebuild_reason = 13;
-inline void DevtoolManifestBuildRow::clear_dependency_rebuild_reason() {
+inline void DevtoolStatusManifestBuildRow::clear_dependency_rebuild_reason() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.dependency_rebuild_reason_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000080U);
 }
-inline const ::std::string& DevtoolManifestBuildRow::dependency_rebuild_reason() const
+inline const ::std::string& DevtoolStatusManifestBuildRow::dependency_rebuild_reason() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestBuildRow.dependency_rebuild_reason)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestBuildRow.dependency_rebuild_reason)
   return _internal_dependency_rebuild_reason();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolManifestBuildRow::set_dependency_rebuild_reason(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusManifestBuildRow::set_dependency_rebuild_reason(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   _impl_.dependency_rebuild_reason_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestBuildRow.dependency_rebuild_reason)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestBuildRow.dependency_rebuild_reason)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestBuildRow::mutable_dependency_rebuild_reason()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::mutable_dependency_rebuild_reason()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   ::std::string* _s = _internal_mutable_dependency_rebuild_reason();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolManifestBuildRow.dependency_rebuild_reason)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusManifestBuildRow.dependency_rebuild_reason)
   return _s;
 }
-inline const ::std::string& DevtoolManifestBuildRow::_internal_dependency_rebuild_reason() const {
+inline const ::std::string& DevtoolStatusManifestBuildRow::_internal_dependency_rebuild_reason() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.dependency_rebuild_reason_.Get();
 }
-inline void DevtoolManifestBuildRow::_internal_set_dependency_rebuild_reason(const ::std::string& value) {
+inline void DevtoolStatusManifestBuildRow::_internal_set_dependency_rebuild_reason(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.dependency_rebuild_reason_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestBuildRow::_internal_mutable_dependency_rebuild_reason() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::_internal_mutable_dependency_rebuild_reason() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.dependency_rebuild_reason_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestBuildRow::release_dependency_rebuild_reason() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusManifestBuildRow::release_dependency_rebuild_reason() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolManifestBuildRow.dependency_rebuild_reason)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusManifestBuildRow.dependency_rebuild_reason)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000080U)) {
     return nullptr;
   }
@@ -4898,7 +6545,7 @@ inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestBuildRow::release_depende
   }
   return released;
 }
-inline void DevtoolManifestBuildRow::set_allocated_dependency_rebuild_reason(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusManifestBuildRow::set_allocated_dependency_rebuild_reason(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000080U);
@@ -4909,50 +6556,50 @@ inline void DevtoolManifestBuildRow::set_allocated_dependency_rebuild_reason(::s
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.dependency_rebuild_reason_.IsDefault()) {
     _impl_.dependency_rebuild_reason_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolManifestBuildRow.dependency_rebuild_reason)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusManifestBuildRow.dependency_rebuild_reason)
 }
 
 // string summary = 14;
-inline void DevtoolManifestBuildRow::clear_summary() {
+inline void DevtoolStatusManifestBuildRow::clear_summary() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.summary_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000100U);
 }
-inline const ::std::string& DevtoolManifestBuildRow::summary() const
+inline const ::std::string& DevtoolStatusManifestBuildRow::summary() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestBuildRow.summary)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestBuildRow.summary)
   return _internal_summary();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolManifestBuildRow::set_summary(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusManifestBuildRow::set_summary(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   _impl_.summary_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestBuildRow.summary)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestBuildRow.summary)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestBuildRow::mutable_summary()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::mutable_summary()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   ::std::string* _s = _internal_mutable_summary();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolManifestBuildRow.summary)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusManifestBuildRow.summary)
   return _s;
 }
-inline const ::std::string& DevtoolManifestBuildRow::_internal_summary() const {
+inline const ::std::string& DevtoolStatusManifestBuildRow::_internal_summary() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.summary_.Get();
 }
-inline void DevtoolManifestBuildRow::_internal_set_summary(const ::std::string& value) {
+inline void DevtoolStatusManifestBuildRow::_internal_set_summary(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.summary_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestBuildRow::_internal_mutable_summary() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::_internal_mutable_summary() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.summary_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestBuildRow::release_summary() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusManifestBuildRow::release_summary() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolManifestBuildRow.summary)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusManifestBuildRow.summary)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000100U)) {
     return nullptr;
   }
@@ -4963,7 +6610,7 @@ inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestBuildRow::release_summary
   }
   return released;
 }
-inline void DevtoolManifestBuildRow::set_allocated_summary(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusManifestBuildRow::set_allocated_summary(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000100U);
@@ -4974,50 +6621,50 @@ inline void DevtoolManifestBuildRow::set_allocated_summary(::std::string* PROTOB
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.summary_.IsDefault()) {
     _impl_.summary_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolManifestBuildRow.summary)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusManifestBuildRow.summary)
 }
 
 // string error = 15;
-inline void DevtoolManifestBuildRow::clear_error() {
+inline void DevtoolStatusManifestBuildRow::clear_error() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.error_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000200U);
 }
-inline const ::std::string& DevtoolManifestBuildRow::error() const
+inline const ::std::string& DevtoolStatusManifestBuildRow::error() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolManifestBuildRow.error)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusManifestBuildRow.error)
   return _internal_error();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolManifestBuildRow::set_error(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusManifestBuildRow::set_error(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   _impl_.error_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolManifestBuildRow.error)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusManifestBuildRow.error)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestBuildRow::mutable_error()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::mutable_error()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   ::std::string* _s = _internal_mutable_error();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolManifestBuildRow.error)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusManifestBuildRow.error)
   return _s;
 }
-inline const ::std::string& DevtoolManifestBuildRow::_internal_error() const {
+inline const ::std::string& DevtoolStatusManifestBuildRow::_internal_error() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.error_.Get();
 }
-inline void DevtoolManifestBuildRow::_internal_set_error(const ::std::string& value) {
+inline void DevtoolStatusManifestBuildRow::_internal_set_error(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.error_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolManifestBuildRow::_internal_mutable_error() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::_internal_mutable_error() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.error_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestBuildRow::release_error() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusManifestBuildRow::release_error() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolManifestBuildRow.error)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusManifestBuildRow.error)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000200U)) {
     return nullptr;
   }
@@ -5028,7 +6675,7 @@ inline ::std::string* PROTOBUF_NULLABLE DevtoolManifestBuildRow::release_error()
   }
   return released;
 }
-inline void DevtoolManifestBuildRow::set_allocated_error(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusManifestBuildRow::set_allocated_error(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000200U);
@@ -5039,54 +6686,54 @@ inline void DevtoolManifestBuildRow::set_allocated_error(::std::string* PROTOBUF
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.error_.IsDefault()) {
     _impl_.error_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolManifestBuildRow.error)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusManifestBuildRow.error)
 }
 
 // -------------------------------------------------------------------
 
-// DevtoolPluginRow
+// DevtoolStatusControllerRow
 
 // string id = 1;
-inline void DevtoolPluginRow::clear_id() {
+inline void DevtoolStatusControllerRow::clear_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.id_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000001U);
 }
-inline const ::std::string& DevtoolPluginRow::id() const
+inline const ::std::string& DevtoolStatusControllerRow::id() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolPluginRow.id)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusControllerRow.id)
   return _internal_id();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolPluginRow::set_id(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusControllerRow::set_id(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolPluginRow.id)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusControllerRow.id)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolPluginRow::mutable_id()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusControllerRow::mutable_id()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   ::std::string* _s = _internal_mutable_id();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolPluginRow.id)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusControllerRow.id)
   return _s;
 }
-inline const ::std::string& DevtoolPluginRow::_internal_id() const {
+inline const ::std::string& DevtoolStatusControllerRow::_internal_id() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.id_.Get();
 }
-inline void DevtoolPluginRow::_internal_set_id(const ::std::string& value) {
+inline void DevtoolStatusControllerRow::_internal_set_id(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.id_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolPluginRow::_internal_mutable_id() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusControllerRow::_internal_mutable_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.id_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolPluginRow::release_id() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusControllerRow::release_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolPluginRow.id)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusControllerRow.id)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
     return nullptr;
   }
@@ -5097,7 +6744,7 @@ inline ::std::string* PROTOBUF_NULLABLE DevtoolPluginRow::release_id() {
   }
   return released;
 }
-inline void DevtoolPluginRow::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusControllerRow::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000001U);
@@ -5108,469 +6755,50 @@ inline void DevtoolPluginRow::set_allocated_id(::std::string* PROTOBUF_NULLABLE 
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
     _impl_.id_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolPluginRow.id)
-}
-
-// string plugin_id = 2;
-inline void DevtoolPluginRow::clear_plugin_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.plugin_id_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
-}
-inline const ::std::string& DevtoolPluginRow::plugin_id() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolPluginRow.plugin_id)
-  return _internal_plugin_id();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolPluginRow::set_plugin_id(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  _impl_.plugin_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolPluginRow.plugin_id)
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolPluginRow::mutable_plugin_id()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::std::string* _s = _internal_mutable_plugin_id();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolPluginRow.plugin_id)
-  return _s;
-}
-inline const ::std::string& DevtoolPluginRow::_internal_plugin_id() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.plugin_id_.Get();
-}
-inline void DevtoolPluginRow::_internal_set_plugin_id(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.plugin_id_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolPluginRow::_internal_mutable_plugin_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.plugin_id_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE DevtoolPluginRow::release_plugin_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolPluginRow.plugin_id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  auto* released = _impl_.plugin_id_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.plugin_id_.Set("", GetArena());
-  }
-  return released;
-}
-inline void DevtoolPluginRow::set_allocated_plugin_id(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  }
-  _impl_.plugin_id_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.plugin_id_.IsDefault()) {
-    _impl_.plugin_id_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolPluginRow.plugin_id)
-}
-
-// string instance_key = 3;
-inline void DevtoolPluginRow::clear_instance_key() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.instance_key_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
-}
-inline const ::std::string& DevtoolPluginRow::instance_key() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolPluginRow.instance_key)
-  return _internal_instance_key();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolPluginRow::set_instance_key(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  _impl_.instance_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolPluginRow.instance_key)
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolPluginRow::mutable_instance_key()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  ::std::string* _s = _internal_mutable_instance_key();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolPluginRow.instance_key)
-  return _s;
-}
-inline const ::std::string& DevtoolPluginRow::_internal_instance_key() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.instance_key_.Get();
-}
-inline void DevtoolPluginRow::_internal_set_instance_key(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.instance_key_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolPluginRow::_internal_mutable_instance_key() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.instance_key_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE DevtoolPluginRow::release_instance_key() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolPluginRow.instance_key)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
-  auto* released = _impl_.instance_key_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.instance_key_.Set("", GetArena());
-  }
-  return released;
-}
-inline void DevtoolPluginRow::set_allocated_instance_key(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
-  }
-  _impl_.instance_key_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.instance_key_.IsDefault()) {
-    _impl_.instance_key_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolPluginRow.instance_key)
-}
-
-// .bldr.devtool.status.DevtoolPluginState state = 4;
-inline void DevtoolPluginRow::clear_state() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.state_ = 0;
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000040U);
-}
-inline ::bldr::devtool::status::DevtoolPluginState DevtoolPluginRow::state() const {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolPluginRow.state)
-  return _internal_state();
-}
-inline void DevtoolPluginRow::set_state(::bldr::devtool::status::DevtoolPluginState value) {
-  _internal_set_state(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolPluginRow.state)
-}
-inline ::bldr::devtool::status::DevtoolPluginState DevtoolPluginRow::_internal_state() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return static_cast<::bldr::devtool::status::DevtoolPluginState>(_impl_.state_);
-}
-inline void DevtoolPluginRow::_internal_set_state(::bldr::devtool::status::DevtoolPluginState value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.state_ = value;
-}
-
-// string summary = 5;
-inline void DevtoolPluginRow::clear_summary() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.summary_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
-}
-inline const ::std::string& DevtoolPluginRow::summary() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolPluginRow.summary)
-  return _internal_summary();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolPluginRow::set_summary(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  _impl_.summary_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolPluginRow.summary)
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolPluginRow::mutable_summary()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  ::std::string* _s = _internal_mutable_summary();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolPluginRow.summary)
-  return _s;
-}
-inline const ::std::string& DevtoolPluginRow::_internal_summary() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.summary_.Get();
-}
-inline void DevtoolPluginRow::_internal_set_summary(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.summary_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolPluginRow::_internal_mutable_summary() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.summary_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE DevtoolPluginRow::release_summary() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolPluginRow.summary)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
-  auto* released = _impl_.summary_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.summary_.Set("", GetArena());
-  }
-  return released;
-}
-inline void DevtoolPluginRow::set_allocated_summary(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
-  }
-  _impl_.summary_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.summary_.IsDefault()) {
-    _impl_.summary_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolPluginRow.summary)
-}
-
-// string error = 6;
-inline void DevtoolPluginRow::clear_error() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.error_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
-}
-inline const ::std::string& DevtoolPluginRow::error() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolPluginRow.error)
-  return _internal_error();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolPluginRow::set_error(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
-  _impl_.error_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolPluginRow.error)
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolPluginRow::mutable_error()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
-  ::std::string* _s = _internal_mutable_error();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolPluginRow.error)
-  return _s;
-}
-inline const ::std::string& DevtoolPluginRow::_internal_error() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.error_.Get();
-}
-inline void DevtoolPluginRow::_internal_set_error(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.error_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolPluginRow::_internal_mutable_error() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.error_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE DevtoolPluginRow::release_error() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolPluginRow.error)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
-  auto* released = _impl_.error_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.error_.Set("", GetArena());
-  }
-  return released;
-}
-inline void DevtoolPluginRow::set_allocated_error(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
-  }
-  _impl_.error_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.error_.IsDefault()) {
-    _impl_.error_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolPluginRow.error)
-}
-
-// string last_error_at = 7;
-inline void DevtoolPluginRow::clear_last_error_at() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.last_error_at_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
-}
-inline const ::std::string& DevtoolPluginRow::last_error_at() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolPluginRow.last_error_at)
-  return _internal_last_error_at();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolPluginRow::set_last_error_at(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
-  _impl_.last_error_at_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolPluginRow.last_error_at)
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolPluginRow::mutable_last_error_at()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
-  ::std::string* _s = _internal_mutable_last_error_at();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolPluginRow.last_error_at)
-  return _s;
-}
-inline const ::std::string& DevtoolPluginRow::_internal_last_error_at() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.last_error_at_.Get();
-}
-inline void DevtoolPluginRow::_internal_set_last_error_at(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.last_error_at_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolPluginRow::_internal_mutable_last_error_at() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.last_error_at_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE DevtoolPluginRow::release_last_error_at() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolPluginRow.last_error_at)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
-  auto* released = _impl_.last_error_at_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.last_error_at_.Set("", GetArena());
-  }
-  return released;
-}
-inline void DevtoolPluginRow::set_allocated_last_error_at(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
-  }
-  _impl_.last_error_at_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.last_error_at_.IsDefault()) {
-    _impl_.last_error_at_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolPluginRow.last_error_at)
-}
-
-// -------------------------------------------------------------------
-
-// DevtoolControllerRow
-
-// string id = 1;
-inline void DevtoolControllerRow::clear_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.id_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
-}
-inline const ::std::string& DevtoolControllerRow::id() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolControllerRow.id)
-  return _internal_id();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolControllerRow::set_id(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolControllerRow.id)
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolControllerRow::mutable_id()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::std::string* _s = _internal_mutable_id();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolControllerRow.id)
-  return _s;
-}
-inline const ::std::string& DevtoolControllerRow::_internal_id() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.id_.Get();
-}
-inline void DevtoolControllerRow::_internal_set_id(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.id_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL DevtoolControllerRow::_internal_mutable_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.id_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE DevtoolControllerRow::release_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolControllerRow.id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  auto* released = _impl_.id_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.id_.Set("", GetArena());
-  }
-  return released;
-}
-inline void DevtoolControllerRow::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  }
-  _impl_.id_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
-    _impl_.id_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolControllerRow.id)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusControllerRow.id)
 }
 
 // string controller_id = 2;
-inline void DevtoolControllerRow::clear_controller_id() {
+inline void DevtoolStatusControllerRow::clear_controller_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.controller_id_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000002U);
 }
-inline const ::std::string& DevtoolControllerRow::controller_id() const
+inline const ::std::string& DevtoolStatusControllerRow::controller_id() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolControllerRow.controller_id)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusControllerRow.controller_id)
   return _internal_controller_id();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolControllerRow::set_controller_id(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusControllerRow::set_controller_id(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   _impl_.controller_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolControllerRow.controller_id)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusControllerRow.controller_id)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolControllerRow::mutable_controller_id()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusControllerRow::mutable_controller_id()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::std::string* _s = _internal_mutable_controller_id();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolControllerRow.controller_id)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusControllerRow.controller_id)
   return _s;
 }
-inline const ::std::string& DevtoolControllerRow::_internal_controller_id() const {
+inline const ::std::string& DevtoolStatusControllerRow::_internal_controller_id() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.controller_id_.Get();
 }
-inline void DevtoolControllerRow::_internal_set_controller_id(const ::std::string& value) {
+inline void DevtoolStatusControllerRow::_internal_set_controller_id(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.controller_id_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolControllerRow::_internal_mutable_controller_id() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusControllerRow::_internal_mutable_controller_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.controller_id_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolControllerRow::release_controller_id() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusControllerRow::release_controller_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolControllerRow.controller_id)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusControllerRow.controller_id)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
     return nullptr;
   }
@@ -5581,7 +6809,7 @@ inline ::std::string* PROTOBUF_NULLABLE DevtoolControllerRow::release_controller
   }
   return released;
 }
-inline void DevtoolControllerRow::set_allocated_controller_id(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusControllerRow::set_allocated_controller_id(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000002U);
@@ -5592,50 +6820,50 @@ inline void DevtoolControllerRow::set_allocated_controller_id(::std::string* PRO
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.controller_id_.IsDefault()) {
     _impl_.controller_id_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolControllerRow.controller_id)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusControllerRow.controller_id)
 }
 
 // string kind = 3;
-inline void DevtoolControllerRow::clear_kind() {
+inline void DevtoolStatusControllerRow::clear_kind() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.kind_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000004U);
 }
-inline const ::std::string& DevtoolControllerRow::kind() const
+inline const ::std::string& DevtoolStatusControllerRow::kind() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolControllerRow.kind)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusControllerRow.kind)
   return _internal_kind();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolControllerRow::set_kind(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusControllerRow::set_kind(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   _impl_.kind_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolControllerRow.kind)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusControllerRow.kind)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolControllerRow::mutable_kind()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusControllerRow::mutable_kind()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::std::string* _s = _internal_mutable_kind();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolControllerRow.kind)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusControllerRow.kind)
   return _s;
 }
-inline const ::std::string& DevtoolControllerRow::_internal_kind() const {
+inline const ::std::string& DevtoolStatusControllerRow::_internal_kind() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.kind_.Get();
 }
-inline void DevtoolControllerRow::_internal_set_kind(const ::std::string& value) {
+inline void DevtoolStatusControllerRow::_internal_set_kind(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.kind_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolControllerRow::_internal_mutable_kind() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusControllerRow::_internal_mutable_kind() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.kind_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolControllerRow::release_kind() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusControllerRow::release_kind() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolControllerRow.kind)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusControllerRow.kind)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
     return nullptr;
   }
@@ -5646,7 +6874,7 @@ inline ::std::string* PROTOBUF_NULLABLE DevtoolControllerRow::release_kind() {
   }
   return released;
 }
-inline void DevtoolControllerRow::set_allocated_kind(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusControllerRow::set_allocated_kind(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000004U);
@@ -5657,75 +6885,75 @@ inline void DevtoolControllerRow::set_allocated_kind(::std::string* PROTOBUF_NUL
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.kind_.IsDefault()) {
     _impl_.kind_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolControllerRow.kind)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusControllerRow.kind)
 }
 
-// .bldr.devtool.status.DevtoolControllerState state = 4;
-inline void DevtoolControllerRow::clear_state() {
+// .bldr.devtool.status.DevtoolStatusControllerState state = 4;
+inline void DevtoolStatusControllerRow::clear_state() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.state_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000020U);
 }
-inline ::bldr::devtool::status::DevtoolControllerState DevtoolControllerRow::state() const {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolControllerRow.state)
+inline ::bldr::devtool::status::DevtoolStatusControllerState DevtoolStatusControllerRow::state() const {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusControllerRow.state)
   return _internal_state();
 }
-inline void DevtoolControllerRow::set_state(::bldr::devtool::status::DevtoolControllerState value) {
+inline void DevtoolStatusControllerRow::set_state(::bldr::devtool::status::DevtoolStatusControllerState value) {
   _internal_set_state(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000020U);
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolControllerRow.state)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusControllerRow.state)
 }
-inline ::bldr::devtool::status::DevtoolControllerState DevtoolControllerRow::_internal_state() const {
+inline ::bldr::devtool::status::DevtoolStatusControllerState DevtoolStatusControllerRow::_internal_state() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return static_cast<::bldr::devtool::status::DevtoolControllerState>(_impl_.state_);
+  return static_cast<::bldr::devtool::status::DevtoolStatusControllerState>(_impl_.state_);
 }
-inline void DevtoolControllerRow::_internal_set_state(::bldr::devtool::status::DevtoolControllerState value) {
+inline void DevtoolStatusControllerRow::_internal_set_state(::bldr::devtool::status::DevtoolStatusControllerState value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.state_ = value;
 }
 
 // string summary = 5;
-inline void DevtoolControllerRow::clear_summary() {
+inline void DevtoolStatusControllerRow::clear_summary() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.summary_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000008U);
 }
-inline const ::std::string& DevtoolControllerRow::summary() const
+inline const ::std::string& DevtoolStatusControllerRow::summary() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolControllerRow.summary)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusControllerRow.summary)
   return _internal_summary();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolControllerRow::set_summary(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusControllerRow::set_summary(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   _impl_.summary_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolControllerRow.summary)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusControllerRow.summary)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolControllerRow::mutable_summary()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusControllerRow::mutable_summary()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::std::string* _s = _internal_mutable_summary();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolControllerRow.summary)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusControllerRow.summary)
   return _s;
 }
-inline const ::std::string& DevtoolControllerRow::_internal_summary() const {
+inline const ::std::string& DevtoolStatusControllerRow::_internal_summary() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.summary_.Get();
 }
-inline void DevtoolControllerRow::_internal_set_summary(const ::std::string& value) {
+inline void DevtoolStatusControllerRow::_internal_set_summary(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.summary_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolControllerRow::_internal_mutable_summary() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusControllerRow::_internal_mutable_summary() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.summary_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolControllerRow::release_summary() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusControllerRow::release_summary() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolControllerRow.summary)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusControllerRow.summary)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
     return nullptr;
   }
@@ -5736,7 +6964,7 @@ inline ::std::string* PROTOBUF_NULLABLE DevtoolControllerRow::release_summary() 
   }
   return released;
 }
-inline void DevtoolControllerRow::set_allocated_summary(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusControllerRow::set_allocated_summary(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000008U);
@@ -5747,50 +6975,50 @@ inline void DevtoolControllerRow::set_allocated_summary(::std::string* PROTOBUF_
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.summary_.IsDefault()) {
     _impl_.summary_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolControllerRow.summary)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusControllerRow.summary)
 }
 
 // string error = 6;
-inline void DevtoolControllerRow::clear_error() {
+inline void DevtoolStatusControllerRow::clear_error() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.error_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000010U);
 }
-inline const ::std::string& DevtoolControllerRow::error() const
+inline const ::std::string& DevtoolStatusControllerRow::error() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolControllerRow.error)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusControllerRow.error)
   return _internal_error();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolControllerRow::set_error(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusControllerRow::set_error(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   _impl_.error_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolControllerRow.error)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusControllerRow.error)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolControllerRow::mutable_error()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusControllerRow::mutable_error()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::std::string* _s = _internal_mutable_error();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolControllerRow.error)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusControllerRow.error)
   return _s;
 }
-inline const ::std::string& DevtoolControllerRow::_internal_error() const {
+inline const ::std::string& DevtoolStatusControllerRow::_internal_error() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.error_.Get();
 }
-inline void DevtoolControllerRow::_internal_set_error(const ::std::string& value) {
+inline void DevtoolStatusControllerRow::_internal_set_error(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.error_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolControllerRow::_internal_mutable_error() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusControllerRow::_internal_mutable_error() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.error_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolControllerRow::release_error() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusControllerRow::release_error() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolControllerRow.error)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusControllerRow.error)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
     return nullptr;
   }
@@ -5801,7 +7029,7 @@ inline ::std::string* PROTOBUF_NULLABLE DevtoolControllerRow::release_error() {
   }
   return released;
 }
-inline void DevtoolControllerRow::set_allocated_error(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusControllerRow::set_allocated_error(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000010U);
@@ -5812,54 +7040,54 @@ inline void DevtoolControllerRow::set_allocated_error(::std::string* PROTOBUF_NU
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.error_.IsDefault()) {
     _impl_.error_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolControllerRow.error)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusControllerRow.error)
 }
 
 // -------------------------------------------------------------------
 
-// DevtoolAttentionRow
+// DevtoolStatusPluginRow
 
 // string id = 1;
-inline void DevtoolAttentionRow::clear_id() {
+inline void DevtoolStatusPluginRow::clear_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.id_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000001U);
 }
-inline const ::std::string& DevtoolAttentionRow::id() const
+inline const ::std::string& DevtoolStatusPluginRow::id() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolAttentionRow.id)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusPluginRow.id)
   return _internal_id();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolAttentionRow::set_id(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusPluginRow::set_id(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolAttentionRow.id)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusPluginRow.id)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolAttentionRow::mutable_id()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusPluginRow::mutable_id()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   ::std::string* _s = _internal_mutable_id();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolAttentionRow.id)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusPluginRow.id)
   return _s;
 }
-inline const ::std::string& DevtoolAttentionRow::_internal_id() const {
+inline const ::std::string& DevtoolStatusPluginRow::_internal_id() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.id_.Get();
 }
-inline void DevtoolAttentionRow::_internal_set_id(const ::std::string& value) {
+inline void DevtoolStatusPluginRow::_internal_set_id(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.id_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolAttentionRow::_internal_mutable_id() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusPluginRow::_internal_mutable_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.id_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolAttentionRow::release_id() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusPluginRow::release_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolAttentionRow.id)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusPluginRow.id)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
     return nullptr;
   }
@@ -5870,7 +7098,7 @@ inline ::std::string* PROTOBUF_NULLABLE DevtoolAttentionRow::release_id() {
   }
   return released;
 }
-inline void DevtoolAttentionRow::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusPluginRow::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000001U);
@@ -5881,50 +7109,469 @@ inline void DevtoolAttentionRow::set_allocated_id(::std::string* PROTOBUF_NULLAB
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
     _impl_.id_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolAttentionRow.id)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusPluginRow.id)
+}
+
+// string plugin_id = 2;
+inline void DevtoolStatusPluginRow::clear_plugin_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.plugin_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& DevtoolStatusPluginRow::plugin_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusPluginRow.plugin_id)
+  return _internal_plugin_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusPluginRow::set_plugin_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.plugin_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusPluginRow.plugin_id)
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusPluginRow::mutable_plugin_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_plugin_id();
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusPluginRow.plugin_id)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusPluginRow::_internal_plugin_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.plugin_id_.Get();
+}
+inline void DevtoolStatusPluginRow::_internal_set_plugin_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.plugin_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusPluginRow::_internal_mutable_plugin_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.plugin_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusPluginRow::release_plugin_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusPluginRow.plugin_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.plugin_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.plugin_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DevtoolStatusPluginRow::set_allocated_plugin_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.plugin_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.plugin_id_.IsDefault()) {
+    _impl_.plugin_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusPluginRow.plugin_id)
+}
+
+// string instance_key = 3;
+inline void DevtoolStatusPluginRow::clear_instance_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.instance_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& DevtoolStatusPluginRow::instance_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusPluginRow.instance_key)
+  return _internal_instance_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusPluginRow::set_instance_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.instance_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusPluginRow.instance_key)
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusPluginRow::mutable_instance_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_instance_key();
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusPluginRow.instance_key)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusPluginRow::_internal_instance_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.instance_key_.Get();
+}
+inline void DevtoolStatusPluginRow::_internal_set_instance_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.instance_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusPluginRow::_internal_mutable_instance_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.instance_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusPluginRow::release_instance_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusPluginRow.instance_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.instance_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.instance_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DevtoolStatusPluginRow::set_allocated_instance_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.instance_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.instance_key_.IsDefault()) {
+    _impl_.instance_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusPluginRow.instance_key)
+}
+
+// .bldr.devtool.status.DevtoolStatusPluginState state = 4;
+inline void DevtoolStatusPluginRow::clear_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.state_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline ::bldr::devtool::status::DevtoolStatusPluginState DevtoolStatusPluginRow::state() const {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusPluginRow.state)
+  return _internal_state();
+}
+inline void DevtoolStatusPluginRow::set_state(::bldr::devtool::status::DevtoolStatusPluginState value) {
+  _internal_set_state(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusPluginRow.state)
+}
+inline ::bldr::devtool::status::DevtoolStatusPluginState DevtoolStatusPluginRow::_internal_state() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::bldr::devtool::status::DevtoolStatusPluginState>(_impl_.state_);
+}
+inline void DevtoolStatusPluginRow::_internal_set_state(::bldr::devtool::status::DevtoolStatusPluginState value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.state_ = value;
+}
+
+// string summary = 5;
+inline void DevtoolStatusPluginRow::clear_summary() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.summary_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& DevtoolStatusPluginRow::summary() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusPluginRow.summary)
+  return _internal_summary();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusPluginRow::set_summary(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.summary_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusPluginRow.summary)
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusPluginRow::mutable_summary()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_summary();
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusPluginRow.summary)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusPluginRow::_internal_summary() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.summary_.Get();
+}
+inline void DevtoolStatusPluginRow::_internal_set_summary(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.summary_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusPluginRow::_internal_mutable_summary() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.summary_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusPluginRow::release_summary() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusPluginRow.summary)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.summary_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.summary_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DevtoolStatusPluginRow::set_allocated_summary(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.summary_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.summary_.IsDefault()) {
+    _impl_.summary_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusPluginRow.summary)
+}
+
+// string error = 6;
+inline void DevtoolStatusPluginRow::clear_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& DevtoolStatusPluginRow::error() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusPluginRow.error)
+  return _internal_error();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusPluginRow::set_error(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.error_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusPluginRow.error)
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusPluginRow::mutable_error()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_error();
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusPluginRow.error)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusPluginRow::_internal_error() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.error_.Get();
+}
+inline void DevtoolStatusPluginRow::_internal_set_error(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusPluginRow::_internal_mutable_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.error_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusPluginRow::release_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusPluginRow.error)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.error_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.error_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DevtoolStatusPluginRow::set_allocated_error(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.error_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.error_.IsDefault()) {
+    _impl_.error_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusPluginRow.error)
+}
+
+// string last_error_at = 7;
+inline void DevtoolStatusPluginRow::clear_last_error_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.last_error_at_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::std::string& DevtoolStatusPluginRow::last_error_at() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusPluginRow.last_error_at)
+  return _internal_last_error_at();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusPluginRow::set_last_error_at(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  _impl_.last_error_at_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusPluginRow.last_error_at)
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusPluginRow::mutable_last_error_at()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::std::string* _s = _internal_mutable_last_error_at();
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusPluginRow.last_error_at)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusPluginRow::_internal_last_error_at() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.last_error_at_.Get();
+}
+inline void DevtoolStatusPluginRow::_internal_set_last_error_at(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.last_error_at_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusPluginRow::_internal_mutable_last_error_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.last_error_at_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusPluginRow::release_last_error_at() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusPluginRow.last_error_at)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  auto* released = _impl_.last_error_at_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.last_error_at_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DevtoolStatusPluginRow::set_allocated_last_error_at(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  _impl_.last_error_at_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.last_error_at_.IsDefault()) {
+    _impl_.last_error_at_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusPluginRow.last_error_at)
+}
+
+// -------------------------------------------------------------------
+
+// DevtoolStatusAttentionRow
+
+// string id = 1;
+inline void DevtoolStatusAttentionRow::clear_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& DevtoolStatusAttentionRow::id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusAttentionRow.id)
+  return _internal_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusAttentionRow::set_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusAttentionRow.id)
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusAttentionRow::mutable_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_id();
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusAttentionRow.id)
+  return _s;
+}
+inline const ::std::string& DevtoolStatusAttentionRow::_internal_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.id_.Get();
+}
+inline void DevtoolStatusAttentionRow::_internal_set_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusAttentionRow::_internal_mutable_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusAttentionRow::release_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusAttentionRow.id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DevtoolStatusAttentionRow::set_allocated_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.id_.IsDefault()) {
+    _impl_.id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusAttentionRow.id)
 }
 
 // string source = 2;
-inline void DevtoolAttentionRow::clear_source() {
+inline void DevtoolStatusAttentionRow::clear_source() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.source_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000002U);
 }
-inline const ::std::string& DevtoolAttentionRow::source() const
+inline const ::std::string& DevtoolStatusAttentionRow::source() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolAttentionRow.source)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusAttentionRow.source)
   return _internal_source();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolAttentionRow::set_source(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusAttentionRow::set_source(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   _impl_.source_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolAttentionRow.source)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusAttentionRow.source)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolAttentionRow::mutable_source()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusAttentionRow::mutable_source()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::std::string* _s = _internal_mutable_source();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolAttentionRow.source)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusAttentionRow.source)
   return _s;
 }
-inline const ::std::string& DevtoolAttentionRow::_internal_source() const {
+inline const ::std::string& DevtoolStatusAttentionRow::_internal_source() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.source_.Get();
 }
-inline void DevtoolAttentionRow::_internal_set_source(const ::std::string& value) {
+inline void DevtoolStatusAttentionRow::_internal_set_source(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.source_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolAttentionRow::_internal_mutable_source() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusAttentionRow::_internal_mutable_source() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.source_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolAttentionRow::release_source() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusAttentionRow::release_source() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolAttentionRow.source)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusAttentionRow.source)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
     return nullptr;
   }
@@ -5935,7 +7582,7 @@ inline ::std::string* PROTOBUF_NULLABLE DevtoolAttentionRow::release_source() {
   }
   return released;
 }
-inline void DevtoolAttentionRow::set_allocated_source(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusAttentionRow::set_allocated_source(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000002U);
@@ -5946,50 +7593,50 @@ inline void DevtoolAttentionRow::set_allocated_source(::std::string* PROTOBUF_NU
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.source_.IsDefault()) {
     _impl_.source_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolAttentionRow.source)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusAttentionRow.source)
 }
 
 // string message = 3;
-inline void DevtoolAttentionRow::clear_message() {
+inline void DevtoolStatusAttentionRow::clear_message() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.message_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000004U);
 }
-inline const ::std::string& DevtoolAttentionRow::message() const
+inline const ::std::string& DevtoolStatusAttentionRow::message() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolAttentionRow.message)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusAttentionRow.message)
   return _internal_message();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolAttentionRow::set_message(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusAttentionRow::set_message(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   _impl_.message_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolAttentionRow.message)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusAttentionRow.message)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolAttentionRow::mutable_message()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusAttentionRow::mutable_message()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::std::string* _s = _internal_mutable_message();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolAttentionRow.message)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusAttentionRow.message)
   return _s;
 }
-inline const ::std::string& DevtoolAttentionRow::_internal_message() const {
+inline const ::std::string& DevtoolStatusAttentionRow::_internal_message() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.message_.Get();
 }
-inline void DevtoolAttentionRow::_internal_set_message(const ::std::string& value) {
+inline void DevtoolStatusAttentionRow::_internal_set_message(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.message_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolAttentionRow::_internal_mutable_message() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusAttentionRow::_internal_mutable_message() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.message_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolAttentionRow::release_message() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusAttentionRow::release_message() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolAttentionRow.message)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusAttentionRow.message)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
     return nullptr;
   }
@@ -6000,7 +7647,7 @@ inline ::std::string* PROTOBUF_NULLABLE DevtoolAttentionRow::release_message() {
   }
   return released;
 }
-inline void DevtoolAttentionRow::set_allocated_message(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusAttentionRow::set_allocated_message(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000004U);
@@ -6011,50 +7658,50 @@ inline void DevtoolAttentionRow::set_allocated_message(::std::string* PROTOBUF_N
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.message_.IsDefault()) {
     _impl_.message_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolAttentionRow.message)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusAttentionRow.message)
 }
 
 // string detail = 4;
-inline void DevtoolAttentionRow::clear_detail() {
+inline void DevtoolStatusAttentionRow::clear_detail() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.detail_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000008U);
 }
-inline const ::std::string& DevtoolAttentionRow::detail() const
+inline const ::std::string& DevtoolStatusAttentionRow::detail() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolAttentionRow.detail)
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusAttentionRow.detail)
   return _internal_detail();
 }
 template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void DevtoolAttentionRow::set_detail(Arg_&& arg, Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DevtoolStatusAttentionRow::set_detail(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   _impl_.detail_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolAttentionRow.detail)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusAttentionRow.detail)
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolAttentionRow::mutable_detail()
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusAttentionRow::mutable_detail()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::std::string* _s = _internal_mutable_detail();
-  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolAttentionRow.detail)
+  // @@protoc_insertion_point(field_mutable:bldr.devtool.status.DevtoolStatusAttentionRow.detail)
   return _s;
 }
-inline const ::std::string& DevtoolAttentionRow::_internal_detail() const {
+inline const ::std::string& DevtoolStatusAttentionRow::_internal_detail() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.detail_.Get();
 }
-inline void DevtoolAttentionRow::_internal_set_detail(const ::std::string& value) {
+inline void DevtoolStatusAttentionRow::_internal_set_detail(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.detail_.Set(value, GetArena());
 }
-inline ::std::string* PROTOBUF_NONNULL DevtoolAttentionRow::_internal_mutable_detail() {
+inline ::std::string* PROTOBUF_NONNULL DevtoolStatusAttentionRow::_internal_mutable_detail() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _impl_.detail_.Mutable( GetArena());
 }
-inline ::std::string* PROTOBUF_NULLABLE DevtoolAttentionRow::release_detail() {
+inline ::std::string* PROTOBUF_NULLABLE DevtoolStatusAttentionRow::release_detail() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolAttentionRow.detail)
+  // @@protoc_insertion_point(field_release:bldr.devtool.status.DevtoolStatusAttentionRow.detail)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
     return nullptr;
   }
@@ -6065,7 +7712,7 @@ inline ::std::string* PROTOBUF_NULLABLE DevtoolAttentionRow::release_detail() {
   }
   return released;
 }
-inline void DevtoolAttentionRow::set_allocated_detail(::std::string* PROTOBUF_NULLABLE value) {
+inline void DevtoolStatusAttentionRow::set_allocated_detail(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000008U);
@@ -6076,30 +7723,30 @@ inline void DevtoolAttentionRow::set_allocated_detail(::std::string* PROTOBUF_NU
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.detail_.IsDefault()) {
     _impl_.detail_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolAttentionRow.detail)
+  // @@protoc_insertion_point(field_set_allocated:bldr.devtool.status.DevtoolStatusAttentionRow.detail)
 }
 
-// .bldr.devtool.status.DevtoolAttentionSeverity severity = 5;
-inline void DevtoolAttentionRow::clear_severity() {
+// .bldr.devtool.status.DevtoolStatusAttentionSeverity severity = 5;
+inline void DevtoolStatusAttentionRow::clear_severity() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.severity_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000010U);
 }
-inline ::bldr::devtool::status::DevtoolAttentionSeverity DevtoolAttentionRow::severity() const {
-  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolAttentionRow.severity)
+inline ::bldr::devtool::status::DevtoolStatusAttentionSeverity DevtoolStatusAttentionRow::severity() const {
+  // @@protoc_insertion_point(field_get:bldr.devtool.status.DevtoolStatusAttentionRow.severity)
   return _internal_severity();
 }
-inline void DevtoolAttentionRow::set_severity(::bldr::devtool::status::DevtoolAttentionSeverity value) {
+inline void DevtoolStatusAttentionRow::set_severity(::bldr::devtool::status::DevtoolStatusAttentionSeverity value) {
   _internal_set_severity(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000010U);
-  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolAttentionRow.severity)
+  // @@protoc_insertion_point(field_set:bldr.devtool.status.DevtoolStatusAttentionRow.severity)
 }
-inline ::bldr::devtool::status::DevtoolAttentionSeverity DevtoolAttentionRow::_internal_severity() const {
+inline ::bldr::devtool::status::DevtoolStatusAttentionSeverity DevtoolStatusAttentionRow::_internal_severity() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return static_cast<::bldr::devtool::status::DevtoolAttentionSeverity>(_impl_.severity_);
+  return static_cast<::bldr::devtool::status::DevtoolStatusAttentionSeverity>(_impl_.severity_);
 }
-inline void DevtoolAttentionRow::_internal_set_severity(::bldr::devtool::status::DevtoolAttentionSeverity value) {
+inline void DevtoolStatusAttentionRow::_internal_set_severity(::bldr::devtool::status::DevtoolStatusAttentionSeverity value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.severity_ = value;
 }
@@ -6118,34 +7765,34 @@ namespace google {
 namespace protobuf {
 
 template <>
-struct is_proto_enum<::bldr::devtool::status::DevtoolCommandState> : std::true_type {};
+struct is_proto_enum<::bldr::devtool::status::DevtoolStatusCommandState> : std::true_type {};
 template <>
-inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::bldr::devtool::status::DevtoolCommandState>() {
-  return ::bldr::devtool::status::DevtoolCommandState_descriptor();
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::bldr::devtool::status::DevtoolStatusCommandState>() {
+  return ::bldr::devtool::status::DevtoolStatusCommandState_descriptor();
 }
 template <>
-struct is_proto_enum<::bldr::devtool::status::DevtoolManifestState> : std::true_type {};
+struct is_proto_enum<::bldr::devtool::status::DevtoolStatusManifestState> : std::true_type {};
 template <>
-inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::bldr::devtool::status::DevtoolManifestState>() {
-  return ::bldr::devtool::status::DevtoolManifestState_descriptor();
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::bldr::devtool::status::DevtoolStatusManifestState>() {
+  return ::bldr::devtool::status::DevtoolStatusManifestState_descriptor();
 }
 template <>
-struct is_proto_enum<::bldr::devtool::status::DevtoolPluginState> : std::true_type {};
+struct is_proto_enum<::bldr::devtool::status::DevtoolStatusControllerState> : std::true_type {};
 template <>
-inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::bldr::devtool::status::DevtoolPluginState>() {
-  return ::bldr::devtool::status::DevtoolPluginState_descriptor();
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::bldr::devtool::status::DevtoolStatusControllerState>() {
+  return ::bldr::devtool::status::DevtoolStatusControllerState_descriptor();
 }
 template <>
-struct is_proto_enum<::bldr::devtool::status::DevtoolControllerState> : std::true_type {};
+struct is_proto_enum<::bldr::devtool::status::DevtoolStatusPluginState> : std::true_type {};
 template <>
-inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::bldr::devtool::status::DevtoolControllerState>() {
-  return ::bldr::devtool::status::DevtoolControllerState_descriptor();
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::bldr::devtool::status::DevtoolStatusPluginState>() {
+  return ::bldr::devtool::status::DevtoolStatusPluginState_descriptor();
 }
 template <>
-struct is_proto_enum<::bldr::devtool::status::DevtoolAttentionSeverity> : std::true_type {};
+struct is_proto_enum<::bldr::devtool::status::DevtoolStatusAttentionSeverity> : std::true_type {};
 template <>
-inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::bldr::devtool::status::DevtoolAttentionSeverity>() {
-  return ::bldr::devtool::status::DevtoolAttentionSeverity_descriptor();
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::bldr::devtool::status::DevtoolStatusAttentionSeverity>() {
+  return ::bldr::devtool::status::DevtoolStatusAttentionSeverity_descriptor();
 }
 
 }  // namespace protobuf

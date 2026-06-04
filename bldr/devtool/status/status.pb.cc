@@ -48,7 +48,7 @@ struct WatchDevtoolStatusRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchDevtoolStatusRequestDefaultTypeInternal _WatchDevtoolStatusRequest_default_instance_;
 
-inline constexpr DevtoolPluginRow::Impl_::Impl_(
+inline constexpr DevtoolStatusPluginRow::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
         id_(
@@ -69,50 +69,42 @@ inline constexpr DevtoolPluginRow::Impl_::Impl_(
         last_error_at_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        state_{static_cast< ::bldr::devtool::status::DevtoolPluginState >(0)} {}
+        state_{static_cast< ::bldr::devtool::status::DevtoolStatusPluginState >(0)} {}
 
 template <typename>
-PROTOBUF_CONSTEXPR DevtoolPluginRow::DevtoolPluginRow(::_pbi::ConstantInitialized)
+PROTOBUF_CONSTEXPR DevtoolStatusPluginRow::DevtoolStatusPluginRow(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(DevtoolPluginRow_class_data_.base()),
+    : ::google::protobuf::Message(DevtoolStatusPluginRow_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(),
 #endif  // PROTOBUF_CUSTOM_VTABLE
       _impl_(::_pbi::ConstantInitialized()) {
 }
-struct DevtoolPluginRowDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR DevtoolPluginRowDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~DevtoolPluginRowDefaultTypeInternal() {}
+struct DevtoolStatusPluginRowDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DevtoolStatusPluginRowDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DevtoolStatusPluginRowDefaultTypeInternal() {}
   union {
-    DevtoolPluginRow _instance;
+    DevtoolStatusPluginRow _instance;
   };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DevtoolPluginRowDefaultTypeInternal _DevtoolPluginRow_default_instance_;
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DevtoolStatusPluginRowDefaultTypeInternal _DevtoolStatusPluginRow_default_instance_;
 
-inline constexpr DevtoolManifestFetchRow::Impl_::Impl_(
+inline constexpr DevtoolStatusManifestFetchRow::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
+        platform_ids_{},
+        build_types_{},
+        remote_ids_{},
+        local_build_ids_{},
         id_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
         manifest_id_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        platform_id_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        build_type_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        remote_id_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
         ready_refs_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        local_build_ids_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
         summary_(
@@ -121,46 +113,42 @@ inline constexpr DevtoolManifestFetchRow::Impl_::Impl_(
         error_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        state_{static_cast< ::bldr::devtool::status::DevtoolManifestState >(0)},
-        ready_ref_count_{0},
+        state_{static_cast< ::bldr::devtool::status::DevtoolStatusManifestState >(0)},
+        ready_ref_count_{0u},
         blocked_on_local_build_{false} {}
 
 template <typename>
-PROTOBUF_CONSTEXPR DevtoolManifestFetchRow::DevtoolManifestFetchRow(::_pbi::ConstantInitialized)
+PROTOBUF_CONSTEXPR DevtoolStatusManifestFetchRow::DevtoolStatusManifestFetchRow(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(DevtoolManifestFetchRow_class_data_.base()),
+    : ::google::protobuf::Message(DevtoolStatusManifestFetchRow_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(),
 #endif  // PROTOBUF_CUSTOM_VTABLE
       _impl_(::_pbi::ConstantInitialized()) {
 }
-struct DevtoolManifestFetchRowDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR DevtoolManifestFetchRowDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~DevtoolManifestFetchRowDefaultTypeInternal() {}
+struct DevtoolStatusManifestFetchRowDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DevtoolStatusManifestFetchRowDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DevtoolStatusManifestFetchRowDefaultTypeInternal() {}
   union {
-    DevtoolManifestFetchRow _instance;
+    DevtoolStatusManifestFetchRow _instance;
   };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DevtoolManifestFetchRowDefaultTypeInternal _DevtoolManifestFetchRow_default_instance_;
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DevtoolStatusManifestFetchRowDefaultTypeInternal _DevtoolStatusManifestFetchRow_default_instance_;
 
-inline constexpr DevtoolManifestBuildRow::Impl_::Impl_(
+inline constexpr DevtoolStatusManifestBuildRow::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
+        build_target_ids_{},
+        target_platform_ids_{},
         id_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        build_targets_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
         manifest_id_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
         platform_id_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        target_platform_ids_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
         build_type_(
@@ -178,33 +166,33 @@ inline constexpr DevtoolManifestBuildRow::Impl_::Impl_(
         error_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        state_{static_cast< ::bldr::devtool::status::DevtoolManifestState >(0)},
+        state_{static_cast< ::bldr::devtool::status::DevtoolStatusManifestState >(0)},
         cache_hit_{false},
         full_rebuild_{false},
         hot_rebuild_{false},
-        watched_file_count_{0} {}
+        watched_file_count_{0u} {}
 
 template <typename>
-PROTOBUF_CONSTEXPR DevtoolManifestBuildRow::DevtoolManifestBuildRow(::_pbi::ConstantInitialized)
+PROTOBUF_CONSTEXPR DevtoolStatusManifestBuildRow::DevtoolStatusManifestBuildRow(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(DevtoolManifestBuildRow_class_data_.base()),
+    : ::google::protobuf::Message(DevtoolStatusManifestBuildRow_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(),
 #endif  // PROTOBUF_CUSTOM_VTABLE
       _impl_(::_pbi::ConstantInitialized()) {
 }
-struct DevtoolManifestBuildRowDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR DevtoolManifestBuildRowDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~DevtoolManifestBuildRowDefaultTypeInternal() {}
+struct DevtoolStatusManifestBuildRowDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DevtoolStatusManifestBuildRowDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DevtoolStatusManifestBuildRowDefaultTypeInternal() {}
   union {
-    DevtoolManifestBuildRow _instance;
+    DevtoolStatusManifestBuildRow _instance;
   };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DevtoolManifestBuildRowDefaultTypeInternal _DevtoolManifestBuildRow_default_instance_;
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DevtoolStatusManifestBuildRowDefaultTypeInternal _DevtoolStatusManifestBuildRow_default_instance_;
 
-inline constexpr DevtoolControllerRow::Impl_::Impl_(
+inline constexpr DevtoolStatusControllerRow::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
         id_(
@@ -222,29 +210,29 @@ inline constexpr DevtoolControllerRow::Impl_::Impl_(
         error_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        state_{static_cast< ::bldr::devtool::status::DevtoolControllerState >(0)} {}
+        state_{static_cast< ::bldr::devtool::status::DevtoolStatusControllerState >(0)} {}
 
 template <typename>
-PROTOBUF_CONSTEXPR DevtoolControllerRow::DevtoolControllerRow(::_pbi::ConstantInitialized)
+PROTOBUF_CONSTEXPR DevtoolStatusControllerRow::DevtoolStatusControllerRow(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(DevtoolControllerRow_class_data_.base()),
+    : ::google::protobuf::Message(DevtoolStatusControllerRow_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(),
 #endif  // PROTOBUF_CUSTOM_VTABLE
       _impl_(::_pbi::ConstantInitialized()) {
 }
-struct DevtoolControllerRowDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR DevtoolControllerRowDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~DevtoolControllerRowDefaultTypeInternal() {}
+struct DevtoolStatusControllerRowDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DevtoolStatusControllerRowDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DevtoolStatusControllerRowDefaultTypeInternal() {}
   union {
-    DevtoolControllerRow _instance;
+    DevtoolStatusControllerRow _instance;
   };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DevtoolControllerRowDefaultTypeInternal _DevtoolControllerRow_default_instance_;
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DevtoolStatusControllerRowDefaultTypeInternal _DevtoolStatusControllerRow_default_instance_;
 
-inline constexpr DevtoolCommandStatus::Impl_::Impl_(
+inline constexpr DevtoolStatusCommand::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
         name_(
@@ -259,29 +247,64 @@ inline constexpr DevtoolCommandStatus::Impl_::Impl_(
         log_file_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        state_{static_cast< ::bldr::devtool::status::DevtoolCommandState >(0)} {}
+        state_{static_cast< ::bldr::devtool::status::DevtoolStatusCommandState >(0)} {}
 
 template <typename>
-PROTOBUF_CONSTEXPR DevtoolCommandStatus::DevtoolCommandStatus(::_pbi::ConstantInitialized)
+PROTOBUF_CONSTEXPR DevtoolStatusCommand::DevtoolStatusCommand(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(DevtoolCommandStatus_class_data_.base()),
+    : ::google::protobuf::Message(DevtoolStatusCommand_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(),
 #endif  // PROTOBUF_CUSTOM_VTABLE
       _impl_(::_pbi::ConstantInitialized()) {
 }
-struct DevtoolCommandStatusDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR DevtoolCommandStatusDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~DevtoolCommandStatusDefaultTypeInternal() {}
+struct DevtoolStatusCommandDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DevtoolStatusCommandDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DevtoolStatusCommandDefaultTypeInternal() {}
   union {
-    DevtoolCommandStatus _instance;
+    DevtoolStatusCommand _instance;
   };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DevtoolCommandStatusDefaultTypeInternal _DevtoolCommandStatus_default_instance_;
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DevtoolStatusCommandDefaultTypeInternal _DevtoolStatusCommand_default_instance_;
 
-inline constexpr DevtoolAttentionRow::Impl_::Impl_(
+inline constexpr DevtoolStatusBuildTarget::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        manifest_ids_{},
+        configured_target_ids_{},
+        explicit_platform_ids_{},
+        resolved_platform_ids_{},
+        build_types_{},
+        id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        error_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DevtoolStatusBuildTarget::DevtoolStatusBuildTarget(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(DevtoolStatusBuildTarget_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DevtoolStatusBuildTargetDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DevtoolStatusBuildTargetDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DevtoolStatusBuildTargetDefaultTypeInternal() {}
+  union {
+    DevtoolStatusBuildTarget _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DevtoolStatusBuildTargetDefaultTypeInternal _DevtoolStatusBuildTarget_default_instance_;
+
+inline constexpr DevtoolStatusAttentionRow::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
         id_(
@@ -296,37 +319,71 @@ inline constexpr DevtoolAttentionRow::Impl_::Impl_(
         detail_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        severity_{static_cast< ::bldr::devtool::status::DevtoolAttentionSeverity >(0)} {}
+        severity_{static_cast< ::bldr::devtool::status::DevtoolStatusAttentionSeverity >(0)} {}
 
 template <typename>
-PROTOBUF_CONSTEXPR DevtoolAttentionRow::DevtoolAttentionRow(::_pbi::ConstantInitialized)
+PROTOBUF_CONSTEXPR DevtoolStatusAttentionRow::DevtoolStatusAttentionRow(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(DevtoolAttentionRow_class_data_.base()),
+    : ::google::protobuf::Message(DevtoolStatusAttentionRow_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(),
 #endif  // PROTOBUF_CUSTOM_VTABLE
       _impl_(::_pbi::ConstantInitialized()) {
 }
-struct DevtoolAttentionRowDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR DevtoolAttentionRowDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~DevtoolAttentionRowDefaultTypeInternal() {}
+struct DevtoolStatusAttentionRowDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DevtoolStatusAttentionRowDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DevtoolStatusAttentionRowDefaultTypeInternal() {}
   union {
-    DevtoolAttentionRow _instance;
+    DevtoolStatusAttentionRow _instance;
   };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DevtoolAttentionRowDefaultTypeInternal _DevtoolAttentionRow_default_instance_;
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DevtoolStatusAttentionRowDefaultTypeInternal _DevtoolStatusAttentionRow_default_instance_;
+
+inline constexpr DevtoolStatusProject::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        startup_plugins_{},
+        manifest_ids_{},
+        build_targets_{},
+        project_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        web_startup_path_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DevtoolStatusProject::DevtoolStatusProject(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(DevtoolStatusProject_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DevtoolStatusProjectDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DevtoolStatusProjectDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DevtoolStatusProjectDefaultTypeInternal() {}
+  union {
+    DevtoolStatusProject _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DevtoolStatusProjectDefaultTypeInternal _DevtoolStatusProject_default_instance_;
 
 inline constexpr DevtoolStatusSnapshot::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
         manifest_fetch_rows_{},
         manifest_build_rows_{},
-        plugin_rows_{},
         controller_rows_{},
+        plugin_rows_{},
         attention_rows_{},
-        command_{nullptr} {}
+        command_{nullptr},
+        project_{nullptr} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR DevtoolStatusSnapshot::DevtoolStatusSnapshot(::_pbi::ConstantInitialized)
@@ -390,82 +447,114 @@ const ::uint32_t
         0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusSnapshot, _impl_._has_bits_),
-        9, // hasbit index offset
+        10, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusSnapshot, _impl_.command_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusSnapshot, _impl_.project_),
         PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusSnapshot, _impl_.manifest_fetch_rows_),
         PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusSnapshot, _impl_.manifest_build_rows_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusSnapshot, _impl_.plugin_rows_),
         PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusSnapshot, _impl_.controller_rows_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusSnapshot, _impl_.plugin_rows_),
         PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusSnapshot, _impl_.attention_rows_),
         5,
+        6,
         0,
         1,
         2,
         3,
         4,
         0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolCommandStatus, _impl_._has_bits_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusCommand, _impl_._has_bits_),
         8, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolCommandStatus, _impl_.name_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolCommandStatus, _impl_.state_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolCommandStatus, _impl_.summary_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolCommandStatus, _impl_.error_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolCommandStatus, _impl_.log_file_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusCommand, _impl_.name_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusCommand, _impl_.state_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusCommand, _impl_.summary_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusCommand, _impl_.error_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusCommand, _impl_.log_file_),
         0,
         4,
         1,
         2,
         3,
         0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestFetchRow, _impl_._has_bits_),
-        15, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestFetchRow, _impl_.id_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestFetchRow, _impl_.manifest_id_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestFetchRow, _impl_.platform_id_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestFetchRow, _impl_.build_type_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestFetchRow, _impl_.remote_id_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestFetchRow, _impl_.state_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestFetchRow, _impl_.ready_ref_count_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestFetchRow, _impl_.ready_refs_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestFetchRow, _impl_.local_build_ids_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestFetchRow, _impl_.blocked_on_local_build_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestFetchRow, _impl_.summary_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestFetchRow, _impl_.error_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusProject, _impl_._has_bits_),
+        8, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusProject, _impl_.project_id_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusProject, _impl_.startup_plugins_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusProject, _impl_.web_startup_path_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusProject, _impl_.manifest_ids_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusProject, _impl_.build_targets_),
+        3,
+        0,
+        4,
+        1,
+        2,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusBuildTarget, _impl_._has_bits_),
+        10, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusBuildTarget, _impl_.id_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusBuildTarget, _impl_.manifest_ids_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusBuildTarget, _impl_.configured_target_ids_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusBuildTarget, _impl_.explicit_platform_ids_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusBuildTarget, _impl_.resolved_platform_ids_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusBuildTarget, _impl_.build_types_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusBuildTarget, _impl_.error_),
+        5,
         0,
         1,
         2,
         3,
         4,
+        6,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestFetchRow, _impl_._has_bits_),
+        15, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestFetchRow, _impl_.id_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestFetchRow, _impl_.manifest_id_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestFetchRow, _impl_.platform_ids_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestFetchRow, _impl_.build_types_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestFetchRow, _impl_.remote_ids_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestFetchRow, _impl_.state_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestFetchRow, _impl_.ready_ref_count_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestFetchRow, _impl_.ready_refs_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestFetchRow, _impl_.local_build_ids_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestFetchRow, _impl_.blocked_on_local_build_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestFetchRow, _impl_.summary_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestFetchRow, _impl_.error_),
+        4,
+        5,
+        0,
+        1,
+        2,
         9,
         10,
-        5,
         6,
+        3,
         11,
         7,
         8,
         0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestBuildRow, _impl_._has_bits_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestBuildRow, _impl_._has_bits_),
         18, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestBuildRow, _impl_.id_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestBuildRow, _impl_.build_targets_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestBuildRow, _impl_.manifest_id_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestBuildRow, _impl_.platform_id_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestBuildRow, _impl_.target_platform_ids_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestBuildRow, _impl_.build_type_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestBuildRow, _impl_.remote_id_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestBuildRow, _impl_.state_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestBuildRow, _impl_.cache_hit_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestBuildRow, _impl_.full_rebuild_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestBuildRow, _impl_.hot_rebuild_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestBuildRow, _impl_.watched_file_count_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestBuildRow, _impl_.dependency_rebuild_reason_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestBuildRow, _impl_.summary_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolManifestBuildRow, _impl_.error_),
-        0,
-        1,
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestBuildRow, _impl_.id_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestBuildRow, _impl_.build_target_ids_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestBuildRow, _impl_.manifest_id_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestBuildRow, _impl_.platform_id_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestBuildRow, _impl_.target_platform_ids_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestBuildRow, _impl_.build_type_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestBuildRow, _impl_.remote_id_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestBuildRow, _impl_.state_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestBuildRow, _impl_.cache_hit_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestBuildRow, _impl_.full_rebuild_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestBuildRow, _impl_.hot_rebuild_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestBuildRow, _impl_.watched_file_count_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestBuildRow, _impl_.dependency_rebuild_reason_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestBuildRow, _impl_.summary_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusManifestBuildRow, _impl_.error_),
         2,
+        0,
         3,
         4,
+        1,
         5,
         6,
         10,
@@ -477,15 +566,30 @@ const ::uint32_t
         8,
         9,
         0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolPluginRow, _impl_._has_bits_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusControllerRow, _impl_._has_bits_),
+        9, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusControllerRow, _impl_.id_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusControllerRow, _impl_.controller_id_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusControllerRow, _impl_.kind_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusControllerRow, _impl_.state_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusControllerRow, _impl_.summary_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusControllerRow, _impl_.error_),
+        0,
+        1,
+        2,
+        5,
+        3,
+        4,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusPluginRow, _impl_._has_bits_),
         10, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolPluginRow, _impl_.id_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolPluginRow, _impl_.plugin_id_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolPluginRow, _impl_.instance_key_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolPluginRow, _impl_.state_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolPluginRow, _impl_.summary_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolPluginRow, _impl_.error_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolPluginRow, _impl_.last_error_at_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusPluginRow, _impl_.id_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusPluginRow, _impl_.plugin_id_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusPluginRow, _impl_.instance_key_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusPluginRow, _impl_.state_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusPluginRow, _impl_.summary_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusPluginRow, _impl_.error_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusPluginRow, _impl_.last_error_at_),
         0,
         1,
         2,
@@ -494,28 +598,13 @@ const ::uint32_t
         4,
         5,
         0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolControllerRow, _impl_._has_bits_),
-        9, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolControllerRow, _impl_.id_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolControllerRow, _impl_.controller_id_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolControllerRow, _impl_.kind_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolControllerRow, _impl_.state_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolControllerRow, _impl_.summary_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolControllerRow, _impl_.error_),
-        0,
-        1,
-        2,
-        5,
-        3,
-        4,
-        0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolAttentionRow, _impl_._has_bits_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusAttentionRow, _impl_._has_bits_),
         8, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolAttentionRow, _impl_.id_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolAttentionRow, _impl_.source_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolAttentionRow, _impl_.message_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolAttentionRow, _impl_.detail_),
-        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolAttentionRow, _impl_.severity_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusAttentionRow, _impl_.id_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusAttentionRow, _impl_.source_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusAttentionRow, _impl_.message_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusAttentionRow, _impl_.detail_),
+        PROTOBUF_FIELD_OFFSET(::bldr::devtool::status::DevtoolStatusAttentionRow, _impl_.severity_),
         0,
         1,
         2,
@@ -528,23 +617,27 @@ static const ::_pbi::MigrationSchema
         {0, sizeof(::bldr::devtool::status::WatchDevtoolStatusRequest)},
         {1, sizeof(::bldr::devtool::status::WatchDevtoolStatusResponse)},
         {6, sizeof(::bldr::devtool::status::DevtoolStatusSnapshot)},
-        {21, sizeof(::bldr::devtool::status::DevtoolCommandStatus)},
-        {34, sizeof(::bldr::devtool::status::DevtoolManifestFetchRow)},
-        {61, sizeof(::bldr::devtool::status::DevtoolManifestBuildRow)},
-        {94, sizeof(::bldr::devtool::status::DevtoolPluginRow)},
-        {111, sizeof(::bldr::devtool::status::DevtoolControllerRow)},
-        {126, sizeof(::bldr::devtool::status::DevtoolAttentionRow)},
+        {23, sizeof(::bldr::devtool::status::DevtoolStatusCommand)},
+        {36, sizeof(::bldr::devtool::status::DevtoolStatusProject)},
+        {49, sizeof(::bldr::devtool::status::DevtoolStatusBuildTarget)},
+        {66, sizeof(::bldr::devtool::status::DevtoolStatusManifestFetchRow)},
+        {93, sizeof(::bldr::devtool::status::DevtoolStatusManifestBuildRow)},
+        {126, sizeof(::bldr::devtool::status::DevtoolStatusControllerRow)},
+        {141, sizeof(::bldr::devtool::status::DevtoolStatusPluginRow)},
+        {158, sizeof(::bldr::devtool::status::DevtoolStatusAttentionRow)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::devtool::status::_WatchDevtoolStatusRequest_default_instance_._instance,
     &::bldr::devtool::status::_WatchDevtoolStatusResponse_default_instance_._instance,
     &::bldr::devtool::status::_DevtoolStatusSnapshot_default_instance_._instance,
-    &::bldr::devtool::status::_DevtoolCommandStatus_default_instance_._instance,
-    &::bldr::devtool::status::_DevtoolManifestFetchRow_default_instance_._instance,
-    &::bldr::devtool::status::_DevtoolManifestBuildRow_default_instance_._instance,
-    &::bldr::devtool::status::_DevtoolPluginRow_default_instance_._instance,
-    &::bldr::devtool::status::_DevtoolControllerRow_default_instance_._instance,
-    &::bldr::devtool::status::_DevtoolAttentionRow_default_instance_._instance,
+    &::bldr::devtool::status::_DevtoolStatusCommand_default_instance_._instance,
+    &::bldr::devtool::status::_DevtoolStatusProject_default_instance_._instance,
+    &::bldr::devtool::status::_DevtoolStatusBuildTarget_default_instance_._instance,
+    &::bldr::devtool::status::_DevtoolStatusManifestFetchRow_default_instance_._instance,
+    &::bldr::devtool::status::_DevtoolStatusManifestBuildRow_default_instance_._instance,
+    &::bldr::devtool::status::_DevtoolStatusControllerRow_default_instance_._instance,
+    &::bldr::devtool::status::_DevtoolStatusPluginRow_default_instance_._instance,
+    &::bldr::devtool::status::_DevtoolStatusAttentionRow_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -553,95 +646,111 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "tus\"\033\n\031WatchDevtoolStatusRequest\"Z\n\032Watc"
     "hDevtoolStatusResponse\022<\n\010snapshot\030\001 \001(\013"
     "2*.bldr.devtool.status.DevtoolStatusSnap"
-    "shot\"\253\003\n\025DevtoolStatusSnapshot\022:\n\007comman"
-    "d\030\001 \001(\0132).bldr.devtool.status.DevtoolCom"
-    "mandStatus\022I\n\023manifest_fetch_rows\030\002 \003(\0132"
-    ",.bldr.devtool.status.DevtoolManifestFet"
-    "chRow\022I\n\023manifest_build_rows\030\003 \003(\0132,.bld"
-    "r.devtool.status.DevtoolManifestBuildRow"
-    "\022:\n\013plugin_rows\030\004 \003(\0132%.bldr.devtool.sta"
-    "tus.DevtoolPluginRow\022B\n\017controller_rows\030"
-    "\005 \003(\0132).bldr.devtool.status.DevtoolContr"
-    "ollerRow\022@\n\016attention_rows\030\006 \003(\0132(.bldr."
-    "devtool.status.DevtoolAttentionRow\"\217\001\n\024D"
-    "evtoolCommandStatus\022\014\n\004name\030\001 \001(\t\0227\n\005sta"
-    "te\030\002 \001(\0162(.bldr.devtool.status.DevtoolCo"
-    "mmandState\022\017\n\007summary\030\003 \001(\t\022\r\n\005error\030\004 \001"
-    "(\t\022\020\n\010log_file\030\005 \001(\t\"\266\002\n\027DevtoolManifest"
-    "FetchRow\022\n\n\002id\030\001 \001(\t\022\023\n\013manifest_id\030\002 \001("
-    "\t\022\023\n\013platform_id\030\003 \001(\t\022\022\n\nbuild_type\030\004 \001"
-    "(\t\022\021\n\tremote_id\030\005 \001(\t\0228\n\005state\030\006 \001(\0162).b"
-    "ldr.devtool.status.DevtoolManifestState\022"
-    "\027\n\017ready_ref_count\030\007 \001(\005\022\022\n\nready_refs\030\010"
-    " \001(\t\022\027\n\017local_build_ids\030\t \001(\t\022\036\n\026blocked"
-    "_on_local_build\030\n \001(\010\022\017\n\007summary\030\013 \001(\t\022\r"
-    "\n\005error\030\014 \001(\t\"\201\003\n\027DevtoolManifestBuildRo"
-    "w\022\n\n\002id\030\001 \001(\t\022\025\n\rbuild_targets\030\002 \001(\t\022\023\n\013"
-    "manifest_id\030\003 \001(\t\022\023\n\013platform_id\030\004 \001(\t\022\033"
-    "\n\023target_platform_ids\030\005 \001(\t\022\022\n\nbuild_typ"
-    "e\030\006 \001(\t\022\021\n\tremote_id\030\007 \001(\t\0228\n\005state\030\010 \001("
-    "\0162).bldr.devtool.status.DevtoolManifestS"
-    "tate\022\021\n\tcache_hit\030\t \001(\010\022\024\n\014full_rebuild\030"
-    "\n \001(\010\022\023\n\013hot_rebuild\030\013 \001(\010\022\032\n\022watched_fi"
-    "le_count\030\014 \001(\005\022!\n\031dependency_rebuild_rea"
-    "son\030\r \001(\t\022\017\n\007summary\030\016 \001(\t\022\r\n\005error\030\017 \001("
-    "\t\"\266\001\n\020DevtoolPluginRow\022\n\n\002id\030\001 \001(\t\022\021\n\tpl"
-    "ugin_id\030\002 \001(\t\022\024\n\014instance_key\030\003 \001(\t\0226\n\005s"
-    "tate\030\004 \001(\0162\'.bldr.devtool.status.Devtool"
-    "PluginState\022\017\n\007summary\030\005 \001(\t\022\r\n\005error\030\006 "
-    "\001(\t\022\025\n\rlast_error_at\030\007 \001(\t\"\243\001\n\024DevtoolCo"
-    "ntrollerRow\022\n\n\002id\030\001 \001(\t\022\025\n\rcontroller_id"
-    "\030\002 \001(\t\022\014\n\004kind\030\003 \001(\t\022:\n\005state\030\004 \001(\0162+.bl"
-    "dr.devtool.status.DevtoolControllerState"
-    "\022\017\n\007summary\030\005 \001(\t\022\r\n\005error\030\006 \001(\t\"\223\001\n\023Dev"
-    "toolAttentionRow\022\n\n\002id\030\001 \001(\t\022\016\n\006source\030\002"
-    " \001(\t\022\017\n\007message\030\003 \001(\t\022\016\n\006detail\030\004 \001(\t\022\?\n"
-    "\010severity\030\005 \001(\0162-.bldr.devtool.status.De"
-    "vtoolAttentionSeverity*\350\001\n\023DevtoolComman"
-    "dState\022%\n!DEVTOOL_COMMAND_STATE_UNSPECIF"
-    "IED\020\000\022\"\n\036DEVTOOL_COMMAND_STATE_STARTING\020"
-    "\001\022!\n\035DEVTOOL_COMMAND_STATE_RUNNING\020\002\022\036\n\032"
-    "DEVTOOL_COMMAND_STATE_DONE\020\003\022\037\n\033DEVTOOL_"
-    "COMMAND_STATE_ERROR\020\004\022\"\n\036DEVTOOL_COMMAND"
-    "_STATE_CANCELED\020\005*\356\001\n\024DevtoolManifestSta"
-    "te\022&\n\"DEVTOOL_MANIFEST_STATE_UNSPECIFIED"
-    "\020\000\022!\n\035DEVTOOL_MANIFEST_STATE_QUEUED\020\001\022\"\n"
-    "\036DEVTOOL_MANIFEST_STATE_RUNNING\020\002\022 \n\034DEV"
-    "TOOL_MANIFEST_STATE_READY\020\003\022 \n\034DEVTOOL_M"
-    "ANIFEST_STATE_ERROR\020\004\022#\n\037DEVTOOL_MANIFES"
-    "T_STATE_CANCELED\020\005*\242\001\n\022DevtoolPluginStat"
-    "e\022$\n DEVTOOL_PLUGIN_STATE_UNSPECIFIED\020\000\022"
-    "\"\n\036DEVTOOL_PLUGIN_STATE_REQUESTED\020\001\022 \n\034D"
-    "EVTOOL_PLUGIN_STATE_RUNNING\020\002\022 \n\034DEVTOOL"
-    "_PLUGIN_STATE_ERRORED\020\003*\327\001\n\026DevtoolContr"
-    "ollerState\022(\n$DEVTOOL_CONTROLLER_STATE_U"
-    "NSPECIFIED\020\000\022&\n\"DEVTOOL_CONTROLLER_STATE"
-    "_REQUESTED\020\001\022$\n DEVTOOL_CONTROLLER_STATE"
-    "_RUNNING\020\002\022!\n\035DEVTOOL_CONTROLLER_STATE_I"
-    "DLE\020\003\022\"\n\036DEVTOOL_CONTROLLER_STATE_ERROR\020"
-    "\004*\271\001\n\030DevtoolAttentionSeverity\022*\n&DEVTOO"
-    "L_ATTENTION_SEVERITY_UNSPECIFIED\020\000\022#\n\037DE"
-    "VTOOL_ATTENTION_SEVERITY_INFO\020\001\022&\n\"DEVTO"
-    "OL_ATTENTION_SEVERITY_WARNING\020\002\022$\n DEVTO"
-    "OL_ATTENTION_SEVERITY_ERROR\020\0032\223\001\n\030BldrDe"
-    "vtoolStatusService\022w\n\022WatchDevtoolStatus"
-    "\022..bldr.devtool.status.WatchDevtoolStatu"
-    "sRequest\032/.bldr.devtool.status.WatchDevt"
-    "oolStatusResponse0\001B8Z6github.com/s4wave"
-    "/spacewave/bldr/devtool/status;statusb\006p"
-    "roto3"
+    "shot\"\205\004\n\025DevtoolStatusSnapshot\022:\n\007comman"
+    "d\030\001 \001(\0132).bldr.devtool.status.DevtoolSta"
+    "tusCommand\022:\n\007project\030\002 \001(\0132).bldr.devto"
+    "ol.status.DevtoolStatusProject\022O\n\023manife"
+    "st_fetch_rows\030\003 \003(\01322.bldr.devtool.statu"
+    "s.DevtoolStatusManifestFetchRow\022O\n\023manif"
+    "est_build_rows\030\004 \003(\01322.bldr.devtool.stat"
+    "us.DevtoolStatusManifestBuildRow\022H\n\017cont"
+    "roller_rows\030\005 \003(\0132/.bldr.devtool.status."
+    "DevtoolStatusControllerRow\022@\n\013plugin_row"
+    "s\030\006 \003(\0132+.bldr.devtool.status.DevtoolSta"
+    "tusPluginRow\022F\n\016attention_rows\030\007 \003(\0132..b"
+    "ldr.devtool.status.DevtoolStatusAttentio"
+    "nRow\"\225\001\n\024DevtoolStatusCommand\022\014\n\004name\030\001 "
+    "\001(\t\022=\n\005state\030\002 \001(\0162..bldr.devtool.status"
+    ".DevtoolStatusCommandState\022\017\n\007summary\030\003 "
+    "\001(\t\022\r\n\005error\030\004 \001(\t\022\020\n\010log_file\030\005 \001(\t\"\271\001\n"
+    "\024DevtoolStatusProject\022\022\n\nproject_id\030\001 \001("
+    "\t\022\027\n\017startup_plugins\030\002 \003(\t\022\030\n\020web_startu"
+    "p_path\030\003 \001(\t\022\024\n\014manifest_ids\030\004 \003(\t\022D\n\rbu"
+    "ild_targets\030\005 \003(\0132-.bldr.devtool.status."
+    "DevtoolStatusBuildTarget\"\275\001\n\030DevtoolStat"
+    "usBuildTarget\022\n\n\002id\030\001 \001(\t\022\024\n\014manifest_id"
+    "s\030\002 \003(\t\022\035\n\025configured_target_ids\030\003 \003(\t\022\035"
+    "\n\025explicit_platform_ids\030\004 \003(\t\022\035\n\025resolve"
+    "d_platform_ids\030\005 \003(\t\022\023\n\013build_types\030\006 \003("
+    "\t\022\r\n\005error\030\007 \001(\t\"\305\002\n\035DevtoolStatusManife"
+    "stFetchRow\022\n\n\002id\030\001 \001(\t\022\023\n\013manifest_id\030\002 "
+    "\001(\t\022\024\n\014platform_ids\030\003 \003(\t\022\023\n\013build_types"
+    "\030\004 \003(\t\022\022\n\nremote_ids\030\005 \003(\t\022>\n\005state\030\006 \001("
+    "\0162/.bldr.devtool.status.DevtoolStatusMan"
+    "ifestState\022\027\n\017ready_ref_count\030\007 \001(\r\022\022\n\nr"
+    "eady_refs\030\010 \001(\t\022\027\n\017local_build_ids\030\t \003(\t"
+    "\022\036\n\026blocked_on_local_build\030\n \001(\010\022\017\n\007summ"
+    "ary\030\013 \001(\t\022\r\n\005error\030\014 \001(\t\"\220\003\n\035DevtoolStat"
+    "usManifestBuildRow\022\n\n\002id\030\001 \001(\t\022\030\n\020build_"
+    "target_ids\030\002 \003(\t\022\023\n\013manifest_id\030\003 \001(\t\022\023\n"
+    "\013platform_id\030\004 \001(\t\022\033\n\023target_platform_id"
+    "s\030\005 \003(\t\022\022\n\nbuild_type\030\006 \001(\t\022\021\n\tremote_id"
+    "\030\007 \001(\t\022>\n\005state\030\010 \001(\0162/.bldr.devtool.sta"
+    "tus.DevtoolStatusManifestState\022\021\n\tcache_"
+    "hit\030\t \001(\010\022\024\n\014full_rebuild\030\n \001(\010\022\023\n\013hot_r"
+    "ebuild\030\013 \001(\010\022\032\n\022watched_file_count\030\014 \001(\r"
+    "\022!\n\031dependency_rebuild_reason\030\r \001(\t\022\017\n\007s"
+    "ummary\030\016 \001(\t\022\r\n\005error\030\017 \001(\t\"\257\001\n\032DevtoolS"
+    "tatusControllerRow\022\n\n\002id\030\001 \001(\t\022\025\n\rcontro"
+    "ller_id\030\002 \001(\t\022\014\n\004kind\030\003 \001(\t\022@\n\005state\030\004 \001"
+    "(\01621.bldr.devtool.status.DevtoolStatusCo"
+    "ntrollerState\022\017\n\007summary\030\005 \001(\t\022\r\n\005error\030"
+    "\006 \001(\t\"\302\001\n\026DevtoolStatusPluginRow\022\n\n\002id\030\001"
+    " \001(\t\022\021\n\tplugin_id\030\002 \001(\t\022\024\n\014instance_key\030"
+    "\003 \001(\t\022<\n\005state\030\004 \001(\0162-.bldr.devtool.stat"
+    "us.DevtoolStatusPluginState\022\017\n\007summary\030\005"
+    " \001(\t\022\r\n\005error\030\006 \001(\t\022\025\n\rlast_error_at\030\007 \001"
+    "(\t\"\237\001\n\031DevtoolStatusAttentionRow\022\n\n\002id\030\001"
+    " \001(\t\022\016\n\006source\030\002 \001(\t\022\017\n\007message\030\003 \001(\t\022\016\n"
+    "\006detail\030\004 \001(\t\022E\n\010severity\030\005 \001(\01623.bldr.d"
+    "evtool.status.DevtoolStatusAttentionSeve"
+    "rity*\202\002\n\031DevtoolStatusCommandState\022%\n!De"
+    "vtoolStatusCommandState_UNKNOWN\020\000\022&\n\"Dev"
+    "toolStatusCommandState_STARTING\020\001\022%\n!Dev"
+    "toolStatusCommandState_RUNNING\020\002\022\"\n\036Devt"
+    "oolStatusCommandState_DONE\020\003\022#\n\037DevtoolS"
+    "tatusCommandState_ERROR\020\004\022&\n\"DevtoolStat"
+    "usCommandState_CANCELED\020\005*\210\002\n\032DevtoolSta"
+    "tusManifestState\022&\n\"DevtoolStatusManifes"
+    "tState_UNKNOWN\020\000\022%\n!DevtoolStatusManifes"
+    "tState_QUEUED\020\001\022&\n\"DevtoolStatusManifest"
+    "State_RUNNING\020\002\022$\n DevtoolStatusManifest"
+    "State_READY\020\003\022$\n DevtoolStatusManifestSt"
+    "ate_ERROR\020\004\022\'\n#DevtoolStatusManifestStat"
+    "e_CANCELED\020\005*\355\001\n\034DevtoolStatusController"
+    "State\022(\n$DevtoolStatusControllerState_UN"
+    "KNOWN\020\000\022*\n&DevtoolStatusControllerState_"
+    "REQUESTED\020\001\022(\n$DevtoolStatusControllerSt"
+    "ate_RUNNING\020\002\022%\n!DevtoolStatusController"
+    "State_IDLE\020\003\022&\n\"DevtoolStatusControllerS"
+    "tate_ERROR\020\004*\264\001\n\030DevtoolStatusPluginStat"
+    "e\022$\n DevtoolStatusPluginState_UNKNOWN\020\000\022"
+    "&\n\"DevtoolStatusPluginState_REQUESTED\020\001\022"
+    "$\n DevtoolStatusPluginState_RUNNING\020\002\022$\n"
+    " DevtoolStatusPluginState_ERRORED\020\003*\313\001\n\036"
+    "DevtoolStatusAttentionSeverity\022*\n&Devtoo"
+    "lStatusAttentionSeverity_UNKNOWN\020\000\022\'\n#De"
+    "vtoolStatusAttentionSeverity_INFO\020\001\022*\n&D"
+    "evtoolStatusAttentionSeverity_WARNING\020\002\022"
+    "(\n$DevtoolStatusAttentionSeverity_ERROR\020"
+    "\0032\217\001\n\024DevtoolStatusService\022w\n\022WatchDevto"
+    "olStatus\022..bldr.devtool.status.WatchDevt"
+    "oolStatusRequest\032/.bldr.devtool.status.W"
+    "atchDevtoolStatusResponse0\001B8Z6github.co"
+    "m/s4wave/spacewave/bldr/devtool/status;s"
+    "tatusb\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto = {
     false,
     false,
-    3245,
+    3893,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto,
     "github.com/s4wave/spacewave/bldr/devtool/status/status.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto_once,
     nullptr,
     0,
-    9,
+    11,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto::offsets,
@@ -651,35 +760,35 @@ PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2
 namespace bldr {
 namespace devtool {
 namespace status {
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DevtoolCommandState_descriptor() {
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DevtoolStatusCommandState_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto);
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto[0];
 }
-PROTOBUF_CONSTINIT const uint32_t DevtoolCommandState_internal_data_[] = {
+PROTOBUF_CONSTINIT const uint32_t DevtoolStatusCommandState_internal_data_[] = {
     393216u, 0u, };
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DevtoolManifestState_descriptor() {
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DevtoolStatusManifestState_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto);
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto[1];
 }
-PROTOBUF_CONSTINIT const uint32_t DevtoolManifestState_internal_data_[] = {
+PROTOBUF_CONSTINIT const uint32_t DevtoolStatusManifestState_internal_data_[] = {
     393216u, 0u, };
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DevtoolPluginState_descriptor() {
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DevtoolStatusControllerState_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto);
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto[2];
 }
-PROTOBUF_CONSTINIT const uint32_t DevtoolPluginState_internal_data_[] = {
-    262144u, 0u, };
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DevtoolControllerState_descriptor() {
+PROTOBUF_CONSTINIT const uint32_t DevtoolStatusControllerState_internal_data_[] = {
+    327680u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DevtoolStatusPluginState_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto);
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto[3];
 }
-PROTOBUF_CONSTINIT const uint32_t DevtoolControllerState_internal_data_[] = {
-    327680u, 0u, };
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DevtoolAttentionSeverity_descriptor() {
+PROTOBUF_CONSTINIT const uint32_t DevtoolStatusPluginState_internal_data_[] = {
+    262144u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL DevtoolStatusAttentionSeverity_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto);
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto[4];
 }
-PROTOBUF_CONSTINIT const uint32_t DevtoolAttentionSeverity_internal_data_[] = {
+PROTOBUF_CONSTINIT const uint32_t DevtoolStatusAttentionSeverity_internal_data_[] = {
     262144u, 0u, };
 // ===================================================================
 
@@ -1088,8 +1197,8 @@ PROTOBUF_NDEBUG_INLINE DevtoolStatusSnapshot::Impl_::Impl_(
         _cached_size_{0},
         manifest_fetch_rows_{visibility, arena, from.manifest_fetch_rows_},
         manifest_build_rows_{visibility, arena, from.manifest_build_rows_},
-        plugin_rows_{visibility, arena, from.plugin_rows_},
         controller_rows_{visibility, arena, from.controller_rows_},
+        plugin_rows_{visibility, arena, from.plugin_rows_},
         attention_rows_{visibility, arena, from.attention_rows_} {}
 
 DevtoolStatusSnapshot::DevtoolStatusSnapshot(
@@ -1109,6 +1218,9 @@ DevtoolStatusSnapshot::DevtoolStatusSnapshot(
   _impl_.command_ = (CheckHasBit(cached_has_bits, 0x00000020U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.command_)
                 : nullptr;
+  _impl_.project_ = (CheckHasBit(cached_has_bits, 0x00000040U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.project_)
+                : nullptr;
 
   // @@protoc_insertion_point(copy_constructor:bldr.devtool.status.DevtoolStatusSnapshot)
 }
@@ -1118,13 +1230,18 @@ PROTOBUF_NDEBUG_INLINE DevtoolStatusSnapshot::Impl_::Impl_(
       : _cached_size_{0},
         manifest_fetch_rows_{visibility, arena},
         manifest_build_rows_{visibility, arena},
-        plugin_rows_{visibility, arena},
         controller_rows_{visibility, arena},
+        plugin_rows_{visibility, arena},
         attention_rows_{visibility, arena} {}
 
 inline void DevtoolStatusSnapshot::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.command_ = {};
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, command_),
+           0,
+           offsetof(Impl_, project_) -
+               offsetof(Impl_, command_) +
+               sizeof(Impl_::project_));
 }
 DevtoolStatusSnapshot::~DevtoolStatusSnapshot() {
   // @@protoc_insertion_point(destructor:bldr.devtool.status.DevtoolStatusSnapshot)
@@ -1138,6 +1255,7 @@ inline void DevtoolStatusSnapshot::SharedDtor(MessageLite& self) {
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
   delete this_._impl_.command_;
+  delete this_._impl_.project_;
   this_._impl_.~Impl_();
 }
 
@@ -1156,12 +1274,12 @@ constexpr auto DevtoolStatusSnapshot::InternalNewImpl_() {
           decltype(DevtoolStatusSnapshot::_impl_.manifest_build_rows_)::
               InternalGetArenaOffset(
                   ::google::protobuf::Message::internal_visibility()),
-      PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.plugin_rows_) +
-          decltype(DevtoolStatusSnapshot::_impl_.plugin_rows_)::
-              InternalGetArenaOffset(
-                  ::google::protobuf::Message::internal_visibility()),
       PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.controller_rows_) +
           decltype(DevtoolStatusSnapshot::_impl_.controller_rows_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.plugin_rows_) +
+          decltype(DevtoolStatusSnapshot::_impl_.plugin_rows_)::
               InternalGetArenaOffset(
                   ::google::protobuf::Message::internal_visibility()),
       PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.attention_rows_) +
@@ -1212,17 +1330,17 @@ DevtoolStatusSnapshot::GetClassData() const {
   return DevtoolStatusSnapshot_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 6, 6, 0, 2>
+const ::_pbi::TcParseTable<3, 7, 7, 0, 2>
 DevtoolStatusSnapshot::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_._has_bits_),
     0, // no _extensions_
-    6, 56,  // max_field_number, fast_idx_mask
+    7, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967232,  // skipmap
+    4294967168,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    6,  // num_field_entries
-    6,  // num_aux_entries
+    7,  // num_field_entries
+    7,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     DevtoolStatusSnapshot_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -1232,54 +1350,60 @@ DevtoolStatusSnapshot::_table_ = {
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
-    // .bldr.devtool.status.DevtoolCommandStatus command = 1;
+    // .bldr.devtool.status.DevtoolStatusCommand command = 1;
     {::_pbi::TcParser::FastMtS1,
      {10, 5, 0,
       PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.command_)}},
-    // repeated .bldr.devtool.status.DevtoolManifestFetchRow manifest_fetch_rows = 2;
+    // .bldr.devtool.status.DevtoolStatusProject project = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 6, 1,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.project_)}},
+    // repeated .bldr.devtool.status.DevtoolStatusManifestFetchRow manifest_fetch_rows = 3;
     {::_pbi::TcParser::FastMtR1,
-     {18, 0, 1,
+     {26, 0, 2,
       PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.manifest_fetch_rows_)}},
-    // repeated .bldr.devtool.status.DevtoolManifestBuildRow manifest_build_rows = 3;
+    // repeated .bldr.devtool.status.DevtoolStatusManifestBuildRow manifest_build_rows = 4;
     {::_pbi::TcParser::FastMtR1,
-     {26, 1, 2,
+     {34, 1, 3,
       PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.manifest_build_rows_)}},
-    // repeated .bldr.devtool.status.DevtoolPluginRow plugin_rows = 4;
+    // repeated .bldr.devtool.status.DevtoolStatusControllerRow controller_rows = 5;
     {::_pbi::TcParser::FastMtR1,
-     {34, 2, 3,
-      PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.plugin_rows_)}},
-    // repeated .bldr.devtool.status.DevtoolControllerRow controller_rows = 5;
-    {::_pbi::TcParser::FastMtR1,
-     {42, 3, 4,
+     {42, 2, 4,
       PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.controller_rows_)}},
-    // repeated .bldr.devtool.status.DevtoolAttentionRow attention_rows = 6;
+    // repeated .bldr.devtool.status.DevtoolStatusPluginRow plugin_rows = 6;
     {::_pbi::TcParser::FastMtR1,
-     {50, 4, 5,
+     {50, 3, 5,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.plugin_rows_)}},
+    // repeated .bldr.devtool.status.DevtoolStatusAttentionRow attention_rows = 7;
+    {::_pbi::TcParser::FastMtR1,
+     {58, 4, 6,
       PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.attention_rows_)}},
-    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
-    // .bldr.devtool.status.DevtoolCommandStatus command = 1;
+    // .bldr.devtool.status.DevtoolStatusCommand command = 1;
     {PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.command_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
-    // repeated .bldr.devtool.status.DevtoolManifestFetchRow manifest_fetch_rows = 2;
-    {PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.manifest_fetch_rows_), _Internal::kHasBitsOffset + 0, 1, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
-    // repeated .bldr.devtool.status.DevtoolManifestBuildRow manifest_build_rows = 3;
-    {PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.manifest_build_rows_), _Internal::kHasBitsOffset + 1, 2, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
-    // repeated .bldr.devtool.status.DevtoolPluginRow plugin_rows = 4;
-    {PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.plugin_rows_), _Internal::kHasBitsOffset + 2, 3, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
-    // repeated .bldr.devtool.status.DevtoolControllerRow controller_rows = 5;
-    {PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.controller_rows_), _Internal::kHasBitsOffset + 3, 4, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
-    // repeated .bldr.devtool.status.DevtoolAttentionRow attention_rows = 6;
-    {PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.attention_rows_), _Internal::kHasBitsOffset + 4, 5, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .bldr.devtool.status.DevtoolStatusProject project = 2;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.project_), _Internal::kHasBitsOffset + 6, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // repeated .bldr.devtool.status.DevtoolStatusManifestFetchRow manifest_fetch_rows = 3;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.manifest_fetch_rows_), _Internal::kHasBitsOffset + 0, 2, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // repeated .bldr.devtool.status.DevtoolStatusManifestBuildRow manifest_build_rows = 4;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.manifest_build_rows_), _Internal::kHasBitsOffset + 1, 3, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // repeated .bldr.devtool.status.DevtoolStatusControllerRow controller_rows = 5;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.controller_rows_), _Internal::kHasBitsOffset + 2, 4, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // repeated .bldr.devtool.status.DevtoolStatusPluginRow plugin_rows = 6;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.plugin_rows_), _Internal::kHasBitsOffset + 3, 5, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // repeated .bldr.devtool.status.DevtoolStatusAttentionRow attention_rows = 7;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.attention_rows_), _Internal::kHasBitsOffset + 4, 6, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
-      {::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolCommandStatus>()},
-      {::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolManifestFetchRow>()},
-      {::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolManifestBuildRow>()},
-      {::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolPluginRow>()},
-      {::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolControllerRow>()},
-      {::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolAttentionRow>()},
+      {::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolStatusCommand>()},
+      {::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolStatusProject>()},
+      {::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolStatusManifestFetchRow>()},
+      {::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolStatusManifestBuildRow>()},
+      {::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolStatusControllerRow>()},
+      {::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolStatusPluginRow>()},
+      {::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolStatusAttentionRow>()},
   }},
   {{
   }},
@@ -1292,7 +1416,7 @@ PROTOBUF_NOINLINE void DevtoolStatusSnapshot::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _impl_.manifest_fetch_rows_.Clear();
     }
@@ -1300,10 +1424,10 @@ PROTOBUF_NOINLINE void DevtoolStatusSnapshot::Clear() {
       _impl_.manifest_build_rows_.Clear();
     }
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
-      _impl_.plugin_rows_.Clear();
+      _impl_.controller_rows_.Clear();
     }
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
-      _impl_.controller_rows_.Clear();
+      _impl_.plugin_rows_.Clear();
     }
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000010U)) {
       _impl_.attention_rows_.Clear();
@@ -1311,6 +1435,10 @@ PROTOBUF_NOINLINE void DevtoolStatusSnapshot::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       ABSL_DCHECK(_impl_.command_ != nullptr);
       _impl_.command_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      ABSL_DCHECK(_impl_.project_ != nullptr);
+      _impl_.project_->Clear();
     }
   }
   _impl_._has_bits_.Clear();
@@ -1336,14 +1464,21 @@ PROTOBUF_NOINLINE void DevtoolStatusSnapshot::Clear() {
   (void)cached_has_bits;
 
   cached_has_bits = this_._impl_._has_bits_[0];
-  // .bldr.devtool.status.DevtoolCommandStatus command = 1;
+  // .bldr.devtool.status.DevtoolStatusCommand command = 1;
   if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         1, *this_._impl_.command_, this_._impl_.command_->GetCachedSize(), target,
         stream);
   }
 
-  // repeated .bldr.devtool.status.DevtoolManifestFetchRow manifest_fetch_rows = 2;
+  // .bldr.devtool.status.DevtoolStatusProject project = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        2, *this_._impl_.project_, this_._impl_.project_->GetCachedSize(), target,
+        stream);
+  }
+
+  // repeated .bldr.devtool.status.DevtoolStatusManifestFetchRow manifest_fetch_rows = 3;
   if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
     for (unsigned i = 0, n = static_cast<unsigned>(
                              this_._internal_manifest_fetch_rows_size());
@@ -1351,12 +1486,12 @@ PROTOBUF_NOINLINE void DevtoolStatusSnapshot::Clear() {
       const auto& repfield = this_._internal_manifest_fetch_rows().Get(i);
       target =
           ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
-              2, repfield, repfield.GetCachedSize(),
+              3, repfield, repfield.GetCachedSize(),
               target, stream);
     }
   }
 
-  // repeated .bldr.devtool.status.DevtoolManifestBuildRow manifest_build_rows = 3;
+  // repeated .bldr.devtool.status.DevtoolStatusManifestBuildRow manifest_build_rows = 4;
   if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
     for (unsigned i = 0, n = static_cast<unsigned>(
                              this_._internal_manifest_build_rows_size());
@@ -1364,26 +1499,13 @@ PROTOBUF_NOINLINE void DevtoolStatusSnapshot::Clear() {
       const auto& repfield = this_._internal_manifest_build_rows().Get(i);
       target =
           ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
-              3, repfield, repfield.GetCachedSize(),
-              target, stream);
-    }
-  }
-
-  // repeated .bldr.devtool.status.DevtoolPluginRow plugin_rows = 4;
-  if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
-    for (unsigned i = 0, n = static_cast<unsigned>(
-                             this_._internal_plugin_rows_size());
-         i < n; i++) {
-      const auto& repfield = this_._internal_plugin_rows().Get(i);
-      target =
-          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
               4, repfield, repfield.GetCachedSize(),
               target, stream);
     }
   }
 
-  // repeated .bldr.devtool.status.DevtoolControllerRow controller_rows = 5;
-  if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+  // repeated .bldr.devtool.status.DevtoolStatusControllerRow controller_rows = 5;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
     for (unsigned i = 0, n = static_cast<unsigned>(
                              this_._internal_controller_rows_size());
          i < n; i++) {
@@ -1395,7 +1517,20 @@ PROTOBUF_NOINLINE void DevtoolStatusSnapshot::Clear() {
     }
   }
 
-  // repeated .bldr.devtool.status.DevtoolAttentionRow attention_rows = 6;
+  // repeated .bldr.devtool.status.DevtoolStatusPluginRow plugin_rows = 6;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_plugin_rows_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_plugin_rows().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              6, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // repeated .bldr.devtool.status.DevtoolStatusAttentionRow attention_rows = 7;
   if (CheckHasBitForRepeated(cached_has_bits, 0x00000010U)) {
     for (unsigned i = 0, n = static_cast<unsigned>(
                              this_._internal_attention_rows_size());
@@ -1403,7 +1538,7 @@ PROTOBUF_NOINLINE void DevtoolStatusSnapshot::Clear() {
       const auto& repfield = this_._internal_attention_rows().Get(i);
       target =
           ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
-              6, repfield, repfield.GetCachedSize(),
+              7, repfield, repfield.GetCachedSize(),
               target, stream);
     }
   }
@@ -1433,46 +1568,51 @@ PROTOBUF_NOINLINE void DevtoolStatusSnapshot::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
-    // repeated .bldr.devtool.status.DevtoolManifestFetchRow manifest_fetch_rows = 2;
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+    // repeated .bldr.devtool.status.DevtoolStatusManifestFetchRow manifest_fetch_rows = 3;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       total_size += 1UL * this_._internal_manifest_fetch_rows_size();
       for (const auto& msg : this_._internal_manifest_fetch_rows()) {
         total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
       }
     }
-    // repeated .bldr.devtool.status.DevtoolManifestBuildRow manifest_build_rows = 3;
+    // repeated .bldr.devtool.status.DevtoolStatusManifestBuildRow manifest_build_rows = 4;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
       total_size += 1UL * this_._internal_manifest_build_rows_size();
       for (const auto& msg : this_._internal_manifest_build_rows()) {
         total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
       }
     }
-    // repeated .bldr.devtool.status.DevtoolPluginRow plugin_rows = 4;
+    // repeated .bldr.devtool.status.DevtoolStatusControllerRow controller_rows = 5;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
-      total_size += 1UL * this_._internal_plugin_rows_size();
-      for (const auto& msg : this_._internal_plugin_rows()) {
-        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
-      }
-    }
-    // repeated .bldr.devtool.status.DevtoolControllerRow controller_rows = 5;
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
       total_size += 1UL * this_._internal_controller_rows_size();
       for (const auto& msg : this_._internal_controller_rows()) {
         total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
       }
     }
-    // repeated .bldr.devtool.status.DevtoolAttentionRow attention_rows = 6;
+    // repeated .bldr.devtool.status.DevtoolStatusPluginRow plugin_rows = 6;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      total_size += 1UL * this_._internal_plugin_rows_size();
+      for (const auto& msg : this_._internal_plugin_rows()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // repeated .bldr.devtool.status.DevtoolStatusAttentionRow attention_rows = 7;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000010U)) {
       total_size += 1UL * this_._internal_attention_rows_size();
       for (const auto& msg : this_._internal_attention_rows()) {
         total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
       }
     }
-    // .bldr.devtool.status.DevtoolCommandStatus command = 1;
+    // .bldr.devtool.status.DevtoolStatusCommand command = 1;
     if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.command_);
+    }
+    // .bldr.devtool.status.DevtoolStatusProject project = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.project_);
     }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
@@ -1494,7 +1634,7 @@ void DevtoolStatusSnapshot::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _this->_internal_mutable_manifest_fetch_rows()->InternalMergeFromWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), arena,
@@ -1506,14 +1646,14 @@ void DevtoolStatusSnapshot::MergeImpl(::google::protobuf::MessageLite& to_msg,
           from._internal_manifest_build_rows());
     }
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
-      _this->_internal_mutable_plugin_rows()->InternalMergeFromWithArena(
-          ::google::protobuf::MessageLite::internal_visibility(), arena,
-          from._internal_plugin_rows());
-    }
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
       _this->_internal_mutable_controller_rows()->InternalMergeFromWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), arena,
           from._internal_controller_rows());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      _this->_internal_mutable_plugin_rows()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_plugin_rows());
     }
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000010U)) {
       _this->_internal_mutable_attention_rows()->InternalMergeFromWithArena(
@@ -1526,6 +1666,14 @@ void DevtoolStatusSnapshot::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.command_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.command_);
       } else {
         _this->_impl_.command_->MergeFrom(*from._impl_.command_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      ABSL_DCHECK(from._impl_.project_ != nullptr);
+      if (_this->_impl_.project_ == nullptr) {
+        _this->_impl_.project_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.project_);
+      } else {
+        _this->_impl_.project_->MergeFrom(*from._impl_.project_);
       }
     }
   }
@@ -1548,10 +1696,15 @@ void DevtoolStatusSnapshot::InternalSwap(DevtoolStatusSnapshot* PROTOBUF_RESTRIC
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   _impl_.manifest_fetch_rows_.InternalSwap(&other->_impl_.manifest_fetch_rows_);
   _impl_.manifest_build_rows_.InternalSwap(&other->_impl_.manifest_build_rows_);
-  _impl_.plugin_rows_.InternalSwap(&other->_impl_.plugin_rows_);
   _impl_.controller_rows_.InternalSwap(&other->_impl_.controller_rows_);
+  _impl_.plugin_rows_.InternalSwap(&other->_impl_.plugin_rows_);
   _impl_.attention_rows_.InternalSwap(&other->_impl_.attention_rows_);
-  swap(_impl_.command_, other->_impl_.command_);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.project_)
+      + sizeof(DevtoolStatusSnapshot::_impl_.project_)
+      - PROTOBUF_FIELD_OFFSET(DevtoolStatusSnapshot, _impl_.command_)>(
+          reinterpret_cast<char*>(&_impl_.command_),
+          reinterpret_cast<char*>(&other->_impl_.command_));
 }
 
 ::google::protobuf::Metadata DevtoolStatusSnapshot::GetMetadata() const {
@@ -1559,27 +1712,27 @@ void DevtoolStatusSnapshot::InternalSwap(DevtoolStatusSnapshot* PROTOBUF_RESTRIC
 }
 // ===================================================================
 
-class DevtoolCommandStatus::_Internal {
+class DevtoolStatusCommand::_Internal {
  public:
   using HasBits =
-      decltype(::std::declval<DevtoolCommandStatus>()._impl_._has_bits_);
+      decltype(::std::declval<DevtoolStatusCommand>()._impl_._has_bits_);
   static constexpr ::int32_t kHasBitsOffset =
-      8 * PROTOBUF_FIELD_OFFSET(DevtoolCommandStatus, _impl_._has_bits_);
+      8 * PROTOBUF_FIELD_OFFSET(DevtoolStatusCommand, _impl_._has_bits_);
 };
 
-DevtoolCommandStatus::DevtoolCommandStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+DevtoolStatusCommand::DevtoolStatusCommand(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, DevtoolCommandStatus_class_data_.base()) {
+    : ::google::protobuf::Message(arena, DevtoolStatusCommand_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
   SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:bldr.devtool.status.DevtoolCommandStatus)
+  // @@protoc_insertion_point(arena_constructor:bldr.devtool.status.DevtoolStatusCommand)
 }
-PROTOBUF_NDEBUG_INLINE DevtoolCommandStatus::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE DevtoolStatusCommand::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-    [[maybe_unused]] const ::bldr::devtool::status::DevtoolCommandStatus& from_msg)
+    [[maybe_unused]] const ::bldr::devtool::status::DevtoolStatusCommand& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
         name_(arena, from.name_),
@@ -1587,24 +1740,24 @@ PROTOBUF_NDEBUG_INLINE DevtoolCommandStatus::Impl_::Impl_(
         error_(arena, from.error_),
         log_file_(arena, from.log_file_) {}
 
-DevtoolCommandStatus::DevtoolCommandStatus(
+DevtoolStatusCommand::DevtoolStatusCommand(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const DevtoolCommandStatus& from)
+    const DevtoolStatusCommand& from)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, DevtoolCommandStatus_class_data_.base()) {
+    : ::google::protobuf::Message(arena, DevtoolStatusCommand_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  DevtoolCommandStatus* const _this = this;
+  DevtoolStatusCommand* const _this = this;
   (void)_this;
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   _impl_.state_ = from._impl_.state_;
 
-  // @@protoc_insertion_point(copy_constructor:bldr.devtool.status.DevtoolCommandStatus)
+  // @@protoc_insertion_point(copy_constructor:bldr.devtool.status.DevtoolStatusCommand)
 }
-PROTOBUF_NDEBUG_INLINE DevtoolCommandStatus::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE DevtoolStatusCommand::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
@@ -1613,16 +1766,16 @@ PROTOBUF_NDEBUG_INLINE DevtoolCommandStatus::Impl_::Impl_(
         error_(arena),
         log_file_(arena) {}
 
-inline void DevtoolCommandStatus::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+inline void DevtoolStatusCommand::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   _impl_.state_ = {};
 }
-DevtoolCommandStatus::~DevtoolCommandStatus() {
-  // @@protoc_insertion_point(destructor:bldr.devtool.status.DevtoolCommandStatus)
+DevtoolStatusCommand::~DevtoolStatusCommand() {
+  // @@protoc_insertion_point(destructor:bldr.devtool.status.DevtoolStatusCommand)
   SharedDtor(*this);
 }
-inline void DevtoolCommandStatus::SharedDtor(MessageLite& self) {
-  DevtoolCommandStatus& this_ = static_cast<DevtoolCommandStatus&>(self);
+inline void DevtoolStatusCommand::SharedDtor(MessageLite& self) {
+  DevtoolStatusCommand& this_ = static_cast<DevtoolStatusCommand&>(self);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
@@ -1635,53 +1788,53 @@ inline void DevtoolCommandStatus::SharedDtor(MessageLite& self) {
   this_._impl_.~Impl_();
 }
 
-inline void* PROTOBUF_NONNULL DevtoolCommandStatus::PlacementNew_(
+inline void* PROTOBUF_NONNULL DevtoolStatusCommand::PlacementNew_(
     const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) DevtoolCommandStatus(arena);
+  return ::new (mem) DevtoolStatusCommand(arena);
 }
-constexpr auto DevtoolCommandStatus::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DevtoolCommandStatus),
-                                            alignof(DevtoolCommandStatus));
+constexpr auto DevtoolStatusCommand::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DevtoolStatusCommand),
+                                            alignof(DevtoolStatusCommand));
 }
-constexpr auto DevtoolCommandStatus::InternalGenerateClassData_() {
+constexpr auto DevtoolStatusCommand::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
       ::google::protobuf::internal::ClassData{
-          &_DevtoolCommandStatus_default_instance_._instance,
+          &_DevtoolStatusCommand_default_instance_._instance,
           &_table_.header,
           nullptr,  // OnDemandRegisterArenaDtor
           nullptr,  // IsInitialized
-          &DevtoolCommandStatus::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<DevtoolCommandStatus>(),
+          &DevtoolStatusCommand::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DevtoolStatusCommand>(),
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-          &DevtoolCommandStatus::SharedDtor,
-          ::google::protobuf::Message::GetClearImpl<DevtoolCommandStatus>(), &DevtoolCommandStatus::ByteSizeLong,
-              &DevtoolCommandStatus::_InternalSerialize,
+          &DevtoolStatusCommand::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DevtoolStatusCommand>(), &DevtoolStatusCommand::ByteSizeLong,
+              &DevtoolStatusCommand::_InternalSerialize,
 #endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(DevtoolCommandStatus, _impl_._cached_size_),
+          PROTOBUF_FIELD_OFFSET(DevtoolStatusCommand, _impl_._cached_size_),
           false,
       },
-      &DevtoolCommandStatus::kDescriptorMethods,
+      &DevtoolStatusCommand::kDescriptorMethods,
       &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto,
       nullptr,  // tracker
   };
 }
 
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull DevtoolCommandStatus_class_data_ =
-        DevtoolCommandStatus::InternalGenerateClassData_();
+    ::google::protobuf::internal::ClassDataFull DevtoolStatusCommand_class_data_ =
+        DevtoolStatusCommand::InternalGenerateClassData_();
 
 PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-DevtoolCommandStatus::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&DevtoolCommandStatus_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(DevtoolCommandStatus_class_data_.tc_table);
-  return DevtoolCommandStatus_class_data_.base();
+DevtoolStatusCommand::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DevtoolStatusCommand_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DevtoolStatusCommand_class_data_.tc_table);
+  return DevtoolStatusCommand_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
 const ::_pbi::TcParseTable<3, 5, 0, 73, 2>
-DevtoolCommandStatus::_table_ = {
+DevtoolStatusCommand::_table_ = {
   {
-    PROTOBUF_FIELD_OFFSET(DevtoolCommandStatus, _impl_._has_bits_),
+    PROTOBUF_FIELD_OFFSET(DevtoolStatusCommand, _impl_._has_bits_),
     0, // no _extensions_
     5, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
@@ -1690,62 +1843,62 @@ DevtoolCommandStatus::_table_ = {
     5,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
-    DevtoolCommandStatus_class_data_.base(),
+    DevtoolStatusCommand_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
     #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolCommandStatus>(),  // to_prefetch
+    ::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolStatusCommand>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
     // string name = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolCommandStatus, _impl_.name_)}},
-    // .bldr.devtool.status.DevtoolCommandState state = 2;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DevtoolCommandStatus, _impl_.state_), 4>(),
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusCommand, _impl_.name_)}},
+    // .bldr.devtool.status.DevtoolStatusCommandState state = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DevtoolStatusCommand, _impl_.state_), 4>(),
      {16, 4, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolCommandStatus, _impl_.state_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusCommand, _impl_.state_)}},
     // string summary = 3;
     {::_pbi::TcParser::FastUS1,
      {26, 1, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolCommandStatus, _impl_.summary_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusCommand, _impl_.summary_)}},
     // string error = 4;
     {::_pbi::TcParser::FastUS1,
      {34, 2, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolCommandStatus, _impl_.error_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusCommand, _impl_.error_)}},
     // string log_file = 5;
     {::_pbi::TcParser::FastUS1,
      {42, 3, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolCommandStatus, _impl_.log_file_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusCommand, _impl_.log_file_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
     // string name = 1;
-    {PROTOBUF_FIELD_OFFSET(DevtoolCommandStatus, _impl_.name_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // .bldr.devtool.status.DevtoolCommandState state = 2;
-    {PROTOBUF_FIELD_OFFSET(DevtoolCommandStatus, _impl_.state_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusCommand, _impl_.name_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .bldr.devtool.status.DevtoolStatusCommandState state = 2;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusCommand, _impl_.state_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // string summary = 3;
-    {PROTOBUF_FIELD_OFFSET(DevtoolCommandStatus, _impl_.summary_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusCommand, _impl_.summary_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string error = 4;
-    {PROTOBUF_FIELD_OFFSET(DevtoolCommandStatus, _impl_.error_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusCommand, _impl_.error_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string log_file = 5;
-    {PROTOBUF_FIELD_OFFSET(DevtoolCommandStatus, _impl_.log_file_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusCommand, _impl_.log_file_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
     "\50\4\0\7\5\10\0\0"
-    "bldr.devtool.status.DevtoolCommandStatus"
+    "bldr.devtool.status.DevtoolStatusCommand"
     "name"
     "summary"
     "error"
     "log_file"
   }},
 };
-PROTOBUF_NOINLINE void DevtoolCommandStatus::Clear() {
-// @@protoc_insertion_point(message_clear_start:bldr.devtool.status.DevtoolCommandStatus)
+PROTOBUF_NOINLINE void DevtoolStatusCommand::Clear() {
+// @@protoc_insertion_point(message_clear_start:bldr.devtool.status.DevtoolStatusCommand)
   ::google::protobuf::internal::TSanWrite(&_impl_);
   ::uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
@@ -1772,20 +1925,20 @@ PROTOBUF_NOINLINE void DevtoolCommandStatus::Clear() {
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::uint8_t* PROTOBUF_NONNULL DevtoolCommandStatus::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL DevtoolStatusCommand::_InternalSerialize(
     const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
-  const DevtoolCommandStatus& this_ = static_cast<const DevtoolCommandStatus&>(base);
+  const DevtoolStatusCommand& this_ = static_cast<const DevtoolStatusCommand&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::uint8_t* PROTOBUF_NONNULL DevtoolCommandStatus::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL DevtoolStatusCommand::_InternalSerialize(
     ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-  const DevtoolCommandStatus& this_ = *this;
+  const DevtoolStatusCommand& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
-  // @@protoc_insertion_point(serialize_to_array_start:bldr.devtool.status.DevtoolCommandStatus)
+  // @@protoc_insertion_point(serialize_to_array_start:bldr.devtool.status.DevtoolStatusCommand)
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
@@ -1795,12 +1948,12 @@ PROTOBUF_NOINLINE void DevtoolCommandStatus::Clear() {
     if (!this_._internal_name().empty()) {
       const ::std::string& _s = this_._internal_name();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolCommandStatus.name");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusCommand.name");
       target = stream->WriteStringMaybeAliased(1, _s, target);
     }
   }
 
-  // .bldr.devtool.status.DevtoolCommandState state = 2;
+  // .bldr.devtool.status.DevtoolStatusCommandState state = 2;
   if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (this_._internal_state() != 0) {
       target = stream->EnsureSpace(target);
@@ -1814,7 +1967,7 @@ PROTOBUF_NOINLINE void DevtoolCommandStatus::Clear() {
     if (!this_._internal_summary().empty()) {
       const ::std::string& _s = this_._internal_summary();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolCommandStatus.summary");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusCommand.summary");
       target = stream->WriteStringMaybeAliased(3, _s, target);
     }
   }
@@ -1824,7 +1977,7 @@ PROTOBUF_NOINLINE void DevtoolCommandStatus::Clear() {
     if (!this_._internal_error().empty()) {
       const ::std::string& _s = this_._internal_error();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolCommandStatus.error");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusCommand.error");
       target = stream->WriteStringMaybeAliased(4, _s, target);
     }
   }
@@ -1834,7 +1987,7 @@ PROTOBUF_NOINLINE void DevtoolCommandStatus::Clear() {
     if (!this_._internal_log_file().empty()) {
       const ::std::string& _s = this_._internal_log_file();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolCommandStatus.log_file");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusCommand.log_file");
       target = stream->WriteStringMaybeAliased(5, _s, target);
     }
   }
@@ -1844,18 +1997,18 @@ PROTOBUF_NOINLINE void DevtoolCommandStatus::Clear() {
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
             this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:bldr.devtool.status.DevtoolCommandStatus)
+  // @@protoc_insertion_point(serialize_to_array_end:bldr.devtool.status.DevtoolStatusCommand)
   return target;
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::size_t DevtoolCommandStatus::ByteSizeLong(const MessageLite& base) {
-  const DevtoolCommandStatus& this_ = static_cast<const DevtoolCommandStatus&>(base);
+::size_t DevtoolStatusCommand::ByteSizeLong(const MessageLite& base) {
+  const DevtoolStatusCommand& this_ = static_cast<const DevtoolStatusCommand&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::size_t DevtoolCommandStatus::ByteSizeLong() const {
-  const DevtoolCommandStatus& this_ = *this;
+::size_t DevtoolStatusCommand::ByteSizeLong() const {
+  const DevtoolStatusCommand& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(message_byte_size_start:bldr.devtool.status.DevtoolCommandStatus)
+  // @@protoc_insertion_point(message_byte_size_start:bldr.devtool.status.DevtoolStatusCommand)
   ::size_t total_size = 0;
 
   ::uint32_t cached_has_bits = 0;
@@ -1893,7 +2046,7 @@ PROTOBUF_NOINLINE void DevtoolCommandStatus::Clear() {
                                         this_._internal_log_file());
       }
     }
-    // .bldr.devtool.status.DevtoolCommandState state = 2;
+    // .bldr.devtool.status.DevtoolStatusCommandState state = 2;
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (this_._internal_state() != 0) {
         total_size += 1 +
@@ -1905,15 +2058,15 @@ PROTOBUF_NOINLINE void DevtoolCommandStatus::Clear() {
                                              &this_._impl_._cached_size_);
 }
 
-void DevtoolCommandStatus::MergeImpl(::google::protobuf::MessageLite& to_msg,
+void DevtoolStatusCommand::MergeImpl(::google::protobuf::MessageLite& to_msg,
                             const ::google::protobuf::MessageLite& from_msg) {
    auto* const _this =
-      static_cast<DevtoolCommandStatus*>(&to_msg);
-  auto& from = static_cast<const DevtoolCommandStatus&>(from_msg);
+      static_cast<DevtoolStatusCommand*>(&to_msg);
+  auto& from = static_cast<const DevtoolStatusCommand&>(from_msg);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     from.CheckHasBitConsistency();
   }
-  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.devtool.status.DevtoolCommandStatus)
+  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.devtool.status.DevtoolStatusCommand)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
@@ -1967,15 +2120,15 @@ void DevtoolCommandStatus::MergeImpl(::google::protobuf::MessageLite& to_msg,
       from._internal_metadata_);
 }
 
-void DevtoolCommandStatus::CopyFrom(const DevtoolCommandStatus& from) {
-  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.devtool.status.DevtoolCommandStatus)
+void DevtoolStatusCommand::CopyFrom(const DevtoolStatusCommand& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.devtool.status.DevtoolStatusCommand)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 
-void DevtoolCommandStatus::InternalSwap(DevtoolCommandStatus* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+void DevtoolStatusCommand::InternalSwap(DevtoolStatusCommand* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
   auto* arena = GetArena();
   ABSL_DCHECK_EQ(arena, other->GetArena());
@@ -1988,53 +2141,1045 @@ void DevtoolCommandStatus::InternalSwap(DevtoolCommandStatus* PROTOBUF_RESTRICT 
   swap(_impl_.state_, other->_impl_.state_);
 }
 
-::google::protobuf::Metadata DevtoolCommandStatus::GetMetadata() const {
+::google::protobuf::Metadata DevtoolStatusCommand::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 
-class DevtoolManifestFetchRow::_Internal {
+class DevtoolStatusProject::_Internal {
  public:
   using HasBits =
-      decltype(::std::declval<DevtoolManifestFetchRow>()._impl_._has_bits_);
+      decltype(::std::declval<DevtoolStatusProject>()._impl_._has_bits_);
   static constexpr ::int32_t kHasBitsOffset =
-      8 * PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_._has_bits_);
+      8 * PROTOBUF_FIELD_OFFSET(DevtoolStatusProject, _impl_._has_bits_);
 };
 
-DevtoolManifestFetchRow::DevtoolManifestFetchRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+DevtoolStatusProject::DevtoolStatusProject(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, DevtoolManifestFetchRow_class_data_.base()) {
+    : ::google::protobuf::Message(arena, DevtoolStatusProject_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
   SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:bldr.devtool.status.DevtoolManifestFetchRow)
+  // @@protoc_insertion_point(arena_constructor:bldr.devtool.status.DevtoolStatusProject)
 }
-PROTOBUF_NDEBUG_INLINE DevtoolManifestFetchRow::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE DevtoolStatusProject::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-    [[maybe_unused]] const ::bldr::devtool::status::DevtoolManifestFetchRow& from_msg)
+    [[maybe_unused]] const ::bldr::devtool::status::DevtoolStatusProject& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
-        id_(arena, from.id_),
-        manifest_id_(arena, from.manifest_id_),
-        platform_id_(arena, from.platform_id_),
-        build_type_(arena, from.build_type_),
-        remote_id_(arena, from.remote_id_),
-        ready_refs_(arena, from.ready_refs_),
-        local_build_ids_(arena, from.local_build_ids_),
-        summary_(arena, from.summary_),
-        error_(arena, from.error_) {}
+        startup_plugins_{visibility, arena, from.startup_plugins_},
+        manifest_ids_{visibility, arena, from.manifest_ids_},
+        build_targets_{visibility, arena, from.build_targets_},
+        project_id_(arena, from.project_id_),
+        web_startup_path_(arena, from.web_startup_path_) {}
 
-DevtoolManifestFetchRow::DevtoolManifestFetchRow(
+DevtoolStatusProject::DevtoolStatusProject(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const DevtoolManifestFetchRow& from)
+    const DevtoolStatusProject& from)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, DevtoolManifestFetchRow_class_data_.base()) {
+    : ::google::protobuf::Message(arena, DevtoolStatusProject_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  DevtoolManifestFetchRow* const _this = this;
+  DevtoolStatusProject* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:bldr.devtool.status.DevtoolStatusProject)
+}
+PROTOBUF_NDEBUG_INLINE DevtoolStatusProject::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        startup_plugins_{visibility, arena},
+        manifest_ids_{visibility, arena},
+        build_targets_{visibility, arena},
+        project_id_(arena),
+        web_startup_path_(arena) {}
+
+inline void DevtoolStatusProject::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+DevtoolStatusProject::~DevtoolStatusProject() {
+  // @@protoc_insertion_point(destructor:bldr.devtool.status.DevtoolStatusProject)
+  SharedDtor(*this);
+}
+inline void DevtoolStatusProject::SharedDtor(MessageLite& self) {
+  DevtoolStatusProject& this_ = static_cast<DevtoolStatusProject&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.project_id_.Destroy();
+  this_._impl_.web_startup_path_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL DevtoolStatusProject::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) DevtoolStatusProject(arena);
+}
+constexpr auto DevtoolStatusProject::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusProject, _impl_.startup_plugins_) +
+          decltype(DevtoolStatusProject::_impl_.startup_plugins_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusProject, _impl_.manifest_ids_) +
+          decltype(DevtoolStatusProject::_impl_.manifest_ids_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusProject, _impl_.build_targets_) +
+          decltype(DevtoolStatusProject::_impl_.build_targets_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(DevtoolStatusProject), alignof(DevtoolStatusProject), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&DevtoolStatusProject::PlacementNew_,
+                                 sizeof(DevtoolStatusProject),
+                                 alignof(DevtoolStatusProject));
+  }
+}
+constexpr auto DevtoolStatusProject::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_DevtoolStatusProject_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &DevtoolStatusProject::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DevtoolStatusProject>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &DevtoolStatusProject::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DevtoolStatusProject>(), &DevtoolStatusProject::ByteSizeLong,
+              &DevtoolStatusProject::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(DevtoolStatusProject, _impl_._cached_size_),
+          false,
+      },
+      &DevtoolStatusProject::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull DevtoolStatusProject_class_data_ =
+        DevtoolStatusProject::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+DevtoolStatusProject::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DevtoolStatusProject_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DevtoolStatusProject_class_data_.tc_table);
+  return DevtoolStatusProject_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 5, 1, 102, 2>
+DevtoolStatusProject::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(DevtoolStatusProject, _impl_._has_bits_),
+    0, // no _extensions_
+    5, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967264,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    5,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    DevtoolStatusProject_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolStatusProject>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string project_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 3, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusProject, _impl_.project_id_)}},
+    // repeated string startup_plugins = 2;
+    {::_pbi::TcParser::FastUR1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusProject, _impl_.startup_plugins_)}},
+    // string web_startup_path = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 4, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusProject, _impl_.web_startup_path_)}},
+    // repeated string manifest_ids = 4;
+    {::_pbi::TcParser::FastUR1,
+     {34, 1, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusProject, _impl_.manifest_ids_)}},
+    // repeated .bldr.devtool.status.DevtoolStatusBuildTarget build_targets = 5;
+    {::_pbi::TcParser::FastMtR1,
+     {42, 2, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusProject, _impl_.build_targets_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string project_id = 1;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusProject, _impl_.project_id_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated string startup_plugins = 2;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusProject, _impl_.startup_plugins_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // string web_startup_path = 3;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusProject, _impl_.web_startup_path_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated string manifest_ids = 4;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusProject, _impl_.manifest_ids_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // repeated .bldr.devtool.status.DevtoolStatusBuildTarget build_targets = 5;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusProject, _impl_.build_targets_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolStatusBuildTarget>()},
+  }},
+  {{
+    "\50\12\17\20\14\0\0\0"
+    "bldr.devtool.status.DevtoolStatusProject"
+    "project_id"
+    "startup_plugins"
+    "web_startup_path"
+    "manifest_ids"
+  }},
+};
+PROTOBUF_NOINLINE void DevtoolStatusProject::Clear() {
+// @@protoc_insertion_point(message_clear_start:bldr.devtool.status.DevtoolStatusProject)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.startup_plugins_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _impl_.manifest_ids_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      _impl_.build_targets_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.project_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.web_startup_path_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL DevtoolStatusProject::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const DevtoolStatusProject& this_ = static_cast<const DevtoolStatusProject&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL DevtoolStatusProject::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const DevtoolStatusProject& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:bldr.devtool.status.DevtoolStatusProject)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string project_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_project_id().empty()) {
+      const ::std::string& _s = this_._internal_project_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusProject.project_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // repeated string startup_plugins = 2;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (int i = 0, n = this_._internal_startup_plugins_size(); i < n; ++i) {
+      const auto& s = this_._internal_startup_plugins().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusProject.startup_plugins");
+      target = stream->WriteString(2, s, target);
+    }
+  }
+
+  // string web_startup_path = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_web_startup_path().empty()) {
+      const ::std::string& _s = this_._internal_web_startup_path();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusProject.web_startup_path");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // repeated string manifest_ids = 4;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+    for (int i = 0, n = this_._internal_manifest_ids_size(); i < n; ++i) {
+      const auto& s = this_._internal_manifest_ids().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusProject.manifest_ids");
+      target = stream->WriteString(4, s, target);
+    }
+  }
+
+  // repeated .bldr.devtool.status.DevtoolStatusBuildTarget build_targets = 5;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_build_targets_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_build_targets().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              5, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:bldr.devtool.status.DevtoolStatusProject)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t DevtoolStatusProject::ByteSizeLong(const MessageLite& base) {
+  const DevtoolStatusProject& this_ = static_cast<const DevtoolStatusProject&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t DevtoolStatusProject::ByteSizeLong() const {
+  const DevtoolStatusProject& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:bldr.devtool.status.DevtoolStatusProject)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    // repeated string startup_plugins = 2;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_startup_plugins().size());
+      for (int i = 0, n = this_._internal_startup_plugins().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_startup_plugins().Get(i));
+      }
+    }
+    // repeated string manifest_ids = 4;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_manifest_ids().size());
+      for (int i = 0, n = this_._internal_manifest_ids().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_manifest_ids().Get(i));
+      }
+    }
+    // repeated .bldr.devtool.status.DevtoolStatusBuildTarget build_targets = 5;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      total_size += 1UL * this_._internal_build_targets_size();
+      for (const auto& msg : this_._internal_build_targets()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // string project_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_project_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_project_id());
+      }
+    }
+    // string web_startup_path = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_web_startup_path().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_web_startup_path());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void DevtoolStatusProject::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<DevtoolStatusProject*>(&to_msg);
+  auto& from = static_cast<const DevtoolStatusProject&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.devtool.status.DevtoolStatusProject)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_startup_plugins()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_startup_plugins());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _this->_internal_mutable_manifest_ids()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_manifest_ids());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      _this->_internal_mutable_build_targets()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_build_targets());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_project_id().empty()) {
+        _this->_internal_set_project_id(from._internal_project_id());
+      } else {
+        if (_this->_impl_.project_id_.IsDefault()) {
+          _this->_internal_set_project_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_web_startup_path().empty()) {
+        _this->_internal_set_web_startup_path(from._internal_web_startup_path());
+      } else {
+        if (_this->_impl_.web_startup_path_.IsDefault()) {
+          _this->_internal_set_web_startup_path("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void DevtoolStatusProject::CopyFrom(const DevtoolStatusProject& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.devtool.status.DevtoolStatusProject)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DevtoolStatusProject::InternalSwap(DevtoolStatusProject* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.startup_plugins_.InternalSwap(&other->_impl_.startup_plugins_);
+  _impl_.manifest_ids_.InternalSwap(&other->_impl_.manifest_ids_);
+  _impl_.build_targets_.InternalSwap(&other->_impl_.build_targets_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.project_id_, &other->_impl_.project_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.web_startup_path_, &other->_impl_.web_startup_path_, arena);
+}
+
+::google::protobuf::Metadata DevtoolStatusProject::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DevtoolStatusBuildTarget::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<DevtoolStatusBuildTarget>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_._has_bits_);
+};
+
+DevtoolStatusBuildTarget::DevtoolStatusBuildTarget(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DevtoolStatusBuildTarget_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:bldr.devtool.status.DevtoolStatusBuildTarget)
+}
+PROTOBUF_NDEBUG_INLINE DevtoolStatusBuildTarget::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::bldr::devtool::status::DevtoolStatusBuildTarget& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        manifest_ids_{visibility, arena, from.manifest_ids_},
+        configured_target_ids_{visibility, arena, from.configured_target_ids_},
+        explicit_platform_ids_{visibility, arena, from.explicit_platform_ids_},
+        resolved_platform_ids_{visibility, arena, from.resolved_platform_ids_},
+        build_types_{visibility, arena, from.build_types_},
+        id_(arena, from.id_),
+        error_(arena, from.error_) {}
+
+DevtoolStatusBuildTarget::DevtoolStatusBuildTarget(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const DevtoolStatusBuildTarget& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DevtoolStatusBuildTarget_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  DevtoolStatusBuildTarget* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:bldr.devtool.status.DevtoolStatusBuildTarget)
+}
+PROTOBUF_NDEBUG_INLINE DevtoolStatusBuildTarget::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        manifest_ids_{visibility, arena},
+        configured_target_ids_{visibility, arena},
+        explicit_platform_ids_{visibility, arena},
+        resolved_platform_ids_{visibility, arena},
+        build_types_{visibility, arena},
+        id_(arena),
+        error_(arena) {}
+
+inline void DevtoolStatusBuildTarget::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+DevtoolStatusBuildTarget::~DevtoolStatusBuildTarget() {
+  // @@protoc_insertion_point(destructor:bldr.devtool.status.DevtoolStatusBuildTarget)
+  SharedDtor(*this);
+}
+inline void DevtoolStatusBuildTarget::SharedDtor(MessageLite& self) {
+  DevtoolStatusBuildTarget& this_ = static_cast<DevtoolStatusBuildTarget&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.id_.Destroy();
+  this_._impl_.error_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL DevtoolStatusBuildTarget::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) DevtoolStatusBuildTarget(arena);
+}
+constexpr auto DevtoolStatusBuildTarget::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_.manifest_ids_) +
+          decltype(DevtoolStatusBuildTarget::_impl_.manifest_ids_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_.configured_target_ids_) +
+          decltype(DevtoolStatusBuildTarget::_impl_.configured_target_ids_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_.explicit_platform_ids_) +
+          decltype(DevtoolStatusBuildTarget::_impl_.explicit_platform_ids_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_.resolved_platform_ids_) +
+          decltype(DevtoolStatusBuildTarget::_impl_.resolved_platform_ids_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_.build_types_) +
+          decltype(DevtoolStatusBuildTarget::_impl_.build_types_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(DevtoolStatusBuildTarget), alignof(DevtoolStatusBuildTarget), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&DevtoolStatusBuildTarget::PlacementNew_,
+                                 sizeof(DevtoolStatusBuildTarget),
+                                 alignof(DevtoolStatusBuildTarget));
+  }
+}
+constexpr auto DevtoolStatusBuildTarget::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_DevtoolStatusBuildTarget_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &DevtoolStatusBuildTarget::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DevtoolStatusBuildTarget>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &DevtoolStatusBuildTarget::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DevtoolStatusBuildTarget>(), &DevtoolStatusBuildTarget::ByteSizeLong,
+              &DevtoolStatusBuildTarget::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_._cached_size_),
+          false,
+      },
+      &DevtoolStatusBuildTarget::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull DevtoolStatusBuildTarget_class_data_ =
+        DevtoolStatusBuildTarget::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+DevtoolStatusBuildTarget::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DevtoolStatusBuildTarget_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DevtoolStatusBuildTarget_class_data_.tc_table);
+  return DevtoolStatusBuildTarget_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 7, 0, 146, 2>
+DevtoolStatusBuildTarget::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_._has_bits_),
+    0, // no _extensions_
+    7, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967168,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    7,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    DevtoolStatusBuildTarget_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolStatusBuildTarget>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 5, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_.id_)}},
+    // repeated string manifest_ids = 2;
+    {::_pbi::TcParser::FastUR1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_.manifest_ids_)}},
+    // repeated string configured_target_ids = 3;
+    {::_pbi::TcParser::FastUR1,
+     {26, 1, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_.configured_target_ids_)}},
+    // repeated string explicit_platform_ids = 4;
+    {::_pbi::TcParser::FastUR1,
+     {34, 2, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_.explicit_platform_ids_)}},
+    // repeated string resolved_platform_ids = 5;
+    {::_pbi::TcParser::FastUR1,
+     {42, 3, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_.resolved_platform_ids_)}},
+    // repeated string build_types = 6;
+    {::_pbi::TcParser::FastUR1,
+     {50, 4, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_.build_types_)}},
+    // string error = 7;
+    {::_pbi::TcParser::FastUS1,
+     {58, 6, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_.error_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string id = 1;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_.id_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated string manifest_ids = 2;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_.manifest_ids_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // repeated string configured_target_ids = 3;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_.configured_target_ids_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // repeated string explicit_platform_ids = 4;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_.explicit_platform_ids_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // repeated string resolved_platform_ids = 5;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_.resolved_platform_ids_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // repeated string build_types = 6;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_.build_types_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // string error = 7;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusBuildTarget, _impl_.error_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\54\2\14\25\25\25\13\5"
+    "bldr.devtool.status.DevtoolStatusBuildTarget"
+    "id"
+    "manifest_ids"
+    "configured_target_ids"
+    "explicit_platform_ids"
+    "resolved_platform_ids"
+    "build_types"
+    "error"
+  }},
+};
+PROTOBUF_NOINLINE void DevtoolStatusBuildTarget::Clear() {
+// @@protoc_insertion_point(message_clear_start:bldr.devtool.status.DevtoolStatusBuildTarget)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.manifest_ids_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _impl_.configured_target_ids_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      _impl_.explicit_platform_ids_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      _impl_.resolved_platform_ids_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000010U)) {
+      _impl_.build_types_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      _impl_.id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      _impl_.error_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL DevtoolStatusBuildTarget::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const DevtoolStatusBuildTarget& this_ = static_cast<const DevtoolStatusBuildTarget&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL DevtoolStatusBuildTarget::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const DevtoolStatusBuildTarget& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:bldr.devtool.status.DevtoolStatusBuildTarget)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (!this_._internal_id().empty()) {
+      const ::std::string& _s = this_._internal_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusBuildTarget.id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // repeated string manifest_ids = 2;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (int i = 0, n = this_._internal_manifest_ids_size(); i < n; ++i) {
+      const auto& s = this_._internal_manifest_ids().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusBuildTarget.manifest_ids");
+      target = stream->WriteString(2, s, target);
+    }
+  }
+
+  // repeated string configured_target_ids = 3;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+    for (int i = 0, n = this_._internal_configured_target_ids_size(); i < n; ++i) {
+      const auto& s = this_._internal_configured_target_ids().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusBuildTarget.configured_target_ids");
+      target = stream->WriteString(3, s, target);
+    }
+  }
+
+  // repeated string explicit_platform_ids = 4;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+    for (int i = 0, n = this_._internal_explicit_platform_ids_size(); i < n; ++i) {
+      const auto& s = this_._internal_explicit_platform_ids().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusBuildTarget.explicit_platform_ids");
+      target = stream->WriteString(4, s, target);
+    }
+  }
+
+  // repeated string resolved_platform_ids = 5;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+    for (int i = 0, n = this_._internal_resolved_platform_ids_size(); i < n; ++i) {
+      const auto& s = this_._internal_resolved_platform_ids().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusBuildTarget.resolved_platform_ids");
+      target = stream->WriteString(5, s, target);
+    }
+  }
+
+  // repeated string build_types = 6;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000010U)) {
+    for (int i = 0, n = this_._internal_build_types_size(); i < n; ++i) {
+      const auto& s = this_._internal_build_types().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusBuildTarget.build_types");
+      target = stream->WriteString(6, s, target);
+    }
+  }
+
+  // string error = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (!this_._internal_error().empty()) {
+      const ::std::string& _s = this_._internal_error();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusBuildTarget.error");
+      target = stream->WriteStringMaybeAliased(7, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:bldr.devtool.status.DevtoolStatusBuildTarget)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t DevtoolStatusBuildTarget::ByteSizeLong(const MessageLite& base) {
+  const DevtoolStatusBuildTarget& this_ = static_cast<const DevtoolStatusBuildTarget&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t DevtoolStatusBuildTarget::ByteSizeLong() const {
+  const DevtoolStatusBuildTarget& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:bldr.devtool.status.DevtoolStatusBuildTarget)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+    // repeated string manifest_ids = 2;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_manifest_ids().size());
+      for (int i = 0, n = this_._internal_manifest_ids().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_manifest_ids().Get(i));
+      }
+    }
+    // repeated string configured_target_ids = 3;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_configured_target_ids().size());
+      for (int i = 0, n = this_._internal_configured_target_ids().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_configured_target_ids().Get(i));
+      }
+    }
+    // repeated string explicit_platform_ids = 4;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_explicit_platform_ids().size());
+      for (int i = 0, n = this_._internal_explicit_platform_ids().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_explicit_platform_ids().Get(i));
+      }
+    }
+    // repeated string resolved_platform_ids = 5;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_resolved_platform_ids().size());
+      for (int i = 0, n = this_._internal_resolved_platform_ids().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_resolved_platform_ids().Get(i));
+      }
+    }
+    // repeated string build_types = 6;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000010U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_build_types().size());
+      for (int i = 0, n = this_._internal_build_types().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_build_types().Get(i));
+      }
+    }
+    // string id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!this_._internal_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_id());
+      }
+    }
+    // string error = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (!this_._internal_error().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_error());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void DevtoolStatusBuildTarget::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<DevtoolStatusBuildTarget*>(&to_msg);
+  auto& from = static_cast<const DevtoolStatusBuildTarget&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.devtool.status.DevtoolStatusBuildTarget)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_manifest_ids()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_manifest_ids());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _this->_internal_mutable_configured_target_ids()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_configured_target_ids());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      _this->_internal_mutable_explicit_platform_ids()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_explicit_platform_ids());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      _this->_internal_mutable_resolved_platform_ids()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_resolved_platform_ids());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000010U)) {
+      _this->_internal_mutable_build_types()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_build_types());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!from._internal_id().empty()) {
+        _this->_internal_set_id(from._internal_id());
+      } else {
+        if (_this->_impl_.id_.IsDefault()) {
+          _this->_internal_set_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (!from._internal_error().empty()) {
+        _this->_internal_set_error(from._internal_error());
+      } else {
+        if (_this->_impl_.error_.IsDefault()) {
+          _this->_internal_set_error("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void DevtoolStatusBuildTarget::CopyFrom(const DevtoolStatusBuildTarget& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.devtool.status.DevtoolStatusBuildTarget)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DevtoolStatusBuildTarget::InternalSwap(DevtoolStatusBuildTarget* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.manifest_ids_.InternalSwap(&other->_impl_.manifest_ids_);
+  _impl_.configured_target_ids_.InternalSwap(&other->_impl_.configured_target_ids_);
+  _impl_.explicit_platform_ids_.InternalSwap(&other->_impl_.explicit_platform_ids_);
+  _impl_.resolved_platform_ids_.InternalSwap(&other->_impl_.resolved_platform_ids_);
+  _impl_.build_types_.InternalSwap(&other->_impl_.build_types_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.error_, &other->_impl_.error_, arena);
+}
+
+::google::protobuf::Metadata DevtoolStatusBuildTarget::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DevtoolStatusManifestFetchRow::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<DevtoolStatusManifestFetchRow>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_._has_bits_);
+};
+
+DevtoolStatusManifestFetchRow::DevtoolStatusManifestFetchRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DevtoolStatusManifestFetchRow_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:bldr.devtool.status.DevtoolStatusManifestFetchRow)
+}
+PROTOBUF_NDEBUG_INLINE DevtoolStatusManifestFetchRow::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::bldr::devtool::status::DevtoolStatusManifestFetchRow& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        platform_ids_{visibility, arena, from.platform_ids_},
+        build_types_{visibility, arena, from.build_types_},
+        remote_ids_{visibility, arena, from.remote_ids_},
+        local_build_ids_{visibility, arena, from.local_build_ids_},
+        id_(arena, from.id_),
+        manifest_id_(arena, from.manifest_id_),
+        ready_refs_(arena, from.ready_refs_),
+        summary_(arena, from.summary_),
+        error_(arena, from.error_) {}
+
+DevtoolStatusManifestFetchRow::DevtoolStatusManifestFetchRow(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const DevtoolStatusManifestFetchRow& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DevtoolStatusManifestFetchRow_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  DevtoolStatusManifestFetchRow* const _this = this;
   (void)_this;
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
@@ -2047,23 +3192,23 @@ DevtoolManifestFetchRow::DevtoolManifestFetchRow(
                offsetof(Impl_, state_) +
                sizeof(Impl_::blocked_on_local_build_));
 
-  // @@protoc_insertion_point(copy_constructor:bldr.devtool.status.DevtoolManifestFetchRow)
+  // @@protoc_insertion_point(copy_constructor:bldr.devtool.status.DevtoolStatusManifestFetchRow)
 }
-PROTOBUF_NDEBUG_INLINE DevtoolManifestFetchRow::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE DevtoolStatusManifestFetchRow::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
+        platform_ids_{visibility, arena},
+        build_types_{visibility, arena},
+        remote_ids_{visibility, arena},
+        local_build_ids_{visibility, arena},
         id_(arena),
         manifest_id_(arena),
-        platform_id_(arena),
-        build_type_(arena),
-        remote_id_(arena),
         ready_refs_(arena),
-        local_build_ids_(arena),
         summary_(arena),
         error_(arena) {}
 
-inline void DevtoolManifestFetchRow::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+inline void DevtoolStatusManifestFetchRow::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, state_),
@@ -2072,12 +3217,12 @@ inline void DevtoolManifestFetchRow::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE 
                offsetof(Impl_, state_) +
                sizeof(Impl_::blocked_on_local_build_));
 }
-DevtoolManifestFetchRow::~DevtoolManifestFetchRow() {
-  // @@protoc_insertion_point(destructor:bldr.devtool.status.DevtoolManifestFetchRow)
+DevtoolStatusManifestFetchRow::~DevtoolStatusManifestFetchRow() {
+  // @@protoc_insertion_point(destructor:bldr.devtool.status.DevtoolStatusManifestFetchRow)
   SharedDtor(*this);
 }
-inline void DevtoolManifestFetchRow::SharedDtor(MessageLite& self) {
-  DevtoolManifestFetchRow& this_ = static_cast<DevtoolManifestFetchRow&>(self);
+inline void DevtoolStatusManifestFetchRow::SharedDtor(MessageLite& self) {
+  DevtoolStatusManifestFetchRow& this_ = static_cast<DevtoolStatusManifestFetchRow&>(self);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
@@ -2085,63 +3230,83 @@ inline void DevtoolManifestFetchRow::SharedDtor(MessageLite& self) {
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.id_.Destroy();
   this_._impl_.manifest_id_.Destroy();
-  this_._impl_.platform_id_.Destroy();
-  this_._impl_.build_type_.Destroy();
-  this_._impl_.remote_id_.Destroy();
   this_._impl_.ready_refs_.Destroy();
-  this_._impl_.local_build_ids_.Destroy();
   this_._impl_.summary_.Destroy();
   this_._impl_.error_.Destroy();
   this_._impl_.~Impl_();
 }
 
-inline void* PROTOBUF_NONNULL DevtoolManifestFetchRow::PlacementNew_(
+inline void* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::PlacementNew_(
     const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) DevtoolManifestFetchRow(arena);
+  return ::new (mem) DevtoolStatusManifestFetchRow(arena);
 }
-constexpr auto DevtoolManifestFetchRow::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DevtoolManifestFetchRow),
-                                            alignof(DevtoolManifestFetchRow));
+constexpr auto DevtoolStatusManifestFetchRow::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.platform_ids_) +
+          decltype(DevtoolStatusManifestFetchRow::_impl_.platform_ids_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.build_types_) +
+          decltype(DevtoolStatusManifestFetchRow::_impl_.build_types_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.remote_ids_) +
+          decltype(DevtoolStatusManifestFetchRow::_impl_.remote_ids_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.local_build_ids_) +
+          decltype(DevtoolStatusManifestFetchRow::_impl_.local_build_ids_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(DevtoolStatusManifestFetchRow), alignof(DevtoolStatusManifestFetchRow), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&DevtoolStatusManifestFetchRow::PlacementNew_,
+                                 sizeof(DevtoolStatusManifestFetchRow),
+                                 alignof(DevtoolStatusManifestFetchRow));
+  }
 }
-constexpr auto DevtoolManifestFetchRow::InternalGenerateClassData_() {
+constexpr auto DevtoolStatusManifestFetchRow::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
       ::google::protobuf::internal::ClassData{
-          &_DevtoolManifestFetchRow_default_instance_._instance,
+          &_DevtoolStatusManifestFetchRow_default_instance_._instance,
           &_table_.header,
           nullptr,  // OnDemandRegisterArenaDtor
           nullptr,  // IsInitialized
-          &DevtoolManifestFetchRow::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<DevtoolManifestFetchRow>(),
+          &DevtoolStatusManifestFetchRow::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DevtoolStatusManifestFetchRow>(),
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-          &DevtoolManifestFetchRow::SharedDtor,
-          ::google::protobuf::Message::GetClearImpl<DevtoolManifestFetchRow>(), &DevtoolManifestFetchRow::ByteSizeLong,
-              &DevtoolManifestFetchRow::_InternalSerialize,
+          &DevtoolStatusManifestFetchRow::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DevtoolStatusManifestFetchRow>(), &DevtoolStatusManifestFetchRow::ByteSizeLong,
+              &DevtoolStatusManifestFetchRow::_InternalSerialize,
 #endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_._cached_size_),
+          PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_._cached_size_),
           false,
       },
-      &DevtoolManifestFetchRow::kDescriptorMethods,
+      &DevtoolStatusManifestFetchRow::kDescriptorMethods,
       &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto,
       nullptr,  // tracker
   };
 }
 
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull DevtoolManifestFetchRow_class_data_ =
-        DevtoolManifestFetchRow::InternalGenerateClassData_();
+    ::google::protobuf::internal::ClassDataFull DevtoolStatusManifestFetchRow_class_data_ =
+        DevtoolStatusManifestFetchRow::InternalGenerateClassData_();
 
 PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-DevtoolManifestFetchRow::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&DevtoolManifestFetchRow_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(DevtoolManifestFetchRow_class_data_.tc_table);
-  return DevtoolManifestFetchRow_class_data_.base();
+DevtoolStatusManifestFetchRow::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DevtoolStatusManifestFetchRow_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DevtoolStatusManifestFetchRow_class_data_.tc_table);
+  return DevtoolStatusManifestFetchRow_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 12, 0, 140, 2>
-DevtoolManifestFetchRow::_table_ = {
+const ::_pbi::TcParseTable<4, 12, 0, 149, 2>
+DevtoolStatusManifestFetchRow::_table_ = {
   {
-    PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_._has_bits_),
+    PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_._has_bits_),
     0, // no _extensions_
     12, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
@@ -2150,62 +3315,62 @@ DevtoolManifestFetchRow::_table_ = {
     12,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
-    DevtoolManifestFetchRow_class_data_.base(),
+    DevtoolStatusManifestFetchRow_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
     #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolManifestFetchRow>(),  // to_prefetch
+    ::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolStatusManifestFetchRow>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
     // string id = 1;
     {::_pbi::TcParser::FastUS1,
-     {10, 0, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.id_)}},
+     {10, 4, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.id_)}},
     // string manifest_id = 2;
     {::_pbi::TcParser::FastUS1,
-     {18, 1, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.manifest_id_)}},
-    // string platform_id = 3;
-    {::_pbi::TcParser::FastUS1,
-     {26, 2, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.platform_id_)}},
-    // string build_type = 4;
-    {::_pbi::TcParser::FastUS1,
-     {34, 3, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.build_type_)}},
-    // string remote_id = 5;
-    {::_pbi::TcParser::FastUS1,
-     {42, 4, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.remote_id_)}},
-    // .bldr.devtool.status.DevtoolManifestState state = 6;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DevtoolManifestFetchRow, _impl_.state_), 9>(),
+     {18, 5, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.manifest_id_)}},
+    // repeated string platform_ids = 3;
+    {::_pbi::TcParser::FastUR1,
+     {26, 0, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.platform_ids_)}},
+    // repeated string build_types = 4;
+    {::_pbi::TcParser::FastUR1,
+     {34, 1, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.build_types_)}},
+    // repeated string remote_ids = 5;
+    {::_pbi::TcParser::FastUR1,
+     {42, 2, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.remote_ids_)}},
+    // .bldr.devtool.status.DevtoolStatusManifestState state = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DevtoolStatusManifestFetchRow, _impl_.state_), 9>(),
      {48, 9, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.state_)}},
-    // int32 ready_ref_count = 7;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DevtoolManifestFetchRow, _impl_.ready_ref_count_), 10>(),
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.state_)}},
+    // uint32 ready_ref_count = 7;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DevtoolStatusManifestFetchRow, _impl_.ready_ref_count_), 10>(),
      {56, 10, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.ready_ref_count_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.ready_ref_count_)}},
     // string ready_refs = 8;
     {::_pbi::TcParser::FastUS1,
-     {66, 5, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.ready_refs_)}},
-    // string local_build_ids = 9;
-    {::_pbi::TcParser::FastUS1,
-     {74, 6, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.local_build_ids_)}},
+     {66, 6, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.ready_refs_)}},
+    // repeated string local_build_ids = 9;
+    {::_pbi::TcParser::FastUR1,
+     {74, 3, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.local_build_ids_)}},
     // bool blocked_on_local_build = 10;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DevtoolManifestFetchRow, _impl_.blocked_on_local_build_), 11>(),
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DevtoolStatusManifestFetchRow, _impl_.blocked_on_local_build_), 11>(),
      {80, 11, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.blocked_on_local_build_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.blocked_on_local_build_)}},
     // string summary = 11;
     {::_pbi::TcParser::FastUS1,
      {90, 7, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.summary_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.summary_)}},
     // string error = 12;
     {::_pbi::TcParser::FastUS1,
      {98, 8, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.error_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.error_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
@@ -2213,47 +3378,47 @@ DevtoolManifestFetchRow::_table_ = {
     65535, 65535
   }}, {{
     // string id = 1;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.id_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string manifest_id = 2;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.manifest_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // string platform_id = 3;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.platform_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // string build_type = 4;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.build_type_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // string remote_id = 5;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.remote_id_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // .bldr.devtool.status.DevtoolManifestState state = 6;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.state_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
-    // int32 ready_ref_count = 7;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.ready_ref_count_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.manifest_id_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated string platform_ids = 3;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.platform_ids_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // repeated string build_types = 4;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.build_types_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // repeated string remote_ids = 5;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.remote_ids_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // .bldr.devtool.status.DevtoolStatusManifestState state = 6;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.state_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // uint32 ready_ref_count = 7;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.ready_ref_count_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // string ready_refs = 8;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.ready_refs_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // string local_build_ids = 9;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.local_build_ids_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.ready_refs_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated string local_build_ids = 9;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.local_build_ids_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
     // bool blocked_on_local_build = 10;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.blocked_on_local_build_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.blocked_on_local_build_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string summary = 11;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.summary_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.summary_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string error = 12;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.error_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.error_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\53\2\13\13\12\11\0\0\12\17\0\7\5\0\0\0"
-    "bldr.devtool.status.DevtoolManifestFetchRow"
+    "\61\2\13\14\13\12\0\0\12\17\0\7\5\0\0\0"
+    "bldr.devtool.status.DevtoolStatusManifestFetchRow"
     "id"
     "manifest_id"
-    "platform_id"
-    "build_type"
-    "remote_id"
+    "platform_ids"
+    "build_types"
+    "remote_ids"
     "ready_refs"
     "local_build_ids"
     "summary"
     "error"
   }},
 };
-PROTOBUF_NOINLINE void DevtoolManifestFetchRow::Clear() {
-// @@protoc_insertion_point(message_clear_start:bldr.devtool.status.DevtoolManifestFetchRow)
+PROTOBUF_NOINLINE void DevtoolStatusManifestFetchRow::Clear() {
+// @@protoc_insertion_point(message_clear_start:bldr.devtool.status.DevtoolStatusManifestFetchRow)
   ::google::protobuf::internal::TSanWrite(&_impl_);
   ::uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
@@ -2261,26 +3426,26 @@ PROTOBUF_NOINLINE void DevtoolManifestFetchRow::Clear() {
 
   cached_has_bits = _impl_._has_bits_[0];
   if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      _impl_.id_.ClearNonDefaultToEmpty();
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.platform_ids_.Clear();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      _impl_.manifest_id_.ClearNonDefaultToEmpty();
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _impl_.build_types_.Clear();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      _impl_.platform_id_.ClearNonDefaultToEmpty();
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      _impl_.remote_ids_.Clear();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      _impl_.build_type_.ClearNonDefaultToEmpty();
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      _impl_.local_build_ids_.Clear();
     }
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-      _impl_.remote_id_.ClearNonDefaultToEmpty();
+      _impl_.id_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000020U)) {
-      _impl_.ready_refs_.ClearNonDefaultToEmpty();
+      _impl_.manifest_id_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000040U)) {
-      _impl_.local_build_ids_.ClearNonDefaultToEmpty();
+      _impl_.ready_refs_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       _impl_.summary_.ClearNonDefaultToEmpty();
@@ -2299,75 +3464,75 @@ PROTOBUF_NOINLINE void DevtoolManifestFetchRow::Clear() {
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::uint8_t* PROTOBUF_NONNULL DevtoolManifestFetchRow::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::_InternalSerialize(
     const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
-  const DevtoolManifestFetchRow& this_ = static_cast<const DevtoolManifestFetchRow&>(base);
+  const DevtoolStatusManifestFetchRow& this_ = static_cast<const DevtoolStatusManifestFetchRow&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::uint8_t* PROTOBUF_NONNULL DevtoolManifestFetchRow::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL DevtoolStatusManifestFetchRow::_InternalSerialize(
     ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-  const DevtoolManifestFetchRow& this_ = *this;
+  const DevtoolStatusManifestFetchRow& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
-  // @@protoc_insertion_point(serialize_to_array_start:bldr.devtool.status.DevtoolManifestFetchRow)
+  // @@protoc_insertion_point(serialize_to_array_start:bldr.devtool.status.DevtoolStatusManifestFetchRow)
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // string id = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (!this_._internal_id().empty()) {
       const ::std::string& _s = this_._internal_id();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolManifestFetchRow.id");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusManifestFetchRow.id");
       target = stream->WriteStringMaybeAliased(1, _s, target);
     }
   }
 
   // string manifest_id = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     if (!this_._internal_manifest_id().empty()) {
       const ::std::string& _s = this_._internal_manifest_id();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolManifestFetchRow.manifest_id");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusManifestFetchRow.manifest_id");
       target = stream->WriteStringMaybeAliased(2, _s, target);
     }
   }
 
-  // string platform_id = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-    if (!this_._internal_platform_id().empty()) {
-      const ::std::string& _s = this_._internal_platform_id();
+  // repeated string platform_ids = 3;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (int i = 0, n = this_._internal_platform_ids_size(); i < n; ++i) {
+      const auto& s = this_._internal_platform_ids().Get(i);
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolManifestFetchRow.platform_id");
-      target = stream->WriteStringMaybeAliased(3, _s, target);
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusManifestFetchRow.platform_ids");
+      target = stream->WriteString(3, s, target);
     }
   }
 
-  // string build_type = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-    if (!this_._internal_build_type().empty()) {
-      const ::std::string& _s = this_._internal_build_type();
+  // repeated string build_types = 4;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+    for (int i = 0, n = this_._internal_build_types_size(); i < n; ++i) {
+      const auto& s = this_._internal_build_types().Get(i);
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolManifestFetchRow.build_type");
-      target = stream->WriteStringMaybeAliased(4, _s, target);
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusManifestFetchRow.build_types");
+      target = stream->WriteString(4, s, target);
     }
   }
 
-  // string remote_id = 5;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-    if (!this_._internal_remote_id().empty()) {
-      const ::std::string& _s = this_._internal_remote_id();
+  // repeated string remote_ids = 5;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+    for (int i = 0, n = this_._internal_remote_ids_size(); i < n; ++i) {
+      const auto& s = this_._internal_remote_ids().Get(i);
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolManifestFetchRow.remote_id");
-      target = stream->WriteStringMaybeAliased(5, _s, target);
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusManifestFetchRow.remote_ids");
+      target = stream->WriteString(5, s, target);
     }
   }
 
-  // .bldr.devtool.status.DevtoolManifestState state = 6;
+  // .bldr.devtool.status.DevtoolStatusManifestState state = 6;
   if (CheckHasBit(cached_has_bits, 0x00000200U)) {
     if (this_._internal_state() != 0) {
       target = stream->EnsureSpace(target);
@@ -2376,32 +3541,32 @@ PROTOBUF_NOINLINE void DevtoolManifestFetchRow::Clear() {
     }
   }
 
-  // int32 ready_ref_count = 7;
+  // uint32 ready_ref_count = 7;
   if (CheckHasBit(cached_has_bits, 0x00000400U)) {
     if (this_._internal_ready_ref_count() != 0) {
-      target =
-          ::google::protobuf::internal::WireFormatLite::WriteInt32ToArrayWithField<7>(
-              stream, this_._internal_ready_ref_count(), target);
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          7, this_._internal_ready_ref_count(), target);
     }
   }
 
   // string ready_refs = 8;
-  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
     if (!this_._internal_ready_refs().empty()) {
       const ::std::string& _s = this_._internal_ready_refs();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolManifestFetchRow.ready_refs");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusManifestFetchRow.ready_refs");
       target = stream->WriteStringMaybeAliased(8, _s, target);
     }
   }
 
-  // string local_build_ids = 9;
-  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
-    if (!this_._internal_local_build_ids().empty()) {
-      const ::std::string& _s = this_._internal_local_build_ids();
+  // repeated string local_build_ids = 9;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+    for (int i = 0, n = this_._internal_local_build_ids_size(); i < n; ++i) {
+      const auto& s = this_._internal_local_build_ids().Get(i);
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolManifestFetchRow.local_build_ids");
-      target = stream->WriteStringMaybeAliased(9, _s, target);
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusManifestFetchRow.local_build_ids");
+      target = stream->WriteString(9, s, target);
     }
   }
 
@@ -2419,7 +3584,7 @@ PROTOBUF_NOINLINE void DevtoolManifestFetchRow::Clear() {
     if (!this_._internal_summary().empty()) {
       const ::std::string& _s = this_._internal_summary();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolManifestFetchRow.summary");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusManifestFetchRow.summary");
       target = stream->WriteStringMaybeAliased(11, _s, target);
     }
   }
@@ -2429,7 +3594,7 @@ PROTOBUF_NOINLINE void DevtoolManifestFetchRow::Clear() {
     if (!this_._internal_error().empty()) {
       const ::std::string& _s = this_._internal_error();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolManifestFetchRow.error");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusManifestFetchRow.error");
       target = stream->WriteStringMaybeAliased(12, _s, target);
     }
   }
@@ -2439,18 +3604,18 @@ PROTOBUF_NOINLINE void DevtoolManifestFetchRow::Clear() {
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
             this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:bldr.devtool.status.DevtoolManifestFetchRow)
+  // @@protoc_insertion_point(serialize_to_array_end:bldr.devtool.status.DevtoolStatusManifestFetchRow)
   return target;
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::size_t DevtoolManifestFetchRow::ByteSizeLong(const MessageLite& base) {
-  const DevtoolManifestFetchRow& this_ = static_cast<const DevtoolManifestFetchRow&>(base);
+::size_t DevtoolStatusManifestFetchRow::ByteSizeLong(const MessageLite& base) {
+  const DevtoolStatusManifestFetchRow& this_ = static_cast<const DevtoolStatusManifestFetchRow&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::size_t DevtoolManifestFetchRow::ByteSizeLong() const {
-  const DevtoolManifestFetchRow& this_ = *this;
+::size_t DevtoolStatusManifestFetchRow::ByteSizeLong() const {
+  const DevtoolStatusManifestFetchRow& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(message_byte_size_start:bldr.devtool.status.DevtoolManifestFetchRow)
+  // @@protoc_insertion_point(message_byte_size_start:bldr.devtool.status.DevtoolStatusManifestFetchRow)
   ::size_t total_size = 0;
 
   ::uint32_t cached_has_bits = 0;
@@ -2460,53 +3625,61 @@ PROTOBUF_NOINLINE void DevtoolManifestFetchRow::Clear() {
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
   if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // repeated string platform_ids = 3;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_platform_ids().size());
+      for (int i = 0, n = this_._internal_platform_ids().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_platform_ids().Get(i));
+      }
+    }
+    // repeated string build_types = 4;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_build_types().size());
+      for (int i = 0, n = this_._internal_build_types().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_build_types().Get(i));
+      }
+    }
+    // repeated string remote_ids = 5;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_remote_ids().size());
+      for (int i = 0, n = this_._internal_remote_ids().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_remote_ids().Get(i));
+      }
+    }
+    // repeated string local_build_ids = 9;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_local_build_ids().size());
+      for (int i = 0, n = this_._internal_local_build_ids().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_local_build_ids().Get(i));
+      }
+    }
     // string id = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (!this_._internal_id().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_id());
       }
     }
     // string manifest_id = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (!this_._internal_manifest_id().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_manifest_id());
       }
     }
-    // string platform_id = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      if (!this_._internal_platform_id().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_platform_id());
-      }
-    }
-    // string build_type = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      if (!this_._internal_build_type().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_build_type());
-      }
-    }
-    // string remote_id = 5;
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-      if (!this_._internal_remote_id().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_remote_id());
-      }
-    }
     // string ready_refs = 8;
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (!this_._internal_ready_refs().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_ready_refs());
-      }
-    }
-    // string local_build_ids = 9;
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
-      if (!this_._internal_local_build_ids().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_local_build_ids());
       }
     }
     // string summary = 11;
@@ -2525,17 +3698,17 @@ PROTOBUF_NOINLINE void DevtoolManifestFetchRow::Clear() {
                                         this_._internal_error());
       }
     }
-    // .bldr.devtool.status.DevtoolManifestState state = 6;
+    // .bldr.devtool.status.DevtoolStatusManifestState state = 6;
     if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       if (this_._internal_state() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_state());
       }
     }
-    // int32 ready_ref_count = 7;
+    // uint32 ready_ref_count = 7;
     if (CheckHasBit(cached_has_bits, 0x00000400U)) {
       if (this_._internal_ready_ref_count() != 0) {
-        total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_ready_ref_count());
       }
     }
@@ -2550,22 +3723,43 @@ PROTOBUF_NOINLINE void DevtoolManifestFetchRow::Clear() {
                                              &this_._impl_._cached_size_);
 }
 
-void DevtoolManifestFetchRow::MergeImpl(::google::protobuf::MessageLite& to_msg,
+void DevtoolStatusManifestFetchRow::MergeImpl(::google::protobuf::MessageLite& to_msg,
                             const ::google::protobuf::MessageLite& from_msg) {
    auto* const _this =
-      static_cast<DevtoolManifestFetchRow*>(&to_msg);
-  auto& from = static_cast<const DevtoolManifestFetchRow&>(from_msg);
+      static_cast<DevtoolStatusManifestFetchRow*>(&to_msg);
+  auto& from = static_cast<const DevtoolStatusManifestFetchRow&>(from_msg);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     from.CheckHasBitConsistency();
   }
-  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.devtool.status.DevtoolManifestFetchRow)
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.devtool.status.DevtoolStatusManifestFetchRow)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
   if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_platform_ids()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_platform_ids());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _this->_internal_mutable_build_types()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_build_types());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      _this->_internal_mutable_remote_ids()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_remote_ids());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      _this->_internal_mutable_local_build_ids()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_local_build_ids());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (!from._internal_id().empty()) {
         _this->_internal_set_id(from._internal_id());
       } else {
@@ -2574,7 +3768,7 @@ void DevtoolManifestFetchRow::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (!from._internal_manifest_id().empty()) {
         _this->_internal_set_manifest_id(from._internal_manifest_id());
       } else {
@@ -2583,48 +3777,12 @@ void DevtoolManifestFetchRow::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      if (!from._internal_platform_id().empty()) {
-        _this->_internal_set_platform_id(from._internal_platform_id());
-      } else {
-        if (_this->_impl_.platform_id_.IsDefault()) {
-          _this->_internal_set_platform_id("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      if (!from._internal_build_type().empty()) {
-        _this->_internal_set_build_type(from._internal_build_type());
-      } else {
-        if (_this->_impl_.build_type_.IsDefault()) {
-          _this->_internal_set_build_type("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-      if (!from._internal_remote_id().empty()) {
-        _this->_internal_set_remote_id(from._internal_remote_id());
-      } else {
-        if (_this->_impl_.remote_id_.IsDefault()) {
-          _this->_internal_set_remote_id("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (!from._internal_ready_refs().empty()) {
         _this->_internal_set_ready_refs(from._internal_ready_refs());
       } else {
         if (_this->_impl_.ready_refs_.IsDefault()) {
           _this->_internal_set_ready_refs("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
-      if (!from._internal_local_build_ids().empty()) {
-        _this->_internal_set_local_build_ids(from._internal_local_build_ids());
-      } else {
-        if (_this->_impl_.local_build_ids_.IsDefault()) {
-          _this->_internal_set_local_build_ids("");
         }
       }
     }
@@ -2669,85 +3827,85 @@ void DevtoolManifestFetchRow::MergeImpl(::google::protobuf::MessageLite& to_msg,
       from._internal_metadata_);
 }
 
-void DevtoolManifestFetchRow::CopyFrom(const DevtoolManifestFetchRow& from) {
-  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.devtool.status.DevtoolManifestFetchRow)
+void DevtoolStatusManifestFetchRow::CopyFrom(const DevtoolStatusManifestFetchRow& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.devtool.status.DevtoolStatusManifestFetchRow)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 
-void DevtoolManifestFetchRow::InternalSwap(DevtoolManifestFetchRow* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+void DevtoolStatusManifestFetchRow::InternalSwap(DevtoolStatusManifestFetchRow* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
   auto* arena = GetArena();
   ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.platform_ids_.InternalSwap(&other->_impl_.platform_ids_);
+  _impl_.build_types_.InternalSwap(&other->_impl_.build_types_);
+  _impl_.remote_ids_.InternalSwap(&other->_impl_.remote_ids_);
+  _impl_.local_build_ids_.InternalSwap(&other->_impl_.local_build_ids_);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.manifest_id_, &other->_impl_.manifest_id_, arena);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.platform_id_, &other->_impl_.platform_id_, arena);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.build_type_, &other->_impl_.build_type_, arena);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.remote_id_, &other->_impl_.remote_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.ready_refs_, &other->_impl_.ready_refs_, arena);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.local_build_ids_, &other->_impl_.local_build_ids_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.summary_, &other->_impl_.summary_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.error_, &other->_impl_.error_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.blocked_on_local_build_)
-      + sizeof(DevtoolManifestFetchRow::_impl_.blocked_on_local_build_)
-      - PROTOBUF_FIELD_OFFSET(DevtoolManifestFetchRow, _impl_.state_)>(
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.blocked_on_local_build_)
+      + sizeof(DevtoolStatusManifestFetchRow::_impl_.blocked_on_local_build_)
+      - PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestFetchRow, _impl_.state_)>(
           reinterpret_cast<char*>(&_impl_.state_),
           reinterpret_cast<char*>(&other->_impl_.state_));
 }
 
-::google::protobuf::Metadata DevtoolManifestFetchRow::GetMetadata() const {
+::google::protobuf::Metadata DevtoolStatusManifestFetchRow::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 
-class DevtoolManifestBuildRow::_Internal {
+class DevtoolStatusManifestBuildRow::_Internal {
  public:
   using HasBits =
-      decltype(::std::declval<DevtoolManifestBuildRow>()._impl_._has_bits_);
+      decltype(::std::declval<DevtoolStatusManifestBuildRow>()._impl_._has_bits_);
   static constexpr ::int32_t kHasBitsOffset =
-      8 * PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_._has_bits_);
+      8 * PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_._has_bits_);
 };
 
-DevtoolManifestBuildRow::DevtoolManifestBuildRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+DevtoolStatusManifestBuildRow::DevtoolStatusManifestBuildRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, DevtoolManifestBuildRow_class_data_.base()) {
+    : ::google::protobuf::Message(arena, DevtoolStatusManifestBuildRow_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
   SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:bldr.devtool.status.DevtoolManifestBuildRow)
+  // @@protoc_insertion_point(arena_constructor:bldr.devtool.status.DevtoolStatusManifestBuildRow)
 }
-PROTOBUF_NDEBUG_INLINE DevtoolManifestBuildRow::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE DevtoolStatusManifestBuildRow::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-    [[maybe_unused]] const ::bldr::devtool::status::DevtoolManifestBuildRow& from_msg)
+    [[maybe_unused]] const ::bldr::devtool::status::DevtoolStatusManifestBuildRow& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
+        build_target_ids_{visibility, arena, from.build_target_ids_},
+        target_platform_ids_{visibility, arena, from.target_platform_ids_},
         id_(arena, from.id_),
-        build_targets_(arena, from.build_targets_),
         manifest_id_(arena, from.manifest_id_),
         platform_id_(arena, from.platform_id_),
-        target_platform_ids_(arena, from.target_platform_ids_),
         build_type_(arena, from.build_type_),
         remote_id_(arena, from.remote_id_),
         dependency_rebuild_reason_(arena, from.dependency_rebuild_reason_),
         summary_(arena, from.summary_),
         error_(arena, from.error_) {}
 
-DevtoolManifestBuildRow::DevtoolManifestBuildRow(
+DevtoolStatusManifestBuildRow::DevtoolStatusManifestBuildRow(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const DevtoolManifestBuildRow& from)
+    const DevtoolStatusManifestBuildRow& from)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, DevtoolManifestBuildRow_class_data_.base()) {
+    : ::google::protobuf::Message(arena, DevtoolStatusManifestBuildRow_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  DevtoolManifestBuildRow* const _this = this;
+  DevtoolStatusManifestBuildRow* const _this = this;
   (void)_this;
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
@@ -2760,24 +3918,24 @@ DevtoolManifestBuildRow::DevtoolManifestBuildRow(
                offsetof(Impl_, state_) +
                sizeof(Impl_::watched_file_count_));
 
-  // @@protoc_insertion_point(copy_constructor:bldr.devtool.status.DevtoolManifestBuildRow)
+  // @@protoc_insertion_point(copy_constructor:bldr.devtool.status.DevtoolStatusManifestBuildRow)
 }
-PROTOBUF_NDEBUG_INLINE DevtoolManifestBuildRow::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE DevtoolStatusManifestBuildRow::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
+        build_target_ids_{visibility, arena},
+        target_platform_ids_{visibility, arena},
         id_(arena),
-        build_targets_(arena),
         manifest_id_(arena),
         platform_id_(arena),
-        target_platform_ids_(arena),
         build_type_(arena),
         remote_id_(arena),
         dependency_rebuild_reason_(arena),
         summary_(arena),
         error_(arena) {}
 
-inline void DevtoolManifestBuildRow::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+inline void DevtoolStatusManifestBuildRow::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, state_),
@@ -2786,22 +3944,20 @@ inline void DevtoolManifestBuildRow::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE 
                offsetof(Impl_, state_) +
                sizeof(Impl_::watched_file_count_));
 }
-DevtoolManifestBuildRow::~DevtoolManifestBuildRow() {
-  // @@protoc_insertion_point(destructor:bldr.devtool.status.DevtoolManifestBuildRow)
+DevtoolStatusManifestBuildRow::~DevtoolStatusManifestBuildRow() {
+  // @@protoc_insertion_point(destructor:bldr.devtool.status.DevtoolStatusManifestBuildRow)
   SharedDtor(*this);
 }
-inline void DevtoolManifestBuildRow::SharedDtor(MessageLite& self) {
-  DevtoolManifestBuildRow& this_ = static_cast<DevtoolManifestBuildRow&>(self);
+inline void DevtoolStatusManifestBuildRow::SharedDtor(MessageLite& self) {
+  DevtoolStatusManifestBuildRow& this_ = static_cast<DevtoolStatusManifestBuildRow&>(self);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.id_.Destroy();
-  this_._impl_.build_targets_.Destroy();
   this_._impl_.manifest_id_.Destroy();
   this_._impl_.platform_id_.Destroy();
-  this_._impl_.target_platform_ids_.Destroy();
   this_._impl_.build_type_.Destroy();
   this_._impl_.remote_id_.Destroy();
   this_._impl_.dependency_rebuild_reason_.Destroy();
@@ -2810,53 +3966,69 @@ inline void DevtoolManifestBuildRow::SharedDtor(MessageLite& self) {
   this_._impl_.~Impl_();
 }
 
-inline void* PROTOBUF_NONNULL DevtoolManifestBuildRow::PlacementNew_(
+inline void* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::PlacementNew_(
     const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) DevtoolManifestBuildRow(arena);
+  return ::new (mem) DevtoolStatusManifestBuildRow(arena);
 }
-constexpr auto DevtoolManifestBuildRow::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DevtoolManifestBuildRow),
-                                            alignof(DevtoolManifestBuildRow));
+constexpr auto DevtoolStatusManifestBuildRow::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.build_target_ids_) +
+          decltype(DevtoolStatusManifestBuildRow::_impl_.build_target_ids_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.target_platform_ids_) +
+          decltype(DevtoolStatusManifestBuildRow::_impl_.target_platform_ids_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(DevtoolStatusManifestBuildRow), alignof(DevtoolStatusManifestBuildRow), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&DevtoolStatusManifestBuildRow::PlacementNew_,
+                                 sizeof(DevtoolStatusManifestBuildRow),
+                                 alignof(DevtoolStatusManifestBuildRow));
+  }
 }
-constexpr auto DevtoolManifestBuildRow::InternalGenerateClassData_() {
+constexpr auto DevtoolStatusManifestBuildRow::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
       ::google::protobuf::internal::ClassData{
-          &_DevtoolManifestBuildRow_default_instance_._instance,
+          &_DevtoolStatusManifestBuildRow_default_instance_._instance,
           &_table_.header,
           nullptr,  // OnDemandRegisterArenaDtor
           nullptr,  // IsInitialized
-          &DevtoolManifestBuildRow::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<DevtoolManifestBuildRow>(),
+          &DevtoolStatusManifestBuildRow::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DevtoolStatusManifestBuildRow>(),
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-          &DevtoolManifestBuildRow::SharedDtor,
-          ::google::protobuf::Message::GetClearImpl<DevtoolManifestBuildRow>(), &DevtoolManifestBuildRow::ByteSizeLong,
-              &DevtoolManifestBuildRow::_InternalSerialize,
+          &DevtoolStatusManifestBuildRow::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DevtoolStatusManifestBuildRow>(), &DevtoolStatusManifestBuildRow::ByteSizeLong,
+              &DevtoolStatusManifestBuildRow::_InternalSerialize,
 #endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_._cached_size_),
+          PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_._cached_size_),
           false,
       },
-      &DevtoolManifestBuildRow::kDescriptorMethods,
+      &DevtoolStatusManifestBuildRow::kDescriptorMethods,
       &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto,
       nullptr,  // tracker
   };
 }
 
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull DevtoolManifestBuildRow_class_data_ =
-        DevtoolManifestBuildRow::InternalGenerateClassData_();
+    ::google::protobuf::internal::ClassDataFull DevtoolStatusManifestBuildRow_class_data_ =
+        DevtoolStatusManifestBuildRow::InternalGenerateClassData_();
 
 PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-DevtoolManifestBuildRow::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&DevtoolManifestBuildRow_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(DevtoolManifestBuildRow_class_data_.tc_table);
-  return DevtoolManifestBuildRow_class_data_.base();
+DevtoolStatusManifestBuildRow::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DevtoolStatusManifestBuildRow_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DevtoolStatusManifestBuildRow_class_data_.tc_table);
+  return DevtoolStatusManifestBuildRow_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 15, 0, 172, 2>
-DevtoolManifestBuildRow::_table_ = {
+const ::_pbi::TcParseTable<4, 15, 0, 181, 2>
+DevtoolStatusManifestBuildRow::_table_ = {
   {
-    PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_._has_bits_),
+    PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_._has_bits_),
     0, // no _extensions_
     15, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
@@ -2865,114 +4037,114 @@ DevtoolManifestBuildRow::_table_ = {
     15,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
-    DevtoolManifestBuildRow_class_data_.base(),
+    DevtoolStatusManifestBuildRow_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
     #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolManifestBuildRow>(),  // to_prefetch
+    ::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolStatusManifestBuildRow>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
     // string id = 1;
     {::_pbi::TcParser::FastUS1,
-     {10, 0, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.id_)}},
-    // string build_targets = 2;
-    {::_pbi::TcParser::FastUS1,
-     {18, 1, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.build_targets_)}},
+     {10, 2, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.id_)}},
+    // repeated string build_target_ids = 2;
+    {::_pbi::TcParser::FastUR1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.build_target_ids_)}},
     // string manifest_id = 3;
     {::_pbi::TcParser::FastUS1,
-     {26, 2, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.manifest_id_)}},
+     {26, 3, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.manifest_id_)}},
     // string platform_id = 4;
     {::_pbi::TcParser::FastUS1,
-     {34, 3, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.platform_id_)}},
-    // string target_platform_ids = 5;
-    {::_pbi::TcParser::FastUS1,
-     {42, 4, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.target_platform_ids_)}},
+     {34, 4, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.platform_id_)}},
+    // repeated string target_platform_ids = 5;
+    {::_pbi::TcParser::FastUR1,
+     {42, 1, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.target_platform_ids_)}},
     // string build_type = 6;
     {::_pbi::TcParser::FastUS1,
      {50, 5, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.build_type_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.build_type_)}},
     // string remote_id = 7;
     {::_pbi::TcParser::FastUS1,
      {58, 6, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.remote_id_)}},
-    // .bldr.devtool.status.DevtoolManifestState state = 8;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DevtoolManifestBuildRow, _impl_.state_), 10>(),
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.remote_id_)}},
+    // .bldr.devtool.status.DevtoolStatusManifestState state = 8;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DevtoolStatusManifestBuildRow, _impl_.state_), 10>(),
      {64, 10, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.state_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.state_)}},
     // bool cache_hit = 9;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DevtoolManifestBuildRow, _impl_.cache_hit_), 11>(),
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DevtoolStatusManifestBuildRow, _impl_.cache_hit_), 11>(),
      {72, 11, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.cache_hit_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.cache_hit_)}},
     // bool full_rebuild = 10;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DevtoolManifestBuildRow, _impl_.full_rebuild_), 12>(),
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DevtoolStatusManifestBuildRow, _impl_.full_rebuild_), 12>(),
      {80, 12, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.full_rebuild_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.full_rebuild_)}},
     // bool hot_rebuild = 11;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DevtoolManifestBuildRow, _impl_.hot_rebuild_), 13>(),
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DevtoolStatusManifestBuildRow, _impl_.hot_rebuild_), 13>(),
      {88, 13, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.hot_rebuild_)}},
-    // int32 watched_file_count = 12;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DevtoolManifestBuildRow, _impl_.watched_file_count_), 14>(),
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.hot_rebuild_)}},
+    // uint32 watched_file_count = 12;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DevtoolStatusManifestBuildRow, _impl_.watched_file_count_), 14>(),
      {96, 14, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.watched_file_count_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.watched_file_count_)}},
     // string dependency_rebuild_reason = 13;
     {::_pbi::TcParser::FastUS1,
      {106, 7, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.dependency_rebuild_reason_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.dependency_rebuild_reason_)}},
     // string summary = 14;
     {::_pbi::TcParser::FastUS1,
      {114, 8, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.summary_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.summary_)}},
     // string error = 15;
     {::_pbi::TcParser::FastUS1,
      {122, 9, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.error_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.error_)}},
   }}, {{
     65535, 65535
   }}, {{
     // string id = 1;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // string build_targets = 2;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.build_targets_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated string build_target_ids = 2;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.build_target_ids_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
     // string manifest_id = 3;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.manifest_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.manifest_id_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string platform_id = 4;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.platform_id_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // string target_platform_ids = 5;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.target_platform_ids_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.platform_id_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated string target_platform_ids = 5;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.target_platform_ids_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
     // string build_type = 6;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.build_type_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.build_type_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string remote_id = 7;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.remote_id_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // .bldr.devtool.status.DevtoolManifestState state = 8;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.state_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.remote_id_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .bldr.devtool.status.DevtoolStatusManifestState state = 8;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.state_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // bool cache_hit = 9;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.cache_hit_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.cache_hit_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // bool full_rebuild = 10;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.full_rebuild_), _Internal::kHasBitsOffset + 12, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.full_rebuild_), _Internal::kHasBitsOffset + 12, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // bool hot_rebuild = 11;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.hot_rebuild_), _Internal::kHasBitsOffset + 13, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
-    // int32 watched_file_count = 12;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.watched_file_count_), _Internal::kHasBitsOffset + 14, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.hot_rebuild_), _Internal::kHasBitsOffset + 13, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // uint32 watched_file_count = 12;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.watched_file_count_), _Internal::kHasBitsOffset + 14, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // string dependency_rebuild_reason = 13;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.dependency_rebuild_reason_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.dependency_rebuild_reason_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string summary = 14;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.summary_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.summary_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string error = 15;
-    {PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.error_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.error_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\53\2\15\13\13\23\12\11\0\0\0\0\0\31\7\5"
-    "bldr.devtool.status.DevtoolManifestBuildRow"
+    "\61\2\20\13\13\23\12\11\0\0\0\0\0\31\7\5"
+    "bldr.devtool.status.DevtoolStatusManifestBuildRow"
     "id"
-    "build_targets"
+    "build_target_ids"
     "manifest_id"
     "platform_id"
     "target_platform_ids"
@@ -2983,8 +4155,8 @@ DevtoolManifestBuildRow::_table_ = {
     "error"
   }},
 };
-PROTOBUF_NOINLINE void DevtoolManifestBuildRow::Clear() {
-// @@protoc_insertion_point(message_clear_start:bldr.devtool.status.DevtoolManifestBuildRow)
+PROTOBUF_NOINLINE void DevtoolStatusManifestBuildRow::Clear() {
+// @@protoc_insertion_point(message_clear_start:bldr.devtool.status.DevtoolStatusManifestBuildRow)
   ::google::protobuf::internal::TSanWrite(&_impl_);
   ::uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
@@ -2992,20 +4164,20 @@ PROTOBUF_NOINLINE void DevtoolManifestBuildRow::Clear() {
 
   cached_has_bits = _impl_._has_bits_[0];
   if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      _impl_.id_.ClearNonDefaultToEmpty();
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.build_target_ids_.Clear();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      _impl_.build_targets_.ClearNonDefaultToEmpty();
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _impl_.target_platform_ids_.Clear();
     }
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      _impl_.manifest_id_.ClearNonDefaultToEmpty();
+      _impl_.id_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      _impl_.platform_id_.ClearNonDefaultToEmpty();
+      _impl_.manifest_id_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-      _impl_.target_platform_ids_.ClearNonDefaultToEmpty();
+      _impl_.platform_id_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       _impl_.build_type_.ClearNonDefaultToEmpty();
@@ -3035,71 +4207,71 @@ PROTOBUF_NOINLINE void DevtoolManifestBuildRow::Clear() {
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::uint8_t* PROTOBUF_NONNULL DevtoolManifestBuildRow::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::_InternalSerialize(
     const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
-  const DevtoolManifestBuildRow& this_ = static_cast<const DevtoolManifestBuildRow&>(base);
+  const DevtoolStatusManifestBuildRow& this_ = static_cast<const DevtoolStatusManifestBuildRow&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::uint8_t* PROTOBUF_NONNULL DevtoolManifestBuildRow::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL DevtoolStatusManifestBuildRow::_InternalSerialize(
     ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-  const DevtoolManifestBuildRow& this_ = *this;
+  const DevtoolStatusManifestBuildRow& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
-  // @@protoc_insertion_point(serialize_to_array_start:bldr.devtool.status.DevtoolManifestBuildRow)
+  // @@protoc_insertion_point(serialize_to_array_start:bldr.devtool.status.DevtoolStatusManifestBuildRow)
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // string id = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     if (!this_._internal_id().empty()) {
       const ::std::string& _s = this_._internal_id();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolManifestBuildRow.id");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusManifestBuildRow.id");
       target = stream->WriteStringMaybeAliased(1, _s, target);
     }
   }
 
-  // string build_targets = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-    if (!this_._internal_build_targets().empty()) {
-      const ::std::string& _s = this_._internal_build_targets();
+  // repeated string build_target_ids = 2;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (int i = 0, n = this_._internal_build_target_ids_size(); i < n; ++i) {
+      const auto& s = this_._internal_build_target_ids().Get(i);
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolManifestBuildRow.build_targets");
-      target = stream->WriteStringMaybeAliased(2, _s, target);
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusManifestBuildRow.build_target_ids");
+      target = stream->WriteString(2, s, target);
     }
   }
 
   // string manifest_id = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
     if (!this_._internal_manifest_id().empty()) {
       const ::std::string& _s = this_._internal_manifest_id();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolManifestBuildRow.manifest_id");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusManifestBuildRow.manifest_id");
       target = stream->WriteStringMaybeAliased(3, _s, target);
     }
   }
 
   // string platform_id = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (!this_._internal_platform_id().empty()) {
       const ::std::string& _s = this_._internal_platform_id();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolManifestBuildRow.platform_id");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusManifestBuildRow.platform_id");
       target = stream->WriteStringMaybeAliased(4, _s, target);
     }
   }
 
-  // string target_platform_ids = 5;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-    if (!this_._internal_target_platform_ids().empty()) {
-      const ::std::string& _s = this_._internal_target_platform_ids();
+  // repeated string target_platform_ids = 5;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+    for (int i = 0, n = this_._internal_target_platform_ids_size(); i < n; ++i) {
+      const auto& s = this_._internal_target_platform_ids().Get(i);
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolManifestBuildRow.target_platform_ids");
-      target = stream->WriteStringMaybeAliased(5, _s, target);
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusManifestBuildRow.target_platform_ids");
+      target = stream->WriteString(5, s, target);
     }
   }
 
@@ -3108,7 +4280,7 @@ PROTOBUF_NOINLINE void DevtoolManifestBuildRow::Clear() {
     if (!this_._internal_build_type().empty()) {
       const ::std::string& _s = this_._internal_build_type();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolManifestBuildRow.build_type");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusManifestBuildRow.build_type");
       target = stream->WriteStringMaybeAliased(6, _s, target);
     }
   }
@@ -3118,12 +4290,12 @@ PROTOBUF_NOINLINE void DevtoolManifestBuildRow::Clear() {
     if (!this_._internal_remote_id().empty()) {
       const ::std::string& _s = this_._internal_remote_id();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolManifestBuildRow.remote_id");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusManifestBuildRow.remote_id");
       target = stream->WriteStringMaybeAliased(7, _s, target);
     }
   }
 
-  // .bldr.devtool.status.DevtoolManifestState state = 8;
+  // .bldr.devtool.status.DevtoolStatusManifestState state = 8;
   if (CheckHasBit(cached_has_bits, 0x00000400U)) {
     if (this_._internal_state() != 0) {
       target = stream->EnsureSpace(target);
@@ -3159,12 +4331,12 @@ PROTOBUF_NOINLINE void DevtoolManifestBuildRow::Clear() {
     }
   }
 
-  // int32 watched_file_count = 12;
+  // uint32 watched_file_count = 12;
   if (CheckHasBit(cached_has_bits, 0x00004000U)) {
     if (this_._internal_watched_file_count() != 0) {
-      target =
-          ::google::protobuf::internal::WireFormatLite::WriteInt32ToArrayWithField<12>(
-              stream, this_._internal_watched_file_count(), target);
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          12, this_._internal_watched_file_count(), target);
     }
   }
 
@@ -3173,7 +4345,7 @@ PROTOBUF_NOINLINE void DevtoolManifestBuildRow::Clear() {
     if (!this_._internal_dependency_rebuild_reason().empty()) {
       const ::std::string& _s = this_._internal_dependency_rebuild_reason();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolManifestBuildRow.dependency_rebuild_reason");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusManifestBuildRow.dependency_rebuild_reason");
       target = stream->WriteStringMaybeAliased(13, _s, target);
     }
   }
@@ -3183,7 +4355,7 @@ PROTOBUF_NOINLINE void DevtoolManifestBuildRow::Clear() {
     if (!this_._internal_summary().empty()) {
       const ::std::string& _s = this_._internal_summary();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolManifestBuildRow.summary");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusManifestBuildRow.summary");
       target = stream->WriteStringMaybeAliased(14, _s, target);
     }
   }
@@ -3193,7 +4365,7 @@ PROTOBUF_NOINLINE void DevtoolManifestBuildRow::Clear() {
     if (!this_._internal_error().empty()) {
       const ::std::string& _s = this_._internal_error();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolManifestBuildRow.error");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusManifestBuildRow.error");
       target = stream->WriteStringMaybeAliased(15, _s, target);
     }
   }
@@ -3203,18 +4375,18 @@ PROTOBUF_NOINLINE void DevtoolManifestBuildRow::Clear() {
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
             this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:bldr.devtool.status.DevtoolManifestBuildRow)
+  // @@protoc_insertion_point(serialize_to_array_end:bldr.devtool.status.DevtoolStatusManifestBuildRow)
   return target;
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::size_t DevtoolManifestBuildRow::ByteSizeLong(const MessageLite& base) {
-  const DevtoolManifestBuildRow& this_ = static_cast<const DevtoolManifestBuildRow&>(base);
+::size_t DevtoolStatusManifestBuildRow::ByteSizeLong(const MessageLite& base) {
+  const DevtoolStatusManifestBuildRow& this_ = static_cast<const DevtoolStatusManifestBuildRow&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::size_t DevtoolManifestBuildRow::ByteSizeLong() const {
-  const DevtoolManifestBuildRow& this_ = *this;
+::size_t DevtoolStatusManifestBuildRow::ByteSizeLong() const {
+  const DevtoolStatusManifestBuildRow& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(message_byte_size_start:bldr.devtool.status.DevtoolManifestBuildRow)
+  // @@protoc_insertion_point(message_byte_size_start:bldr.devtool.status.DevtoolStatusManifestBuildRow)
   ::size_t total_size = 0;
 
   ::uint32_t cached_has_bits = 0;
@@ -3224,39 +4396,43 @@ PROTOBUF_NOINLINE void DevtoolManifestBuildRow::Clear() {
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
   if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // repeated string build_target_ids = 2;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_build_target_ids().size());
+      for (int i = 0, n = this_._internal_build_target_ids().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_build_target_ids().Get(i));
+      }
+    }
+    // repeated string target_platform_ids = 5;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_target_platform_ids().size());
+      for (int i = 0, n = this_._internal_target_platform_ids().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_target_platform_ids().Get(i));
+      }
+    }
     // string id = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (!this_._internal_id().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_id());
       }
     }
-    // string build_targets = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      if (!this_._internal_build_targets().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_build_targets());
-      }
-    }
     // string manifest_id = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (!this_._internal_manifest_id().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_manifest_id());
       }
     }
     // string platform_id = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (!this_._internal_platform_id().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_platform_id());
-      }
-    }
-    // string target_platform_ids = 5;
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-      if (!this_._internal_target_platform_ids().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_target_platform_ids());
       }
     }
     // string build_type = 6;
@@ -3296,7 +4472,7 @@ PROTOBUF_NOINLINE void DevtoolManifestBuildRow::Clear() {
                                         this_._internal_error());
       }
     }
-    // .bldr.devtool.status.DevtoolManifestState state = 8;
+    // .bldr.devtool.status.DevtoolStatusManifestState state = 8;
     if (CheckHasBit(cached_has_bits, 0x00000400U)) {
       if (this_._internal_state() != 0) {
         total_size += 1 +
@@ -3321,10 +4497,10 @@ PROTOBUF_NOINLINE void DevtoolManifestBuildRow::Clear() {
         total_size += 2;
       }
     }
-    // int32 watched_file_count = 12;
+    // uint32 watched_file_count = 12;
     if (CheckHasBit(cached_has_bits, 0x00004000U)) {
       if (this_._internal_watched_file_count() != 0) {
-        total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_watched_file_count());
       }
     }
@@ -3333,22 +4509,33 @@ PROTOBUF_NOINLINE void DevtoolManifestBuildRow::Clear() {
                                              &this_._impl_._cached_size_);
 }
 
-void DevtoolManifestBuildRow::MergeImpl(::google::protobuf::MessageLite& to_msg,
+void DevtoolStatusManifestBuildRow::MergeImpl(::google::protobuf::MessageLite& to_msg,
                             const ::google::protobuf::MessageLite& from_msg) {
    auto* const _this =
-      static_cast<DevtoolManifestBuildRow*>(&to_msg);
-  auto& from = static_cast<const DevtoolManifestBuildRow&>(from_msg);
+      static_cast<DevtoolStatusManifestBuildRow*>(&to_msg);
+  auto& from = static_cast<const DevtoolStatusManifestBuildRow&>(from_msg);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     from.CheckHasBitConsistency();
   }
-  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.devtool.status.DevtoolManifestBuildRow)
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.devtool.status.DevtoolStatusManifestBuildRow)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
   if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_build_target_ids()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_build_target_ids());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _this->_internal_mutable_target_platform_ids()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_target_platform_ids());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (!from._internal_id().empty()) {
         _this->_internal_set_id(from._internal_id());
       } else {
@@ -3357,16 +4544,7 @@ void DevtoolManifestBuildRow::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      if (!from._internal_build_targets().empty()) {
-        _this->_internal_set_build_targets(from._internal_build_targets());
-      } else {
-        if (_this->_impl_.build_targets_.IsDefault()) {
-          _this->_internal_set_build_targets("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (!from._internal_manifest_id().empty()) {
         _this->_internal_set_manifest_id(from._internal_manifest_id());
       } else {
@@ -3375,21 +4553,12 @@ void DevtoolManifestBuildRow::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (!from._internal_platform_id().empty()) {
         _this->_internal_set_platform_id(from._internal_platform_id());
       } else {
         if (_this->_impl_.platform_id_.IsDefault()) {
           _this->_internal_set_platform_id("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-      if (!from._internal_target_platform_ids().empty()) {
-        _this->_internal_set_target_platform_ids(from._internal_target_platform_ids());
-      } else {
-        if (_this->_impl_.target_platform_ids_.IsDefault()) {
-          _this->_internal_set_target_platform_ids("");
         }
       }
     }
@@ -3471,64 +4640,537 @@ void DevtoolManifestBuildRow::MergeImpl(::google::protobuf::MessageLite& to_msg,
       from._internal_metadata_);
 }
 
-void DevtoolManifestBuildRow::CopyFrom(const DevtoolManifestBuildRow& from) {
-  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.devtool.status.DevtoolManifestBuildRow)
+void DevtoolStatusManifestBuildRow::CopyFrom(const DevtoolStatusManifestBuildRow& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.devtool.status.DevtoolStatusManifestBuildRow)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 
-void DevtoolManifestBuildRow::InternalSwap(DevtoolManifestBuildRow* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+void DevtoolStatusManifestBuildRow::InternalSwap(DevtoolStatusManifestBuildRow* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
   auto* arena = GetArena();
   ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.build_target_ids_.InternalSwap(&other->_impl_.build_target_ids_);
+  _impl_.target_platform_ids_.InternalSwap(&other->_impl_.target_platform_ids_);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.build_targets_, &other->_impl_.build_targets_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.manifest_id_, &other->_impl_.manifest_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.platform_id_, &other->_impl_.platform_id_, arena);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.target_platform_ids_, &other->_impl_.target_platform_ids_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.build_type_, &other->_impl_.build_type_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.remote_id_, &other->_impl_.remote_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.dependency_rebuild_reason_, &other->_impl_.dependency_rebuild_reason_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.summary_, &other->_impl_.summary_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.error_, &other->_impl_.error_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.watched_file_count_)
-      + sizeof(DevtoolManifestBuildRow::_impl_.watched_file_count_)
-      - PROTOBUF_FIELD_OFFSET(DevtoolManifestBuildRow, _impl_.state_)>(
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.watched_file_count_)
+      + sizeof(DevtoolStatusManifestBuildRow::_impl_.watched_file_count_)
+      - PROTOBUF_FIELD_OFFSET(DevtoolStatusManifestBuildRow, _impl_.state_)>(
           reinterpret_cast<char*>(&_impl_.state_),
           reinterpret_cast<char*>(&other->_impl_.state_));
 }
 
-::google::protobuf::Metadata DevtoolManifestBuildRow::GetMetadata() const {
+::google::protobuf::Metadata DevtoolStatusManifestBuildRow::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 
-class DevtoolPluginRow::_Internal {
+class DevtoolStatusControllerRow::_Internal {
  public:
   using HasBits =
-      decltype(::std::declval<DevtoolPluginRow>()._impl_._has_bits_);
+      decltype(::std::declval<DevtoolStatusControllerRow>()._impl_._has_bits_);
   static constexpr ::int32_t kHasBitsOffset =
-      8 * PROTOBUF_FIELD_OFFSET(DevtoolPluginRow, _impl_._has_bits_);
+      8 * PROTOBUF_FIELD_OFFSET(DevtoolStatusControllerRow, _impl_._has_bits_);
 };
 
-DevtoolPluginRow::DevtoolPluginRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+DevtoolStatusControllerRow::DevtoolStatusControllerRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, DevtoolPluginRow_class_data_.base()) {
+    : ::google::protobuf::Message(arena, DevtoolStatusControllerRow_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
   SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:bldr.devtool.status.DevtoolPluginRow)
+  // @@protoc_insertion_point(arena_constructor:bldr.devtool.status.DevtoolStatusControllerRow)
 }
-PROTOBUF_NDEBUG_INLINE DevtoolPluginRow::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE DevtoolStatusControllerRow::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-    [[maybe_unused]] const ::bldr::devtool::status::DevtoolPluginRow& from_msg)
+    [[maybe_unused]] const ::bldr::devtool::status::DevtoolStatusControllerRow& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        id_(arena, from.id_),
+        controller_id_(arena, from.controller_id_),
+        kind_(arena, from.kind_),
+        summary_(arena, from.summary_),
+        error_(arena, from.error_) {}
+
+DevtoolStatusControllerRow::DevtoolStatusControllerRow(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const DevtoolStatusControllerRow& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DevtoolStatusControllerRow_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  DevtoolStatusControllerRow* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.state_ = from._impl_.state_;
+
+  // @@protoc_insertion_point(copy_constructor:bldr.devtool.status.DevtoolStatusControllerRow)
+}
+PROTOBUF_NDEBUG_INLINE DevtoolStatusControllerRow::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        id_(arena),
+        controller_id_(arena),
+        kind_(arena),
+        summary_(arena),
+        error_(arena) {}
+
+inline void DevtoolStatusControllerRow::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.state_ = {};
+}
+DevtoolStatusControllerRow::~DevtoolStatusControllerRow() {
+  // @@protoc_insertion_point(destructor:bldr.devtool.status.DevtoolStatusControllerRow)
+  SharedDtor(*this);
+}
+inline void DevtoolStatusControllerRow::SharedDtor(MessageLite& self) {
+  DevtoolStatusControllerRow& this_ = static_cast<DevtoolStatusControllerRow&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.id_.Destroy();
+  this_._impl_.controller_id_.Destroy();
+  this_._impl_.kind_.Destroy();
+  this_._impl_.summary_.Destroy();
+  this_._impl_.error_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL DevtoolStatusControllerRow::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) DevtoolStatusControllerRow(arena);
+}
+constexpr auto DevtoolStatusControllerRow::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DevtoolStatusControllerRow),
+                                            alignof(DevtoolStatusControllerRow));
+}
+constexpr auto DevtoolStatusControllerRow::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_DevtoolStatusControllerRow_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &DevtoolStatusControllerRow::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DevtoolStatusControllerRow>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &DevtoolStatusControllerRow::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DevtoolStatusControllerRow>(), &DevtoolStatusControllerRow::ByteSizeLong,
+              &DevtoolStatusControllerRow::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(DevtoolStatusControllerRow, _impl_._cached_size_),
+          false,
+      },
+      &DevtoolStatusControllerRow::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull DevtoolStatusControllerRow_class_data_ =
+        DevtoolStatusControllerRow::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+DevtoolStatusControllerRow::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DevtoolStatusControllerRow_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DevtoolStatusControllerRow_class_data_.tc_table);
+  return DevtoolStatusControllerRow_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 6, 0, 86, 2>
+DevtoolStatusControllerRow::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(DevtoolStatusControllerRow, _impl_._has_bits_),
+    0, // no _extensions_
+    6, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967232,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    6,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    DevtoolStatusControllerRow_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolStatusControllerRow>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusControllerRow, _impl_.id_)}},
+    // string controller_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusControllerRow, _impl_.controller_id_)}},
+    // string kind = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusControllerRow, _impl_.kind_)}},
+    // .bldr.devtool.status.DevtoolStatusControllerState state = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DevtoolStatusControllerRow, _impl_.state_), 5>(),
+     {32, 5, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusControllerRow, _impl_.state_)}},
+    // string summary = 5;
+    {::_pbi::TcParser::FastUS1,
+     {42, 3, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusControllerRow, _impl_.summary_)}},
+    // string error = 6;
+    {::_pbi::TcParser::FastUS1,
+     {50, 4, 0,
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusControllerRow, _impl_.error_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string id = 1;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusControllerRow, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string controller_id = 2;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusControllerRow, _impl_.controller_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string kind = 3;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusControllerRow, _impl_.kind_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .bldr.devtool.status.DevtoolStatusControllerState state = 4;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusControllerRow, _impl_.state_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string summary = 5;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusControllerRow, _impl_.summary_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string error = 6;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusControllerRow, _impl_.error_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\56\2\15\4\0\7\5\0"
+    "bldr.devtool.status.DevtoolStatusControllerRow"
+    "id"
+    "controller_id"
+    "kind"
+    "summary"
+    "error"
+  }},
+};
+PROTOBUF_NOINLINE void DevtoolStatusControllerRow::Clear() {
+// @@protoc_insertion_point(message_clear_start:bldr.devtool.status.DevtoolStatusControllerRow)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.controller_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.kind_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.summary_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.error_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_.state_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL DevtoolStatusControllerRow::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const DevtoolStatusControllerRow& this_ = static_cast<const DevtoolStatusControllerRow&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL DevtoolStatusControllerRow::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const DevtoolStatusControllerRow& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:bldr.devtool.status.DevtoolStatusControllerRow)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_id().empty()) {
+      const ::std::string& _s = this_._internal_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusControllerRow.id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string controller_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_controller_id().empty()) {
+      const ::std::string& _s = this_._internal_controller_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusControllerRow.controller_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string kind = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_kind().empty()) {
+      const ::std::string& _s = this_._internal_kind();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusControllerRow.kind");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // .bldr.devtool.status.DevtoolStatusControllerState state = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_state() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          4, this_._internal_state(), target);
+    }
+  }
+
+  // string summary = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_summary().empty()) {
+      const ::std::string& _s = this_._internal_summary();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusControllerRow.summary");
+      target = stream->WriteStringMaybeAliased(5, _s, target);
+    }
+  }
+
+  // string error = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_error().empty()) {
+      const ::std::string& _s = this_._internal_error();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusControllerRow.error");
+      target = stream->WriteStringMaybeAliased(6, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:bldr.devtool.status.DevtoolStatusControllerRow)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t DevtoolStatusControllerRow::ByteSizeLong(const MessageLite& base) {
+  const DevtoolStatusControllerRow& this_ = static_cast<const DevtoolStatusControllerRow&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t DevtoolStatusControllerRow::ByteSizeLong() const {
+  const DevtoolStatusControllerRow& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:bldr.devtool.status.DevtoolStatusControllerRow)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    // string id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_id());
+      }
+    }
+    // string controller_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_controller_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_controller_id());
+      }
+    }
+    // string kind = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_kind().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_kind());
+      }
+    }
+    // string summary = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_summary().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_summary());
+      }
+    }
+    // string error = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_error().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_error());
+      }
+    }
+    // .bldr.devtool.status.DevtoolStatusControllerState state = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_state() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_state());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void DevtoolStatusControllerRow::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<DevtoolStatusControllerRow*>(&to_msg);
+  auto& from = static_cast<const DevtoolStatusControllerRow&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.devtool.status.DevtoolStatusControllerRow)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_id().empty()) {
+        _this->_internal_set_id(from._internal_id());
+      } else {
+        if (_this->_impl_.id_.IsDefault()) {
+          _this->_internal_set_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_controller_id().empty()) {
+        _this->_internal_set_controller_id(from._internal_controller_id());
+      } else {
+        if (_this->_impl_.controller_id_.IsDefault()) {
+          _this->_internal_set_controller_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_kind().empty()) {
+        _this->_internal_set_kind(from._internal_kind());
+      } else {
+        if (_this->_impl_.kind_.IsDefault()) {
+          _this->_internal_set_kind("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_summary().empty()) {
+        _this->_internal_set_summary(from._internal_summary());
+      } else {
+        if (_this->_impl_.summary_.IsDefault()) {
+          _this->_internal_set_summary("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_error().empty()) {
+        _this->_internal_set_error(from._internal_error());
+      } else {
+        if (_this->_impl_.error_.IsDefault()) {
+          _this->_internal_set_error("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_state() != 0) {
+        _this->_impl_.state_ = from._impl_.state_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void DevtoolStatusControllerRow::CopyFrom(const DevtoolStatusControllerRow& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.devtool.status.DevtoolStatusControllerRow)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DevtoolStatusControllerRow::InternalSwap(DevtoolStatusControllerRow* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.controller_id_, &other->_impl_.controller_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.kind_, &other->_impl_.kind_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.summary_, &other->_impl_.summary_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.error_, &other->_impl_.error_, arena);
+  swap(_impl_.state_, other->_impl_.state_);
+}
+
+::google::protobuf::Metadata DevtoolStatusControllerRow::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DevtoolStatusPluginRow::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<DevtoolStatusPluginRow>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(DevtoolStatusPluginRow, _impl_._has_bits_);
+};
+
+DevtoolStatusPluginRow::DevtoolStatusPluginRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DevtoolStatusPluginRow_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:bldr.devtool.status.DevtoolStatusPluginRow)
+}
+PROTOBUF_NDEBUG_INLINE DevtoolStatusPluginRow::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::bldr::devtool::status::DevtoolStatusPluginRow& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
         id_(arena, from.id_),
@@ -3538,24 +5180,24 @@ PROTOBUF_NDEBUG_INLINE DevtoolPluginRow::Impl_::Impl_(
         error_(arena, from.error_),
         last_error_at_(arena, from.last_error_at_) {}
 
-DevtoolPluginRow::DevtoolPluginRow(
+DevtoolStatusPluginRow::DevtoolStatusPluginRow(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const DevtoolPluginRow& from)
+    const DevtoolStatusPluginRow& from)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, DevtoolPluginRow_class_data_.base()) {
+    : ::google::protobuf::Message(arena, DevtoolStatusPluginRow_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  DevtoolPluginRow* const _this = this;
+  DevtoolStatusPluginRow* const _this = this;
   (void)_this;
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   _impl_.state_ = from._impl_.state_;
 
-  // @@protoc_insertion_point(copy_constructor:bldr.devtool.status.DevtoolPluginRow)
+  // @@protoc_insertion_point(copy_constructor:bldr.devtool.status.DevtoolStatusPluginRow)
 }
-PROTOBUF_NDEBUG_INLINE DevtoolPluginRow::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE DevtoolStatusPluginRow::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
@@ -3566,16 +5208,16 @@ PROTOBUF_NDEBUG_INLINE DevtoolPluginRow::Impl_::Impl_(
         error_(arena),
         last_error_at_(arena) {}
 
-inline void DevtoolPluginRow::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+inline void DevtoolStatusPluginRow::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   _impl_.state_ = {};
 }
-DevtoolPluginRow::~DevtoolPluginRow() {
-  // @@protoc_insertion_point(destructor:bldr.devtool.status.DevtoolPluginRow)
+DevtoolStatusPluginRow::~DevtoolStatusPluginRow() {
+  // @@protoc_insertion_point(destructor:bldr.devtool.status.DevtoolStatusPluginRow)
   SharedDtor(*this);
 }
-inline void DevtoolPluginRow::SharedDtor(MessageLite& self) {
-  DevtoolPluginRow& this_ = static_cast<DevtoolPluginRow&>(self);
+inline void DevtoolStatusPluginRow::SharedDtor(MessageLite& self) {
+  DevtoolStatusPluginRow& this_ = static_cast<DevtoolStatusPluginRow&>(self);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
@@ -3590,53 +5232,53 @@ inline void DevtoolPluginRow::SharedDtor(MessageLite& self) {
   this_._impl_.~Impl_();
 }
 
-inline void* PROTOBUF_NONNULL DevtoolPluginRow::PlacementNew_(
+inline void* PROTOBUF_NONNULL DevtoolStatusPluginRow::PlacementNew_(
     const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) DevtoolPluginRow(arena);
+  return ::new (mem) DevtoolStatusPluginRow(arena);
 }
-constexpr auto DevtoolPluginRow::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DevtoolPluginRow),
-                                            alignof(DevtoolPluginRow));
+constexpr auto DevtoolStatusPluginRow::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DevtoolStatusPluginRow),
+                                            alignof(DevtoolStatusPluginRow));
 }
-constexpr auto DevtoolPluginRow::InternalGenerateClassData_() {
+constexpr auto DevtoolStatusPluginRow::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
       ::google::protobuf::internal::ClassData{
-          &_DevtoolPluginRow_default_instance_._instance,
+          &_DevtoolStatusPluginRow_default_instance_._instance,
           &_table_.header,
           nullptr,  // OnDemandRegisterArenaDtor
           nullptr,  // IsInitialized
-          &DevtoolPluginRow::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<DevtoolPluginRow>(),
+          &DevtoolStatusPluginRow::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DevtoolStatusPluginRow>(),
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-          &DevtoolPluginRow::SharedDtor,
-          ::google::protobuf::Message::GetClearImpl<DevtoolPluginRow>(), &DevtoolPluginRow::ByteSizeLong,
-              &DevtoolPluginRow::_InternalSerialize,
+          &DevtoolStatusPluginRow::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DevtoolStatusPluginRow>(), &DevtoolStatusPluginRow::ByteSizeLong,
+              &DevtoolStatusPluginRow::_InternalSerialize,
 #endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(DevtoolPluginRow, _impl_._cached_size_),
+          PROTOBUF_FIELD_OFFSET(DevtoolStatusPluginRow, _impl_._cached_size_),
           false,
       },
-      &DevtoolPluginRow::kDescriptorMethods,
+      &DevtoolStatusPluginRow::kDescriptorMethods,
       &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto,
       nullptr,  // tracker
   };
 }
 
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull DevtoolPluginRow_class_data_ =
-        DevtoolPluginRow::InternalGenerateClassData_();
+    ::google::protobuf::internal::ClassDataFull DevtoolStatusPluginRow_class_data_ =
+        DevtoolStatusPluginRow::InternalGenerateClassData_();
 
 PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-DevtoolPluginRow::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&DevtoolPluginRow_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(DevtoolPluginRow_class_data_.tc_table);
-  return DevtoolPluginRow_class_data_.base();
+DevtoolStatusPluginRow::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DevtoolStatusPluginRow_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DevtoolStatusPluginRow_class_data_.tc_table);
+  return DevtoolStatusPluginRow_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 7, 0, 93, 2>
-DevtoolPluginRow::_table_ = {
+const ::_pbi::TcParseTable<3, 7, 0, 99, 2>
+DevtoolStatusPluginRow::_table_ = {
   {
-    PROTOBUF_FIELD_OFFSET(DevtoolPluginRow, _impl_._has_bits_),
+    PROTOBUF_FIELD_OFFSET(DevtoolStatusPluginRow, _impl_._has_bits_),
     0, // no _extensions_
     7, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
@@ -3645,64 +5287,64 @@ DevtoolPluginRow::_table_ = {
     7,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
-    DevtoolPluginRow_class_data_.base(),
+    DevtoolStatusPluginRow_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
     #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolPluginRow>(),  // to_prefetch
+    ::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolStatusPluginRow>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
     // string id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolPluginRow, _impl_.id_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusPluginRow, _impl_.id_)}},
     // string plugin_id = 2;
     {::_pbi::TcParser::FastUS1,
      {18, 1, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolPluginRow, _impl_.plugin_id_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusPluginRow, _impl_.plugin_id_)}},
     // string instance_key = 3;
     {::_pbi::TcParser::FastUS1,
      {26, 2, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolPluginRow, _impl_.instance_key_)}},
-    // .bldr.devtool.status.DevtoolPluginState state = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DevtoolPluginRow, _impl_.state_), 6>(),
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusPluginRow, _impl_.instance_key_)}},
+    // .bldr.devtool.status.DevtoolStatusPluginState state = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DevtoolStatusPluginRow, _impl_.state_), 6>(),
      {32, 6, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolPluginRow, _impl_.state_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusPluginRow, _impl_.state_)}},
     // string summary = 5;
     {::_pbi::TcParser::FastUS1,
      {42, 3, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolPluginRow, _impl_.summary_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusPluginRow, _impl_.summary_)}},
     // string error = 6;
     {::_pbi::TcParser::FastUS1,
      {50, 4, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolPluginRow, _impl_.error_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusPluginRow, _impl_.error_)}},
     // string last_error_at = 7;
     {::_pbi::TcParser::FastUS1,
      {58, 5, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolPluginRow, _impl_.last_error_at_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusPluginRow, _impl_.last_error_at_)}},
   }}, {{
     65535, 65535
   }}, {{
     // string id = 1;
-    {PROTOBUF_FIELD_OFFSET(DevtoolPluginRow, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusPluginRow, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string plugin_id = 2;
-    {PROTOBUF_FIELD_OFFSET(DevtoolPluginRow, _impl_.plugin_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusPluginRow, _impl_.plugin_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string instance_key = 3;
-    {PROTOBUF_FIELD_OFFSET(DevtoolPluginRow, _impl_.instance_key_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // .bldr.devtool.status.DevtoolPluginState state = 4;
-    {PROTOBUF_FIELD_OFFSET(DevtoolPluginRow, _impl_.state_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusPluginRow, _impl_.instance_key_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .bldr.devtool.status.DevtoolStatusPluginState state = 4;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusPluginRow, _impl_.state_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // string summary = 5;
-    {PROTOBUF_FIELD_OFFSET(DevtoolPluginRow, _impl_.summary_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusPluginRow, _impl_.summary_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string error = 6;
-    {PROTOBUF_FIELD_OFFSET(DevtoolPluginRow, _impl_.error_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusPluginRow, _impl_.error_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string last_error_at = 7;
-    {PROTOBUF_FIELD_OFFSET(DevtoolPluginRow, _impl_.last_error_at_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusPluginRow, _impl_.last_error_at_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\44\2\11\14\0\7\5\15"
-    "bldr.devtool.status.DevtoolPluginRow"
+    "\52\2\11\14\0\7\5\15"
+    "bldr.devtool.status.DevtoolStatusPluginRow"
     "id"
     "plugin_id"
     "instance_key"
@@ -3711,8 +5353,8 @@ DevtoolPluginRow::_table_ = {
     "last_error_at"
   }},
 };
-PROTOBUF_NOINLINE void DevtoolPluginRow::Clear() {
-// @@protoc_insertion_point(message_clear_start:bldr.devtool.status.DevtoolPluginRow)
+PROTOBUF_NOINLINE void DevtoolStatusPluginRow::Clear() {
+// @@protoc_insertion_point(message_clear_start:bldr.devtool.status.DevtoolStatusPluginRow)
   ::google::protobuf::internal::TSanWrite(&_impl_);
   ::uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
@@ -3745,20 +5387,20 @@ PROTOBUF_NOINLINE void DevtoolPluginRow::Clear() {
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::uint8_t* PROTOBUF_NONNULL DevtoolPluginRow::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL DevtoolStatusPluginRow::_InternalSerialize(
     const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
-  const DevtoolPluginRow& this_ = static_cast<const DevtoolPluginRow&>(base);
+  const DevtoolStatusPluginRow& this_ = static_cast<const DevtoolStatusPluginRow&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::uint8_t* PROTOBUF_NONNULL DevtoolPluginRow::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL DevtoolStatusPluginRow::_InternalSerialize(
     ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-  const DevtoolPluginRow& this_ = *this;
+  const DevtoolStatusPluginRow& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
-  // @@protoc_insertion_point(serialize_to_array_start:bldr.devtool.status.DevtoolPluginRow)
+  // @@protoc_insertion_point(serialize_to_array_start:bldr.devtool.status.DevtoolStatusPluginRow)
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
@@ -3768,7 +5410,7 @@ PROTOBUF_NOINLINE void DevtoolPluginRow::Clear() {
     if (!this_._internal_id().empty()) {
       const ::std::string& _s = this_._internal_id();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolPluginRow.id");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusPluginRow.id");
       target = stream->WriteStringMaybeAliased(1, _s, target);
     }
   }
@@ -3778,7 +5420,7 @@ PROTOBUF_NOINLINE void DevtoolPluginRow::Clear() {
     if (!this_._internal_plugin_id().empty()) {
       const ::std::string& _s = this_._internal_plugin_id();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolPluginRow.plugin_id");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusPluginRow.plugin_id");
       target = stream->WriteStringMaybeAliased(2, _s, target);
     }
   }
@@ -3788,12 +5430,12 @@ PROTOBUF_NOINLINE void DevtoolPluginRow::Clear() {
     if (!this_._internal_instance_key().empty()) {
       const ::std::string& _s = this_._internal_instance_key();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolPluginRow.instance_key");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusPluginRow.instance_key");
       target = stream->WriteStringMaybeAliased(3, _s, target);
     }
   }
 
-  // .bldr.devtool.status.DevtoolPluginState state = 4;
+  // .bldr.devtool.status.DevtoolStatusPluginState state = 4;
   if (CheckHasBit(cached_has_bits, 0x00000040U)) {
     if (this_._internal_state() != 0) {
       target = stream->EnsureSpace(target);
@@ -3807,7 +5449,7 @@ PROTOBUF_NOINLINE void DevtoolPluginRow::Clear() {
     if (!this_._internal_summary().empty()) {
       const ::std::string& _s = this_._internal_summary();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolPluginRow.summary");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusPluginRow.summary");
       target = stream->WriteStringMaybeAliased(5, _s, target);
     }
   }
@@ -3817,7 +5459,7 @@ PROTOBUF_NOINLINE void DevtoolPluginRow::Clear() {
     if (!this_._internal_error().empty()) {
       const ::std::string& _s = this_._internal_error();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolPluginRow.error");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusPluginRow.error");
       target = stream->WriteStringMaybeAliased(6, _s, target);
     }
   }
@@ -3827,7 +5469,7 @@ PROTOBUF_NOINLINE void DevtoolPluginRow::Clear() {
     if (!this_._internal_last_error_at().empty()) {
       const ::std::string& _s = this_._internal_last_error_at();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolPluginRow.last_error_at");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusPluginRow.last_error_at");
       target = stream->WriteStringMaybeAliased(7, _s, target);
     }
   }
@@ -3837,18 +5479,18 @@ PROTOBUF_NOINLINE void DevtoolPluginRow::Clear() {
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
             this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:bldr.devtool.status.DevtoolPluginRow)
+  // @@protoc_insertion_point(serialize_to_array_end:bldr.devtool.status.DevtoolStatusPluginRow)
   return target;
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::size_t DevtoolPluginRow::ByteSizeLong(const MessageLite& base) {
-  const DevtoolPluginRow& this_ = static_cast<const DevtoolPluginRow&>(base);
+::size_t DevtoolStatusPluginRow::ByteSizeLong(const MessageLite& base) {
+  const DevtoolStatusPluginRow& this_ = static_cast<const DevtoolStatusPluginRow&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::size_t DevtoolPluginRow::ByteSizeLong() const {
-  const DevtoolPluginRow& this_ = *this;
+::size_t DevtoolStatusPluginRow::ByteSizeLong() const {
+  const DevtoolStatusPluginRow& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(message_byte_size_start:bldr.devtool.status.DevtoolPluginRow)
+  // @@protoc_insertion_point(message_byte_size_start:bldr.devtool.status.DevtoolStatusPluginRow)
   ::size_t total_size = 0;
 
   ::uint32_t cached_has_bits = 0;
@@ -3900,7 +5542,7 @@ PROTOBUF_NOINLINE void DevtoolPluginRow::Clear() {
                                         this_._internal_last_error_at());
       }
     }
-    // .bldr.devtool.status.DevtoolPluginState state = 4;
+    // .bldr.devtool.status.DevtoolStatusPluginState state = 4;
     if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (this_._internal_state() != 0) {
         total_size += 1 +
@@ -3912,15 +5554,15 @@ PROTOBUF_NOINLINE void DevtoolPluginRow::Clear() {
                                              &this_._impl_._cached_size_);
 }
 
-void DevtoolPluginRow::MergeImpl(::google::protobuf::MessageLite& to_msg,
+void DevtoolStatusPluginRow::MergeImpl(::google::protobuf::MessageLite& to_msg,
                             const ::google::protobuf::MessageLite& from_msg) {
    auto* const _this =
-      static_cast<DevtoolPluginRow*>(&to_msg);
-  auto& from = static_cast<const DevtoolPluginRow&>(from_msg);
+      static_cast<DevtoolStatusPluginRow*>(&to_msg);
+  auto& from = static_cast<const DevtoolStatusPluginRow&>(from_msg);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     from.CheckHasBitConsistency();
   }
-  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.devtool.status.DevtoolPluginRow)
+  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.devtool.status.DevtoolStatusPluginRow)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
@@ -3992,15 +5634,15 @@ void DevtoolPluginRow::MergeImpl(::google::protobuf::MessageLite& to_msg,
       from._internal_metadata_);
 }
 
-void DevtoolPluginRow::CopyFrom(const DevtoolPluginRow& from) {
-  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.devtool.status.DevtoolPluginRow)
+void DevtoolStatusPluginRow::CopyFrom(const DevtoolStatusPluginRow& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.devtool.status.DevtoolStatusPluginRow)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 
-void DevtoolPluginRow::InternalSwap(DevtoolPluginRow* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+void DevtoolStatusPluginRow::InternalSwap(DevtoolStatusPluginRow* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
   auto* arena = GetArena();
   ABSL_DCHECK_EQ(arena, other->GetArena());
@@ -4015,505 +5657,32 @@ void DevtoolPluginRow::InternalSwap(DevtoolPluginRow* PROTOBUF_RESTRICT PROTOBUF
   swap(_impl_.state_, other->_impl_.state_);
 }
 
-::google::protobuf::Metadata DevtoolPluginRow::GetMetadata() const {
+::google::protobuf::Metadata DevtoolStatusPluginRow::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 
-class DevtoolControllerRow::_Internal {
+class DevtoolStatusAttentionRow::_Internal {
  public:
   using HasBits =
-      decltype(::std::declval<DevtoolControllerRow>()._impl_._has_bits_);
+      decltype(::std::declval<DevtoolStatusAttentionRow>()._impl_._has_bits_);
   static constexpr ::int32_t kHasBitsOffset =
-      8 * PROTOBUF_FIELD_OFFSET(DevtoolControllerRow, _impl_._has_bits_);
+      8 * PROTOBUF_FIELD_OFFSET(DevtoolStatusAttentionRow, _impl_._has_bits_);
 };
 
-DevtoolControllerRow::DevtoolControllerRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+DevtoolStatusAttentionRow::DevtoolStatusAttentionRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, DevtoolControllerRow_class_data_.base()) {
+    : ::google::protobuf::Message(arena, DevtoolStatusAttentionRow_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
   SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:bldr.devtool.status.DevtoolControllerRow)
+  // @@protoc_insertion_point(arena_constructor:bldr.devtool.status.DevtoolStatusAttentionRow)
 }
-PROTOBUF_NDEBUG_INLINE DevtoolControllerRow::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE DevtoolStatusAttentionRow::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-    [[maybe_unused]] const ::bldr::devtool::status::DevtoolControllerRow& from_msg)
-      : _has_bits_{from._has_bits_},
-        _cached_size_{0},
-        id_(arena, from.id_),
-        controller_id_(arena, from.controller_id_),
-        kind_(arena, from.kind_),
-        summary_(arena, from.summary_),
-        error_(arena, from.error_) {}
-
-DevtoolControllerRow::DevtoolControllerRow(
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const DevtoolControllerRow& from)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, DevtoolControllerRow_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  DevtoolControllerRow* const _this = this;
-  (void)_this;
-  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
-  _impl_.state_ = from._impl_.state_;
-
-  // @@protoc_insertion_point(copy_constructor:bldr.devtool.status.DevtoolControllerRow)
-}
-PROTOBUF_NDEBUG_INLINE DevtoolControllerRow::Impl_::Impl_(
-    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
-    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-      : _cached_size_{0},
-        id_(arena),
-        controller_id_(arena),
-        kind_(arena),
-        summary_(arena),
-        error_(arena) {}
-
-inline void DevtoolControllerRow::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
-  new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.state_ = {};
-}
-DevtoolControllerRow::~DevtoolControllerRow() {
-  // @@protoc_insertion_point(destructor:bldr.devtool.status.DevtoolControllerRow)
-  SharedDtor(*this);
-}
-inline void DevtoolControllerRow::SharedDtor(MessageLite& self) {
-  DevtoolControllerRow& this_ = static_cast<DevtoolControllerRow&>(self);
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    this_.CheckHasBitConsistency();
-  }
-  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
-  ABSL_DCHECK(this_.GetArena() == nullptr);
-  this_._impl_.id_.Destroy();
-  this_._impl_.controller_id_.Destroy();
-  this_._impl_.kind_.Destroy();
-  this_._impl_.summary_.Destroy();
-  this_._impl_.error_.Destroy();
-  this_._impl_.~Impl_();
-}
-
-inline void* PROTOBUF_NONNULL DevtoolControllerRow::PlacementNew_(
-    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) DevtoolControllerRow(arena);
-}
-constexpr auto DevtoolControllerRow::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DevtoolControllerRow),
-                                            alignof(DevtoolControllerRow));
-}
-constexpr auto DevtoolControllerRow::InternalGenerateClassData_() {
-  return ::google::protobuf::internal::ClassDataFull{
-      ::google::protobuf::internal::ClassData{
-          &_DevtoolControllerRow_default_instance_._instance,
-          &_table_.header,
-          nullptr,  // OnDemandRegisterArenaDtor
-          nullptr,  // IsInitialized
-          &DevtoolControllerRow::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<DevtoolControllerRow>(),
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-          &DevtoolControllerRow::SharedDtor,
-          ::google::protobuf::Message::GetClearImpl<DevtoolControllerRow>(), &DevtoolControllerRow::ByteSizeLong,
-              &DevtoolControllerRow::_InternalSerialize,
-#endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(DevtoolControllerRow, _impl_._cached_size_),
-          false,
-      },
-      &DevtoolControllerRow::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto,
-      nullptr,  // tracker
-  };
-}
-
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull DevtoolControllerRow_class_data_ =
-        DevtoolControllerRow::InternalGenerateClassData_();
-
-PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-DevtoolControllerRow::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&DevtoolControllerRow_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(DevtoolControllerRow_class_data_.tc_table);
-  return DevtoolControllerRow_class_data_.base();
-}
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 6, 0, 80, 2>
-DevtoolControllerRow::_table_ = {
-  {
-    PROTOBUF_FIELD_OFFSET(DevtoolControllerRow, _impl_._has_bits_),
-    0, // no _extensions_
-    6, 56,  // max_field_number, fast_idx_mask
-    offsetof(decltype(_table_), field_lookup_table),
-    4294967232,  // skipmap
-    offsetof(decltype(_table_), field_entries),
-    6,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
-    DevtoolControllerRow_class_data_.base(),
-    nullptr,  // post_loop_handler
-    ::_pbi::TcParser::GenericFallback,  // fallback
-    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolControllerRow>(),  // to_prefetch
-    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
-  }, {{
-    {::_pbi::TcParser::MiniParse, {}},
-    // string id = 1;
-    {::_pbi::TcParser::FastUS1,
-     {10, 0, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolControllerRow, _impl_.id_)}},
-    // string controller_id = 2;
-    {::_pbi::TcParser::FastUS1,
-     {18, 1, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolControllerRow, _impl_.controller_id_)}},
-    // string kind = 3;
-    {::_pbi::TcParser::FastUS1,
-     {26, 2, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolControllerRow, _impl_.kind_)}},
-    // .bldr.devtool.status.DevtoolControllerState state = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DevtoolControllerRow, _impl_.state_), 5>(),
-     {32, 5, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolControllerRow, _impl_.state_)}},
-    // string summary = 5;
-    {::_pbi::TcParser::FastUS1,
-     {42, 3, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolControllerRow, _impl_.summary_)}},
-    // string error = 6;
-    {::_pbi::TcParser::FastUS1,
-     {50, 4, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolControllerRow, _impl_.error_)}},
-    {::_pbi::TcParser::MiniParse, {}},
-  }}, {{
-    65535, 65535
-  }}, {{
-    // string id = 1;
-    {PROTOBUF_FIELD_OFFSET(DevtoolControllerRow, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // string controller_id = 2;
-    {PROTOBUF_FIELD_OFFSET(DevtoolControllerRow, _impl_.controller_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // string kind = 3;
-    {PROTOBUF_FIELD_OFFSET(DevtoolControllerRow, _impl_.kind_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // .bldr.devtool.status.DevtoolControllerState state = 4;
-    {PROTOBUF_FIELD_OFFSET(DevtoolControllerRow, _impl_.state_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
-    // string summary = 5;
-    {PROTOBUF_FIELD_OFFSET(DevtoolControllerRow, _impl_.summary_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // string error = 6;
-    {PROTOBUF_FIELD_OFFSET(DevtoolControllerRow, _impl_.error_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-  }},
-  // no aux_entries
-  {{
-    "\50\2\15\4\0\7\5\0"
-    "bldr.devtool.status.DevtoolControllerRow"
-    "id"
-    "controller_id"
-    "kind"
-    "summary"
-    "error"
-  }},
-};
-PROTOBUF_NOINLINE void DevtoolControllerRow::Clear() {
-// @@protoc_insertion_point(message_clear_start:bldr.devtool.status.DevtoolControllerRow)
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      _impl_.id_.ClearNonDefaultToEmpty();
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      _impl_.controller_id_.ClearNonDefaultToEmpty();
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      _impl_.kind_.ClearNonDefaultToEmpty();
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      _impl_.summary_.ClearNonDefaultToEmpty();
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-      _impl_.error_.ClearNonDefaultToEmpty();
-    }
-  }
-  _impl_.state_ = 0;
-  _impl_._has_bits_.Clear();
-  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
-}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-::uint8_t* PROTOBUF_NONNULL DevtoolControllerRow::_InternalSerialize(
-    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
-    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
-  const DevtoolControllerRow& this_ = static_cast<const DevtoolControllerRow&>(base);
-#else   // PROTOBUF_CUSTOM_VTABLE
-::uint8_t* PROTOBUF_NONNULL DevtoolControllerRow::_InternalSerialize(
-    ::uint8_t* PROTOBUF_NONNULL target,
-    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-  const DevtoolControllerRow& this_ = *this;
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    this_.CheckHasBitConsistency();
-  }
-  // @@protoc_insertion_point(serialize_to_array_start:bldr.devtool.status.DevtoolControllerRow)
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
-
-  cached_has_bits = this_._impl_._has_bits_[0];
-  // string id = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    if (!this_._internal_id().empty()) {
-      const ::std::string& _s = this_._internal_id();
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolControllerRow.id");
-      target = stream->WriteStringMaybeAliased(1, _s, target);
-    }
-  }
-
-  // string controller_id = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-    if (!this_._internal_controller_id().empty()) {
-      const ::std::string& _s = this_._internal_controller_id();
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolControllerRow.controller_id");
-      target = stream->WriteStringMaybeAliased(2, _s, target);
-    }
-  }
-
-  // string kind = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-    if (!this_._internal_kind().empty()) {
-      const ::std::string& _s = this_._internal_kind();
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolControllerRow.kind");
-      target = stream->WriteStringMaybeAliased(3, _s, target);
-    }
-  }
-
-  // .bldr.devtool.status.DevtoolControllerState state = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
-    if (this_._internal_state() != 0) {
-      target = stream->EnsureSpace(target);
-      target = ::_pbi::WireFormatLite::WriteEnumToArray(
-          4, this_._internal_state(), target);
-    }
-  }
-
-  // string summary = 5;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-    if (!this_._internal_summary().empty()) {
-      const ::std::string& _s = this_._internal_summary();
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolControllerRow.summary");
-      target = stream->WriteStringMaybeAliased(5, _s, target);
-    }
-  }
-
-  // string error = 6;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-    if (!this_._internal_error().empty()) {
-      const ::std::string& _s = this_._internal_error();
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolControllerRow.error");
-      target = stream->WriteStringMaybeAliased(6, _s, target);
-    }
-  }
-
-  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
-    target =
-        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
-            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:bldr.devtool.status.DevtoolControllerRow)
-  return target;
-}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-::size_t DevtoolControllerRow::ByteSizeLong(const MessageLite& base) {
-  const DevtoolControllerRow& this_ = static_cast<const DevtoolControllerRow&>(base);
-#else   // PROTOBUF_CUSTOM_VTABLE
-::size_t DevtoolControllerRow::ByteSizeLong() const {
-  const DevtoolControllerRow& this_ = *this;
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(message_byte_size_start:bldr.devtool.status.DevtoolControllerRow)
-  ::size_t total_size = 0;
-
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void)cached_has_bits;
-
-  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
-  cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
-    // string id = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      if (!this_._internal_id().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_id());
-      }
-    }
-    // string controller_id = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      if (!this_._internal_controller_id().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_controller_id());
-      }
-    }
-    // string kind = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      if (!this_._internal_kind().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_kind());
-      }
-    }
-    // string summary = 5;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      if (!this_._internal_summary().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_summary());
-      }
-    }
-    // string error = 6;
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-      if (!this_._internal_error().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_error());
-      }
-    }
-    // .bldr.devtool.status.DevtoolControllerState state = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
-      if (this_._internal_state() != 0) {
-        total_size += 1 +
-                      ::_pbi::WireFormatLite::EnumSize(this_._internal_state());
-      }
-    }
-  }
-  return this_.MaybeComputeUnknownFieldsSize(total_size,
-                                             &this_._impl_._cached_size_);
-}
-
-void DevtoolControllerRow::MergeImpl(::google::protobuf::MessageLite& to_msg,
-                            const ::google::protobuf::MessageLite& from_msg) {
-   auto* const _this =
-      static_cast<DevtoolControllerRow*>(&to_msg);
-  auto& from = static_cast<const DevtoolControllerRow&>(from_msg);
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    from.CheckHasBitConsistency();
-  }
-  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.devtool.status.DevtoolControllerRow)
-  ABSL_DCHECK_NE(&from, _this);
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
-
-  cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      if (!from._internal_id().empty()) {
-        _this->_internal_set_id(from._internal_id());
-      } else {
-        if (_this->_impl_.id_.IsDefault()) {
-          _this->_internal_set_id("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      if (!from._internal_controller_id().empty()) {
-        _this->_internal_set_controller_id(from._internal_controller_id());
-      } else {
-        if (_this->_impl_.controller_id_.IsDefault()) {
-          _this->_internal_set_controller_id("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      if (!from._internal_kind().empty()) {
-        _this->_internal_set_kind(from._internal_kind());
-      } else {
-        if (_this->_impl_.kind_.IsDefault()) {
-          _this->_internal_set_kind("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      if (!from._internal_summary().empty()) {
-        _this->_internal_set_summary(from._internal_summary());
-      } else {
-        if (_this->_impl_.summary_.IsDefault()) {
-          _this->_internal_set_summary("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-      if (!from._internal_error().empty()) {
-        _this->_internal_set_error(from._internal_error());
-      } else {
-        if (_this->_impl_.error_.IsDefault()) {
-          _this->_internal_set_error("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
-      if (from._internal_state() != 0) {
-        _this->_impl_.state_ = from._impl_.state_;
-      }
-    }
-  }
-  _this->_impl_._has_bits_[0] |= cached_has_bits;
-  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-}
-
-void DevtoolControllerRow::CopyFrom(const DevtoolControllerRow& from) {
-  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.devtool.status.DevtoolControllerRow)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-
-void DevtoolControllerRow::InternalSwap(DevtoolControllerRow* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
-  using ::std::swap;
-  auto* arena = GetArena();
-  ABSL_DCHECK_EQ(arena, other->GetArena());
-  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.controller_id_, &other->_impl_.controller_id_, arena);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.kind_, &other->_impl_.kind_, arena);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.summary_, &other->_impl_.summary_, arena);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.error_, &other->_impl_.error_, arena);
-  swap(_impl_.state_, other->_impl_.state_);
-}
-
-::google::protobuf::Metadata DevtoolControllerRow::GetMetadata() const {
-  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
-}
-// ===================================================================
-
-class DevtoolAttentionRow::_Internal {
- public:
-  using HasBits =
-      decltype(::std::declval<DevtoolAttentionRow>()._impl_._has_bits_);
-  static constexpr ::int32_t kHasBitsOffset =
-      8 * PROTOBUF_FIELD_OFFSET(DevtoolAttentionRow, _impl_._has_bits_);
-};
-
-DevtoolAttentionRow::DevtoolAttentionRow(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, DevtoolAttentionRow_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:bldr.devtool.status.DevtoolAttentionRow)
-}
-PROTOBUF_NDEBUG_INLINE DevtoolAttentionRow::Impl_::Impl_(
-    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
-    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-    [[maybe_unused]] const ::bldr::devtool::status::DevtoolAttentionRow& from_msg)
+    [[maybe_unused]] const ::bldr::devtool::status::DevtoolStatusAttentionRow& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
         id_(arena, from.id_),
@@ -4521,24 +5690,24 @@ PROTOBUF_NDEBUG_INLINE DevtoolAttentionRow::Impl_::Impl_(
         message_(arena, from.message_),
         detail_(arena, from.detail_) {}
 
-DevtoolAttentionRow::DevtoolAttentionRow(
+DevtoolStatusAttentionRow::DevtoolStatusAttentionRow(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const DevtoolAttentionRow& from)
+    const DevtoolStatusAttentionRow& from)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, DevtoolAttentionRow_class_data_.base()) {
+    : ::google::protobuf::Message(arena, DevtoolStatusAttentionRow_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  DevtoolAttentionRow* const _this = this;
+  DevtoolStatusAttentionRow* const _this = this;
   (void)_this;
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   _impl_.severity_ = from._impl_.severity_;
 
-  // @@protoc_insertion_point(copy_constructor:bldr.devtool.status.DevtoolAttentionRow)
+  // @@protoc_insertion_point(copy_constructor:bldr.devtool.status.DevtoolStatusAttentionRow)
 }
-PROTOBUF_NDEBUG_INLINE DevtoolAttentionRow::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE DevtoolStatusAttentionRow::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
@@ -4547,16 +5716,16 @@ PROTOBUF_NDEBUG_INLINE DevtoolAttentionRow::Impl_::Impl_(
         message_(arena),
         detail_(arena) {}
 
-inline void DevtoolAttentionRow::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+inline void DevtoolStatusAttentionRow::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   _impl_.severity_ = {};
 }
-DevtoolAttentionRow::~DevtoolAttentionRow() {
-  // @@protoc_insertion_point(destructor:bldr.devtool.status.DevtoolAttentionRow)
+DevtoolStatusAttentionRow::~DevtoolStatusAttentionRow() {
+  // @@protoc_insertion_point(destructor:bldr.devtool.status.DevtoolStatusAttentionRow)
   SharedDtor(*this);
 }
-inline void DevtoolAttentionRow::SharedDtor(MessageLite& self) {
-  DevtoolAttentionRow& this_ = static_cast<DevtoolAttentionRow&>(self);
+inline void DevtoolStatusAttentionRow::SharedDtor(MessageLite& self) {
+  DevtoolStatusAttentionRow& this_ = static_cast<DevtoolStatusAttentionRow&>(self);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
@@ -4569,53 +5738,53 @@ inline void DevtoolAttentionRow::SharedDtor(MessageLite& self) {
   this_._impl_.~Impl_();
 }
 
-inline void* PROTOBUF_NONNULL DevtoolAttentionRow::PlacementNew_(
+inline void* PROTOBUF_NONNULL DevtoolStatusAttentionRow::PlacementNew_(
     const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) DevtoolAttentionRow(arena);
+  return ::new (mem) DevtoolStatusAttentionRow(arena);
 }
-constexpr auto DevtoolAttentionRow::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DevtoolAttentionRow),
-                                            alignof(DevtoolAttentionRow));
+constexpr auto DevtoolStatusAttentionRow::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DevtoolStatusAttentionRow),
+                                            alignof(DevtoolStatusAttentionRow));
 }
-constexpr auto DevtoolAttentionRow::InternalGenerateClassData_() {
+constexpr auto DevtoolStatusAttentionRow::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
       ::google::protobuf::internal::ClassData{
-          &_DevtoolAttentionRow_default_instance_._instance,
+          &_DevtoolStatusAttentionRow_default_instance_._instance,
           &_table_.header,
           nullptr,  // OnDemandRegisterArenaDtor
           nullptr,  // IsInitialized
-          &DevtoolAttentionRow::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<DevtoolAttentionRow>(),
+          &DevtoolStatusAttentionRow::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DevtoolStatusAttentionRow>(),
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-          &DevtoolAttentionRow::SharedDtor,
-          ::google::protobuf::Message::GetClearImpl<DevtoolAttentionRow>(), &DevtoolAttentionRow::ByteSizeLong,
-              &DevtoolAttentionRow::_InternalSerialize,
+          &DevtoolStatusAttentionRow::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DevtoolStatusAttentionRow>(), &DevtoolStatusAttentionRow::ByteSizeLong,
+              &DevtoolStatusAttentionRow::_InternalSerialize,
 #endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(DevtoolAttentionRow, _impl_._cached_size_),
+          PROTOBUF_FIELD_OFFSET(DevtoolStatusAttentionRow, _impl_._cached_size_),
           false,
       },
-      &DevtoolAttentionRow::kDescriptorMethods,
+      &DevtoolStatusAttentionRow::kDescriptorMethods,
       &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdevtool_2fstatus_2fstatus_2eproto,
       nullptr,  // tracker
   };
 }
 
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull DevtoolAttentionRow_class_data_ =
-        DevtoolAttentionRow::InternalGenerateClassData_();
+    ::google::protobuf::internal::ClassDataFull DevtoolStatusAttentionRow_class_data_ =
+        DevtoolStatusAttentionRow::InternalGenerateClassData_();
 
 PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-DevtoolAttentionRow::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&DevtoolAttentionRow_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(DevtoolAttentionRow_class_data_.tc_table);
-  return DevtoolAttentionRow_class_data_.base();
+DevtoolStatusAttentionRow::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DevtoolStatusAttentionRow_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DevtoolStatusAttentionRow_class_data_.tc_table);
+  return DevtoolStatusAttentionRow_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 5, 0, 69, 2>
-DevtoolAttentionRow::_table_ = {
+const ::_pbi::TcParseTable<3, 5, 0, 75, 2>
+DevtoolStatusAttentionRow::_table_ = {
   {
-    PROTOBUF_FIELD_OFFSET(DevtoolAttentionRow, _impl_._has_bits_),
+    PROTOBUF_FIELD_OFFSET(DevtoolStatusAttentionRow, _impl_._has_bits_),
     0, // no _extensions_
     5, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
@@ -4624,62 +5793,62 @@ DevtoolAttentionRow::_table_ = {
     5,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
-    DevtoolAttentionRow_class_data_.base(),
+    DevtoolStatusAttentionRow_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
     #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolAttentionRow>(),  // to_prefetch
+    ::_pbi::TcParser::GetTable<::bldr::devtool::status::DevtoolStatusAttentionRow>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
     // string id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolAttentionRow, _impl_.id_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusAttentionRow, _impl_.id_)}},
     // string source = 2;
     {::_pbi::TcParser::FastUS1,
      {18, 1, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolAttentionRow, _impl_.source_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusAttentionRow, _impl_.source_)}},
     // string message = 3;
     {::_pbi::TcParser::FastUS1,
      {26, 2, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolAttentionRow, _impl_.message_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusAttentionRow, _impl_.message_)}},
     // string detail = 4;
     {::_pbi::TcParser::FastUS1,
      {34, 3, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolAttentionRow, _impl_.detail_)}},
-    // .bldr.devtool.status.DevtoolAttentionSeverity severity = 5;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DevtoolAttentionRow, _impl_.severity_), 4>(),
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusAttentionRow, _impl_.detail_)}},
+    // .bldr.devtool.status.DevtoolStatusAttentionSeverity severity = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DevtoolStatusAttentionRow, _impl_.severity_), 4>(),
      {40, 4, 0,
-      PROTOBUF_FIELD_OFFSET(DevtoolAttentionRow, _impl_.severity_)}},
+      PROTOBUF_FIELD_OFFSET(DevtoolStatusAttentionRow, _impl_.severity_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
     // string id = 1;
-    {PROTOBUF_FIELD_OFFSET(DevtoolAttentionRow, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusAttentionRow, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string source = 2;
-    {PROTOBUF_FIELD_OFFSET(DevtoolAttentionRow, _impl_.source_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusAttentionRow, _impl_.source_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string message = 3;
-    {PROTOBUF_FIELD_OFFSET(DevtoolAttentionRow, _impl_.message_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusAttentionRow, _impl_.message_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string detail = 4;
-    {PROTOBUF_FIELD_OFFSET(DevtoolAttentionRow, _impl_.detail_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // .bldr.devtool.status.DevtoolAttentionSeverity severity = 5;
-    {PROTOBUF_FIELD_OFFSET(DevtoolAttentionRow, _impl_.severity_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusAttentionRow, _impl_.detail_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .bldr.devtool.status.DevtoolStatusAttentionSeverity severity = 5;
+    {PROTOBUF_FIELD_OFFSET(DevtoolStatusAttentionRow, _impl_.severity_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
   }},
   // no aux_entries
   {{
-    "\47\2\6\7\6\0\0\0"
-    "bldr.devtool.status.DevtoolAttentionRow"
+    "\55\2\6\7\6\0\0\0"
+    "bldr.devtool.status.DevtoolStatusAttentionRow"
     "id"
     "source"
     "message"
     "detail"
   }},
 };
-PROTOBUF_NOINLINE void DevtoolAttentionRow::Clear() {
-// @@protoc_insertion_point(message_clear_start:bldr.devtool.status.DevtoolAttentionRow)
+PROTOBUF_NOINLINE void DevtoolStatusAttentionRow::Clear() {
+// @@protoc_insertion_point(message_clear_start:bldr.devtool.status.DevtoolStatusAttentionRow)
   ::google::protobuf::internal::TSanWrite(&_impl_);
   ::uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
@@ -4706,20 +5875,20 @@ PROTOBUF_NOINLINE void DevtoolAttentionRow::Clear() {
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::uint8_t* PROTOBUF_NONNULL DevtoolAttentionRow::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL DevtoolStatusAttentionRow::_InternalSerialize(
     const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
-  const DevtoolAttentionRow& this_ = static_cast<const DevtoolAttentionRow&>(base);
+  const DevtoolStatusAttentionRow& this_ = static_cast<const DevtoolStatusAttentionRow&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::uint8_t* PROTOBUF_NONNULL DevtoolAttentionRow::_InternalSerialize(
+::uint8_t* PROTOBUF_NONNULL DevtoolStatusAttentionRow::_InternalSerialize(
     ::uint8_t* PROTOBUF_NONNULL target,
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-  const DevtoolAttentionRow& this_ = *this;
+  const DevtoolStatusAttentionRow& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     this_.CheckHasBitConsistency();
   }
-  // @@protoc_insertion_point(serialize_to_array_start:bldr.devtool.status.DevtoolAttentionRow)
+  // @@protoc_insertion_point(serialize_to_array_start:bldr.devtool.status.DevtoolStatusAttentionRow)
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
@@ -4729,7 +5898,7 @@ PROTOBUF_NOINLINE void DevtoolAttentionRow::Clear() {
     if (!this_._internal_id().empty()) {
       const ::std::string& _s = this_._internal_id();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolAttentionRow.id");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusAttentionRow.id");
       target = stream->WriteStringMaybeAliased(1, _s, target);
     }
   }
@@ -4739,7 +5908,7 @@ PROTOBUF_NOINLINE void DevtoolAttentionRow::Clear() {
     if (!this_._internal_source().empty()) {
       const ::std::string& _s = this_._internal_source();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolAttentionRow.source");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusAttentionRow.source");
       target = stream->WriteStringMaybeAliased(2, _s, target);
     }
   }
@@ -4749,7 +5918,7 @@ PROTOBUF_NOINLINE void DevtoolAttentionRow::Clear() {
     if (!this_._internal_message().empty()) {
       const ::std::string& _s = this_._internal_message();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolAttentionRow.message");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusAttentionRow.message");
       target = stream->WriteStringMaybeAliased(3, _s, target);
     }
   }
@@ -4759,12 +5928,12 @@ PROTOBUF_NOINLINE void DevtoolAttentionRow::Clear() {
     if (!this_._internal_detail().empty()) {
       const ::std::string& _s = this_._internal_detail();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolAttentionRow.detail");
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.devtool.status.DevtoolStatusAttentionRow.detail");
       target = stream->WriteStringMaybeAliased(4, _s, target);
     }
   }
 
-  // .bldr.devtool.status.DevtoolAttentionSeverity severity = 5;
+  // .bldr.devtool.status.DevtoolStatusAttentionSeverity severity = 5;
   if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (this_._internal_severity() != 0) {
       target = stream->EnsureSpace(target);
@@ -4778,18 +5947,18 @@ PROTOBUF_NOINLINE void DevtoolAttentionRow::Clear() {
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
             this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:bldr.devtool.status.DevtoolAttentionRow)
+  // @@protoc_insertion_point(serialize_to_array_end:bldr.devtool.status.DevtoolStatusAttentionRow)
   return target;
 }
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-::size_t DevtoolAttentionRow::ByteSizeLong(const MessageLite& base) {
-  const DevtoolAttentionRow& this_ = static_cast<const DevtoolAttentionRow&>(base);
+::size_t DevtoolStatusAttentionRow::ByteSizeLong(const MessageLite& base) {
+  const DevtoolStatusAttentionRow& this_ = static_cast<const DevtoolStatusAttentionRow&>(base);
 #else   // PROTOBUF_CUSTOM_VTABLE
-::size_t DevtoolAttentionRow::ByteSizeLong() const {
-  const DevtoolAttentionRow& this_ = *this;
+::size_t DevtoolStatusAttentionRow::ByteSizeLong() const {
+  const DevtoolStatusAttentionRow& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(message_byte_size_start:bldr.devtool.status.DevtoolAttentionRow)
+  // @@protoc_insertion_point(message_byte_size_start:bldr.devtool.status.DevtoolStatusAttentionRow)
   ::size_t total_size = 0;
 
   ::uint32_t cached_has_bits = 0;
@@ -4827,7 +5996,7 @@ PROTOBUF_NOINLINE void DevtoolAttentionRow::Clear() {
                                         this_._internal_detail());
       }
     }
-    // .bldr.devtool.status.DevtoolAttentionSeverity severity = 5;
+    // .bldr.devtool.status.DevtoolStatusAttentionSeverity severity = 5;
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (this_._internal_severity() != 0) {
         total_size += 1 +
@@ -4839,15 +6008,15 @@ PROTOBUF_NOINLINE void DevtoolAttentionRow::Clear() {
                                              &this_._impl_._cached_size_);
 }
 
-void DevtoolAttentionRow::MergeImpl(::google::protobuf::MessageLite& to_msg,
+void DevtoolStatusAttentionRow::MergeImpl(::google::protobuf::MessageLite& to_msg,
                             const ::google::protobuf::MessageLite& from_msg) {
    auto* const _this =
-      static_cast<DevtoolAttentionRow*>(&to_msg);
-  auto& from = static_cast<const DevtoolAttentionRow&>(from_msg);
+      static_cast<DevtoolStatusAttentionRow*>(&to_msg);
+  auto& from = static_cast<const DevtoolStatusAttentionRow&>(from_msg);
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     from.CheckHasBitConsistency();
   }
-  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.devtool.status.DevtoolAttentionRow)
+  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.devtool.status.DevtoolStatusAttentionRow)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
@@ -4901,15 +6070,15 @@ void DevtoolAttentionRow::MergeImpl(::google::protobuf::MessageLite& to_msg,
       from._internal_metadata_);
 }
 
-void DevtoolAttentionRow::CopyFrom(const DevtoolAttentionRow& from) {
-  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.devtool.status.DevtoolAttentionRow)
+void DevtoolStatusAttentionRow::CopyFrom(const DevtoolStatusAttentionRow& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.devtool.status.DevtoolStatusAttentionRow)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
 
-void DevtoolAttentionRow::InternalSwap(DevtoolAttentionRow* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+void DevtoolStatusAttentionRow::InternalSwap(DevtoolStatusAttentionRow* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
   auto* arena = GetArena();
   ABSL_DCHECK_EQ(arena, other->GetArena());
@@ -4922,7 +6091,7 @@ void DevtoolAttentionRow::InternalSwap(DevtoolAttentionRow* PROTOBUF_RESTRICT PR
   swap(_impl_.severity_, other->_impl_.severity_);
 }
 
-::google::protobuf::Metadata DevtoolAttentionRow::GetMetadata() const {
+::google::protobuf::Metadata DevtoolStatusAttentionRow::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

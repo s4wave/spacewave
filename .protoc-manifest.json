@@ -64,7 +64,7 @@
       "protoFiles": ["bldr/desktop/tray/tray.proto"]
     },
     "github.com/s4wave/spacewave/bldr/devtool/status": {
-      "hash": "1a00e5d8d901d4d871f76b084aef55fb489c3b3b9c6f361cf8a2a03060ff466b",
+      "hash": "ba0e3bf51464cdaa03f8b59f8c9fa50426dc12b704720a651e43be735723c787",
       "generatedFiles": [
         "bldr/devtool/status/status.pb.cc",
         "bldr/devtool/status/status.pb.go",

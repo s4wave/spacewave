@@ -17,59 +17,59 @@
 
 namespace bldr::devtool::status {
 
-// Service ID for BldrDevtoolStatusService
-constexpr const char* kSRPCBldrDevtoolStatusServiceServiceID = "bldr.devtool.status.BldrDevtoolStatusService";
+// Service ID for DevtoolStatusService
+constexpr const char* kSRPCDevtoolStatusServiceServiceID = "bldr.devtool.status.DevtoolStatusService";
 
-class SRPCBldrDevtoolStatusService_WatchDevtoolStatusClient;
-class SRPCBldrDevtoolStatusService_WatchDevtoolStatusStream;
+class SRPCDevtoolStatusService_WatchDevtoolStatusClient;
+class SRPCDevtoolStatusService_WatchDevtoolStatusStream;
 
-// SRPCBldrDevtoolStatusServiceClient is the client API for BldrDevtoolStatusService service.
-class SRPCBldrDevtoolStatusServiceClient {
+// SRPCDevtoolStatusServiceClient is the client API for DevtoolStatusService service.
+class SRPCDevtoolStatusServiceClient {
  public:
-  virtual ~SRPCBldrDevtoolStatusServiceClient() = default;
+  virtual ~SRPCDevtoolStatusServiceClient() = default;
 
   // SRPCClient returns the underlying SRPC client.
   virtual starpc::Client* SRPCClient() = 0;
 
   // WatchDevtoolStatus
-  virtual std::pair<std::unique_ptr<SRPCBldrDevtoolStatusService_WatchDevtoolStatusClient>, starpc::Error> WatchDevtoolStatus(const bldr::devtool::status::WatchDevtoolStatusRequest& in) = 0;
+  virtual std::pair<std::unique_ptr<SRPCDevtoolStatusService_WatchDevtoolStatusClient>, starpc::Error> WatchDevtoolStatus(const bldr::devtool::status::WatchDevtoolStatusRequest& in) = 0;
 };
 
-// SRPCBldrDevtoolStatusServiceClientImpl implements SRPCBldrDevtoolStatusServiceClient.
-class SRPCBldrDevtoolStatusServiceClientImpl : public SRPCBldrDevtoolStatusServiceClient {
+// SRPCDevtoolStatusServiceClientImpl implements SRPCDevtoolStatusServiceClient.
+class SRPCDevtoolStatusServiceClientImpl : public SRPCDevtoolStatusServiceClient {
  public:
-  explicit SRPCBldrDevtoolStatusServiceClientImpl(starpc::Client* cc, const std::string& service_id = "")
-      : cc_(cc), service_id_(service_id.empty() ? kSRPCBldrDevtoolStatusServiceServiceID : service_id) {}
+  explicit SRPCDevtoolStatusServiceClientImpl(starpc::Client* cc, const std::string& service_id = "")
+      : cc_(cc), service_id_(service_id.empty() ? kSRPCDevtoolStatusServiceServiceID : service_id) {}
 
   starpc::Client* SRPCClient() override { return cc_; }
 
   // WatchDevtoolStatus
-  virtual std::pair<std::unique_ptr<SRPCBldrDevtoolStatusService_WatchDevtoolStatusClient>, starpc::Error> WatchDevtoolStatus(const bldr::devtool::status::WatchDevtoolStatusRequest& in) override;
+  virtual std::pair<std::unique_ptr<SRPCDevtoolStatusService_WatchDevtoolStatusClient>, starpc::Error> WatchDevtoolStatus(const bldr::devtool::status::WatchDevtoolStatusRequest& in) override;
 
  private:
   starpc::Client* cc_;
   std::string service_id_;
 };
 
-// NewSRPCBldrDevtoolStatusServiceClient creates a new client.
-inline std::unique_ptr<SRPCBldrDevtoolStatusServiceClient> NewSRPCBldrDevtoolStatusServiceClient(starpc::Client* cc) {
-  return std::make_unique<SRPCBldrDevtoolStatusServiceClientImpl>(cc);
+// NewSRPCDevtoolStatusServiceClient creates a new client.
+inline std::unique_ptr<SRPCDevtoolStatusServiceClient> NewSRPCDevtoolStatusServiceClient(starpc::Client* cc) {
+  return std::make_unique<SRPCDevtoolStatusServiceClientImpl>(cc);
 }
 
-// SRPCBldrDevtoolStatusServiceServer is the server API for BldrDevtoolStatusService service.
-class SRPCBldrDevtoolStatusServiceServer {
+// SRPCDevtoolStatusServiceServer is the server API for DevtoolStatusService service.
+class SRPCDevtoolStatusServiceServer {
  public:
-  virtual ~SRPCBldrDevtoolStatusServiceServer() = default;
+  virtual ~SRPCDevtoolStatusServiceServer() = default;
 
   // WatchDevtoolStatus
-  virtual starpc::Error WatchDevtoolStatus(const bldr::devtool::status::WatchDevtoolStatusRequest& req, SRPCBldrDevtoolStatusService_WatchDevtoolStatusStream* strm) = 0;
+  virtual starpc::Error WatchDevtoolStatus(const bldr::devtool::status::WatchDevtoolStatusRequest& req, SRPCDevtoolStatusService_WatchDevtoolStatusStream* strm) = 0;
 };
 
-// SRPCBldrDevtoolStatusServiceHandler implements starpc::Handler for BldrDevtoolStatusService.
-class SRPCBldrDevtoolStatusServiceHandler : public starpc::Handler {
+// SRPCDevtoolStatusServiceHandler implements starpc::Handler for DevtoolStatusService.
+class SRPCDevtoolStatusServiceHandler : public starpc::Handler {
  public:
-  SRPCBldrDevtoolStatusServiceHandler(SRPCBldrDevtoolStatusServiceServer* impl, const std::string& service_id = "")
-      : impl_(impl), service_id_(service_id.empty() ? kSRPCBldrDevtoolStatusServiceServiceID : service_id) {}
+  SRPCDevtoolStatusServiceHandler(SRPCDevtoolStatusServiceServer* impl, const std::string& service_id = "")
+      : impl_(impl), service_id_(service_id.empty() ? kSRPCDevtoolStatusServiceServiceID : service_id) {}
 
   const std::string& GetServiceID() const override { return service_id_; }
   std::vector<std::string> GetMethodIDs() const override;
@@ -79,19 +79,19 @@ class SRPCBldrDevtoolStatusServiceHandler : public starpc::Handler {
       starpc::Stream* strm) override;
 
  private:
-  SRPCBldrDevtoolStatusServiceServer* impl_;
+  SRPCDevtoolStatusServiceServer* impl_;
   std::string service_id_;
 };
 
-// NewSRPCBldrDevtoolStatusServiceHandler creates a new handler for the given implementation.
-inline std::unique_ptr<SRPCBldrDevtoolStatusServiceHandler> NewSRPCBldrDevtoolStatusServiceHandler(SRPCBldrDevtoolStatusServiceServer* impl) {
-  return std::make_unique<SRPCBldrDevtoolStatusServiceHandler>(impl);
+// NewSRPCDevtoolStatusServiceHandler creates a new handler for the given implementation.
+inline std::unique_ptr<SRPCDevtoolStatusServiceHandler> NewSRPCDevtoolStatusServiceHandler(SRPCDevtoolStatusServiceServer* impl) {
+  return std::make_unique<SRPCDevtoolStatusServiceHandler>(impl);
 }
 
-// SRPCRegisterBldrDevtoolStatusService registers the server implementation with the mux.
+// SRPCRegisterDevtoolStatusService registers the server implementation with the mux.
 // The returned handler must outlive the mux registration.
-inline std::pair<std::unique_ptr<SRPCBldrDevtoolStatusServiceHandler>, starpc::Error> SRPCRegisterBldrDevtoolStatusService(starpc::Mux* mux, SRPCBldrDevtoolStatusServiceServer* impl) {
-  auto handler = NewSRPCBldrDevtoolStatusServiceHandler(impl);
+inline std::pair<std::unique_ptr<SRPCDevtoolStatusServiceHandler>, starpc::Error> SRPCRegisterDevtoolStatusService(starpc::Mux* mux, SRPCDevtoolStatusServiceServer* impl) {
+  auto handler = NewSRPCDevtoolStatusServiceHandler(impl);
   starpc::Error err = mux->Register(handler.get());
   if (err != starpc::Error::OK) {
     return {nullptr, err};
@@ -99,10 +99,10 @@ inline std::pair<std::unique_ptr<SRPCBldrDevtoolStatusServiceHandler>, starpc::E
   return {std::move(handler), starpc::Error::OK};
 }
 
-// SRPCBldrDevtoolStatusService_WatchDevtoolStatusClient is the client stream for WatchDevtoolStatus.
-class SRPCBldrDevtoolStatusService_WatchDevtoolStatusClient {
+// SRPCDevtoolStatusService_WatchDevtoolStatusClient is the client stream for WatchDevtoolStatus.
+class SRPCDevtoolStatusService_WatchDevtoolStatusClient {
  public:
-  explicit SRPCBldrDevtoolStatusService_WatchDevtoolStatusClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
+  explicit SRPCDevtoolStatusService_WatchDevtoolStatusClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
 
   starpc::Error Recv(bldr::devtool::status::WatchDevtoolStatusResponse* msg) {
     return strm_->MsgRecv(msg);
@@ -115,10 +115,10 @@ class SRPCBldrDevtoolStatusService_WatchDevtoolStatusClient {
   std::unique_ptr<starpc::Stream> strm_;
 };
 
-// SRPCBldrDevtoolStatusService_WatchDevtoolStatusStream is the server stream for WatchDevtoolStatus.
-class SRPCBldrDevtoolStatusService_WatchDevtoolStatusStream {
+// SRPCDevtoolStatusService_WatchDevtoolStatusStream is the server stream for WatchDevtoolStatus.
+class SRPCDevtoolStatusService_WatchDevtoolStatusStream {
  public:
-  explicit SRPCBldrDevtoolStatusService_WatchDevtoolStatusStream(starpc::Stream* strm) : strm_(strm) {}
+  explicit SRPCDevtoolStatusService_WatchDevtoolStatusStream(starpc::Stream* strm) : strm_(strm) {}
 
   starpc::Error Send(const bldr::devtool::status::WatchDevtoolStatusResponse& msg) {
     return strm_->MsgSend(msg);

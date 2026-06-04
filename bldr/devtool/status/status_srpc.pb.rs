@@ -5,12 +5,12 @@
 #[allow(unused_imports)]
 use starpc::StreamExt;
 
-/// Service ID for BldrDevtoolStatusService.
-pub const BLDR_DEVTOOL_STATUS_SERVICE_SERVICE_ID: &str = "bldr.devtool.status.BldrDevtoolStatusService";
+/// Service ID for DevtoolStatusService.
+pub const DEVTOOL_STATUS_SERVICE_SERVICE_ID: &str = "bldr.devtool.status.DevtoolStatusService";
 
-/// Stream trait for BldrDevtoolStatusService.WatchDevtoolStatus.
+/// Stream trait for DevtoolStatusService.WatchDevtoolStatus.
 #[starpc::async_trait]
-pub trait BldrDevtoolStatusServiceWatchDevtoolStatusStream: Send + Sync {
+pub trait DevtoolStatusServiceWatchDevtoolStatusStream: Send + Sync {
     /// Returns the context for this stream.
     fn context(&self) -> &starpc::Context;
     /// Receives a message from the stream.
@@ -19,19 +19,19 @@ pub trait BldrDevtoolStatusServiceWatchDevtoolStatusStream: Send + Sync {
     async fn close(&self) -> starpc::Result<()>;
 }
 
-/// Client trait for BldrDevtoolStatusService.
+/// Client trait for DevtoolStatusService.
 #[starpc::async_trait]
-pub trait BldrDevtoolStatusServiceClient: Send + Sync {
+pub trait DevtoolStatusServiceClient: Send + Sync {
     /// WatchDevtoolStatus.
-    async fn watch_devtool_status(&self, request: &WatchDevtoolStatusRequest) -> starpc::Result<Box<dyn BldrDevtoolStatusServiceWatchDevtoolStatusStream>>;
+    async fn watch_devtool_status(&self, request: &WatchDevtoolStatusRequest) -> starpc::Result<Box<dyn DevtoolStatusServiceWatchDevtoolStatusStream>>;
 }
 
-/// Client implementation for BldrDevtoolStatusService.
-pub struct BldrDevtoolStatusServiceClientImpl<C> {
+/// Client implementation for DevtoolStatusService.
+pub struct DevtoolStatusServiceClientImpl<C> {
     client: C,
 }
 
-impl<C: starpc::Client> BldrDevtoolStatusServiceClientImpl<C> {
+impl<C: starpc::Client> DevtoolStatusServiceClientImpl<C> {
     /// Creates a new client.
     pub fn new(client: C) -> Self {
         Self { client }
@@ -39,22 +39,22 @@ impl<C: starpc::Client> BldrDevtoolStatusServiceClientImpl<C> {
 }
 
 #[starpc::async_trait]
-impl<C: starpc::Client + 'static> BldrDevtoolStatusServiceClient for BldrDevtoolStatusServiceClientImpl<C> {
-    async fn watch_devtool_status(&self, request: &WatchDevtoolStatusRequest) -> starpc::Result<Box<dyn BldrDevtoolStatusServiceWatchDevtoolStatusStream>> {
+impl<C: starpc::Client + 'static> DevtoolStatusServiceClient for DevtoolStatusServiceClientImpl<C> {
+    async fn watch_devtool_status(&self, request: &WatchDevtoolStatusRequest) -> starpc::Result<Box<dyn DevtoolStatusServiceWatchDevtoolStatusStream>> {
         use starpc::ProstMessage;
         let data = request.encode_to_vec();
-        let stream = self.client.new_stream("bldr.devtool.status.BldrDevtoolStatusService", "WatchDevtoolStatus", Some(&data)).await?;
+        let stream = self.client.new_stream("bldr.devtool.status.DevtoolStatusService", "WatchDevtoolStatus", Some(&data)).await?;
         stream.close_send().await?;
-        Ok(Box::new(BldrDevtoolStatusServiceWatchDevtoolStatusStreamImpl { stream }))
+        Ok(Box::new(DevtoolStatusServiceWatchDevtoolStatusStreamImpl { stream }))
     }
 }
 
-struct BldrDevtoolStatusServiceWatchDevtoolStatusStreamImpl {
+struct DevtoolStatusServiceWatchDevtoolStatusStreamImpl {
     stream: Box<dyn starpc::Stream>,
 }
 
 #[starpc::async_trait]
-impl BldrDevtoolStatusServiceWatchDevtoolStatusStream for BldrDevtoolStatusServiceWatchDevtoolStatusStreamImpl {
+impl DevtoolStatusServiceWatchDevtoolStatusStream for DevtoolStatusServiceWatchDevtoolStatusStreamImpl {
     fn context(&self) -> &starpc::Context {
         self.stream.context()
     }
@@ -66,23 +66,23 @@ impl BldrDevtoolStatusServiceWatchDevtoolStatusStream for BldrDevtoolStatusServi
     }
 }
 
-/// Server trait for BldrDevtoolStatusService.
+/// Server trait for DevtoolStatusService.
 #[starpc::async_trait]
-pub trait BldrDevtoolStatusServiceServer: Send + Sync {
+pub trait DevtoolStatusServiceServer: Send + Sync {
     /// WatchDevtoolStatus.
     async fn watch_devtool_status(&self, request: WatchDevtoolStatusRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
 }
 
-const BLDR_DEVTOOL_STATUS_SERVICE_METHOD_IDS: &[&str] = &[
+const DEVTOOL_STATUS_SERVICE_METHOD_IDS: &[&str] = &[
     "WatchDevtoolStatus",
 ];
 
-/// Handler for BldrDevtoolStatusService.
-pub struct BldrDevtoolStatusServiceHandler<S: BldrDevtoolStatusServiceServer> {
+/// Handler for DevtoolStatusService.
+pub struct DevtoolStatusServiceHandler<S: DevtoolStatusServiceServer> {
     server: std::sync::Arc<S>,
 }
 
-impl<S: BldrDevtoolStatusServiceServer + 'static> BldrDevtoolStatusServiceHandler<S> {
+impl<S: DevtoolStatusServiceServer + 'static> DevtoolStatusServiceHandler<S> {
     /// Creates a new handler wrapping the server implementation.
     pub fn new(server: S) -> Self {
         Self { server: std::sync::Arc::new(server) }
@@ -95,7 +95,7 @@ impl<S: BldrDevtoolStatusServiceServer + 'static> BldrDevtoolStatusServiceHandle
 }
 
 #[starpc::async_trait]
-impl<S: BldrDevtoolStatusServiceServer + 'static> starpc::Invoker for BldrDevtoolStatusServiceHandler<S> {
+impl<S: DevtoolStatusServiceServer + 'static> starpc::Invoker for DevtoolStatusServiceHandler<S> {
     async fn invoke_method(
         &self,
         _service_id: &str,
@@ -115,13 +115,13 @@ impl<S: BldrDevtoolStatusServiceServer + 'static> starpc::Invoker for BldrDevtoo
     }
 }
 
-impl<S: BldrDevtoolStatusServiceServer + 'static> starpc::Handler for BldrDevtoolStatusServiceHandler<S> {
+impl<S: DevtoolStatusServiceServer + 'static> starpc::Handler for DevtoolStatusServiceHandler<S> {
     fn service_id(&self) -> &'static str {
-        "bldr.devtool.status.BldrDevtoolStatusService"
+        "bldr.devtool.status.DevtoolStatusService"
     }
 
     fn method_ids(&self) -> &'static [&'static str] {
-        BLDR_DEVTOOL_STATUS_SERVICE_METHOD_IDS
+        DEVTOOL_STATUS_SERVICE_METHOD_IDS
     }
 }
 

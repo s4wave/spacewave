@@ -15,247 +15,247 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
-// DevtoolCommandState describes the high-level command lifecycle.
-type DevtoolCommandState int32
+// DevtoolStatusCommandState describes the high-level command lifecycle.
+type DevtoolStatusCommandState int32
 
 const (
-	// DEVTOOL_COMMAND_STATE_UNSPECIFIED leaves command state unset.
-	DevtoolCommandState_DEVTOOL_COMMAND_STATE_UNSPECIFIED DevtoolCommandState = 0
-	// DEVTOOL_COMMAND_STATE_STARTING means command startup is running.
-	DevtoolCommandState_DEVTOOL_COMMAND_STATE_STARTING DevtoolCommandState = 1
-	// DEVTOOL_COMMAND_STATE_RUNNING means the command is active.
-	DevtoolCommandState_DEVTOOL_COMMAND_STATE_RUNNING DevtoolCommandState = 2
-	// DEVTOOL_COMMAND_STATE_DONE means the command completed successfully.
-	DevtoolCommandState_DEVTOOL_COMMAND_STATE_DONE DevtoolCommandState = 3
-	// DEVTOOL_COMMAND_STATE_ERROR means the command failed.
-	DevtoolCommandState_DEVTOOL_COMMAND_STATE_ERROR DevtoolCommandState = 4
-	// DEVTOOL_COMMAND_STATE_CANCELED means the command was canceled.
-	DevtoolCommandState_DEVTOOL_COMMAND_STATE_CANCELED DevtoolCommandState = 5
+	// DevtoolStatusCommandState_UNKNOWN leaves command state unset.
+	DevtoolStatusCommandState_DevtoolStatusCommandState_UNKNOWN DevtoolStatusCommandState = 0
+	// DevtoolStatusCommandState_STARTING means command startup is running.
+	DevtoolStatusCommandState_DevtoolStatusCommandState_STARTING DevtoolStatusCommandState = 1
+	// DevtoolStatusCommandState_RUNNING means the command is active.
+	DevtoolStatusCommandState_DevtoolStatusCommandState_RUNNING DevtoolStatusCommandState = 2
+	// DevtoolStatusCommandState_DONE means the command completed successfully.
+	DevtoolStatusCommandState_DevtoolStatusCommandState_DONE DevtoolStatusCommandState = 3
+	// DevtoolStatusCommandState_ERROR means the command failed.
+	DevtoolStatusCommandState_DevtoolStatusCommandState_ERROR DevtoolStatusCommandState = 4
+	// DevtoolStatusCommandState_CANCELED means the command was canceled.
+	DevtoolStatusCommandState_DevtoolStatusCommandState_CANCELED DevtoolStatusCommandState = 5
 )
 
-// Enum value maps for DevtoolCommandState.
+// Enum value maps for DevtoolStatusCommandState.
 var (
-	DevtoolCommandState_name = map[int32]string{
-		0: "DEVTOOL_COMMAND_STATE_UNSPECIFIED",
-		1: "DEVTOOL_COMMAND_STATE_STARTING",
-		2: "DEVTOOL_COMMAND_STATE_RUNNING",
-		3: "DEVTOOL_COMMAND_STATE_DONE",
-		4: "DEVTOOL_COMMAND_STATE_ERROR",
-		5: "DEVTOOL_COMMAND_STATE_CANCELED",
+	DevtoolStatusCommandState_name = map[int32]string{
+		0: "DevtoolStatusCommandState_UNKNOWN",
+		1: "DevtoolStatusCommandState_STARTING",
+		2: "DevtoolStatusCommandState_RUNNING",
+		3: "DevtoolStatusCommandState_DONE",
+		4: "DevtoolStatusCommandState_ERROR",
+		5: "DevtoolStatusCommandState_CANCELED",
 	}
-	DevtoolCommandState_value = map[string]int32{
-		"DEVTOOL_COMMAND_STATE_UNSPECIFIED": 0,
-		"DEVTOOL_COMMAND_STATE_STARTING":    1,
-		"DEVTOOL_COMMAND_STATE_RUNNING":     2,
-		"DEVTOOL_COMMAND_STATE_DONE":        3,
-		"DEVTOOL_COMMAND_STATE_ERROR":       4,
-		"DEVTOOL_COMMAND_STATE_CANCELED":    5,
+	DevtoolStatusCommandState_value = map[string]int32{
+		"DevtoolStatusCommandState_UNKNOWN":  0,
+		"DevtoolStatusCommandState_STARTING": 1,
+		"DevtoolStatusCommandState_RUNNING":  2,
+		"DevtoolStatusCommandState_DONE":     3,
+		"DevtoolStatusCommandState_ERROR":    4,
+		"DevtoolStatusCommandState_CANCELED": 5,
 	}
 )
 
-func (x DevtoolCommandState) Enum() *DevtoolCommandState {
-	p := new(DevtoolCommandState)
+func (x DevtoolStatusCommandState) Enum() *DevtoolStatusCommandState {
+	p := new(DevtoolStatusCommandState)
 	*p = x
 	return p
 }
 
-func (x DevtoolCommandState) String() string {
-	name, valid := DevtoolCommandState_name[int32(x)]
+func (x DevtoolStatusCommandState) String() string {
+	name, valid := DevtoolStatusCommandState_name[int32(x)]
 	if valid {
 		return name
 	}
 	return strconv.Itoa(int(x))
 }
 
-// DevtoolManifestState describes manifest fetch and build progress.
-type DevtoolManifestState int32
+// DevtoolStatusManifestState describes manifest fetch and build progress.
+type DevtoolStatusManifestState int32
 
 const (
-	// DEVTOOL_MANIFEST_STATE_UNSPECIFIED leaves manifest state unset.
-	DevtoolManifestState_DEVTOOL_MANIFEST_STATE_UNSPECIFIED DevtoolManifestState = 0
-	// DEVTOOL_MANIFEST_STATE_QUEUED means work is waiting to start.
-	DevtoolManifestState_DEVTOOL_MANIFEST_STATE_QUEUED DevtoolManifestState = 1
-	// DEVTOOL_MANIFEST_STATE_RUNNING means work is active.
-	DevtoolManifestState_DEVTOOL_MANIFEST_STATE_RUNNING DevtoolManifestState = 2
-	// DEVTOOL_MANIFEST_STATE_READY means the manifest is available.
-	DevtoolManifestState_DEVTOOL_MANIFEST_STATE_READY DevtoolManifestState = 3
-	// DEVTOOL_MANIFEST_STATE_ERROR means the work failed.
-	DevtoolManifestState_DEVTOOL_MANIFEST_STATE_ERROR DevtoolManifestState = 4
-	// DEVTOOL_MANIFEST_STATE_CANCELED means the work was canceled.
-	DevtoolManifestState_DEVTOOL_MANIFEST_STATE_CANCELED DevtoolManifestState = 5
+	// DevtoolStatusManifestState_UNKNOWN leaves manifest state unset.
+	DevtoolStatusManifestState_DevtoolStatusManifestState_UNKNOWN DevtoolStatusManifestState = 0
+	// DevtoolStatusManifestState_QUEUED means work is waiting to start.
+	DevtoolStatusManifestState_DevtoolStatusManifestState_QUEUED DevtoolStatusManifestState = 1
+	// DevtoolStatusManifestState_RUNNING means work is active.
+	DevtoolStatusManifestState_DevtoolStatusManifestState_RUNNING DevtoolStatusManifestState = 2
+	// DevtoolStatusManifestState_READY means the manifest is available.
+	DevtoolStatusManifestState_DevtoolStatusManifestState_READY DevtoolStatusManifestState = 3
+	// DevtoolStatusManifestState_ERROR means the work failed.
+	DevtoolStatusManifestState_DevtoolStatusManifestState_ERROR DevtoolStatusManifestState = 4
+	// DevtoolStatusManifestState_CANCELED means the work was canceled.
+	DevtoolStatusManifestState_DevtoolStatusManifestState_CANCELED DevtoolStatusManifestState = 5
 )
 
-// Enum value maps for DevtoolManifestState.
+// Enum value maps for DevtoolStatusManifestState.
 var (
-	DevtoolManifestState_name = map[int32]string{
-		0: "DEVTOOL_MANIFEST_STATE_UNSPECIFIED",
-		1: "DEVTOOL_MANIFEST_STATE_QUEUED",
-		2: "DEVTOOL_MANIFEST_STATE_RUNNING",
-		3: "DEVTOOL_MANIFEST_STATE_READY",
-		4: "DEVTOOL_MANIFEST_STATE_ERROR",
-		5: "DEVTOOL_MANIFEST_STATE_CANCELED",
+	DevtoolStatusManifestState_name = map[int32]string{
+		0: "DevtoolStatusManifestState_UNKNOWN",
+		1: "DevtoolStatusManifestState_QUEUED",
+		2: "DevtoolStatusManifestState_RUNNING",
+		3: "DevtoolStatusManifestState_READY",
+		4: "DevtoolStatusManifestState_ERROR",
+		5: "DevtoolStatusManifestState_CANCELED",
 	}
-	DevtoolManifestState_value = map[string]int32{
-		"DEVTOOL_MANIFEST_STATE_UNSPECIFIED": 0,
-		"DEVTOOL_MANIFEST_STATE_QUEUED":      1,
-		"DEVTOOL_MANIFEST_STATE_RUNNING":     2,
-		"DEVTOOL_MANIFEST_STATE_READY":       3,
-		"DEVTOOL_MANIFEST_STATE_ERROR":       4,
-		"DEVTOOL_MANIFEST_STATE_CANCELED":    5,
+	DevtoolStatusManifestState_value = map[string]int32{
+		"DevtoolStatusManifestState_UNKNOWN":  0,
+		"DevtoolStatusManifestState_QUEUED":   1,
+		"DevtoolStatusManifestState_RUNNING":  2,
+		"DevtoolStatusManifestState_READY":    3,
+		"DevtoolStatusManifestState_ERROR":    4,
+		"DevtoolStatusManifestState_CANCELED": 5,
 	}
 )
 
-func (x DevtoolManifestState) Enum() *DevtoolManifestState {
-	p := new(DevtoolManifestState)
+func (x DevtoolStatusManifestState) Enum() *DevtoolStatusManifestState {
+	p := new(DevtoolStatusManifestState)
 	*p = x
 	return p
 }
 
-func (x DevtoolManifestState) String() string {
-	name, valid := DevtoolManifestState_name[int32(x)]
+func (x DevtoolStatusManifestState) String() string {
+	name, valid := DevtoolStatusManifestState_name[int32(x)]
 	if valid {
 		return name
 	}
 	return strconv.Itoa(int(x))
 }
 
-// DevtoolPluginState describes plugin scheduler status.
-type DevtoolPluginState int32
+// DevtoolStatusControllerState describes controller load and exec status.
+type DevtoolStatusControllerState int32
 
 const (
-	// DEVTOOL_PLUGIN_STATE_UNSPECIFIED leaves plugin state unset.
-	DevtoolPluginState_DEVTOOL_PLUGIN_STATE_UNSPECIFIED DevtoolPluginState = 0
-	// DEVTOOL_PLUGIN_STATE_REQUESTED means the plugin has been requested.
-	DevtoolPluginState_DEVTOOL_PLUGIN_STATE_REQUESTED DevtoolPluginState = 1
-	// DEVTOOL_PLUGIN_STATE_RUNNING means the plugin is running.
-	DevtoolPluginState_DEVTOOL_PLUGIN_STATE_RUNNING DevtoolPluginState = 2
-	// DEVTOOL_PLUGIN_STATE_ERRORED means the plugin failed.
-	DevtoolPluginState_DEVTOOL_PLUGIN_STATE_ERRORED DevtoolPluginState = 3
+	// DevtoolStatusControllerState_UNKNOWN leaves controller state unset.
+	DevtoolStatusControllerState_DevtoolStatusControllerState_UNKNOWN DevtoolStatusControllerState = 0
+	// DevtoolStatusControllerState_REQUESTED means the controller has been requested.
+	DevtoolStatusControllerState_DevtoolStatusControllerState_REQUESTED DevtoolStatusControllerState = 1
+	// DevtoolStatusControllerState_RUNNING means the controller is running.
+	DevtoolStatusControllerState_DevtoolStatusControllerState_RUNNING DevtoolStatusControllerState = 2
+	// DevtoolStatusControllerState_IDLE means the directive is idle without a running controller.
+	DevtoolStatusControllerState_DevtoolStatusControllerState_IDLE DevtoolStatusControllerState = 3
+	// DevtoolStatusControllerState_ERROR means controller load or execution failed.
+	DevtoolStatusControllerState_DevtoolStatusControllerState_ERROR DevtoolStatusControllerState = 4
 )
 
-// Enum value maps for DevtoolPluginState.
+// Enum value maps for DevtoolStatusControllerState.
 var (
-	DevtoolPluginState_name = map[int32]string{
-		0: "DEVTOOL_PLUGIN_STATE_UNSPECIFIED",
-		1: "DEVTOOL_PLUGIN_STATE_REQUESTED",
-		2: "DEVTOOL_PLUGIN_STATE_RUNNING",
-		3: "DEVTOOL_PLUGIN_STATE_ERRORED",
+	DevtoolStatusControllerState_name = map[int32]string{
+		0: "DevtoolStatusControllerState_UNKNOWN",
+		1: "DevtoolStatusControllerState_REQUESTED",
+		2: "DevtoolStatusControllerState_RUNNING",
+		3: "DevtoolStatusControllerState_IDLE",
+		4: "DevtoolStatusControllerState_ERROR",
 	}
-	DevtoolPluginState_value = map[string]int32{
-		"DEVTOOL_PLUGIN_STATE_UNSPECIFIED": 0,
-		"DEVTOOL_PLUGIN_STATE_REQUESTED":   1,
-		"DEVTOOL_PLUGIN_STATE_RUNNING":     2,
-		"DEVTOOL_PLUGIN_STATE_ERRORED":     3,
+	DevtoolStatusControllerState_value = map[string]int32{
+		"DevtoolStatusControllerState_UNKNOWN":   0,
+		"DevtoolStatusControllerState_REQUESTED": 1,
+		"DevtoolStatusControllerState_RUNNING":   2,
+		"DevtoolStatusControllerState_IDLE":      3,
+		"DevtoolStatusControllerState_ERROR":     4,
 	}
 )
 
-func (x DevtoolPluginState) Enum() *DevtoolPluginState {
-	p := new(DevtoolPluginState)
+func (x DevtoolStatusControllerState) Enum() *DevtoolStatusControllerState {
+	p := new(DevtoolStatusControllerState)
 	*p = x
 	return p
 }
 
-func (x DevtoolPluginState) String() string {
-	name, valid := DevtoolPluginState_name[int32(x)]
+func (x DevtoolStatusControllerState) String() string {
+	name, valid := DevtoolStatusControllerState_name[int32(x)]
 	if valid {
 		return name
 	}
 	return strconv.Itoa(int(x))
 }
 
-// DevtoolControllerState describes controller load and exec status.
-type DevtoolControllerState int32
+// DevtoolStatusPluginState describes plugin status.
+type DevtoolStatusPluginState int32
 
 const (
-	// DEVTOOL_CONTROLLER_STATE_UNSPECIFIED leaves controller state unset.
-	DevtoolControllerState_DEVTOOL_CONTROLLER_STATE_UNSPECIFIED DevtoolControllerState = 0
-	// DEVTOOL_CONTROLLER_STATE_REQUESTED means the controller has been requested.
-	DevtoolControllerState_DEVTOOL_CONTROLLER_STATE_REQUESTED DevtoolControllerState = 1
-	// DEVTOOL_CONTROLLER_STATE_RUNNING means the controller is running.
-	DevtoolControllerState_DEVTOOL_CONTROLLER_STATE_RUNNING DevtoolControllerState = 2
-	// DEVTOOL_CONTROLLER_STATE_IDLE means the directive is idle without a running controller.
-	DevtoolControllerState_DEVTOOL_CONTROLLER_STATE_IDLE DevtoolControllerState = 3
-	// DEVTOOL_CONTROLLER_STATE_ERROR means controller load or execution failed.
-	DevtoolControllerState_DEVTOOL_CONTROLLER_STATE_ERROR DevtoolControllerState = 4
+	// DevtoolStatusPluginState_UNKNOWN leaves plugin state unset.
+	DevtoolStatusPluginState_DevtoolStatusPluginState_UNKNOWN DevtoolStatusPluginState = 0
+	// DevtoolStatusPluginState_REQUESTED means the plugin has been requested.
+	DevtoolStatusPluginState_DevtoolStatusPluginState_REQUESTED DevtoolStatusPluginState = 1
+	// DevtoolStatusPluginState_RUNNING means the plugin is running.
+	DevtoolStatusPluginState_DevtoolStatusPluginState_RUNNING DevtoolStatusPluginState = 2
+	// DevtoolStatusPluginState_ERRORED means the plugin failed.
+	DevtoolStatusPluginState_DevtoolStatusPluginState_ERRORED DevtoolStatusPluginState = 3
 )
 
-// Enum value maps for DevtoolControllerState.
+// Enum value maps for DevtoolStatusPluginState.
 var (
-	DevtoolControllerState_name = map[int32]string{
-		0: "DEVTOOL_CONTROLLER_STATE_UNSPECIFIED",
-		1: "DEVTOOL_CONTROLLER_STATE_REQUESTED",
-		2: "DEVTOOL_CONTROLLER_STATE_RUNNING",
-		3: "DEVTOOL_CONTROLLER_STATE_IDLE",
-		4: "DEVTOOL_CONTROLLER_STATE_ERROR",
+	DevtoolStatusPluginState_name = map[int32]string{
+		0: "DevtoolStatusPluginState_UNKNOWN",
+		1: "DevtoolStatusPluginState_REQUESTED",
+		2: "DevtoolStatusPluginState_RUNNING",
+		3: "DevtoolStatusPluginState_ERRORED",
 	}
-	DevtoolControllerState_value = map[string]int32{
-		"DEVTOOL_CONTROLLER_STATE_UNSPECIFIED": 0,
-		"DEVTOOL_CONTROLLER_STATE_REQUESTED":   1,
-		"DEVTOOL_CONTROLLER_STATE_RUNNING":     2,
-		"DEVTOOL_CONTROLLER_STATE_IDLE":        3,
-		"DEVTOOL_CONTROLLER_STATE_ERROR":       4,
+	DevtoolStatusPluginState_value = map[string]int32{
+		"DevtoolStatusPluginState_UNKNOWN":   0,
+		"DevtoolStatusPluginState_REQUESTED": 1,
+		"DevtoolStatusPluginState_RUNNING":   2,
+		"DevtoolStatusPluginState_ERRORED":   3,
 	}
 )
 
-func (x DevtoolControllerState) Enum() *DevtoolControllerState {
-	p := new(DevtoolControllerState)
+func (x DevtoolStatusPluginState) Enum() *DevtoolStatusPluginState {
+	p := new(DevtoolStatusPluginState)
 	*p = x
 	return p
 }
 
-func (x DevtoolControllerState) String() string {
-	name, valid := DevtoolControllerState_name[int32(x)]
+func (x DevtoolStatusPluginState) String() string {
+	name, valid := DevtoolStatusPluginState_name[int32(x)]
 	if valid {
 		return name
 	}
 	return strconv.Itoa(int(x))
 }
 
-// DevtoolAttentionSeverity describes the urgency of an attention row.
-type DevtoolAttentionSeverity int32
+// DevtoolStatusAttentionSeverity describes the urgency of an attention row.
+type DevtoolStatusAttentionSeverity int32
 
 const (
-	// DEVTOOL_ATTENTION_SEVERITY_UNSPECIFIED leaves severity unset.
-	DevtoolAttentionSeverity_DEVTOOL_ATTENTION_SEVERITY_UNSPECIFIED DevtoolAttentionSeverity = 0
-	// DEVTOOL_ATTENTION_SEVERITY_INFO marks informational attention.
-	DevtoolAttentionSeverity_DEVTOOL_ATTENTION_SEVERITY_INFO DevtoolAttentionSeverity = 1
-	// DEVTOOL_ATTENTION_SEVERITY_WARNING marks recoverable attention.
-	DevtoolAttentionSeverity_DEVTOOL_ATTENTION_SEVERITY_WARNING DevtoolAttentionSeverity = 2
-	// DEVTOOL_ATTENTION_SEVERITY_ERROR marks blocking attention.
-	DevtoolAttentionSeverity_DEVTOOL_ATTENTION_SEVERITY_ERROR DevtoolAttentionSeverity = 3
+	// DevtoolStatusAttentionSeverity_UNKNOWN leaves severity unset.
+	DevtoolStatusAttentionSeverity_DevtoolStatusAttentionSeverity_UNKNOWN DevtoolStatusAttentionSeverity = 0
+	// DevtoolStatusAttentionSeverity_INFO marks informational attention.
+	DevtoolStatusAttentionSeverity_DevtoolStatusAttentionSeverity_INFO DevtoolStatusAttentionSeverity = 1
+	// DevtoolStatusAttentionSeverity_WARNING marks recoverable attention.
+	DevtoolStatusAttentionSeverity_DevtoolStatusAttentionSeverity_WARNING DevtoolStatusAttentionSeverity = 2
+	// DevtoolStatusAttentionSeverity_ERROR marks blocking attention.
+	DevtoolStatusAttentionSeverity_DevtoolStatusAttentionSeverity_ERROR DevtoolStatusAttentionSeverity = 3
 )
 
-// Enum value maps for DevtoolAttentionSeverity.
+// Enum value maps for DevtoolStatusAttentionSeverity.
 var (
-	DevtoolAttentionSeverity_name = map[int32]string{
-		0: "DEVTOOL_ATTENTION_SEVERITY_UNSPECIFIED",
-		1: "DEVTOOL_ATTENTION_SEVERITY_INFO",
-		2: "DEVTOOL_ATTENTION_SEVERITY_WARNING",
-		3: "DEVTOOL_ATTENTION_SEVERITY_ERROR",
+	DevtoolStatusAttentionSeverity_name = map[int32]string{
+		0: "DevtoolStatusAttentionSeverity_UNKNOWN",
+		1: "DevtoolStatusAttentionSeverity_INFO",
+		2: "DevtoolStatusAttentionSeverity_WARNING",
+		3: "DevtoolStatusAttentionSeverity_ERROR",
 	}
-	DevtoolAttentionSeverity_value = map[string]int32{
-		"DEVTOOL_ATTENTION_SEVERITY_UNSPECIFIED": 0,
-		"DEVTOOL_ATTENTION_SEVERITY_INFO":        1,
-		"DEVTOOL_ATTENTION_SEVERITY_WARNING":     2,
-		"DEVTOOL_ATTENTION_SEVERITY_ERROR":       3,
+	DevtoolStatusAttentionSeverity_value = map[string]int32{
+		"DevtoolStatusAttentionSeverity_UNKNOWN": 0,
+		"DevtoolStatusAttentionSeverity_INFO":    1,
+		"DevtoolStatusAttentionSeverity_WARNING": 2,
+		"DevtoolStatusAttentionSeverity_ERROR":   3,
 	}
 )
 
-func (x DevtoolAttentionSeverity) Enum() *DevtoolAttentionSeverity {
-	p := new(DevtoolAttentionSeverity)
+func (x DevtoolStatusAttentionSeverity) Enum() *DevtoolStatusAttentionSeverity {
+	p := new(DevtoolStatusAttentionSeverity)
 	*p = x
 	return p
 }
 
-func (x DevtoolAttentionSeverity) String() string {
-	name, valid := DevtoolAttentionSeverity_name[int32(x)]
+func (x DevtoolStatusAttentionSeverity) String() string {
+	name, valid := DevtoolStatusAttentionSeverity_name[int32(x)]
 	if valid {
 		return name
 	}
 	return strconv.Itoa(int(x))
 }
 
-// WatchDevtoolStatusRequest is the request for WatchDevtoolStatus.
+// WatchDevtoolStatusRequest is the request type for WatchDevtoolStatus.
 type WatchDevtoolStatusRequest struct {
 	unknownFields []byte
 }
@@ -266,10 +266,10 @@ func (x *WatchDevtoolStatusRequest) Reset() {
 
 func (*WatchDevtoolStatusRequest) ProtoMessage() {}
 
-// WatchDevtoolStatusResponse is one streamed status snapshot.
+// WatchDevtoolStatusResponse is the response type for WatchDevtoolStatus.
 type WatchDevtoolStatusResponse struct {
 	unknownFields []byte
-	// Snapshot is the current immutable status snapshot.
+	// Snapshot is the current immutable Bldr devtool status snapshot.
 	Snapshot *DevtoolStatusSnapshot `protobuf:"bytes,1,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
 }
 
@@ -286,21 +286,23 @@ func (x *WatchDevtoolStatusResponse) GetSnapshot() *DevtoolStatusSnapshot {
 	return nil
 }
 
-// DevtoolStatusSnapshot is a read-only Bldr devtool status snapshot.
+// DevtoolStatusSnapshot is the browser-readable Bldr devtool status projection.
 type DevtoolStatusSnapshot struct {
 	unknownFields []byte
 	// Command is the active command status.
-	Command *DevtoolCommandStatus `protobuf:"bytes,1,opt,name=command,proto3" json:"command,omitempty"`
-	// ManifestFetchRows contains manifest fetch status rows.
-	ManifestFetchRows []*DevtoolManifestFetchRow `protobuf:"bytes,2,rep,name=manifest_fetch_rows,json=manifestFetchRows,proto3" json:"manifestFetchRows,omitempty"`
-	// ManifestBuildRows contains manifest build status rows.
-	ManifestBuildRows []*DevtoolManifestBuildRow `protobuf:"bytes,3,rep,name=manifest_build_rows,json=manifestBuildRows,proto3" json:"manifestBuildRows,omitempty"`
-	// PluginRows contains plugin scheduler status rows.
-	PluginRows []*DevtoolPluginRow `protobuf:"bytes,4,rep,name=plugin_rows,json=pluginRows,proto3" json:"pluginRows,omitempty"`
-	// ControllerRows contains controller load and exec rows.
-	ControllerRows []*DevtoolControllerRow `protobuf:"bytes,5,rep,name=controller_rows,json=controllerRows,proto3" json:"controllerRows,omitempty"`
-	// AttentionRows contains recent attention and error rows.
-	AttentionRows []*DevtoolAttentionRow `protobuf:"bytes,6,rep,name=attention_rows,json=attentionRows,proto3" json:"attentionRows,omitempty"`
+	Command *DevtoolStatusCommand `protobuf:"bytes,1,opt,name=command,proto3" json:"command,omitempty"`
+	// Project is the read-only project and target configuration snapshot.
+	Project *DevtoolStatusProject `protobuf:"bytes,2,opt,name=project,proto3" json:"project,omitempty"`
+	// ManifestFetchRows are manifest fetch directive rows.
+	ManifestFetchRows []*DevtoolStatusManifestFetchRow `protobuf:"bytes,3,rep,name=manifest_fetch_rows,json=manifestFetchRows,proto3" json:"manifestFetchRows,omitempty"`
+	// ManifestBuildRows are manifest builder rows.
+	ManifestBuildRows []*DevtoolStatusManifestBuildRow `protobuf:"bytes,4,rep,name=manifest_build_rows,json=manifestBuildRows,proto3" json:"manifestBuildRows,omitempty"`
+	// ControllerRows are controller load and exec directive rows.
+	ControllerRows []*DevtoolStatusControllerRow `protobuf:"bytes,5,rep,name=controller_rows,json=controllerRows,proto3" json:"controllerRows,omitempty"`
+	// PluginRows are plugin scheduler rows.
+	PluginRows []*DevtoolStatusPluginRow `protobuf:"bytes,6,rep,name=plugin_rows,json=pluginRows,proto3" json:"pluginRows,omitempty"`
+	// AttentionRows are recent attention and error rows.
+	AttentionRows []*DevtoolStatusAttentionRow `protobuf:"bytes,7,rep,name=attention_rows,json=attentionRows,proto3" json:"attentionRows,omitempty"`
 }
 
 func (x *DevtoolStatusSnapshot) Reset() {
@@ -309,562 +311,699 @@ func (x *DevtoolStatusSnapshot) Reset() {
 
 func (*DevtoolStatusSnapshot) ProtoMessage() {}
 
-func (x *DevtoolStatusSnapshot) GetCommand() *DevtoolCommandStatus {
+func (x *DevtoolStatusSnapshot) GetCommand() *DevtoolStatusCommand {
 	if x != nil {
 		return x.Command
 	}
 	return nil
 }
 
-func (x *DevtoolStatusSnapshot) GetManifestFetchRows() []*DevtoolManifestFetchRow {
+func (x *DevtoolStatusSnapshot) GetProject() *DevtoolStatusProject {
+	if x != nil {
+		return x.Project
+	}
+	return nil
+}
+
+func (x *DevtoolStatusSnapshot) GetManifestFetchRows() []*DevtoolStatusManifestFetchRow {
 	if x != nil {
 		return x.ManifestFetchRows
 	}
 	return nil
 }
 
-func (x *DevtoolStatusSnapshot) GetManifestBuildRows() []*DevtoolManifestBuildRow {
+func (x *DevtoolStatusSnapshot) GetManifestBuildRows() []*DevtoolStatusManifestBuildRow {
 	if x != nil {
 		return x.ManifestBuildRows
 	}
 	return nil
 }
 
-func (x *DevtoolStatusSnapshot) GetPluginRows() []*DevtoolPluginRow {
-	if x != nil {
-		return x.PluginRows
-	}
-	return nil
-}
-
-func (x *DevtoolStatusSnapshot) GetControllerRows() []*DevtoolControllerRow {
+func (x *DevtoolStatusSnapshot) GetControllerRows() []*DevtoolStatusControllerRow {
 	if x != nil {
 		return x.ControllerRows
 	}
 	return nil
 }
 
-func (x *DevtoolStatusSnapshot) GetAttentionRows() []*DevtoolAttentionRow {
+func (x *DevtoolStatusSnapshot) GetPluginRows() []*DevtoolStatusPluginRow {
+	if x != nil {
+		return x.PluginRows
+	}
+	return nil
+}
+
+func (x *DevtoolStatusSnapshot) GetAttentionRows() []*DevtoolStatusAttentionRow {
 	if x != nil {
 		return x.AttentionRows
 	}
 	return nil
 }
 
-// DevtoolCommandStatus describes the active Bldr command.
-type DevtoolCommandStatus struct {
+// DevtoolStatusCommand describes the active Bldr command.
+type DevtoolStatusCommand struct {
 	unknownFields []byte
 	// Name is the command name.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// State is the command lifecycle state.
-	State DevtoolCommandState `protobuf:"varint,2,opt,name=state,proto3" json:"state,omitempty"`
-	// Summary is a concise status summary.
+	State DevtoolStatusCommandState `protobuf:"varint,2,opt,name=state,proto3" json:"state,omitempty"`
+	// Summary is a short human-readable status summary.
 	Summary string `protobuf:"bytes,3,opt,name=summary,proto3" json:"summary,omitempty"`
-	// Error is the current command error summary.
+	// Error is the explicit command error, when present.
 	Error string `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
-	// LogFile is the diagnostic log file path.
+	// LogFile is the diagnostic log file path, when present.
 	LogFile string `protobuf:"bytes,5,opt,name=log_file,json=logFile,proto3" json:"logFile,omitempty"`
 }
 
-func (x *DevtoolCommandStatus) Reset() {
-	*x = DevtoolCommandStatus{}
+func (x *DevtoolStatusCommand) Reset() {
+	*x = DevtoolStatusCommand{}
 }
 
-func (*DevtoolCommandStatus) ProtoMessage() {}
+func (*DevtoolStatusCommand) ProtoMessage() {}
 
-func (x *DevtoolCommandStatus) GetName() string {
+func (x *DevtoolStatusCommand) GetName() string {
 	if x != nil {
 		return x.Name
 	}
 	return ""
 }
 
-func (x *DevtoolCommandStatus) GetState() DevtoolCommandState {
+func (x *DevtoolStatusCommand) GetState() DevtoolStatusCommandState {
 	if x != nil {
 		return x.State
 	}
-	return DevtoolCommandState_DEVTOOL_COMMAND_STATE_UNSPECIFIED
+	return DevtoolStatusCommandState_DevtoolStatusCommandState_UNKNOWN
 }
 
-func (x *DevtoolCommandStatus) GetSummary() string {
+func (x *DevtoolStatusCommand) GetSummary() string {
 	if x != nil {
 		return x.Summary
 	}
 	return ""
 }
 
-func (x *DevtoolCommandStatus) GetError() string {
+func (x *DevtoolStatusCommand) GetError() string {
 	if x != nil {
 		return x.Error
 	}
 	return ""
 }
 
-func (x *DevtoolCommandStatus) GetLogFile() string {
+func (x *DevtoolStatusCommand) GetLogFile() string {
 	if x != nil {
 		return x.LogFile
 	}
 	return ""
 }
 
-// DevtoolManifestFetchRow describes one manifest fetch status row.
-type DevtoolManifestFetchRow struct {
+// DevtoolStatusProject is the read-only Bldr project and target snapshot.
+type DevtoolStatusProject struct {
 	unknownFields []byte
-	// Id is the stable row identifier.
+	// ProjectId is the configured project id.
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"projectId,omitempty"`
+	// StartupPlugins is the list of configured startup plugins.
+	StartupPlugins []string `protobuf:"bytes,2,rep,name=startup_plugins,json=startupPlugins,proto3" json:"startupPlugins,omitempty"`
+	// WebStartupPath is the configured web startup source path.
+	WebStartupPath string `protobuf:"bytes,3,opt,name=web_startup_path,json=webStartupPath,proto3" json:"webStartupPath,omitempty"`
+	// ManifestIds is the list of configured manifest ids.
+	ManifestIds []string `protobuf:"bytes,4,rep,name=manifest_ids,json=manifestIds,proto3" json:"manifestIds,omitempty"`
+	// BuildTargets is the normalized build target matrix.
+	BuildTargets []*DevtoolStatusBuildTarget `protobuf:"bytes,5,rep,name=build_targets,json=buildTargets,proto3" json:"buildTargets,omitempty"`
+}
+
+func (x *DevtoolStatusProject) Reset() {
+	*x = DevtoolStatusProject{}
+}
+
+func (*DevtoolStatusProject) ProtoMessage() {}
+
+func (x *DevtoolStatusProject) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *DevtoolStatusProject) GetStartupPlugins() []string {
+	if x != nil {
+		return x.StartupPlugins
+	}
+	return nil
+}
+
+func (x *DevtoolStatusProject) GetWebStartupPath() string {
+	if x != nil {
+		return x.WebStartupPath
+	}
+	return ""
+}
+
+func (x *DevtoolStatusProject) GetManifestIds() []string {
+	if x != nil {
+		return x.ManifestIds
+	}
+	return nil
+}
+
+func (x *DevtoolStatusProject) GetBuildTargets() []*DevtoolStatusBuildTarget {
+	if x != nil {
+		return x.BuildTargets
+	}
+	return nil
+}
+
+// DevtoolStatusBuildTarget describes one configured build target.
+type DevtoolStatusBuildTarget struct {
+	unknownFields []byte
+	// Id is the build target id from project configuration.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// ManifestId is the requested manifest identifier.
-	ManifestId string `protobuf:"bytes,2,opt,name=manifest_id,json=manifestId,proto3" json:"manifestId,omitempty"`
-	// PlatformId is the requested platform identifier set.
-	PlatformId string `protobuf:"bytes,3,opt,name=platform_id,json=platformId,proto3" json:"platformId,omitempty"`
-	// BuildType is the requested build type set.
-	BuildType string `protobuf:"bytes,4,opt,name=build_type,json=buildType,proto3" json:"buildType,omitempty"`
-	// RemoteId is the remote identity associated with local build rows.
-	RemoteId string `protobuf:"bytes,5,opt,name=remote_id,json=remoteId,proto3" json:"remoteId,omitempty"`
-	// State is the fetch lifecycle state.
-	State DevtoolManifestState `protobuf:"varint,6,opt,name=state,proto3" json:"state,omitempty"`
-	// ReadyRefCount is the number of ready manifest refs.
-	ReadyRefCount int32 `protobuf:"varint,7,opt,name=ready_ref_count,json=readyRefCount,proto3" json:"readyRefCount,omitempty"`
-	// ReadyRefs is a compact display string of ready refs.
-	ReadyRefs string `protobuf:"bytes,8,opt,name=ready_refs,json=readyRefs,proto3" json:"readyRefs,omitempty"`
-	// LocalBuildIds is the compact list of matching local build row ids.
-	LocalBuildIds string `protobuf:"bytes,9,opt,name=local_build_ids,json=localBuildIds,proto3" json:"localBuildIds,omitempty"`
-	// BlockedOnLocalBuild indicates the fetch is waiting on local build work.
-	BlockedOnLocalBuild bool `protobuf:"varint,10,opt,name=blocked_on_local_build,json=blockedOnLocalBuild,proto3" json:"blockedOnLocalBuild,omitempty"`
-	// Summary is a concise status summary.
-	Summary string `protobuf:"bytes,11,opt,name=summary,proto3" json:"summary,omitempty"`
-	// Error is the current fetch error summary.
-	Error string `protobuf:"bytes,12,opt,name=error,proto3" json:"error,omitempty"`
+	// ManifestIds is the target's configured manifest list.
+	ManifestIds []string `protobuf:"bytes,2,rep,name=manifest_ids,json=manifestIds,proto3" json:"manifestIds,omitempty"`
+	// ConfiguredTargetIds is the target id list from project configuration.
+	ConfiguredTargetIds []string `protobuf:"bytes,3,rep,name=configured_target_ids,json=configuredTargetIds,proto3" json:"configuredTargetIds,omitempty"`
+	// ExplicitPlatformIds is the explicit platform_ids list from project configuration.
+	ExplicitPlatformIds []string `protobuf:"bytes,4,rep,name=explicit_platform_ids,json=explicitPlatformIds,proto3" json:"explicitPlatformIds,omitempty"`
+	// ResolvedPlatformIds is the merged target platform list.
+	ResolvedPlatformIds []string `protobuf:"bytes,5,rep,name=resolved_platform_ids,json=resolvedPlatformIds,proto3" json:"resolvedPlatformIds,omitempty"`
+	// BuildTypes are the supported build types for this target.
+	BuildTypes []string `protobuf:"bytes,6,rep,name=build_types,json=buildTypes,proto3" json:"buildTypes,omitempty"`
+	// Error is the explicit target normalization error, when present.
+	Error string `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"`
 }
 
-func (x *DevtoolManifestFetchRow) Reset() {
-	*x = DevtoolManifestFetchRow{}
+func (x *DevtoolStatusBuildTarget) Reset() {
+	*x = DevtoolStatusBuildTarget{}
 }
 
-func (*DevtoolManifestFetchRow) ProtoMessage() {}
+func (*DevtoolStatusBuildTarget) ProtoMessage() {}
 
-func (x *DevtoolManifestFetchRow) GetId() string {
+func (x *DevtoolStatusBuildTarget) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-func (x *DevtoolManifestFetchRow) GetManifestId() string {
+func (x *DevtoolStatusBuildTarget) GetManifestIds() []string {
+	if x != nil {
+		return x.ManifestIds
+	}
+	return nil
+}
+
+func (x *DevtoolStatusBuildTarget) GetConfiguredTargetIds() []string {
+	if x != nil {
+		return x.ConfiguredTargetIds
+	}
+	return nil
+}
+
+func (x *DevtoolStatusBuildTarget) GetExplicitPlatformIds() []string {
+	if x != nil {
+		return x.ExplicitPlatformIds
+	}
+	return nil
+}
+
+func (x *DevtoolStatusBuildTarget) GetResolvedPlatformIds() []string {
+	if x != nil {
+		return x.ResolvedPlatformIds
+	}
+	return nil
+}
+
+func (x *DevtoolStatusBuildTarget) GetBuildTypes() []string {
+	if x != nil {
+		return x.BuildTypes
+	}
+	return nil
+}
+
+func (x *DevtoolStatusBuildTarget) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+// DevtoolStatusManifestFetchRow describes one manifest fetch status row.
+type DevtoolStatusManifestFetchRow struct {
+	unknownFields []byte
+	// Id is the deterministic row id.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// ManifestId is the requested manifest id.
+	ManifestId string `protobuf:"bytes,2,opt,name=manifest_id,json=manifestId,proto3" json:"manifestId,omitempty"`
+	// PlatformIds is the requested platform id list.
+	PlatformIds []string `protobuf:"bytes,3,rep,name=platform_ids,json=platformIds,proto3" json:"platformIds,omitempty"`
+	// BuildTypes is the requested build type list.
+	BuildTypes []string `protobuf:"bytes,4,rep,name=build_types,json=buildTypes,proto3" json:"buildTypes,omitempty"`
+	// RemoteIds is the related remote id list.
+	RemoteIds []string `protobuf:"bytes,5,rep,name=remote_ids,json=remoteIds,proto3" json:"remoteIds,omitempty"`
+	// State is the manifest fetch state.
+	State DevtoolStatusManifestState `protobuf:"varint,6,opt,name=state,proto3" json:"state,omitempty"`
+	// ReadyRefCount is the number of ready manifest refs.
+	ReadyRefCount uint32 `protobuf:"varint,7,opt,name=ready_ref_count,json=readyRefCount,proto3" json:"readyRefCount,omitempty"`
+	// ReadyRefs is the compact diagnostic manifest ref summary.
+	ReadyRefs string `protobuf:"bytes,8,opt,name=ready_refs,json=readyRefs,proto3" json:"readyRefs,omitempty"`
+	// LocalBuildIds are related local build row ids.
+	LocalBuildIds []string `protobuf:"bytes,9,rep,name=local_build_ids,json=localBuildIds,proto3" json:"localBuildIds,omitempty"`
+	// BlockedOnLocalBuild indicates the fetch waits on a local build.
+	BlockedOnLocalBuild bool `protobuf:"varint,10,opt,name=blocked_on_local_build,json=blockedOnLocalBuild,proto3" json:"blockedOnLocalBuild,omitempty"`
+	// Summary is a short human-readable status summary.
+	Summary string `protobuf:"bytes,11,opt,name=summary,proto3" json:"summary,omitempty"`
+	// Error is the explicit fetch error, when present.
+	Error string `protobuf:"bytes,12,opt,name=error,proto3" json:"error,omitempty"`
+}
+
+func (x *DevtoolStatusManifestFetchRow) Reset() {
+	*x = DevtoolStatusManifestFetchRow{}
+}
+
+func (*DevtoolStatusManifestFetchRow) ProtoMessage() {}
+
+func (x *DevtoolStatusManifestFetchRow) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *DevtoolStatusManifestFetchRow) GetManifestId() string {
 	if x != nil {
 		return x.ManifestId
 	}
 	return ""
 }
 
-func (x *DevtoolManifestFetchRow) GetPlatformId() string {
+func (x *DevtoolStatusManifestFetchRow) GetPlatformIds() []string {
 	if x != nil {
-		return x.PlatformId
+		return x.PlatformIds
 	}
-	return ""
+	return nil
 }
 
-func (x *DevtoolManifestFetchRow) GetBuildType() string {
+func (x *DevtoolStatusManifestFetchRow) GetBuildTypes() []string {
 	if x != nil {
-		return x.BuildType
+		return x.BuildTypes
 	}
-	return ""
+	return nil
 }
 
-func (x *DevtoolManifestFetchRow) GetRemoteId() string {
+func (x *DevtoolStatusManifestFetchRow) GetRemoteIds() []string {
 	if x != nil {
-		return x.RemoteId
+		return x.RemoteIds
 	}
-	return ""
+	return nil
 }
 
-func (x *DevtoolManifestFetchRow) GetState() DevtoolManifestState {
+func (x *DevtoolStatusManifestFetchRow) GetState() DevtoolStatusManifestState {
 	if x != nil {
 		return x.State
 	}
-	return DevtoolManifestState_DEVTOOL_MANIFEST_STATE_UNSPECIFIED
+	return DevtoolStatusManifestState_DevtoolStatusManifestState_UNKNOWN
 }
 
-func (x *DevtoolManifestFetchRow) GetReadyRefCount() int32 {
+func (x *DevtoolStatusManifestFetchRow) GetReadyRefCount() uint32 {
 	if x != nil {
 		return x.ReadyRefCount
 	}
 	return 0
 }
 
-func (x *DevtoolManifestFetchRow) GetReadyRefs() string {
+func (x *DevtoolStatusManifestFetchRow) GetReadyRefs() string {
 	if x != nil {
 		return x.ReadyRefs
 	}
 	return ""
 }
 
-func (x *DevtoolManifestFetchRow) GetLocalBuildIds() string {
+func (x *DevtoolStatusManifestFetchRow) GetLocalBuildIds() []string {
 	if x != nil {
 		return x.LocalBuildIds
 	}
-	return ""
+	return nil
 }
 
-func (x *DevtoolManifestFetchRow) GetBlockedOnLocalBuild() bool {
+func (x *DevtoolStatusManifestFetchRow) GetBlockedOnLocalBuild() bool {
 	if x != nil {
 		return x.BlockedOnLocalBuild
 	}
 	return false
 }
 
-func (x *DevtoolManifestFetchRow) GetSummary() string {
+func (x *DevtoolStatusManifestFetchRow) GetSummary() string {
 	if x != nil {
 		return x.Summary
 	}
 	return ""
 }
 
-func (x *DevtoolManifestFetchRow) GetError() string {
+func (x *DevtoolStatusManifestFetchRow) GetError() string {
 	if x != nil {
 		return x.Error
 	}
 	return ""
 }
 
-// DevtoolManifestBuildRow describes one manifest build status row.
-type DevtoolManifestBuildRow struct {
+// DevtoolStatusManifestBuildRow describes one manifest build status row.
+type DevtoolStatusManifestBuildRow struct {
 	unknownFields []byte
-	// Id is the stable row identifier.
+	// Id is the deterministic row id.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// BuildTargets is the compact list of build target ids.
-	BuildTargets string `protobuf:"bytes,2,opt,name=build_targets,json=buildTargets,proto3" json:"buildTargets,omitempty"`
-	// ManifestId is the manifest identifier.
+	// BuildTargetIds are related build target ids.
+	BuildTargetIds []string `protobuf:"bytes,2,rep,name=build_target_ids,json=buildTargetIds,proto3" json:"buildTargetIds,omitempty"`
+	// ManifestId is the manifest id.
 	ManifestId string `protobuf:"bytes,3,opt,name=manifest_id,json=manifestId,proto3" json:"manifestId,omitempty"`
-	// PlatformId is the builder platform identifier.
+	// PlatformId is the selected platform id.
 	PlatformId string `protobuf:"bytes,4,opt,name=platform_id,json=platformId,proto3" json:"platformId,omitempty"`
-	// TargetPlatformIds is the compact list of target platform ids.
-	TargetPlatformIds string `protobuf:"bytes,5,opt,name=target_platform_ids,json=targetPlatformIds,proto3" json:"targetPlatformIds,omitempty"`
+	// TargetPlatformIds is the full target platform list.
+	TargetPlatformIds []string `protobuf:"bytes,5,rep,name=target_platform_ids,json=targetPlatformIds,proto3" json:"targetPlatformIds,omitempty"`
 	// BuildType is the build type.
 	BuildType string `protobuf:"bytes,6,opt,name=build_type,json=buildType,proto3" json:"buildType,omitempty"`
-	// RemoteId is the destination remote identifier.
+	// RemoteId is the remote id.
 	RemoteId string `protobuf:"bytes,7,opt,name=remote_id,json=remoteId,proto3" json:"remoteId,omitempty"`
-	// State is the build lifecycle state.
-	State DevtoolManifestState `protobuf:"varint,8,opt,name=state,proto3" json:"state,omitempty"`
-	// CacheHit indicates the build reused cached output.
+	// State is the manifest build state.
+	State DevtoolStatusManifestState `protobuf:"varint,8,opt,name=state,proto3" json:"state,omitempty"`
+	// CacheHit indicates the builder reused a cached result.
 	CacheHit bool `protobuf:"varint,9,opt,name=cache_hit,json=cacheHit,proto3" json:"cacheHit,omitempty"`
-	// FullRebuild indicates the build is a full rebuild.
+	// FullRebuild indicates the builder performed a full rebuild.
 	FullRebuild bool `protobuf:"varint,10,opt,name=full_rebuild,json=fullRebuild,proto3" json:"fullRebuild,omitempty"`
-	// HotRebuild indicates the build is a hot rebuild.
+	// HotRebuild indicates the builder performed a hot rebuild.
 	HotRebuild bool `protobuf:"varint,11,opt,name=hot_rebuild,json=hotRebuild,proto3" json:"hotRebuild,omitempty"`
-	// WatchedFileCount is the number of files watched for rebuilds.
-	WatchedFileCount int32 `protobuf:"varint,12,opt,name=watched_file_count,json=watchedFileCount,proto3" json:"watchedFileCount,omitempty"`
-	// DependencyRebuildReason explains why a dependency triggered rebuild work.
+	// WatchedFileCount is the number of watched files.
+	WatchedFileCount uint32 `protobuf:"varint,12,opt,name=watched_file_count,json=watchedFileCount,proto3" json:"watchedFileCount,omitempty"`
+	// DependencyRebuildReason explains dependency-triggered rebuilds.
 	DependencyRebuildReason string `protobuf:"bytes,13,opt,name=dependency_rebuild_reason,json=dependencyRebuildReason,proto3" json:"dependencyRebuildReason,omitempty"`
-	// Summary is a concise status summary.
+	// Summary is a short human-readable status summary.
 	Summary string `protobuf:"bytes,14,opt,name=summary,proto3" json:"summary,omitempty"`
-	// Error is the current build error summary.
+	// Error is the explicit build error, when present.
 	Error string `protobuf:"bytes,15,opt,name=error,proto3" json:"error,omitempty"`
 }
 
-func (x *DevtoolManifestBuildRow) Reset() {
-	*x = DevtoolManifestBuildRow{}
+func (x *DevtoolStatusManifestBuildRow) Reset() {
+	*x = DevtoolStatusManifestBuildRow{}
 }
 
-func (*DevtoolManifestBuildRow) ProtoMessage() {}
+func (*DevtoolStatusManifestBuildRow) ProtoMessage() {}
 
-func (x *DevtoolManifestBuildRow) GetId() string {
+func (x *DevtoolStatusManifestBuildRow) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-func (x *DevtoolManifestBuildRow) GetBuildTargets() string {
+func (x *DevtoolStatusManifestBuildRow) GetBuildTargetIds() []string {
 	if x != nil {
-		return x.BuildTargets
+		return x.BuildTargetIds
 	}
-	return ""
+	return nil
 }
 
-func (x *DevtoolManifestBuildRow) GetManifestId() string {
+func (x *DevtoolStatusManifestBuildRow) GetManifestId() string {
 	if x != nil {
 		return x.ManifestId
 	}
 	return ""
 }
 
-func (x *DevtoolManifestBuildRow) GetPlatformId() string {
+func (x *DevtoolStatusManifestBuildRow) GetPlatformId() string {
 	if x != nil {
 		return x.PlatformId
 	}
 	return ""
 }
 
-func (x *DevtoolManifestBuildRow) GetTargetPlatformIds() string {
+func (x *DevtoolStatusManifestBuildRow) GetTargetPlatformIds() []string {
 	if x != nil {
 		return x.TargetPlatformIds
 	}
-	return ""
+	return nil
 }
 
-func (x *DevtoolManifestBuildRow) GetBuildType() string {
+func (x *DevtoolStatusManifestBuildRow) GetBuildType() string {
 	if x != nil {
 		return x.BuildType
 	}
 	return ""
 }
 
-func (x *DevtoolManifestBuildRow) GetRemoteId() string {
+func (x *DevtoolStatusManifestBuildRow) GetRemoteId() string {
 	if x != nil {
 		return x.RemoteId
 	}
 	return ""
 }
 
-func (x *DevtoolManifestBuildRow) GetState() DevtoolManifestState {
+func (x *DevtoolStatusManifestBuildRow) GetState() DevtoolStatusManifestState {
 	if x != nil {
 		return x.State
 	}
-	return DevtoolManifestState_DEVTOOL_MANIFEST_STATE_UNSPECIFIED
+	return DevtoolStatusManifestState_DevtoolStatusManifestState_UNKNOWN
 }
 
-func (x *DevtoolManifestBuildRow) GetCacheHit() bool {
+func (x *DevtoolStatusManifestBuildRow) GetCacheHit() bool {
 	if x != nil {
 		return x.CacheHit
 	}
 	return false
 }
 
-func (x *DevtoolManifestBuildRow) GetFullRebuild() bool {
+func (x *DevtoolStatusManifestBuildRow) GetFullRebuild() bool {
 	if x != nil {
 		return x.FullRebuild
 	}
 	return false
 }
 
-func (x *DevtoolManifestBuildRow) GetHotRebuild() bool {
+func (x *DevtoolStatusManifestBuildRow) GetHotRebuild() bool {
 	if x != nil {
 		return x.HotRebuild
 	}
 	return false
 }
 
-func (x *DevtoolManifestBuildRow) GetWatchedFileCount() int32 {
+func (x *DevtoolStatusManifestBuildRow) GetWatchedFileCount() uint32 {
 	if x != nil {
 		return x.WatchedFileCount
 	}
 	return 0
 }
 
-func (x *DevtoolManifestBuildRow) GetDependencyRebuildReason() string {
+func (x *DevtoolStatusManifestBuildRow) GetDependencyRebuildReason() string {
 	if x != nil {
 		return x.DependencyRebuildReason
 	}
 	return ""
 }
 
-func (x *DevtoolManifestBuildRow) GetSummary() string {
+func (x *DevtoolStatusManifestBuildRow) GetSummary() string {
 	if x != nil {
 		return x.Summary
 	}
 	return ""
 }
 
-func (x *DevtoolManifestBuildRow) GetError() string {
+func (x *DevtoolStatusManifestBuildRow) GetError() string {
 	if x != nil {
 		return x.Error
 	}
 	return ""
 }
 
-// DevtoolPluginRow describes one plugin instance row.
-type DevtoolPluginRow struct {
+// DevtoolStatusControllerRow describes one controller directive row.
+type DevtoolStatusControllerRow struct {
 	unknownFields []byte
-	// Id is the stable row identifier.
+	// Id is the deterministic row id.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// PluginId is the plugin identifier.
-	PluginId string `protobuf:"bytes,2,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
-	// InstanceKey is the optional plugin instance key.
-	InstanceKey string `protobuf:"bytes,3,opt,name=instance_key,json=instanceKey,proto3" json:"instanceKey,omitempty"`
-	// State is the plugin lifecycle state.
-	State DevtoolPluginState `protobuf:"varint,4,opt,name=state,proto3" json:"state,omitempty"`
-	// Summary is a concise status summary.
-	Summary string `protobuf:"bytes,5,opt,name=summary,proto3" json:"summary,omitempty"`
-	// Error is the current plugin error summary.
-	Error string `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
-	// LastErrorAt is the RFC3339Nano time of the last plugin error.
-	LastErrorAt string `protobuf:"bytes,7,opt,name=last_error_at,json=lastErrorAt,proto3" json:"lastErrorAt,omitempty"`
-}
-
-func (x *DevtoolPluginRow) Reset() {
-	*x = DevtoolPluginRow{}
-}
-
-func (*DevtoolPluginRow) ProtoMessage() {}
-
-func (x *DevtoolPluginRow) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *DevtoolPluginRow) GetPluginId() string {
-	if x != nil {
-		return x.PluginId
-	}
-	return ""
-}
-
-func (x *DevtoolPluginRow) GetInstanceKey() string {
-	if x != nil {
-		return x.InstanceKey
-	}
-	return ""
-}
-
-func (x *DevtoolPluginRow) GetState() DevtoolPluginState {
-	if x != nil {
-		return x.State
-	}
-	return DevtoolPluginState_DEVTOOL_PLUGIN_STATE_UNSPECIFIED
-}
-
-func (x *DevtoolPluginRow) GetSummary() string {
-	if x != nil {
-		return x.Summary
-	}
-	return ""
-}
-
-func (x *DevtoolPluginRow) GetError() string {
-	if x != nil {
-		return x.Error
-	}
-	return ""
-}
-
-func (x *DevtoolPluginRow) GetLastErrorAt() string {
-	if x != nil {
-		return x.LastErrorAt
-	}
-	return ""
-}
-
-// DevtoolControllerRow describes one controller load or exec directive row.
-type DevtoolControllerRow struct {
-	unknownFields []byte
-	// Id is the stable row identifier.
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// ControllerId is the controller identifier.
+	// ControllerId is the controller config id.
 	ControllerId string `protobuf:"bytes,2,opt,name=controller_id,json=controllerId,proto3" json:"controllerId,omitempty"`
-	// Kind describes the controller directive kind.
+	// Kind is the directive kind.
 	Kind string `protobuf:"bytes,3,opt,name=kind,proto3" json:"kind,omitempty"`
-	// State is the controller lifecycle state.
-	State DevtoolControllerState `protobuf:"varint,4,opt,name=state,proto3" json:"state,omitempty"`
-	// Summary is a concise status summary.
+	// State is the controller directive state.
+	State DevtoolStatusControllerState `protobuf:"varint,4,opt,name=state,proto3" json:"state,omitempty"`
+	// Summary is a short human-readable status summary.
 	Summary string `protobuf:"bytes,5,opt,name=summary,proto3" json:"summary,omitempty"`
-	// Error is the current controller error summary.
+	// Error is the explicit controller error, when present.
 	Error string `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
 }
 
-func (x *DevtoolControllerRow) Reset() {
-	*x = DevtoolControllerRow{}
+func (x *DevtoolStatusControllerRow) Reset() {
+	*x = DevtoolStatusControllerRow{}
 }
 
-func (*DevtoolControllerRow) ProtoMessage() {}
+func (*DevtoolStatusControllerRow) ProtoMessage() {}
 
-func (x *DevtoolControllerRow) GetId() string {
+func (x *DevtoolStatusControllerRow) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-func (x *DevtoolControllerRow) GetControllerId() string {
+func (x *DevtoolStatusControllerRow) GetControllerId() string {
 	if x != nil {
 		return x.ControllerId
 	}
 	return ""
 }
 
-func (x *DevtoolControllerRow) GetKind() string {
+func (x *DevtoolStatusControllerRow) GetKind() string {
 	if x != nil {
 		return x.Kind
 	}
 	return ""
 }
 
-func (x *DevtoolControllerRow) GetState() DevtoolControllerState {
+func (x *DevtoolStatusControllerRow) GetState() DevtoolStatusControllerState {
 	if x != nil {
 		return x.State
 	}
-	return DevtoolControllerState_DEVTOOL_CONTROLLER_STATE_UNSPECIFIED
+	return DevtoolStatusControllerState_DevtoolStatusControllerState_UNKNOWN
 }
 
-func (x *DevtoolControllerRow) GetSummary() string {
+func (x *DevtoolStatusControllerRow) GetSummary() string {
 	if x != nil {
 		return x.Summary
 	}
 	return ""
 }
 
-func (x *DevtoolControllerRow) GetError() string {
+func (x *DevtoolStatusControllerRow) GetError() string {
 	if x != nil {
 		return x.Error
 	}
 	return ""
 }
 
-// DevtoolAttentionRow describes one recent attention or error item.
-type DevtoolAttentionRow struct {
+// DevtoolStatusPluginRow describes one plugin instance row.
+type DevtoolStatusPluginRow struct {
 	unknownFields []byte
-	// Id is the stable row identifier.
+	// Id is the deterministic row id.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// Source is the status source that produced the attention row.
-	Source string `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
-	// Message is the concise attention message.
-	Message string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
-	// Detail is optional expanded attention detail.
-	Detail string `protobuf:"bytes,4,opt,name=detail,proto3" json:"detail,omitempty"`
-	// Severity is the attention urgency.
-	Severity DevtoolAttentionSeverity `protobuf:"varint,5,opt,name=severity,proto3" json:"severity,omitempty"`
+	// PluginId is the plugin id.
+	PluginId string `protobuf:"bytes,2,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
+	// InstanceKey is the optional plugin instance key.
+	InstanceKey string `protobuf:"bytes,3,opt,name=instance_key,json=instanceKey,proto3" json:"instanceKey,omitempty"`
+	// State is the plugin scheduler state.
+	State DevtoolStatusPluginState `protobuf:"varint,4,opt,name=state,proto3" json:"state,omitempty"`
+	// Summary is a short human-readable status summary.
+	Summary string `protobuf:"bytes,5,opt,name=summary,proto3" json:"summary,omitempty"`
+	// Error is the explicit plugin error, when present.
+	Error string `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
+	// LastErrorAt is the latest plugin error timestamp, when present.
+	LastErrorAt string `protobuf:"bytes,7,opt,name=last_error_at,json=lastErrorAt,proto3" json:"lastErrorAt,omitempty"`
 }
 
-func (x *DevtoolAttentionRow) Reset() {
-	*x = DevtoolAttentionRow{}
+func (x *DevtoolStatusPluginRow) Reset() {
+	*x = DevtoolStatusPluginRow{}
 }
 
-func (*DevtoolAttentionRow) ProtoMessage() {}
+func (*DevtoolStatusPluginRow) ProtoMessage() {}
 
-func (x *DevtoolAttentionRow) GetId() string {
+func (x *DevtoolStatusPluginRow) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-func (x *DevtoolAttentionRow) GetSource() string {
+func (x *DevtoolStatusPluginRow) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
+}
+
+func (x *DevtoolStatusPluginRow) GetInstanceKey() string {
+	if x != nil {
+		return x.InstanceKey
+	}
+	return ""
+}
+
+func (x *DevtoolStatusPluginRow) GetState() DevtoolStatusPluginState {
+	if x != nil {
+		return x.State
+	}
+	return DevtoolStatusPluginState_DevtoolStatusPluginState_UNKNOWN
+}
+
+func (x *DevtoolStatusPluginRow) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
+}
+
+func (x *DevtoolStatusPluginRow) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *DevtoolStatusPluginRow) GetLastErrorAt() string {
+	if x != nil {
+		return x.LastErrorAt
+	}
+	return ""
+}
+
+// DevtoolStatusAttentionRow describes one recent attention item.
+type DevtoolStatusAttentionRow struct {
+	unknownFields []byte
+	// Id is the deterministic row id.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Source is the status source.
+	Source string `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
+	// Message is the attention summary.
+	Message string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	// Detail is the attention detail.
+	Detail string `protobuf:"bytes,4,opt,name=detail,proto3" json:"detail,omitempty"`
+	// Severity is the attention severity.
+	Severity DevtoolStatusAttentionSeverity `protobuf:"varint,5,opt,name=severity,proto3" json:"severity,omitempty"`
+}
+
+func (x *DevtoolStatusAttentionRow) Reset() {
+	*x = DevtoolStatusAttentionRow{}
+}
+
+func (*DevtoolStatusAttentionRow) ProtoMessage() {}
+
+func (x *DevtoolStatusAttentionRow) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *DevtoolStatusAttentionRow) GetSource() string {
 	if x != nil {
 		return x.Source
 	}
 	return ""
 }
 
-func (x *DevtoolAttentionRow) GetMessage() string {
+func (x *DevtoolStatusAttentionRow) GetMessage() string {
 	if x != nil {
 		return x.Message
 	}
 	return ""
 }
 
-func (x *DevtoolAttentionRow) GetDetail() string {
+func (x *DevtoolStatusAttentionRow) GetDetail() string {
 	if x != nil {
 		return x.Detail
 	}
 	return ""
 }
 
-func (x *DevtoolAttentionRow) GetSeverity() DevtoolAttentionSeverity {
+func (x *DevtoolStatusAttentionRow) GetSeverity() DevtoolStatusAttentionSeverity {
 	if x != nil {
 		return x.Severity
 	}
-	return DevtoolAttentionSeverity_DEVTOOL_ATTENTION_SEVERITY_UNSPECIFIED
+	return DevtoolStatusAttentionSeverity_DevtoolStatusAttentionSeverity_UNKNOWN
 }
 
 func (m *WatchDevtoolStatusRequest) CloneVT() *WatchDevtoolStatusRequest {
@@ -904,32 +1043,33 @@ func (m *DevtoolStatusSnapshot) CloneVT() *DevtoolStatusSnapshot {
 	}
 	r := new(DevtoolStatusSnapshot)
 	r.Command = m.Command.CloneVT()
+	r.Project = m.Project.CloneVT()
 	if rhs := m.ManifestFetchRows; rhs != nil {
-		r.ManifestFetchRows = make([]*DevtoolManifestFetchRow, len(rhs))
+		r.ManifestFetchRows = make([]*DevtoolStatusManifestFetchRow, len(rhs))
 		for k, v := range rhs {
 			r.ManifestFetchRows[k] = v.CloneVT()
 		}
 	}
 	if rhs := m.ManifestBuildRows; rhs != nil {
-		r.ManifestBuildRows = make([]*DevtoolManifestBuildRow, len(rhs))
+		r.ManifestBuildRows = make([]*DevtoolStatusManifestBuildRow, len(rhs))
 		for k, v := range rhs {
 			r.ManifestBuildRows[k] = v.CloneVT()
 		}
 	}
-	if rhs := m.PluginRows; rhs != nil {
-		r.PluginRows = make([]*DevtoolPluginRow, len(rhs))
-		for k, v := range rhs {
-			r.PluginRows[k] = v.CloneVT()
-		}
-	}
 	if rhs := m.ControllerRows; rhs != nil {
-		r.ControllerRows = make([]*DevtoolControllerRow, len(rhs))
+		r.ControllerRows = make([]*DevtoolStatusControllerRow, len(rhs))
 		for k, v := range rhs {
 			r.ControllerRows[k] = v.CloneVT()
 		}
 	}
+	if rhs := m.PluginRows; rhs != nil {
+		r.PluginRows = make([]*DevtoolStatusPluginRow, len(rhs))
+		for k, v := range rhs {
+			r.PluginRows[k] = v.CloneVT()
+		}
+	}
 	if rhs := m.AttentionRows; rhs != nil {
-		r.AttentionRows = make([]*DevtoolAttentionRow, len(rhs))
+		r.AttentionRows = make([]*DevtoolStatusAttentionRow, len(rhs))
 		for k, v := range rhs {
 			r.AttentionRows[k] = v.CloneVT()
 		}
@@ -944,11 +1084,11 @@ func (m *DevtoolStatusSnapshot) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *DevtoolCommandStatus) CloneVT() *DevtoolCommandStatus {
+func (m *DevtoolStatusCommand) CloneVT() *DevtoolStatusCommand {
 	if m == nil {
-		return (*DevtoolCommandStatus)(nil)
+		return (*DevtoolStatusCommand)(nil)
 	}
-	r := new(DevtoolCommandStatus)
+	r := new(DevtoolStatusCommand)
 	r.Name = m.Name
 	r.State = m.State
 	r.Summary = m.Summary
@@ -960,47 +1100,114 @@ func (m *DevtoolCommandStatus) CloneVT() *DevtoolCommandStatus {
 	return r
 }
 
-func (m *DevtoolCommandStatus) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *DevtoolStatusCommand) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *DevtoolManifestFetchRow) CloneVT() *DevtoolManifestFetchRow {
+func (m *DevtoolStatusProject) CloneVT() *DevtoolStatusProject {
 	if m == nil {
-		return (*DevtoolManifestFetchRow)(nil)
+		return (*DevtoolStatusProject)(nil)
 	}
-	r := new(DevtoolManifestFetchRow)
-	r.Id = m.Id
-	r.ManifestId = m.ManifestId
-	r.PlatformId = m.PlatformId
-	r.BuildType = m.BuildType
-	r.RemoteId = m.RemoteId
-	r.State = m.State
-	r.ReadyRefCount = m.ReadyRefCount
-	r.ReadyRefs = m.ReadyRefs
-	r.LocalBuildIds = m.LocalBuildIds
-	r.BlockedOnLocalBuild = m.BlockedOnLocalBuild
-	r.Summary = m.Summary
-	r.Error = m.Error
+	r := new(DevtoolStatusProject)
+	r.ProjectId = m.ProjectId
+	r.WebStartupPath = m.WebStartupPath
+	if rhs := m.StartupPlugins; rhs != nil {
+		r.StartupPlugins = slices.Clone(rhs)
+	}
+	if rhs := m.ManifestIds; rhs != nil {
+		r.ManifestIds = slices.Clone(rhs)
+	}
+	if rhs := m.BuildTargets; rhs != nil {
+		r.BuildTargets = make([]*DevtoolStatusBuildTarget, len(rhs))
+		for k, v := range rhs {
+			r.BuildTargets[k] = v.CloneVT()
+		}
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
 	return r
 }
 
-func (m *DevtoolManifestFetchRow) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *DevtoolStatusProject) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *DevtoolManifestBuildRow) CloneVT() *DevtoolManifestBuildRow {
+func (m *DevtoolStatusBuildTarget) CloneVT() *DevtoolStatusBuildTarget {
 	if m == nil {
-		return (*DevtoolManifestBuildRow)(nil)
+		return (*DevtoolStatusBuildTarget)(nil)
 	}
-	r := new(DevtoolManifestBuildRow)
+	r := new(DevtoolStatusBuildTarget)
 	r.Id = m.Id
-	r.BuildTargets = m.BuildTargets
+	r.Error = m.Error
+	if rhs := m.ManifestIds; rhs != nil {
+		r.ManifestIds = slices.Clone(rhs)
+	}
+	if rhs := m.ConfiguredTargetIds; rhs != nil {
+		r.ConfiguredTargetIds = slices.Clone(rhs)
+	}
+	if rhs := m.ExplicitPlatformIds; rhs != nil {
+		r.ExplicitPlatformIds = slices.Clone(rhs)
+	}
+	if rhs := m.ResolvedPlatformIds; rhs != nil {
+		r.ResolvedPlatformIds = slices.Clone(rhs)
+	}
+	if rhs := m.BuildTypes; rhs != nil {
+		r.BuildTypes = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DevtoolStatusBuildTarget) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DevtoolStatusManifestFetchRow) CloneVT() *DevtoolStatusManifestFetchRow {
+	if m == nil {
+		return (*DevtoolStatusManifestFetchRow)(nil)
+	}
+	r := new(DevtoolStatusManifestFetchRow)
+	r.Id = m.Id
+	r.ManifestId = m.ManifestId
+	r.State = m.State
+	r.ReadyRefCount = m.ReadyRefCount
+	r.ReadyRefs = m.ReadyRefs
+	r.BlockedOnLocalBuild = m.BlockedOnLocalBuild
+	r.Summary = m.Summary
+	r.Error = m.Error
+	if rhs := m.PlatformIds; rhs != nil {
+		r.PlatformIds = slices.Clone(rhs)
+	}
+	if rhs := m.BuildTypes; rhs != nil {
+		r.BuildTypes = slices.Clone(rhs)
+	}
+	if rhs := m.RemoteIds; rhs != nil {
+		r.RemoteIds = slices.Clone(rhs)
+	}
+	if rhs := m.LocalBuildIds; rhs != nil {
+		r.LocalBuildIds = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DevtoolStatusManifestFetchRow) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DevtoolStatusManifestBuildRow) CloneVT() *DevtoolStatusManifestBuildRow {
+	if m == nil {
+		return (*DevtoolStatusManifestBuildRow)(nil)
+	}
+	r := new(DevtoolStatusManifestBuildRow)
+	r.Id = m.Id
 	r.ManifestId = m.ManifestId
 	r.PlatformId = m.PlatformId
-	r.TargetPlatformIds = m.TargetPlatformIds
 	r.BuildType = m.BuildType
 	r.RemoteId = m.RemoteId
 	r.State = m.State
@@ -1011,21 +1218,48 @@ func (m *DevtoolManifestBuildRow) CloneVT() *DevtoolManifestBuildRow {
 	r.DependencyRebuildReason = m.DependencyRebuildReason
 	r.Summary = m.Summary
 	r.Error = m.Error
+	if rhs := m.BuildTargetIds; rhs != nil {
+		r.BuildTargetIds = slices.Clone(rhs)
+	}
+	if rhs := m.TargetPlatformIds; rhs != nil {
+		r.TargetPlatformIds = slices.Clone(rhs)
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
 	return r
 }
 
-func (m *DevtoolManifestBuildRow) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *DevtoolStatusManifestBuildRow) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *DevtoolPluginRow) CloneVT() *DevtoolPluginRow {
+func (m *DevtoolStatusControllerRow) CloneVT() *DevtoolStatusControllerRow {
 	if m == nil {
-		return (*DevtoolPluginRow)(nil)
+		return (*DevtoolStatusControllerRow)(nil)
 	}
-	r := new(DevtoolPluginRow)
+	r := new(DevtoolStatusControllerRow)
+	r.Id = m.Id
+	r.ControllerId = m.ControllerId
+	r.Kind = m.Kind
+	r.State = m.State
+	r.Summary = m.Summary
+	r.Error = m.Error
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DevtoolStatusControllerRow) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DevtoolStatusPluginRow) CloneVT() *DevtoolStatusPluginRow {
+	if m == nil {
+		return (*DevtoolStatusPluginRow)(nil)
+	}
+	r := new(DevtoolStatusPluginRow)
 	r.Id = m.Id
 	r.PluginId = m.PluginId
 	r.InstanceKey = m.InstanceKey
@@ -1039,36 +1273,15 @@ func (m *DevtoolPluginRow) CloneVT() *DevtoolPluginRow {
 	return r
 }
 
-func (m *DevtoolPluginRow) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *DevtoolStatusPluginRow) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *DevtoolControllerRow) CloneVT() *DevtoolControllerRow {
+func (m *DevtoolStatusAttentionRow) CloneVT() *DevtoolStatusAttentionRow {
 	if m == nil {
-		return (*DevtoolControllerRow)(nil)
+		return (*DevtoolStatusAttentionRow)(nil)
 	}
-	r := new(DevtoolControllerRow)
-	r.Id = m.Id
-	r.ControllerId = m.ControllerId
-	r.Kind = m.Kind
-	r.State = m.State
-	r.Summary = m.Summary
-	r.Error = m.Error
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *DevtoolControllerRow) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *DevtoolAttentionRow) CloneVT() *DevtoolAttentionRow {
-	if m == nil {
-		return (*DevtoolAttentionRow)(nil)
-	}
-	r := new(DevtoolAttentionRow)
+	r := new(DevtoolStatusAttentionRow)
 	r.Id = m.Id
 	r.Source = m.Source
 	r.Message = m.Message
@@ -1080,7 +1293,7 @@ func (m *DevtoolAttentionRow) CloneVT() *DevtoolAttentionRow {
 	return r
 }
 
-func (m *DevtoolAttentionRow) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *DevtoolStatusAttentionRow) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1130,6 +1343,9 @@ func (this *DevtoolStatusSnapshot) EqualVT(that *DevtoolStatusSnapshot) bool {
 	if !this.Command.EqualVT(that.Command) {
 		return false
 	}
+	if !this.Project.EqualVT(that.Project) {
+		return false
+	}
 	if len(this.ManifestFetchRows) != len(that.ManifestFetchRows) {
 		return false
 	}
@@ -1137,10 +1353,10 @@ func (this *DevtoolStatusSnapshot) EqualVT(that *DevtoolStatusSnapshot) bool {
 		vy := that.ManifestFetchRows[i]
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &DevtoolManifestFetchRow{}
+				p = &DevtoolStatusManifestFetchRow{}
 			}
 			if q == nil {
-				q = &DevtoolManifestFetchRow{}
+				q = &DevtoolStatusManifestFetchRow{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -1154,27 +1370,10 @@ func (this *DevtoolStatusSnapshot) EqualVT(that *DevtoolStatusSnapshot) bool {
 		vy := that.ManifestBuildRows[i]
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &DevtoolManifestBuildRow{}
+				p = &DevtoolStatusManifestBuildRow{}
 			}
 			if q == nil {
-				q = &DevtoolManifestBuildRow{}
-			}
-			if !p.EqualVT(q) {
-				return false
-			}
-		}
-	}
-	if len(this.PluginRows) != len(that.PluginRows) {
-		return false
-	}
-	for i, vx := range this.PluginRows {
-		vy := that.PluginRows[i]
-		if p, q := vx, vy; p != q {
-			if p == nil {
-				p = &DevtoolPluginRow{}
-			}
-			if q == nil {
-				q = &DevtoolPluginRow{}
+				q = &DevtoolStatusManifestBuildRow{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -1188,10 +1387,27 @@ func (this *DevtoolStatusSnapshot) EqualVT(that *DevtoolStatusSnapshot) bool {
 		vy := that.ControllerRows[i]
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &DevtoolControllerRow{}
+				p = &DevtoolStatusControllerRow{}
 			}
 			if q == nil {
-				q = &DevtoolControllerRow{}
+				q = &DevtoolStatusControllerRow{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if len(this.PluginRows) != len(that.PluginRows) {
+		return false
+	}
+	for i, vx := range this.PluginRows {
+		vy := that.PluginRows[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &DevtoolStatusPluginRow{}
+			}
+			if q == nil {
+				q = &DevtoolStatusPluginRow{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -1205,10 +1421,10 @@ func (this *DevtoolStatusSnapshot) EqualVT(that *DevtoolStatusSnapshot) bool {
 		vy := that.AttentionRows[i]
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &DevtoolAttentionRow{}
+				p = &DevtoolStatusAttentionRow{}
 			}
 			if q == nil {
-				q = &DevtoolAttentionRow{}
+				q = &DevtoolStatusAttentionRow{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -1226,7 +1442,7 @@ func (this *DevtoolStatusSnapshot) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
-func (this *DevtoolCommandStatus) EqualVT(that *DevtoolCommandStatus) bool {
+func (this *DevtoolStatusCommand) EqualVT(that *DevtoolStatusCommand) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -1250,15 +1466,141 @@ func (this *DevtoolCommandStatus) EqualVT(that *DevtoolCommandStatus) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *DevtoolCommandStatus) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*DevtoolCommandStatus)
+func (this *DevtoolStatusCommand) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DevtoolStatusCommand)
 	if !ok {
 		return false
 	}
 	return this.EqualVT(that)
 }
 
-func (this *DevtoolManifestFetchRow) EqualVT(that *DevtoolManifestFetchRow) bool {
+func (this *DevtoolStatusProject) EqualVT(that *DevtoolStatusProject) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ProjectId != that.ProjectId {
+		return false
+	}
+	if len(this.StartupPlugins) != len(that.StartupPlugins) {
+		return false
+	}
+	for i, vx := range this.StartupPlugins {
+		vy := that.StartupPlugins[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if this.WebStartupPath != that.WebStartupPath {
+		return false
+	}
+	if len(this.ManifestIds) != len(that.ManifestIds) {
+		return false
+	}
+	for i, vx := range this.ManifestIds {
+		vy := that.ManifestIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.BuildTargets) != len(that.BuildTargets) {
+		return false
+	}
+	for i, vx := range this.BuildTargets {
+		vy := that.BuildTargets[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &DevtoolStatusBuildTarget{}
+			}
+			if q == nil {
+				q = &DevtoolStatusBuildTarget{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DevtoolStatusProject) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DevtoolStatusProject)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DevtoolStatusBuildTarget) EqualVT(that *DevtoolStatusBuildTarget) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if len(this.ManifestIds) != len(that.ManifestIds) {
+		return false
+	}
+	for i, vx := range this.ManifestIds {
+		vy := that.ManifestIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.ConfiguredTargetIds) != len(that.ConfiguredTargetIds) {
+		return false
+	}
+	for i, vx := range this.ConfiguredTargetIds {
+		vy := that.ConfiguredTargetIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.ExplicitPlatformIds) != len(that.ExplicitPlatformIds) {
+		return false
+	}
+	for i, vx := range this.ExplicitPlatformIds {
+		vy := that.ExplicitPlatformIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.ResolvedPlatformIds) != len(that.ResolvedPlatformIds) {
+		return false
+	}
+	for i, vx := range this.ResolvedPlatformIds {
+		vy := that.ResolvedPlatformIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.BuildTypes) != len(that.BuildTypes) {
+		return false
+	}
+	for i, vx := range this.BuildTypes {
+		vy := that.BuildTypes[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if this.Error != that.Error {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DevtoolStatusBuildTarget) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DevtoolStatusBuildTarget)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DevtoolStatusManifestFetchRow) EqualVT(that *DevtoolStatusManifestFetchRow) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -1270,14 +1612,32 @@ func (this *DevtoolManifestFetchRow) EqualVT(that *DevtoolManifestFetchRow) bool
 	if this.ManifestId != that.ManifestId {
 		return false
 	}
-	if this.PlatformId != that.PlatformId {
+	if len(this.PlatformIds) != len(that.PlatformIds) {
 		return false
 	}
-	if this.BuildType != that.BuildType {
+	for i, vx := range this.PlatformIds {
+		vy := that.PlatformIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.BuildTypes) != len(that.BuildTypes) {
 		return false
 	}
-	if this.RemoteId != that.RemoteId {
+	for i, vx := range this.BuildTypes {
+		vy := that.BuildTypes[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.RemoteIds) != len(that.RemoteIds) {
 		return false
+	}
+	for i, vx := range this.RemoteIds {
+		vy := that.RemoteIds[i]
+		if vx != vy {
+			return false
+		}
 	}
 	if this.State != that.State {
 		return false
@@ -1288,8 +1648,14 @@ func (this *DevtoolManifestFetchRow) EqualVT(that *DevtoolManifestFetchRow) bool
 	if this.ReadyRefs != that.ReadyRefs {
 		return false
 	}
-	if this.LocalBuildIds != that.LocalBuildIds {
+	if len(this.LocalBuildIds) != len(that.LocalBuildIds) {
 		return false
+	}
+	for i, vx := range this.LocalBuildIds {
+		vy := that.LocalBuildIds[i]
+		if vx != vy {
+			return false
+		}
 	}
 	if this.BlockedOnLocalBuild != that.BlockedOnLocalBuild {
 		return false
@@ -1303,15 +1669,15 @@ func (this *DevtoolManifestFetchRow) EqualVT(that *DevtoolManifestFetchRow) bool
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *DevtoolManifestFetchRow) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*DevtoolManifestFetchRow)
+func (this *DevtoolStatusManifestFetchRow) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DevtoolStatusManifestFetchRow)
 	if !ok {
 		return false
 	}
 	return this.EqualVT(that)
 }
 
-func (this *DevtoolManifestBuildRow) EqualVT(that *DevtoolManifestBuildRow) bool {
+func (this *DevtoolStatusManifestBuildRow) EqualVT(that *DevtoolStatusManifestBuildRow) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -1320,8 +1686,14 @@ func (this *DevtoolManifestBuildRow) EqualVT(that *DevtoolManifestBuildRow) bool
 	if this.Id != that.Id {
 		return false
 	}
-	if this.BuildTargets != that.BuildTargets {
+	if len(this.BuildTargetIds) != len(that.BuildTargetIds) {
 		return false
+	}
+	for i, vx := range this.BuildTargetIds {
+		vy := that.BuildTargetIds[i]
+		if vx != vy {
+			return false
+		}
 	}
 	if this.ManifestId != that.ManifestId {
 		return false
@@ -1329,8 +1701,14 @@ func (this *DevtoolManifestBuildRow) EqualVT(that *DevtoolManifestBuildRow) bool
 	if this.PlatformId != that.PlatformId {
 		return false
 	}
-	if this.TargetPlatformIds != that.TargetPlatformIds {
+	if len(this.TargetPlatformIds) != len(that.TargetPlatformIds) {
 		return false
+	}
+	for i, vx := range this.TargetPlatformIds {
+		vy := that.TargetPlatformIds[i]
+		if vx != vy {
+			return false
+		}
 	}
 	if this.BuildType != that.BuildType {
 		return false
@@ -1365,15 +1743,50 @@ func (this *DevtoolManifestBuildRow) EqualVT(that *DevtoolManifestBuildRow) bool
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *DevtoolManifestBuildRow) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*DevtoolManifestBuildRow)
+func (this *DevtoolStatusManifestBuildRow) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DevtoolStatusManifestBuildRow)
 	if !ok {
 		return false
 	}
 	return this.EqualVT(that)
 }
 
-func (this *DevtoolPluginRow) EqualVT(that *DevtoolPluginRow) bool {
+func (this *DevtoolStatusControllerRow) EqualVT(that *DevtoolStatusControllerRow) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if this.ControllerId != that.ControllerId {
+		return false
+	}
+	if this.Kind != that.Kind {
+		return false
+	}
+	if this.State != that.State {
+		return false
+	}
+	if this.Summary != that.Summary {
+		return false
+	}
+	if this.Error != that.Error {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DevtoolStatusControllerRow) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DevtoolStatusControllerRow)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DevtoolStatusPluginRow) EqualVT(that *DevtoolStatusPluginRow) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -1403,50 +1816,15 @@ func (this *DevtoolPluginRow) EqualVT(that *DevtoolPluginRow) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *DevtoolPluginRow) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*DevtoolPluginRow)
+func (this *DevtoolStatusPluginRow) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DevtoolStatusPluginRow)
 	if !ok {
 		return false
 	}
 	return this.EqualVT(that)
 }
 
-func (this *DevtoolControllerRow) EqualVT(that *DevtoolControllerRow) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Id != that.Id {
-		return false
-	}
-	if this.ControllerId != that.ControllerId {
-		return false
-	}
-	if this.Kind != that.Kind {
-		return false
-	}
-	if this.State != that.State {
-		return false
-	}
-	if this.Summary != that.Summary {
-		return false
-	}
-	if this.Error != that.Error {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *DevtoolControllerRow) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*DevtoolControllerRow)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *DevtoolAttentionRow) EqualVT(that *DevtoolAttentionRow) bool {
+func (this *DevtoolStatusAttentionRow) EqualVT(that *DevtoolStatusAttentionRow) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -1470,211 +1848,211 @@ func (this *DevtoolAttentionRow) EqualVT(that *DevtoolAttentionRow) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *DevtoolAttentionRow) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*DevtoolAttentionRow)
+func (this *DevtoolStatusAttentionRow) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DevtoolStatusAttentionRow)
 	if !ok {
 		return false
 	}
 	return this.EqualVT(that)
 }
 
-// MarshalProtoJSON marshals the DevtoolCommandState to JSON.
-func (x DevtoolCommandState) MarshalProtoJSON(s *json.MarshalState) {
-	s.WriteEnum(int32(x), DevtoolCommandState_name)
+// MarshalProtoJSON marshals the DevtoolStatusCommandState to JSON.
+func (x DevtoolStatusCommandState) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DevtoolStatusCommandState_name)
 }
 
-// MarshalText marshals the DevtoolCommandState to text.
-func (x DevtoolCommandState) MarshalText() ([]byte, error) {
-	return []byte(json.GetEnumString(int32(x), DevtoolCommandState_name)), nil
+// MarshalText marshals the DevtoolStatusCommandState to text.
+func (x DevtoolStatusCommandState) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DevtoolStatusCommandState_name)), nil
 }
 
-// MarshalJSON marshals the DevtoolCommandState to JSON.
-func (x DevtoolCommandState) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the DevtoolStatusCommandState to JSON.
+func (x DevtoolStatusCommandState) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the DevtoolCommandState from JSON.
-func (x *DevtoolCommandState) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	v := s.ReadEnum(DevtoolCommandState_value)
+// UnmarshalProtoJSON unmarshals the DevtoolStatusCommandState from JSON.
+func (x *DevtoolStatusCommandState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DevtoolStatusCommandState_value)
 	if err := s.Err(); err != nil {
-		s.SetErrorf("could not read DevtoolCommandState enum: %v", err)
+		s.SetErrorf("could not read DevtoolStatusCommandState enum: %v", err)
 		return
 	}
-	*x = DevtoolCommandState(v)
+	*x = DevtoolStatusCommandState(v)
 }
 
-// UnmarshalText unmarshals the DevtoolCommandState from text.
-func (x *DevtoolCommandState) UnmarshalText(b []byte) error {
-	i, err := json.ParseEnumString(string(b), DevtoolCommandState_value)
+// UnmarshalText unmarshals the DevtoolStatusCommandState from text.
+func (x *DevtoolStatusCommandState) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DevtoolStatusCommandState_value)
 	if err != nil {
 		return err
 	}
-	*x = DevtoolCommandState(i)
+	*x = DevtoolStatusCommandState(i)
 	return nil
 }
 
-// UnmarshalJSON unmarshals the DevtoolCommandState from JSON.
-func (x *DevtoolCommandState) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the DevtoolStatusCommandState from JSON.
+func (x *DevtoolStatusCommandState) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the DevtoolManifestState to JSON.
-func (x DevtoolManifestState) MarshalProtoJSON(s *json.MarshalState) {
-	s.WriteEnum(int32(x), DevtoolManifestState_name)
+// MarshalProtoJSON marshals the DevtoolStatusManifestState to JSON.
+func (x DevtoolStatusManifestState) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DevtoolStatusManifestState_name)
 }
 
-// MarshalText marshals the DevtoolManifestState to text.
-func (x DevtoolManifestState) MarshalText() ([]byte, error) {
-	return []byte(json.GetEnumString(int32(x), DevtoolManifestState_name)), nil
+// MarshalText marshals the DevtoolStatusManifestState to text.
+func (x DevtoolStatusManifestState) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DevtoolStatusManifestState_name)), nil
 }
 
-// MarshalJSON marshals the DevtoolManifestState to JSON.
-func (x DevtoolManifestState) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the DevtoolStatusManifestState to JSON.
+func (x DevtoolStatusManifestState) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the DevtoolManifestState from JSON.
-func (x *DevtoolManifestState) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	v := s.ReadEnum(DevtoolManifestState_value)
+// UnmarshalProtoJSON unmarshals the DevtoolStatusManifestState from JSON.
+func (x *DevtoolStatusManifestState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DevtoolStatusManifestState_value)
 	if err := s.Err(); err != nil {
-		s.SetErrorf("could not read DevtoolManifestState enum: %v", err)
+		s.SetErrorf("could not read DevtoolStatusManifestState enum: %v", err)
 		return
 	}
-	*x = DevtoolManifestState(v)
+	*x = DevtoolStatusManifestState(v)
 }
 
-// UnmarshalText unmarshals the DevtoolManifestState from text.
-func (x *DevtoolManifestState) UnmarshalText(b []byte) error {
-	i, err := json.ParseEnumString(string(b), DevtoolManifestState_value)
+// UnmarshalText unmarshals the DevtoolStatusManifestState from text.
+func (x *DevtoolStatusManifestState) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DevtoolStatusManifestState_value)
 	if err != nil {
 		return err
 	}
-	*x = DevtoolManifestState(i)
+	*x = DevtoolStatusManifestState(i)
 	return nil
 }
 
-// UnmarshalJSON unmarshals the DevtoolManifestState from JSON.
-func (x *DevtoolManifestState) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the DevtoolStatusManifestState from JSON.
+func (x *DevtoolStatusManifestState) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the DevtoolPluginState to JSON.
-func (x DevtoolPluginState) MarshalProtoJSON(s *json.MarshalState) {
-	s.WriteEnum(int32(x), DevtoolPluginState_name)
+// MarshalProtoJSON marshals the DevtoolStatusControllerState to JSON.
+func (x DevtoolStatusControllerState) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DevtoolStatusControllerState_name)
 }
 
-// MarshalText marshals the DevtoolPluginState to text.
-func (x DevtoolPluginState) MarshalText() ([]byte, error) {
-	return []byte(json.GetEnumString(int32(x), DevtoolPluginState_name)), nil
+// MarshalText marshals the DevtoolStatusControllerState to text.
+func (x DevtoolStatusControllerState) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DevtoolStatusControllerState_name)), nil
 }
 
-// MarshalJSON marshals the DevtoolPluginState to JSON.
-func (x DevtoolPluginState) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the DevtoolStatusControllerState to JSON.
+func (x DevtoolStatusControllerState) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the DevtoolPluginState from JSON.
-func (x *DevtoolPluginState) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	v := s.ReadEnum(DevtoolPluginState_value)
+// UnmarshalProtoJSON unmarshals the DevtoolStatusControllerState from JSON.
+func (x *DevtoolStatusControllerState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DevtoolStatusControllerState_value)
 	if err := s.Err(); err != nil {
-		s.SetErrorf("could not read DevtoolPluginState enum: %v", err)
+		s.SetErrorf("could not read DevtoolStatusControllerState enum: %v", err)
 		return
 	}
-	*x = DevtoolPluginState(v)
+	*x = DevtoolStatusControllerState(v)
 }
 
-// UnmarshalText unmarshals the DevtoolPluginState from text.
-func (x *DevtoolPluginState) UnmarshalText(b []byte) error {
-	i, err := json.ParseEnumString(string(b), DevtoolPluginState_value)
+// UnmarshalText unmarshals the DevtoolStatusControllerState from text.
+func (x *DevtoolStatusControllerState) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DevtoolStatusControllerState_value)
 	if err != nil {
 		return err
 	}
-	*x = DevtoolPluginState(i)
+	*x = DevtoolStatusControllerState(i)
 	return nil
 }
 
-// UnmarshalJSON unmarshals the DevtoolPluginState from JSON.
-func (x *DevtoolPluginState) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the DevtoolStatusControllerState from JSON.
+func (x *DevtoolStatusControllerState) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the DevtoolControllerState to JSON.
-func (x DevtoolControllerState) MarshalProtoJSON(s *json.MarshalState) {
-	s.WriteEnum(int32(x), DevtoolControllerState_name)
+// MarshalProtoJSON marshals the DevtoolStatusPluginState to JSON.
+func (x DevtoolStatusPluginState) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DevtoolStatusPluginState_name)
 }
 
-// MarshalText marshals the DevtoolControllerState to text.
-func (x DevtoolControllerState) MarshalText() ([]byte, error) {
-	return []byte(json.GetEnumString(int32(x), DevtoolControllerState_name)), nil
+// MarshalText marshals the DevtoolStatusPluginState to text.
+func (x DevtoolStatusPluginState) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DevtoolStatusPluginState_name)), nil
 }
 
-// MarshalJSON marshals the DevtoolControllerState to JSON.
-func (x DevtoolControllerState) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the DevtoolStatusPluginState to JSON.
+func (x DevtoolStatusPluginState) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the DevtoolControllerState from JSON.
-func (x *DevtoolControllerState) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	v := s.ReadEnum(DevtoolControllerState_value)
+// UnmarshalProtoJSON unmarshals the DevtoolStatusPluginState from JSON.
+func (x *DevtoolStatusPluginState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DevtoolStatusPluginState_value)
 	if err := s.Err(); err != nil {
-		s.SetErrorf("could not read DevtoolControllerState enum: %v", err)
+		s.SetErrorf("could not read DevtoolStatusPluginState enum: %v", err)
 		return
 	}
-	*x = DevtoolControllerState(v)
+	*x = DevtoolStatusPluginState(v)
 }
 
-// UnmarshalText unmarshals the DevtoolControllerState from text.
-func (x *DevtoolControllerState) UnmarshalText(b []byte) error {
-	i, err := json.ParseEnumString(string(b), DevtoolControllerState_value)
+// UnmarshalText unmarshals the DevtoolStatusPluginState from text.
+func (x *DevtoolStatusPluginState) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DevtoolStatusPluginState_value)
 	if err != nil {
 		return err
 	}
-	*x = DevtoolControllerState(i)
+	*x = DevtoolStatusPluginState(i)
 	return nil
 }
 
-// UnmarshalJSON unmarshals the DevtoolControllerState from JSON.
-func (x *DevtoolControllerState) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the DevtoolStatusPluginState from JSON.
+func (x *DevtoolStatusPluginState) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the DevtoolAttentionSeverity to JSON.
-func (x DevtoolAttentionSeverity) MarshalProtoJSON(s *json.MarshalState) {
-	s.WriteEnum(int32(x), DevtoolAttentionSeverity_name)
+// MarshalProtoJSON marshals the DevtoolStatusAttentionSeverity to JSON.
+func (x DevtoolStatusAttentionSeverity) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DevtoolStatusAttentionSeverity_name)
 }
 
-// MarshalText marshals the DevtoolAttentionSeverity to text.
-func (x DevtoolAttentionSeverity) MarshalText() ([]byte, error) {
-	return []byte(json.GetEnumString(int32(x), DevtoolAttentionSeverity_name)), nil
+// MarshalText marshals the DevtoolStatusAttentionSeverity to text.
+func (x DevtoolStatusAttentionSeverity) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DevtoolStatusAttentionSeverity_name)), nil
 }
 
-// MarshalJSON marshals the DevtoolAttentionSeverity to JSON.
-func (x DevtoolAttentionSeverity) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the DevtoolStatusAttentionSeverity to JSON.
+func (x DevtoolStatusAttentionSeverity) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the DevtoolAttentionSeverity from JSON.
-func (x *DevtoolAttentionSeverity) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	v := s.ReadEnum(DevtoolAttentionSeverity_value)
+// UnmarshalProtoJSON unmarshals the DevtoolStatusAttentionSeverity from JSON.
+func (x *DevtoolStatusAttentionSeverity) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DevtoolStatusAttentionSeverity_value)
 	if err := s.Err(); err != nil {
-		s.SetErrorf("could not read DevtoolAttentionSeverity enum: %v", err)
+		s.SetErrorf("could not read DevtoolStatusAttentionSeverity enum: %v", err)
 		return
 	}
-	*x = DevtoolAttentionSeverity(v)
+	*x = DevtoolStatusAttentionSeverity(v)
 }
 
-// UnmarshalText unmarshals the DevtoolAttentionSeverity from text.
-func (x *DevtoolAttentionSeverity) UnmarshalText(b []byte) error {
-	i, err := json.ParseEnumString(string(b), DevtoolAttentionSeverity_value)
+// UnmarshalText unmarshals the DevtoolStatusAttentionSeverity from text.
+func (x *DevtoolStatusAttentionSeverity) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DevtoolStatusAttentionSeverity_value)
 	if err != nil {
 		return err
 	}
-	*x = DevtoolAttentionSeverity(i)
+	*x = DevtoolStatusAttentionSeverity(i)
 	return nil
 }
 
-// UnmarshalJSON unmarshals the DevtoolAttentionSeverity from JSON.
-func (x *DevtoolAttentionSeverity) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the DevtoolStatusAttentionSeverity from JSON.
+func (x *DevtoolStatusAttentionSeverity) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1767,6 +2145,11 @@ func (x *DevtoolStatusSnapshot) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("command")
 		x.Command.MarshalProtoJSON(s.WithField("command"))
 	}
+	if x.Project != nil || s.HasField("project") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("project")
+		x.Project.MarshalProtoJSON(s.WithField("project"))
+	}
 	if len(x.ManifestFetchRows) > 0 || s.HasField("manifestFetchRows") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("manifestFetchRows")
@@ -1789,17 +2172,6 @@ func (x *DevtoolStatusSnapshot) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
-	if len(x.PluginRows) > 0 || s.HasField("pluginRows") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("pluginRows")
-		s.WriteArrayStart()
-		var wroteElement bool
-		for _, element := range x.PluginRows {
-			s.WriteMoreIf(&wroteElement)
-			element.MarshalProtoJSON(s.WithField("pluginRows"))
-		}
-		s.WriteArrayEnd()
-	}
 	if len(x.ControllerRows) > 0 || s.HasField("controllerRows") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("controllerRows")
@@ -1808,6 +2180,17 @@ func (x *DevtoolStatusSnapshot) MarshalProtoJSON(s *json.MarshalState) {
 		for _, element := range x.ControllerRows {
 			s.WriteMoreIf(&wroteElement)
 			element.MarshalProtoJSON(s.WithField("controllerRows"))
+		}
+		s.WriteArrayEnd()
+	}
+	if len(x.PluginRows) > 0 || s.HasField("pluginRows") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pluginRows")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.PluginRows {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("pluginRows"))
 		}
 		s.WriteArrayEnd()
 	}
@@ -1844,8 +2227,15 @@ func (x *DevtoolStatusSnapshot) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.Command = nil
 				return
 			}
-			x.Command = &DevtoolCommandStatus{}
+			x.Command = &DevtoolStatusCommand{}
 			x.Command.UnmarshalProtoJSON(s.WithField("command", true))
+		case "project":
+			if s.ReadNil() {
+				x.Project = nil
+				return
+			}
+			x.Project = &DevtoolStatusProject{}
+			x.Project.UnmarshalProtoJSON(s.WithField("project", true))
 		case "manifest_fetch_rows", "manifestFetchRows":
 			s.AddField("manifest_fetch_rows")
 			if s.ReadNil() {
@@ -1857,7 +2247,7 @@ func (x *DevtoolStatusSnapshot) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.ManifestFetchRows = append(x.ManifestFetchRows, nil)
 					return
 				}
-				v := &DevtoolManifestFetchRow{}
+				v := &DevtoolStatusManifestFetchRow{}
 				v.UnmarshalProtoJSON(s.WithField("manifest_fetch_rows", false))
 				if s.Err() != nil {
 					return
@@ -1875,30 +2265,12 @@ func (x *DevtoolStatusSnapshot) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.ManifestBuildRows = append(x.ManifestBuildRows, nil)
 					return
 				}
-				v := &DevtoolManifestBuildRow{}
+				v := &DevtoolStatusManifestBuildRow{}
 				v.UnmarshalProtoJSON(s.WithField("manifest_build_rows", false))
 				if s.Err() != nil {
 					return
 				}
 				x.ManifestBuildRows = append(x.ManifestBuildRows, v)
-			})
-		case "plugin_rows", "pluginRows":
-			s.AddField("plugin_rows")
-			if s.ReadNil() {
-				x.PluginRows = nil
-				return
-			}
-			s.ReadArray(func() {
-				if s.ReadNil() {
-					x.PluginRows = append(x.PluginRows, nil)
-					return
-				}
-				v := &DevtoolPluginRow{}
-				v.UnmarshalProtoJSON(s.WithField("plugin_rows", false))
-				if s.Err() != nil {
-					return
-				}
-				x.PluginRows = append(x.PluginRows, v)
 			})
 		case "controller_rows", "controllerRows":
 			s.AddField("controller_rows")
@@ -1911,12 +2283,30 @@ func (x *DevtoolStatusSnapshot) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.ControllerRows = append(x.ControllerRows, nil)
 					return
 				}
-				v := &DevtoolControllerRow{}
+				v := &DevtoolStatusControllerRow{}
 				v.UnmarshalProtoJSON(s.WithField("controller_rows", false))
 				if s.Err() != nil {
 					return
 				}
 				x.ControllerRows = append(x.ControllerRows, v)
+			})
+		case "plugin_rows", "pluginRows":
+			s.AddField("plugin_rows")
+			if s.ReadNil() {
+				x.PluginRows = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.PluginRows = append(x.PluginRows, nil)
+					return
+				}
+				v := &DevtoolStatusPluginRow{}
+				v.UnmarshalProtoJSON(s.WithField("plugin_rows", false))
+				if s.Err() != nil {
+					return
+				}
+				x.PluginRows = append(x.PluginRows, v)
 			})
 		case "attention_rows", "attentionRows":
 			s.AddField("attention_rows")
@@ -1929,7 +2319,7 @@ func (x *DevtoolStatusSnapshot) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.AttentionRows = append(x.AttentionRows, nil)
 					return
 				}
-				v := &DevtoolAttentionRow{}
+				v := &DevtoolStatusAttentionRow{}
 				v.UnmarshalProtoJSON(s.WithField("attention_rows", false))
 				if s.Err() != nil {
 					return
@@ -1945,8 +2335,8 @@ func (x *DevtoolStatusSnapshot) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the DevtoolCommandStatus message to JSON.
-func (x *DevtoolCommandStatus) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the DevtoolStatusCommand message to JSON.
+func (x *DevtoolStatusCommand) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -1981,13 +2371,13 @@ func (x *DevtoolCommandStatus) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the DevtoolCommandStatus to JSON.
-func (x *DevtoolCommandStatus) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the DevtoolStatusCommand to JSON.
+func (x *DevtoolStatusCommand) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the DevtoolCommandStatus message from JSON.
-func (x *DevtoolCommandStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the DevtoolStatusCommand message from JSON.
+func (x *DevtoolStatusCommand) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -2014,13 +2404,226 @@ func (x *DevtoolCommandStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	})
 }
 
-// UnmarshalJSON unmarshals the DevtoolCommandStatus from JSON.
-func (x *DevtoolCommandStatus) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the DevtoolStatusCommand from JSON.
+func (x *DevtoolStatusCommand) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the DevtoolManifestFetchRow message to JSON.
-func (x *DevtoolManifestFetchRow) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the DevtoolStatusProject message to JSON.
+func (x *DevtoolStatusProject) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ProjectId != "" || s.HasField("projectId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("projectId")
+		s.WriteString(x.ProjectId)
+	}
+	if len(x.StartupPlugins) > 0 || s.HasField("startupPlugins") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("startupPlugins")
+		s.WriteStringArray(x.StartupPlugins)
+	}
+	if x.WebStartupPath != "" || s.HasField("webStartupPath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("webStartupPath")
+		s.WriteString(x.WebStartupPath)
+	}
+	if len(x.ManifestIds) > 0 || s.HasField("manifestIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("manifestIds")
+		s.WriteStringArray(x.ManifestIds)
+	}
+	if len(x.BuildTargets) > 0 || s.HasField("buildTargets") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("buildTargets")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.BuildTargets {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("buildTargets"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DevtoolStatusProject to JSON.
+func (x *DevtoolStatusProject) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DevtoolStatusProject message from JSON.
+func (x *DevtoolStatusProject) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "project_id", "projectId":
+			s.AddField("project_id")
+			x.ProjectId = s.ReadString()
+		case "startup_plugins", "startupPlugins":
+			s.AddField("startup_plugins")
+			if s.ReadNil() {
+				x.StartupPlugins = nil
+				return
+			}
+			x.StartupPlugins = s.ReadStringArray()
+		case "web_startup_path", "webStartupPath":
+			s.AddField("web_startup_path")
+			x.WebStartupPath = s.ReadString()
+		case "manifest_ids", "manifestIds":
+			s.AddField("manifest_ids")
+			if s.ReadNil() {
+				x.ManifestIds = nil
+				return
+			}
+			x.ManifestIds = s.ReadStringArray()
+		case "build_targets", "buildTargets":
+			s.AddField("build_targets")
+			if s.ReadNil() {
+				x.BuildTargets = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.BuildTargets = append(x.BuildTargets, nil)
+					return
+				}
+				v := &DevtoolStatusBuildTarget{}
+				v.UnmarshalProtoJSON(s.WithField("build_targets", false))
+				if s.Err() != nil {
+					return
+				}
+				x.BuildTargets = append(x.BuildTargets, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DevtoolStatusProject from JSON.
+func (x *DevtoolStatusProject) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DevtoolStatusBuildTarget message to JSON.
+func (x *DevtoolStatusBuildTarget) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(x.Id)
+	}
+	if len(x.ManifestIds) > 0 || s.HasField("manifestIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("manifestIds")
+		s.WriteStringArray(x.ManifestIds)
+	}
+	if len(x.ConfiguredTargetIds) > 0 || s.HasField("configuredTargetIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("configuredTargetIds")
+		s.WriteStringArray(x.ConfiguredTargetIds)
+	}
+	if len(x.ExplicitPlatformIds) > 0 || s.HasField("explicitPlatformIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("explicitPlatformIds")
+		s.WriteStringArray(x.ExplicitPlatformIds)
+	}
+	if len(x.ResolvedPlatformIds) > 0 || s.HasField("resolvedPlatformIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("resolvedPlatformIds")
+		s.WriteStringArray(x.ResolvedPlatformIds)
+	}
+	if len(x.BuildTypes) > 0 || s.HasField("buildTypes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("buildTypes")
+		s.WriteStringArray(x.BuildTypes)
+	}
+	if x.Error != "" || s.HasField("error") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("error")
+		s.WriteString(x.Error)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DevtoolStatusBuildTarget to JSON.
+func (x *DevtoolStatusBuildTarget) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DevtoolStatusBuildTarget message from JSON.
+func (x *DevtoolStatusBuildTarget) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadString()
+		case "manifest_ids", "manifestIds":
+			s.AddField("manifest_ids")
+			if s.ReadNil() {
+				x.ManifestIds = nil
+				return
+			}
+			x.ManifestIds = s.ReadStringArray()
+		case "configured_target_ids", "configuredTargetIds":
+			s.AddField("configured_target_ids")
+			if s.ReadNil() {
+				x.ConfiguredTargetIds = nil
+				return
+			}
+			x.ConfiguredTargetIds = s.ReadStringArray()
+		case "explicit_platform_ids", "explicitPlatformIds":
+			s.AddField("explicit_platform_ids")
+			if s.ReadNil() {
+				x.ExplicitPlatformIds = nil
+				return
+			}
+			x.ExplicitPlatformIds = s.ReadStringArray()
+		case "resolved_platform_ids", "resolvedPlatformIds":
+			s.AddField("resolved_platform_ids")
+			if s.ReadNil() {
+				x.ResolvedPlatformIds = nil
+				return
+			}
+			x.ResolvedPlatformIds = s.ReadStringArray()
+		case "build_types", "buildTypes":
+			s.AddField("build_types")
+			if s.ReadNil() {
+				x.BuildTypes = nil
+				return
+			}
+			x.BuildTypes = s.ReadStringArray()
+		case "error":
+			s.AddField("error")
+			x.Error = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DevtoolStatusBuildTarget from JSON.
+func (x *DevtoolStatusBuildTarget) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DevtoolStatusManifestFetchRow message to JSON.
+func (x *DevtoolStatusManifestFetchRow) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -2037,20 +2640,20 @@ func (x *DevtoolManifestFetchRow) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("manifestId")
 		s.WriteString(x.ManifestId)
 	}
-	if x.PlatformId != "" || s.HasField("platformId") {
+	if len(x.PlatformIds) > 0 || s.HasField("platformIds") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("platformId")
-		s.WriteString(x.PlatformId)
+		s.WriteObjectField("platformIds")
+		s.WriteStringArray(x.PlatformIds)
 	}
-	if x.BuildType != "" || s.HasField("buildType") {
+	if len(x.BuildTypes) > 0 || s.HasField("buildTypes") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("buildType")
-		s.WriteString(x.BuildType)
+		s.WriteObjectField("buildTypes")
+		s.WriteStringArray(x.BuildTypes)
 	}
-	if x.RemoteId != "" || s.HasField("remoteId") {
+	if len(x.RemoteIds) > 0 || s.HasField("remoteIds") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("remoteId")
-		s.WriteString(x.RemoteId)
+		s.WriteObjectField("remoteIds")
+		s.WriteStringArray(x.RemoteIds)
 	}
 	if x.State != 0 || s.HasField("state") {
 		s.WriteMoreIf(&wroteField)
@@ -2060,17 +2663,17 @@ func (x *DevtoolManifestFetchRow) MarshalProtoJSON(s *json.MarshalState) {
 	if x.ReadyRefCount != 0 || s.HasField("readyRefCount") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("readyRefCount")
-		s.WriteInt32(x.ReadyRefCount)
+		s.WriteUint32(x.ReadyRefCount)
 	}
 	if x.ReadyRefs != "" || s.HasField("readyRefs") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("readyRefs")
 		s.WriteString(x.ReadyRefs)
 	}
-	if x.LocalBuildIds != "" || s.HasField("localBuildIds") {
+	if len(x.LocalBuildIds) > 0 || s.HasField("localBuildIds") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("localBuildIds")
-		s.WriteString(x.LocalBuildIds)
+		s.WriteStringArray(x.LocalBuildIds)
 	}
 	if x.BlockedOnLocalBuild || s.HasField("blockedOnLocalBuild") {
 		s.WriteMoreIf(&wroteField)
@@ -2090,13 +2693,13 @@ func (x *DevtoolManifestFetchRow) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the DevtoolManifestFetchRow to JSON.
-func (x *DevtoolManifestFetchRow) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the DevtoolStatusManifestFetchRow to JSON.
+func (x *DevtoolStatusManifestFetchRow) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the DevtoolManifestFetchRow message from JSON.
-func (x *DevtoolManifestFetchRow) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the DevtoolStatusManifestFetchRow message from JSON.
+func (x *DevtoolStatusManifestFetchRow) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -2110,27 +2713,43 @@ func (x *DevtoolManifestFetchRow) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "manifest_id", "manifestId":
 			s.AddField("manifest_id")
 			x.ManifestId = s.ReadString()
-		case "platform_id", "platformId":
-			s.AddField("platform_id")
-			x.PlatformId = s.ReadString()
-		case "build_type", "buildType":
-			s.AddField("build_type")
-			x.BuildType = s.ReadString()
-		case "remote_id", "remoteId":
-			s.AddField("remote_id")
-			x.RemoteId = s.ReadString()
+		case "platform_ids", "platformIds":
+			s.AddField("platform_ids")
+			if s.ReadNil() {
+				x.PlatformIds = nil
+				return
+			}
+			x.PlatformIds = s.ReadStringArray()
+		case "build_types", "buildTypes":
+			s.AddField("build_types")
+			if s.ReadNil() {
+				x.BuildTypes = nil
+				return
+			}
+			x.BuildTypes = s.ReadStringArray()
+		case "remote_ids", "remoteIds":
+			s.AddField("remote_ids")
+			if s.ReadNil() {
+				x.RemoteIds = nil
+				return
+			}
+			x.RemoteIds = s.ReadStringArray()
 		case "state":
 			s.AddField("state")
 			x.State.UnmarshalProtoJSON(s)
 		case "ready_ref_count", "readyRefCount":
 			s.AddField("ready_ref_count")
-			x.ReadyRefCount = s.ReadInt32()
+			x.ReadyRefCount = s.ReadUint32()
 		case "ready_refs", "readyRefs":
 			s.AddField("ready_refs")
 			x.ReadyRefs = s.ReadString()
 		case "local_build_ids", "localBuildIds":
 			s.AddField("local_build_ids")
-			x.LocalBuildIds = s.ReadString()
+			if s.ReadNil() {
+				x.LocalBuildIds = nil
+				return
+			}
+			x.LocalBuildIds = s.ReadStringArray()
 		case "blocked_on_local_build", "blockedOnLocalBuild":
 			s.AddField("blocked_on_local_build")
 			x.BlockedOnLocalBuild = s.ReadBool()
@@ -2144,13 +2763,13 @@ func (x *DevtoolManifestFetchRow) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	})
 }
 
-// UnmarshalJSON unmarshals the DevtoolManifestFetchRow from JSON.
-func (x *DevtoolManifestFetchRow) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the DevtoolStatusManifestFetchRow from JSON.
+func (x *DevtoolStatusManifestFetchRow) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the DevtoolManifestBuildRow message to JSON.
-func (x *DevtoolManifestBuildRow) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the DevtoolStatusManifestBuildRow message to JSON.
+func (x *DevtoolStatusManifestBuildRow) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -2162,10 +2781,10 @@ func (x *DevtoolManifestBuildRow) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("id")
 		s.WriteString(x.Id)
 	}
-	if x.BuildTargets != "" || s.HasField("buildTargets") {
+	if len(x.BuildTargetIds) > 0 || s.HasField("buildTargetIds") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("buildTargets")
-		s.WriteString(x.BuildTargets)
+		s.WriteObjectField("buildTargetIds")
+		s.WriteStringArray(x.BuildTargetIds)
 	}
 	if x.ManifestId != "" || s.HasField("manifestId") {
 		s.WriteMoreIf(&wroteField)
@@ -2177,10 +2796,10 @@ func (x *DevtoolManifestBuildRow) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("platformId")
 		s.WriteString(x.PlatformId)
 	}
-	if x.TargetPlatformIds != "" || s.HasField("targetPlatformIds") {
+	if len(x.TargetPlatformIds) > 0 || s.HasField("targetPlatformIds") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("targetPlatformIds")
-		s.WriteString(x.TargetPlatformIds)
+		s.WriteStringArray(x.TargetPlatformIds)
 	}
 	if x.BuildType != "" || s.HasField("buildType") {
 		s.WriteMoreIf(&wroteField)
@@ -2215,7 +2834,7 @@ func (x *DevtoolManifestBuildRow) MarshalProtoJSON(s *json.MarshalState) {
 	if x.WatchedFileCount != 0 || s.HasField("watchedFileCount") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("watchedFileCount")
-		s.WriteInt32(x.WatchedFileCount)
+		s.WriteUint32(x.WatchedFileCount)
 	}
 	if x.DependencyRebuildReason != "" || s.HasField("dependencyRebuildReason") {
 		s.WriteMoreIf(&wroteField)
@@ -2235,13 +2854,13 @@ func (x *DevtoolManifestBuildRow) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the DevtoolManifestBuildRow to JSON.
-func (x *DevtoolManifestBuildRow) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the DevtoolStatusManifestBuildRow to JSON.
+func (x *DevtoolStatusManifestBuildRow) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the DevtoolManifestBuildRow message from JSON.
-func (x *DevtoolManifestBuildRow) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the DevtoolStatusManifestBuildRow message from JSON.
+func (x *DevtoolStatusManifestBuildRow) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -2252,9 +2871,13 @@ func (x *DevtoolManifestBuildRow) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "id":
 			s.AddField("id")
 			x.Id = s.ReadString()
-		case "build_targets", "buildTargets":
-			s.AddField("build_targets")
-			x.BuildTargets = s.ReadString()
+		case "build_target_ids", "buildTargetIds":
+			s.AddField("build_target_ids")
+			if s.ReadNil() {
+				x.BuildTargetIds = nil
+				return
+			}
+			x.BuildTargetIds = s.ReadStringArray()
 		case "manifest_id", "manifestId":
 			s.AddField("manifest_id")
 			x.ManifestId = s.ReadString()
@@ -2263,7 +2886,11 @@ func (x *DevtoolManifestBuildRow) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			x.PlatformId = s.ReadString()
 		case "target_platform_ids", "targetPlatformIds":
 			s.AddField("target_platform_ids")
-			x.TargetPlatformIds = s.ReadString()
+			if s.ReadNil() {
+				x.TargetPlatformIds = nil
+				return
+			}
+			x.TargetPlatformIds = s.ReadStringArray()
 		case "build_type", "buildType":
 			s.AddField("build_type")
 			x.BuildType = s.ReadString()
@@ -2284,7 +2911,7 @@ func (x *DevtoolManifestBuildRow) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			x.HotRebuild = s.ReadBool()
 		case "watched_file_count", "watchedFileCount":
 			s.AddField("watched_file_count")
-			x.WatchedFileCount = s.ReadInt32()
+			x.WatchedFileCount = s.ReadUint32()
 		case "dependency_rebuild_reason", "dependencyRebuildReason":
 			s.AddField("dependency_rebuild_reason")
 			x.DependencyRebuildReason = s.ReadString()
@@ -2298,13 +2925,95 @@ func (x *DevtoolManifestBuildRow) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	})
 }
 
-// UnmarshalJSON unmarshals the DevtoolManifestBuildRow from JSON.
-func (x *DevtoolManifestBuildRow) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the DevtoolStatusManifestBuildRow from JSON.
+func (x *DevtoolStatusManifestBuildRow) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the DevtoolPluginRow message to JSON.
-func (x *DevtoolPluginRow) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the DevtoolStatusControllerRow message to JSON.
+func (x *DevtoolStatusControllerRow) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(x.Id)
+	}
+	if x.ControllerId != "" || s.HasField("controllerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("controllerId")
+		s.WriteString(x.ControllerId)
+	}
+	if x.Kind != "" || s.HasField("kind") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("kind")
+		s.WriteString(x.Kind)
+	}
+	if x.State != 0 || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s)
+	}
+	if x.Summary != "" || s.HasField("summary") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("summary")
+		s.WriteString(x.Summary)
+	}
+	if x.Error != "" || s.HasField("error") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("error")
+		s.WriteString(x.Error)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DevtoolStatusControllerRow to JSON.
+func (x *DevtoolStatusControllerRow) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DevtoolStatusControllerRow message from JSON.
+func (x *DevtoolStatusControllerRow) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadString()
+		case "controller_id", "controllerId":
+			s.AddField("controller_id")
+			x.ControllerId = s.ReadString()
+		case "kind":
+			s.AddField("kind")
+			x.Kind = s.ReadString()
+		case "state":
+			s.AddField("state")
+			x.State.UnmarshalProtoJSON(s)
+		case "summary":
+			s.AddField("summary")
+			x.Summary = s.ReadString()
+		case "error":
+			s.AddField("error")
+			x.Error = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DevtoolStatusControllerRow from JSON.
+func (x *DevtoolStatusControllerRow) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DevtoolStatusPluginRow message to JSON.
+func (x *DevtoolStatusPluginRow) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -2349,13 +3058,13 @@ func (x *DevtoolPluginRow) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the DevtoolPluginRow to JSON.
-func (x *DevtoolPluginRow) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the DevtoolStatusPluginRow to JSON.
+func (x *DevtoolStatusPluginRow) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the DevtoolPluginRow message from JSON.
-func (x *DevtoolPluginRow) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the DevtoolStatusPluginRow message from JSON.
+func (x *DevtoolStatusPluginRow) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -2388,95 +3097,13 @@ func (x *DevtoolPluginRow) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	})
 }
 
-// UnmarshalJSON unmarshals the DevtoolPluginRow from JSON.
-func (x *DevtoolPluginRow) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the DevtoolStatusPluginRow from JSON.
+func (x *DevtoolStatusPluginRow) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the DevtoolControllerRow message to JSON.
-func (x *DevtoolControllerRow) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Id != "" || s.HasField("id") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("id")
-		s.WriteString(x.Id)
-	}
-	if x.ControllerId != "" || s.HasField("controllerId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("controllerId")
-		s.WriteString(x.ControllerId)
-	}
-	if x.Kind != "" || s.HasField("kind") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("kind")
-		s.WriteString(x.Kind)
-	}
-	if x.State != 0 || s.HasField("state") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("state")
-		x.State.MarshalProtoJSON(s)
-	}
-	if x.Summary != "" || s.HasField("summary") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("summary")
-		s.WriteString(x.Summary)
-	}
-	if x.Error != "" || s.HasField("error") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("error")
-		s.WriteString(x.Error)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the DevtoolControllerRow to JSON.
-func (x *DevtoolControllerRow) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the DevtoolControllerRow message from JSON.
-func (x *DevtoolControllerRow) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "id":
-			s.AddField("id")
-			x.Id = s.ReadString()
-		case "controller_id", "controllerId":
-			s.AddField("controller_id")
-			x.ControllerId = s.ReadString()
-		case "kind":
-			s.AddField("kind")
-			x.Kind = s.ReadString()
-		case "state":
-			s.AddField("state")
-			x.State.UnmarshalProtoJSON(s)
-		case "summary":
-			s.AddField("summary")
-			x.Summary = s.ReadString()
-		case "error":
-			s.AddField("error")
-			x.Error = s.ReadString()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the DevtoolControllerRow from JSON.
-func (x *DevtoolControllerRow) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the DevtoolAttentionRow message to JSON.
-func (x *DevtoolAttentionRow) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the DevtoolStatusAttentionRow message to JSON.
+func (x *DevtoolStatusAttentionRow) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -2511,13 +3138,13 @@ func (x *DevtoolAttentionRow) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the DevtoolAttentionRow to JSON.
-func (x *DevtoolAttentionRow) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the DevtoolStatusAttentionRow to JSON.
+func (x *DevtoolStatusAttentionRow) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the DevtoolAttentionRow message from JSON.
-func (x *DevtoolAttentionRow) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the DevtoolStatusAttentionRow message from JSON.
+func (x *DevtoolStatusAttentionRow) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -2544,8 +3171,8 @@ func (x *DevtoolAttentionRow) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	})
 }
 
-// UnmarshalJSON unmarshals the DevtoolAttentionRow from JSON.
-func (x *DevtoolAttentionRow) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the DevtoolStatusAttentionRow from JSON.
+func (x *DevtoolStatusAttentionRow) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2664,6 +3291,18 @@ func (m *DevtoolStatusSnapshot) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 			i -= size
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 			i--
+			dAtA[i] = 0x3a
+		}
+	}
+	if len(m.PluginRows) > 0 {
+		for iNdEx := len(m.PluginRows) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.PluginRows[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
 			dAtA[i] = 0x32
 		}
 	}
@@ -2679,18 +3318,6 @@ func (m *DevtoolStatusSnapshot) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 			dAtA[i] = 0x2a
 		}
 	}
-	if len(m.PluginRows) > 0 {
-		for iNdEx := len(m.PluginRows) - 1; iNdEx >= 0; iNdEx-- {
-			size, err := m.PluginRows[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x22
-		}
-	}
 	if len(m.ManifestBuildRows) > 0 {
 		for iNdEx := len(m.ManifestBuildRows) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.ManifestBuildRows[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -2700,7 +3327,7 @@ func (m *DevtoolStatusSnapshot) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 			i -= size
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0x1a
+			dAtA[i] = 0x22
 		}
 	}
 	if len(m.ManifestFetchRows) > 0 {
@@ -2712,8 +3339,18 @@ func (m *DevtoolStatusSnapshot) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 			i -= size
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0x12
+			dAtA[i] = 0x1a
 		}
+	}
+	if m.Project != nil {
+		size, err := m.Project.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
 	}
 	if m.Command != nil {
 		size, err := m.Command.MarshalToSizedBufferVT(dAtA[:i])
@@ -2728,7 +3365,7 @@ func (m *DevtoolStatusSnapshot) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
-func (m *DevtoolCommandStatus) MarshalVT() (dAtA []byte, err error) {
+func (m *DevtoolStatusCommand) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -2741,12 +3378,12 @@ func (m *DevtoolCommandStatus) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *DevtoolCommandStatus) MarshalToVT(dAtA []byte) (int, error) {
+func (m *DevtoolStatusCommand) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *DevtoolCommandStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *DevtoolStatusCommand) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -2794,7 +3431,7 @@ func (m *DevtoolCommandStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	return len(dAtA) - i, nil
 }
 
-func (m *DevtoolManifestFetchRow) MarshalVT() (dAtA []byte, err error) {
+func (m *DevtoolStatusProject) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -2807,12 +3444,181 @@ func (m *DevtoolManifestFetchRow) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *DevtoolManifestFetchRow) MarshalToVT(dAtA []byte) (int, error) {
+func (m *DevtoolStatusProject) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *DevtoolManifestFetchRow) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *DevtoolStatusProject) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.BuildTargets) > 0 {
+		for iNdEx := len(m.BuildTargets) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.BuildTargets[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
+	if len(m.ManifestIds) > 0 {
+		for iNdEx := len(m.ManifestIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ManifestIds[iNdEx])
+			copy(dAtA[i:], m.ManifestIds[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ManifestIds[iNdEx])))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.WebStartupPath) > 0 {
+		i -= len(m.WebStartupPath)
+		copy(dAtA[i:], m.WebStartupPath)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.WebStartupPath)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.StartupPlugins) > 0 {
+		for iNdEx := len(m.StartupPlugins) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.StartupPlugins[iNdEx])
+			copy(dAtA[i:], m.StartupPlugins[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.StartupPlugins[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.ProjectId) > 0 {
+		i -= len(m.ProjectId)
+		copy(dAtA[i:], m.ProjectId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ProjectId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DevtoolStatusBuildTarget) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DevtoolStatusBuildTarget) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DevtoolStatusBuildTarget) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Error) > 0 {
+		i -= len(m.Error)
+		copy(dAtA[i:], m.Error)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Error)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.BuildTypes) > 0 {
+		for iNdEx := len(m.BuildTypes) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.BuildTypes[iNdEx])
+			copy(dAtA[i:], m.BuildTypes[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.BuildTypes[iNdEx])))
+			i--
+			dAtA[i] = 0x32
+		}
+	}
+	if len(m.ResolvedPlatformIds) > 0 {
+		for iNdEx := len(m.ResolvedPlatformIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ResolvedPlatformIds[iNdEx])
+			copy(dAtA[i:], m.ResolvedPlatformIds[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ResolvedPlatformIds[iNdEx])))
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
+	if len(m.ExplicitPlatformIds) > 0 {
+		for iNdEx := len(m.ExplicitPlatformIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ExplicitPlatformIds[iNdEx])
+			copy(dAtA[i:], m.ExplicitPlatformIds[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ExplicitPlatformIds[iNdEx])))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.ConfiguredTargetIds) > 0 {
+		for iNdEx := len(m.ConfiguredTargetIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ConfiguredTargetIds[iNdEx])
+			copy(dAtA[i:], m.ConfiguredTargetIds[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ConfiguredTargetIds[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.ManifestIds) > 0 {
+		for iNdEx := len(m.ManifestIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ManifestIds[iNdEx])
+			copy(dAtA[i:], m.ManifestIds[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ManifestIds[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.Id) > 0 {
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DevtoolStatusManifestFetchRow) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DevtoolStatusManifestFetchRow) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DevtoolStatusManifestFetchRow) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -2849,11 +3655,13 @@ func (m *DevtoolManifestFetchRow) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 		dAtA[i] = 0x50
 	}
 	if len(m.LocalBuildIds) > 0 {
-		i -= len(m.LocalBuildIds)
-		copy(dAtA[i:], m.LocalBuildIds)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.LocalBuildIds)))
-		i--
-		dAtA[i] = 0x4a
+		for iNdEx := len(m.LocalBuildIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.LocalBuildIds[iNdEx])
+			copy(dAtA[i:], m.LocalBuildIds[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.LocalBuildIds[iNdEx])))
+			i--
+			dAtA[i] = 0x4a
+		}
 	}
 	if len(m.ReadyRefs) > 0 {
 		i -= len(m.ReadyRefs)
@@ -2872,26 +3680,32 @@ func (m *DevtoolManifestFetchRow) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 		i--
 		dAtA[i] = 0x30
 	}
-	if len(m.RemoteId) > 0 {
-		i -= len(m.RemoteId)
-		copy(dAtA[i:], m.RemoteId)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.RemoteId)))
-		i--
-		dAtA[i] = 0x2a
+	if len(m.RemoteIds) > 0 {
+		for iNdEx := len(m.RemoteIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.RemoteIds[iNdEx])
+			copy(dAtA[i:], m.RemoteIds[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.RemoteIds[iNdEx])))
+			i--
+			dAtA[i] = 0x2a
+		}
 	}
-	if len(m.BuildType) > 0 {
-		i -= len(m.BuildType)
-		copy(dAtA[i:], m.BuildType)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.BuildType)))
-		i--
-		dAtA[i] = 0x22
+	if len(m.BuildTypes) > 0 {
+		for iNdEx := len(m.BuildTypes) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.BuildTypes[iNdEx])
+			copy(dAtA[i:], m.BuildTypes[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.BuildTypes[iNdEx])))
+			i--
+			dAtA[i] = 0x22
+		}
 	}
-	if len(m.PlatformId) > 0 {
-		i -= len(m.PlatformId)
-		copy(dAtA[i:], m.PlatformId)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PlatformId)))
-		i--
-		dAtA[i] = 0x1a
+	if len(m.PlatformIds) > 0 {
+		for iNdEx := len(m.PlatformIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.PlatformIds[iNdEx])
+			copy(dAtA[i:], m.PlatformIds[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PlatformIds[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
 	}
 	if len(m.ManifestId) > 0 {
 		i -= len(m.ManifestId)
@@ -2910,7 +3724,7 @@ func (m *DevtoolManifestFetchRow) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	return len(dAtA) - i, nil
 }
 
-func (m *DevtoolManifestBuildRow) MarshalVT() (dAtA []byte, err error) {
+func (m *DevtoolStatusManifestBuildRow) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -2923,12 +3737,12 @@ func (m *DevtoolManifestBuildRow) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *DevtoolManifestBuildRow) MarshalToVT(dAtA []byte) (int, error) {
+func (m *DevtoolStatusManifestBuildRow) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *DevtoolManifestBuildRow) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *DevtoolStatusManifestBuildRow) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -3016,11 +3830,13 @@ func (m *DevtoolManifestBuildRow) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 		dAtA[i] = 0x32
 	}
 	if len(m.TargetPlatformIds) > 0 {
-		i -= len(m.TargetPlatformIds)
-		copy(dAtA[i:], m.TargetPlatformIds)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.TargetPlatformIds)))
-		i--
-		dAtA[i] = 0x2a
+		for iNdEx := len(m.TargetPlatformIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.TargetPlatformIds[iNdEx])
+			copy(dAtA[i:], m.TargetPlatformIds[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.TargetPlatformIds[iNdEx])))
+			i--
+			dAtA[i] = 0x2a
+		}
 	}
 	if len(m.PlatformId) > 0 {
 		i -= len(m.PlatformId)
@@ -3036,10 +3852,85 @@ func (m *DevtoolManifestBuildRow) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 		i--
 		dAtA[i] = 0x1a
 	}
-	if len(m.BuildTargets) > 0 {
-		i -= len(m.BuildTargets)
-		copy(dAtA[i:], m.BuildTargets)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.BuildTargets)))
+	if len(m.BuildTargetIds) > 0 {
+		for iNdEx := len(m.BuildTargetIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.BuildTargetIds[iNdEx])
+			copy(dAtA[i:], m.BuildTargetIds[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.BuildTargetIds[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.Id) > 0 {
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DevtoolStatusControllerRow) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DevtoolStatusControllerRow) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DevtoolStatusControllerRow) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Error) > 0 {
+		i -= len(m.Error)
+		copy(dAtA[i:], m.Error)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Error)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.Summary) > 0 {
+		i -= len(m.Summary)
+		copy(dAtA[i:], m.Summary)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Summary)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.State != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.Kind) > 0 {
+		i -= len(m.Kind)
+		copy(dAtA[i:], m.Kind)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Kind)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.ControllerId) > 0 {
+		i -= len(m.ControllerId)
+		copy(dAtA[i:], m.ControllerId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ControllerId)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -3053,7 +3944,7 @@ func (m *DevtoolManifestBuildRow) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	return len(dAtA) - i, nil
 }
 
-func (m *DevtoolPluginRow) MarshalVT() (dAtA []byte, err error) {
+func (m *DevtoolStatusPluginRow) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -3066,12 +3957,12 @@ func (m *DevtoolPluginRow) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *DevtoolPluginRow) MarshalToVT(dAtA []byte) (int, error) {
+func (m *DevtoolStatusPluginRow) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *DevtoolPluginRow) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *DevtoolStatusPluginRow) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -3133,7 +4024,7 @@ func (m *DevtoolPluginRow) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *DevtoolControllerRow) MarshalVT() (dAtA []byte, err error) {
+func (m *DevtoolStatusAttentionRow) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -3146,85 +4037,12 @@ func (m *DevtoolControllerRow) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *DevtoolControllerRow) MarshalToVT(dAtA []byte) (int, error) {
+func (m *DevtoolStatusAttentionRow) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *DevtoolControllerRow) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if len(m.Error) > 0 {
-		i -= len(m.Error)
-		copy(dAtA[i:], m.Error)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Error)))
-		i--
-		dAtA[i] = 0x32
-	}
-	if len(m.Summary) > 0 {
-		i -= len(m.Summary)
-		copy(dAtA[i:], m.Summary)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Summary)))
-		i--
-		dAtA[i] = 0x2a
-	}
-	if m.State != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
-		i--
-		dAtA[i] = 0x20
-	}
-	if len(m.Kind) > 0 {
-		i -= len(m.Kind)
-		copy(dAtA[i:], m.Kind)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Kind)))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.ControllerId) > 0 {
-		i -= len(m.ControllerId)
-		copy(dAtA[i:], m.ControllerId)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ControllerId)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.Id) > 0 {
-		i -= len(m.Id)
-		copy(dAtA[i:], m.Id)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *DevtoolAttentionRow) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *DevtoolAttentionRow) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *DevtoolAttentionRow) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *DevtoolStatusAttentionRow) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -3306,6 +4124,10 @@ func (m *DevtoolStatusSnapshot) SizeVT() (n int) {
 		l = m.Command.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.Project != nil {
+		l = m.Project.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	if len(m.ManifestFetchRows) > 0 {
 		for _, e := range m.ManifestFetchRows {
 			l = e.SizeVT()
@@ -3318,14 +4140,14 @@ func (m *DevtoolStatusSnapshot) SizeVT() (n int) {
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
-	if len(m.PluginRows) > 0 {
-		for _, e := range m.PluginRows {
+	if len(m.ControllerRows) > 0 {
+		for _, e := range m.ControllerRows {
 			l = e.SizeVT()
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
-	if len(m.ControllerRows) > 0 {
-		for _, e := range m.ControllerRows {
+	if len(m.PluginRows) > 0 {
+		for _, e := range m.PluginRows {
 			l = e.SizeVT()
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
@@ -3340,7 +4162,7 @@ func (m *DevtoolStatusSnapshot) SizeVT() (n int) {
 	return n
 }
 
-func (m *DevtoolCommandStatus) SizeVT() (n int) {
+func (m *DevtoolStatusCommand) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -3369,7 +4191,91 @@ func (m *DevtoolCommandStatus) SizeVT() (n int) {
 	return n
 }
 
-func (m *DevtoolManifestFetchRow) SizeVT() (n int) {
+func (m *DevtoolStatusProject) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ProjectId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.StartupPlugins) > 0 {
+		for _, s := range m.StartupPlugins {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	l = len(m.WebStartupPath)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.ManifestIds) > 0 {
+		for _, s := range m.ManifestIds {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.BuildTargets) > 0 {
+		for _, e := range m.BuildTargets {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DevtoolStatusBuildTarget) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Id)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.ManifestIds) > 0 {
+		for _, s := range m.ManifestIds {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.ConfiguredTargetIds) > 0 {
+		for _, s := range m.ConfiguredTargetIds {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.ExplicitPlatformIds) > 0 {
+		for _, s := range m.ExplicitPlatformIds {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.ResolvedPlatformIds) > 0 {
+		for _, s := range m.ResolvedPlatformIds {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.BuildTypes) > 0 {
+		for _, s := range m.BuildTypes {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	l = len(m.Error)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DevtoolStatusManifestFetchRow) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -3383,17 +4289,23 @@ func (m *DevtoolManifestFetchRow) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	l = len(m.PlatformId)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	if len(m.PlatformIds) > 0 {
+		for _, s := range m.PlatformIds {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
 	}
-	l = len(m.BuildType)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	if len(m.BuildTypes) > 0 {
+		for _, s := range m.BuildTypes {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
 	}
-	l = len(m.RemoteId)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	if len(m.RemoteIds) > 0 {
+		for _, s := range m.RemoteIds {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
 	}
 	if m.State != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.State))
@@ -3405,9 +4317,11 @@ func (m *DevtoolManifestFetchRow) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	l = len(m.LocalBuildIds)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	if len(m.LocalBuildIds) > 0 {
+		for _, s := range m.LocalBuildIds {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
 	}
 	if m.BlockedOnLocalBuild {
 		n += 2
@@ -3424,7 +4338,7 @@ func (m *DevtoolManifestFetchRow) SizeVT() (n int) {
 	return n
 }
 
-func (m *DevtoolManifestBuildRow) SizeVT() (n int) {
+func (m *DevtoolStatusManifestBuildRow) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -3434,9 +4348,11 @@ func (m *DevtoolManifestBuildRow) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	l = len(m.BuildTargets)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	if len(m.BuildTargetIds) > 0 {
+		for _, s := range m.BuildTargetIds {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
 	}
 	l = len(m.ManifestId)
 	if l > 0 {
@@ -3446,9 +4362,11 @@ func (m *DevtoolManifestBuildRow) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	l = len(m.TargetPlatformIds)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	if len(m.TargetPlatformIds) > 0 {
+		for _, s := range m.TargetPlatformIds {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
 	}
 	l = len(m.BuildType)
 	if l > 0 {
@@ -3489,7 +4407,40 @@ func (m *DevtoolManifestBuildRow) SizeVT() (n int) {
 	return n
 }
 
-func (m *DevtoolPluginRow) SizeVT() (n int) {
+func (m *DevtoolStatusControllerRow) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Id)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ControllerId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Kind)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.State != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.State))
+	}
+	l = len(m.Summary)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Error)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DevtoolStatusPluginRow) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -3526,40 +4477,7 @@ func (m *DevtoolPluginRow) SizeVT() (n int) {
 	return n
 }
 
-func (m *DevtoolControllerRow) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Id)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	l = len(m.ControllerId)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	l = len(m.Kind)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	if m.State != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.State))
-	}
-	l = len(m.Summary)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	l = len(m.Error)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *DevtoolAttentionRow) SizeVT() (n int) {
+func (m *DevtoolStatusAttentionRow) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -3588,23 +4506,23 @@ func (m *DevtoolAttentionRow) SizeVT() (n int) {
 	return n
 }
 
-func (x DevtoolCommandState) MarshalProtoText() string {
+func (x DevtoolStatusCommandState) MarshalProtoText() string {
 	return x.String()
 }
 
-func (x DevtoolManifestState) MarshalProtoText() string {
+func (x DevtoolStatusManifestState) MarshalProtoText() string {
 	return x.String()
 }
 
-func (x DevtoolPluginState) MarshalProtoText() string {
+func (x DevtoolStatusControllerState) MarshalProtoText() string {
 	return x.String()
 }
 
-func (x DevtoolControllerState) MarshalProtoText() string {
+func (x DevtoolStatusPluginState) MarshalProtoText() string {
 	return x.String()
 }
 
-func (x DevtoolAttentionSeverity) MarshalProtoText() string {
+func (x DevtoolStatusAttentionSeverity) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -3647,6 +4565,13 @@ func (x *DevtoolStatusSnapshot) MarshalProtoText() string {
 		sb.WriteString("command: ")
 		sb.WriteString(x.Command.MarshalProtoText())
 	}
+	if x.Project != nil {
+		if sb.Len() > 23 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("project: ")
+		sb.WriteString(x.Project.MarshalProtoText())
+	}
 	if len(x.ManifestFetchRows) > 0 {
 		if sb.Len() > 23 {
 			sb.WriteString(" ")
@@ -3657,7 +4582,7 @@ func (x *DevtoolStatusSnapshot) MarshalProtoText() string {
 				sb.WriteString(", ")
 			}
 			if v == nil {
-				sb.WriteString((&DevtoolManifestFetchRow{}).MarshalProtoText())
+				sb.WriteString((&DevtoolStatusManifestFetchRow{}).MarshalProtoText())
 			} else {
 				sb.WriteString(v.MarshalProtoText())
 			}
@@ -3674,24 +4599,7 @@ func (x *DevtoolStatusSnapshot) MarshalProtoText() string {
 				sb.WriteString(", ")
 			}
 			if v == nil {
-				sb.WriteString((&DevtoolManifestBuildRow{}).MarshalProtoText())
-			} else {
-				sb.WriteString(v.MarshalProtoText())
-			}
-		}
-		sb.WriteString("]")
-	}
-	if len(x.PluginRows) > 0 {
-		if sb.Len() > 23 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("plugin_rows: [")
-		for i, v := range x.PluginRows {
-			if i > 0 {
-				sb.WriteString(", ")
-			}
-			if v == nil {
-				sb.WriteString((&DevtoolPluginRow{}).MarshalProtoText())
+				sb.WriteString((&DevtoolStatusManifestBuildRow{}).MarshalProtoText())
 			} else {
 				sb.WriteString(v.MarshalProtoText())
 			}
@@ -3708,7 +4616,24 @@ func (x *DevtoolStatusSnapshot) MarshalProtoText() string {
 				sb.WriteString(", ")
 			}
 			if v == nil {
-				sb.WriteString((&DevtoolControllerRow{}).MarshalProtoText())
+				sb.WriteString((&DevtoolStatusControllerRow{}).MarshalProtoText())
+			} else {
+				sb.WriteString(v.MarshalProtoText())
+			}
+		}
+		sb.WriteString("]")
+	}
+	if len(x.PluginRows) > 0 {
+		if sb.Len() > 23 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("plugin_rows: [")
+		for i, v := range x.PluginRows {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			if v == nil {
+				sb.WriteString((&DevtoolStatusPluginRow{}).MarshalProtoText())
 			} else {
 				sb.WriteString(v.MarshalProtoText())
 			}
@@ -3725,7 +4650,7 @@ func (x *DevtoolStatusSnapshot) MarshalProtoText() string {
 				sb.WriteString(", ")
 			}
 			if v == nil {
-				sb.WriteString((&DevtoolAttentionRow{}).MarshalProtoText())
+				sb.WriteString((&DevtoolStatusAttentionRow{}).MarshalProtoText())
 			} else {
 				sb.WriteString(v.MarshalProtoText())
 			}
@@ -3740,9 +4665,9 @@ func (x *DevtoolStatusSnapshot) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *DevtoolCommandStatus) MarshalProtoText() string {
+func (x *DevtoolStatusCommand) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("DevtoolCommandStatus {")
+	sb.WriteString("DevtoolStatusCommand {")
 	if x.Name != "" {
 		if sb.Len() > 22 {
 			sb.WriteString(" ")
@@ -3756,7 +4681,7 @@ func (x *DevtoolCommandStatus) MarshalProtoText() string {
 		}
 		sb.WriteString("state: ")
 		sb.WriteString("\"")
-		sb.WriteString(DevtoolCommandState(x.State).String())
+		sb.WriteString(DevtoolStatusCommandState(x.State).String())
 		sb.WriteString("\"")
 	}
 	if x.Summary != "" {
@@ -3784,94 +4709,276 @@ func (x *DevtoolCommandStatus) MarshalProtoText() string {
 	return sb.String()
 }
 
-func (x *DevtoolCommandStatus) String() string {
+func (x *DevtoolStatusCommand) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *DevtoolManifestFetchRow) MarshalProtoText() string {
+func (x *DevtoolStatusProject) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("DevtoolManifestFetchRow {")
+	sb.WriteString("DevtoolStatusProject {")
+	if x.ProjectId != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("project_id: ")
+		sb.WriteString(strconv.Quote(x.ProjectId))
+	}
+	if len(x.StartupPlugins) > 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("startup_plugins: [")
+		for i, v := range x.StartupPlugins {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if x.WebStartupPath != "" {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("web_startup_path: ")
+		sb.WriteString(strconv.Quote(x.WebStartupPath))
+	}
+	if len(x.ManifestIds) > 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("manifest_ids: [")
+		for i, v := range x.ManifestIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if len(x.BuildTargets) > 0 {
+		if sb.Len() > 22 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("build_targets: [")
+		for i, v := range x.BuildTargets {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			if v == nil {
+				sb.WriteString((&DevtoolStatusBuildTarget{}).MarshalProtoText())
+			} else {
+				sb.WriteString(v.MarshalProtoText())
+			}
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *DevtoolStatusProject) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DevtoolStatusBuildTarget) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("DevtoolStatusBuildTarget {")
 	if x.Id != "" {
-		if sb.Len() > 25 {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("id: ")
+		sb.WriteString(strconv.Quote(x.Id))
+	}
+	if len(x.ManifestIds) > 0 {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("manifest_ids: [")
+		for i, v := range x.ManifestIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if len(x.ConfiguredTargetIds) > 0 {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("configured_target_ids: [")
+		for i, v := range x.ConfiguredTargetIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if len(x.ExplicitPlatformIds) > 0 {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("explicit_platform_ids: [")
+		for i, v := range x.ExplicitPlatformIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if len(x.ResolvedPlatformIds) > 0 {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("resolved_platform_ids: [")
+		for i, v := range x.ResolvedPlatformIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if len(x.BuildTypes) > 0 {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("build_types: [")
+		for i, v := range x.BuildTypes {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if x.Error != "" {
+		if sb.Len() > 26 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("error: ")
+		sb.WriteString(strconv.Quote(x.Error))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *DevtoolStatusBuildTarget) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DevtoolStatusManifestFetchRow) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("DevtoolStatusManifestFetchRow {")
+	if x.Id != "" {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("id: ")
 		sb.WriteString(strconv.Quote(x.Id))
 	}
 	if x.ManifestId != "" {
-		if sb.Len() > 25 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("manifest_id: ")
 		sb.WriteString(strconv.Quote(x.ManifestId))
 	}
-	if x.PlatformId != "" {
-		if sb.Len() > 25 {
+	if len(x.PlatformIds) > 0 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("platform_id: ")
-		sb.WriteString(strconv.Quote(x.PlatformId))
+		sb.WriteString("platform_ids: [")
+		for i, v := range x.PlatformIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
 	}
-	if x.BuildType != "" {
-		if sb.Len() > 25 {
+	if len(x.BuildTypes) > 0 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("build_type: ")
-		sb.WriteString(strconv.Quote(x.BuildType))
+		sb.WriteString("build_types: [")
+		for i, v := range x.BuildTypes {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
 	}
-	if x.RemoteId != "" {
-		if sb.Len() > 25 {
+	if len(x.RemoteIds) > 0 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("remote_id: ")
-		sb.WriteString(strconv.Quote(x.RemoteId))
+		sb.WriteString("remote_ids: [")
+		for i, v := range x.RemoteIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
 	}
 	if x.State != 0 {
-		if sb.Len() > 25 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("state: ")
 		sb.WriteString("\"")
-		sb.WriteString(DevtoolManifestState(x.State).String())
+		sb.WriteString(DevtoolStatusManifestState(x.State).String())
 		sb.WriteString("\"")
 	}
 	if x.ReadyRefCount != 0 {
-		if sb.Len() > 25 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("ready_ref_count: ")
-		sb.WriteString(strconv.FormatInt(int64(x.ReadyRefCount), 10))
+		sb.WriteString(strconv.FormatUint(uint64(x.ReadyRefCount), 10))
 	}
 	if x.ReadyRefs != "" {
-		if sb.Len() > 25 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("ready_refs: ")
 		sb.WriteString(strconv.Quote(x.ReadyRefs))
 	}
-	if x.LocalBuildIds != "" {
-		if sb.Len() > 25 {
+	if len(x.LocalBuildIds) > 0 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("local_build_ids: ")
-		sb.WriteString(strconv.Quote(x.LocalBuildIds))
+		sb.WriteString("local_build_ids: [")
+		for i, v := range x.LocalBuildIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
 	}
 	if x.BlockedOnLocalBuild != false {
-		if sb.Len() > 25 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("blocked_on_local_build: ")
 		sb.WriteString(strconv.FormatBool(x.BlockedOnLocalBuild))
 	}
 	if x.Summary != "" {
-		if sb.Len() > 25 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("summary: ")
 		sb.WriteString(strconv.Quote(x.Summary))
 	}
 	if x.Error != "" {
-		if sb.Len() > 25 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("error: ")
@@ -3881,115 +4988,127 @@ func (x *DevtoolManifestFetchRow) MarshalProtoText() string {
 	return sb.String()
 }
 
-func (x *DevtoolManifestFetchRow) String() string {
+func (x *DevtoolStatusManifestFetchRow) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *DevtoolManifestBuildRow) MarshalProtoText() string {
+func (x *DevtoolStatusManifestBuildRow) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("DevtoolManifestBuildRow {")
+	sb.WriteString("DevtoolStatusManifestBuildRow {")
 	if x.Id != "" {
-		if sb.Len() > 25 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("id: ")
 		sb.WriteString(strconv.Quote(x.Id))
 	}
-	if x.BuildTargets != "" {
-		if sb.Len() > 25 {
+	if len(x.BuildTargetIds) > 0 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("build_targets: ")
-		sb.WriteString(strconv.Quote(x.BuildTargets))
+		sb.WriteString("build_target_ids: [")
+		for i, v := range x.BuildTargetIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
 	}
 	if x.ManifestId != "" {
-		if sb.Len() > 25 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("manifest_id: ")
 		sb.WriteString(strconv.Quote(x.ManifestId))
 	}
 	if x.PlatformId != "" {
-		if sb.Len() > 25 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("platform_id: ")
 		sb.WriteString(strconv.Quote(x.PlatformId))
 	}
-	if x.TargetPlatformIds != "" {
-		if sb.Len() > 25 {
+	if len(x.TargetPlatformIds) > 0 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("target_platform_ids: ")
-		sb.WriteString(strconv.Quote(x.TargetPlatformIds))
+		sb.WriteString("target_platform_ids: [")
+		for i, v := range x.TargetPlatformIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
 	}
 	if x.BuildType != "" {
-		if sb.Len() > 25 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("build_type: ")
 		sb.WriteString(strconv.Quote(x.BuildType))
 	}
 	if x.RemoteId != "" {
-		if sb.Len() > 25 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("remote_id: ")
 		sb.WriteString(strconv.Quote(x.RemoteId))
 	}
 	if x.State != 0 {
-		if sb.Len() > 25 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("state: ")
 		sb.WriteString("\"")
-		sb.WriteString(DevtoolManifestState(x.State).String())
+		sb.WriteString(DevtoolStatusManifestState(x.State).String())
 		sb.WriteString("\"")
 	}
 	if x.CacheHit != false {
-		if sb.Len() > 25 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("cache_hit: ")
 		sb.WriteString(strconv.FormatBool(x.CacheHit))
 	}
 	if x.FullRebuild != false {
-		if sb.Len() > 25 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("full_rebuild: ")
 		sb.WriteString(strconv.FormatBool(x.FullRebuild))
 	}
 	if x.HotRebuild != false {
-		if sb.Len() > 25 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("hot_rebuild: ")
 		sb.WriteString(strconv.FormatBool(x.HotRebuild))
 	}
 	if x.WatchedFileCount != 0 {
-		if sb.Len() > 25 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("watched_file_count: ")
-		sb.WriteString(strconv.FormatInt(int64(x.WatchedFileCount), 10))
+		sb.WriteString(strconv.FormatUint(uint64(x.WatchedFileCount), 10))
 	}
 	if x.DependencyRebuildReason != "" {
-		if sb.Len() > 25 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("dependency_rebuild_reason: ")
 		sb.WriteString(strconv.Quote(x.DependencyRebuildReason))
 	}
 	if x.Summary != "" {
-		if sb.Len() > 25 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("summary: ")
 		sb.WriteString(strconv.Quote(x.Summary))
 	}
 	if x.Error != "" {
-		if sb.Len() > 25 {
+		if sb.Len() > 31 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("error: ")
@@ -3999,59 +5118,114 @@ func (x *DevtoolManifestBuildRow) MarshalProtoText() string {
 	return sb.String()
 }
 
-func (x *DevtoolManifestBuildRow) String() string {
+func (x *DevtoolStatusManifestBuildRow) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *DevtoolPluginRow) MarshalProtoText() string {
+func (x *DevtoolStatusControllerRow) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("DevtoolPluginRow {")
+	sb.WriteString("DevtoolStatusControllerRow {")
 	if x.Id != "" {
-		if sb.Len() > 18 {
+		if sb.Len() > 28 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("id: ")
 		sb.WriteString(strconv.Quote(x.Id))
 	}
-	if x.PluginId != "" {
-		if sb.Len() > 18 {
+	if x.ControllerId != "" {
+		if sb.Len() > 28 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("plugin_id: ")
-		sb.WriteString(strconv.Quote(x.PluginId))
+		sb.WriteString("controller_id: ")
+		sb.WriteString(strconv.Quote(x.ControllerId))
 	}
-	if x.InstanceKey != "" {
-		if sb.Len() > 18 {
+	if x.Kind != "" {
+		if sb.Len() > 28 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("instance_key: ")
-		sb.WriteString(strconv.Quote(x.InstanceKey))
+		sb.WriteString("kind: ")
+		sb.WriteString(strconv.Quote(x.Kind))
 	}
 	if x.State != 0 {
-		if sb.Len() > 18 {
+		if sb.Len() > 28 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("state: ")
 		sb.WriteString("\"")
-		sb.WriteString(DevtoolPluginState(x.State).String())
+		sb.WriteString(DevtoolStatusControllerState(x.State).String())
 		sb.WriteString("\"")
 	}
 	if x.Summary != "" {
-		if sb.Len() > 18 {
+		if sb.Len() > 28 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("summary: ")
 		sb.WriteString(strconv.Quote(x.Summary))
 	}
 	if x.Error != "" {
-		if sb.Len() > 18 {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("error: ")
+		sb.WriteString(strconv.Quote(x.Error))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *DevtoolStatusControllerRow) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DevtoolStatusPluginRow) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("DevtoolStatusPluginRow {")
+	if x.Id != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("id: ")
+		sb.WriteString(strconv.Quote(x.Id))
+	}
+	if x.PluginId != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("plugin_id: ")
+		sb.WriteString(strconv.Quote(x.PluginId))
+	}
+	if x.InstanceKey != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("instance_key: ")
+		sb.WriteString(strconv.Quote(x.InstanceKey))
+	}
+	if x.State != 0 {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("state: ")
+		sb.WriteString("\"")
+		sb.WriteString(DevtoolStatusPluginState(x.State).String())
+		sb.WriteString("\"")
+	}
+	if x.Summary != "" {
+		if sb.Len() > 24 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("summary: ")
+		sb.WriteString(strconv.Quote(x.Summary))
+	}
+	if x.Error != "" {
+		if sb.Len() > 24 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("error: ")
 		sb.WriteString(strconv.Quote(x.Error))
 	}
 	if x.LastErrorAt != "" {
-		if sb.Len() > 18 {
+		if sb.Len() > 24 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("last_error_at: ")
@@ -4061,110 +5235,55 @@ func (x *DevtoolPluginRow) MarshalProtoText() string {
 	return sb.String()
 }
 
-func (x *DevtoolPluginRow) String() string {
+func (x *DevtoolStatusPluginRow) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *DevtoolControllerRow) MarshalProtoText() string {
+func (x *DevtoolStatusAttentionRow) MarshalProtoText() string {
 	var sb strings.Builder
-	sb.WriteString("DevtoolControllerRow {")
+	sb.WriteString("DevtoolStatusAttentionRow {")
 	if x.Id != "" {
-		if sb.Len() > 22 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("id: ")
-		sb.WriteString(strconv.Quote(x.Id))
-	}
-	if x.ControllerId != "" {
-		if sb.Len() > 22 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("controller_id: ")
-		sb.WriteString(strconv.Quote(x.ControllerId))
-	}
-	if x.Kind != "" {
-		if sb.Len() > 22 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("kind: ")
-		sb.WriteString(strconv.Quote(x.Kind))
-	}
-	if x.State != 0 {
-		if sb.Len() > 22 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("state: ")
-		sb.WriteString("\"")
-		sb.WriteString(DevtoolControllerState(x.State).String())
-		sb.WriteString("\"")
-	}
-	if x.Summary != "" {
-		if sb.Len() > 22 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("summary: ")
-		sb.WriteString(strconv.Quote(x.Summary))
-	}
-	if x.Error != "" {
-		if sb.Len() > 22 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("error: ")
-		sb.WriteString(strconv.Quote(x.Error))
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *DevtoolControllerRow) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *DevtoolAttentionRow) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("DevtoolAttentionRow {")
-	if x.Id != "" {
-		if sb.Len() > 21 {
+		if sb.Len() > 27 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("id: ")
 		sb.WriteString(strconv.Quote(x.Id))
 	}
 	if x.Source != "" {
-		if sb.Len() > 21 {
+		if sb.Len() > 27 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("source: ")
 		sb.WriteString(strconv.Quote(x.Source))
 	}
 	if x.Message != "" {
-		if sb.Len() > 21 {
+		if sb.Len() > 27 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("message: ")
 		sb.WriteString(strconv.Quote(x.Message))
 	}
 	if x.Detail != "" {
-		if sb.Len() > 21 {
+		if sb.Len() > 27 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("detail: ")
 		sb.WriteString(strconv.Quote(x.Detail))
 	}
 	if x.Severity != 0 {
-		if sb.Len() > 21 {
+		if sb.Len() > 27 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("severity: ")
 		sb.WriteString("\"")
-		sb.WriteString(DevtoolAttentionSeverity(x.Severity).String())
+		sb.WriteString(DevtoolStatusAttentionSeverity(x.Severity).String())
 		sb.WriteString("\"")
 	}
 	sb.WriteString("}")
 	return sb.String()
 }
 
-func (x *DevtoolAttentionRow) String() string {
+func (x *DevtoolStatusAttentionRow) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -4324,13 +5443,41 @@ func (m *DevtoolStatusSnapshot) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Command == nil {
-				m.Command = &DevtoolCommandStatus{}
+				m.Command = &DevtoolStatusCommand{}
 			}
 			if err := m.Command.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Project", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Project == nil {
+				m.Project = &DevtoolStatusProject{}
+			}
+			if err := m.Project.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ManifestFetchRows", wireType)
 			}
@@ -4351,12 +5498,12 @@ func (m *DevtoolStatusSnapshot) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ManifestFetchRows = append(m.ManifestFetchRows, &DevtoolManifestFetchRow{})
+			m.ManifestFetchRows = append(m.ManifestFetchRows, &DevtoolStatusManifestFetchRow{})
 			if err := m.ManifestFetchRows[len(m.ManifestFetchRows)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
-		case 3:
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ManifestBuildRows", wireType)
 			}
@@ -4377,34 +5524,8 @@ func (m *DevtoolStatusSnapshot) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ManifestBuildRows = append(m.ManifestBuildRows, &DevtoolManifestBuildRow{})
+			m.ManifestBuildRows = append(m.ManifestBuildRows, &DevtoolStatusManifestBuildRow{})
 			if err := m.ManifestBuildRows[len(m.ManifestBuildRows)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PluginRows", wireType)
-			}
-			var msglen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			msglen = int(_v)
-			if err != nil {
-				return err
-			}
-			if msglen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PluginRows = append(m.PluginRows, &DevtoolPluginRow{})
-			if err := m.PluginRows[len(m.PluginRows)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -4429,12 +5550,38 @@ func (m *DevtoolStatusSnapshot) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ControllerRows = append(m.ControllerRows, &DevtoolControllerRow{})
+			m.ControllerRows = append(m.ControllerRows, &DevtoolStatusControllerRow{})
 			if err := m.ControllerRows[len(m.ControllerRows)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginRows", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PluginRows = append(m.PluginRows, &DevtoolStatusPluginRow{})
+			if err := m.PluginRows[len(m.PluginRows)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field AttentionRows", wireType)
 			}
@@ -4455,7 +5602,7 @@ func (m *DevtoolStatusSnapshot) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.AttentionRows = append(m.AttentionRows, &DevtoolAttentionRow{})
+			m.AttentionRows = append(m.AttentionRows, &DevtoolStatusAttentionRow{})
 			if err := m.AttentionRows[len(m.AttentionRows)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
@@ -4483,7 +5630,7 @@ func (m *DevtoolStatusSnapshot) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *DevtoolCommandStatus) UnmarshalVT(dAtA []byte) error {
+func (m *DevtoolStatusCommand) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	var err error
@@ -4497,10 +5644,10 @@ func (m *DevtoolCommandStatus) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: DevtoolCommandStatus: wiretype end group for non-group")
+			return fmt.Errorf("proto: DevtoolStatusCommand: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: DevtoolCommandStatus: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: DevtoolStatusCommand: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -4532,7 +5679,7 @@ func (m *DevtoolCommandStatus) UnmarshalVT(dAtA []byte) error {
 			m.State = 0
 			var _v uint64
 			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.State = DevtoolCommandState(_v)
+			m.State = DevtoolStatusCommandState(_v)
 			if err != nil {
 				return err
 			}
@@ -4625,7 +5772,7 @@ func (m *DevtoolCommandStatus) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *DevtoolManifestFetchRow) UnmarshalVT(dAtA []byte) error {
+func (m *DevtoolStatusProject) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	var err error
@@ -4639,10 +5786,364 @@ func (m *DevtoolManifestFetchRow) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: DevtoolManifestFetchRow: wiretype end group for non-group")
+			return fmt.Errorf("proto: DevtoolStatusProject: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: DevtoolManifestFetchRow: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: DevtoolStatusProject: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProjectId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ProjectId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StartupPlugins", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.StartupPlugins = append(m.StartupPlugins, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebStartupPath", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WebStartupPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ManifestIds", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ManifestIds = append(m.ManifestIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BuildTargets", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BuildTargets = append(m.BuildTargets, &DevtoolStatusBuildTarget{})
+			if err := m.BuildTargets[len(m.BuildTargets)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DevtoolStatusBuildTarget) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DevtoolStatusBuildTarget: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DevtoolStatusBuildTarget: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Id = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ManifestIds", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ManifestIds = append(m.ManifestIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConfiguredTargetIds", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ConfiguredTargetIds = append(m.ConfiguredTargetIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExplicitPlatformIds", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ExplicitPlatformIds = append(m.ExplicitPlatformIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResolvedPlatformIds", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ResolvedPlatformIds = append(m.ResolvedPlatformIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BuildTypes", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BuildTypes = append(m.BuildTypes, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Error = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DevtoolStatusManifestFetchRow) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DevtoolStatusManifestFetchRow: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DevtoolStatusManifestFetchRow: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -4691,7 +6192,7 @@ func (m *DevtoolManifestFetchRow) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PlatformId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field PlatformIds", wireType)
 			}
 			var stringLen uint64
 			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
@@ -4709,11 +6210,11 @@ func (m *DevtoolManifestFetchRow) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.PlatformId = string(dAtA[iNdEx:postIndex])
+			m.PlatformIds = append(m.PlatformIds, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BuildType", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field BuildTypes", wireType)
 			}
 			var stringLen uint64
 			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
@@ -4731,11 +6232,11 @@ func (m *DevtoolManifestFetchRow) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.BuildType = string(dAtA[iNdEx:postIndex])
+			m.BuildTypes = append(m.BuildTypes, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RemoteId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field RemoteIds", wireType)
 			}
 			var stringLen uint64
 			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
@@ -4753,7 +6254,7 @@ func (m *DevtoolManifestFetchRow) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.RemoteId = string(dAtA[iNdEx:postIndex])
+			m.RemoteIds = append(m.RemoteIds, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 6:
 			if wireType != 0 {
@@ -4762,7 +6263,7 @@ func (m *DevtoolManifestFetchRow) UnmarshalVT(dAtA []byte) error {
 			m.State = 0
 			var _v uint64
 			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.State = DevtoolManifestState(_v)
+			m.State = DevtoolStatusManifestState(_v)
 			if err != nil {
 				return err
 			}
@@ -4771,7 +6272,7 @@ func (m *DevtoolManifestFetchRow) UnmarshalVT(dAtA []byte) error {
 				return fmt.Errorf("proto: wrong wireType = %d for field ReadyRefCount", wireType)
 			}
 			m.ReadyRefCount = 0
-			m.ReadyRefCount, iNdEx, err = protobuf_go_lite.DecodeVarintInt32(dAtA, iNdEx)
+			m.ReadyRefCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
@@ -4817,7 +6318,7 @@ func (m *DevtoolManifestFetchRow) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.LocalBuildIds = string(dAtA[iNdEx:postIndex])
+			m.LocalBuildIds = append(m.LocalBuildIds, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 10:
 			if wireType != 0 {
@@ -4898,7 +6399,7 @@ func (m *DevtoolManifestFetchRow) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *DevtoolManifestBuildRow) UnmarshalVT(dAtA []byte) error {
+func (m *DevtoolStatusManifestBuildRow) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	var err error
@@ -4912,10 +6413,10 @@ func (m *DevtoolManifestBuildRow) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: DevtoolManifestBuildRow: wiretype end group for non-group")
+			return fmt.Errorf("proto: DevtoolStatusManifestBuildRow: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: DevtoolManifestBuildRow: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: DevtoolStatusManifestBuildRow: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -4942,7 +6443,7 @@ func (m *DevtoolManifestBuildRow) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BuildTargets", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field BuildTargetIds", wireType)
 			}
 			var stringLen uint64
 			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
@@ -4960,7 +6461,7 @@ func (m *DevtoolManifestBuildRow) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.BuildTargets = string(dAtA[iNdEx:postIndex])
+			m.BuildTargetIds = append(m.BuildTargetIds, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -5026,7 +6527,7 @@ func (m *DevtoolManifestBuildRow) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.TargetPlatformIds = string(dAtA[iNdEx:postIndex])
+			m.TargetPlatformIds = append(m.TargetPlatformIds, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
@@ -5079,7 +6580,7 @@ func (m *DevtoolManifestBuildRow) UnmarshalVT(dAtA []byte) error {
 			m.State = 0
 			var _v uint64
 			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.State = DevtoolManifestState(_v)
+			m.State = DevtoolStatusManifestState(_v)
 			if err != nil {
 				return err
 			}
@@ -5124,7 +6625,7 @@ func (m *DevtoolManifestBuildRow) UnmarshalVT(dAtA []byte) error {
 				return fmt.Errorf("proto: wrong wireType = %d for field WatchedFileCount", wireType)
 			}
 			m.WatchedFileCount = 0
-			m.WatchedFileCount, iNdEx, err = protobuf_go_lite.DecodeVarintInt32(dAtA, iNdEx)
+			m.WatchedFileCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
@@ -5217,7 +6718,7 @@ func (m *DevtoolManifestBuildRow) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *DevtoolPluginRow) UnmarshalVT(dAtA []byte) error {
+func (m *DevtoolStatusControllerRow) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	var err error
@@ -5231,10 +6732,174 @@ func (m *DevtoolPluginRow) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: DevtoolPluginRow: wiretype end group for non-group")
+			return fmt.Errorf("proto: DevtoolStatusControllerRow: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: DevtoolPluginRow: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: DevtoolStatusControllerRow: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Id = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ControllerId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ControllerId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Kind", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Kind = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			m.State = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.State = DevtoolStatusControllerState(_v)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Summary", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Summary = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Error = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DevtoolStatusPluginRow) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DevtoolStatusPluginRow: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DevtoolStatusPluginRow: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -5310,7 +6975,7 @@ func (m *DevtoolPluginRow) UnmarshalVT(dAtA []byte) error {
 			m.State = 0
 			var _v uint64
 			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.State = DevtoolPluginState(_v)
+			m.State = DevtoolStatusPluginState(_v)
 			if err != nil {
 				return err
 			}
@@ -5403,7 +7068,7 @@ func (m *DevtoolPluginRow) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *DevtoolControllerRow) UnmarshalVT(dAtA []byte) error {
+func (m *DevtoolStatusAttentionRow) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	var err error
@@ -5417,174 +7082,10 @@ func (m *DevtoolControllerRow) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: DevtoolControllerRow: wiretype end group for non-group")
+			return fmt.Errorf("proto: DevtoolStatusAttentionRow: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: DevtoolControllerRow: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Id = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ControllerId", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ControllerId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Kind", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Kind = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
-			}
-			m.State = 0
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.State = DevtoolControllerState(_v)
-			if err != nil {
-				return err
-			}
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Summary", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Summary = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Error = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *DevtoolAttentionRow) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: DevtoolAttentionRow: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: DevtoolAttentionRow: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: DevtoolStatusAttentionRow: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -5682,7 +7183,7 @@ func (m *DevtoolAttentionRow) UnmarshalVT(dAtA []byte) error {
 			m.Severity = 0
 			var _v uint64
 			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.Severity = DevtoolAttentionSeverity(_v)
+			m.Severity = DevtoolStatusAttentionSeverity(_v)
 			if err != nil {
 				return err
 			}

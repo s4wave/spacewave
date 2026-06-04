@@ -14,272 +14,273 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 export const protobufPackage = 'bldr.devtool.status'
 
 /**
- * DevtoolCommandState describes the high-level command lifecycle.
+ * DevtoolStatusCommandState describes the high-level command lifecycle.
  *
- * @generated from enum bldr.devtool.status.DevtoolCommandState
+ * @generated from enum bldr.devtool.status.DevtoolStatusCommandState
  */
-export enum DevtoolCommandState {
+export enum DevtoolStatusCommandState {
   /**
-   * DEVTOOL_COMMAND_STATE_UNSPECIFIED leaves command state unset.
+   * DevtoolStatusCommandState_UNKNOWN leaves command state unset.
    *
-   * @generated from enum value: DEVTOOL_COMMAND_STATE_UNSPECIFIED = 0;
+   * @generated from enum value: DevtoolStatusCommandState_UNKNOWN = 0;
    */
-  UNSPECIFIED = 0,
+  DevtoolStatusCommandState_UNKNOWN = 0,
 
   /**
-   * DEVTOOL_COMMAND_STATE_STARTING means command startup is running.
+   * DevtoolStatusCommandState_STARTING means command startup is running.
    *
-   * @generated from enum value: DEVTOOL_COMMAND_STATE_STARTING = 1;
+   * @generated from enum value: DevtoolStatusCommandState_STARTING = 1;
    */
-  STARTING = 1,
+  DevtoolStatusCommandState_STARTING = 1,
 
   /**
-   * DEVTOOL_COMMAND_STATE_RUNNING means the command is active.
+   * DevtoolStatusCommandState_RUNNING means the command is active.
    *
-   * @generated from enum value: DEVTOOL_COMMAND_STATE_RUNNING = 2;
+   * @generated from enum value: DevtoolStatusCommandState_RUNNING = 2;
    */
-  RUNNING = 2,
+  DevtoolStatusCommandState_RUNNING = 2,
 
   /**
-   * DEVTOOL_COMMAND_STATE_DONE means the command completed successfully.
+   * DevtoolStatusCommandState_DONE means the command completed successfully.
    *
-   * @generated from enum value: DEVTOOL_COMMAND_STATE_DONE = 3;
+   * @generated from enum value: DevtoolStatusCommandState_DONE = 3;
    */
-  DONE = 3,
+  DevtoolStatusCommandState_DONE = 3,
 
   /**
-   * DEVTOOL_COMMAND_STATE_ERROR means the command failed.
+   * DevtoolStatusCommandState_ERROR means the command failed.
    *
-   * @generated from enum value: DEVTOOL_COMMAND_STATE_ERROR = 4;
+   * @generated from enum value: DevtoolStatusCommandState_ERROR = 4;
    */
-  ERROR = 4,
+  DevtoolStatusCommandState_ERROR = 4,
 
   /**
-   * DEVTOOL_COMMAND_STATE_CANCELED means the command was canceled.
+   * DevtoolStatusCommandState_CANCELED means the command was canceled.
    *
-   * @generated from enum value: DEVTOOL_COMMAND_STATE_CANCELED = 5;
+   * @generated from enum value: DevtoolStatusCommandState_CANCELED = 5;
    */
-  CANCELED = 5,
+  DevtoolStatusCommandState_CANCELED = 5,
 }
 
-export const DevtoolCommandState_Enum = /* @__PURE__ */ createEnumType(
-  'bldr.devtool.status.DevtoolCommandState',
+export const DevtoolStatusCommandState_Enum = /* @__PURE__ */ createEnumType(
+  'bldr.devtool.status.DevtoolStatusCommandState',
   [
-    [0, 'DEVTOOL_COMMAND_STATE_UNSPECIFIED'],
-    [1, 'DEVTOOL_COMMAND_STATE_STARTING'],
-    [2, 'DEVTOOL_COMMAND_STATE_RUNNING'],
-    [3, 'DEVTOOL_COMMAND_STATE_DONE'],
-    [4, 'DEVTOOL_COMMAND_STATE_ERROR'],
-    [5, 'DEVTOOL_COMMAND_STATE_CANCELED'],
+    [0, 'DevtoolStatusCommandState_UNKNOWN'],
+    [1, 'DevtoolStatusCommandState_STARTING'],
+    [2, 'DevtoolStatusCommandState_RUNNING'],
+    [3, 'DevtoolStatusCommandState_DONE'],
+    [4, 'DevtoolStatusCommandState_ERROR'],
+    [5, 'DevtoolStatusCommandState_CANCELED'],
   ],
 )
 
 /**
- * DevtoolManifestState describes manifest fetch and build progress.
+ * DevtoolStatusManifestState describes manifest fetch and build progress.
  *
- * @generated from enum bldr.devtool.status.DevtoolManifestState
+ * @generated from enum bldr.devtool.status.DevtoolStatusManifestState
  */
-export enum DevtoolManifestState {
+export enum DevtoolStatusManifestState {
   /**
-   * DEVTOOL_MANIFEST_STATE_UNSPECIFIED leaves manifest state unset.
+   * DevtoolStatusManifestState_UNKNOWN leaves manifest state unset.
    *
-   * @generated from enum value: DEVTOOL_MANIFEST_STATE_UNSPECIFIED = 0;
+   * @generated from enum value: DevtoolStatusManifestState_UNKNOWN = 0;
    */
-  UNSPECIFIED = 0,
+  DevtoolStatusManifestState_UNKNOWN = 0,
 
   /**
-   * DEVTOOL_MANIFEST_STATE_QUEUED means work is waiting to start.
+   * DevtoolStatusManifestState_QUEUED means work is waiting to start.
    *
-   * @generated from enum value: DEVTOOL_MANIFEST_STATE_QUEUED = 1;
+   * @generated from enum value: DevtoolStatusManifestState_QUEUED = 1;
    */
-  QUEUED = 1,
+  DevtoolStatusManifestState_QUEUED = 1,
 
   /**
-   * DEVTOOL_MANIFEST_STATE_RUNNING means work is active.
+   * DevtoolStatusManifestState_RUNNING means work is active.
    *
-   * @generated from enum value: DEVTOOL_MANIFEST_STATE_RUNNING = 2;
+   * @generated from enum value: DevtoolStatusManifestState_RUNNING = 2;
    */
-  RUNNING = 2,
+  DevtoolStatusManifestState_RUNNING = 2,
 
   /**
-   * DEVTOOL_MANIFEST_STATE_READY means the manifest is available.
+   * DevtoolStatusManifestState_READY means the manifest is available.
    *
-   * @generated from enum value: DEVTOOL_MANIFEST_STATE_READY = 3;
+   * @generated from enum value: DevtoolStatusManifestState_READY = 3;
    */
-  READY = 3,
+  DevtoolStatusManifestState_READY = 3,
 
   /**
-   * DEVTOOL_MANIFEST_STATE_ERROR means the work failed.
+   * DevtoolStatusManifestState_ERROR means the work failed.
    *
-   * @generated from enum value: DEVTOOL_MANIFEST_STATE_ERROR = 4;
+   * @generated from enum value: DevtoolStatusManifestState_ERROR = 4;
    */
-  ERROR = 4,
+  DevtoolStatusManifestState_ERROR = 4,
 
   /**
-   * DEVTOOL_MANIFEST_STATE_CANCELED means the work was canceled.
+   * DevtoolStatusManifestState_CANCELED means the work was canceled.
    *
-   * @generated from enum value: DEVTOOL_MANIFEST_STATE_CANCELED = 5;
+   * @generated from enum value: DevtoolStatusManifestState_CANCELED = 5;
    */
-  CANCELED = 5,
+  DevtoolStatusManifestState_CANCELED = 5,
 }
 
-export const DevtoolManifestState_Enum = /* @__PURE__ */ createEnumType(
-  'bldr.devtool.status.DevtoolManifestState',
+export const DevtoolStatusManifestState_Enum = /* @__PURE__ */ createEnumType(
+  'bldr.devtool.status.DevtoolStatusManifestState',
   [
-    [0, 'DEVTOOL_MANIFEST_STATE_UNSPECIFIED'],
-    [1, 'DEVTOOL_MANIFEST_STATE_QUEUED'],
-    [2, 'DEVTOOL_MANIFEST_STATE_RUNNING'],
-    [3, 'DEVTOOL_MANIFEST_STATE_READY'],
-    [4, 'DEVTOOL_MANIFEST_STATE_ERROR'],
-    [5, 'DEVTOOL_MANIFEST_STATE_CANCELED'],
+    [0, 'DevtoolStatusManifestState_UNKNOWN'],
+    [1, 'DevtoolStatusManifestState_QUEUED'],
+    [2, 'DevtoolStatusManifestState_RUNNING'],
+    [3, 'DevtoolStatusManifestState_READY'],
+    [4, 'DevtoolStatusManifestState_ERROR'],
+    [5, 'DevtoolStatusManifestState_CANCELED'],
   ],
 )
 
 /**
- * DevtoolPluginState describes plugin scheduler status.
+ * DevtoolStatusControllerState describes controller load and exec status.
  *
- * @generated from enum bldr.devtool.status.DevtoolPluginState
+ * @generated from enum bldr.devtool.status.DevtoolStatusControllerState
  */
-export enum DevtoolPluginState {
+export enum DevtoolStatusControllerState {
   /**
-   * DEVTOOL_PLUGIN_STATE_UNSPECIFIED leaves plugin state unset.
+   * DevtoolStatusControllerState_UNKNOWN leaves controller state unset.
    *
-   * @generated from enum value: DEVTOOL_PLUGIN_STATE_UNSPECIFIED = 0;
+   * @generated from enum value: DevtoolStatusControllerState_UNKNOWN = 0;
    */
-  UNSPECIFIED = 0,
+  DevtoolStatusControllerState_UNKNOWN = 0,
 
   /**
-   * DEVTOOL_PLUGIN_STATE_REQUESTED means the plugin has been requested.
+   * DevtoolStatusControllerState_REQUESTED means the controller has been requested.
    *
-   * @generated from enum value: DEVTOOL_PLUGIN_STATE_REQUESTED = 1;
+   * @generated from enum value: DevtoolStatusControllerState_REQUESTED = 1;
    */
-  REQUESTED = 1,
+  DevtoolStatusControllerState_REQUESTED = 1,
 
   /**
-   * DEVTOOL_PLUGIN_STATE_RUNNING means the plugin is running.
+   * DevtoolStatusControllerState_RUNNING means the controller is running.
    *
-   * @generated from enum value: DEVTOOL_PLUGIN_STATE_RUNNING = 2;
+   * @generated from enum value: DevtoolStatusControllerState_RUNNING = 2;
    */
-  RUNNING = 2,
+  DevtoolStatusControllerState_RUNNING = 2,
 
   /**
-   * DEVTOOL_PLUGIN_STATE_ERRORED means the plugin failed.
+   * DevtoolStatusControllerState_IDLE means the directive is idle without a running controller.
    *
-   * @generated from enum value: DEVTOOL_PLUGIN_STATE_ERRORED = 3;
+   * @generated from enum value: DevtoolStatusControllerState_IDLE = 3;
    */
-  ERRORED = 3,
+  DevtoolStatusControllerState_IDLE = 3,
+
+  /**
+   * DevtoolStatusControllerState_ERROR means controller load or execution failed.
+   *
+   * @generated from enum value: DevtoolStatusControllerState_ERROR = 4;
+   */
+  DevtoolStatusControllerState_ERROR = 4,
 }
 
-export const DevtoolPluginState_Enum = /* @__PURE__ */ createEnumType(
-  'bldr.devtool.status.DevtoolPluginState',
+export const DevtoolStatusControllerState_Enum = /* @__PURE__ */ createEnumType(
+  'bldr.devtool.status.DevtoolStatusControllerState',
   [
-    [0, 'DEVTOOL_PLUGIN_STATE_UNSPECIFIED'],
-    [1, 'DEVTOOL_PLUGIN_STATE_REQUESTED'],
-    [2, 'DEVTOOL_PLUGIN_STATE_RUNNING'],
-    [3, 'DEVTOOL_PLUGIN_STATE_ERRORED'],
+    [0, 'DevtoolStatusControllerState_UNKNOWN'],
+    [1, 'DevtoolStatusControllerState_REQUESTED'],
+    [2, 'DevtoolStatusControllerState_RUNNING'],
+    [3, 'DevtoolStatusControllerState_IDLE'],
+    [4, 'DevtoolStatusControllerState_ERROR'],
   ],
 )
 
 /**
- * DevtoolControllerState describes controller load and exec status.
+ * DevtoolStatusPluginState describes plugin status.
  *
- * @generated from enum bldr.devtool.status.DevtoolControllerState
+ * @generated from enum bldr.devtool.status.DevtoolStatusPluginState
  */
-export enum DevtoolControllerState {
+export enum DevtoolStatusPluginState {
   /**
-   * DEVTOOL_CONTROLLER_STATE_UNSPECIFIED leaves controller state unset.
+   * DevtoolStatusPluginState_UNKNOWN leaves plugin state unset.
    *
-   * @generated from enum value: DEVTOOL_CONTROLLER_STATE_UNSPECIFIED = 0;
+   * @generated from enum value: DevtoolStatusPluginState_UNKNOWN = 0;
    */
-  UNSPECIFIED = 0,
+  DevtoolStatusPluginState_UNKNOWN = 0,
 
   /**
-   * DEVTOOL_CONTROLLER_STATE_REQUESTED means the controller has been requested.
+   * DevtoolStatusPluginState_REQUESTED means the plugin has been requested.
    *
-   * @generated from enum value: DEVTOOL_CONTROLLER_STATE_REQUESTED = 1;
+   * @generated from enum value: DevtoolStatusPluginState_REQUESTED = 1;
    */
-  REQUESTED = 1,
+  DevtoolStatusPluginState_REQUESTED = 1,
 
   /**
-   * DEVTOOL_CONTROLLER_STATE_RUNNING means the controller is running.
+   * DevtoolStatusPluginState_RUNNING means the plugin is running.
    *
-   * @generated from enum value: DEVTOOL_CONTROLLER_STATE_RUNNING = 2;
+   * @generated from enum value: DevtoolStatusPluginState_RUNNING = 2;
    */
-  RUNNING = 2,
+  DevtoolStatusPluginState_RUNNING = 2,
 
   /**
-   * DEVTOOL_CONTROLLER_STATE_IDLE means the directive is idle without a running controller.
+   * DevtoolStatusPluginState_ERRORED means the plugin failed.
    *
-   * @generated from enum value: DEVTOOL_CONTROLLER_STATE_IDLE = 3;
+   * @generated from enum value: DevtoolStatusPluginState_ERRORED = 3;
    */
-  IDLE = 3,
-
-  /**
-   * DEVTOOL_CONTROLLER_STATE_ERROR means controller load or execution failed.
-   *
-   * @generated from enum value: DEVTOOL_CONTROLLER_STATE_ERROR = 4;
-   */
-  ERROR = 4,
+  DevtoolStatusPluginState_ERRORED = 3,
 }
 
-export const DevtoolControllerState_Enum = /* @__PURE__ */ createEnumType(
-  'bldr.devtool.status.DevtoolControllerState',
+export const DevtoolStatusPluginState_Enum = /* @__PURE__ */ createEnumType(
+  'bldr.devtool.status.DevtoolStatusPluginState',
   [
-    [0, 'DEVTOOL_CONTROLLER_STATE_UNSPECIFIED'],
-    [1, 'DEVTOOL_CONTROLLER_STATE_REQUESTED'],
-    [2, 'DEVTOOL_CONTROLLER_STATE_RUNNING'],
-    [3, 'DEVTOOL_CONTROLLER_STATE_IDLE'],
-    [4, 'DEVTOOL_CONTROLLER_STATE_ERROR'],
+    [0, 'DevtoolStatusPluginState_UNKNOWN'],
+    [1, 'DevtoolStatusPluginState_REQUESTED'],
+    [2, 'DevtoolStatusPluginState_RUNNING'],
+    [3, 'DevtoolStatusPluginState_ERRORED'],
   ],
 )
 
 /**
- * DevtoolAttentionSeverity describes the urgency of an attention row.
+ * DevtoolStatusAttentionSeverity describes the urgency of an attention row.
  *
- * @generated from enum bldr.devtool.status.DevtoolAttentionSeverity
+ * @generated from enum bldr.devtool.status.DevtoolStatusAttentionSeverity
  */
-export enum DevtoolAttentionSeverity {
+export enum DevtoolStatusAttentionSeverity {
   /**
-   * DEVTOOL_ATTENTION_SEVERITY_UNSPECIFIED leaves severity unset.
+   * DevtoolStatusAttentionSeverity_UNKNOWN leaves severity unset.
    *
-   * @generated from enum value: DEVTOOL_ATTENTION_SEVERITY_UNSPECIFIED = 0;
+   * @generated from enum value: DevtoolStatusAttentionSeverity_UNKNOWN = 0;
    */
-  UNSPECIFIED = 0,
+  DevtoolStatusAttentionSeverity_UNKNOWN = 0,
 
   /**
-   * DEVTOOL_ATTENTION_SEVERITY_INFO marks informational attention.
+   * DevtoolStatusAttentionSeverity_INFO marks informational attention.
    *
-   * @generated from enum value: DEVTOOL_ATTENTION_SEVERITY_INFO = 1;
+   * @generated from enum value: DevtoolStatusAttentionSeverity_INFO = 1;
    */
-  INFO = 1,
+  DevtoolStatusAttentionSeverity_INFO = 1,
 
   /**
-   * DEVTOOL_ATTENTION_SEVERITY_WARNING marks recoverable attention.
+   * DevtoolStatusAttentionSeverity_WARNING marks recoverable attention.
    *
-   * @generated from enum value: DEVTOOL_ATTENTION_SEVERITY_WARNING = 2;
+   * @generated from enum value: DevtoolStatusAttentionSeverity_WARNING = 2;
    */
-  WARNING = 2,
+  DevtoolStatusAttentionSeverity_WARNING = 2,
 
   /**
-   * DEVTOOL_ATTENTION_SEVERITY_ERROR marks blocking attention.
+   * DevtoolStatusAttentionSeverity_ERROR marks blocking attention.
    *
-   * @generated from enum value: DEVTOOL_ATTENTION_SEVERITY_ERROR = 3;
+   * @generated from enum value: DevtoolStatusAttentionSeverity_ERROR = 3;
    */
-  ERROR = 3,
+  DevtoolStatusAttentionSeverity_ERROR = 3,
 }
 
-export const DevtoolAttentionSeverity_Enum = /* @__PURE__ */ createEnumType(
-  'bldr.devtool.status.DevtoolAttentionSeverity',
-  [
-    [0, 'DEVTOOL_ATTENTION_SEVERITY_UNSPECIFIED'],
-    [1, 'DEVTOOL_ATTENTION_SEVERITY_INFO'],
-    [2, 'DEVTOOL_ATTENTION_SEVERITY_WARNING'],
-    [3, 'DEVTOOL_ATTENTION_SEVERITY_ERROR'],
-  ],
-)
+export const DevtoolStatusAttentionSeverity_Enum =
+  /* @__PURE__ */ createEnumType(
+    'bldr.devtool.status.DevtoolStatusAttentionSeverity',
+    [
+      [0, 'DevtoolStatusAttentionSeverity_UNKNOWN'],
+      [1, 'DevtoolStatusAttentionSeverity_INFO'],
+      [2, 'DevtoolStatusAttentionSeverity_WARNING'],
+      [3, 'DevtoolStatusAttentionSeverity_ERROR'],
+    ],
+  )
 
 /**
- * WatchDevtoolStatusRequest is the request for WatchDevtoolStatus.
+ * WatchDevtoolStatusRequest is the request type for WatchDevtoolStatus.
  *
  * @generated from message bldr.devtool.status.WatchDevtoolStatusRequest
  */
@@ -292,11 +293,11 @@ export const WatchDevtoolStatusRequest: MessageType<WatchDevtoolStatusRequest> =
   )
 
 /**
- * DevtoolCommandStatus describes the active Bldr command.
+ * DevtoolStatusCommand describes the active Bldr command.
  *
- * @generated from message bldr.devtool.status.DevtoolCommandStatus
+ * @generated from message bldr.devtool.status.DevtoolStatusCommand
  */
-export interface DevtoolCommandStatus {
+export interface DevtoolStatusCommand {
   /**
    * Name is the command name.
    *
@@ -306,35 +307,35 @@ export interface DevtoolCommandStatus {
   /**
    * State is the command lifecycle state.
    *
-   * @generated from field: bldr.devtool.status.DevtoolCommandState state = 2;
+   * @generated from field: bldr.devtool.status.DevtoolStatusCommandState state = 2;
    */
-  state?: DevtoolCommandState
+  state?: DevtoolStatusCommandState
   /**
-   * Summary is a concise status summary.
+   * Summary is a short human-readable status summary.
    *
    * @generated from field: string summary = 3;
    */
   summary?: string
   /**
-   * Error is the current command error summary.
+   * Error is the explicit command error, when present.
    *
    * @generated from field: string error = 4;
    */
   error?: string
   /**
-   * LogFile is the diagnostic log file path.
+   * LogFile is the diagnostic log file path, when present.
    *
    * @generated from field: string log_file = 5;
    */
   logFile?: string
 }
 
-export const DevtoolCommandStatus: MessageType<DevtoolCommandStatus> =
+export const DevtoolStatusCommand: MessageType<DevtoolStatusCommand> =
   /* @__PURE__ */ createMessageType({
-    typeName: 'bldr.devtool.status.DevtoolCommandStatus',
+    typeName: 'bldr.devtool.status.DevtoolStatusCommand',
     fields: [
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'state', kind: 'enum', T: DevtoolCommandState_Enum },
+      { no: 2, name: 'state', kind: 'enum', T: DevtoolStatusCommandState_Enum },
       { no: 3, name: 'summary', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'log_file', kind: 'scalar', T: ScalarType.STRING },
@@ -343,98 +344,291 @@ export const DevtoolCommandStatus: MessageType<DevtoolCommandStatus> =
   })
 
 /**
- * DevtoolManifestFetchRow describes one manifest fetch status row.
+ * DevtoolStatusBuildTarget describes one configured build target.
  *
- * @generated from message bldr.devtool.status.DevtoolManifestFetchRow
+ * @generated from message bldr.devtool.status.DevtoolStatusBuildTarget
  */
-export interface DevtoolManifestFetchRow {
+export interface DevtoolStatusBuildTarget {
   /**
-   * Id is the stable row identifier.
+   * Id is the build target id from project configuration.
    *
    * @generated from field: string id = 1;
    */
   id?: string
   /**
-   * ManifestId is the requested manifest identifier.
+   * ManifestIds is the target's configured manifest list.
+   *
+   * @generated from field: repeated string manifest_ids = 2;
+   */
+  manifestIds?: string[]
+  /**
+   * ConfiguredTargetIds is the target id list from project configuration.
+   *
+   * @generated from field: repeated string configured_target_ids = 3;
+   */
+  configuredTargetIds?: string[]
+  /**
+   * ExplicitPlatformIds is the explicit platform_ids list from project configuration.
+   *
+   * @generated from field: repeated string explicit_platform_ids = 4;
+   */
+  explicitPlatformIds?: string[]
+  /**
+   * ResolvedPlatformIds is the merged target platform list.
+   *
+   * @generated from field: repeated string resolved_platform_ids = 5;
+   */
+  resolvedPlatformIds?: string[]
+  /**
+   * BuildTypes are the supported build types for this target.
+   *
+   * @generated from field: repeated string build_types = 6;
+   */
+  buildTypes?: string[]
+  /**
+   * Error is the explicit target normalization error, when present.
+   *
+   * @generated from field: string error = 7;
+   */
+  error?: string
+}
+
+export const DevtoolStatusBuildTarget: MessageType<DevtoolStatusBuildTarget> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.devtool.status.DevtoolStatusBuildTarget',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'manifest_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 3,
+        name: 'configured_target_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 4,
+        name: 'explicit_platform_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 5,
+        name: 'resolved_platform_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 6,
+        name: 'build_types',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 7, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * DevtoolStatusProject is the read-only Bldr project and target snapshot.
+ *
+ * @generated from message bldr.devtool.status.DevtoolStatusProject
+ */
+export interface DevtoolStatusProject {
+  /**
+   * ProjectId is the configured project id.
+   *
+   * @generated from field: string project_id = 1;
+   */
+  projectId?: string
+  /**
+   * StartupPlugins is the list of configured startup plugins.
+   *
+   * @generated from field: repeated string startup_plugins = 2;
+   */
+  startupPlugins?: string[]
+  /**
+   * WebStartupPath is the configured web startup source path.
+   *
+   * @generated from field: string web_startup_path = 3;
+   */
+  webStartupPath?: string
+  /**
+   * ManifestIds is the list of configured manifest ids.
+   *
+   * @generated from field: repeated string manifest_ids = 4;
+   */
+  manifestIds?: string[]
+  /**
+   * BuildTargets is the normalized build target matrix.
+   *
+   * @generated from field: repeated bldr.devtool.status.DevtoolStatusBuildTarget build_targets = 5;
+   */
+  buildTargets?: DevtoolStatusBuildTarget[]
+}
+
+export const DevtoolStatusProject: MessageType<DevtoolStatusProject> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.devtool.status.DevtoolStatusProject',
+    fields: [
+      { no: 1, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'startup_plugins',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 3, name: 'web_startup_path', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 4,
+        name: 'manifest_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 5,
+        name: 'build_targets',
+        kind: 'message',
+        T: () => DevtoolStatusBuildTarget,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * DevtoolStatusManifestFetchRow describes one manifest fetch status row.
+ *
+ * @generated from message bldr.devtool.status.DevtoolStatusManifestFetchRow
+ */
+export interface DevtoolStatusManifestFetchRow {
+  /**
+   * Id is the deterministic row id.
+   *
+   * @generated from field: string id = 1;
+   */
+  id?: string
+  /**
+   * ManifestId is the requested manifest id.
    *
    * @generated from field: string manifest_id = 2;
    */
   manifestId?: string
   /**
-   * PlatformId is the requested platform identifier set.
+   * PlatformIds is the requested platform id list.
    *
-   * @generated from field: string platform_id = 3;
+   * @generated from field: repeated string platform_ids = 3;
    */
-  platformId?: string
+  platformIds?: string[]
   /**
-   * BuildType is the requested build type set.
+   * BuildTypes is the requested build type list.
    *
-   * @generated from field: string build_type = 4;
+   * @generated from field: repeated string build_types = 4;
    */
-  buildType?: string
+  buildTypes?: string[]
   /**
-   * RemoteId is the remote identity associated with local build rows.
+   * RemoteIds is the related remote id list.
    *
-   * @generated from field: string remote_id = 5;
+   * @generated from field: repeated string remote_ids = 5;
    */
-  remoteId?: string
+  remoteIds?: string[]
   /**
-   * State is the fetch lifecycle state.
+   * State is the manifest fetch state.
    *
-   * @generated from field: bldr.devtool.status.DevtoolManifestState state = 6;
+   * @generated from field: bldr.devtool.status.DevtoolStatusManifestState state = 6;
    */
-  state?: DevtoolManifestState
+  state?: DevtoolStatusManifestState
   /**
    * ReadyRefCount is the number of ready manifest refs.
    *
-   * @generated from field: int32 ready_ref_count = 7;
+   * @generated from field: uint32 ready_ref_count = 7;
    */
   readyRefCount?: number
   /**
-   * ReadyRefs is a compact display string of ready refs.
+   * ReadyRefs is the compact diagnostic manifest ref summary.
    *
    * @generated from field: string ready_refs = 8;
    */
   readyRefs?: string
   /**
-   * LocalBuildIds is the compact list of matching local build row ids.
+   * LocalBuildIds are related local build row ids.
    *
-   * @generated from field: string local_build_ids = 9;
+   * @generated from field: repeated string local_build_ids = 9;
    */
-  localBuildIds?: string
+  localBuildIds?: string[]
   /**
-   * BlockedOnLocalBuild indicates the fetch is waiting on local build work.
+   * BlockedOnLocalBuild indicates the fetch waits on a local build.
    *
    * @generated from field: bool blocked_on_local_build = 10;
    */
   blockedOnLocalBuild?: boolean
   /**
-   * Summary is a concise status summary.
+   * Summary is a short human-readable status summary.
    *
    * @generated from field: string summary = 11;
    */
   summary?: string
   /**
-   * Error is the current fetch error summary.
+   * Error is the explicit fetch error, when present.
    *
    * @generated from field: string error = 12;
    */
   error?: string
 }
 
-export const DevtoolManifestFetchRow: MessageType<DevtoolManifestFetchRow> =
+export const DevtoolStatusManifestFetchRow: MessageType<DevtoolStatusManifestFetchRow> =
   /* @__PURE__ */ createMessageType({
-    typeName: 'bldr.devtool.status.DevtoolManifestFetchRow',
+    typeName: 'bldr.devtool.status.DevtoolStatusManifestFetchRow',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'manifest_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 4, name: 'build_type', kind: 'scalar', T: ScalarType.STRING },
-      { no: 5, name: 'remote_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 6, name: 'state', kind: 'enum', T: DevtoolManifestState_Enum },
-      { no: 7, name: 'ready_ref_count', kind: 'scalar', T: ScalarType.INT32 },
+      {
+        no: 3,
+        name: 'platform_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 4,
+        name: 'build_types',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 5,
+        name: 'remote_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 6,
+        name: 'state',
+        kind: 'enum',
+        T: DevtoolStatusManifestState_Enum,
+      },
+      { no: 7, name: 'ready_ref_count', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 8, name: 'ready_refs', kind: 'scalar', T: ScalarType.STRING },
-      { no: 9, name: 'local_build_ids', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 9,
+        name: 'local_build_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
       {
         no: 10,
         name: 'blocked_on_local_build',
@@ -448,41 +642,41 @@ export const DevtoolManifestFetchRow: MessageType<DevtoolManifestFetchRow> =
   })
 
 /**
- * DevtoolManifestBuildRow describes one manifest build status row.
+ * DevtoolStatusManifestBuildRow describes one manifest build status row.
  *
- * @generated from message bldr.devtool.status.DevtoolManifestBuildRow
+ * @generated from message bldr.devtool.status.DevtoolStatusManifestBuildRow
  */
-export interface DevtoolManifestBuildRow {
+export interface DevtoolStatusManifestBuildRow {
   /**
-   * Id is the stable row identifier.
+   * Id is the deterministic row id.
    *
    * @generated from field: string id = 1;
    */
   id?: string
   /**
-   * BuildTargets is the compact list of build target ids.
+   * BuildTargetIds are related build target ids.
    *
-   * @generated from field: string build_targets = 2;
+   * @generated from field: repeated string build_target_ids = 2;
    */
-  buildTargets?: string
+  buildTargetIds?: string[]
   /**
-   * ManifestId is the manifest identifier.
+   * ManifestId is the manifest id.
    *
    * @generated from field: string manifest_id = 3;
    */
   manifestId?: string
   /**
-   * PlatformId is the builder platform identifier.
+   * PlatformId is the selected platform id.
    *
    * @generated from field: string platform_id = 4;
    */
   platformId?: string
   /**
-   * TargetPlatformIds is the compact list of target platform ids.
+   * TargetPlatformIds is the full target platform list.
    *
-   * @generated from field: string target_platform_ids = 5;
+   * @generated from field: repeated string target_platform_ids = 5;
    */
-  targetPlatformIds?: string
+  targetPlatformIds?: string[]
   /**
    * BuildType is the build type.
    *
@@ -490,67 +684,73 @@ export interface DevtoolManifestBuildRow {
    */
   buildType?: string
   /**
-   * RemoteId is the destination remote identifier.
+   * RemoteId is the remote id.
    *
    * @generated from field: string remote_id = 7;
    */
   remoteId?: string
   /**
-   * State is the build lifecycle state.
+   * State is the manifest build state.
    *
-   * @generated from field: bldr.devtool.status.DevtoolManifestState state = 8;
+   * @generated from field: bldr.devtool.status.DevtoolStatusManifestState state = 8;
    */
-  state?: DevtoolManifestState
+  state?: DevtoolStatusManifestState
   /**
-   * CacheHit indicates the build reused cached output.
+   * CacheHit indicates the builder reused a cached result.
    *
    * @generated from field: bool cache_hit = 9;
    */
   cacheHit?: boolean
   /**
-   * FullRebuild indicates the build is a full rebuild.
+   * FullRebuild indicates the builder performed a full rebuild.
    *
    * @generated from field: bool full_rebuild = 10;
    */
   fullRebuild?: boolean
   /**
-   * HotRebuild indicates the build is a hot rebuild.
+   * HotRebuild indicates the builder performed a hot rebuild.
    *
    * @generated from field: bool hot_rebuild = 11;
    */
   hotRebuild?: boolean
   /**
-   * WatchedFileCount is the number of files watched for rebuilds.
+   * WatchedFileCount is the number of watched files.
    *
-   * @generated from field: int32 watched_file_count = 12;
+   * @generated from field: uint32 watched_file_count = 12;
    */
   watchedFileCount?: number
   /**
-   * DependencyRebuildReason explains why a dependency triggered rebuild work.
+   * DependencyRebuildReason explains dependency-triggered rebuilds.
    *
    * @generated from field: string dependency_rebuild_reason = 13;
    */
   dependencyRebuildReason?: string
   /**
-   * Summary is a concise status summary.
+   * Summary is a short human-readable status summary.
    *
    * @generated from field: string summary = 14;
    */
   summary?: string
   /**
-   * Error is the current build error summary.
+   * Error is the explicit build error, when present.
    *
    * @generated from field: string error = 15;
    */
   error?: string
 }
 
-export const DevtoolManifestBuildRow: MessageType<DevtoolManifestBuildRow> =
+export const DevtoolStatusManifestBuildRow: MessageType<DevtoolStatusManifestBuildRow> =
   /* @__PURE__ */ createMessageType({
-    typeName: 'bldr.devtool.status.DevtoolManifestBuildRow',
+    typeName: 'bldr.devtool.status.DevtoolStatusManifestBuildRow',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'build_targets', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'build_target_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
       { no: 3, name: 'manifest_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
       {
@@ -558,10 +758,16 @@ export const DevtoolManifestBuildRow: MessageType<DevtoolManifestBuildRow> =
         name: 'target_platform_ids',
         kind: 'scalar',
         T: ScalarType.STRING,
+        repeated: true,
       },
       { no: 6, name: 'build_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'remote_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 8, name: 'state', kind: 'enum', T: DevtoolManifestState_Enum },
+      {
+        no: 8,
+        name: 'state',
+        kind: 'enum',
+        T: DevtoolStatusManifestState_Enum,
+      },
       { no: 9, name: 'cache_hit', kind: 'scalar', T: ScalarType.BOOL },
       { no: 10, name: 'full_rebuild', kind: 'scalar', T: ScalarType.BOOL },
       { no: 11, name: 'hot_rebuild', kind: 'scalar', T: ScalarType.BOOL },
@@ -569,7 +775,7 @@ export const DevtoolManifestBuildRow: MessageType<DevtoolManifestBuildRow> =
         no: 12,
         name: 'watched_file_count',
         kind: 'scalar',
-        T: ScalarType.INT32,
+        T: ScalarType.UINT32,
       },
       {
         no: 13,
@@ -584,19 +790,82 @@ export const DevtoolManifestBuildRow: MessageType<DevtoolManifestBuildRow> =
   })
 
 /**
- * DevtoolPluginRow describes one plugin instance row.
+ * DevtoolStatusControllerRow describes one controller directive row.
  *
- * @generated from message bldr.devtool.status.DevtoolPluginRow
+ * @generated from message bldr.devtool.status.DevtoolStatusControllerRow
  */
-export interface DevtoolPluginRow {
+export interface DevtoolStatusControllerRow {
   /**
-   * Id is the stable row identifier.
+   * Id is the deterministic row id.
    *
    * @generated from field: string id = 1;
    */
   id?: string
   /**
-   * PluginId is the plugin identifier.
+   * ControllerId is the controller config id.
+   *
+   * @generated from field: string controller_id = 2;
+   */
+  controllerId?: string
+  /**
+   * Kind is the directive kind.
+   *
+   * @generated from field: string kind = 3;
+   */
+  kind?: string
+  /**
+   * State is the controller directive state.
+   *
+   * @generated from field: bldr.devtool.status.DevtoolStatusControllerState state = 4;
+   */
+  state?: DevtoolStatusControllerState
+  /**
+   * Summary is a short human-readable status summary.
+   *
+   * @generated from field: string summary = 5;
+   */
+  summary?: string
+  /**
+   * Error is the explicit controller error, when present.
+   *
+   * @generated from field: string error = 6;
+   */
+  error?: string
+}
+
+export const DevtoolStatusControllerRow: MessageType<DevtoolStatusControllerRow> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.devtool.status.DevtoolStatusControllerRow',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'controller_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'kind', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 4,
+        name: 'state',
+        kind: 'enum',
+        T: DevtoolStatusControllerState_Enum,
+      },
+      { no: 5, name: 'summary', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * DevtoolStatusPluginRow describes one plugin instance row.
+ *
+ * @generated from message bldr.devtool.status.DevtoolStatusPluginRow
+ */
+export interface DevtoolStatusPluginRow {
+  /**
+   * Id is the deterministic row id.
+   *
+   * @generated from field: string id = 1;
+   */
+  id?: string
+  /**
+   * PluginId is the plugin id.
    *
    * @generated from field: string plugin_id = 2;
    */
@@ -608,39 +877,39 @@ export interface DevtoolPluginRow {
    */
   instanceKey?: string
   /**
-   * State is the plugin lifecycle state.
+   * State is the plugin scheduler state.
    *
-   * @generated from field: bldr.devtool.status.DevtoolPluginState state = 4;
+   * @generated from field: bldr.devtool.status.DevtoolStatusPluginState state = 4;
    */
-  state?: DevtoolPluginState
+  state?: DevtoolStatusPluginState
   /**
-   * Summary is a concise status summary.
+   * Summary is a short human-readable status summary.
    *
    * @generated from field: string summary = 5;
    */
   summary?: string
   /**
-   * Error is the current plugin error summary.
+   * Error is the explicit plugin error, when present.
    *
    * @generated from field: string error = 6;
    */
   error?: string
   /**
-   * LastErrorAt is the RFC3339Nano time of the last plugin error.
+   * LastErrorAt is the latest plugin error timestamp, when present.
    *
    * @generated from field: string last_error_at = 7;
    */
   lastErrorAt?: string
 }
 
-export const DevtoolPluginRow: MessageType<DevtoolPluginRow> =
+export const DevtoolStatusPluginRow: MessageType<DevtoolStatusPluginRow> =
   /* @__PURE__ */ createMessageType({
-    typeName: 'bldr.devtool.status.DevtoolPluginRow',
+    typeName: 'bldr.devtool.status.DevtoolStatusPluginRow',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
-      { no: 4, name: 'state', kind: 'enum', T: DevtoolPluginState_Enum },
+      { no: 4, name: 'state', kind: 'enum', T: DevtoolStatusPluginState_Enum },
       { no: 5, name: 'summary', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'last_error_at', kind: 'scalar', T: ScalarType.STRING },
@@ -649,104 +918,46 @@ export const DevtoolPluginRow: MessageType<DevtoolPluginRow> =
   })
 
 /**
- * DevtoolControllerRow describes one controller load or exec directive row.
+ * DevtoolStatusAttentionRow describes one recent attention item.
  *
- * @generated from message bldr.devtool.status.DevtoolControllerRow
+ * @generated from message bldr.devtool.status.DevtoolStatusAttentionRow
  */
-export interface DevtoolControllerRow {
+export interface DevtoolStatusAttentionRow {
   /**
-   * Id is the stable row identifier.
+   * Id is the deterministic row id.
    *
    * @generated from field: string id = 1;
    */
   id?: string
   /**
-   * ControllerId is the controller identifier.
-   *
-   * @generated from field: string controller_id = 2;
-   */
-  controllerId?: string
-  /**
-   * Kind describes the controller directive kind.
-   *
-   * @generated from field: string kind = 3;
-   */
-  kind?: string
-  /**
-   * State is the controller lifecycle state.
-   *
-   * @generated from field: bldr.devtool.status.DevtoolControllerState state = 4;
-   */
-  state?: DevtoolControllerState
-  /**
-   * Summary is a concise status summary.
-   *
-   * @generated from field: string summary = 5;
-   */
-  summary?: string
-  /**
-   * Error is the current controller error summary.
-   *
-   * @generated from field: string error = 6;
-   */
-  error?: string
-}
-
-export const DevtoolControllerRow: MessageType<DevtoolControllerRow> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'bldr.devtool.status.DevtoolControllerRow',
-    fields: [
-      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'controller_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 'kind', kind: 'scalar', T: ScalarType.STRING },
-      { no: 4, name: 'state', kind: 'enum', T: DevtoolControllerState_Enum },
-      { no: 5, name: 'summary', kind: 'scalar', T: ScalarType.STRING },
-      { no: 6, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
- * DevtoolAttentionRow describes one recent attention or error item.
- *
- * @generated from message bldr.devtool.status.DevtoolAttentionRow
- */
-export interface DevtoolAttentionRow {
-  /**
-   * Id is the stable row identifier.
-   *
-   * @generated from field: string id = 1;
-   */
-  id?: string
-  /**
-   * Source is the status source that produced the attention row.
+   * Source is the status source.
    *
    * @generated from field: string source = 2;
    */
   source?: string
   /**
-   * Message is the concise attention message.
+   * Message is the attention summary.
    *
    * @generated from field: string message = 3;
    */
   message?: string
   /**
-   * Detail is optional expanded attention detail.
+   * Detail is the attention detail.
    *
    * @generated from field: string detail = 4;
    */
   detail?: string
   /**
-   * Severity is the attention urgency.
+   * Severity is the attention severity.
    *
-   * @generated from field: bldr.devtool.status.DevtoolAttentionSeverity severity = 5;
+   * @generated from field: bldr.devtool.status.DevtoolStatusAttentionSeverity severity = 5;
    */
-  severity?: DevtoolAttentionSeverity
+  severity?: DevtoolStatusAttentionSeverity
 }
 
-export const DevtoolAttentionRow: MessageType<DevtoolAttentionRow> =
+export const DevtoolStatusAttentionRow: MessageType<DevtoolStatusAttentionRow> =
   /* @__PURE__ */ createMessageType({
-    typeName: 'bldr.devtool.status.DevtoolAttentionRow',
+    typeName: 'bldr.devtool.status.DevtoolStatusAttentionRow',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'source', kind: 'scalar', T: ScalarType.STRING },
@@ -756,14 +967,14 @@ export const DevtoolAttentionRow: MessageType<DevtoolAttentionRow> =
         no: 5,
         name: 'severity',
         kind: 'enum',
-        T: DevtoolAttentionSeverity_Enum,
+        T: DevtoolStatusAttentionSeverity_Enum,
       },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
 /**
- * DevtoolStatusSnapshot is a read-only Bldr devtool status snapshot.
+ * DevtoolStatusSnapshot is the browser-readable Bldr devtool status projection.
  *
  * @generated from message bldr.devtool.status.DevtoolStatusSnapshot
  */
@@ -771,39 +982,45 @@ export interface DevtoolStatusSnapshot {
   /**
    * Command is the active command status.
    *
-   * @generated from field: bldr.devtool.status.DevtoolCommandStatus command = 1;
+   * @generated from field: bldr.devtool.status.DevtoolStatusCommand command = 1;
    */
-  command?: DevtoolCommandStatus
+  command?: DevtoolStatusCommand
   /**
-   * ManifestFetchRows contains manifest fetch status rows.
+   * Project is the read-only project and target configuration snapshot.
    *
-   * @generated from field: repeated bldr.devtool.status.DevtoolManifestFetchRow manifest_fetch_rows = 2;
+   * @generated from field: bldr.devtool.status.DevtoolStatusProject project = 2;
    */
-  manifestFetchRows?: DevtoolManifestFetchRow[]
+  project?: DevtoolStatusProject
   /**
-   * ManifestBuildRows contains manifest build status rows.
+   * ManifestFetchRows are manifest fetch directive rows.
    *
-   * @generated from field: repeated bldr.devtool.status.DevtoolManifestBuildRow manifest_build_rows = 3;
+   * @generated from field: repeated bldr.devtool.status.DevtoolStatusManifestFetchRow manifest_fetch_rows = 3;
    */
-  manifestBuildRows?: DevtoolManifestBuildRow[]
+  manifestFetchRows?: DevtoolStatusManifestFetchRow[]
   /**
-   * PluginRows contains plugin scheduler status rows.
+   * ManifestBuildRows are manifest builder rows.
    *
-   * @generated from field: repeated bldr.devtool.status.DevtoolPluginRow plugin_rows = 4;
+   * @generated from field: repeated bldr.devtool.status.DevtoolStatusManifestBuildRow manifest_build_rows = 4;
    */
-  pluginRows?: DevtoolPluginRow[]
+  manifestBuildRows?: DevtoolStatusManifestBuildRow[]
   /**
-   * ControllerRows contains controller load and exec rows.
+   * ControllerRows are controller load and exec directive rows.
    *
-   * @generated from field: repeated bldr.devtool.status.DevtoolControllerRow controller_rows = 5;
+   * @generated from field: repeated bldr.devtool.status.DevtoolStatusControllerRow controller_rows = 5;
    */
-  controllerRows?: DevtoolControllerRow[]
+  controllerRows?: DevtoolStatusControllerRow[]
   /**
-   * AttentionRows contains recent attention and error rows.
+   * PluginRows are plugin scheduler rows.
    *
-   * @generated from field: repeated bldr.devtool.status.DevtoolAttentionRow attention_rows = 6;
+   * @generated from field: repeated bldr.devtool.status.DevtoolStatusPluginRow plugin_rows = 6;
    */
-  attentionRows?: DevtoolAttentionRow[]
+  pluginRows?: DevtoolStatusPluginRow[]
+  /**
+   * AttentionRows are recent attention and error rows.
+   *
+   * @generated from field: repeated bldr.devtool.status.DevtoolStatusAttentionRow attention_rows = 7;
+   */
+  attentionRows?: DevtoolStatusAttentionRow[]
 }
 
 export const DevtoolStatusSnapshot: MessageType<DevtoolStatusSnapshot> =
@@ -814,41 +1031,47 @@ export const DevtoolStatusSnapshot: MessageType<DevtoolStatusSnapshot> =
         no: 1,
         name: 'command',
         kind: 'message',
-        T: () => DevtoolCommandStatus,
+        T: () => DevtoolStatusCommand,
       },
       {
         no: 2,
-        name: 'manifest_fetch_rows',
+        name: 'project',
         kind: 'message',
-        T: () => DevtoolManifestFetchRow,
-        repeated: true,
+        T: () => DevtoolStatusProject,
       },
       {
         no: 3,
-        name: 'manifest_build_rows',
+        name: 'manifest_fetch_rows',
         kind: 'message',
-        T: () => DevtoolManifestBuildRow,
+        T: () => DevtoolStatusManifestFetchRow,
         repeated: true,
       },
       {
         no: 4,
-        name: 'plugin_rows',
+        name: 'manifest_build_rows',
         kind: 'message',
-        T: () => DevtoolPluginRow,
+        T: () => DevtoolStatusManifestBuildRow,
         repeated: true,
       },
       {
         no: 5,
         name: 'controller_rows',
         kind: 'message',
-        T: () => DevtoolControllerRow,
+        T: () => DevtoolStatusControllerRow,
         repeated: true,
       },
       {
         no: 6,
+        name: 'plugin_rows',
+        kind: 'message',
+        T: () => DevtoolStatusPluginRow,
+        repeated: true,
+      },
+      {
+        no: 7,
         name: 'attention_rows',
         kind: 'message',
-        T: () => DevtoolAttentionRow,
+        T: () => DevtoolStatusAttentionRow,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
@@ -856,13 +1079,13 @@ export const DevtoolStatusSnapshot: MessageType<DevtoolStatusSnapshot> =
   })
 
 /**
- * WatchDevtoolStatusResponse is one streamed status snapshot.
+ * WatchDevtoolStatusResponse is the response type for WatchDevtoolStatus.
  *
  * @generated from message bldr.devtool.status.WatchDevtoolStatusResponse
  */
 export interface WatchDevtoolStatusResponse {
   /**
-   * Snapshot is the current immutable status snapshot.
+   * Snapshot is the current immutable Bldr devtool status snapshot.
    *
    * @generated from field: bldr.devtool.status.DevtoolStatusSnapshot snapshot = 1;
    */

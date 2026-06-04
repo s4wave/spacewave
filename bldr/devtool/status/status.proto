@@ -3,227 +3,261 @@ package bldr.devtool.status;
 
 option go_package = "github.com/s4wave/spacewave/bldr/devtool/status;status";
 
-// BldrDevtoolStatusService exposes read-only Bldr devtool status snapshots.
-service BldrDevtoolStatusService {
-  // WatchDevtoolStatus streams the current status snapshot and later changes.
+// DevtoolStatusService streams the read-only Bldr devtool status projection.
+service DevtoolStatusService {
+  // WatchDevtoolStatus emits the current status snapshot and subsequent changes.
   rpc WatchDevtoolStatus(WatchDevtoolStatusRequest) returns (stream WatchDevtoolStatusResponse);
 }
 
-// DevtoolCommandState describes the high-level command lifecycle.
-enum DevtoolCommandState {
-  // DEVTOOL_COMMAND_STATE_UNSPECIFIED leaves command state unset.
-  DEVTOOL_COMMAND_STATE_UNSPECIFIED = 0;
-  // DEVTOOL_COMMAND_STATE_STARTING means command startup is running.
-  DEVTOOL_COMMAND_STATE_STARTING = 1;
-  // DEVTOOL_COMMAND_STATE_RUNNING means the command is active.
-  DEVTOOL_COMMAND_STATE_RUNNING = 2;
-  // DEVTOOL_COMMAND_STATE_DONE means the command completed successfully.
-  DEVTOOL_COMMAND_STATE_DONE = 3;
-  // DEVTOOL_COMMAND_STATE_ERROR means the command failed.
-  DEVTOOL_COMMAND_STATE_ERROR = 4;
-  // DEVTOOL_COMMAND_STATE_CANCELED means the command was canceled.
-  DEVTOOL_COMMAND_STATE_CANCELED = 5;
+// DevtoolStatusCommandState describes the high-level command lifecycle.
+enum DevtoolStatusCommandState {
+  // DevtoolStatusCommandState_UNKNOWN leaves command state unset.
+  DevtoolStatusCommandState_UNKNOWN = 0;
+  // DevtoolStatusCommandState_STARTING means command startup is running.
+  DevtoolStatusCommandState_STARTING = 1;
+  // DevtoolStatusCommandState_RUNNING means the command is active.
+  DevtoolStatusCommandState_RUNNING = 2;
+  // DevtoolStatusCommandState_DONE means the command completed successfully.
+  DevtoolStatusCommandState_DONE = 3;
+  // DevtoolStatusCommandState_ERROR means the command failed.
+  DevtoolStatusCommandState_ERROR = 4;
+  // DevtoolStatusCommandState_CANCELED means the command was canceled.
+  DevtoolStatusCommandState_CANCELED = 5;
 }
 
-// DevtoolManifestState describes manifest fetch and build progress.
-enum DevtoolManifestState {
-  // DEVTOOL_MANIFEST_STATE_UNSPECIFIED leaves manifest state unset.
-  DEVTOOL_MANIFEST_STATE_UNSPECIFIED = 0;
-  // DEVTOOL_MANIFEST_STATE_QUEUED means work is waiting to start.
-  DEVTOOL_MANIFEST_STATE_QUEUED = 1;
-  // DEVTOOL_MANIFEST_STATE_RUNNING means work is active.
-  DEVTOOL_MANIFEST_STATE_RUNNING = 2;
-  // DEVTOOL_MANIFEST_STATE_READY means the manifest is available.
-  DEVTOOL_MANIFEST_STATE_READY = 3;
-  // DEVTOOL_MANIFEST_STATE_ERROR means the work failed.
-  DEVTOOL_MANIFEST_STATE_ERROR = 4;
-  // DEVTOOL_MANIFEST_STATE_CANCELED means the work was canceled.
-  DEVTOOL_MANIFEST_STATE_CANCELED = 5;
+// DevtoolStatusManifestState describes manifest fetch and build progress.
+enum DevtoolStatusManifestState {
+  // DevtoolStatusManifestState_UNKNOWN leaves manifest state unset.
+  DevtoolStatusManifestState_UNKNOWN = 0;
+  // DevtoolStatusManifestState_QUEUED means work is waiting to start.
+  DevtoolStatusManifestState_QUEUED = 1;
+  // DevtoolStatusManifestState_RUNNING means work is active.
+  DevtoolStatusManifestState_RUNNING = 2;
+  // DevtoolStatusManifestState_READY means the manifest is available.
+  DevtoolStatusManifestState_READY = 3;
+  // DevtoolStatusManifestState_ERROR means the work failed.
+  DevtoolStatusManifestState_ERROR = 4;
+  // DevtoolStatusManifestState_CANCELED means the work was canceled.
+  DevtoolStatusManifestState_CANCELED = 5;
 }
 
-// DevtoolPluginState describes plugin scheduler status.
-enum DevtoolPluginState {
-  // DEVTOOL_PLUGIN_STATE_UNSPECIFIED leaves plugin state unset.
-  DEVTOOL_PLUGIN_STATE_UNSPECIFIED = 0;
-  // DEVTOOL_PLUGIN_STATE_REQUESTED means the plugin has been requested.
-  DEVTOOL_PLUGIN_STATE_REQUESTED = 1;
-  // DEVTOOL_PLUGIN_STATE_RUNNING means the plugin is running.
-  DEVTOOL_PLUGIN_STATE_RUNNING = 2;
-  // DEVTOOL_PLUGIN_STATE_ERRORED means the plugin failed.
-  DEVTOOL_PLUGIN_STATE_ERRORED = 3;
+// DevtoolStatusControllerState describes controller load and exec status.
+enum DevtoolStatusControllerState {
+  // DevtoolStatusControllerState_UNKNOWN leaves controller state unset.
+  DevtoolStatusControllerState_UNKNOWN = 0;
+  // DevtoolStatusControllerState_REQUESTED means the controller has been requested.
+  DevtoolStatusControllerState_REQUESTED = 1;
+  // DevtoolStatusControllerState_RUNNING means the controller is running.
+  DevtoolStatusControllerState_RUNNING = 2;
+  // DevtoolStatusControllerState_IDLE means the directive is idle without a running controller.
+  DevtoolStatusControllerState_IDLE = 3;
+  // DevtoolStatusControllerState_ERROR means controller load or execution failed.
+  DevtoolStatusControllerState_ERROR = 4;
 }
 
-// DevtoolControllerState describes controller load and exec status.
-enum DevtoolControllerState {
-  // DEVTOOL_CONTROLLER_STATE_UNSPECIFIED leaves controller state unset.
-  DEVTOOL_CONTROLLER_STATE_UNSPECIFIED = 0;
-  // DEVTOOL_CONTROLLER_STATE_REQUESTED means the controller has been requested.
-  DEVTOOL_CONTROLLER_STATE_REQUESTED = 1;
-  // DEVTOOL_CONTROLLER_STATE_RUNNING means the controller is running.
-  DEVTOOL_CONTROLLER_STATE_RUNNING = 2;
-  // DEVTOOL_CONTROLLER_STATE_IDLE means the directive is idle without a running controller.
-  DEVTOOL_CONTROLLER_STATE_IDLE = 3;
-  // DEVTOOL_CONTROLLER_STATE_ERROR means controller load or execution failed.
-  DEVTOOL_CONTROLLER_STATE_ERROR = 4;
+// DevtoolStatusPluginState describes plugin status.
+enum DevtoolStatusPluginState {
+  // DevtoolStatusPluginState_UNKNOWN leaves plugin state unset.
+  DevtoolStatusPluginState_UNKNOWN = 0;
+  // DevtoolStatusPluginState_REQUESTED means the plugin has been requested.
+  DevtoolStatusPluginState_REQUESTED = 1;
+  // DevtoolStatusPluginState_RUNNING means the plugin is running.
+  DevtoolStatusPluginState_RUNNING = 2;
+  // DevtoolStatusPluginState_ERRORED means the plugin failed.
+  DevtoolStatusPluginState_ERRORED = 3;
 }
 
-// DevtoolAttentionSeverity describes the urgency of an attention row.
-enum DevtoolAttentionSeverity {
-  // DEVTOOL_ATTENTION_SEVERITY_UNSPECIFIED leaves severity unset.
-  DEVTOOL_ATTENTION_SEVERITY_UNSPECIFIED = 0;
-  // DEVTOOL_ATTENTION_SEVERITY_INFO marks informational attention.
-  DEVTOOL_ATTENTION_SEVERITY_INFO = 1;
-  // DEVTOOL_ATTENTION_SEVERITY_WARNING marks recoverable attention.
-  DEVTOOL_ATTENTION_SEVERITY_WARNING = 2;
-  // DEVTOOL_ATTENTION_SEVERITY_ERROR marks blocking attention.
-  DEVTOOL_ATTENTION_SEVERITY_ERROR = 3;
+// DevtoolStatusAttentionSeverity describes the urgency of an attention row.
+enum DevtoolStatusAttentionSeverity {
+  // DevtoolStatusAttentionSeverity_UNKNOWN leaves severity unset.
+  DevtoolStatusAttentionSeverity_UNKNOWN = 0;
+  // DevtoolStatusAttentionSeverity_INFO marks informational attention.
+  DevtoolStatusAttentionSeverity_INFO = 1;
+  // DevtoolStatusAttentionSeverity_WARNING marks recoverable attention.
+  DevtoolStatusAttentionSeverity_WARNING = 2;
+  // DevtoolStatusAttentionSeverity_ERROR marks blocking attention.
+  DevtoolStatusAttentionSeverity_ERROR = 3;
 }
 
-// WatchDevtoolStatusRequest is the request for WatchDevtoolStatus.
+// WatchDevtoolStatusRequest is the request type for WatchDevtoolStatus.
 message WatchDevtoolStatusRequest {}
 
-// WatchDevtoolStatusResponse is one streamed status snapshot.
+// WatchDevtoolStatusResponse is the response type for WatchDevtoolStatus.
 message WatchDevtoolStatusResponse {
-  // Snapshot is the current immutable status snapshot.
+  // Snapshot is the current immutable Bldr devtool status snapshot.
   DevtoolStatusSnapshot snapshot = 1;
 }
 
-// DevtoolStatusSnapshot is a read-only Bldr devtool status snapshot.
+// DevtoolStatusSnapshot is the browser-readable Bldr devtool status projection.
 message DevtoolStatusSnapshot {
   // Command is the active command status.
-  DevtoolCommandStatus command = 1;
-  // ManifestFetchRows contains manifest fetch status rows.
-  repeated DevtoolManifestFetchRow manifest_fetch_rows = 2;
-  // ManifestBuildRows contains manifest build status rows.
-  repeated DevtoolManifestBuildRow manifest_build_rows = 3;
-  // PluginRows contains plugin scheduler status rows.
-  repeated DevtoolPluginRow plugin_rows = 4;
-  // ControllerRows contains controller load and exec rows.
-  repeated DevtoolControllerRow controller_rows = 5;
-  // AttentionRows contains recent attention and error rows.
-  repeated DevtoolAttentionRow attention_rows = 6;
+  DevtoolStatusCommand command = 1;
+  // Project is the read-only project and target configuration snapshot.
+  DevtoolStatusProject project = 2;
+  // ManifestFetchRows are manifest fetch directive rows.
+  repeated DevtoolStatusManifestFetchRow manifest_fetch_rows = 3;
+  // ManifestBuildRows are manifest builder rows.
+  repeated DevtoolStatusManifestBuildRow manifest_build_rows = 4;
+  // ControllerRows are controller load and exec directive rows.
+  repeated DevtoolStatusControllerRow controller_rows = 5;
+  // PluginRows are plugin scheduler rows.
+  repeated DevtoolStatusPluginRow plugin_rows = 6;
+  // AttentionRows are recent attention and error rows.
+  repeated DevtoolStatusAttentionRow attention_rows = 7;
 }
 
-// DevtoolCommandStatus describes the active Bldr command.
-message DevtoolCommandStatus {
+// DevtoolStatusCommand describes the active Bldr command.
+message DevtoolStatusCommand {
   // Name is the command name.
   string name = 1;
   // State is the command lifecycle state.
-  DevtoolCommandState state = 2;
-  // Summary is a concise status summary.
+  DevtoolStatusCommandState state = 2;
+  // Summary is a short human-readable status summary.
   string summary = 3;
-  // Error is the current command error summary.
+  // Error is the explicit command error, when present.
   string error = 4;
-  // LogFile is the diagnostic log file path.
+  // LogFile is the diagnostic log file path, when present.
   string log_file = 5;
 }
 
-// DevtoolManifestFetchRow describes one manifest fetch status row.
-message DevtoolManifestFetchRow {
-  // Id is the stable row identifier.
+// DevtoolStatusProject is the read-only Bldr project and target snapshot.
+message DevtoolStatusProject {
+  // ProjectId is the configured project id.
+  string project_id = 1;
+  // StartupPlugins is the list of configured startup plugins.
+  repeated string startup_plugins = 2;
+  // WebStartupPath is the configured web startup source path.
+  string web_startup_path = 3;
+  // ManifestIds is the list of configured manifest ids.
+  repeated string manifest_ids = 4;
+  // BuildTargets is the normalized build target matrix.
+  repeated DevtoolStatusBuildTarget build_targets = 5;
+}
+
+// DevtoolStatusBuildTarget describes one configured build target.
+message DevtoolStatusBuildTarget {
+  // Id is the build target id from project configuration.
   string id = 1;
-  // ManifestId is the requested manifest identifier.
+  // ManifestIds is the target's configured manifest list.
+  repeated string manifest_ids = 2;
+  // ConfiguredTargetIds is the target id list from project configuration.
+  repeated string configured_target_ids = 3;
+  // ExplicitPlatformIds is the explicit platform_ids list from project configuration.
+  repeated string explicit_platform_ids = 4;
+  // ResolvedPlatformIds is the merged target platform list.
+  repeated string resolved_platform_ids = 5;
+  // BuildTypes are the supported build types for this target.
+  repeated string build_types = 6;
+  // Error is the explicit target normalization error, when present.
+  string error = 7;
+}
+
+// DevtoolStatusManifestFetchRow describes one manifest fetch status row.
+message DevtoolStatusManifestFetchRow {
+  // Id is the deterministic row id.
+  string id = 1;
+  // ManifestId is the requested manifest id.
   string manifest_id = 2;
-  // PlatformId is the requested platform identifier set.
-  string platform_id = 3;
-  // BuildType is the requested build type set.
-  string build_type = 4;
-  // RemoteId is the remote identity associated with local build rows.
-  string remote_id = 5;
-  // State is the fetch lifecycle state.
-  DevtoolManifestState state = 6;
+  // PlatformIds is the requested platform id list.
+  repeated string platform_ids = 3;
+  // BuildTypes is the requested build type list.
+  repeated string build_types = 4;
+  // RemoteIds is the related remote id list.
+  repeated string remote_ids = 5;
+  // State is the manifest fetch state.
+  DevtoolStatusManifestState state = 6;
   // ReadyRefCount is the number of ready manifest refs.
-  int32 ready_ref_count = 7;
-  // ReadyRefs is a compact display string of ready refs.
+  uint32 ready_ref_count = 7;
+  // ReadyRefs is the compact diagnostic manifest ref summary.
   string ready_refs = 8;
-  // LocalBuildIds is the compact list of matching local build row ids.
-  string local_build_ids = 9;
-  // BlockedOnLocalBuild indicates the fetch is waiting on local build work.
+  // LocalBuildIds are related local build row ids.
+  repeated string local_build_ids = 9;
+  // BlockedOnLocalBuild indicates the fetch waits on a local build.
   bool blocked_on_local_build = 10;
-  // Summary is a concise status summary.
+  // Summary is a short human-readable status summary.
   string summary = 11;
-  // Error is the current fetch error summary.
+  // Error is the explicit fetch error, when present.
   string error = 12;
 }
 
-// DevtoolManifestBuildRow describes one manifest build status row.
-message DevtoolManifestBuildRow {
-  // Id is the stable row identifier.
+// DevtoolStatusManifestBuildRow describes one manifest build status row.
+message DevtoolStatusManifestBuildRow {
+  // Id is the deterministic row id.
   string id = 1;
-  // BuildTargets is the compact list of build target ids.
-  string build_targets = 2;
-  // ManifestId is the manifest identifier.
+  // BuildTargetIds are related build target ids.
+  repeated string build_target_ids = 2;
+  // ManifestId is the manifest id.
   string manifest_id = 3;
-  // PlatformId is the builder platform identifier.
+  // PlatformId is the selected platform id.
   string platform_id = 4;
-  // TargetPlatformIds is the compact list of target platform ids.
-  string target_platform_ids = 5;
+  // TargetPlatformIds is the full target platform list.
+  repeated string target_platform_ids = 5;
   // BuildType is the build type.
   string build_type = 6;
-  // RemoteId is the destination remote identifier.
+  // RemoteId is the remote id.
   string remote_id = 7;
-  // State is the build lifecycle state.
-  DevtoolManifestState state = 8;
-  // CacheHit indicates the build reused cached output.
+  // State is the manifest build state.
+  DevtoolStatusManifestState state = 8;
+  // CacheHit indicates the builder reused a cached result.
   bool cache_hit = 9;
-  // FullRebuild indicates the build is a full rebuild.
+  // FullRebuild indicates the builder performed a full rebuild.
   bool full_rebuild = 10;
-  // HotRebuild indicates the build is a hot rebuild.
+  // HotRebuild indicates the builder performed a hot rebuild.
   bool hot_rebuild = 11;
-  // WatchedFileCount is the number of files watched for rebuilds.
-  int32 watched_file_count = 12;
-  // DependencyRebuildReason explains why a dependency triggered rebuild work.
+  // WatchedFileCount is the number of watched files.
+  uint32 watched_file_count = 12;
+  // DependencyRebuildReason explains dependency-triggered rebuilds.
   string dependency_rebuild_reason = 13;
-  // Summary is a concise status summary.
+  // Summary is a short human-readable status summary.
   string summary = 14;
-  // Error is the current build error summary.
+  // Error is the explicit build error, when present.
   string error = 15;
 }
 
-// DevtoolPluginRow describes one plugin instance row.
-message DevtoolPluginRow {
-  // Id is the stable row identifier.
+// DevtoolStatusControllerRow describes one controller directive row.
+message DevtoolStatusControllerRow {
+  // Id is the deterministic row id.
   string id = 1;
-  // PluginId is the plugin identifier.
+  // ControllerId is the controller config id.
+  string controller_id = 2;
+  // Kind is the directive kind.
+  string kind = 3;
+  // State is the controller directive state.
+  DevtoolStatusControllerState state = 4;
+  // Summary is a short human-readable status summary.
+  string summary = 5;
+  // Error is the explicit controller error, when present.
+  string error = 6;
+}
+
+// DevtoolStatusPluginRow describes one plugin instance row.
+message DevtoolStatusPluginRow {
+  // Id is the deterministic row id.
+  string id = 1;
+  // PluginId is the plugin id.
   string plugin_id = 2;
   // InstanceKey is the optional plugin instance key.
   string instance_key = 3;
-  // State is the plugin lifecycle state.
-  DevtoolPluginState state = 4;
-  // Summary is a concise status summary.
+  // State is the plugin scheduler state.
+  DevtoolStatusPluginState state = 4;
+  // Summary is a short human-readable status summary.
   string summary = 5;
-  // Error is the current plugin error summary.
+  // Error is the explicit plugin error, when present.
   string error = 6;
-  // LastErrorAt is the RFC3339Nano time of the last plugin error.
+  // LastErrorAt is the latest plugin error timestamp, when present.
   string last_error_at = 7;
 }
 
-// DevtoolControllerRow describes one controller load or exec directive row.
-message DevtoolControllerRow {
-  // Id is the stable row identifier.
+// DevtoolStatusAttentionRow describes one recent attention item.
+message DevtoolStatusAttentionRow {
+  // Id is the deterministic row id.
   string id = 1;
-  // ControllerId is the controller identifier.
-  string controller_id = 2;
-  // Kind describes the controller directive kind.
-  string kind = 3;
-  // State is the controller lifecycle state.
-  DevtoolControllerState state = 4;
-  // Summary is a concise status summary.
-  string summary = 5;
-  // Error is the current controller error summary.
-  string error = 6;
-}
-
-// DevtoolAttentionRow describes one recent attention or error item.
-message DevtoolAttentionRow {
-  // Id is the stable row identifier.
-  string id = 1;
-  // Source is the status source that produced the attention row.
+  // Source is the status source.
   string source = 2;
-  // Message is the concise attention message.
+  // Message is the attention summary.
   string message = 3;
-  // Detail is optional expanded attention detail.
+  // Detail is the attention detail.
   string detail = 4;
-  // Severity is the attention urgency.
-  DevtoolAttentionSeverity severity = 5;
+  // Severity is the attention severity.
+  DevtoolStatusAttentionSeverity severity = 5;
 }

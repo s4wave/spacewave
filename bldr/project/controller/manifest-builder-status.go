@@ -1,5 +1,7 @@
 package bldr_project_controller
 
+import bldr_project "github.com/s4wave/spacewave/bldr/project"
+
 // ManifestBuilderStatusState describes ProjectController manifest build status.
 type ManifestBuilderStatusState int32
 
@@ -38,4 +40,9 @@ type ManifestBuilderStatus struct {
 // ManifestBuilderStatusSink consumes ProjectController manifest build status.
 type ManifestBuilderStatusSink interface {
 	SetManifestBuilderStatus(status ManifestBuilderStatus)
+}
+
+// ProjectConfigStatusSink consumes ProjectController project config status.
+type ProjectConfigStatusSink interface {
+	SetProjectConfigStatus(projectConfig *bldr_project.ProjectConfig)
 }

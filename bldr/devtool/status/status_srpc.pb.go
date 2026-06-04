@@ -10,55 +10,55 @@ import (
 	srpc "github.com/aperturerobotics/starpc/srpc"
 )
 
-type SRPCBldrDevtoolStatusServiceClient interface {
+type SRPCDevtoolStatusServiceClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client
 
-	// WatchDevtoolStatus streams the current status snapshot and later changes.
-	WatchDevtoolStatus(ctx context.Context, in *WatchDevtoolStatusRequest) (SRPCBldrDevtoolStatusService_WatchDevtoolStatusClient, error)
+	// WatchDevtoolStatus emits the current status snapshot and subsequent changes.
+	WatchDevtoolStatus(ctx context.Context, in *WatchDevtoolStatusRequest) (SRPCDevtoolStatusService_WatchDevtoolStatusClient, error)
 }
 
-type srpcBldrDevtoolStatusServiceClient struct {
+type srpcDevtoolStatusServiceClient struct {
 	cc        srpc.Client
 	serviceID string
 }
 
-func NewSRPCBldrDevtoolStatusServiceClient(cc srpc.Client) SRPCBldrDevtoolStatusServiceClient {
-	return &srpcBldrDevtoolStatusServiceClient{cc: cc, serviceID: SRPCBldrDevtoolStatusServiceServiceID}
+func NewSRPCDevtoolStatusServiceClient(cc srpc.Client) SRPCDevtoolStatusServiceClient {
+	return &srpcDevtoolStatusServiceClient{cc: cc, serviceID: SRPCDevtoolStatusServiceServiceID}
 }
 
-func NewSRPCBldrDevtoolStatusServiceClientWithServiceID(cc srpc.Client, serviceID string) SRPCBldrDevtoolStatusServiceClient {
+func NewSRPCDevtoolStatusServiceClientWithServiceID(cc srpc.Client, serviceID string) SRPCDevtoolStatusServiceClient {
 	if serviceID == "" {
-		serviceID = SRPCBldrDevtoolStatusServiceServiceID
+		serviceID = SRPCDevtoolStatusServiceServiceID
 	}
-	return &srpcBldrDevtoolStatusServiceClient{cc: cc, serviceID: serviceID}
+	return &srpcDevtoolStatusServiceClient{cc: cc, serviceID: serviceID}
 }
 
-func (c *srpcBldrDevtoolStatusServiceClient) SRPCClient() srpc.Client { return c.cc }
+func (c *srpcDevtoolStatusServiceClient) SRPCClient() srpc.Client { return c.cc }
 
-func (c *srpcBldrDevtoolStatusServiceClient) WatchDevtoolStatus(ctx context.Context, in *WatchDevtoolStatusRequest) (SRPCBldrDevtoolStatusService_WatchDevtoolStatusClient, error) {
+func (c *srpcDevtoolStatusServiceClient) WatchDevtoolStatus(ctx context.Context, in *WatchDevtoolStatusRequest) (SRPCDevtoolStatusService_WatchDevtoolStatusClient, error) {
 	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchDevtoolStatus", in)
 	if err != nil {
 		return nil, err
 	}
-	strm := &srpcBldrDevtoolStatusService_WatchDevtoolStatusClient{stream}
+	strm := &srpcDevtoolStatusService_WatchDevtoolStatusClient{stream}
 	if err := strm.CloseSend(); err != nil {
 		return nil, err
 	}
 	return strm, nil
 }
 
-type SRPCBldrDevtoolStatusService_WatchDevtoolStatusClient interface {
+type SRPCDevtoolStatusService_WatchDevtoolStatusClient interface {
 	srpc.Stream
 	Recv() (*WatchDevtoolStatusResponse, error)
 	RecvTo(*WatchDevtoolStatusResponse) error
 }
 
-type srpcBldrDevtoolStatusService_WatchDevtoolStatusClient struct {
+type srpcDevtoolStatusService_WatchDevtoolStatusClient struct {
 	srpc.Stream
 }
 
-func (x *srpcBldrDevtoolStatusService_WatchDevtoolStatusClient) Recv() (*WatchDevtoolStatusResponse, error) {
+func (x *srpcDevtoolStatusService_WatchDevtoolStatusClient) Recv() (*WatchDevtoolStatusResponse, error) {
 	m := new(WatchDevtoolStatusResponse)
 	if err := x.MsgRecv(m); err != nil {
 		return nil, err
@@ -66,46 +66,46 @@ func (x *srpcBldrDevtoolStatusService_WatchDevtoolStatusClient) Recv() (*WatchDe
 	return m, nil
 }
 
-func (x *srpcBldrDevtoolStatusService_WatchDevtoolStatusClient) RecvTo(m *WatchDevtoolStatusResponse) error {
+func (x *srpcDevtoolStatusService_WatchDevtoolStatusClient) RecvTo(m *WatchDevtoolStatusResponse) error {
 	return x.MsgRecv(m)
 }
 
-type SRPCBldrDevtoolStatusServiceServer interface {
-	// WatchDevtoolStatus streams the current status snapshot and later changes.
-	WatchDevtoolStatus(*WatchDevtoolStatusRequest, SRPCBldrDevtoolStatusService_WatchDevtoolStatusStream) error
+type SRPCDevtoolStatusServiceServer interface {
+	// WatchDevtoolStatus emits the current status snapshot and subsequent changes.
+	WatchDevtoolStatus(*WatchDevtoolStatusRequest, SRPCDevtoolStatusService_WatchDevtoolStatusStream) error
 }
 
-const SRPCBldrDevtoolStatusServiceServiceID = "bldr.devtool.status.BldrDevtoolStatusService"
+const SRPCDevtoolStatusServiceServiceID = "bldr.devtool.status.DevtoolStatusService"
 
-type SRPCBldrDevtoolStatusServiceHandler struct {
+type SRPCDevtoolStatusServiceHandler struct {
 	serviceID string
-	impl      SRPCBldrDevtoolStatusServiceServer
+	impl      SRPCDevtoolStatusServiceServer
 }
 
-// NewSRPCBldrDevtoolStatusServiceHandler constructs a new RPC handler.
-// serviceID: if empty, uses default: bldr.devtool.status.BldrDevtoolStatusService
-func NewSRPCBldrDevtoolStatusServiceHandler(impl SRPCBldrDevtoolStatusServiceServer, serviceID string) srpc.Handler {
+// NewSRPCDevtoolStatusServiceHandler constructs a new RPC handler.
+// serviceID: if empty, uses default: bldr.devtool.status.DevtoolStatusService
+func NewSRPCDevtoolStatusServiceHandler(impl SRPCDevtoolStatusServiceServer, serviceID string) srpc.Handler {
 	if serviceID == "" {
-		serviceID = SRPCBldrDevtoolStatusServiceServiceID
+		serviceID = SRPCDevtoolStatusServiceServiceID
 	}
-	return &SRPCBldrDevtoolStatusServiceHandler{impl: impl, serviceID: serviceID}
+	return &SRPCDevtoolStatusServiceHandler{impl: impl, serviceID: serviceID}
 }
 
-// SRPCRegisterBldrDevtoolStatusService registers the implementation with the mux.
-// Uses the default serviceID: bldr.devtool.status.BldrDevtoolStatusService
-func SRPCRegisterBldrDevtoolStatusService(mux srpc.Mux, impl SRPCBldrDevtoolStatusServiceServer) error {
-	return mux.Register(NewSRPCBldrDevtoolStatusServiceHandler(impl, ""))
+// SRPCRegisterDevtoolStatusService registers the implementation with the mux.
+// Uses the default serviceID: bldr.devtool.status.DevtoolStatusService
+func SRPCRegisterDevtoolStatusService(mux srpc.Mux, impl SRPCDevtoolStatusServiceServer) error {
+	return mux.Register(NewSRPCDevtoolStatusServiceHandler(impl, ""))
 }
 
-func (d *SRPCBldrDevtoolStatusServiceHandler) GetServiceID() string { return d.serviceID }
+func (d *SRPCDevtoolStatusServiceHandler) GetServiceID() string { return d.serviceID }
 
-func (SRPCBldrDevtoolStatusServiceHandler) GetMethodIDs() []string {
+func (SRPCDevtoolStatusServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"WatchDevtoolStatus",
 	}
 }
 
-func (d *SRPCBldrDevtoolStatusServiceHandler) InvokeMethod(
+func (d *SRPCDevtoolStatusServiceHandler) InvokeMethod(
 	serviceID, methodID string,
 	strm srpc.Stream,
 ) (bool, error) {
@@ -121,30 +121,30 @@ func (d *SRPCBldrDevtoolStatusServiceHandler) InvokeMethod(
 	}
 }
 
-func (SRPCBldrDevtoolStatusServiceHandler) InvokeMethod_WatchDevtoolStatus(impl SRPCBldrDevtoolStatusServiceServer, strm srpc.Stream) error {
+func (SRPCDevtoolStatusServiceHandler) InvokeMethod_WatchDevtoolStatus(impl SRPCDevtoolStatusServiceServer, strm srpc.Stream) error {
 	req := new(WatchDevtoolStatusRequest)
 	if err := strm.MsgRecv(req); err != nil {
 		return err
 	}
-	serverStrm := &srpcBldrDevtoolStatusService_WatchDevtoolStatusStream{strm}
+	serverStrm := &srpcDevtoolStatusService_WatchDevtoolStatusStream{strm}
 	return impl.WatchDevtoolStatus(req, serverStrm)
 }
 
-type SRPCBldrDevtoolStatusService_WatchDevtoolStatusStream interface {
+type SRPCDevtoolStatusService_WatchDevtoolStatusStream interface {
 	srpc.Stream
 	Send(*WatchDevtoolStatusResponse) error
 	SendAndClose(*WatchDevtoolStatusResponse) error
 }
 
-type srpcBldrDevtoolStatusService_WatchDevtoolStatusStream struct {
+type srpcDevtoolStatusService_WatchDevtoolStatusStream struct {
 	srpc.Stream
 }
 
-func (x *srpcBldrDevtoolStatusService_WatchDevtoolStatusStream) Send(m *WatchDevtoolStatusResponse) error {
+func (x *srpcDevtoolStatusService_WatchDevtoolStatusStream) Send(m *WatchDevtoolStatusResponse) error {
 	return x.MsgSend(m)
 }
 
-func (x *srpcBldrDevtoolStatusService_WatchDevtoolStatusStream) SendAndClose(m *WatchDevtoolStatusResponse) error {
+func (x *srpcDevtoolStatusService_WatchDevtoolStatusStream) SendAndClose(m *WatchDevtoolStatusResponse) error {
 	if m != nil {
 		if err := x.MsgSend(m); err != nil {
 			return err

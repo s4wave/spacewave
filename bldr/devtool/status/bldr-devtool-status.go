@@ -5,6 +5,7 @@ import "slices"
 // BldrDevtoolStatus is an immutable snapshot of current bldr devtool status.
 type BldrDevtoolStatus struct {
 	command           BldrDevtoolCommandStatus
+	project           BldrDevtoolProjectStatus
 	manifestFetchRows []BldrDevtoolManifestFetchRow
 	manifestBuildRows []BldrDevtoolManifestBuildRow
 	pluginRows        []BldrDevtoolPluginRow
@@ -41,6 +42,11 @@ func (s *BldrDevtoolStatus) GetCommand() BldrDevtoolCommandStatus {
 	return s.command
 }
 
+// GetProject returns the project and target status.
+func (s *BldrDevtoolStatus) GetProject() BldrDevtoolProjectStatus {
+	return s.project.clone()
+}
+
 // GetManifestFetchRows returns manifest fetch rows.
 func (s *BldrDevtoolStatus) GetManifestFetchRows() []BldrDevtoolManifestFetchRow {
 	return slices.Clone(s.manifestFetchRows)
@@ -70,6 +76,13 @@ func (s *BldrDevtoolStatus) GetAttentionRows() []BldrDevtoolAttentionRow {
 func (s *BldrDevtoolStatus) WithCommand(command BldrDevtoolCommandStatus) *BldrDevtoolStatus {
 	next := s.Clone()
 	next.command = command
+	return next
+}
+
+// WithProject returns a copy with project status replaced.
+func (s *BldrDevtoolStatus) WithProject(project BldrDevtoolProjectStatus) *BldrDevtoolStatus {
+	next := s.Clone()
+	next.project = project.clone()
 	return next
 }
 
@@ -111,7 +124,7 @@ func (s *BldrDevtoolStatus) WithAttentionRows(rows []BldrDevtoolAttentionRow) *B
 
 // Clone returns a copy of the snapshot.
 func (s *BldrDevtoolStatus) Clone() *BldrDevtoolStatus {
-	return NewBldrDevtoolStatus(
+	next := NewBldrDevtoolStatus(
 		s.command,
 		s.manifestFetchRows,
 		s.manifestBuildRows,
@@ -119,6 +132,8 @@ func (s *BldrDevtoolStatus) Clone() *BldrDevtoolStatus {
 		s.controllerRows,
 		s.attentionRows,
 	)
+	next.project = s.project.clone()
+	return next
 }
 
 func normalizeBldrDevtoolStatus(snapshot *BldrDevtoolStatus) *BldrDevtoolStatus {
@@ -130,6 +145,7 @@ func normalizeBldrDevtoolStatus(snapshot *BldrDevtoolStatus) *BldrDevtoolStatus 
 
 func bldrDevtoolStatusEqual(a, b *BldrDevtoolStatus) bool {
 	return bldrDevtoolCommandStatusEqual(a.command, b.command) &&
+		bldrDevtoolProjectStatusEqual(a.project, b.project) &&
 		slices.EqualFunc(a.manifestFetchRows, b.manifestFetchRows, bldrDevtoolManifestFetchRowEqual) &&
 		slices.EqualFunc(a.manifestBuildRows, b.manifestBuildRows, bldrDevtoolManifestBuildRowEqual) &&
 		slices.EqualFunc(a.pluginRows, b.pluginRows, bldrDevtoolPluginRowEqual) &&

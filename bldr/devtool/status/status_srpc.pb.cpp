@@ -8,7 +8,7 @@
 
 namespace bldr::devtool::status {
 
-std::pair<std::unique_ptr<SRPCBldrDevtoolStatusService_WatchDevtoolStatusClient>, starpc::Error> SRPCBldrDevtoolStatusServiceClientImpl::WatchDevtoolStatus(const bldr::devtool::status::WatchDevtoolStatusRequest& in) {
+std::pair<std::unique_ptr<SRPCDevtoolStatusService_WatchDevtoolStatusClient>, starpc::Error> SRPCDevtoolStatusServiceClientImpl::WatchDevtoolStatus(const bldr::devtool::status::WatchDevtoolStatusRequest& in) {
   auto [strm, err] = cc_->NewStream(service_id_, "WatchDevtoolStatus", &in);
   if (err != starpc::Error::OK) {
     return {nullptr, err};
@@ -17,16 +17,16 @@ std::pair<std::unique_ptr<SRPCBldrDevtoolStatusService_WatchDevtoolStatusClient>
   if (err != starpc::Error::OK) {
     return {nullptr, err};
   }
-  return {std::make_unique<SRPCBldrDevtoolStatusService_WatchDevtoolStatusClient>(std::move(strm)), starpc::Error::OK};
+  return {std::make_unique<SRPCDevtoolStatusService_WatchDevtoolStatusClient>(std::move(strm)), starpc::Error::OK};
 }
 
-std::vector<std::string> SRPCBldrDevtoolStatusServiceHandler::GetMethodIDs() const {
+std::vector<std::string> SRPCDevtoolStatusServiceHandler::GetMethodIDs() const {
   return {
     "WatchDevtoolStatus",
   };
 }
 
-std::pair<bool, starpc::Error> SRPCBldrDevtoolStatusServiceHandler::InvokeMethod(
+std::pair<bool, starpc::Error> SRPCDevtoolStatusServiceHandler::InvokeMethod(
     const std::string& service_id,
     const std::string& method_id,
     starpc::Stream* strm) {
@@ -38,7 +38,7 @@ std::pair<bool, starpc::Error> SRPCBldrDevtoolStatusServiceHandler::InvokeMethod
     bldr::devtool::status::WatchDevtoolStatusRequest req;
     starpc::Error err = strm->MsgRecv(&req);
     if (err != starpc::Error::OK) return {true, err};
-    SRPCBldrDevtoolStatusService_WatchDevtoolStatusStream serverStrm(strm);
+    SRPCDevtoolStatusService_WatchDevtoolStatusStream serverStrm(strm);
     return {true, impl_->WatchDevtoolStatus(req, &serverStrm)};
   }
 

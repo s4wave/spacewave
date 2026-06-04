@@ -10,17 +10,17 @@ import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 
 /**
- * BldrDevtoolStatusService exposes read-only Bldr devtool status snapshots.
+ * DevtoolStatusService streams the read-only Bldr devtool status projection.
  *
- * @generated from service bldr.devtool.status.BldrDevtoolStatusService
+ * @generated from service bldr.devtool.status.DevtoolStatusService
  */
-export const BldrDevtoolStatusServiceDefinition = {
-  typeName: 'bldr.devtool.status.BldrDevtoolStatusService',
+export const DevtoolStatusServiceDefinition = {
+  typeName: 'bldr.devtool.status.DevtoolStatusService',
   methods: {
     /**
-     * WatchDevtoolStatus streams the current status snapshot and later changes.
+     * WatchDevtoolStatus emits the current status snapshot and subsequent changes.
      *
-     * @generated from rpc bldr.devtool.status.BldrDevtoolStatusService.WatchDevtoolStatus
+     * @generated from rpc bldr.devtool.status.DevtoolStatusService.WatchDevtoolStatus
      */
     WatchDevtoolStatus: {
       name: 'WatchDevtoolStatus',
@@ -32,15 +32,15 @@ export const BldrDevtoolStatusServiceDefinition = {
 } as const
 
 /**
- * BldrDevtoolStatusService exposes read-only Bldr devtool status snapshots.
+ * DevtoolStatusService streams the read-only Bldr devtool status projection.
  *
- * @generated from service bldr.devtool.status.BldrDevtoolStatusService
+ * @generated from service bldr.devtool.status.DevtoolStatusService
  */
-export interface BldrDevtoolStatusService {
+export interface DevtoolStatusService {
   /**
-   * WatchDevtoolStatus streams the current status snapshot and later changes.
+   * WatchDevtoolStatus emits the current status snapshot and subsequent changes.
    *
-   * @generated from rpc bldr.devtool.status.BldrDevtoolStatusService.WatchDevtoolStatus
+   * @generated from rpc bldr.devtool.status.DevtoolStatusService.WatchDevtoolStatus
    */
   WatchDevtoolStatus(
     request: WatchDevtoolStatusRequest,
@@ -48,21 +48,21 @@ export interface BldrDevtoolStatusService {
   ): MessageStream<WatchDevtoolStatusResponse>
 }
 
-export const BldrDevtoolStatusServiceServiceName =
-  BldrDevtoolStatusServiceDefinition.typeName
+export const DevtoolStatusServiceServiceName =
+  DevtoolStatusServiceDefinition.typeName
 
-export class BldrDevtoolStatusServiceClient implements BldrDevtoolStatusService {
+export class DevtoolStatusServiceClient implements DevtoolStatusService {
   private readonly rpc: ProtoRpc
   private readonly service: string
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
-    this.service = opts?.service || BldrDevtoolStatusServiceServiceName
+    this.service = opts?.service || DevtoolStatusServiceServiceName
     this.rpc = rpc
     this.WatchDevtoolStatus = this.WatchDevtoolStatus.bind(this)
   }
   /**
-   * WatchDevtoolStatus streams the current status snapshot and later changes.
+   * WatchDevtoolStatus emits the current status snapshot and subsequent changes.
    *
-   * @generated from rpc bldr.devtool.status.BldrDevtoolStatusService.WatchDevtoolStatus
+   * @generated from rpc bldr.devtool.status.DevtoolStatusService.WatchDevtoolStatus
    */
   WatchDevtoolStatus(
     request: WatchDevtoolStatusRequest,
@@ -71,7 +71,7 @@ export class BldrDevtoolStatusServiceClient implements BldrDevtoolStatusService 
     const requestMsg = WatchDevtoolStatusRequest.create(request)
     const result = this.rpc.serverStreamingRequest(
       this.service,
-      BldrDevtoolStatusServiceDefinition.methods.WatchDevtoolStatus.name,
+      DevtoolStatusServiceDefinition.methods.WatchDevtoolStatus.name,
       WatchDevtoolStatusRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
