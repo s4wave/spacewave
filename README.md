@@ -9,6 +9,7 @@
     Start with a private workspace that runs on your computers, syncs peer-to-peer, and keeps working offline.<br/>
     Grow it into shared Spaces for apps, devices, workflows, plugins, and automation.<br/>
   </p>
+</div>
 
 ## Overview
 
