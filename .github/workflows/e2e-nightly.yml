@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BLDR_WASM_OPT_DIAGNOSTICS_DIR: ${{ github.workspace }}/.tmp/wasm-opt-diagnostics
+      BLDR_GO_WASM_OPTIMIZE: ${{ matrix.suite.go_wasm_optimize }}
       BLDR_ELECTRON_NO_SANDBOX: ${{ matrix.suite.electron_no_sandbox }}
       E2E_ELECTRON_CDP_READY_TIMEOUT: ${{ matrix.suite.electron_cdp_ready_timeout }}
       E2E_RELEASE_WASM_BUILD_SCRIPT: ${{ matrix.suite.release_wasm_build_script }}
@@ -40,6 +41,7 @@ jobs:
             electron_no_sandbox: true
             needs_tinygo: false
             electron_cdp_ready_timeout: 20m
+            go_wasm_optimize: ''
           - name: release-wasm
             script: test:go:e2e:release-wasm
             release_wasm_build_script: build:release:web:e2e:ci
@@ -49,6 +51,7 @@ jobs:
             electron_no_sandbox: false
             needs_tinygo: true
             electron_cdp_ready_timeout: ''
+            go_wasm_optimize: 'false'
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

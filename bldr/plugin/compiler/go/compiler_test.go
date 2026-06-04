@@ -81,6 +81,47 @@ func TestAddGoPluginCompilerModeStartupCacheInputsIncludesModeIdentity(t *testin
 	}
 }
 
+func TestAddGoWasmOptimizeStartupCacheInputsIncludesOptimizerIdentity(t *testing.T) {
+	t.Setenv(gocompiler.GoWasmOptimizeEnv, "false")
+
+	inputManifest := bldr_manifest_builder.NewInputManifest(nil, nil)
+	addGoWasmOptimizeStartupCacheInputs(inputManifest)
+
+	got := make(map[string]string, len(inputManifest.GetStartupInputs()))
+	for _, input := range inputManifest.GetStartupInputs() {
+		if input.GetKind() != bldr_manifest_builder.InputManifest_StartupInputKind_ENV_VAR {
+			t.Fatalf("startup input kind = %v, want env var", input.GetKind())
+		}
+		got[input.GetKey()] = input.GetStringValue()
+	}
+	if got[gocompiler.GoWasmOptimizeEnv] != "false" {
+		t.Fatalf("startup input %s = %q, want false", gocompiler.GoWasmOptimizeEnv, got[gocompiler.GoWasmOptimizeEnv])
+	}
+}
+
+func TestAddCompilerStartupCacheInputsIncludesOptimizerIdentityForExplicitGo(t *testing.T) {
+	t.Setenv(gocompiler.GoPluginCompilerModeEnv, string(gocompiler.GoPluginCompilerModeTinyGo))
+	t.Setenv(gocompiler.GoWasmOptimizeEnv, "false")
+
+	inputManifest := bldr_manifest_builder.NewInputManifest(nil, nil)
+	addCompilerStartupCacheInputs(
+		inputManifest,
+		CompilerMode_COMPILER_MODE_GO,
+		gocompiler.GoPluginCompilerModeGo,
+	)
+
+	got := make(map[string]string, len(inputManifest.GetStartupInputs()))
+	for _, input := range inputManifest.GetStartupInputs() {
+		got[input.GetKey()] = input.GetStringValue()
+	}
+	if got[gocompiler.GoWasmOptimizeEnv] != "false" {
+		t.Fatalf("startup input %s = %q, want false", gocompiler.GoWasmOptimizeEnv, got[gocompiler.GoWasmOptimizeEnv])
+	}
+	if _, ok := got[gocompiler.GoPluginCompilerModeEnv]; ok {
+		t.Fatalf("explicit Go compiler mode should not depend on default-mode env: %v", got)
+	}
+}
+
 func TestNewGoScriptBuildFlagsIncludesGoScriptTag(t *testing.T) {
 	flags := newGoScriptBuildFlags(bldr_manifest.BuildType_DEV, false)
 	if len(flags) != 1 || !strings.HasPrefix(flags[0], "-tags=") {

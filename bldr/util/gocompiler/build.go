@@ -139,6 +139,14 @@ func ExecBuildEntrypoint(
 				}
 			}
 		} else {
+			goWasmOptimize, err := GoWasmOptimizeEnabled()
+			if err != nil {
+				return err
+			}
+			if !goWasmOptimize {
+				le.WithField("env", GoWasmOptimizeEnv).Info("skipped wasm-opt for Go wasm output")
+				return nil
+			}
 			if err := opt_wasm.OptimizeWasmBinary(ctx, le, workingPath, outBinPath); err != nil {
 				return err
 			}

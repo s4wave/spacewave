@@ -1096,15 +1096,7 @@ func (c *Controller) BuildPlugin(
 			StartupOnly: true,
 		})
 	}
-	if enableTinygo {
-		addTinyGoStartupCacheInputs(inputManifest)
-	}
-	if compilerModeOpt == CompilerMode_COMPILER_MODE_DEFAULT {
-		addGoPluginCompilerModeStartupCacheInputs(inputManifest)
-	}
-	if useGoScript {
-		addGoScriptStartupCacheInputs(inputManifest)
-	}
+	addCompilerStartupCacheInputs(inputManifest, compilerModeOpt, compilerMode)
 	inputManifest.SortFiles()
 
 	return an, inputManifest, nil
@@ -1116,6 +1108,25 @@ func newGoScriptBuildFlags(buildType bldr_manifest.BuildType, enableCgo bool) []
 	return []string{"-tags=" + strings.Join(buildTags, ",")}
 }
 
+func addCompilerStartupCacheInputs(
+	inputManifest *bldr_manifest_builder.InputManifest,
+	compilerModeOpt CompilerMode,
+	compilerMode gocompiler.GoPluginCompilerMode,
+) {
+	if compilerMode.IsTinyGo() {
+		addTinyGoStartupCacheInputs(inputManifest)
+	}
+	if compilerModeOpt == CompilerMode_COMPILER_MODE_DEFAULT {
+		addGoPluginCompilerModeStartupCacheInputs(inputManifest)
+	}
+	if compilerMode == gocompiler.GoPluginCompilerModeGo {
+		addGoWasmOptimizeStartupCacheInputs(inputManifest)
+	}
+	if compilerMode.IsGoScript() {
+		addGoScriptStartupCacheInputs(inputManifest)
+	}
+}
+
 func addTinyGoStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
 	for _, envKey := range gocompiler.TinyGoStartupCacheEnvKeys() {
 		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
@@ -1125,6 +1136,13 @@ func addTinyGoStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManif
 
 func addGoPluginCompilerModeStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
 	for _, envKey := range gocompiler.GoPluginCompilerModeStartupCacheEnvKeys() {
+		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
+	}
+	inputManifest.SortStartupInputs()
+}
+
+func addGoWasmOptimizeStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
+	for _, envKey := range gocompiler.GoWasmOptimizeStartupCacheEnvKeys() {
 		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
 	}
 	inputManifest.SortStartupInputs()

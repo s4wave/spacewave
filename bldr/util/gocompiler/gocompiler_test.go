@@ -236,6 +236,46 @@ func TestTinyGoWorkRejectsUnknownValue(t *testing.T) {
 	}
 }
 
+func TestGoWasmOptimizeEnabledDefaultsOn(t *testing.T) {
+	t.Setenv(GoWasmOptimizeEnv, "")
+
+	enabled, err := GoWasmOptimizeEnabled()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !enabled {
+		t.Fatal("expected Go wasm optimization to default on")
+	}
+}
+
+func TestGoWasmOptimizeEnabledCanBeDisabled(t *testing.T) {
+	for _, value := range []string{"0", "false", "no", "off"} {
+		t.Run(value, func(t *testing.T) {
+			t.Setenv(GoWasmOptimizeEnv, value)
+
+			enabled, err := GoWasmOptimizeEnabled()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if enabled {
+				t.Fatalf("%s=%s should disable Go wasm optimization", GoWasmOptimizeEnv, value)
+			}
+		})
+	}
+}
+
+func TestGoWasmOptimizeRejectsUnknownValue(t *testing.T) {
+	t.Setenv(GoWasmOptimizeEnv, "sometimes")
+
+	_, err := GoWasmOptimizeEnabled()
+	if err == nil {
+		t.Fatal("expected invalid Go wasm optimize env to fail")
+	}
+	if !strings.Contains(err.Error(), GoWasmOptimizeEnv) {
+		t.Fatalf("error = %q, want %s", err.Error(), GoWasmOptimizeEnv)
+	}
+}
+
 func TestTinyGoBrowserDevArgsDoNotUseInternalNoDWARF(t *testing.T) {
 	clearTinyGoOptionEnv(t)
 	t.Setenv(TinyGoProfileEnv, TinyGoProfileFast)
