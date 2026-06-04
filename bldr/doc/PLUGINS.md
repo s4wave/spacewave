@@ -17,6 +17,26 @@ Go plugin:
 - If no "entrypoint" is defined the plugin just contains static files.
 - The plugin compiler includes controllers for loading web pkgs, serving assets, and more.
 
+### GoScript browser mode
+
+`COMPILER_MODE_GOSCRIPT` is the browser-only Go plugin compiler mode for the
+`web/js/wasm` platform. Bldr compiles the generated plugin module with GoScript,
+using the release/dev build tags, source-local `gs` overrides, full dependency
+graph output, and protobuf TypeScript binding.
+
+After GoScript writes the TypeScript package tree, Bldr builds
+`plugin-goscript-entrypoint.ts` through the Bldr-owned Rolldown/Oxc wrapper
+path. The generated package tree stays under `dist/@goscript` for inspection;
+the served entrypoint is the bundled `.mjs` output.
+
+The wrapper preserves generated-tree `@goscript/...` imports, relative
+JavaScript-to-TypeScript sibling resolution, Bldr SDK aliases, `@go/...`
+vendor/local module imports, the `node:events` browser shim, source-map policy,
+minification policy, and dependency input accounting. Each wrapper build writes
+`plugin-goscript-bundle-report.json` in the build work directory with output
+bytes, best-gzip bytes, minify/sourcemap policy, and Rolldown dependency inputs.
+That report is build-private and is not emitted into the plugin manifest output.
+
 ## Js
 
 Js plugin:
