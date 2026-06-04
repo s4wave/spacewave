@@ -7,6 +7,7 @@ package s4wave_apt
 import (
 	fmt "fmt"
 	io "io"
+	maps "maps"
 	slices "slices"
 	strconv "strconv"
 	strings "strings"
@@ -309,6 +310,262 @@ func (x *AptPackage) GetDebRef() *block.BlockRef {
 	return nil
 }
 
+// AptBuildConfig stores build options for an AptBuildSpec.
+type AptBuildConfig struct {
+	unknownFields []byte
+	// Env contains environment variables for the package build.
+	Env map[string]string `protobuf:"bytes,1,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// CrossCompilePrefix is the toolchain prefix, e.g. "i686-linux-gnu-".
+	CrossCompilePrefix string `protobuf:"bytes,2,opt,name=cross_compile_prefix,json=crossCompilePrefix,proto3" json:"crossCompilePrefix,omitempty"`
+}
+
+func (x *AptBuildConfig) Reset() {
+	*x = AptBuildConfig{}
+}
+
+func (*AptBuildConfig) ProtoMessage() {}
+
+func (x *AptBuildConfig) GetEnv() map[string]string {
+	if x != nil {
+		return x.Env
+	}
+	return nil
+}
+
+func (x *AptBuildConfig) GetCrossCompilePrefix() string {
+	if x != nil {
+		return x.CrossCompilePrefix
+	}
+	return ""
+}
+
+// AptBuildSpec stores the build recipe for an apt source package.
+type AptBuildSpec struct {
+	unknownFields []byte
+	// SourcePackage is the Debian source package name, e.g. "busybox".
+	SourcePackage string `protobuf:"bytes,1,opt,name=source_package,json=sourcePackage,proto3" json:"sourcePackage,omitempty"`
+	// SourceRef points at the source tree used for builds.
+	SourceRef *bucket.ObjectRef `protobuf:"bytes,2,opt,name=source_ref,json=sourceRef,proto3" json:"sourceRef,omitempty"`
+	// BuildConfig contains build-time configuration for the Forge target.
+	BuildConfig *AptBuildConfig `protobuf:"bytes,3,opt,name=build_config,json=buildConfig,proto3" json:"buildConfig,omitempty"`
+	// Architectures are the Debian architectures to build from this spec.
+	Architectures []string `protobuf:"bytes,4,rep,name=architectures,proto3" json:"architectures,omitempty"`
+	// BuildDeps are source packages that must build before this spec.
+	BuildDeps []string `protobuf:"bytes,5,rep,name=build_deps,json=buildDeps,proto3" json:"buildDeps,omitempty"`
+}
+
+func (x *AptBuildSpec) Reset() {
+	*x = AptBuildSpec{}
+}
+
+func (*AptBuildSpec) ProtoMessage() {}
+
+func (x *AptBuildSpec) GetSourcePackage() string {
+	if x != nil {
+		return x.SourcePackage
+	}
+	return ""
+}
+
+func (x *AptBuildSpec) GetSourceRef() *bucket.ObjectRef {
+	if x != nil {
+		return x.SourceRef
+	}
+	return nil
+}
+
+func (x *AptBuildSpec) GetBuildConfig() *AptBuildConfig {
+	if x != nil {
+		return x.BuildConfig
+	}
+	return nil
+}
+
+func (x *AptBuildSpec) GetArchitectures() []string {
+	if x != nil {
+		return x.Architectures
+	}
+	return nil
+}
+
+func (x *AptBuildSpec) GetBuildDeps() []string {
+	if x != nil {
+		return x.BuildDeps
+	}
+	return nil
+}
+
+// CreateAptRepositoryOp creates a new AptRepository world object.
+type CreateAptRepositoryOp struct {
+	unknownFields []byte
+	// ObjectKey is the key to create the repository at.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// Repository carries the metadata for the new AptRepository.
+	Repository *AptRepository `protobuf:"bytes,2,opt,name=repository,proto3" json:"repository,omitempty"`
+}
+
+func (x *CreateAptRepositoryOp) Reset() {
+	*x = CreateAptRepositoryOp{}
+}
+
+func (*CreateAptRepositoryOp) ProtoMessage() {}
+
+func (x *CreateAptRepositoryOp) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *CreateAptRepositoryOp) GetRepository() *AptRepository {
+	if x != nil {
+		return x.Repository
+	}
+	return nil
+}
+
+// AddAptPackageOp creates an AptPackage and links it to an AptRepository.
+type AddAptPackageOp struct {
+	unknownFields []byte
+	// RepositoryKey is the AptRepository object key.
+	RepositoryKey string `protobuf:"bytes,1,opt,name=repository_key,json=repositoryKey,proto3" json:"repositoryKey,omitempty"`
+	// PackageKey is the key to create the AptPackage at.
+	PackageKey string `protobuf:"bytes,2,opt,name=package_key,json=packageKey,proto3" json:"packageKey,omitempty"`
+	// AptPackage carries the metadata for the new package.
+	AptPackage *AptPackage `protobuf:"bytes,3,opt,name=apt_package,json=aptPackage,proto3" json:"aptPackage,omitempty"`
+}
+
+func (x *AddAptPackageOp) Reset() {
+	*x = AddAptPackageOp{}
+}
+
+func (*AddAptPackageOp) ProtoMessage() {}
+
+func (x *AddAptPackageOp) GetRepositoryKey() string {
+	if x != nil {
+		return x.RepositoryKey
+	}
+	return ""
+}
+
+func (x *AddAptPackageOp) GetPackageKey() string {
+	if x != nil {
+		return x.PackageKey
+	}
+	return ""
+}
+
+func (x *AddAptPackageOp) GetAptPackage() *AptPackage {
+	if x != nil {
+		return x.AptPackage
+	}
+	return nil
+}
+
+// AptPublishPackageOp publishes a built AptPackage into the repository index.
+type AptPublishPackageOp struct {
+	unknownFields []byte
+	// PackageKey is the AptPackage object key.
+	PackageKey string `protobuf:"bytes,1,opt,name=package_key,json=packageKey,proto3" json:"packageKey,omitempty"`
+}
+
+func (x *AptPublishPackageOp) Reset() {
+	*x = AptPublishPackageOp{}
+}
+
+func (*AptPublishPackageOp) ProtoMessage() {}
+
+func (x *AptPublishPackageOp) GetPackageKey() string {
+	if x != nil {
+		return x.PackageKey
+	}
+	return ""
+}
+
+// AptSupersedePackageOp marks a published AptPackage as superseded.
+type AptSupersedePackageOp struct {
+	unknownFields []byte
+	// PackageKey is the AptPackage object key.
+	PackageKey string `protobuf:"bytes,1,opt,name=package_key,json=packageKey,proto3" json:"packageKey,omitempty"`
+}
+
+func (x *AptSupersedePackageOp) Reset() {
+	*x = AptSupersedePackageOp{}
+}
+
+func (*AptSupersedePackageOp) ProtoMessage() {}
+
+func (x *AptSupersedePackageOp) GetPackageKey() string {
+	if x != nil {
+		return x.PackageKey
+	}
+	return ""
+}
+
+// AddAptBuildSpecOp creates an AptBuildSpec and links it to an AptRepository.
+type AddAptBuildSpecOp struct {
+	unknownFields []byte
+	// RepositoryKey is the AptRepository object key.
+	RepositoryKey string `protobuf:"bytes,1,opt,name=repository_key,json=repositoryKey,proto3" json:"repositoryKey,omitempty"`
+	// BuildSpecKey is the key to create the AptBuildSpec at.
+	BuildSpecKey string `protobuf:"bytes,2,opt,name=build_spec_key,json=buildSpecKey,proto3" json:"buildSpecKey,omitempty"`
+	// BuildSpec carries the build recipe for the new spec.
+	BuildSpec *AptBuildSpec `protobuf:"bytes,3,opt,name=build_spec,json=buildSpec,proto3" json:"buildSpec,omitempty"`
+}
+
+func (x *AddAptBuildSpecOp) Reset() {
+	*x = AddAptBuildSpecOp{}
+}
+
+func (*AddAptBuildSpecOp) ProtoMessage() {}
+
+func (x *AddAptBuildSpecOp) GetRepositoryKey() string {
+	if x != nil {
+		return x.RepositoryKey
+	}
+	return ""
+}
+
+func (x *AddAptBuildSpecOp) GetBuildSpecKey() string {
+	if x != nil {
+		return x.BuildSpecKey
+	}
+	return ""
+}
+
+func (x *AddAptBuildSpecOp) GetBuildSpec() *AptBuildSpec {
+	if x != nil {
+		return x.BuildSpec
+	}
+	return nil
+}
+
+type AptBuildConfig_EnvEntry struct {
+	unknownFields []byte
+	Key           string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *AptBuildConfig_EnvEntry) Reset() {
+	*x = AptBuildConfig_EnvEntry{}
+}
+
+func (*AptBuildConfig_EnvEntry) ProtoMessage() {}
+
+func (x *AptBuildConfig_EnvEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *AptBuildConfig_EnvEntry) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
 func (m *AptRepository) CloneVT() *AptRepository {
 	if m == nil {
 		return (*AptRepository)(nil)
@@ -385,6 +642,134 @@ func (m *AptPackage) CloneVT() *AptPackage {
 }
 
 func (m *AptPackage) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AptBuildConfig) CloneVT() *AptBuildConfig {
+	if m == nil {
+		return (*AptBuildConfig)(nil)
+	}
+	r := new(AptBuildConfig)
+	r.CrossCompilePrefix = m.CrossCompilePrefix
+	if rhs := m.Env; rhs != nil {
+		r.Env = maps.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AptBuildConfig) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AptBuildSpec) CloneVT() *AptBuildSpec {
+	if m == nil {
+		return (*AptBuildSpec)(nil)
+	}
+	r := new(AptBuildSpec)
+	r.SourcePackage = m.SourcePackage
+	r.SourceRef = m.SourceRef.CloneVT()
+	r.BuildConfig = m.BuildConfig.CloneVT()
+	if rhs := m.Architectures; rhs != nil {
+		r.Architectures = slices.Clone(rhs)
+	}
+	if rhs := m.BuildDeps; rhs != nil {
+		r.BuildDeps = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AptBuildSpec) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CreateAptRepositoryOp) CloneVT() *CreateAptRepositoryOp {
+	if m == nil {
+		return (*CreateAptRepositoryOp)(nil)
+	}
+	r := new(CreateAptRepositoryOp)
+	r.ObjectKey = m.ObjectKey
+	r.Repository = m.Repository.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CreateAptRepositoryOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AddAptPackageOp) CloneVT() *AddAptPackageOp {
+	if m == nil {
+		return (*AddAptPackageOp)(nil)
+	}
+	r := new(AddAptPackageOp)
+	r.RepositoryKey = m.RepositoryKey
+	r.PackageKey = m.PackageKey
+	r.AptPackage = m.AptPackage.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AddAptPackageOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AptPublishPackageOp) CloneVT() *AptPublishPackageOp {
+	if m == nil {
+		return (*AptPublishPackageOp)(nil)
+	}
+	r := new(AptPublishPackageOp)
+	r.PackageKey = m.PackageKey
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AptPublishPackageOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AptSupersedePackageOp) CloneVT() *AptSupersedePackageOp {
+	if m == nil {
+		return (*AptSupersedePackageOp)(nil)
+	}
+	r := new(AptSupersedePackageOp)
+	r.PackageKey = m.PackageKey
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AptSupersedePackageOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AddAptBuildSpecOp) CloneVT() *AddAptBuildSpecOp {
+	if m == nil {
+		return (*AddAptBuildSpecOp)(nil)
+	}
+	r := new(AddAptBuildSpecOp)
+	r.RepositoryKey = m.RepositoryKey
+	r.BuildSpecKey = m.BuildSpecKey
+	r.BuildSpec = m.BuildSpec.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AddAptBuildSpecOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -534,6 +919,197 @@ func (this *AptPackage) EqualVT(that *AptPackage) bool {
 
 func (this *AptPackage) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*AptPackage)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AptBuildConfig) EqualVT(that *AptBuildConfig) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.Env) != len(that.Env) {
+		return false
+	}
+	for i, vx := range this.Env {
+		vy, ok := that.Env[i]
+		if !ok {
+			return false
+		}
+		if vx != vy {
+			return false
+		}
+	}
+	if this.CrossCompilePrefix != that.CrossCompilePrefix {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AptBuildConfig) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AptBuildConfig)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AptBuildSpec) EqualVT(that *AptBuildSpec) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.SourcePackage != that.SourcePackage {
+		return false
+	}
+	if !this.SourceRef.EqualVT(that.SourceRef) {
+		return false
+	}
+	if !this.BuildConfig.EqualVT(that.BuildConfig) {
+		return false
+	}
+	if len(this.Architectures) != len(that.Architectures) {
+		return false
+	}
+	for i, vx := range this.Architectures {
+		vy := that.Architectures[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.BuildDeps) != len(that.BuildDeps) {
+		return false
+	}
+	for i, vx := range this.BuildDeps {
+		vy := that.BuildDeps[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AptBuildSpec) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AptBuildSpec)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CreateAptRepositoryOp) EqualVT(that *CreateAptRepositoryOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if !this.Repository.EqualVT(that.Repository) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CreateAptRepositoryOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CreateAptRepositoryOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AddAptPackageOp) EqualVT(that *AddAptPackageOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.RepositoryKey != that.RepositoryKey {
+		return false
+	}
+	if this.PackageKey != that.PackageKey {
+		return false
+	}
+	if !this.AptPackage.EqualVT(that.AptPackage) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AddAptPackageOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AddAptPackageOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AptPublishPackageOp) EqualVT(that *AptPublishPackageOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PackageKey != that.PackageKey {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AptPublishPackageOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AptPublishPackageOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AptSupersedePackageOp) EqualVT(that *AptSupersedePackageOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PackageKey != that.PackageKey {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AptSupersedePackageOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AptSupersedePackageOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AddAptBuildSpecOp) EqualVT(that *AddAptBuildSpecOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.RepositoryKey != that.RepositoryKey {
+		return false
+	}
+	if this.BuildSpecKey != that.BuildSpecKey {
+		return false
+	}
+	if !this.BuildSpec.EqualVT(that.BuildSpec) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AddAptBuildSpecOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AddAptBuildSpecOp)
 	if !ok {
 		return false
 	}
@@ -927,6 +1503,472 @@ func (x *AptPackage) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the AptBuildConfig_EnvEntry message to JSON.
+func (x *AptBuildConfig_EnvEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Value != "" || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		s.WriteString(x.Value)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AptBuildConfig_EnvEntry to JSON.
+func (x *AptBuildConfig_EnvEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AptBuildConfig_EnvEntry message from JSON.
+func (x *AptBuildConfig_EnvEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "value":
+			s.AddField("value")
+			x.Value = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AptBuildConfig_EnvEntry from JSON.
+func (x *AptBuildConfig_EnvEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AptBuildConfig message to JSON.
+func (x *AptBuildConfig) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Env != nil || s.HasField("env") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("env")
+		s.WriteObjectStart()
+		var wroteElement bool
+		for k, v := range x.Env {
+			s.WriteMoreIf(&wroteElement)
+			s.WriteObjectStringField(k)
+			s.WriteString(v)
+		}
+		s.WriteObjectEnd()
+	}
+	if x.CrossCompilePrefix != "" || s.HasField("crossCompilePrefix") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("crossCompilePrefix")
+		s.WriteString(x.CrossCompilePrefix)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AptBuildConfig to JSON.
+func (x *AptBuildConfig) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AptBuildConfig message from JSON.
+func (x *AptBuildConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "env":
+			s.AddField("env")
+			if s.ReadNil() {
+				x.Env = nil
+				return
+			}
+			x.Env = make(map[string]string)
+			s.ReadStringMap(func(key string) {
+				x.Env[key] = s.ReadString()
+			})
+		case "cross_compile_prefix", "crossCompilePrefix":
+			s.AddField("cross_compile_prefix")
+			x.CrossCompilePrefix = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AptBuildConfig from JSON.
+func (x *AptBuildConfig) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AptBuildSpec message to JSON.
+func (x *AptBuildSpec) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SourcePackage != "" || s.HasField("sourcePackage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sourcePackage")
+		s.WriteString(x.SourcePackage)
+	}
+	if x.SourceRef != nil || s.HasField("sourceRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sourceRef")
+		x.SourceRef.MarshalProtoJSON(s.WithField("sourceRef"))
+	}
+	if x.BuildConfig != nil || s.HasField("buildConfig") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("buildConfig")
+		x.BuildConfig.MarshalProtoJSON(s.WithField("buildConfig"))
+	}
+	if len(x.Architectures) > 0 || s.HasField("architectures") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("architectures")
+		s.WriteStringArray(x.Architectures)
+	}
+	if len(x.BuildDeps) > 0 || s.HasField("buildDeps") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("buildDeps")
+		s.WriteStringArray(x.BuildDeps)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AptBuildSpec to JSON.
+func (x *AptBuildSpec) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AptBuildSpec message from JSON.
+func (x *AptBuildSpec) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "source_package", "sourcePackage":
+			s.AddField("source_package")
+			x.SourcePackage = s.ReadString()
+		case "source_ref", "sourceRef":
+			if s.ReadNil() {
+				x.SourceRef = nil
+				return
+			}
+			x.SourceRef = &bucket.ObjectRef{}
+			x.SourceRef.UnmarshalProtoJSON(s.WithField("source_ref", true))
+		case "build_config", "buildConfig":
+			if s.ReadNil() {
+				x.BuildConfig = nil
+				return
+			}
+			x.BuildConfig = &AptBuildConfig{}
+			x.BuildConfig.UnmarshalProtoJSON(s.WithField("build_config", true))
+		case "architectures":
+			s.AddField("architectures")
+			if s.ReadNil() {
+				x.Architectures = nil
+				return
+			}
+			x.Architectures = s.ReadStringArray()
+		case "build_deps", "buildDeps":
+			s.AddField("build_deps")
+			if s.ReadNil() {
+				x.BuildDeps = nil
+				return
+			}
+			x.BuildDeps = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AptBuildSpec from JSON.
+func (x *AptBuildSpec) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CreateAptRepositoryOp message to JSON.
+func (x *CreateAptRepositoryOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.Repository != nil || s.HasField("repository") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("repository")
+		x.Repository.MarshalProtoJSON(s.WithField("repository"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CreateAptRepositoryOp to JSON.
+func (x *CreateAptRepositoryOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CreateAptRepositoryOp message from JSON.
+func (x *CreateAptRepositoryOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "repository":
+			if s.ReadNil() {
+				x.Repository = nil
+				return
+			}
+			x.Repository = &AptRepository{}
+			x.Repository.UnmarshalProtoJSON(s.WithField("repository", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CreateAptRepositoryOp from JSON.
+func (x *CreateAptRepositoryOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AddAptPackageOp message to JSON.
+func (x *AddAptPackageOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.RepositoryKey != "" || s.HasField("repositoryKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("repositoryKey")
+		s.WriteString(x.RepositoryKey)
+	}
+	if x.PackageKey != "" || s.HasField("packageKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packageKey")
+		s.WriteString(x.PackageKey)
+	}
+	if x.AptPackage != nil || s.HasField("aptPackage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("aptPackage")
+		x.AptPackage.MarshalProtoJSON(s.WithField("aptPackage"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AddAptPackageOp to JSON.
+func (x *AddAptPackageOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AddAptPackageOp message from JSON.
+func (x *AddAptPackageOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "repository_key", "repositoryKey":
+			s.AddField("repository_key")
+			x.RepositoryKey = s.ReadString()
+		case "package_key", "packageKey":
+			s.AddField("package_key")
+			x.PackageKey = s.ReadString()
+		case "apt_package", "aptPackage":
+			if s.ReadNil() {
+				x.AptPackage = nil
+				return
+			}
+			x.AptPackage = &AptPackage{}
+			x.AptPackage.UnmarshalProtoJSON(s.WithField("apt_package", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AddAptPackageOp from JSON.
+func (x *AddAptPackageOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AptPublishPackageOp message to JSON.
+func (x *AptPublishPackageOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PackageKey != "" || s.HasField("packageKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packageKey")
+		s.WriteString(x.PackageKey)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AptPublishPackageOp to JSON.
+func (x *AptPublishPackageOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AptPublishPackageOp message from JSON.
+func (x *AptPublishPackageOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "package_key", "packageKey":
+			s.AddField("package_key")
+			x.PackageKey = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AptPublishPackageOp from JSON.
+func (x *AptPublishPackageOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AptSupersedePackageOp message to JSON.
+func (x *AptSupersedePackageOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PackageKey != "" || s.HasField("packageKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packageKey")
+		s.WriteString(x.PackageKey)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AptSupersedePackageOp to JSON.
+func (x *AptSupersedePackageOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AptSupersedePackageOp message from JSON.
+func (x *AptSupersedePackageOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "package_key", "packageKey":
+			s.AddField("package_key")
+			x.PackageKey = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AptSupersedePackageOp from JSON.
+func (x *AptSupersedePackageOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AddAptBuildSpecOp message to JSON.
+func (x *AddAptBuildSpecOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.RepositoryKey != "" || s.HasField("repositoryKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("repositoryKey")
+		s.WriteString(x.RepositoryKey)
+	}
+	if x.BuildSpecKey != "" || s.HasField("buildSpecKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("buildSpecKey")
+		s.WriteString(x.BuildSpecKey)
+	}
+	if x.BuildSpec != nil || s.HasField("buildSpec") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("buildSpec")
+		x.BuildSpec.MarshalProtoJSON(s.WithField("buildSpec"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AddAptBuildSpecOp to JSON.
+func (x *AddAptBuildSpecOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AddAptBuildSpecOp message from JSON.
+func (x *AddAptBuildSpecOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "repository_key", "repositoryKey":
+			s.AddField("repository_key")
+			x.RepositoryKey = s.ReadString()
+		case "build_spec_key", "buildSpecKey":
+			s.AddField("build_spec_key")
+			x.BuildSpecKey = s.ReadString()
+		case "build_spec", "buildSpec":
+			if s.ReadNil() {
+				x.BuildSpec = nil
+				return
+			}
+			x.BuildSpec = &AptBuildSpec{}
+			x.BuildSpec.UnmarshalProtoJSON(s.WithField("build_spec", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AddAptBuildSpecOp from JSON.
+func (x *AddAptBuildSpecOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *AptRepository) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1177,6 +2219,387 @@ func (m *AptPackage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *AptBuildConfig) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AptBuildConfig) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AptBuildConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.CrossCompilePrefix) > 0 {
+		i -= len(m.CrossCompilePrefix)
+		copy(dAtA[i:], m.CrossCompilePrefix)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.CrossCompilePrefix)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Env) > 0 {
+		for k := range m.Env {
+			v := m.Env[k]
+			baseI := i
+			i -= len(v)
+			copy(dAtA[i:], v)
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(v)))
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AptBuildSpec) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AptBuildSpec) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AptBuildSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.BuildDeps) > 0 {
+		for iNdEx := len(m.BuildDeps) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.BuildDeps[iNdEx])
+			copy(dAtA[i:], m.BuildDeps[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.BuildDeps[iNdEx])))
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
+	if len(m.Architectures) > 0 {
+		for iNdEx := len(m.Architectures) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Architectures[iNdEx])
+			copy(dAtA[i:], m.Architectures[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Architectures[iNdEx])))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if m.BuildConfig != nil {
+		size, err := m.BuildConfig.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.SourceRef != nil {
+		size, err := m.SourceRef.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.SourcePackage) > 0 {
+		i -= len(m.SourcePackage)
+		copy(dAtA[i:], m.SourcePackage)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SourcePackage)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CreateAptRepositoryOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CreateAptRepositoryOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CreateAptRepositoryOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Repository != nil {
+		size, err := m.Repository.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ObjectKey) > 0 {
+		i -= len(m.ObjectKey)
+		copy(dAtA[i:], m.ObjectKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ObjectKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AddAptPackageOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AddAptPackageOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AddAptPackageOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.AptPackage != nil {
+		size, err := m.AptPackage.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.PackageKey) > 0 {
+		i -= len(m.PackageKey)
+		copy(dAtA[i:], m.PackageKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PackageKey)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.RepositoryKey) > 0 {
+		i -= len(m.RepositoryKey)
+		copy(dAtA[i:], m.RepositoryKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.RepositoryKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AptPublishPackageOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AptPublishPackageOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AptPublishPackageOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.PackageKey) > 0 {
+		i -= len(m.PackageKey)
+		copy(dAtA[i:], m.PackageKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PackageKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AptSupersedePackageOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AptSupersedePackageOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AptSupersedePackageOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.PackageKey) > 0 {
+		i -= len(m.PackageKey)
+		copy(dAtA[i:], m.PackageKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.PackageKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AddAptBuildSpecOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AddAptBuildSpecOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AddAptBuildSpecOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.BuildSpec != nil {
+		size, err := m.BuildSpec.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.BuildSpecKey) > 0 {
+		i -= len(m.BuildSpecKey)
+		copy(dAtA[i:], m.BuildSpecKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.BuildSpecKey)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.RepositoryKey) > 0 {
+		i -= len(m.RepositoryKey)
+		copy(dAtA[i:], m.RepositoryKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.RepositoryKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *AptRepository) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1286,6 +2709,152 @@ func (m *AptPackage) SizeVT() (n int) {
 	}
 	if m.DebRef != nil {
 		l = m.DebRef.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AptBuildConfig) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Env) > 0 {
+		for k, v := range m.Env {
+			_ = k
+			_ = v
+			mapEntrySize := 1 + len(k) + protobuf_go_lite.SizeOfVarint(uint64(len(k))) + 1 + len(v) + protobuf_go_lite.SizeOfVarint(uint64(len(v)))
+			n += mapEntrySize + 1 + protobuf_go_lite.SizeOfVarint(uint64(mapEntrySize))
+		}
+	}
+	l = len(m.CrossCompilePrefix)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AptBuildSpec) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.SourcePackage)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.SourceRef != nil {
+		l = m.SourceRef.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.BuildConfig != nil {
+		l = m.BuildConfig.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.Architectures) > 0 {
+		for _, s := range m.Architectures {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.BuildDeps) > 0 {
+		for _, s := range m.BuildDeps {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CreateAptRepositoryOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ObjectKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Repository != nil {
+		l = m.Repository.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AddAptPackageOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.RepositoryKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.PackageKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.AptPackage != nil {
+		l = m.AptPackage.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AptPublishPackageOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.PackageKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AptSupersedePackageOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.PackageKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AddAptBuildSpecOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.RepositoryKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.BuildSpecKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.BuildSpec != nil {
+		l = m.BuildSpec.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -1507,6 +3076,246 @@ func (x *AptPackage) MarshalProtoText() string {
 }
 
 func (x *AptPackage) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AptBuildConfig_EnvEntry) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("EnvEntry {")
+	if x.Key != "" {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("key: ")
+		sb.WriteString(strconv.Quote(x.Key))
+	}
+	if x.Value != "" {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("value: ")
+		sb.WriteString(strconv.Quote(x.Value))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *AptBuildConfig_EnvEntry) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AptBuildConfig) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("AptBuildConfig {")
+	if len(x.Env) > 0 {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("env: {")
+		for _, k := range slices.Sorted(maps.Keys(x.Env)) {
+			v := x.Env[k]
+			sb.WriteString(" ")
+			sb.WriteString(strconv.Quote(k))
+			sb.WriteString(": ")
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString(" }")
+	}
+	if x.CrossCompilePrefix != "" {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("cross_compile_prefix: ")
+		sb.WriteString(strconv.Quote(x.CrossCompilePrefix))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *AptBuildConfig) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AptBuildSpec) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("AptBuildSpec {")
+	if x.SourcePackage != "" {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("source_package: ")
+		sb.WriteString(strconv.Quote(x.SourcePackage))
+	}
+	if x.SourceRef != nil {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("source_ref: ")
+		sb.WriteString(x.SourceRef.MarshalProtoText())
+	}
+	if x.BuildConfig != nil {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("build_config: ")
+		sb.WriteString(x.BuildConfig.MarshalProtoText())
+	}
+	if len(x.Architectures) > 0 {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("architectures: [")
+		for i, v := range x.Architectures {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if len(x.BuildDeps) > 0 {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("build_deps: [")
+		for i, v := range x.BuildDeps {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *AptBuildSpec) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CreateAptRepositoryOp) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CreateAptRepositoryOp {")
+	if x.ObjectKey != "" {
+		if sb.Len() > 23 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("object_key: ")
+		sb.WriteString(strconv.Quote(x.ObjectKey))
+	}
+	if x.Repository != nil {
+		if sb.Len() > 23 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("repository: ")
+		sb.WriteString(x.Repository.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CreateAptRepositoryOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AddAptPackageOp) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("AddAptPackageOp {")
+	if x.RepositoryKey != "" {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("repository_key: ")
+		sb.WriteString(strconv.Quote(x.RepositoryKey))
+	}
+	if x.PackageKey != "" {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("package_key: ")
+		sb.WriteString(strconv.Quote(x.PackageKey))
+	}
+	if x.AptPackage != nil {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("apt_package: ")
+		sb.WriteString(x.AptPackage.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *AddAptPackageOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AptPublishPackageOp) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("AptPublishPackageOp {")
+	if x.PackageKey != "" {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("package_key: ")
+		sb.WriteString(strconv.Quote(x.PackageKey))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *AptPublishPackageOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AptSupersedePackageOp) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("AptSupersedePackageOp {")
+	if x.PackageKey != "" {
+		if sb.Len() > 23 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("package_key: ")
+		sb.WriteString(strconv.Quote(x.PackageKey))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *AptSupersedePackageOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AddAptBuildSpecOp) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("AddAptBuildSpecOp {")
+	if x.RepositoryKey != "" {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("repository_key: ")
+		sb.WriteString(strconv.Quote(x.RepositoryKey))
+	}
+	if x.BuildSpecKey != "" {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("build_spec_key: ")
+		sb.WriteString(strconv.Quote(x.BuildSpecKey))
+	}
+	if x.BuildSpec != nil {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("build_spec: ")
+		sb.WriteString(x.BuildSpec.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *AddAptBuildSpecOp) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2018,6 +3827,778 @@ func (m *AptPackage) UnmarshalVT(dAtA []byte) error {
 				m.DebRef = &block.BlockRef{}
 			}
 			if err := m.DebRef.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AptBuildConfig) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AptBuildConfig: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AptBuildConfig: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Env", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Env == nil {
+				m.Env = make(map[string]string)
+			}
+			var mapkey string
+			var mapvalue string
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					stringLenmapkey, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var stringLenmapvalue uint64
+					stringLenmapvalue, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+					intStringLenmapvalue := int(stringLenmapvalue)
+					if intStringLenmapvalue < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					postStringIndexmapvalue := iNdEx + intStringLenmapvalue
+					if postStringIndexmapvalue < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if postStringIndexmapvalue > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = string(dAtA[iNdEx:postStringIndexmapvalue])
+					iNdEx = postStringIndexmapvalue
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return protobuf_go_lite.ErrInvalidLength
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.Env[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CrossCompilePrefix", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CrossCompilePrefix = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AptBuildSpec) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AptBuildSpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AptBuildSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SourcePackage", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SourcePackage = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SourceRef", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.SourceRef == nil {
+				m.SourceRef = &bucket.ObjectRef{}
+			}
+			if err := m.SourceRef.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BuildConfig", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.BuildConfig == nil {
+				m.BuildConfig = &AptBuildConfig{}
+			}
+			if err := m.BuildConfig.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Architectures", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Architectures = append(m.Architectures, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BuildDeps", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BuildDeps = append(m.BuildDeps, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CreateAptRepositoryOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CreateAptRepositoryOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CreateAptRepositoryOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ObjectKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Repository", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Repository == nil {
+				m.Repository = &AptRepository{}
+			}
+			if err := m.Repository.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AddAptPackageOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AddAptPackageOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AddAptPackageOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RepositoryKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RepositoryKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackageKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PackageKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AptPackage", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.AptPackage == nil {
+				m.AptPackage = &AptPackage{}
+			}
+			if err := m.AptPackage.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AptPublishPackageOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AptPublishPackageOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AptPublishPackageOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackageKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PackageKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AptSupersedePackageOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AptSupersedePackageOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AptSupersedePackageOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackageKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PackageKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AddAptBuildSpecOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AddAptBuildSpecOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AddAptBuildSpecOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RepositoryKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RepositoryKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BuildSpecKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BuildSpecKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BuildSpec", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.BuildSpec == nil {
+				m.BuildSpec = &AptBuildSpec{}
+			}
+			if err := m.BuildSpec.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

@@ -318,3 +318,257 @@ export const AptPackage: MessageType<AptPackage> =
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
+
+/**
+ * AptBuildConfig stores build options for an AptBuildSpec.
+ *
+ * @generated from message s4wave.apt.AptBuildConfig
+ */
+export interface AptBuildConfig {
+  /**
+   * Env contains environment variables for the package build.
+   *
+   * @generated from field: map<string, string> env = 1;
+   */
+  env?: { [key: string]: string }
+  /**
+   * CrossCompilePrefix is the toolchain prefix, e.g. "i686-linux-gnu-".
+   *
+   * @generated from field: string cross_compile_prefix = 2;
+   */
+  crossCompilePrefix?: string
+}
+
+export const AptBuildConfig: MessageType<AptBuildConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.apt.AptBuildConfig',
+    fields: [
+      {
+        no: 1,
+        name: 'env',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'scalar', T: ScalarType.STRING },
+      },
+      {
+        no: 2,
+        name: 'cross_compile_prefix',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * AptBuildSpec stores the build recipe for an apt source package.
+ *
+ * @generated from message s4wave.apt.AptBuildSpec
+ */
+export interface AptBuildSpec {
+  /**
+   * SourcePackage is the Debian source package name, e.g. "busybox".
+   *
+   * @generated from field: string source_package = 1;
+   */
+  sourcePackage?: string
+  /**
+   * SourceRef points at the source tree used for builds.
+   *
+   * @generated from field: bucket.ObjectRef source_ref = 2;
+   */
+  sourceRef?: ObjectRef
+  /**
+   * BuildConfig contains build-time configuration for the Forge target.
+   *
+   * @generated from field: s4wave.apt.AptBuildConfig build_config = 3;
+   */
+  buildConfig?: AptBuildConfig
+  /**
+   * Architectures are the Debian architectures to build from this spec.
+   *
+   * @generated from field: repeated string architectures = 4;
+   */
+  architectures?: string[]
+  /**
+   * BuildDeps are source packages that must build before this spec.
+   *
+   * @generated from field: repeated string build_deps = 5;
+   */
+  buildDeps?: string[]
+}
+
+export const AptBuildSpec: MessageType<AptBuildSpec> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.apt.AptBuildSpec',
+    fields: [
+      { no: 1, name: 'source_package', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'source_ref', kind: 'message', T: () => ObjectRef },
+      { no: 3, name: 'build_config', kind: 'message', T: () => AptBuildConfig },
+      {
+        no: 4,
+        name: 'architectures',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 5,
+        name: 'build_deps',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CreateAptRepositoryOp creates a new AptRepository world object.
+ *
+ * @generated from message s4wave.apt.CreateAptRepositoryOp
+ */
+export interface CreateAptRepositoryOp {
+  /**
+   * ObjectKey is the key to create the repository at.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * Repository carries the metadata for the new AptRepository.
+   *
+   * @generated from field: s4wave.apt.AptRepository repository = 2;
+   */
+  repository?: AptRepository
+}
+
+export const CreateAptRepositoryOp: MessageType<CreateAptRepositoryOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.apt.CreateAptRepositoryOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'repository', kind: 'message', T: () => AptRepository },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * AddAptPackageOp creates an AptPackage and links it to an AptRepository.
+ *
+ * @generated from message s4wave.apt.AddAptPackageOp
+ */
+export interface AddAptPackageOp {
+  /**
+   * RepositoryKey is the AptRepository object key.
+   *
+   * @generated from field: string repository_key = 1;
+   */
+  repositoryKey?: string
+  /**
+   * PackageKey is the key to create the AptPackage at.
+   *
+   * @generated from field: string package_key = 2;
+   */
+  packageKey?: string
+  /**
+   * AptPackage carries the metadata for the new package.
+   *
+   * @generated from field: s4wave.apt.AptPackage apt_package = 3;
+   */
+  aptPackage?: AptPackage
+}
+
+export const AddAptPackageOp: MessageType<AddAptPackageOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.apt.AddAptPackageOp',
+    fields: [
+      { no: 1, name: 'repository_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'package_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'apt_package', kind: 'message', T: () => AptPackage },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * AptPublishPackageOp publishes a built AptPackage into the repository index.
+ *
+ * @generated from message s4wave.apt.AptPublishPackageOp
+ */
+export interface AptPublishPackageOp {
+  /**
+   * PackageKey is the AptPackage object key.
+   *
+   * @generated from field: string package_key = 1;
+   */
+  packageKey?: string
+}
+
+export const AptPublishPackageOp: MessageType<AptPublishPackageOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.apt.AptPublishPackageOp',
+    fields: [
+      { no: 1, name: 'package_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * AptSupersedePackageOp marks a published AptPackage as superseded.
+ *
+ * @generated from message s4wave.apt.AptSupersedePackageOp
+ */
+export interface AptSupersedePackageOp {
+  /**
+   * PackageKey is the AptPackage object key.
+   *
+   * @generated from field: string package_key = 1;
+   */
+  packageKey?: string
+}
+
+export const AptSupersedePackageOp: MessageType<AptSupersedePackageOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.apt.AptSupersedePackageOp',
+    fields: [
+      { no: 1, name: 'package_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * AddAptBuildSpecOp creates an AptBuildSpec and links it to an AptRepository.
+ *
+ * @generated from message s4wave.apt.AddAptBuildSpecOp
+ */
+export interface AddAptBuildSpecOp {
+  /**
+   * RepositoryKey is the AptRepository object key.
+   *
+   * @generated from field: string repository_key = 1;
+   */
+  repositoryKey?: string
+  /**
+   * BuildSpecKey is the key to create the AptBuildSpec at.
+   *
+   * @generated from field: string build_spec_key = 2;
+   */
+  buildSpecKey?: string
+  /**
+   * BuildSpec carries the build recipe for the new spec.
+   *
+   * @generated from field: s4wave.apt.AptBuildSpec build_spec = 3;
+   */
+  buildSpec?: AptBuildSpec
+}
+
+export const AddAptBuildSpecOp: MessageType<AddAptBuildSpecOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.apt.AddAptBuildSpecOp',
+    fields: [
+      { no: 1, name: 'repository_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'build_spec_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'build_spec', kind: 'message', T: () => AptBuildSpec },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

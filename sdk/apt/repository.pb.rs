@@ -69,6 +69,85 @@ pub struct AptPackage {
     #[prost(message, optional, tag="11")]
     pub deb_ref: ::core::option::Option<super::super::block::BlockRef>,
 }
+/// AptBuildConfig stores build options for an AptBuildSpec.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AptBuildConfig {
+    /// Env contains environment variables for the package build.
+    #[prost(map="string, string", tag="1")]
+    pub env: ::std::collections::HashMap<::prost::alloc::string::String, ::prost::alloc::string::String>,
+    /// CrossCompilePrefix is the toolchain prefix, e.g. "i686-linux-gnu-".
+    #[prost(string, tag="2")]
+    pub cross_compile_prefix: ::prost::alloc::string::String,
+}
+/// AptBuildSpec stores the build recipe for an apt source package.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AptBuildSpec {
+    /// SourcePackage is the Debian source package name, e.g. "busybox".
+    #[prost(string, tag="1")]
+    pub source_package: ::prost::alloc::string::String,
+    /// SourceRef points at the source tree used for builds.
+    #[prost(message, optional, tag="2")]
+    pub source_ref: ::core::option::Option<super::super::bucket::ObjectRef>,
+    /// BuildConfig contains build-time configuration for the Forge target.
+    #[prost(message, optional, tag="3")]
+    pub build_config: ::core::option::Option<AptBuildConfig>,
+    /// Architectures are the Debian architectures to build from this spec.
+    #[prost(string, repeated, tag="4")]
+    pub architectures: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// BuildDeps are source packages that must build before this spec.
+    #[prost(string, repeated, tag="5")]
+    pub build_deps: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+/// CreateAptRepositoryOp creates a new AptRepository world object.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateAptRepositoryOp {
+    /// ObjectKey is the key to create the repository at.
+    #[prost(string, tag="1")]
+    pub object_key: ::prost::alloc::string::String,
+    /// Repository carries the metadata for the new AptRepository.
+    #[prost(message, optional, tag="2")]
+    pub repository: ::core::option::Option<AptRepository>,
+}
+/// AddAptPackageOp creates an AptPackage and links it to an AptRepository.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AddAptPackageOp {
+    /// RepositoryKey is the AptRepository object key.
+    #[prost(string, tag="1")]
+    pub repository_key: ::prost::alloc::string::String,
+    /// PackageKey is the key to create the AptPackage at.
+    #[prost(string, tag="2")]
+    pub package_key: ::prost::alloc::string::String,
+    /// AptPackage carries the metadata for the new package.
+    #[prost(message, optional, tag="3")]
+    pub apt_package: ::core::option::Option<AptPackage>,
+}
+/// AptPublishPackageOp publishes a built AptPackage into the repository index.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AptPublishPackageOp {
+    /// PackageKey is the AptPackage object key.
+    #[prost(string, tag="1")]
+    pub package_key: ::prost::alloc::string::String,
+}
+/// AptSupersedePackageOp marks a published AptPackage as superseded.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AptSupersedePackageOp {
+    /// PackageKey is the AptPackage object key.
+    #[prost(string, tag="1")]
+    pub package_key: ::prost::alloc::string::String,
+}
+/// AddAptBuildSpecOp creates an AptBuildSpec and links it to an AptRepository.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AddAptBuildSpecOp {
+    /// RepositoryKey is the AptRepository object key.
+    #[prost(string, tag="1")]
+    pub repository_key: ::prost::alloc::string::String,
+    /// BuildSpecKey is the key to create the AptBuildSpec at.
+    #[prost(string, tag="2")]
+    pub build_spec_key: ::prost::alloc::string::String,
+    /// BuildSpec carries the build recipe for the new spec.
+    #[prost(message, optional, tag="3")]
+    pub build_spec: ::core::option::Option<AptBuildSpec>,
+}
 /// AptRepositoryState is the index lifecycle state of an AptRepository.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]

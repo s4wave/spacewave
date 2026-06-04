@@ -1,6 +1,7 @@
 package s4wave_apt
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -65,6 +66,38 @@ func TestAptPackageTypeIDPredicatesAndBlock(t *testing.T) {
 	}
 }
 
+func TestAptPackageStateTransitions(t *testing.T) {
+	ref, err := block.BuildBlockRef([]byte("deb-payload"), nil)
+	if err != nil {
+		t.Fatalf("BuildBlockRef: %v", err)
+	}
+	pkg := &AptPackage{
+		State:        AptPackageState_AptPackageState_IMPORTING,
+		Name:         "busybox",
+		Version:      "1:1.36.1-7",
+		Architecture: "i386",
+	}
+	pkg.DebRef = ref
+	if err := pkg.TransitionState(AptPackageState_AptPackageState_BUILT); err != nil {
+		t.Fatalf("TransitionState(built): %v", err)
+	}
+	if got := pkg.GetState(); got != AptPackageState_AptPackageState_BUILT {
+		t.Fatalf("package state = %s, want BUILT", got.String())
+	}
+	if err := pkg.TransitionState(AptPackageState_AptPackageState_SUPERSEDED); !errors.Is(err, ErrInvalidAptPackageStateTransition) {
+		t.Fatalf("TransitionState(superseded) err = %v, want invalid transition", err)
+	}
+	if err := pkg.TransitionState(AptPackageState_AptPackageState_PUBLISHED); err != nil {
+		t.Fatalf("TransitionState(published): %v", err)
+	}
+	if err := pkg.TransitionState(AptPackageState_AptPackageState_SUPERSEDED); err != nil {
+		t.Fatalf("TransitionState(superseded): %v", err)
+	}
+	if got := pkg.GetState(); got != AptPackageState_AptPackageState_SUPERSEDED {
+		t.Fatalf("package state = %s, want SUPERSEDED", got.String())
+	}
+}
+
 func TestAptPackageValidateRejectsMissingCoreFields(t *testing.T) {
 	ref, err := block.BuildBlockRef([]byte("deb-payload"), nil)
 	if err != nil {
@@ -86,6 +119,7 @@ func TestAptPackageValidateRejectsMissingCoreFields(t *testing.T) {
 		Name:         "busybox",
 		Version:      "1:1.36.1-7",
 		Architecture: "i386",
+		State:        AptPackageState_AptPackageState_BUILT,
 	}).Validate(); err == nil {
 		t.Fatal("expected missing deb_ref error")
 	}
@@ -106,5 +140,25 @@ func TestAptPackageValidateRejectsMissingCoreFields(t *testing.T) {
 		Checksums:    []*AptPackageChecksum{{Algorithm: "sha256"}},
 	}).Validate(); err == nil {
 		t.Fatal("expected missing checksum hex error")
+	}
+	if err := (&AptPackage{
+		State:        AptPackageState(99),
+		Name:         "busybox",
+		Version:      "1:1.36.1-7",
+		Architecture: "i386",
+	}).Validate(); !errors.Is(err, ErrUnknownAptPackageState) {
+		t.Fatalf("Validate unknown state err = %v, want unknown state", err)
+	}
+}
+
+func TestAptPackageValidateAllowsImportingWithoutDebRef(t *testing.T) {
+	pkg := &AptPackage{
+		State:        AptPackageState_AptPackageState_IMPORTING,
+		Name:         "busybox",
+		Version:      "1:1.36.1-7",
+		Architecture: "i386",
+	}
+	if err := pkg.Validate(); err != nil {
+		t.Fatalf("Validate importing package without deb_ref: %v", err)
 	}
 }
