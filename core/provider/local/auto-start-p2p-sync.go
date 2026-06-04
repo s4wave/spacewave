@@ -2,6 +2,7 @@ package provider_local
 
 import (
 	"context"
+	stderrors "errors"
 
 	"github.com/pkg/errors"
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
@@ -27,6 +28,9 @@ func (a *ProviderAccount) AutoStartP2PSyncIfPaired(
 
 	devices, err := a.readPairedDevices(ctx)
 	if err != nil {
+		if isAutoStartReadCanceled(err) {
+			return nil
+		}
 		a.le.WithError(err).Warn("failed to read paired devices for auto-start")
 		return nil
 	}
@@ -90,4 +94,8 @@ func (a *ProviderAccount) readPairedDevices(
 		}
 	}
 	return settings.GetPairedDevices(), nil
+}
+
+func isAutoStartReadCanceled(err error) bool {
+	return stderrors.Is(err, context.Canceled)
 }
