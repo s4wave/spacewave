@@ -52,11 +52,12 @@ describe('PluginWorker startup shutdown', () => {
     const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.stubGlobal('navigator', {})
 
-    new PluginWorker(
+    const worker = new PluginWorker(
       global as unknown as DedicatedWorkerGlobalScope,
       startPlugin,
       null,
     )
+    const postMessage = vi.spyOn(worker.webDocumentTracker, 'postMessage')
     global.dispatchMessage({
       initData: new TextEncoder().encode(btoa('{}')),
     })
@@ -65,6 +66,12 @@ describe('PluginWorker startup shutdown', () => {
     await Promise.resolve()
 
     expect(startPlugin).not.toHaveBeenCalled()
+    expect(postMessage).toHaveBeenCalledWith({
+      from: 'plugin/spacewave-core',
+      startupMark: expect.objectContaining({
+        label: 'worker.init-message-received',
+      }),
+    })
     expect(global.close).toHaveBeenCalledTimes(1)
     expect(consoleWarn).toHaveBeenCalledWith(
       'PluginWorker: plugin/spacewave-core: startup canceled because WebDocument closed',

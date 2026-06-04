@@ -81,12 +81,43 @@ import {
   consumeQuickstartSpaceWorldHandoff,
   releaseQuickstartSharedObjectHandoff,
 } from '@s4wave/app/quickstart/session-handoff.js'
+import { markQuickstartStartupBoundary } from '@s4wave/app/quickstart/startup-boundary.js'
+
+const quickstartSpaceStartupLabels: Record<string, string> = {
+  'quickstart route using space handoff': 'quickstart.space-handoff-used',
+  'quickstart space resource created': 'quickstart.space-resource-created',
+  'quickstart route using space world handoff':
+    'quickstart.space-world-handoff-used',
+  'quickstart access world start': 'quickstart.space-world-access-start',
+  'quickstart access world finish': 'quickstart.space-world-access-ready',
+  'quickstart route using space contents handoff':
+    'quickstart.space-contents-handoff-used',
+  'quickstart mount contents start': 'quickstart.space-contents-mount-start',
+  'quickstart mount contents finish': 'quickstart.space-contents-mount-ready',
+}
 
 export function buildObjectRoutePath(
   parentPaths: readonly string[],
   objectKey: string,
 ): string {
   return joinPath([...parentPaths, SUBPATH_DELIMITER, objectKey], true)
+}
+
+function logQuickstartSpaceDiagnostic(
+  message: string,
+  fields: Record<string, unknown>,
+): void {
+  const startupLabel = quickstartSpaceStartupLabels[message]
+  if (startupLabel) {
+    markQuickstartStartupBoundary(startupLabel, fields)
+  }
+  if (
+    !(globalThis as { __s4waveLogQuickstartTiming?: boolean })
+      .__s4waveLogQuickstartTiming
+  ) {
+    return
+  }
+  console.log(message + ': ' + JSON.stringify(fields))
 }
 
 // SpaceContainer renders a space shared object body.
@@ -128,11 +159,20 @@ export function SpaceContainer() {
         sharedObjectId,
       )
       if (handoff) {
+        logQuickstartSpaceDiagnostic('quickstart route using space handoff', {
+          sharedObjectId,
+          spaceResourceId: handoff.id,
+          released: handoff.released,
+        })
         return Promise.resolve(cleanup(handoff))
       }
       const space = new Space(
         parentSharedObjectBody.resourceRef.createRef(parentSharedObjectBody.id),
       )
+      logQuickstartSpaceDiagnostic('quickstart space resource created', {
+        sharedObjectId,
+        bodyResourceId: parentSharedObjectBody.id,
+      })
       return Promise.resolve(cleanup(space))
     },
     [sessionIndex, sharedObjectId],
@@ -150,9 +190,23 @@ export function SpaceContainer() {
         sharedObjectId,
       )
       if (handoff) {
+        logQuickstartSpaceDiagnostic(
+          'quickstart route using space world handoff',
+          {
+            sharedObjectId,
+          },
+        )
         return cleanup(handoff)
       }
+      logQuickstartSpaceDiagnostic('quickstart access world start', {
+        sharedObjectId,
+        spaceResourceId: space.id,
+      })
       const state = await space.accessWorldState(true, signal)
+      logQuickstartSpaceDiagnostic('quickstart access world finish', {
+        sharedObjectId,
+        spaceResourceId: space.id,
+      })
       return cleanup(state)
     },
     [sessionIndex, sharedObjectId],
@@ -185,9 +239,23 @@ export function SpaceContainer() {
         sharedObjectId,
       )
       if (handoff) {
+        logQuickstartSpaceDiagnostic(
+          'quickstart route using space contents handoff',
+          {
+            sharedObjectId,
+          },
+        )
         return cleanup(handoff)
       }
+      logQuickstartSpaceDiagnostic('quickstart mount contents start', {
+        sharedObjectId,
+        spaceResourceId: space.id,
+      })
       const contents = await space.mountSpaceContents(signal)
+      logQuickstartSpaceDiagnostic('quickstart mount contents finish', {
+        sharedObjectId,
+        spaceResourceId: space.id,
+      })
       return cleanup(contents)
     },
     [sessionIndex, sharedObjectId],

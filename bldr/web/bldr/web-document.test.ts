@@ -741,6 +741,11 @@ describe('WebDocument plugin generation state', () => {
         initData: new Uint8Array([1]),
       }),
     ).resolves.toEqual({ created: false, shared: false })
+
+    expect(globalThis.__swStartupMarks?.map((mark) => mark.label)).toEqual([
+      'worker.create-request-received',
+      'singleton-lock.wait-start',
+    ])
   })
 
   it('holds the plugin singleton lock until the document closes', async () => {
@@ -847,10 +852,7 @@ describe('WebDocument plugin generation state', () => {
 
     expect(workers).toHaveLength(2)
     expect(workers[0].terminate).toHaveBeenCalledOnce()
-    expect(setTimeoutSpy).not.toHaveBeenCalledWith(
-      expect.any(Function),
-      1000,
-    )
+    expect(setTimeoutSpy).not.toHaveBeenCalledWith(expect.any(Function), 1000)
   })
 
   it('keeps the dedicated worker shutdown grace after startup is ready', async () => {

@@ -73,6 +73,7 @@ import {
 } from '@s4wave/app/device/add-device-wizard.js'
 
 import { type QuickstartSpaceCreateId } from './options.js'
+import { markQuickstartStartupBoundary } from './startup-boundary.js'
 
 const NOTES_PLUGIN_ID = 'spacewave-notes'
 const V86_PLUGIN_ID = 'spacewave-v86'
@@ -183,6 +184,9 @@ function startQuickstartTiming(
     startedMs: nowMs(),
     phases: [],
   }
+  markQuickstartStartupBoundary('quickstart.started', {
+    quickstartId,
+  })
   publishQuickstartTiming(timing)
   return timing
 }
@@ -208,7 +212,18 @@ function finishQuickstartTiming(
   } else {
     timing.state = 'content-ready'
     timing.contentReadyMs = finishedMs
+    markQuickstartStartupBoundary('quickstart.content-ready', {
+      quickstartId: timing.quickstartId,
+      state: timing.state,
+      elapsedMs: timing.elapsedMs,
+    })
   }
+  markQuickstartStartupBoundary('quickstart.finished', {
+    quickstartId: timing.quickstartId,
+    state: timing.state,
+    elapsedMs: timing.elapsedMs,
+    error: timing.error ?? null,
+  })
   publishQuickstartTiming(timing)
   if (globalThis.__s4waveLogQuickstartTiming) {
     console.log('quickstart timing: ' + JSON.stringify(timing))
@@ -219,6 +234,9 @@ function markQuickstartProgressReady(timing: QuickstartSetupTiming): void {
   if (typeof timing.progressReadyMs === 'number') return
   timing.progressReadyMs = nowMs()
   timing.state = 'progress-ready'
+  markQuickstartStartupBoundary('quickstart.progress-ready', {
+    quickstartId: timing.quickstartId,
+  })
   publishQuickstartTiming(timing)
   if (globalThis.__s4waveLogQuickstartTiming) {
     console.log('quickstart progress ready: ' + JSON.stringify(timing))

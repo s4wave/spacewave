@@ -51,3 +51,5 @@ export {
 } from '../view/view.pb.js'
 export { createAbortController } from './abort.js'
 export { newULID, parseULID } from './ulid.js'
+export { markStartupBoundary } from './startup-marks.js'
+export type { StartupMarkDetail } from './startup-marks.js'

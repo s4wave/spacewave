@@ -179,6 +179,19 @@ export class PluginWorker {
     await this.shutdown()
   }
 
+  public notifyStartupMark(label: string, detail?: Record<string, unknown>) {
+    const msg: ClientToWebDocument = {
+      from: this.workerId,
+      startupMark: {
+        label,
+        startTimeMs:
+          typeof performance !== 'undefined' ? performance.now() : undefined,
+        detail,
+      },
+    }
+    this.webDocumentTracker.postMessage(msg)
+  }
+
   // handleStartPlugin handles the message to start the plugin.
   private async handleStartPlugin(
     startInfoBin: Uint8Array,
@@ -213,8 +226,11 @@ export class PluginWorker {
     const startInfoJsonB64 = new TextDecoder().decode(startInfoBin)
     const startInfoJson = atob(startInfoJsonB64)
     const startInfo = PluginStartInfo.fromJsonString(startInfoJson)
+    this.notifyStartupMark('worker.start-info-decoded')
 
+    this.notifyStartupMark('worker.runtime-connect-wait-start')
     await this.webDocumentTracker.waitConn()
+    this.notifyStartupMark('worker.runtime-connect-wait-ready')
 
     // Request a WebRTC bridge port from the WebDocument before starting the
     // plugin. The bridge port must be available before patchWorkerBrowserGlobals()
@@ -225,12 +241,17 @@ export class PluginWorker {
       installWebRTCShim()
       console.log(`PluginWorker: ${this.workerId}: WebRTC bridge enabled`)
     }
+    this.notifyStartupMark('worker.webrtc-bridge-ready', {
+      enabled: !!bridgePort,
+    })
 
+    this.notifyStartupMark('plugin.entrypoint-start')
     await this.startPlugin({
       startInfo,
       workerCommsDetect,
       runtimeWasmEnv,
     })
+    this.notifyStartupMark('plugin.entrypoint-ready')
     this.pluginStarted = true
   }
 
@@ -288,24 +309,24 @@ export class PluginWorker {
     }
 
     if (data.initData) {
+      this.notifyStartupMark('worker.init-message-received')
       this.handleStartPlugin(
         data.initData,
         data.workerCommsDetect,
         data.runtimeWasmEnv,
       ).catch((err) => {
-          if (isExpectedPluginWorkerShutdownError(err)) {
-            console.warn(
-              `PluginWorker: ${this.workerId}: startup canceled because WebDocument closed`,
-            )
-            return
-          }
+        if (isExpectedPluginWorkerShutdownError(err)) {
           console.warn(
-            `PluginWorker: ${this.workerId}: startup failed, exiting!`,
-            err,
+            `PluginWorker: ${this.workerId}: startup canceled because WebDocument closed`,
           )
-          void this.reportRuntimeFailure(err)
-        },
-      )
+          return
+        }
+        console.warn(
+          `PluginWorker: ${this.workerId}: startup failed, exiting!`,
+          err,
+        )
+        void this.reportRuntimeFailure(err)
+      })
     }
   }
 }
