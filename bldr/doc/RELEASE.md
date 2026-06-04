@@ -26,6 +26,23 @@ brew install gzip
 apt install gzip
 ```
 
+## precompressed browser assets
+
+Release browser builds may point shell asset URLs at explicit `.gz` objects.
+Those objects are still stored as gzip bytes, while the public response describes
+the original asset type plus gzip encoding.
+
+| URL suffix | Content-Type | Content-Encoding | Vary |
+| --- | --- | --- | --- |
+| `.wasm.gz` | `application/wasm` | `gzip` | `Accept-Encoding` |
+| `.mjs.gz`, `.js.gz` | `application/javascript` | `gzip` | `Accept-Encoding` |
+| `.css.gz` | `text/css; charset=utf-8` | `gzip` | `Accept-Encoding` |
+| other immutable `.gz` assets | `application/octet-stream` | `gzip` | `Accept-Encoding` |
+
+Upload paths should write this metadata when possible. Serving paths must infer
+the same headers for known immutable `.gz` release assets when object metadata
+is missing or too generic.
+
 # Unused
 
 These dependencies may be used in future.
