@@ -943,10 +943,7 @@ func buildCliEntrypoints(ctx context.Context, repoDir string, platforms []string
 			srcBinName += ".exe"
 			dstBinName += ".exe"
 		}
-		srcBin := filepath.Join(
-			repoDir, ".bldr", "build", "desktop", goos, goarch,
-			"spacewave", "dist", srcBinName,
-		)
+		srcBin := cliEntrypointBinaryPath(repoDir, goos, goarch, srcBinName)
 		dstDir := filepath.Join(repoDir, ".tmp", "dist-cli", platform)
 		dstBin := filepath.Join(dstDir, dstBinName)
 		if err := os.MkdirAll(dstDir, 0o755); err != nil {
@@ -960,6 +957,10 @@ func buildCliEntrypoints(ctx context.Context, repoDir string, platforms []string
 		}
 	}
 	return nil
+}
+
+func cliEntrypointBinaryPath(repoDir, goos, goarch, binName string) string {
+	return filepath.Join(repoDir, ".bldr", "build", "desktop", goos, goarch, "spacewave-cli", "dist", binName)
 }
 
 // signMacOSCliEntrypoints applies the same Developer ID signing identity used

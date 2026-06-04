@@ -173,10 +173,68 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
 
+  remote_handoff:
+    needs: prep
+    runs-on: ubuntu-latest
+    environment: ${{ needs.prep.outputs.environment_name }}
+    env:
+      SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      - name: Cache trusted Go dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: trusted-go-${{ github.job }}-${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Node.JS
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 25.x
+
+      - name: Install Bun dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun install --frozen-lockfile --ignore-scripts
+          go mod vendor
+
+      - name: Build remote handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          go run ./cmd/entrypoint-handoff \
+            --version "${{ needs.prep.outputs.version }}" \
+            --remote-only \
+            --react-dev=${{ inputs.react_dev }} \
+            --out-dir .tmp/entrypoint-remote-handoff
+
+      - name: Upload remote handoff
+        uses: actions/upload-artifact@v7
+        with:
+          name: entrypoint-remote-handoff-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-remote-handoff
+          include-hidden-files: true
+          if-no-files-found: error
+
   linux:
     needs:
       - prep
       - manifest_packs
+      - remote_handoff
     runs-on: ubuntu-latest
     environment: ${{ needs.prep.outputs.environment_name }}
     strategy:
@@ -257,6 +315,13 @@ jobs:
           pattern: entrypoint-manifest-pack-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-*
           path: .tmp/entrypoint-manifest-packs
 
+      - name: Download remote handoff
+        if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: entrypoint-remote-handoff-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-remote-handoff
+
       - name: Build Linux ${{ matrix.arch }} handoff slice
         if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
         shell: bash
@@ -265,7 +330,9 @@ jobs:
           go run ./cmd/entrypoint-handoff \
             --version "${{ needs.prep.outputs.version }}" \
             --platforms "linux-${{ matrix.arch }}" \
+            --react-dev=${{ inputs.react_dev }} \
             --skip-notarize \
+            --remote-handoff-dir .tmp/entrypoint-remote-handoff \
             --manifest-pack-import-dirs .tmp/entrypoint-manifest-packs \
             --out-dir .tmp/entrypoint-handoff/linux-${{ matrix.arch }}
 
@@ -327,6 +394,7 @@ jobs:
     needs:
       - prep
       - manifest_packs
+      - remote_handoff
     runs-on: ubuntu-latest
     environment: ${{ needs.prep.outputs.environment_name }}
     env:
@@ -411,6 +479,13 @@ jobs:
           pattern: entrypoint-manifest-pack-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-*
           path: .tmp/entrypoint-manifest-packs
 
+      - name: Download remote handoff
+        if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: entrypoint-remote-handoff-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-remote-handoff
+
       - name: Build browser handoff slice
         if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
         timeout-minutes: 60
@@ -426,6 +501,7 @@ jobs:
             --version "${{ needs.prep.outputs.version }}" \
             --browser-only \
             --react-dev=${{ inputs.react_dev }} \
+            --remote-handoff-dir .tmp/entrypoint-remote-handoff \
             --manifest-pack-import-dirs .tmp/entrypoint-manifest-packs \
             --out-dir .tmp/entrypoint-handoff/browser
 
@@ -459,6 +535,7 @@ jobs:
     needs:
       - prep
       - manifest_packs
+      - remote_handoff
     runs-on: windows-2025
     environment: ${{ needs.prep.outputs.environment_name }}
     permissions:
@@ -626,6 +703,13 @@ jobs:
           pattern: entrypoint-manifest-pack-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-*
           path: .tmp/entrypoint-manifest-packs
 
+      - name: Download remote handoff
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: entrypoint-remote-handoff-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-remote-handoff
+
       - name: Build signed Windows ${{ matrix.arch }} handoff slice
         if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
         shell: bash
@@ -639,6 +723,8 @@ jobs:
           go run ./cmd/entrypoint-handoff \
             --version "${{ needs.prep.outputs.version }}" \
             --platforms "windows-${{ matrix.arch }}" \
+            --react-dev=${{ inputs.react_dev }} \
+            --remote-handoff-dir .tmp/entrypoint-remote-handoff \
             --manifest-pack-import-dirs .tmp/entrypoint-manifest-packs \
             --out-dir .tmp/entrypoint-handoff/windows-${{ matrix.arch }}
 
@@ -763,6 +849,7 @@ jobs:
     needs:
       - prep
       - manifest_packs
+      - remote_handoff
     runs-on: macos-26
     environment: ${{ needs.prep.outputs.environment_name }}
     permissions:
@@ -886,6 +973,13 @@ jobs:
           pattern: entrypoint-manifest-pack-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-*
           path: .tmp/entrypoint-manifest-packs
 
+      - name: Download remote handoff
+        if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: entrypoint-remote-handoff-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}
+          path: .tmp/entrypoint-remote-handoff
+
       - name: Build macOS ${{ matrix.arch }} handoff slice
         if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
         shell: bash
@@ -900,7 +994,9 @@ jobs:
           go run ./cmd/entrypoint-handoff \
             --version "${{ needs.prep.outputs.version }}" \
             --platforms "darwin-${{ matrix.arch }}" \
+            --react-dev=${{ inputs.react_dev }} \
             --skip-notarize=${{ !inputs.sign_artifacts || inputs.skip_notarize }} \
+            --remote-handoff-dir .tmp/entrypoint-remote-handoff \
             --manifest-pack-import-dirs .tmp/entrypoint-manifest-packs \
             --out-dir .tmp/entrypoint-handoff/macos-${{ matrix.arch }}
 

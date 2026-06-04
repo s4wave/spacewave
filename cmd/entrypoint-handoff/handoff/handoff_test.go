@@ -166,6 +166,14 @@ func TestStageCLIHandoffArtifactsUsesNativeCLIRoot(t *testing.T) {
 	}
 }
 
+func TestCLIBinaryPathUsesCLIManifestBuildRoot(t *testing.T) {
+	got := cliEntrypointBinaryPath("/repo", "linux", "amd64", "spacewave")
+	want := filepath.Join("/repo", ".bldr", "build", "desktop", "linux", "amd64", "spacewave-cli", "dist", "spacewave")
+	if got != want {
+		t.Fatalf("cli binary path = %q, want %q", got, want)
+	}
+}
+
 func TestStageStaticHTMLCopiesXML(t *testing.T) {
 	prerenderDir := t.TempDir()
 	stagingDir := t.TempDir()
