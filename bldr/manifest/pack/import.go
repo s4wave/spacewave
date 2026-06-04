@@ -119,6 +119,9 @@ func applyManifestBundle(
 	}
 	for _, tuple := range meta.GetManifests() {
 		for _, objKey := range tuple.GetLinkObjectKeys() {
+			if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
+				return errors.Wrap(err, "create manifest link store")
+			}
 			quad := bldr_manifest_world.NewManifestQuad(objKey, tuple.GetObjectKey(), "")
 			if err := ws.SetGraphQuad(ctx, quad); err != nil {
 				return errors.Wrap(err, "link manifest bundle")

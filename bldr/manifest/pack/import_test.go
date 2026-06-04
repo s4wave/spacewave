@@ -108,6 +108,47 @@ func TestImportManifestPackIncludesManifestFileTrees(t *testing.T) {
 	}
 }
 
+func TestStoreManifestBundleCreatesMissingLinkManifestStore(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	sender := peer.ID("test")
+	source := newTestWorld(t, ctx, le)
+	tuple := testManifestPackTuple()
+	manifestRef := storeTestManifest(t, ctx, source, tuple, false, false)
+
+	if _, _, err := StoreManifestBundle(ctx, source, sender, tuple, manifestRef, timestamppb.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if err := bldr_manifest_world.CheckManifestStoreType(ctx, source, tuple.GetLinkObjectKeys()[0]); err != nil {
+		t.Fatal(err)
+	}
+	got, errs, err := bldr_manifest_world.CollectManifestsForManifestID(
+		ctx,
+		source,
+		tuple.GetManifestId(),
+		[]string{tuple.GetPlatformId()},
+		tuple.GetLinkObjectKeys()[0],
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(errs) != 0 {
+		t.Fatalf("manifest errors = %v", errs)
+	}
+	if len(got) != 1 {
+		t.Fatalf("manifest count = %d", len(got))
+	}
+}
+
+func TestImportManifestPackCreatesMissingLinkManifestStore(t *testing.T) {
+	ctx := context.Background()
+	dest, _, tuple := importTestManifestPackWithOptions(t, ctx, false, false)
+
+	if err := bldr_manifest_world.CheckManifestStoreType(ctx, dest, tuple.GetLinkObjectKeys()[0]); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestVerifyImportedManifestsRejectsWrongPlatform(t *testing.T) {
 	ctx := context.Background()
 	dest, meta, _ := importTestManifestPack(t, ctx)
@@ -189,19 +230,7 @@ func importTestManifestPackWithOptions(
 	sender := peer.ID("test")
 	source := newTestWorld(t, ctx, le)
 	dest := newTestWorld(t, ctx, le)
-	tuple := &ManifestTuple{
-		ManifestId:     "spacewave-web",
-		PlatformId:     "js",
-		Rev:            7,
-		ObjectKey:      "ci/manifest-pack/spacewave-web/js",
-		LinkObjectKeys: []string{"ci/manifest-pack"},
-	}
-	if _, err := bldr_manifest_world.CreateManifestStore(ctx, source, tuple.GetLinkObjectKeys()[0]); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := bldr_manifest_world.CreateManifestStore(ctx, dest, tuple.GetLinkObjectKeys()[0]); err != nil {
-		t.Fatal(err)
-	}
+	tuple := testManifestPackTuple()
 	manifestRef := storeTestManifest(t, ctx, source, tuple, bucketScopedManifest, withDist)
 	_, bundleRef, err := StoreManifestBundle(ctx, source, sender, tuple, manifestRef, timestamppb.Now())
 	if err != nil {
@@ -231,6 +260,16 @@ func importTestManifestPackWithOptions(
 		t.Fatal(err)
 	}
 	return dest, meta, tuple
+}
+
+func testManifestPackTuple() *ManifestTuple {
+	return &ManifestTuple{
+		ManifestId:     "spacewave-web",
+		PlatformId:     "js",
+		Rev:            7,
+		ObjectKey:      "ci/manifest-pack/spacewave-web/js",
+		LinkObjectKeys: []string{"ci/manifest-pack"},
+	}
 }
 
 func newTestWorld(
