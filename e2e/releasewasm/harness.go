@@ -62,6 +62,9 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 	if err := os.RemoveAll(filepath.Join(repoRoot, prerenderDistRelPath)); err != nil {
 		return nil, errors.Wrap(err, "clean prerender dist")
 	}
+	if err := os.RemoveAll(filepath.Join(repoRoot, ".bldr-dist")); err != nil {
+		return nil, errors.Wrap(err, "clean release dist state")
+	}
 
 	le.Info("building release web bundle")
 	if err := buildReleaseWeb(ctx, repoRoot); err != nil {

@@ -170,7 +170,7 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 	waitForPrerenderRoot(t, page)
 	waitForBootFunction(t, page)
 	waitForLiveApp(t, page)
-	waitForCanonicalQuickstartURL(t, page)
+	waitForQuickstartAppRoute(t, page)
 	completeQuickstartDriveIntroIfPresent(t, page)
 	err = page.Locator("[data-testid='unixfs-browser']:visible").First().WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
@@ -212,7 +212,7 @@ func TestQuickstartSecondTabReusesRuntimeAndCloseKeepsFirstTab(t *testing.T) {
 	waitForPrerenderRoot(t, pageA)
 	waitForBootFunction(t, pageA)
 	waitForLiveApp(t, pageA)
-	waitForCanonicalQuickstartURL(t, pageA)
+	waitForQuickstartAppRoute(t, pageA)
 	completeQuickstartDriveIntroIfPresent(t, pageA)
 	if err := pageA.Locator("[data-testid='unixfs-browser']:visible").First().WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
@@ -254,7 +254,7 @@ func TestQuickstartSecondTabReusesRuntimeAndCloseKeepsFirstTab(t *testing.T) {
 	waitForPrerenderRootOrLiveApp(t, pageB)
 	waitForBootFunction(t, pageB)
 	waitForLiveApp(t, pageB)
-	waitForCanonicalQuickstartURL(t, pageB)
+	waitForQuickstartAppRoute(t, pageB)
 	completeQuickstartDriveIntroIfPresent(t, pageB)
 	if err := pageB.Locator("[data-testid='unixfs-browser']:visible").First().WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
@@ -381,19 +381,21 @@ func (c *quickstartRuntimeTraceCapture) cleanup(t *testing.T) {
 	c.stopped = true
 }
 
-func waitForCanonicalQuickstartURL(t *testing.T, page playwright.Page) {
+func waitForQuickstartAppRoute(t *testing.T, page playwright.Page) {
 	t.Helper()
 
-	expectedURL := testHarness.getBaseURL() + "/#/quickstart/drive"
-	if page.URL() == expectedURL {
-		return
-	}
-	err := page.WaitForURL(expectedURL, playwright.PageWaitForURLOptions{
-		Timeout:   playwright.Float(30000),
-		WaitUntil: playwright.WaitUntilStateCommit,
+	// Release boot can preserve the prerender pathname/query while setting the
+	// app hash, and a fast quickstart may already be on the created Space route.
+	_, err := page.WaitForFunction(`() => {
+		const hash = window.location.hash
+		if (hash === '#/quickstart/drive') return true
+		return /^#\/u\/\d+\/so\/[^/?#]+(?:\/.*)?$/.test(hash)
+	}`, nil, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(30000),
 	})
 	if err != nil {
-		t.Fatalf("wait for canonical quickstart URL: %v", err)
+		dumpPageState(t, page)
+		t.Fatalf("wait for quickstart app route: %v", err)
 	}
 }
 
