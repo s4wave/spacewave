@@ -9,6 +9,7 @@ import (
 	"errors"
 	"io"
 	"net"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -128,6 +129,110 @@ func TestConnectTerminalOpensSshHostSession(t *testing.T) {
 	}
 	if updated.GetStatus() != "exited" {
 		t.Fatalf("status = %q", updated.GetStatus())
+	}
+}
+
+func TestConnectTerminalPromptsAndRemembersUnknownSshHostKey(t *testing.T) {
+	ctx := t.Context()
+	tb, soProvider, release := setupTerminalSecretTest(ctx, t)
+	defer release()
+
+	addr, _, closeServer := startTerminalTestSSHServer(t, "ssh-password")
+	defer closeServer()
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	portNum, err := net.LookupPort("tcp", port)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := s4wave_secret.CreateSecret(ctx, tb.Bus, soProvider, tb.BusEngine, s4wave_secret.CreateSecretOptions{
+		ObjectKey:   "secrets/ssh/password",
+		DisplayName: "SSH password",
+		Kind:        s4wave_secret.SecretKindSSHPassword,
+		ContentType: s4wave_secret.SSHTextCredentialContentType,
+		Value:       []byte("ssh-password"),
+		Timestamp:   time.Unix(10, 0),
+	}); err != nil {
+		t.Fatalf("CreateSecret: %v", err)
+	}
+
+	hostOp := s4wave_sshhost.NewCreateSshHostOp(
+		"hosts/prod",
+		"Prod SSH",
+		&s4wave_sshhost.SshHostEndpoint{
+			Host:     host,
+			Port:     uint32(portNum),
+			Username: "deploy",
+		},
+		&s4wave_sshhost.SshHostCredentialRefs{
+			PasswordSecretObjectKey: "secrets/ssh/password",
+		},
+		nil,
+		time.Unix(11, 0),
+	)
+	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, hostOp, tb.Volume.GetPeerID()); err != nil {
+		t.Fatalf("create SSH Host: %v", err)
+	}
+
+	termOp := s4wave_terminal.NewCreateSshHostTerminalOp(
+		"terminal/prod-ssh",
+		"Prod SSH Terminal",
+		"hosts/prod",
+		time.Unix(12, 0),
+	)
+	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, termOp, tb.Volume.GetPeerID()); err != nil {
+		t.Fatalf("create Terminal: %v", err)
+	}
+	objState, found, err := tb.WorldState.GetObject(ctx, "terminal/prod-ssh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found {
+		t.Fatal("terminal object was not created")
+	}
+	state, err := readTerminalObject(ctx, objState)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	streamCtx, cancelStream := context.WithTimeout(ctx, 5*time.Second)
+	defer cancelStream()
+	strm := newBlockingTerminalConnectStream(streamCtx)
+	strm.autoTrustHostKey = true
+	err = s4wave_terminal.NewTerminalResource(tb.Bus, tb.WorldState, tb.Engine, "terminal/prod-ssh", state).
+		ConnectTerminal(strm)
+	strm.closeRecv()
+	if err != nil {
+		t.Fatalf("ConnectTerminal: %v", err)
+	}
+
+	frames := strm.sentFrames()
+	if !terminalFramesContainOutputSubstring(frames, "Trust this host key and continue connecting?") {
+		t.Fatalf("sent frames missing trust prompt: %#v", frames)
+	}
+	if !terminalFramesContainOutput(frames, "ssh ready\n") {
+		t.Fatalf("sent frames missing SSH output: %#v", frames)
+	}
+
+	sshHostObj, found, err := tb.WorldState.GetObject(ctx, "hosts/prod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found {
+		t.Fatal("SSH Host object was not created")
+	}
+	sshHost, err := readSshHostObject(ctx, sshHostObj)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := len(sshHost.GetHostKeyPins()); got != 1 {
+		t.Fatalf("remembered host key pins = %d, want 1", got)
+	}
+	if sshHost.GetHostKeyPins()[0].GetSha256Fingerprint() == "" {
+		t.Fatal("remembered host key missing SHA256 fingerprint")
 	}
 }
 
@@ -266,12 +371,13 @@ func handleTerminalTestSSHSession(ch ssh.Channel, requests <-chan *ssh.Request) 
 }
 
 type blockingTerminalConnectStream struct {
-	ctx        context.Context
-	recv       chan *s4wave_terminal.TerminalFrame
-	sendDelay  time.Duration
-	sendActive atomic.Bool
-	sentMu     sync.Mutex
-	sent       []*s4wave_terminal.TerminalFrame
+	ctx              context.Context
+	recv             chan *s4wave_terminal.TerminalFrame
+	sendDelay        time.Duration
+	autoTrustHostKey bool
+	sendActive       atomic.Bool
+	sentMu           sync.Mutex
+	sent             []*s4wave_terminal.TerminalFrame
 }
 
 func newBlockingTerminalConnectStream(ctx context.Context) *blockingTerminalConnectStream {
@@ -320,6 +426,16 @@ func (s *blockingTerminalConnectStream) Send(frame *s4wave_terminal.TerminalFram
 	s.sentMu.Lock()
 	defer s.sentMu.Unlock()
 	s.sent = append(s.sent, frame.CloneVT())
+	if s.autoTrustHostKey &&
+		frame.GetKind() == s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_OUTPUT &&
+		strings.Contains(string(frame.GetData()), "Trust this host key and continue connecting?") {
+		go func() {
+			s.recv <- &s4wave_terminal.TerminalFrame{
+				Kind: s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_INPUT,
+				Data: []byte("y"),
+			}
+		}()
+	}
 	return nil
 }
 
@@ -379,11 +495,30 @@ func terminalFramesContainOutput(frames []*s4wave_terminal.TerminalFrame, output
 	return false
 }
 
+func terminalFramesContainOutputSubstring(frames []*s4wave_terminal.TerminalFrame, output string) bool {
+	for _, frame := range frames {
+		if frame.GetKind() == s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_OUTPUT && strings.Contains(string(frame.GetData()), output) {
+			return true
+		}
+	}
+	return false
+}
+
 func readTerminalObject(ctx context.Context, objState world.ObjectState) (*s4wave_terminal.Terminal, error) {
 	var state *s4wave_terminal.Terminal
 	_, _, err := world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
 		var uerr error
 		state, uerr = s4wave_terminal.UnmarshalTerminal(ctx, bcs)
+		return uerr
+	})
+	return state, err
+}
+
+func readSshHostObject(ctx context.Context, objState world.ObjectState) (*s4wave_sshhost.SshHost, error) {
+	var state *s4wave_sshhost.SshHost
+	_, _, err := world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
+		var uerr error
+		state, uerr = s4wave_sshhost.UnmarshalSshHost(ctx, bcs)
 		return uerr
 	})
 	return state, err

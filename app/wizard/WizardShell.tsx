@@ -10,6 +10,8 @@ import {
   TooltipTrigger,
 } from '@s4wave/web/ui/tooltip.js'
 
+import { wizardInputClassName } from './wizard-field-styles.js'
+
 export interface WizardShellProps {
   title: ReactNode
   step: number
@@ -111,7 +113,7 @@ export function WizardShell({
                     value={localName}
                     onChange={(e) => onUpdateName(e.target.value)}
                     placeholder={namePlaceholder}
-                    className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 h-9"
+                    className={wizardInputClassName}
                   />
                   {nameHelp && (
                     <p className="text-foreground-alt/50 mt-2 text-xs">
