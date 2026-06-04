@@ -540,6 +540,46 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		}
 	}
 
+	e2eAssetBuild := result.Config.GetBuild()["release-web-e2e-assets"]
+	if e2eAssetBuild == nil {
+		t.Fatal("build target 'release-web-e2e-assets' not found")
+	}
+	for _, want := range []string{"spacewave-launcher", "spacewave-core", "spacewave-web", "spacewave-app", "web"} {
+		if !slices.Contains(e2eAssetBuild.GetManifests(), want) {
+			t.Fatalf("release-web-e2e-assets manifests missing %s: %v", want, e2eAssetBuild.GetManifests())
+		}
+	}
+	if slices.Contains(e2eAssetBuild.GetManifests(), "spacewave-dist") {
+		t.Fatalf("release-web-e2e-assets should not build spacewave-dist: %v", e2eAssetBuild.GetManifests())
+	}
+	if !slices.Equal(e2eAssetBuild.GetTargets(), []string{"browser"}) {
+		t.Fatalf("release-web-e2e-assets targets: got %v, want [browser]", e2eAssetBuild.GetTargets())
+	}
+	if e2eAssetBuild.GetManifestOverrides()["spacewave-launcher"] == nil {
+		t.Fatal("release-web-e2e-assets should override spacewave-launcher")
+	}
+
+	e2eDistBuild := result.Config.GetBuild()["release-web-e2e-dist"]
+	if e2eDistBuild == nil {
+		t.Fatal("build target 'release-web-e2e-dist' not found")
+	}
+	if !slices.Equal(e2eDistBuild.GetManifests(), []string{"spacewave-dist"}) {
+		t.Fatalf("release-web-e2e-dist manifests: got %v, want [spacewave-dist]", e2eDistBuild.GetManifests())
+	}
+	if len(e2eDistBuild.GetTargets()) != 0 {
+		t.Fatalf("release-web-e2e-dist targets: got %v, want none", e2eDistBuild.GetTargets())
+	}
+	if !slices.Equal(e2eDistBuild.GetPlatformIds(), []string{"js"}) {
+		t.Fatalf("release-web-e2e-dist platformIds: got %v, want [js]", e2eDistBuild.GetPlatformIds())
+	}
+	e2eDistOnlyOverride := e2eDistBuild.GetManifestOverrides()["spacewave-dist"]
+	if e2eDistOnlyOverride == nil {
+		t.Fatal("release-web-e2e-dist should override spacewave-dist")
+	}
+	if !strings.Contains(string(e2eDistOnlyOverride.GetConfig()), `"spacewave-core"`) {
+		t.Fatalf("release-web-e2e-dist override missing embedded plugin config: %s", e2eDistOnlyOverride.GetConfig())
+	}
+
 	pluginReleaseBrowser := result.Config.GetBuild()["plugin-release-browser"]
 	if pluginReleaseBrowser == nil {
 		t.Fatal("build target 'plugin-release-browser' not found")

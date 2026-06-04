@@ -24,6 +24,7 @@ jobs:
       BLDR_WASM_OPT_DIAGNOSTICS_DIR: ${{ github.workspace }}/.tmp/wasm-opt-diagnostics
       BLDR_ELECTRON_NO_SANDBOX: ${{ matrix.suite.electron_no_sandbox }}
       E2E_ELECTRON_CDP_READY_TIMEOUT: ${{ matrix.suite.electron_cdp_ready_timeout }}
+      E2E_RELEASE_WASM_BUILD_SCRIPT: ${{ matrix.suite.release_wasm_build_script }}
     strategy:
       fail-fast: false
       matrix:
@@ -32,6 +33,7 @@ jobs:
         suite:
           - name: electron
             script: test:go:e2e:electron
+            release_wasm_build_script: ''
             needs_playwright: true
             playwright_browsers: chromium
             use_xvfb: true
@@ -40,6 +42,7 @@ jobs:
             electron_cdp_ready_timeout: 20m
           - name: release-wasm
             script: test:go:e2e:release-wasm
+            release_wasm_build_script: build:release:web:e2e:ci
             needs_playwright: true
             playwright_browsers: chromium
             use_xvfb: false

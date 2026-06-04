@@ -495,6 +495,29 @@ build("release-web-e2e",
         ),
     },
 )
+# CI serves the js dist output. Split the asset and dist phases so GitHub
+# runners do not optimize the unused web/js/wasm dist runtime in parallel.
+build("release-web-e2e-assets",
+    manifests=[
+        "spacewave-launcher",
+        "spacewave-core", "spacewave-web", "spacewave-app", "web",
+    ],
+    targets=["browser"],
+    manifestOverrides={
+        "spacewave-launcher": e2e_release_wasm_launcher_config(),
+    },
+)
+build("release-web-e2e-dist",
+    manifests=["spacewave-dist"],
+    platformIds=["js"],
+    manifestOverrides={
+        "spacewave-dist": dist_release_config(
+            BROWSER_RELEASE_E2E_EMBED_MANIFESTS,
+            BROWSER_RELEASE_E2E_LOAD_PLUGINS,
+            entrypoint_role="browser",
+        ),
+    },
+)
 build("release-web-tinygo",
     manifests=BROWSER_RELEASE_MANIFESTS,
     targets=["browser"],
