@@ -3,6 +3,8 @@
 package web_runtime_goscript_build
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/base64"
 	"os"
@@ -23,7 +25,8 @@ import (
 const (
 	webRuntimeGoScriptDir = "web/runtime/goscript"
 
-	rolldownCLIRelPath = "node_modules/rolldown/dist/cli.mjs"
+	goScriptBundleReportFilename = "plugin-goscript-bundle-report.json"
+	rolldownCLIRelPath           = "node_modules/rolldown/dist/cli.mjs"
 )
 
 type rolldownGoScriptBundleOptions struct {
@@ -37,6 +40,17 @@ type rolldownGoScriptBundleOptions struct {
 	Banner              string `json:"banner"`
 	Minify              bool   `json:"minify"`
 	Sourcemaps          bool   `json:"sourcemaps"`
+}
+
+type goScriptBundleReport struct {
+	SchemaVersion   int      `json:"schemaVersion"`
+	OutputPath      string   `json:"outputPath"`
+	OutputBytes     int64    `json:"outputBytes"`
+	OutputGzipBytes int64    `json:"outputGzipBytes"`
+	Minify          bool     `json:"minify"`
+	Sourcemaps      bool     `json:"sourcemaps"`
+	InputCount      int      `json:"inputCount"`
+	InputPaths      []string `json:"inputPaths"`
 }
 
 // BuildWebGoScriptPluginScript builds the web plugin runtime entrypoint script.
@@ -138,7 +152,19 @@ func runRolldownGoScriptBundle(
 			return nil, err
 		}
 	}
-	return readRolldownInputPaths(workDir, inputsPath)
+	inputPaths, err := readRolldownInputPaths(workDir, inputsPath)
+	if err != nil {
+		return nil, err
+	}
+	if err := writeGoScriptBundleReport(GoScriptBundleReportPath(workDir), outPath, inputPaths, minify, sourcemaps); err != nil {
+		return nil, err
+	}
+	return inputPaths, nil
+}
+
+// GoScriptBundleReportPath returns the build-private report path for a GoScript wrapper work directory.
+func GoScriptBundleReportPath(workDir string) string {
+	return filepath.Join(workDir, goScriptBundleReportFilename)
 }
 
 func newRolldownCommand(
@@ -290,6 +316,73 @@ func readRolldownInputPaths(absWorkingDir, inputsPath string) ([]string, error) 
 	}
 	slices.Sort(inputPaths)
 	return inputPaths, nil
+}
+
+func writeGoScriptBundleReport(reportPath, outPath string, inputPaths []string, minify, sourcemaps bool) error {
+	outBytes, err := os.ReadFile(outPath)
+	if err != nil {
+		return errors.Wrap(err, "read goscript bundle for report")
+	}
+	gzipBytes, err := gzipBytesLen(outBytes)
+	if err != nil {
+		return err
+	}
+	reportBytes := marshalGoScriptBundleReport(goScriptBundleReport{
+		SchemaVersion:   1,
+		OutputPath:      outPath,
+		OutputBytes:     int64(len(outBytes)),
+		OutputGzipBytes: gzipBytes,
+		Minify:          minify,
+		Sourcemaps:      sourcemaps,
+		InputCount:      len(inputPaths),
+		InputPaths:      slices.Clone(inputPaths),
+	})
+	if err := os.WriteFile(reportPath, reportBytes, 0o644); err != nil {
+		return errors.Wrap(err, "write goscript bundle report")
+	}
+	return nil
+}
+
+func marshalGoScriptBundleReport(report goScriptBundleReport) []byte {
+	var arena fastjson.Arena
+	root := arena.NewObject()
+	root.Set("schemaVersion", arena.NewNumberInt(report.SchemaVersion))
+	root.Set("outputPath", arena.NewString(report.OutputPath))
+	root.Set("outputBytes", arena.NewNumberString(strconv.FormatInt(report.OutputBytes, 10)))
+	root.Set("outputGzipBytes", arena.NewNumberString(strconv.FormatInt(report.OutputGzipBytes, 10)))
+	if report.Minify {
+		root.Set("minify", arena.NewTrue())
+	} else {
+		root.Set("minify", arena.NewFalse())
+	}
+	if report.Sourcemaps {
+		root.Set("sourcemaps", arena.NewTrue())
+	} else {
+		root.Set("sourcemaps", arena.NewFalse())
+	}
+	root.Set("inputCount", arena.NewNumberInt(report.InputCount))
+	inputPaths := arena.NewArray()
+	for idx, inputPath := range report.InputPaths {
+		inputPaths.SetArrayItem(idx, arena.NewString(inputPath))
+	}
+	root.Set("inputPaths", inputPaths)
+	reportBytes := root.MarshalTo(nil)
+	return append(reportBytes, '\n')
+}
+
+func gzipBytesLen(contents []byte) (int64, error) {
+	var buf bytes.Buffer
+	writer, err := gzip.NewWriterLevel(&buf, gzip.BestCompression)
+	if err != nil {
+		return 0, errors.Wrap(err, "create goscript bundle gzip reporter")
+	}
+	if _, err := writer.Write(contents); err != nil {
+		return 0, errors.Wrap(err, "gzip goscript bundle report contents")
+	}
+	if err := writer.Close(); err != nil {
+		return 0, errors.Wrap(err, "close goscript bundle gzip reporter")
+	}
+	return int64(buf.Len()), nil
 }
 
 func renderRolldownGoScriptConfig(options rolldownGoScriptBundleOptions) []byte {

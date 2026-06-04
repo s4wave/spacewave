@@ -26,6 +26,7 @@ interface Options {
   packageNames: string[]
   mainPackagePath: string
   bldrDistRoot: string
+  productionWrapperReport: string
   skipCompile: boolean
   skipBundle: boolean
   protobufTypeScriptBinding: boolean
@@ -44,6 +45,17 @@ interface CommandResult {
   logPath: string
 }
 
+interface ProductionWrapperReport {
+  schemaVersion: number
+  outputPath: string
+  outputBytes: number
+  outputGzipBytes: number
+  minify: boolean
+  sourcemaps: boolean
+  inputCount: number
+  inputPaths: string[]
+}
+
 function usage(code = 2): never {
   console.error(`usage: bun scripts/goscript-size-report.ts [options]
 
@@ -55,6 +67,8 @@ Options:
   --package <pkg>             Go package passed to goscript; repeatable
   --main-package-path <path>  main package import path for wrapper bundling
   --bldr-dist-root <dir>      source root containing web/runtime/goscript
+  --production-wrapper-report <file>
+                              include production Bldr GoScript wrapper report JSON
   --skip-compile              do not run goscript compile
   --skip-bundle               do not run Rolldown/Oxc bundle probes
   --no-protobuf-ts-binding    emit .pb.gs.ts files instead of binding sibling .pb.ts files
@@ -77,6 +91,7 @@ function parseArgs(): Options {
     packageNames: ['.'],
     mainPackagePath: '',
     bldrDistRoot: 'bldr',
+    productionWrapperReport: '',
     skipCompile: false,
     skipBundle: false,
     protobufTypeScriptBinding: true,
@@ -126,6 +141,11 @@ function parseArgs(): Options {
         opts.bldrDistRoot = next
         i += 1
         break
+      case '--production-wrapper-report':
+        if (!next) usage()
+        opts.productionWrapperReport = next
+        i += 1
+        break
       case '--skip-compile':
         opts.skipCompile = true
         break
@@ -153,6 +173,9 @@ function parseArgs(): Options {
   opts.outDir = resolve(opts.outDir)
   opts.moduleDir = resolve(opts.moduleDir)
   opts.bldrDistRoot = resolve(opts.bldrDistRoot)
+  if (opts.productionWrapperReport) {
+    opts.productionWrapperReport = resolve(opts.productionWrapperReport)
+  }
   opts.tsDir = opts.fromTs ? resolve(opts.fromTs) : join(opts.outDir, 'ts')
   return opts
 }
@@ -485,6 +508,39 @@ async function fileSize(path: string): Promise<number> {
   return (await stat(path)).size
 }
 
+async function readProductionWrapperReport(
+  reportPath: string,
+): Promise<ProductionWrapperReport> {
+  const isNonEmptyString = (value: unknown): value is string =>
+    typeof value === 'string' && value.trim() !== ''
+  const isPositiveSafeInteger = (value: unknown): value is number =>
+    typeof value === 'number' && Number.isSafeInteger(value) && value > 0
+  const isNonNegativeSafeInteger = (value: unknown): value is number =>
+    typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+  const parsed = JSON.parse(
+    await readFile(reportPath, 'utf8'),
+  ) as Partial<ProductionWrapperReport>
+  if (parsed.schemaVersion !== 1) {
+    throw new Error(
+      `unsupported production wrapper report schema: ${parsed.schemaVersion}`,
+    )
+  }
+  if (
+    !isNonEmptyString(parsed.outputPath) ||
+    !isPositiveSafeInteger(parsed.outputBytes) ||
+    !isPositiveSafeInteger(parsed.outputGzipBytes) ||
+    typeof parsed.minify !== 'boolean' ||
+    typeof parsed.sourcemaps !== 'boolean' ||
+    !isNonNegativeSafeInteger(parsed.inputCount) ||
+    !Array.isArray(parsed.inputPaths) ||
+    parsed.inputCount !== parsed.inputPaths.length ||
+    !parsed.inputPaths.every(isNonEmptyString)
+  ) {
+    throw new Error(`invalid production wrapper report: ${reportPath}`)
+  }
+  return parsed as ProductionWrapperReport
+}
+
 async function renderMarkdown(report: any): Promise<string> {
   const lines: string[] = [
     '# GoScript Spacewave Core Size Report',
@@ -518,6 +574,20 @@ async function renderMarkdown(report: any): Promise<string> {
   )
   for (const [method, count] of Object.entries(report.protobuf.methodCounts)) {
     lines.push(`| \`${method}\` | ${count} |`)
+  }
+  if (report.productionWrapperReport) {
+    lines.push(
+      '',
+      '## Production Wrapper Report',
+      '',
+      '| Metric | Value |',
+      '| --- | --- |',
+      `| Report path | \`${report.paths.productionWrapperReport}\` |`,
+      `| Output path | \`${report.productionWrapperReport.outputPath}\` |`,
+      `| Minify | ${report.productionWrapperReport.minify} |`,
+      `| Sourcemaps | ${report.productionWrapperReport.sourcemaps} |`,
+      `| Dependency inputs | ${report.productionWrapperReport.inputCount} |`,
+    )
   }
   lines.push(
     '',
@@ -563,6 +633,9 @@ async function main(): Promise<void> {
   const protobuf = await analyzeProtoFiles(tsFiles)
   const archivePath = await createTreeArchive(opts.tsDir, opts.outDir)
   const bundle = await bundleOutputs(opts)
+  const productionWrapperReport = opts.productionWrapperReport
+    ? await readProductionWrapperReport(opts.productionWrapperReport)
+    : null
 
   const sizeRows = [
     {
@@ -609,6 +682,20 @@ async function main(): Promise<void> {
       },
     )
   }
+  if (productionWrapperReport) {
+    sizeRows.push(
+      {
+        name: 'Production Bldr GoScript wrapper bundle',
+        bytes: productionWrapperReport.outputBytes,
+        mib: miB(productionWrapperReport.outputBytes),
+      },
+      {
+        name: 'Production Bldr GoScript wrapper bundle gzip',
+        bytes: productionWrapperReport.outputGzipBytes,
+        mib: miB(productionWrapperReport.outputGzipBytes),
+      },
+    )
+  }
 
   const report = {
     generatedAt: new Date().toISOString(),
@@ -618,12 +705,14 @@ async function main(): Promise<void> {
       tsDir: await realpath(opts.tsDir),
       treeArchive: archivePath,
       bundle,
+      productionWrapperReport: opts.productionWrapperReport || null,
     },
     compile,
     buildFlags: opts.buildFlags,
     packageNames: opts.packageNames,
     mainPackagePath: opts.mainPackagePath,
     protobufTypeScriptBinding: opts.protobufTypeScriptBinding,
+    productionWrapperReport,
     counts: {
       allFiles: files.length,
       tsFiles: tsFiles.length,

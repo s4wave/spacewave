@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aperturerobotics/fastjson"
 	"github.com/sirupsen/logrus"
 )
 
@@ -348,8 +349,12 @@ export const Unused = 2
 	if !strings.Contains(string(minOut), "export") {
 		t.Fatalf("minified output should remain browser ESM:\n%s", minOut)
 	}
+	assertBundleReport(t, GoScriptBundleReportPath(minWorkDir), minOutPath, true, true, inputs)
+	if _, err := os.Stat(minOutPath + ".goscript-bundle-report.json"); !os.IsNotExist(err) {
+		t.Fatalf("dist report path exists or stat failed: %v", err)
+	}
 
-	_, err = BuildWebGoScriptPluginScript(
+	readableInputs, err := BuildWebGoScriptPluginScript(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
 		bldrDistRoot,
@@ -378,6 +383,7 @@ export const Unused = 2
 	if len(minCode) >= len(readableOut) {
 		t.Fatalf("minified code size = %d, readable code size = %d", len(minCode), len(readableOut))
 	}
+	assertBundleReport(t, GoScriptBundleReportPath(readableWorkDir), readableOutPath, false, false, readableInputs)
 
 	_, err = BuildWebGoScriptPluginScript(
 		context.Background(),
@@ -394,6 +400,52 @@ export const Unused = 2
 		t.Fatal(err)
 	}
 	assertInlineAndExternalSourceMap(t, readableMapOutPath)
+}
+
+func assertBundleReport(t *testing.T, reportPath, outPath string, minify, sourcemaps bool, inputs []string) {
+	t.Helper()
+	reportBytes, err := os.ReadFile(reportPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var parser fastjson.Parser
+	report, err := parser.ParseBytes(reportBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	outInfo, err := os.Stat(outPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := report.GetInt("schemaVersion"); got != 1 {
+		t.Fatalf("schemaVersion = %d, want 1", got)
+	}
+	if got := string(report.GetStringBytes("outputPath")); got != outPath {
+		t.Fatalf("outputPath = %q, want %q", got, outPath)
+	}
+	if got := report.GetInt64("outputBytes"); got != outInfo.Size() {
+		t.Fatalf("outputBytes = %d, want %d", got, outInfo.Size())
+	}
+	if got := report.GetInt64("outputGzipBytes"); got <= 0 {
+		t.Fatalf("outputGzipBytes = %d, want positive", got)
+	}
+	if got := report.GetBool("minify"); got != minify {
+		t.Fatalf("minify = %v, want %v", got, minify)
+	}
+	if got := report.GetBool("sourcemaps"); got != sourcemaps {
+		t.Fatalf("sourcemaps = %v, want %v", got, sourcemaps)
+	}
+	if got := report.GetInt("inputCount"); got != len(inputs) {
+		t.Fatalf("inputCount = %d, want %d", got, len(inputs))
+	}
+	inputValues := report.GetArray("inputPaths")
+	gotInputs := make([]string, 0, len(inputValues))
+	for _, inputValue := range inputValues {
+		gotInputs = append(gotInputs, string(inputValue.GetStringBytes()))
+	}
+	if !slices.Equal(gotInputs, inputs) {
+		t.Fatalf("inputPaths = %v, want %v", gotInputs, inputs)
+	}
 }
 
 func assertInlineAndExternalSourceMap(t *testing.T, outPath string) {
