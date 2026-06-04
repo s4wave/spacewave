@@ -48,6 +48,7 @@ const (
 	deviceSetupStateDir      = "device"
 	deviceSetupStateFile     = "setup.json"
 	deviceIdentityKeyPEMFile = "identity.pem"
+	deviceDockerStatePath    = "/var/lib/spacewave"
 )
 
 type deviceSetupRecord struct {
@@ -110,6 +111,18 @@ type deviceCompleteArgs struct {
 	completion   string
 }
 
+type deviceDockerSetupReport struct {
+	Label              string `json:"label"`
+	StatePath          string `json:"statePath"`
+	Socket             string `json:"socket"`
+	ContainerStatePath string `json:"containerStatePath"`
+	SessionType        string `json:"sessionType"`
+	RequestedRole      string `json:"requestedRole"`
+	Completion         string `json:"completion"`
+	Enrollment         string `json:"enrollment"`
+	Ticket             string `json:"ticket"`
+}
+
 var deviceMountLinkedSession = func(
 	ctx context.Context,
 	client *sdkClient,
@@ -126,9 +139,12 @@ var deviceMountLinkedSession = func(
 var deviceUpsertObject = upsertLinkedDeviceObject
 
 func newDeviceCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
+	var statePath string
 	return &cli.Command{
-		Name:  "device",
-		Usage: "manage Spacewave-managed Device setup",
+		Name:    "device",
+		Aliases: []string{"devices"},
+		Usage:   "manage Spacewave-managed Device setup",
+		Flags:   daemonClientFlags(&statePath),
 		Subcommands: []*cli.Command{
 			newDeviceSetupCommand(),
 			newDeviceCompleteCommand(),
@@ -146,6 +162,9 @@ func newDeviceSetupCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "setup",
 		Usage: "initialize local Device setup state",
+		Subcommands: []*cli.Command{
+			newDeviceSetupDockerCommand(),
+		},
 		Flags: append(daemonClientFlags(&statePath),
 			&cli.StringFlag{
 				Name:        "label",
@@ -180,6 +199,31 @@ func newDeviceSetupCommand() *cli.Command {
 				requestedRole: requestedRole,
 				expiresIn:     expiresIn,
 			})
+		},
+	}
+}
+
+func newDeviceSetupDockerCommand() *cli.Command {
+	var statePath string
+	var label string
+	return &cli.Command{
+		Name:  "docker",
+		Usage: "show the Docker daemon setup seed",
+		Flags: append(daemonClientFlags(&statePath),
+			&cli.StringFlag{
+				Name:        "label",
+				Usage:       "managed Device label",
+				Required:    true,
+				Destination: &label,
+			},
+			deviceOutputFlag(),
+		),
+		Action: func(c *cli.Context) error {
+			report, err := buildDeviceDockerSetupReport(c, statePath, label)
+			if err != nil {
+				return err
+			}
+			return writeDeviceDockerSetupReport(report, c.String("output"))
 		},
 	}
 }
@@ -405,6 +449,28 @@ func runDeviceStatus(c *cli.Context, statePath, outputFormat string) error {
 		ExpiresAt:        record.ExpiresAt,
 		Ticket:           record.Ticket,
 	}, outputFormat)
+}
+
+func buildDeviceDockerSetupReport(c *cli.Context, statePath string, label string) (*deviceDockerSetupReport, error) {
+	label = strings.TrimSpace(label)
+	if label == "" {
+		return nil, errors.New("device label required")
+	}
+	resolvedStatePath, sockPath, err := resolveDeviceDaemonPaths(c, statePath)
+	if err != nil {
+		return nil, err
+	}
+	return &deviceDockerSetupReport{
+		Label:              label,
+		StatePath:          resolvedStatePath,
+		Socket:             sockPath,
+		ContainerStatePath: deviceDockerStatePath,
+		SessionType:        core_session.SessionType_SESSION_TYPE_DEVICE.String(),
+		RequestedRole:      "WRITER",
+		Completion:         "cli-mediated",
+		Enrollment:         "not started",
+		Ticket:             "not generated",
+	}, nil
 }
 
 func resolveDeviceDaemonPaths(c *cli.Context, statePath string) (string, string, error) {
@@ -1027,6 +1093,32 @@ func writeDeviceStatusOutput(out deviceStatusOutput, outputFormat string) error 
 			fields = append(fields, [2]string{"Ticket", out.Ticket})
 		}
 		writeFields(os.Stdout, fields)
+		return nil
+	default:
+		return formatOutput(nil, outputFormat)
+	}
+}
+
+func writeDeviceDockerSetupReport(report *deviceDockerSetupReport, outputFormat string) error {
+	switch outputFormat {
+	case "json", "yaml":
+		data, err := json.Marshal(report)
+		if err != nil {
+			return errors.Wrap(err, "marshal device docker setup output")
+		}
+		return formatOutput(data, outputFormat)
+	case "text", "table":
+		writeFields(os.Stdout, [][2]string{
+			{"Label", report.Label},
+			{"State Path", report.StatePath},
+			{"Socket", report.Socket},
+			{"Container State Path", report.ContainerStatePath},
+			{"Session Type", report.SessionType},
+			{"Requested Role", report.RequestedRole},
+			{"Completion", report.Completion},
+			{"Enrollment", report.Enrollment},
+			{"Ticket", report.Ticket},
+		})
 		return nil
 	default:
 		return formatOutput(nil, outputFormat)

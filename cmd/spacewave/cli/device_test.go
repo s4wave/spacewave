@@ -23,7 +23,9 @@ import (
 )
 
 func TestDeviceCommandExposesDaemonFlags(t *testing.T) {
+	assertCommandFlags(t, newDeviceCommand(nil), "state-path", "socket-path")
 	assertCommandFlags(t, newDeviceSetupCommand(), "state-path", "socket-path", "label", "target-hint", "role", "expires-in", "output")
+	assertCommandFlags(t, newDeviceSetupDockerCommand(), "state-path", "socket-path", "label", "output")
 	assertCommandFlags(t, newDeviceCompleteCommand(), "state-path", "socket-path", "completion", "output")
 	assertCommandFlags(t, newDeviceStatusCommand(), "state-path", "socket-path", "output")
 }
@@ -35,6 +37,68 @@ func TestDeviceCommandRegistered(t *testing.T) {
 		}
 	}
 	t.Fatal("device command not registered")
+}
+
+func TestDeviceSetupDockerUsesGroupStatePath(t *testing.T) {
+	clearStatePathEnv(t)
+	clearSocketPathEnv(t)
+
+	statePath := filepath.Join(t.TempDir(), "device-state")
+	out, err := captureStdout(t, func() error {
+		return runDeviceCLI(
+			t,
+			"device",
+			"--state-path",
+			statePath,
+			"setup",
+			"docker",
+			"--label",
+			"build-host",
+		)
+	})
+	if err != nil {
+		t.Fatalf("device setup docker: %v", err)
+	}
+	assertContains(t, out, "Label")
+	assertContains(t, out, "build-host")
+	assertContains(t, out, "State Path")
+	assertContains(t, out, statePath)
+	assertContains(t, out, filepath.Join(statePath, socketName))
+	assertContains(t, out, deviceDockerStatePath)
+	assertContains(t, out, "SESSION_TYPE_DEVICE")
+	assertContains(t, out, "WRITER")
+	assertContains(t, out, "cli-mediated")
+	assertContains(t, out, "not started")
+	assertContains(t, out, "not generated")
+}
+
+func TestDeviceSetupDockerAcceptsLeafSocketFlag(t *testing.T) {
+	clearStatePathEnv(t)
+	clearSocketPathEnv(t)
+
+	statePath := filepath.Join(t.TempDir(), "device-state")
+	socketPath := filepath.Join(t.TempDir(), "device.sock")
+	out, err := captureStdout(t, func() error {
+		return runDeviceCLI(
+			t,
+			"device",
+			"setup",
+			"docker",
+			"--state-path",
+			statePath,
+			"--socket-path",
+			socketPath,
+			"--label",
+			"build-host",
+		)
+	})
+	if err != nil {
+		t.Fatalf("device setup docker: %v", err)
+	}
+	assertContains(t, out, "State Path")
+	assertContains(t, out, statePath)
+	assertContains(t, out, "Socket")
+	assertContains(t, out, socketPath)
 }
 
 func TestDeviceSetupUsesResolvedStatePathAndAutostart(t *testing.T) {
