@@ -128,7 +128,7 @@ func (m *LookupMeta) Has(r io.ReaderAt, key []byte) (bool, error) {
 // value. Tombstoned keys return Found=false with Tombstone=true.
 func (m *LookupMeta) Stat(r io.ReaderAt, key []byte) (LookupStat, error) {
 	ctx := context.Background()
-	ctx, task := trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/stat")
+	_, task := trace.NewTask(ctx, "hydra/opfs-segment/lookup-meta/stat")
 	defer task.End()
 
 	keyStr := string(key)
