@@ -37,10 +37,10 @@ func TestDesktopDaemonConsoleKeepsCLIReachableWithoutWindows(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		restoreCtx, restoreCancel := context.WithTimeout(context.Background(), 4*time.Minute)
+		restoreCtx, restoreCancel := context.WithTimeout(context.Background(), time.Minute)
 		defer restoreCancel()
-		if err := h.Relaunch(restoreCtx); err != nil {
-			t.Fatalf("restore electron runtime after no-window daemon check: %v", err)
+		if _, err := ensureAppPage(restoreCtx, h); err != nil {
+			t.Fatalf("restore electron renderer after no-window daemon check: %v", err)
 		}
 	})
 	if err := h.waitForCDP(ctx); err != nil {
