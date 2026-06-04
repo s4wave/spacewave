@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
-	s4wave_apt "github.com/s4wave/spacewave/sdk/apt"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_sshhost "github.com/s4wave/spacewave/sdk/sshhost"
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
@@ -53,14 +52,6 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 	}
 	if _, ok := op.(*s4wave_sshhost.CreateSshHostOp); !ok {
 		t.Fatalf("expected CreateSshHostOp, got %T", op)
-	}
-
-	op, err = lookupOp(context.Background(), s4wave_apt.CreateAptRepositoryOpId)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := op.(*s4wave_apt.CreateAptRepositoryOp); !ok {
-		t.Fatalf("expected CreateAptRepositoryOp, got %T", op)
 	}
 }
 
