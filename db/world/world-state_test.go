@@ -41,3 +41,66 @@ func TestAccessObjectReturnsStorageOpArgs(t *testing.T) {
 		t.Fatalf("expected root block message, got %q", example.GetMsg())
 	}
 }
+
+func TestLookupObjectBodyReleasesObjectState(t *testing.T) {
+	ctx := context.Background()
+	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer wtb.Release()
+
+	ws := world.NewEngineWorldState(wtb.Engine, true)
+	_, _, err = world.CreateWorldObject(ctx, ws, "example/body-release", func(bcs *block.Cursor) error {
+		bcs.SetBlock(block_mock.NewExample("body"), true)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wrapped := &releaseCountingWorldState{WorldState: ws}
+	example, err := world.LookupObjectBody[*block_mock.Example](
+		ctx,
+		wrapped,
+		"example/body-release",
+		block_mock.NewExampleBlock,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if example.GetMsg() != "body" {
+		t.Fatalf("expected body message, got %q", example.GetMsg())
+	}
+	if wrapped.releases != 1 {
+		t.Fatalf("expected lookup to release object state once, got %d", wrapped.releases)
+	}
+}
+
+type releaseCountingWorldState struct {
+	world.WorldState
+	releases int
+}
+
+func (ws *releaseCountingWorldState) GetObject(
+	ctx context.Context,
+	key string,
+) (world.ObjectState, bool, error) {
+	obj, found, err := ws.WorldState.GetObject(ctx, key)
+	if err != nil || !found {
+		return obj, found, err
+	}
+	return &releaseCountingObjectState{
+		ObjectState: obj,
+		releases:    &ws.releases,
+	}, true, nil
+}
+
+type releaseCountingObjectState struct {
+	world.ObjectState
+	releases *int
+}
+
+func (obj *releaseCountingObjectState) Release() {
+	*obj.releases += 1
+}

@@ -84,6 +84,34 @@ func LookupObject[T block.Block](
 	return out, obj, err
 }
 
+type releasableObjectState interface {
+	Release()
+}
+
+// ReleaseObjectState releases object-state implementations with explicit
+// resource ownership.
+func ReleaseObjectState(obj ObjectState) {
+	if obj == nil {
+		return
+	}
+	if releasable, ok := obj.(releasableObjectState); ok {
+		releasable.Release()
+	}
+}
+
+// LookupObjectBody looks up and unmarshals an object without returning the
+// object-state handle.
+func LookupObjectBody[T block.Block](
+	ctx context.Context,
+	ws WorldState,
+	objKey string,
+	ctor func() block.Block,
+) (out T, err error) {
+	out, objRef, err := LookupObject[T](ctx, ws, objKey, ctor)
+	ReleaseObjectState(objRef)
+	return out, err
+}
+
 // LookupObjectRef looks up & unmarshals an object ref from the world.
 func LookupObjectRef[T block.Block](
 	ctx context.Context,

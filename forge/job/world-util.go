@@ -24,6 +24,11 @@ func LookupJob(ctx context.Context, ws world.WorldState, objKey string) (*Job, w
 	return world.LookupObject[*Job](ctx, ws, objKey, NewJobBlock)
 }
 
+// LookupJobBody looks up a Job body in the world.
+func LookupJobBody(ctx context.Context, ws world.WorldState, objKey string) (*Job, error) {
+	return world.LookupObjectBody[*Job](ctx, ws, objKey, NewJobBlock)
+}
+
 // CheckJobType checks the type graph quad for a cluster.
 func CheckJobType(ctx context.Context, ws world.WorldState, objKey string) error {
 	return world_types.CheckObjectType(ctx, ws, objKey, JobTypeID)
