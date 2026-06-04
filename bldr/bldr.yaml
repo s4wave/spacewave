@@ -3,7 +3,6 @@
 id: bldr-demo
 
 start:
-  loadWebStartup: bldr/web/devtool-status/startup.tsx
   plugins:
     - bldr-demo
 

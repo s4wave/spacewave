@@ -11,11 +11,13 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/go-websocket"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/blang/semver/v4"
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
+	devtool_web "github.com/s4wave/spacewave/bldr/devtool/web"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
@@ -24,6 +26,7 @@ import (
 	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	web_runtime_controller "github.com/s4wave/spacewave/bldr/web/runtime/controller"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 
@@ -153,6 +156,28 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) (err error) {
 	if relPluginHost != nil {
 		defer relPluginHost()
 	}
+
+	statusMux := srpc.NewMux()
+	if err := devtool_status.RegisterDevtoolStatusService(statusMux, d.GetStatusProducer()); err != nil {
+		return err
+	}
+	statusClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(statusMux)))
+	statusCtrl := bifrost_rpc.NewClientController(
+		le,
+		d.GetBus(),
+		controller.NewInfo(
+			"bldr/devtool/status/web-ws-rpc",
+			DevtoolWsVersion,
+			"bldr devtool status web-ws rpc",
+		),
+		statusClient,
+		[]string{devtool_web.HostServiceIDPrefix},
+	)
+	relStatusCtrl, err := d.GetBus().AddController(ctx, statusCtrl, nil)
+	if err != nil {
+		return err
+	}
+	defer relStatusCtrl()
 
 	d.setCommandRunningWithLogFile("start web", "web runtime active on "+a.WebListenAddr, commandLogFile)
 	return d.ExecuteWebWs(ctx, repoRoot, a.MinifyEntrypoint, buildType.IsDev(), a.WebListenAddr, webStartupSrcPath)

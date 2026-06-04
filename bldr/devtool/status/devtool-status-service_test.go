@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
+	devtool_web "github.com/s4wave/spacewave/bldr/devtool/web"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 )
 
@@ -180,6 +181,43 @@ func TestDevtoolStatusWatchServiceClosesAfterTerminalCommand(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("watch did not close after terminal command")
+	}
+}
+
+func TestDevtoolStatusHostPrefixRoutesToRegisteredService(t *testing.T) {
+	producer := NewBldrDevtoolStatusProducer(
+		EmptyBldrDevtoolStatus().WithCommand(BldrDevtoolCommandStatus{
+			Name:  "start web",
+			State: BldrDevtoolCommandStateRunning,
+		}),
+	)
+	mux := srpc.NewMux()
+	if err := RegisterDevtoolStatusService(mux, producer); err != nil {
+		t.Fatal(err)
+	}
+
+	client := srpc.NewPrefixClient(
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))),
+		[]string{devtool_web.HostServiceIDPrefix},
+	)
+	service := NewSRPCDevtoolStatusServiceClientWithServiceID(
+		client,
+		devtool_web.HostServiceIDPrefix+SRPCDevtoolStatusServiceServiceID,
+	)
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	strm, err := service.WatchDevtoolStatus(ctx, &WatchDevtoolStatusRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer strm.Close()
+
+	resp, err := strm.Recv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.GetSnapshot().GetCommand().GetName() != "start web" {
+		t.Fatalf("expected prefixed host route snapshot, got %#v", resp.GetSnapshot().GetCommand())
 	}
 }
 
@@ -377,5 +415,21 @@ func TestDevtoolStatusWebRuntimeRegistrationKeepsTinygoGate(t *testing.T) {
 	}
 	if strings.Contains(src, "tinygoCompatible := true") {
 		t.Fatal("devtool status registration must not enable TinyGo")
+	}
+
+	body, err = os.ReadFile("../start-web-ws.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	src = string(body)
+	required = []string{
+		"devtool_status.RegisterDevtoolStatusService(statusMux, d.GetStatusProducer())",
+		"[]string{devtool_web.HostServiceIDPrefix}",
+		"bifrost_rpc.NewClientController(",
+	}
+	for _, needle := range required {
+		if !strings.Contains(src, needle) {
+			t.Fatalf("start-web-ws.go missing required status app RPC proof %q", needle)
+		}
 	}
 }

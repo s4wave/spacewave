@@ -1,3 +1,5 @@
+//go:build !js
+
 package status
 
 import (
@@ -54,9 +56,10 @@ func BuildProjectStatus(projectConfig *bldr_project.ProjectConfig) BldrDevtoolPr
 		resolvedPlatformIDs, err := bldr_project_controller.ResolveBuildConfigPlatformIDs(buildConfig, nil)
 		if err != nil {
 			row.Error = err.Error()
-		} else {
-			row.ResolvedPlatformIDs = resolvedPlatformIDs
+			projectStatus.BuildTargets = append(projectStatus.BuildTargets, row)
+			continue
 		}
+		row.ResolvedPlatformIDs = resolvedPlatformIDs
 		projectStatus.BuildTargets = append(projectStatus.BuildTargets, row)
 	}
 
