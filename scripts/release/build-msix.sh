@@ -24,6 +24,27 @@ if [ -z "$PYTHON_BIN" ]; then
   echo "ERROR: python3 or python is required to render AppxManifest.xml" >&2
   exit 1
 fi
+MSIX_VERSION="$(
+  RAW_MSIX_VERSION="${BLDR_WINDOWS_MSIX_VERSION:-$VERSION}" "$PYTHON_BIN" - <<'PY'
+import os
+import re
+import sys
+
+raw = os.environ["RAW_MSIX_VERSION"]
+base = raw.split("+", 1)[0].split("-", 1)[0]
+parts = base.split(".")
+if len(parts) == 3:
+    parts.append("0")
+if len(parts) != 4 or any(re.fullmatch(r"[0-9]+", part) is None for part in parts):
+    sys.stderr.write(f"ERROR: release version {raw!r} cannot be normalized to an MSIX version.\n")
+    sys.exit(1)
+nums = [int(part, 10) for part in parts]
+if any(num > 65535 for num in nums):
+    sys.stderr.write(f"ERROR: release version {raw!r} has an MSIX component greater than 65535.\n")
+    sys.exit(1)
+print(".".join(str(num) for num in nums))
+PY
+)"
 
 rm -rf "$LAYOUT"
 mkdir -p "$OUT" "$LAYOUT/Assets"
@@ -69,14 +90,14 @@ for size in 48 128 256; do
 done
 
 # 4. Generate AppxManifest.xml with version, arch, and publisher templated.
-VERSION="$VERSION" MSIX_ARCH="$MSIX_ARCH" MSIX_PUBLISHER_XML="$MSIX_PUBLISHER_XML" \
+MSIX_VERSION="$MSIX_VERSION" MSIX_ARCH="$MSIX_ARCH" MSIX_PUBLISHER_XML="$MSIX_PUBLISHER_XML" \
   TEMPLATE_PATH="$TEMPLATES_DIR/AppxManifest.xml" OUT_PATH="$LAYOUT/AppxManifest.xml" \
   "$PYTHON_BIN" - <<'PY'
 import os
 from pathlib import Path
 
 text = Path(os.environ["TEMPLATE_PATH"]).read_text(encoding="utf-8")
-text = text.replace("{{VERSION}}", os.environ["VERSION"] + ".0")
+text = text.replace("{{VERSION}}", os.environ["MSIX_VERSION"])
 text = text.replace("{{ARCH}}", os.environ["MSIX_ARCH"])
 text = text.replace("{{PUBLISHER}}", os.environ["MSIX_PUBLISHER_XML"])
 Path(os.environ["OUT_PATH"]).write_text(text, encoding="utf-8")
