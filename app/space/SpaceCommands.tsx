@@ -27,13 +27,17 @@ import {
 
 interface SpaceCommandsProps {
   canRename: boolean
+  canShare: boolean
   onRenameSpace: () => void
+  onShareSpace: () => void
 }
 
 // SpaceCommands registers space-scoped commands. Returns null (no UI).
 export function SpaceCommands({
   canRename,
+  canShare,
   onRenameSpace,
+  onShareSpace,
 }: SpaceCommandsProps) {
   const sharedObjectResource = SharedObjectContext.useContext()
   const sharedObject = useResourceValue(sharedObjectResource)
@@ -72,6 +76,11 @@ export function SpaceCommands({
     )
   }, [sessionIndex, sharedObjectId])
 
+  const handleShareSpace = useCallback(() => {
+    if (!canShare || !sharedObjectId) return
+    onShareSpace()
+  }, [canShare, onShareSpace, sharedObjectId])
+
   useCommand({
     commandId: 'spacewave.file.close-space',
     label: 'Close Space',
@@ -94,6 +103,18 @@ export function SpaceCommands({
     active: isTabActive,
     enabled: canRename && !!sharedObjectId,
     handler: onRenameSpace,
+  })
+
+  useCommand({
+    commandId: 'spacewave.share-space',
+    label: 'Share Space',
+    description: 'Invite people to this space',
+    menuPath: 'File/Share Space',
+    menuGroup: 3,
+    menuOrder: 1,
+    active: isTabActive,
+    enabled: canShare && !!sharedObjectId,
+    handler: handleShareSpace,
   })
 
   useCommand({

@@ -662,7 +662,9 @@ export function SpaceContainer() {
               >
                 <SpaceCommands
                   canRename={canRename}
+                  canShare={canManageSharing}
                   onRenameSpace={handleRenameStart}
+                  onShareSpace={handleSharingClick}
                 />
                 <CreateObjectButton />
                 <SpaceBody />

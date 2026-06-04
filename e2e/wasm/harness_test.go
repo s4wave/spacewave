@@ -966,6 +966,13 @@ func TestDriveScenarioSequence(t *testing.T) {
 		AssertQuickstartContentAfterProgress(t, ready)
 	})
 
+	t.Run("first-impression", func(t *testing.T) {
+		WaitForDriveReady(t, testHarness, page)
+		openDriveInviteDialog(t, page)
+
+		t.Logf("opened Space invite dialog from Drive first-impression CTA, page URL: %s", page.URL())
+	})
+
 	t.Run("state-ready", func(t *testing.T) {
 		WaitForDriveReady(t, testHarness, page)
 

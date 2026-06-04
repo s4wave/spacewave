@@ -183,12 +183,16 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 	if driveContentReadyError != "" {
 		t.Logf("quickstart content-ready not reached: %s", driveContentReadyError)
 	}
+	driveGoldenPathReadyMs, driveGoldenPathError := exerciseQuickstartDriveGoldenPath(t, page)
+	if driveGoldenPathError != "" {
+		t.Logf("quickstart golden path not reached: %s", driveGoldenPathError)
+	}
 	postLoadSOWorkload := runQuickstartPostLoadSOWorkload(t, page, driveContentReadyMs != nil)
 	foregroundResume := collectForegroundResumeEvidence(t, page)
 	logQuickstartTiming(t, page)
 	runtimeTrace := traceCapture.stop(t)
 
-	data, err := collectQuickstartSmokeArtifact(page, desc, source, driveFrameReadyMs, driveContentReadyMs, driveContentReadyError, runtimeTrace, postLoadSOWorkload, foregroundResume)
+	data, err := collectQuickstartSmokeArtifact(page, desc, source, driveFrameReadyMs, driveContentReadyMs, driveContentReadyError, driveGoldenPathReadyMs, driveGoldenPathError, runtimeTrace, postLoadSOWorkload, foregroundResume)
 	if err != nil {
 		t.Fatalf("collect quickstart smoke artifact: %v", err)
 	}
@@ -196,6 +200,9 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 		t.Fatalf("write quickstart smoke artifact: %v", err)
 	}
 	t.Logf("quickstart smoke artifact written to %s (%d bytes)", path, len(data))
+	if driveGoldenPathError != "" {
+		t.Fatalf("quickstart golden path: %s", driveGoldenPathError)
+	}
 }
 
 func TestQuickstartSecondTabReusesRuntimeAndCloseKeepsFirstTab(t *testing.T) {
@@ -556,6 +563,38 @@ func waitForQuickstartDriveContentReady(t *testing.T, page playwright.Page) (*in
 	return &driveContentReadyMs, ""
 }
 
+func exerciseQuickstartDriveGoldenPath(t *testing.T, page playwright.Page) (*int, string) {
+	t.Helper()
+
+	if err := page.Locator("[data-testid='drive-welcome']").WaitFor(
+		playwright.LocatorWaitForOptions{Timeout: playwright.Float(quickstartContentReadyRecordMS)},
+	); err != nil {
+		dumpPageState(t, page)
+		return nil, "drive welcome guidance did not appear: " + err.Error()
+	}
+	if err := page.Locator("[data-testid='drive-invite-cta']:not([disabled])").First().Click(); err != nil {
+		dumpPageState(t, page)
+		return nil, "click drive invite CTA: " + err.Error()
+	}
+	dialog := page.Locator("[role='dialog']:has-text('Add User')").First()
+	if err := dialog.WaitFor(
+		playwright.LocatorWaitForOptions{Timeout: playwright.Float(quickstartContentReadyRecordMS)},
+	); err != nil {
+		dumpPageState(t, page)
+		return nil, "Add User dialog did not open: " + err.Error()
+	}
+	driveGoldenPathReadyMs := browserNowMs(t, page)
+	if err := page.Keyboard().Press("Escape"); err != nil {
+		return nil, "close Add User dialog: " + err.Error()
+	}
+	if err := dialog.WaitFor(playwright.LocatorWaitForOptions{
+		State: playwright.WaitForSelectorStateHidden,
+	}); err != nil {
+		return nil, "Add User dialog did not close: " + err.Error()
+	}
+	return &driveGoldenPathReadyMs, ""
+}
+
 func runQuickstartPostLoadSOWorkload(t *testing.T, page playwright.Page, contentReady bool) map[string]any {
 	t.Helper()
 
@@ -885,6 +924,8 @@ func collectQuickstartSmokeArtifact(
 	driveFrameReadyMs int,
 	driveContentReadyMs *int,
 	driveContentReadyError string,
+	driveGoldenPathReadyMs *int,
+	driveGoldenPathError string,
 	runtimeTrace map[string]any,
 	postLoadSOWorkload map[string]any,
 	foregroundResume map[string]any,
@@ -892,6 +933,10 @@ func collectQuickstartSmokeArtifact(
 	var driveContentReadyArg any
 	if driveContentReadyMs != nil {
 		driveContentReadyArg = *driveContentReadyMs
+	}
+	var driveGoldenPathReadyArg any
+	if driveGoldenPathReadyMs != nil {
+		driveGoldenPathReadyArg = *driveGoldenPathReadyMs
 	}
 	raw, err := page.Evaluate(`async (args) => {
 		const startupPrefix = 'spacewave.startup.'
@@ -1131,6 +1176,12 @@ func collectQuickstartSmokeArtifact(
 				['driveContentReadyMs', 'getting-started.md'],
 				null,
 			),
+			makeReadinessMark(
+				'golden-path-ready',
+				args.driveGoldenPathReadyMs,
+				['driveGoldenPathReadyMs', "[data-testid='drive-welcome']", "[data-testid='drive-invite-cta']", 'Add User dialog'],
+				null,
+			),
 		]
 		const missingReadinessMarks = readinessTimeline
 			.filter((mark) => typeof mark.timestampMs !== 'number')
@@ -1243,6 +1294,8 @@ func collectQuickstartSmokeArtifact(
 				driveFrameReadyMs: args.driveFrameReadyMs,
 				driveContentReadyMs: args.driveContentReadyMs,
 				driveContentReadyError: args.driveContentReadyError || null,
+				driveGoldenPathReadyMs: args.driveGoldenPathReadyMs,
+				driveGoldenPathError: args.driveGoldenPathError || null,
 				quickstart: quickstartTiming,
 				navigation,
 				paint,
@@ -1273,6 +1326,8 @@ func collectQuickstartSmokeArtifact(
 				quickstartContentReadyMs: quickstartTiming?.contentReadyMs ?? null,
 				contentReadyMs: args.driveContentReadyMs,
 				contentReadyError: args.driveContentReadyError || null,
+				goldenPathReadyMs: args.driveGoldenPathReadyMs,
+				goldenPathError: args.driveGoldenPathError || null,
 				workerReadyMs: firstWorkerReady?.startTimeMs ?? null,
 				pluginRunningMs: pluginRunning?.startTimeMs ?? null,
 				missingReadinessMarks,
@@ -1283,6 +1338,8 @@ func collectQuickstartSmokeArtifact(
 					frameReadyMs: args.driveFrameReadyMs,
 					contentReadyMs: args.driveContentReadyMs,
 					contentReadyError: args.driveContentReadyError || null,
+					goldenPathReadyMs: args.driveGoldenPathReadyMs,
+					goldenPathError: args.driveGoldenPathError || null,
 					timeline: readinessTimeline,
 				},
 				foregroundResume: args.foregroundResume,
@@ -1311,6 +1368,8 @@ func collectQuickstartSmokeArtifact(
 		"driveFrameReadyMs":      driveFrameReadyMs,
 		"driveContentReadyMs":    driveContentReadyArg,
 		"driveContentReadyError": driveContentReadyError,
+		"driveGoldenPathReadyMs": driveGoldenPathReadyArg,
+		"driveGoldenPathError":   driveGoldenPathError,
 		"runtimeTrace":           runtimeTrace,
 		"postLoadSOWorkload":     postLoadSOWorkload,
 		"foregroundResume":       foregroundResume,

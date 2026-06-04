@@ -96,6 +96,7 @@ const h = vi.hoisted(() => ({
   mockLookup: vi.fn(),
   mockMkdirAll: vi.fn(),
   mockMknod: vi.fn(),
+  mockInvokeCommand: vi.fn(),
   mockNavigate: vi.fn(),
   mockRootHandleResource: null as ReturnType<typeof buildResource> | null,
   mockPathHandleResource: null as ReturnType<typeof buildResource> | null,
@@ -123,7 +124,9 @@ const h = vi.hoisted(() => ({
     { id: 'docs', name: 'docs', isDir: true },
     { id: 'file', name: 'file.txt', isDir: false },
     { id: 'logo', name: 'logo.png', isDir: false },
+    { id: 'getting-started', name: 'getting-started.md', isDir: false },
   ] as FileEntry[],
+  mockSpaceSharingState: { canManage: true },
 }))
 
 function buildResource<T>(value: T) {
@@ -256,6 +259,10 @@ vi.mock('@s4wave/web/command/useCommand.js', () => ({
   },
 }))
 
+vi.mock('@s4wave/web/command/CommandContext.js', () => ({
+  useInvokeCommand: () => h.mockInvokeCommand,
+}))
+
 vi.mock('@s4wave/web/contexts/TabActiveContext.js', () => ({
   useIsTabActive: () => true,
 }))
@@ -274,7 +281,10 @@ vi.mock('@s4wave/web/router/HistoryRouter.js', () => ({
 
 vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
   SpaceContainerContext: {
-    useContextSafe: () => ({ spaceId: 'space-test' }),
+    useContextSafe: () => ({
+      spaceId: 'space-test',
+      spaceSharingState: h.mockSpaceSharingState,
+    }),
   },
 }))
 
@@ -541,6 +551,7 @@ describe('UnixFSBrowser drag gating', () => {
     h.mockLookup.mockReset()
     h.mockMkdirAll.mockReset()
     h.mockMknod.mockReset()
+    h.mockInvokeCommand.mockReset()
     h.mockNavigate.mockReset()
     h.mockRootHandleResource = null
     h.mockPathHandleResource = null
@@ -568,7 +579,9 @@ describe('UnixFSBrowser drag gating', () => {
       { id: 'docs', name: 'docs', isDir: true },
       { id: 'file', name: 'file.txt', isDir: false },
       { id: 'logo', name: 'logo.png', isDir: false },
+      { id: 'getting-started', name: 'getting-started.md', isDir: false },
     ]
+    h.mockSpaceSharingState = { canManage: true }
 
     h.mockLookup.mockResolvedValue(buildDisposableHandle({ id: 77 }))
     h.mockRootClone.mockResolvedValue(
@@ -628,23 +641,19 @@ describe('UnixFSBrowser drag gating', () => {
       />,
     )
 
-    expect(screen.getByTestId('drive-welcome-surface')).toBeTruthy()
-    expect(
-      screen.getByText(
-        'Add files, organize folders, or open the starter guide.',
-      ),
-    ).toBeTruthy()
+    expect(screen.getByTestId('drive-welcome')).toBeTruthy()
+    expect(screen.getByText('Welcome to your Drive')).toBeTruthy()
     expect(screen.getByTestId('file-entry-guide')).toBeTruthy()
     expect(screen.getByTestId('file-entry-docs')).toBeTruthy()
-    expect(screen.getByTestId('drive-welcome-upload-files')).toBeTruthy()
+    expect(screen.getByTestId('drive-upload-cta')).toBeTruthy()
 
-    await user.click(screen.getByTestId('drive-welcome-new-folder'))
-    expect(screen.getByPlaceholderText('Folder name')).toBeTruthy()
-
-    await user.click(screen.getByTestId('drive-welcome-open-guide'))
+    await user.click(screen.getByTestId('drive-open-guide-cta'))
     expect(h.mockNavigate).toHaveBeenCalledWith({
       path: './getting-started.md',
     })
+
+    await user.click(screen.getByTestId('drive-new-folder-cta'))
+    expect(screen.getByPlaceholderText('Folder name')).toBeTruthy()
   })
 
   it('renders a custom browser body under the toolbar instead of the file list', () => {
@@ -686,6 +695,47 @@ describe('UnixFSBrowser drag gating', () => {
       '/gallery/logo.png',
     )
     expect(h.latestFileViewerProps).toBeNull()
+  })
+
+  it('renders root Drive welcome actions and invokes Space sharing', async () => {
+    const user = userEvent.setup()
+    render(
+      <UnixFSBrowser
+        unixfsId="files"
+        basePath="/"
+        currentPath="/"
+        worldState={buildResource({} as IWorldState)}
+      />,
+    )
+
+    expect(screen.getByTestId('drive-welcome')).toBeTruthy()
+    expect(screen.getByText('Welcome to your Drive')).toBeTruthy()
+
+    await user.click(screen.getByTestId('drive-invite-cta'))
+    expect(h.mockInvokeCommand).toHaveBeenCalledWith('spacewave.share-space')
+
+    await user.click(screen.getByTestId('drive-open-guide-cta'))
+    expect(h.mockNavigate).toHaveBeenCalledWith({
+      path: './getting-started.md',
+    })
+
+    await user.click(screen.getByTestId('drive-new-folder-cta'))
+    expect(screen.getByPlaceholderText('Folder name')).toBeTruthy()
+  })
+
+  it('hides the Drive invite action when sharing cannot be managed', () => {
+    h.mockSpaceSharingState = { canManage: false }
+    render(
+      <UnixFSBrowser
+        unixfsId="files"
+        basePath="/"
+        currentPath="/"
+        worldState={buildResource({} as IWorldState)}
+      />,
+    )
+
+    expect(screen.getByTestId('drive-welcome')).toBeTruthy()
+    expect(screen.queryByTestId('drive-invite-cta')).toBeNull()
   })
 
   it('ignores internal app drags', () => {
