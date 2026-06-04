@@ -20,6 +20,7 @@ import { SpaceCommands } from './SpaceCommands.js'
 
 interface RegisteredCommand {
   commandId?: string
+  enabled?: boolean
   subItems?: SubItemsCallback
   handler?: (args: Record<string, string>) => void
 }
@@ -156,7 +157,13 @@ describe('SpaceCommands', () => {
     ]
   })
 
-  function renderCommands() {
+  function renderCommands({
+    canShare = true,
+    onShareSpace = vi.fn(),
+  }: {
+    canShare?: boolean
+    onShareSpace?: () => void
+  } = {}) {
     return render(
       <SharedObjectContext.Provider
         resource={{
@@ -189,11 +196,29 @@ describe('SpaceCommands', () => {
             buildObjectUrls={vi.fn()}
             navigateToSubPath={vi.fn()}
           >
-            <SpaceCommands canRename={true} onRenameSpace={vi.fn()} />
+            <SpaceCommands
+              canRename={true}
+              canShare={canShare}
+              onRenameSpace={vi.fn()}
+              onShareSpace={onShareSpace}
+            />
           </SpaceContainerContext.Provider>
         </SpaceContext.Provider>
       </SharedObjectContext.Provider>,
     )
+  }
+
+  function getShareSpaceCommand() {
+    const shareSpaceCommand = [...registeredCommands]
+      .reverse()
+      .find((cmd) => cmd.commandId === 'spacewave.share-space')
+    if (!shareSpaceCommand) {
+      throw new Error('expected share-space command to be registered')
+    }
+    if (typeof shareSpaceCommand.handler !== 'function') {
+      throw new Error('expected share-space command handler')
+    }
+    return shareSpaceCommand
   }
 
   function getCreateObjectCommandHandlers() {
@@ -217,6 +242,28 @@ describe('SpaceCommands', () => {
     vi.unstubAllEnvs()
     localStorage.removeItem(EXPERIMENTAL_CREATORS_STORAGE_KEY)
     vi.clearAllMocks()
+  })
+
+  it('opens the Space owner sharing dialog from the share-space command', () => {
+    const onShareSpace = vi.fn()
+    renderCommands({ onShareSpace })
+
+    const command = getShareSpaceCommand()
+    expect(command.enabled).toBe(true)
+    command.handler?.({})
+
+    expect(onShareSpace).toHaveBeenCalledOnce()
+  })
+
+  it('disables the share-space command when sharing cannot be managed', () => {
+    const onShareSpace = vi.fn()
+    renderCommands({ canShare: false, onShareSpace })
+
+    const command = getShareSpaceCommand()
+    expect(command.enabled).toBe(false)
+    command.handler?.({})
+
+    expect(onShareSpace).not.toHaveBeenCalled()
   })
 
   it('launches a persistent notes notebook wizard from the create-object command', async () => {

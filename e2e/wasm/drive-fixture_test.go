@@ -12,6 +12,8 @@ import (
 const (
 	gettingStartedFileName    = "getting-started.md"
 	gettingStartedWelcomeText = "Welcome to your new drive"
+	driveWelcomeSelector      = "[data-testid='drive-welcome']"
+	driveInviteCTASelector    = "[data-testid='drive-invite-cta']"
 )
 
 func createDriveFolder(t testing.TB, page playwright.Page, name string) {
@@ -93,5 +95,29 @@ func assertDriveRoute(t testing.TB, page playwright.Page, sessionIndex uint32, s
 			gotSpaceID,
 			page.URL(),
 		)
+	}
+}
+
+func openDriveInviteDialog(t testing.TB, page playwright.Page) {
+	t.Helper()
+
+	waitForDriveSettled(t, page)
+	if err := page.Locator(driveWelcomeSelector).WaitFor(); err != nil {
+		t.Fatalf("wait for drive welcome guidance: %v", err)
+	}
+	if err := page.Locator(driveInviteCTASelector + ":not([disabled])").First().Click(); err != nil {
+		t.Fatalf("click drive invite CTA: %v", err)
+	}
+	dialog := page.Locator("[role='dialog']:has-text('Add User')").First()
+	if err := dialog.WaitFor(); err != nil {
+		t.Fatalf("wait for Add User dialog: %v", err)
+	}
+	if err := page.Keyboard().Press("Escape"); err != nil {
+		t.Fatalf("close Add User dialog: %v", err)
+	}
+	if err := dialog.WaitFor(playwright.LocatorWaitForOptions{
+		State: playwright.WaitForSelectorStateHidden,
+	}); err != nil {
+		t.Fatalf("wait for Add User dialog to close: %v", err)
 	}
 }

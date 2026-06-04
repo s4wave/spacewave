@@ -7,6 +7,7 @@ import {
   type MouseEvent,
   type DragEvent,
   type ComponentType,
+  type ReactNode,
   useRef,
 } from 'react'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
@@ -46,14 +47,18 @@ import {
 } from '@s4wave/web/ui/dialog.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import {
+  LuBookOpen,
   LuCheck,
   LuCircleAlert,
   LuFolderPlus,
+  LuHardDrive,
   LuRotateCw,
   LuUpload,
+  LuUserPlus,
   LuX,
 } from 'react-icons/lu'
 import { useCommand } from '@s4wave/web/command/useCommand.js'
+import { useInvokeCommand } from '@s4wave/web/command/CommandContext.js'
 import { useIsTabActive } from '@s4wave/web/contexts/TabActiveContext.js'
 import { useTabContext } from '@s4wave/web/object/TabContext.js'
 import { UnixFSFileViewer } from './UnixFSFileViewer.js'
@@ -93,6 +98,9 @@ import {
   type SessionSyncStatusView,
   useSessionSyncStatus,
 } from '../session/SessionSyncStatusContext.js'
+import { UNIXFS_OBJECT_KEY } from '@s4wave/core/space/world/ops/init-unixfs.js'
+
+const DRIVE_STARTER_GUIDE_NAME = 'getting-started.md'
 
 export interface UnixFSBrowserBodyProps {
   rootHandle: Resource<FSHandle>
@@ -201,6 +209,123 @@ function UnixFSEmptyFolderState({
         </button>
       </div>
     </div>
+  )
+}
+
+interface DriveWelcomeSurfaceProps {
+  canShareSpace: boolean
+  onNewFolder: () => void
+  onOpenGuide?: () => void
+  onShareSpace: () => void
+  onUploadFiles: () => void
+}
+
+interface DriveWelcomeActionProps {
+  description: string
+  disabled?: boolean
+  icon: ReactNode
+  label: string
+  onClick?: () => void
+  testId: string
+}
+
+function DriveWelcomeAction({
+  description,
+  disabled,
+  icon,
+  label,
+  onClick,
+  testId,
+}: DriveWelcomeActionProps) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      data-testid={testId}
+      disabled={disabled || !onClick}
+      onClick={onClick}
+      className={cn(
+        'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50',
+        'group flex min-h-18 min-w-0 items-center gap-3 rounded-lg border p-3 text-left transition-all duration-150',
+        'disabled:cursor-not-allowed disabled:opacity-50',
+      )}
+    >
+      <span className="bg-foreground/5 group-hover:bg-foreground/8 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+        {icon}
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className="text-foreground text-xs font-medium select-none">
+          {label}
+        </span>
+        <span className="text-foreground-alt/55 text-[0.65rem] leading-snug select-none">
+          {description}
+        </span>
+      </span>
+    </button>
+  )
+}
+
+function DriveWelcomeSurface({
+  canShareSpace,
+  onNewFolder,
+  onOpenGuide,
+  onShareSpace,
+  onUploadFiles,
+}: DriveWelcomeSurfaceProps) {
+  return (
+    <section
+      data-testid="drive-welcome"
+      className="border-foreground/8 bg-background/30 border-b p-3"
+    >
+      <div className="flex flex-col gap-3">
+        <div className="flex items-start gap-3">
+          <div className="bg-brand/10 flex size-9 shrink-0 items-center justify-center rounded-md">
+            <LuHardDrive className="text-brand size-4.5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-foreground text-sm font-semibold tracking-tight select-none">
+              Welcome to your Drive
+            </h2>
+            <p className="text-foreground-alt/60 mt-1 text-xs leading-relaxed">
+              Add files, organize folders, invite people, or open the starter
+              guide.
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <DriveWelcomeAction
+            testId="drive-upload-cta"
+            icon={<LuUpload className="text-foreground-alt size-4" />}
+            label="Upload files"
+            description="Add content"
+            onClick={onUploadFiles}
+          />
+          <DriveWelcomeAction
+            testId="drive-new-folder-cta"
+            icon={<LuFolderPlus className="text-foreground-alt size-4" />}
+            label="New folder"
+            description="Create structure"
+            onClick={onNewFolder}
+          />
+          <DriveWelcomeAction
+            testId="drive-open-guide-cta"
+            icon={<LuBookOpen className="text-foreground-alt size-4" />}
+            label="Open guide"
+            description="Read getting-started.md"
+            onClick={onOpenGuide}
+          />
+          {canShareSpace && (
+            <DriveWelcomeAction
+              testId="drive-invite-cta"
+              icon={<LuUserPlus className="text-foreground-alt size-4" />}
+              label="Invite people"
+              description="Share this Space"
+              onClick={onShareSpace}
+            />
+          )}
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -322,7 +447,9 @@ export function UnixFSBrowser({
   const tabContext = useTabContext()
   const spaceCtx = SpaceContainerContext.useContextSafe()
   const spaceId = spaceCtx?.spaceId ?? null
+  const canShareSpace = spaceCtx?.spaceSharingState?.canManage ?? false
   const sessionIndex = useSessionIndex()
+  const invokeCommand = useInvokeCommand()
   const syncStatus = useSessionSyncStatus()
   const displayPath = currentPath || basePath || '/'
 
@@ -549,6 +676,26 @@ export function UnixFSBrowser({
     },
     [displayPath, navigate, tabContext, unixfsId],
   )
+  const gettingStartedEntry = useMemo(
+    () =>
+      fileEntries.find((entry) => entry.name === DRIVE_STARTER_GUIDE_NAME) ??
+      null,
+    [fileEntries],
+  )
+  const showDriveWelcome =
+    unixfsId === UNIXFS_OBJECT_KEY &&
+    normalizedDisplayPath === '' &&
+    isDir === true &&
+    !!gettingStartedEntry
+  const handleOpenGuide = useCallback(() => {
+    if (!gettingStartedEntry) return
+    handleOpen([gettingStartedEntry])
+  }, [gettingStartedEntry, handleOpen])
+  const handleShareSpace = useCallback(() => {
+    if (!canShareSpace) return
+    invokeCommand('spacewave.share-space')
+  }, [canShareSpace, invokeCommand])
+
   // Handle retry for root handle, path handle, stat, and entries
   const handleRetry = useCallback(() => {
     if (rootHandle.error) {
@@ -1538,6 +1685,15 @@ export function UnixFSBrowser({
         onDragLeave={handleDragLeave}
         onDrop={(e) => void handleDrop(e)}
       >
+        {showDriveWelcome && (
+          <DriveWelcomeSurface
+            canShareSpace={canShareSpace}
+            onNewFolder={handleNewFolder}
+            onOpenGuide={handleOpenGuide}
+            onShareSpace={handleShareSpace}
+            onUploadFiles={handleUploadFiles}
+          />
+        )}
         <FileList
           entries={displayEntries}
           onOpen={handleOpen}

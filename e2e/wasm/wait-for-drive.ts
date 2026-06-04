@@ -30,9 +30,17 @@ export default async function (args: {
       }
       return root.textContent ?? ''
     }
+    const hasDriveWelcome = () =>
+      !!document.querySelector('[data-testid="drive-welcome"]')
+    const hasDriveInviteCTA = () =>
+      !!document.querySelector('[data-testid="drive-invite-cta"]')
     const tick = () => {
       const text = readBrowserText()
-      if (text.includes('getting-started.md')) {
+      if (
+        text.includes('getting-started.md') &&
+        hasDriveWelcome() &&
+        hasDriveInviteCTA()
+      ) {
         const store = globalThis as DriveReadyGlobals
         const timing =
           store.__s4waveQuickstartTiming ??
@@ -58,7 +66,7 @@ export default async function (args: {
       if (Date.now() > deadline) {
         reject(
           new Error(
-            `drive viewer demo content did not appear (hash=${window.location.hash}, body=${readBrowserText().slice(0, 500)})`,
+            `drive viewer golden path did not appear (hash=${window.location.hash}, welcome=${hasDriveWelcome()}, invite=${hasDriveInviteCTA()}, body=${readBrowserText().slice(0, 500)})`,
           ),
         )
         return
