@@ -65,5 +65,5 @@ func NewFileSystem(
 
 // NewFileServer builds a new http.FileServer which has extended content-type support.
 func NewFileServer(hfs http.FileSystem) http.Handler {
-	return http.FileServer(hfs)
+	return bifrost_http.NewEncodedAssetFileServer(hfs)
 }

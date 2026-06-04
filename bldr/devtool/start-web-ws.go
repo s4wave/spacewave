@@ -25,6 +25,7 @@ import (
 	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	web_runtime_controller "github.com/s4wave/spacewave/bldr/web/runtime/controller"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
+	bifrost_http "github.com/s4wave/spacewave/net/http"
 	"github.com/sirupsen/logrus"
 )
 
@@ -219,7 +220,7 @@ func (d *DevtoolBus) ExecuteWebWs(
 
 	// serve the entrypoint
 	entryFs := http.Dir(entrypointDir)
-	entrySrv := http.FileServer(entryFs)
+	entrySrv := bifrost_http.NewEncodedAssetFileServer(entryFs)
 
 	// start the local WebRuntime which communicates via WebSocket w/ the remote
 	runtimeID := "devtool"

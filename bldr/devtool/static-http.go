@@ -6,6 +6,8 @@ import (
 	"context"
 	"net/http"
 	"time"
+
+	bifrost_http "github.com/s4wave/spacewave/net/http"
 )
 
 // ExecuteStaticHttpServer runs the static http server command.
@@ -19,7 +21,7 @@ func (a *DevtoolArgs) ExecuteStaticHttpServer(ctx context.Context) error {
 
 	// run the http server
 	serveFs := http.Dir(servePath)
-	fileServer := http.FileServer(serveFs)
+	fileServer := bifrost_http.NewEncodedAssetFileServer(serveFs)
 
 	// Wrap with Cross-Origin Isolation headers required for SharedArrayBuffer
 	handler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
