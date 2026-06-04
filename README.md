@@ -10,19 +10,6 @@
     Grow it into shared Spaces for apps, devices, workflows, plugins, and automation.<br/>
   </p>
 
-  <p>
-    <a href="https://discord.gg/EKVkdVmvwT">
-      <img src="https://img.shields.io/discord/803825858599059487.svg?label=Discord&logo=Discord&colorB=7289da&style=for-the-badge" alt="Support Server" />
-    </a>
-    <a href="https://github.com/s4wave/spacewave/releases">
-      <img src="https://img.shields.io/github/v/release/s4wave/spacewave?include_prereleases&style=for-the-badge" alt="GitHub release" />
-    </a>
-    <a href="https://github.com/s4wave/spacewave/blob/master/LICENSE">
-      <img src="https://img.shields.io/github/license/s4wave/spacewave?style=for-the-badge" alt="License" />
-    </a>
-  </p>
-  </div>
-
 ## Overview
 
 **Spacewave** turns your computers into a local-first cloud you control. Start
