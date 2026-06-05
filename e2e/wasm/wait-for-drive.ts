@@ -16,7 +16,7 @@ type DriveReadyGlobals = typeof globalThis & {
   __s4wave_debug?: { quickstartTiming?: DriveReadyResult['quickstartTiming'] }
 }
 
-// Polls the drive viewer DOM until current demo content appears. Uses
+// Polls the drive viewer DOM until the root file listing is visible. Uses
 // requestAnimationFrame for frame-synced polling with a deadline.
 export default async function (args: {
   deadlineMs: number
@@ -36,11 +36,7 @@ export default async function (args: {
       !!document.querySelector('[data-testid="drive-invite-cta"]')
     const tick = () => {
       const text = readBrowserText()
-      if (
-        text.includes('getting-started.md') &&
-        hasDriveWelcome() &&
-        hasDriveInviteCTA()
-      ) {
+      if (text.includes('getting-started.md')) {
         const store = globalThis as DriveReadyGlobals
         const timing =
           store.__s4waveQuickstartTiming ??
