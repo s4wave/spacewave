@@ -1080,6 +1080,7 @@ func TestGoScriptSharedObjectDirectRouteBodyMountGate(t *testing.T) {
 	AssertBrowserStartupDone(t, testHarness, page)
 	WaitForDriveReady(t, testHarness, page)
 	assertDirectSharedObjectRouteStartupMarks(t, page)
+	assertDirectSharedObjectRouteSpaceState(t, page)
 
 	t.Logf(
 		"goscript direct SharedObject route body mount gate passed: session_index=%d space_id=%s hash=%s",
@@ -1120,6 +1121,10 @@ func assertDirectSharedObjectRouteStartupMarks(t testing.TB, page playwright.Pag
 		"quickstart.shared-object-body-mount-start",
 		"quickstart.shared-object-body-mount-ready",
 		"quickstart.space-resource-created",
+		"quickstart.space-world-access-ready",
+		"quickstart.space-contents-mount-ready",
+		"unixfs.browser-mounted",
+		"unixfs.seeded-file-visible",
 	} {
 		if !slices.Contains(labels, label) {
 			t.Fatalf("direct SharedObject route missing startup mark %q; labels=%v", label, labels)
@@ -1137,6 +1142,85 @@ func assertDirectSharedObjectRouteStartupMarks(t testing.TB, page playwright.Pag
 		if slices.Contains(labels, label) {
 			t.Fatalf("direct SharedObject route used quickstart handoff mark %q; labels=%v", label, labels)
 		}
+	}
+}
+
+func assertDirectSharedObjectRouteSpaceState(t testing.TB, page playwright.Page) {
+	t.Helper()
+
+	raw, err := page.Evaluate(`async () => {
+		async function firstStreamValue(stream) {
+			for await (const value of stream) {
+				return value
+			}
+			return null
+		}
+		const match = window.location.hash.match(/^#\/u\/([0-9]+)\/so\/([^/]+)/)
+		const debug = globalThis.__s4wave_debug
+		const root = debug?.root
+		const mountSpace = debug?.mountSpace
+		if (!match || !root || !mountSpace) {
+			return { error: 'missing direct SharedObject route or debug root' }
+		}
+		const sessionIdx = Number(match[1])
+		const sharedObjectId = decodeURIComponent(match[2])
+		const mountedResources = {
+			session: null,
+			space: null,
+		}
+		const cleanupStack = []
+		const cleanup = (resource) => {
+			cleanupStack.push(resource)
+			return resource
+		}
+		try {
+			const abort = AbortSignal.timeout(15000)
+			const mounted = await root.mountSessionByIdx({ sessionIdx }, abort)
+			mountedResources.session = mounted?.session ?? null
+			if (!mountedResources.session) return { error: 'mountSessionByIdx returned no session' }
+			mountedResources.space = await mountSpace({
+				session: mountedResources.session,
+				spaceResp: {
+					sharedObjectRef: {
+						providerResourceRef: {
+							id: sharedObjectId,
+						},
+					},
+				},
+				abortSignal: abort,
+				cleanup,
+			})
+			const state = await firstStreamValue(mountedResources.space.watchSpaceState({}, abort))
+			return {
+				ready: !!state?.ready,
+				indexPath: state?.settings?.indexPath ?? '',
+				objectKeys: (state?.worldContents?.objects ?? []).map((obj) => obj.objectKey ?? ''),
+			}
+		} catch (err) {
+			return { error: String(err?.stack ?? err) }
+		} finally {
+			while (cleanupStack.length) {
+				cleanupStack.pop()?.release?.()
+			}
+			mountedResources.session?.release?.()
+		}
+	}`, nil)
+	if err != nil {
+		t.Fatalf("read direct SharedObject route Space state: %v", err)
+	}
+	result, ok := raw.(map[string]any)
+	if !ok {
+		t.Fatalf("unexpected direct SharedObject route Space state %T: %#v", raw, raw)
+	}
+	if errMsg := stringField(result, "error"); errMsg != "" {
+		t.Fatalf("direct SharedObject route Space state probe failed: %s", errMsg)
+	}
+	if !boolField(result, "ready") {
+		t.Fatalf("direct SharedObject route Space state was not ready: %#v", result)
+	}
+	objectKeys, ok := result["objectKeys"].([]any)
+	if !ok || len(objectKeys) == 0 {
+		t.Fatalf("direct SharedObject route Space state had no world contents: %#v", result)
 	}
 }
 
