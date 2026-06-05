@@ -6,6 +6,7 @@ import (
 	"context"
 
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
+	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_sshhost "github.com/s4wave/spacewave/sdk/sshhost"
@@ -16,6 +17,7 @@ import (
 // LookupWorldOp looks up the GoScript-supported world operation types.
 func LookupWorldOp(ctx context.Context, opTypeID string) (world.Operation, error) {
 	return world.LookupOpSlice([]world.LookupOp{
+		unixfs_world.LookupFsOp,
 		space_world_ops.LookupSetSpaceSettingsOp,
 		space_world_ops.LookupInitUnixFSOp,
 		space_world_ops.LookupInitObjectLayoutOp,

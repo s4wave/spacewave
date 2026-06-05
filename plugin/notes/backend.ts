@@ -53,17 +53,17 @@ import { Engine } from '@s4wave/sdk/world/engine.js'
 import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { WorldStateResource } from '@s4wave/sdk/world/world-state.js'
 import { setObjectType } from '@s4wave/sdk/world/types/types.js'
-import { UNIXFS_OBJECT_KEY } from '@s4wave/core/space/world/ops/init-unixfs.js'
+import {
+  INIT_UNIXFS_OP_ID,
+  UNIXFS_OBJECT_KEY,
+} from '@s4wave/core/space/world/ops/init-unixfs.js'
+import { InitUnixFSOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { FSCursorServiceClient } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/rpc_srpc.pb.js'
 import { buildFSHandle } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/client/fs-handle.js'
 import {
   PluginDefinition,
   type Plugin as SRPCPlugin,
 } from '@go/github.com/s4wave/spacewave/bldr/plugin/plugin_srpc.pb.js'
-import {
-  FsInitOp,
-  FSType,
-} from '@go/github.com/s4wave/spacewave/db/unixfs/world/unixfs.pb.js'
 import { NotebookResourceServiceDefinition } from './sdk/notebook_srpc.pb.js'
 import { BlogResourceServiceDefinition } from './sdk/blog_srpc.pb.js'
 import { DocsResourceServiceDefinition } from './sdk/docs_srpc.pb.js'
@@ -74,6 +74,9 @@ import { createBlogClientSide } from './blog-seed.js'
 import {
   createDocsClientSide,
   createNotebookClientSide,
+  DOCS_INDEX_MARKDOWN,
+  NOTEBOOK_GETTING_STARTED_MARKDOWN,
+  NOTEBOOK_WELCOME_MARKDOWN,
 } from './content-seed.js'
 import { createObjectWithBlockData } from './object-block.js'
 import {
@@ -294,14 +297,13 @@ class NotesWorldOpHandler {
     const ws = new WorldStateResource(wsRef)
     try {
       // 1. Init UnixFS object via world op.
-      const fsInitOp: FsInitOp = {
+      const fsInitOp: InitUnixFSOp = {
         objectKey: unixfsKey,
-        fsType: FSType.FSType_FS_NODE,
         timestamp: op.timestamp,
       }
       await ws.applyWorldOp(
-        'hydra/unixfs/init',
-        FsInitOp.toBinary(fsInitOp),
+        INIT_UNIXFS_OP_ID,
+        InitUnixFSOp.toBinary(fsInitOp),
         '',
       )
 
@@ -310,8 +312,11 @@ class NotesWorldOpHandler {
         ws,
         unixfsKey,
         [
-          { path: 'welcome.md', content: '' },
-          { path: 'getting-started.md', content: '' },
+          { path: 'welcome.md', content: NOTEBOOK_WELCOME_MARKDOWN },
+          {
+            path: 'getting-started.md',
+            content: NOTEBOOK_GETTING_STARTED_MARKDOWN,
+          },
         ],
         undefined,
       )
@@ -404,14 +409,13 @@ class NotesWorldOpHandler {
     const ws = new WorldStateResource(wsRef)
     try {
       // 1. Init UnixFS object via world op.
-      const fsInitOp: FsInitOp = {
+      const fsInitOp: InitUnixFSOp = {
         objectKey: unixfsKey,
-        fsType: FSType.FSType_FS_NODE,
         timestamp: op.timestamp,
       }
       await ws.applyWorldOp(
-        'hydra/unixfs/init',
-        FsInitOp.toBinary(fsInitOp),
+        INIT_UNIXFS_OP_ID,
+        InitUnixFSOp.toBinary(fsInitOp),
         '',
       )
 
@@ -419,7 +423,7 @@ class NotesWorldOpHandler {
       await uploadSeedTree(
         ws,
         unixfsKey,
-        [{ path: 'index.md', content: '' }],
+        [{ path: 'index.md', content: DOCS_INDEX_MARKDOWN }],
         undefined,
       )
 

@@ -1,14 +1,21 @@
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { setObjectType } from '@s4wave/sdk/world/types/types.js'
-import {
-  FsInitOp,
-  FSType,
-} from '@go/github.com/s4wave/spacewave/db/unixfs/world/unixfs.pb.js'
+import { InitUnixFSOp } from '@s4wave/core/space/world/ops/ops.pb.js'
+import { INIT_UNIXFS_OP_ID } from '@s4wave/core/space/world/ops/init-unixfs.js'
 import { Notebook } from './proto/notebook.pb.js'
 import { Documentation } from './proto/docs.pb.js'
 import { createObjectWithBlockData } from './object-block.js'
 import { uploadSeedTree } from './unixfs-seed.js'
+
+export const NOTEBOOK_WELCOME_MARKDOWN =
+  '# Welcome\n\nStart capturing notes in this Spacewave notebook.\n'
+
+export const NOTEBOOK_GETTING_STARTED_MARKDOWN =
+  '# Getting started\n\nCreate a note, organize it in folders, and keep writing locally.\n'
+
+export const DOCS_INDEX_MARKDOWN =
+  '# Documentation\n\nStart documenting this project here.\n'
 
 function runContentSeedStep<T>(
   label: string,
@@ -60,10 +67,9 @@ async function initNotesUnixfs(
 ): Promise<void> {
   await runContentSeedStep('initialize notes unixfs root', async () => {
     await worldState.applyWorldOp(
-      'hydra/unixfs/init',
-      FsInitOp.toBinary({
+      INIT_UNIXFS_OP_ID,
+      InitUnixFSOp.toBinary({
         objectKey: unixfsObjectKey,
-        fsType: FSType.FSType_FS_NODE,
         timestamp,
       }),
       '',
@@ -88,8 +94,11 @@ export async function createNotebookClientSide(
         writeState,
         unixfsObjectKey,
         [
-          { path: 'welcome.md', content: '' },
-          { path: 'getting-started.md', content: '' },
+          { path: 'welcome.md', content: NOTEBOOK_WELCOME_MARKDOWN },
+          {
+            path: 'getting-started.md',
+            content: NOTEBOOK_GETTING_STARTED_MARKDOWN,
+          },
         ],
         undefined,
         abortSignal,
@@ -135,7 +144,7 @@ export async function createDocsClientSide(
       await uploadSeedTree(
         writeState,
         unixfsObjectKey,
-        [{ path: 'index.md', content: '' }],
+        [{ path: 'index.md', content: DOCS_INDEX_MARKDOWN }],
         undefined,
         abortSignal,
       )
@@ -156,12 +165,7 @@ export async function createDocsClientSide(
     })
 
     await runContentSeedStep('set docs type', async () => {
-      await setObjectType(
-        writeState,
-        docsObjectKey,
-        'notes/docs',
-        abortSignal,
-      )
+      await setObjectType(writeState, docsObjectKey, 'notes/docs', abortSignal)
     })
   })
 }

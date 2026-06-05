@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
+import { InitUnixFSOp } from '@s4wave/core/space/world/ops/ops.pb.js'
+import { INIT_UNIXFS_OP_ID } from '@s4wave/core/space/world/ops/init-unixfs.js'
 
 const h = vi.hoisted(() => ({
   mockCreateObjectWithBlockData: vi.fn(),
@@ -50,17 +52,31 @@ describe('content-seed', () => {
     )
 
     expect(worldState.applyWorldOp).toHaveBeenCalledWith(
-      'hydra/unixfs/init',
+      INIT_UNIXFS_OP_ID,
       expect.any(Uint8Array),
       '',
       undefined,
     )
+    const initOpBytes = worldState.applyWorldOp.mock.calls[0]?.[1]
+    expect(initOpBytes).toBeInstanceOf(Uint8Array)
+    if (!(initOpBytes instanceof Uint8Array)) {
+      throw new Error('expected init op payload bytes')
+    }
+    const initOp = InitUnixFSOp.fromBinary(initOpBytes)
+    expect(initOp.objectKey).toBe('project-notes-fs')
+    expect(initOp.timestamp?.toISOString()).toBe(timestamp.toISOString())
     expect(h.mockUploadSeedTree).toHaveBeenCalledWith(
       worldState,
       'project-notes-fs',
       expect.arrayContaining([
-        expect.objectContaining({ path: 'welcome.md' }),
-        expect.objectContaining({ path: 'getting-started.md' }),
+        expect.objectContaining({
+          path: 'welcome.md',
+          content: expect.stringContaining('Welcome'),
+        }),
+        expect.objectContaining({
+          path: 'getting-started.md',
+          content: expect.stringContaining('Getting started'),
+        }),
       ]),
       undefined,
       undefined,
@@ -94,7 +110,12 @@ describe('content-seed', () => {
     expect(h.mockUploadSeedTree).toHaveBeenCalledWith(
       worldState,
       'docs/reference-fs',
-      [expect.objectContaining({ path: 'index.md' })],
+      [
+        expect.objectContaining({
+          path: 'index.md',
+          content: expect.stringContaining('Documentation'),
+        }),
+      ],
       undefined,
       undefined,
     )
