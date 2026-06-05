@@ -264,9 +264,9 @@ func (s *TestSession) consoleWatcherCount() int {
 	return len(s.console)
 }
 
-// LoadApp loads the app base URL into the session page.
+// LoadApp loads the app route into the session page.
 func (s *TestSession) LoadApp() error {
-	return s.h.loadAppPage(s)
+	return s.h.loadAppPageURL(s, s.h.baseURL+"/#/")
 }
 
 // ConnectResources connects the session Resource SDK client through the
