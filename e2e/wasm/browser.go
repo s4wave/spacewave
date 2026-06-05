@@ -76,7 +76,9 @@ func (h *Harness) newBrowserContext(s *TestSession) (playwright.Page, error) {
 		return nil, errors.New("browser not launched")
 	}
 
-	ctx, err := h.browser.NewContext()
+	ctx, err := h.browser.NewContext(playwright.BrowserNewContextOptions{
+		AcceptDownloads: playwright.Bool(true),
+	})
 	if err != nil {
 		return nil, errors.Wrap(err, "new browser context")
 	}
@@ -102,7 +104,9 @@ func (h *Harness) newRetainedStateBrowserPage(s *TestSession) (playwright.Page, 
 	defer h.retainedStateCtxMu.Unlock()
 
 	if h.retainedStateCtx == nil {
-		ctx, err := h.browser.NewContext()
+		ctx, err := h.browser.NewContext(playwright.BrowserNewContextOptions{
+			AcceptDownloads: playwright.Bool(true),
+		})
 		if err != nil {
 			return nil, errors.Wrap(err, "new retained-state browser context")
 		}

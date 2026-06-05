@@ -46,6 +46,7 @@ const pluginAssetsPathPrefix = '/b/pa/'
 const pluginWebPkgPathPrefix = '/b/pkg/'
 const quickJSRuntimePathPrefix = '/b/qjs/'
 const pluginHttpPathPrefix = '/p/'
+const browserRuntimeFetchHeaderTimeoutMs = 30000
 
 // CACHES is the list of fixed caches.
 const CACHES: Record<string, Cache | undefined> = {
@@ -150,6 +151,10 @@ export interface BrowserRuntimeFetchFailureInput {
   status?: number
   message?: string
   aborted?: boolean
+}
+
+export interface BrowserRuntimeFetchClientTracker {
+  hasRuntimeFetchRelay(): boolean
 }
 
 // resetServiceWorkerTestState clears module-level cache handles for unit tests.
@@ -907,6 +912,21 @@ function isPluginRuntimeFetchSource(source: BrowserFetchSource): boolean {
   return isPluginRuntimeFetchSourceKind(source.kind)
 }
 
+export function resolveBrowserRuntimeFetchClientId(
+  clientId: string | undefined,
+  source: BrowserFetchSource,
+  tracker: BrowserRuntimeFetchClientTracker,
+  serviceWorkerClientId: string,
+): string {
+  if (clientId) {
+    return clientId
+  }
+  if (isPluginRuntimeFetchSource(source) && tracker.hasRuntimeFetchRelay()) {
+    return serviceWorkerClientId
+  }
+  return ''
+}
+
 function isPluginRuntimeFetchSourceKind(kind: BrowserFetchSourceKind): boolean {
   return (
     kind === 'plugin-assets' ||
@@ -1031,9 +1051,8 @@ export function classifyBrowserRuntimeFetchError(
     failure,
     lowerMessage,
   )
-  const pluginAssetFetchResult =
-    isPluginRuntimeFetchSourceKind(source.kind) ?
-      pluginAssetFetchResultForErrorCode(code)
+  const pluginAssetFetchResult = isPluginRuntimeFetchSourceKind(source.kind)
+    ? pluginAssetFetchResultForErrorCode(code)
     : undefined
   return {
     code,
@@ -1093,16 +1112,16 @@ function buildBrowserRuntimeFetchErrorResponse(
   method: string,
 ): Response {
   const body =
-    method === 'HEAD' ? null : (
-      JSON.stringify({
-        schemaVersion: 1,
-        code: error.code,
-        source: error.source,
-        path: error.path,
-        message: error.message,
-        pluginAssetFetchResult: error.pluginAssetFetchResult,
-      })
-    )
+    method === 'HEAD'
+      ? null
+      : JSON.stringify({
+          schemaVersion: 1,
+          code: error.code,
+          source: error.source,
+          path: error.path,
+          message: error.message,
+          pluginAssetFetchResult: error.pluginAssetFetchResult,
+        })
   const headers = new Headers({
     'Cache-Control': 'no-store',
     'Content-Type': 'application/json; charset=utf-8',
@@ -1127,16 +1146,16 @@ function buildNoReadyDocumentResponse(
 ): Response {
   return buildBrowserRuntimeFetchErrorResponse(
     {
-      code:
-        isPluginRuntimeFetchSource(source) ?
-          'runtime-unavailable'
+      code: isPluginRuntimeFetchSource(source)
+        ? 'runtime-unavailable'
         : 'no-ready-document',
       source: source.kind,
       path: source.path,
       message: 'runtime fetch requires a ready browser document',
       status: 503,
-      pluginAssetFetchResult:
-        isPluginRuntimeFetchSource(source) ? 'runtime-unavailable' : undefined,
+      pluginAssetFetchResult: isPluginRuntimeFetchSource(source)
+        ? 'runtime-unavailable'
+        : undefined,
     },
     method,
   )
@@ -1202,6 +1221,7 @@ async function proxyBrowserRuntimeFetch(
   clientId: string,
   opts?: {
     abortSignal?: AbortSignal
+    headerTimeoutMs?: number
   },
 ): Promise<Response> {
   const response = await proxyFetch(swHost, request, clientId, opts)
@@ -1367,13 +1387,21 @@ export async function swFetch(
     }
     return response
   }
-  if (!ev.clientId) {
+  const runtimeFetchClientId = resolveBrowserRuntimeFetchClientId(
+    ev.clientId || '',
+    source,
+    webDocumentTracker,
+    serviceWorkerLogicalId,
+  )
+  if (!runtimeFetchClientId) {
     return buildNoReadyDocumentResponse(source, request.method)
   }
 
-  const trackedFetch = serviceWorkerFetchTracker.trackFetch(ev.clientId)
-  return proxyBrowserRuntimeFetch(source, request, ev.clientId, {
+  const trackedFetch =
+    serviceWorkerFetchTracker.trackFetch(runtimeFetchClientId)
+  return proxyBrowserRuntimeFetch(source, request, runtimeFetchClientId, {
     abortSignal: trackedFetch.abortController.signal,
+    headerTimeoutMs: browserRuntimeFetchHeaderTimeoutMs,
   }).finally(() => trackedFetch.release())
 
   /*

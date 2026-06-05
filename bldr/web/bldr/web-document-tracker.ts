@@ -248,6 +248,14 @@ export class WebDocumentTracker {
     }
   }
 
+  public hasRuntimeFetchRelay(): boolean {
+    const webDocumentId =
+      this.activeRuntimeWebDocumentId ??
+      this.preferredRuntimeWebDocumentId ??
+      this.lastWebDocumentId
+    return !!(webDocumentId && this.webDocuments[webDocumentId])
+  }
+
   public async requestSabPair(
     targetWorkerId: string,
   ): Promise<SabPairEndpointDescriptor> {

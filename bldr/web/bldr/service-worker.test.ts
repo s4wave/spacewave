@@ -14,6 +14,7 @@ import {
   handleServiceWorkerMessage,
   refreshBrowserIndexCache,
   resetServiceWorkerTestState,
+  resolveBrowserRuntimeFetchClientId,
   swFetch,
 } from './service-worker.js'
 
@@ -602,6 +603,42 @@ describe('service worker fetch release cache routing', () => {
       pluginAssetFetchResult: 'runtime-unavailable',
     })
     expect(proxyFetch).not.toHaveBeenCalled()
+  })
+
+  it('uses the service worker runtime client for plugin fetches without a browser client when a relay exists', () => {
+    const source = classifyBrowserFetchSource(
+      new Request(
+        new URL(
+          '/p/spacewave-core/fs/u/1/so/space/-/file.txt',
+          self.location.href,
+        ),
+      ),
+    )
+
+    expect(
+      resolveBrowserRuntimeFetchClientId(
+        '',
+        source,
+        { hasRuntimeFetchRelay: () => true },
+        'service-worker-runtime',
+      ),
+    ).toBe('service-worker-runtime')
+    expect(
+      resolveBrowserRuntimeFetchClientId(
+        'client-a',
+        source,
+        { hasRuntimeFetchRelay: () => true },
+        'service-worker-runtime',
+      ),
+    ).toBe('client-a')
+    expect(
+      resolveBrowserRuntimeFetchClientId(
+        '',
+        source,
+        { hasRuntimeFetchRelay: () => false },
+        'service-worker-runtime',
+      ),
+    ).toBe('')
   })
 
   it('returns typed runtime-unavailable for plugin worker import timeouts', async () => {
