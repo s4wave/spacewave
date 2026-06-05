@@ -4,6 +4,8 @@ package goscript_resource_service
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -40,6 +42,7 @@ func startResourceService() {
 		"startInfoPresent": startInfo.Truthy(),
 		"compiler":         runtime.Compiler,
 	})
+	fmt.Fprintln(os.Stderr, "goscript resource-service stderr fallback proof")
 
 	pluginIO, err := web_runtime_wasm.GlobalWasmPluginIo()
 	if err != nil {
