@@ -14,6 +14,8 @@ message ChatChannel {
   string topic = 2;
   // CreatedAt is the creation timestamp.
   .google.protobuf.Timestamp created_at = 3;
+  // MessageCount is the number of messages appended to the channel.
+  uint64 message_count = 4;
 }
 
 // ChatMessage is a chat message world object linked to a channel.
@@ -26,6 +28,8 @@ message ChatMessage {
   .google.protobuf.Timestamp created_at = 3;
   // ReplyToKey is the object key of the message being replied to.
   string reply_to_key = 4;
+  // Index is the zero-based message index within the channel.
+  uint64 index = 5;
 }
 
 // ChatMessageContent contains the message body.
@@ -34,6 +38,12 @@ message ChatMessageContent {
     // Text is a plain text message.
     string text = 1;
   }
+}
+
+// ChatMessagePage stores a bounded page of channel message keys.
+message ChatMessagePage {
+  // MessageKeys are page-local message object keys in creation order.
+  repeated string message_keys = 1;
 }
 
 // InitChatDemoOp creates a "General" channel on space quickstart.

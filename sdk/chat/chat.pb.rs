@@ -13,6 +13,9 @@ pub struct ChatChannel {
     /// CreatedAt is the creation timestamp.
     #[prost(message, optional, tag="3")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    /// MessageCount is the number of messages appended to the channel.
+    #[prost(uint64, tag="4")]
+    pub message_count: u64,
 }
 /// ChatMessage is a chat message world object linked to a channel.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -29,6 +32,9 @@ pub struct ChatMessage {
     /// ReplyToKey is the object key of the message being replied to.
     #[prost(string, tag="4")]
     pub reply_to_key: ::prost::alloc::string::String,
+    /// Index is the zero-based message index within the channel.
+    #[prost(uint64, tag="5")]
+    pub index: u64,
 }
 /// ChatMessageContent contains the message body.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -44,6 +50,13 @@ pub mod chat_message_content {
         #[prost(string, tag="1")]
         Text(::prost::alloc::string::String),
     }
+}
+/// ChatMessagePage stores a bounded page of channel message keys.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ChatMessagePage {
+    /// MessageKeys are page-local message object keys in creation order.
+    #[prost(string, repeated, tag="1")]
+    pub message_keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 /// InitChatDemoOp creates a "General" channel on space quickstart.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

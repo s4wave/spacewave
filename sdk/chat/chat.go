@@ -17,6 +17,21 @@ var PredChannelMessage = quad.IRI("spacewave-chat/channel-message")
 // PredMessageSender is the graph predicate linking a message to its sender.
 var PredMessageSender = quad.IRI("spacewave-chat/message-sender")
 
+// NewChatChannelBlock constructs a new ChatChannel block.
+func NewChatChannelBlock() block.Block {
+	return &ChatChannel{}
+}
+
+// NewChatMessageBlock constructs a new ChatMessage block.
+func NewChatMessageBlock() block.Block {
+	return &ChatMessage{}
+}
+
+// NewChatMessagePageBlock constructs a new ChatMessagePage block.
+func NewChatMessagePageBlock() block.Block {
+	return &ChatMessagePage{}
+}
+
 // MarshalBlock marshals the ChatChannel to bytes.
 func (c *ChatChannel) MarshalBlock() ([]byte, error) {
 	return c.MarshalVT()
@@ -47,8 +62,26 @@ func (m *ChatMessage) Validate() error {
 	return nil
 }
 
+// MarshalBlock marshals the ChatMessagePage to bytes.
+func (m *ChatMessagePage) MarshalBlock() ([]byte, error) {
+	return m.MarshalVT()
+}
+
+// UnmarshalBlock unmarshals the ChatMessagePage from bytes.
+func (m *ChatMessagePage) UnmarshalBlock(data []byte) error {
+	return m.UnmarshalVT(data)
+}
+
+// Validate performs cursory checks on the ChatMessagePage.
+func (m *ChatMessagePage) Validate() error {
+	return nil
+}
+
 // _ is a type assertion
 var _ block.Block = (*ChatChannel)(nil)
 
 // _ is a type assertion
 var _ block.Block = (*ChatMessage)(nil)
+
+// _ is a type assertion
+var _ block.Block = (*ChatMessagePage)(nil)

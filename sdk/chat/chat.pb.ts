@@ -35,6 +35,12 @@ export interface ChatChannel {
    * @generated from field: google.protobuf.Timestamp created_at = 3;
    */
   createdAt?: Date
+  /**
+   * MessageCount is the number of messages appended to the channel.
+   *
+   * @generated from field: uint64 message_count = 4;
+   */
+  messageCount?: bigint
 }
 
 export const ChatChannel: MessageType<ChatChannel> =
@@ -44,6 +50,7 @@ export const ChatChannel: MessageType<ChatChannel> =
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'topic', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'created_at', kind: 'message', T: () => Timestamp },
+      { no: 4, name: 'message_count', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -118,6 +125,12 @@ export interface ChatMessage {
    * @generated from field: string reply_to_key = 4;
    */
   replyToKey?: string
+  /**
+   * Index is the zero-based message index within the channel.
+   *
+   * @generated from field: uint64 index = 5;
+   */
+  index?: bigint
 }
 
 export const ChatMessage: MessageType<ChatMessage> =
@@ -128,6 +141,36 @@ export const ChatMessage: MessageType<ChatMessage> =
       { no: 2, name: 'content', kind: 'message', T: () => ChatMessageContent },
       { no: 3, name: 'created_at', kind: 'message', T: () => Timestamp },
       { no: 4, name: 'reply_to_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'index', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ChatMessagePage stores a bounded page of channel message keys.
+ *
+ * @generated from message spacewave.chat.ChatMessagePage
+ */
+export interface ChatMessagePage {
+  /**
+   * MessageKeys are page-local message object keys in creation order.
+   *
+   * @generated from field: repeated string message_keys = 1;
+   */
+  messageKeys?: string[]
+}
+
+export const ChatMessagePage: MessageType<ChatMessagePage> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.chat.ChatMessagePage',
+    fields: [
+      {
+        no: 1,
+        name: 'message_keys',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

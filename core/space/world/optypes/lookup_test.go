@@ -8,6 +8,7 @@ import (
 	s4wave_git "github.com/s4wave/spacewave/core/git"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	git_world "github.com/s4wave/spacewave/db/git/world"
+	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_sshhost "github.com/s4wave/spacewave/sdk/sshhost"
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
@@ -71,6 +72,22 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 	}
 	if _, ok := op.(*s4wave_terminal.CreateTerminalOp); !ok {
 		t.Fatalf("expected CreateTerminalOp, got %T", op)
+	}
+
+	op, err = lookupOp(context.Background(), spacewave_chat.InitChatDemoOpId)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := op.(*spacewave_chat.InitChatDemoOp); !ok {
+		t.Fatalf("expected InitChatDemoOp, got %T", op)
+	}
+
+	op, err = lookupOp(context.Background(), spacewave_chat.CreateChatChannelOpId)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := op.(*spacewave_chat.CreateChatChannelOp); !ok {
+		t.Fatalf("expected CreateChatChannelOp, got %T", op)
 	}
 
 	op, err = lookupOp(context.Background(), s4wave_sshhost.CreateSshHostOpId)

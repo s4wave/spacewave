@@ -3781,7 +3781,7 @@
       "protoFiles": ["sdk/cdn/cdn-resource.proto"]
     },
     "github.com/s4wave/spacewave/sdk/chat": {
-      "hash": "aa672dbb09fb05010fe5220250f633340375d088d260af9db84479890ddded98",
+      "hash": "2aa8ab5b6f97c3ccd63289ad1301b5352ab005844503ce1e0ade58296438005b",
       "generatedFiles": [
         "sdk/chat/chat.pb.cc",
         "sdk/chat/chat.pb.go",

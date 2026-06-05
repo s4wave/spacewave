@@ -26,6 +26,8 @@ type ChatChannel struct {
 	Topic string `protobuf:"bytes,2,opt,name=topic,proto3" json:"topic,omitempty"`
 	// CreatedAt is the creation timestamp.
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"createdAt,omitempty"`
+	// MessageCount is the number of messages appended to the channel.
+	MessageCount uint64 `protobuf:"varint,4,opt,name=message_count,json=messageCount,proto3" json:"messageCount,omitempty"`
 }
 
 func (x *ChatChannel) Reset() {
@@ -55,6 +57,13 @@ func (x *ChatChannel) GetCreatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *ChatChannel) GetMessageCount() uint64 {
+	if x != nil {
+		return x.MessageCount
+	}
+	return 0
+}
+
 // ChatMessage is a chat message world object linked to a channel.
 type ChatMessage struct {
 	unknownFields []byte
@@ -66,6 +75,8 @@ type ChatMessage struct {
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"createdAt,omitempty"`
 	// ReplyToKey is the object key of the message being replied to.
 	ReplyToKey string `protobuf:"bytes,4,opt,name=reply_to_key,json=replyToKey,proto3" json:"replyToKey,omitempty"`
+	// Index is the zero-based message index within the channel.
+	Index uint64 `protobuf:"varint,5,opt,name=index,proto3" json:"index,omitempty"`
 }
 
 func (x *ChatMessage) Reset() {
@@ -100,6 +111,13 @@ func (x *ChatMessage) GetReplyToKey() string {
 		return x.ReplyToKey
 	}
 	return ""
+}
+
+func (x *ChatMessage) GetIndex() uint64 {
+	if x != nil {
+		return x.Index
+	}
+	return 0
 }
 
 // ChatMessageContent contains the message body.
@@ -141,6 +159,26 @@ type ChatMessageContent_Text struct {
 }
 
 func (*ChatMessageContent_Text) isChatMessageContent_Content() {}
+
+// ChatMessagePage stores a bounded page of channel message keys.
+type ChatMessagePage struct {
+	unknownFields []byte
+	// MessageKeys are page-local message object keys in creation order.
+	MessageKeys []string `protobuf:"bytes,1,rep,name=message_keys,json=messageKeys,proto3" json:"messageKeys,omitempty"`
+}
+
+func (x *ChatMessagePage) Reset() {
+	*x = ChatMessagePage{}
+}
+
+func (*ChatMessagePage) ProtoMessage() {}
+
+func (x *ChatMessagePage) GetMessageKeys() []string {
+	if x != nil {
+		return x.MessageKeys
+	}
+	return nil
+}
 
 // InitChatDemoOp creates a "General" channel on space quickstart.
 type InitChatDemoOp struct {
@@ -225,6 +263,7 @@ func (m *ChatChannel) CloneVT() *ChatChannel {
 	r := new(ChatChannel)
 	r.Name = m.Name
 	r.Topic = m.Topic
+	r.MessageCount = m.MessageCount
 	if rhs := m.CreatedAt; rhs != nil {
 		r.CreatedAt = rhs.CloneVT()
 	}
@@ -246,6 +285,7 @@ func (m *ChatMessage) CloneVT() *ChatMessage {
 	r.SenderPeerId = m.SenderPeerId
 	r.Content = m.Content.CloneVT()
 	r.ReplyToKey = m.ReplyToKey
+	r.Index = m.Index
 	if rhs := m.CreatedAt; rhs != nil {
 		r.CreatedAt = rhs.CloneVT()
 	}
@@ -289,6 +329,24 @@ func (m *ChatMessageContent_Text) CloneVT() *ChatMessageContent_Text {
 }
 
 func (m *ChatMessageContent_Text) CloneOneofVT() isChatMessageContent_Content {
+	return m.CloneVT()
+}
+
+func (m *ChatMessagePage) CloneVT() *ChatMessagePage {
+	if m == nil {
+		return (*ChatMessagePage)(nil)
+	}
+	r := new(ChatMessagePage)
+	if rhs := m.MessageKeys; rhs != nil {
+		r.MessageKeys = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ChatMessagePage) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -347,6 +405,9 @@ func (this *ChatChannel) EqualVT(that *ChatChannel) bool {
 	if !this.CreatedAt.EqualVT(that.CreatedAt) {
 		return false
 	}
+	if this.MessageCount != that.MessageCount {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -374,6 +435,9 @@ func (this *ChatMessage) EqualVT(that *ChatMessage) bool {
 		return false
 	}
 	if this.ReplyToKey != that.ReplyToKey {
+		return false
+	}
+	if this.Index != that.Index {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -431,6 +495,32 @@ func (this *ChatMessageContent_Text) EqualVT(thatIface isChatMessageContent_Cont
 		return false
 	}
 	return true
+}
+
+func (this *ChatMessagePage) EqualVT(that *ChatMessagePage) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.MessageKeys) != len(that.MessageKeys) {
+		return false
+	}
+	for i, vx := range this.MessageKeys {
+		vy := that.MessageKeys[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ChatMessagePage) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ChatMessagePage)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
 }
 
 func (this *InitChatDemoOp) EqualVT(that *InitChatDemoOp) bool {
@@ -508,6 +598,11 @@ func (x *ChatChannel) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("createdAt")
 		x.CreatedAt.MarshalProtoJSON(s.WithField("createdAt"))
 	}
+	if x.MessageCount != 0 || s.HasField("messageCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("messageCount")
+		s.WriteUint64(x.MessageCount)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -538,6 +633,9 @@ func (x *ChatChannel) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.CreatedAt = &timestamppb.Timestamp{}
 			x.CreatedAt.UnmarshalProtoJSON(s.WithField("created_at", true))
+		case "message_count", "messageCount":
+			s.AddField("message_count")
+			x.MessageCount = s.ReadUint64()
 		}
 	})
 }
@@ -574,6 +672,11 @@ func (x *ChatMessage) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("replyToKey")
 		s.WriteString(x.ReplyToKey)
+	}
+	if x.Index != 0 || s.HasField("index") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("index")
+		s.WriteUint64(x.Index)
 	}
 	s.WriteObjectEnd()
 }
@@ -612,6 +715,9 @@ func (x *ChatMessage) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "reply_to_key", "replyToKey":
 			s.AddField("reply_to_key")
 			x.ReplyToKey = s.ReadString()
+		case "index":
+			s.AddField("index")
+			x.Index = s.ReadUint64()
 		}
 	})
 }
@@ -665,6 +771,52 @@ func (x *ChatMessageContent) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the ChatMessageContent from JSON.
 func (x *ChatMessageContent) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ChatMessagePage message to JSON.
+func (x *ChatMessagePage) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.MessageKeys) > 0 || s.HasField("messageKeys") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("messageKeys")
+		s.WriteStringArray(x.MessageKeys)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ChatMessagePage to JSON.
+func (x *ChatMessagePage) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ChatMessagePage message from JSON.
+func (x *ChatMessagePage) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "message_keys", "messageKeys":
+			s.AddField("message_keys")
+			if s.ReadNil() {
+				x.MessageKeys = nil
+				return
+			}
+			x.MessageKeys = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ChatMessagePage from JSON.
+func (x *ChatMessagePage) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -822,6 +974,11 @@ func (m *ChatChannel) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.MessageCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MessageCount))
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.CreatedAt != nil {
 		size, err := m.CreatedAt.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -878,6 +1035,11 @@ func (m *ChatMessage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Index != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Index))
+		i--
+		dAtA[i] = 0x28
 	}
 	if len(m.ReplyToKey) > 0 {
 		i -= len(m.ReplyToKey)
@@ -970,6 +1132,48 @@ func (m *ChatMessageContent_Text) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Text)))
 	i--
 	dAtA[i] = 0xa
+	return len(dAtA) - i, nil
+}
+
+func (m *ChatMessagePage) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ChatMessagePage) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ChatMessagePage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.MessageKeys) > 0 {
+		for iNdEx := len(m.MessageKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.MessageKeys[iNdEx])
+			copy(dAtA[i:], m.MessageKeys[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.MessageKeys[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -1105,6 +1309,9 @@ func (m *ChatChannel) SizeVT() (n int) {
 		l = m.CreatedAt.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.MessageCount != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.MessageCount))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1131,6 +1338,9 @@ func (m *ChatMessage) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.Index != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Index))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1156,6 +1366,22 @@ func (m *ChatMessageContent_Text) SizeVT() (n int) {
 	_ = l
 	l = len(m.Text)
 	n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	return n
+}
+
+func (m *ChatMessagePage) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.MessageKeys) > 0 {
+		for _, s := range m.MessageKeys {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
 	return n
 }
 
@@ -1227,6 +1453,13 @@ func (x *ChatChannel) MarshalProtoText() string {
 		sb.WriteString("created_at: ")
 		sb.WriteString(x.CreatedAt.MarshalProtoText())
 	}
+	if x.MessageCount != 0 {
+		if sb.Len() > 13 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("message_count: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.MessageCount), 10))
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
@@ -1266,6 +1499,13 @@ func (x *ChatMessage) MarshalProtoText() string {
 		sb.WriteString("reply_to_key: ")
 		sb.WriteString(strconv.Quote(x.ReplyToKey))
 	}
+	if x.Index != 0 {
+		if sb.Len() > 13 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("index: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.Index), 10))
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
@@ -1290,6 +1530,30 @@ func (x *ChatMessageContent) MarshalProtoText() string {
 }
 
 func (x *ChatMessageContent) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ChatMessagePage) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ChatMessagePage {")
+	if len(x.MessageKeys) > 0 {
+		if sb.Len() > 17 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("message_keys: [")
+		for i, v := range x.MessageKeys {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ChatMessagePage) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1449,6 +1713,15 @@ func (m *ChatChannel) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MessageCount", wireType)
+			}
+			m.MessageCount = 0
+			m.MessageCount, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1592,6 +1865,15 @@ func (m *ChatMessage) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ReplyToKey = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Index", wireType)
+			}
+			m.Index = 0
+			m.Index, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1656,6 +1938,71 @@ func (m *ChatMessageContent) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Content = &ChatMessageContent_Text{Text: string(dAtA[iNdEx:postIndex])}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ChatMessagePage) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ChatMessagePage: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ChatMessagePage: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MessageKeys", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.MessageKeys = append(m.MessageKeys, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
