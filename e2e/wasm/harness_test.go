@@ -1090,7 +1090,97 @@ func TestGoScriptSharedObjectDirectRouteBodyMountGate(t *testing.T) {
 	)
 }
 
+// TestGoScriptQuickstartSpaceDirectRouteMountGate verifies the static Space
+// quickstart can reopen its direct Space route without Quickstart handoff state.
+func TestGoScriptQuickstartSpaceDirectRouteMountGate(t *testing.T) {
+	compiler, err := ResolveE2EWasmCompiler()
+	if err != nil {
+		t.Fatalf("resolve e2e wasm compiler: %v", err)
+	}
+	if compiler != E2EWasmCompilerGoScript {
+		t.Skipf("GoScript-only regression gate; compiler=%s", compiler)
+	}
+
+	sess := testHarness.NewCleanSession(t)
+	console, stopConsole := sess.WatchConsole()
+	defer stopConsole()
+	defer func() {
+		report := DrainCrashReport(console)
+		if report.HasCrash() {
+			t.Errorf("unexpected browser/WASM crash report during direct Space route gate: %+v", report)
+		}
+		if report.HasExitedGoLoop() {
+			t.Errorf("unexpected exited-Go loop during direct Space route gate: %+v", report)
+		}
+	}()
+
+	page := sess.Page()
+	WaitForApp(t, page)
+	EnableQuickstartTimingLogs(t, page)
+	NavigateHash(t, testHarness, page, "#/quickstart/space")
+	WaitForEmptySpaceReady(t, page)
+
+	targetHash, err := currentHash(page.URL())
+	if err != nil {
+		t.Fatalf("current Space hash: %v", err)
+	}
+	script := "globalThis.__s4waveLogQuickstartTiming = true;"
+	if err := sess.BrowserContext().AddInitScript(playwright.Script{Content: &script}); err != nil {
+		t.Fatalf("install quickstart timing init script: %v", err)
+	}
+	if err := sess.ReplacePageInCurrentContext(); err != nil {
+		t.Fatalf("replace page in current context: %v", err)
+	}
+	if err := testHarness.loadAppPageURL(sess, testHarness.BaseURL()+"/"+targetHash); err != nil {
+		t.Fatalf("load direct Space route after page replacement: %v", err)
+	}
+
+	page = sess.Page()
+	WaitForApp(t, page)
+	AssertRootImportMap(t, testHarness, page)
+	AssertBrowserStartupDone(t, testHarness, page)
+	WaitForEmptySpaceReady(t, page)
+	assertDirectSpaceRouteStartupMarks(t, page)
+	assertDirectSpaceRouteSpaceState(t, page)
+
+	t.Logf("goscript direct Space route gate passed: hash=%s", targetHash)
+}
+
 func assertDirectSharedObjectRouteStartupMarks(t testing.TB, page playwright.Page) {
+	t.Helper()
+
+	assertDirectRouteStartupMarks(t, page, []string{
+		"quickstart.session-mount-start",
+		"quickstart.session-mount-ready",
+		"quickstart.shared-object-mount-start",
+		"quickstart.shared-object-mount-ready",
+		"quickstart.shared-object-body-mount-start",
+		"quickstart.shared-object-body-mount-ready",
+		"quickstart.space-resource-created",
+		"quickstart.space-world-access-ready",
+		"quickstart.space-contents-mount-ready",
+		"unixfs.browser-mounted",
+		"unixfs.seeded-file-visible",
+	})
+}
+
+func assertDirectSpaceRouteStartupMarks(t testing.TB, page playwright.Page) {
+	t.Helper()
+
+	assertDirectRouteStartupMarks(t, page, []string{
+		"quickstart.session-mount-start",
+		"quickstart.session-mount-ready",
+		"quickstart.shared-object-mount-start",
+		"quickstart.shared-object-mount-ready",
+		"quickstart.shared-object-body-mount-start",
+		"quickstart.shared-object-body-mount-ready",
+		"quickstart.space-resource-created",
+		"quickstart.space-world-access-ready",
+		"quickstart.space-contents-mount-ready",
+	})
+}
+
+func assertDirectRouteStartupMarks(t testing.TB, page playwright.Page, required []string) {
 	t.Helper()
 
 	raw, err := page.Evaluate(`() => (globalThis.__swStartupMarks ?? []).map((mark) => ({
@@ -1113,21 +1203,9 @@ func assertDirectSharedObjectRouteStartupMarks(t testing.TB, page playwright.Pag
 		labels = append(labels, stringField(m, "label"))
 	}
 
-	for _, label := range []string{
-		"quickstart.session-mount-start",
-		"quickstart.session-mount-ready",
-		"quickstart.shared-object-mount-start",
-		"quickstart.shared-object-mount-ready",
-		"quickstart.shared-object-body-mount-start",
-		"quickstart.shared-object-body-mount-ready",
-		"quickstart.space-resource-created",
-		"quickstart.space-world-access-ready",
-		"quickstart.space-contents-mount-ready",
-		"unixfs.browser-mounted",
-		"unixfs.seeded-file-visible",
-	} {
+	for _, label := range required {
 		if !slices.Contains(labels, label) {
-			t.Fatalf("direct SharedObject route missing startup mark %q; labels=%v", label, labels)
+			t.Fatalf("direct route missing startup mark %q; labels=%v", label, labels)
 		}
 	}
 
@@ -1140,7 +1218,7 @@ func assertDirectSharedObjectRouteStartupMarks(t testing.TB, page playwright.Pag
 		"quickstart.space-contents-handoff-used",
 	} {
 		if slices.Contains(labels, label) {
-			t.Fatalf("direct SharedObject route used quickstart handoff mark %q; labels=%v", label, labels)
+			t.Fatalf("direct route used quickstart handoff mark %q; labels=%v", label, labels)
 		}
 	}
 }
@@ -1221,6 +1299,84 @@ func assertDirectSharedObjectRouteSpaceState(t testing.TB, page playwright.Page)
 	objectKeys, ok := result["objectKeys"].([]any)
 	if !ok || len(objectKeys) == 0 {
 		t.Fatalf("direct SharedObject route Space state had no world contents: %#v", result)
+	}
+}
+
+func assertDirectSpaceRouteSpaceState(t testing.TB, page playwright.Page) {
+	t.Helper()
+
+	raw, err := page.Evaluate(`async () => {
+		async function firstStreamValue(stream) {
+			for await (const value of stream) {
+				return value
+			}
+			return null
+		}
+		const match = window.location.hash.match(/^#\/u\/([0-9]+)\/so\/([^/]+)/)
+		const debug = globalThis.__s4wave_debug
+		const root = debug?.root
+		const mountSpace = debug?.mountSpace
+		if (!match || !root || !mountSpace) {
+			return { error: 'missing direct Space route or debug root' }
+		}
+		const sessionIdx = Number(match[1])
+		const sharedObjectId = decodeURIComponent(match[2])
+		const mountedResources = {
+			session: null,
+			space: null,
+		}
+		const cleanupStack = []
+		const cleanup = (resource) => {
+			cleanupStack.push(resource)
+			return resource
+		}
+		try {
+			const abort = AbortSignal.timeout(15000)
+			const mounted = await root.mountSessionByIdx({ sessionIdx }, abort)
+			mountedResources.session = mounted?.session ?? null
+			if (!mountedResources.session) return { error: 'mountSessionByIdx returned no session' }
+			mountedResources.space = await mountSpace({
+				session: mountedResources.session,
+				spaceResp: {
+					sharedObjectRef: {
+						providerResourceRef: {
+							id: sharedObjectId,
+						},
+					},
+				},
+				abortSignal: abort,
+				cleanup,
+			})
+			const state = await firstStreamValue(mountedResources.space.watchSpaceState({}, abort))
+			return {
+				ready: !!state?.ready,
+				indexPath: state?.settings?.indexPath ?? '',
+				objectKeys: (state?.worldContents?.objects ?? []).map((obj) => obj.objectKey ?? ''),
+			}
+		} catch (err) {
+			return { error: String(err?.stack ?? err) }
+		} finally {
+			while (cleanupStack.length) {
+				cleanupStack.pop()?.release?.()
+			}
+			mountedResources.session?.release?.()
+		}
+	}`, nil)
+	if err != nil {
+		t.Fatalf("read direct Space route Space state: %v", err)
+	}
+	result, ok := raw.(map[string]any)
+	if !ok {
+		t.Fatalf("unexpected direct Space route Space state %T: %#v", raw, raw)
+	}
+	if errMsg := stringField(result, "error"); errMsg != "" {
+		t.Fatalf("direct Space route Space state probe failed: %s", errMsg)
+	}
+	if !boolField(result, "ready") {
+		t.Fatalf("direct Space route Space state was not ready: %#v", result)
+	}
+	if indexPath := stringField(result, "indexPath"); indexPath != "" {
+		t.Fatalf("direct Space route indexPath=%q want empty: %#v", indexPath, result)
 	}
 }
 

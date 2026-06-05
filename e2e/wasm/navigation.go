@@ -282,6 +282,85 @@ func WaitForDriveShell(t testing.TB, page playwright.Page) {
 	}
 }
 
+// WaitForEmptySpaceReady waits for the static Space quickstart root route to
+// render the empty Space affordance.
+func WaitForEmptySpaceReady(t testing.TB, page playwright.Page) {
+	t.Helper()
+
+	for _, selector := range []string{
+		"text=Empty Space",
+		"text=Create your first object",
+	} {
+		if err := page.Locator(selector).First().WaitFor(
+			playwright.LocatorWaitForOptions{Timeout: playwright.Float(120000)},
+		); err != nil {
+			body, bodyErr := page.Locator("body").TextContent()
+			if bodyErr != nil {
+				body = "failed to read body text: " + bodyErr.Error()
+			}
+			debug, debugErr := page.Evaluate(`async () => {
+				const timing = globalThis.__s4waveQuickstartTiming ?? globalThis.__s4wave_debug?.quickstartTiming ?? null
+				return JSON.stringify({
+					hash: window.location.hash,
+					hasDebugRoot: !!globalThis.__s4wave_debug?.root,
+					startup: globalThis.__swBootStatus ?? null,
+					startupMarks: globalThis.__swStartupMarks ?? [],
+					timing,
+					testIds: Array.from(document.querySelectorAll('[data-testid]')).map((el) => ({
+						testid: el.getAttribute('data-testid'),
+						text: el.textContent?.slice(0, 180) ?? '',
+						tag: el.tagName,
+					})),
+					buttons: Array.from(document.querySelectorAll('button')).map((button) => ({
+						text: button.textContent?.slice(0, 180) ?? '',
+						ariaLabel: button.getAttribute('aria-label') ?? '',
+						disabled: button.disabled,
+					})),
+					bodyHtml: document.body.innerHTML.slice(0, 5000),
+					bodyText: document.body.textContent?.slice(0, 2000) ?? '',
+				})
+			}`)
+			if debugErr != nil {
+				debug = "failed to collect page debug: " + debugErr.Error()
+			}
+			t.Fatalf(
+				"wait for empty Space selector %q: %v\nurl: %s\nbody: %s\ndebug: %v",
+				selector,
+				err,
+				page.URL(),
+				trimPageText(body),
+				debug,
+			)
+		}
+	}
+
+	raw, err := page.Evaluate(`() => {
+		const timing = globalThis.__s4waveQuickstartTiming ?? globalThis.__s4wave_debug?.quickstartTiming ?? null
+		return {
+			hash: window.location.hash,
+			quickstartState: timing?.state ?? '',
+			quickstartError: timing?.error ?? '',
+		}
+	}`, nil)
+	if err != nil {
+		t.Fatalf("read empty Space ready state: %v", err)
+	}
+	state, ok := raw.(map[string]any)
+	if !ok {
+		t.Fatalf("unexpected empty Space ready state %T: %#v", raw, raw)
+	}
+	hash := stringField(state, "hash")
+	if !strings.Contains(hash, "#/u/") || !strings.Contains(hash, "/so/") {
+		t.Fatalf("empty Space did not reach direct Space route: %#v", state)
+	}
+	if errMsg := stringField(state, "quickstartError"); errMsg != "" {
+		t.Fatalf("empty Space quickstart timing recorded an error: %#v", state)
+	}
+	if got := stringField(state, "quickstartState"); got != "" && got != "content-ready" {
+		t.Fatalf("empty Space quickstart state=%q want content-ready: %#v", got, state)
+	}
+}
+
 // CompleteDriveIntroWizardIfPresent completes the first-run Drive intro when
 // the current route opens it before the raw files browser.
 func CompleteDriveIntroWizardIfPresent(t testing.TB, page playwright.Page) {
