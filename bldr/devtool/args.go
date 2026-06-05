@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/cli"
@@ -107,6 +108,10 @@ type DevtoolArgs struct {
 	resolvedUIMode DevtoolUIMode
 	// hasResolvedUIMode indicates resolvedUIMode is set.
 	hasResolvedUIMode bool
+	// statusCommandCancel cancels the active status command from the TUI key path.
+	statusCommandCancel func()
+	// statusCommandMu guards statusCommandCancel.
+	statusCommandMu sync.Mutex
 }
 
 // NewDevtoolArgs constructs new default arguments.

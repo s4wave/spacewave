@@ -88,3 +88,18 @@ func TestDevtoolArgsStartTUIRunnerPropagatesErrors(t *testing.T) {
 		t.Fatalf("expected runner error, got %v", err)
 	}
 }
+
+func TestBldrDevtoolTUIRunnerCtrlCCancelsCommand(t *testing.T) {
+	canceled := false
+	runner := &BldrDevtoolTUIRunner{
+		cancelCommand: func() {
+			canceled = true
+		},
+	}
+
+	runner.handleKey(nil, devtoolTUIKeyCtrlC)
+
+	if !canceled {
+		t.Fatal("expected ctrl-c key to cancel the active command")
+	}
+}

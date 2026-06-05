@@ -115,6 +115,9 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) (err error) {
 	webStartupSrcPath, _ := startConf.ParseWebStartupPath()
 
 	buildType := bldr_manifest.BuildType(a.BuildType)
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	d.setCommandRunningWithLogFile("start web", "wasm web runtime active on "+a.WebListenAddr, commandLogFile)
 	a.writeBannerTo(os.Stderr)
 	return d.ExecuteWebWasm(
@@ -400,20 +403,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 
 	le.Infof("listening on: %s", listenAddr)
 	server := &http.Server{Addr: listenAddr, Handler: http.HandlerFunc(serveFn), ReadHeaderTimeout: time.Second * 30}
-
-	// Shut down the server when the context is cancelled.
-	go func() {
-		<-ctx.Done()
-		shutdownCtx, shutdownCancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
-		defer shutdownCancel()
-		_ = server.Shutdown(shutdownCtx)
-	}()
-
-	err = server.ListenAndServe()
-	if err == http.ErrServerClosed {
-		return nil
-	}
-	return err
+	return listenAndServeDevtoolHTTP(ctx, server)
 }
 
 func (d *DevtoolBus) startCachedManifestFetchController(ctx context.Context) (func(), error) {

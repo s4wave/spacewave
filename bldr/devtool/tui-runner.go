@@ -31,6 +31,9 @@ func (a *DevtoolArgs) startTUIRunner(
 	if !a.ShouldUseTUI() || a.TUIRunner == nil {
 		return func() {}, nil
 	}
+	if runner, ok := a.TUIRunner.(*BldrDevtoolTUIRunner); ok {
+		runner.cancelCommand = a.cancelStatusCommand
+	}
 	stop, err := a.TUIRunner.Start(ctx, producer)
 	if err != nil {
 		return nil, err

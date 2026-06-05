@@ -183,6 +183,9 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) (err error) {
 	}
 	defer relStatusCtrl()
 
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	d.setCommandRunningWithLogFile("start web", "web runtime active on "+a.WebListenAddr, commandLogFile)
 	return d.ExecuteWebWs(ctx, repoRoot, a.MinifyEntrypoint, buildType.IsDev(), a.WebListenAddr, webStartupSrcPath)
 }
@@ -280,7 +283,7 @@ func (d *DevtoolBus) ExecuteWebWs(
 
 	le.Infof("listening on: %s", listenAddr)
 	server := &http.Server{Addr: listenAddr, Handler: http.HandlerFunc(serveFn), ReadHeaderTimeout: time.Second * 30}
-	return server.ListenAndServe()
+	return listenAndServeDevtoolHTTP(ctx, server)
 }
 
 func writeWebWsBuildManifest(entrypointDir string, bundleResult *entrypoint_browser_bundle.BrowserBundleResult) error {
@@ -330,4 +333,21 @@ func buildWsWebRuntime(le *logrus.Entry, b bus.Bus, runtimeID string, nch *webso
 		runtimeID,
 		DevtoolWsVersion,
 	)
+}
+
+func listenAndServeDevtoolHTTP(ctx context.Context, server *http.Server) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	go func() {
+		<-ctx.Done()
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		defer shutdownCancel()
+		_ = server.Shutdown(shutdownCtx)
+	}()
+	err := server.ListenAndServe()
+	if err == http.ErrServerClosed {
+		return nil
+	}
+	return err
 }

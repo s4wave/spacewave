@@ -66,7 +66,28 @@ func (a *DevtoolArgs) runStatusCommand(ctx context.Context, execute func(context
 	if a.Logger != nil {
 		a.Logger.WithField("ui-mode", mode.String()).Debug("resolved devtool ui mode")
 	}
-	return execute(ctx)
+	commandCtx, cancel := context.WithCancel(ctx)
+	a.setStatusCommandCancel(cancel)
+	defer func() {
+		a.setStatusCommandCancel(nil)
+		cancel()
+	}()
+	return execute(commandCtx)
+}
+
+func (a *DevtoolArgs) setStatusCommandCancel(cancel func()) {
+	a.statusCommandMu.Lock()
+	defer a.statusCommandMu.Unlock()
+	a.statusCommandCancel = cancel
+}
+
+func (a *DevtoolArgs) cancelStatusCommand() {
+	a.statusCommandMu.Lock()
+	cancel := a.statusCommandCancel
+	a.statusCommandMu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
 }
 
 func devtoolFileIsTerminal(f *os.File) bool {

@@ -15,10 +15,12 @@ import (
 )
 
 const devtoolTUIStatusBufferSize = 16
+const devtoolTUIKeyCtrlC byte = 0x03
 
 // BldrDevtoolTUIRunner runs the native terminal dashboard.
 type BldrDevtoolTUIRunner struct {
 	openBrowserURL func(string) error
+	cancelCommand  func()
 }
 
 // NewDevtoolTUIRunner creates the native dashboard runner.
@@ -65,6 +67,12 @@ func (r *BldrDevtoolTUIRunner) Start(
 }
 
 func (r *BldrDevtoolTUIRunner) handleKey(snapshot *devtool_status.BldrDevtoolStatus, key byte) {
+	if key == devtoolTUIKeyCtrlC {
+		if r.cancelCommand != nil {
+			r.cancelCommand()
+		}
+		return
+	}
 	if key != 'o' && key != 'O' {
 		return
 	}
