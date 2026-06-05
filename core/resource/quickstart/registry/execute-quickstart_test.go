@@ -3,6 +3,7 @@ package resource_quickstart_registry
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -13,6 +14,8 @@ import (
 	resource_space "github.com/s4wave/spacewave/core/resource/space"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_core "github.com/s4wave/spacewave/core/space"
+	space_world "github.com/s4wave/spacewave/core/space/world"
+	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	s4wave_quickstart_registry "github.com/s4wave/spacewave/sdk/quickstart/registry"
@@ -33,6 +36,7 @@ func TestExecuteQuickstartPassesAttachedEngineResourceToPlugin(t *testing.T) {
 	if err := s4wave_quickstart_registry.SRPCRegisterQuickstartHandlerService(pluginRoot, &testQuickstartHandler{
 		engineID: tb.EngineID,
 		bucketID: tb.EngineBucketID,
+		sender:   tb.Volume.GetPeerID().String(),
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -96,11 +100,24 @@ func TestExecuteQuickstartPassesAttachedEngineResourceToPlugin(t *testing.T) {
 	if _, err := world.MustGetObject(ctx, readTx, "quickstart/seeded-object"); err != nil {
 		t.Fatalf("seeded object was not committed through attached engine: %v", err)
 	}
+	settings, _, err := world.LookupObject[*space_world.SpaceSettings](
+		ctx,
+		readTx,
+		"quickstart/settings",
+		space_world.NewSpaceSettingsBlock,
+	)
+	if err != nil {
+		t.Fatalf("recursive built-in world op did not commit settings: %v", err)
+	}
+	if got := settings.GetIndexPath(); got != "/quickstart-recursive" {
+		t.Fatalf("settings index path = %q, want /quickstart-recursive", got)
+	}
 }
 
 type testQuickstartHandler struct {
 	engineID string
 	bucketID string
+	sender   string
 }
 
 func (h *testQuickstartHandler) SeedQuickstart(
@@ -156,6 +173,27 @@ func (h *testQuickstartHandler) SeedQuickstart(
 	}
 	if objID := objResp.GetResourceId(); objID != 0 {
 		defer resourceCtx.ReleaseResource(objID)
+	}
+	settingsOp := space_world_ops.NewSetSpaceSettingsOp(
+		"quickstart/settings",
+		&space_world.SpaceSettings{IndexPath: "/quickstart-recursive"},
+		true,
+		time.Unix(1, 0),
+	)
+	settingsData, err := settingsOp.MarshalBlock()
+	if err != nil {
+		return nil, err
+	}
+	applyResp, err := worldState.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{
+		OpTypeId: settingsOp.GetOperationTypeId(),
+		OpData:   settingsData,
+		OpSender: h.sender,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if applyResp.GetSeqno() == 0 || applyResp.GetSysErr() {
+		return nil, resource.ErrInvalidResourceID
 	}
 	tx := s4wave_world.NewSRPCTxResourceServiceClient(txClient)
 	if _, err := tx.Commit(ctx, &s4wave_world.CommitRequest{}); err != nil {
