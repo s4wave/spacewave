@@ -4,9 +4,11 @@ package spacewave_cli
 
 import (
 	"context"
+	stderrors "errors"
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/aperturerobotics/cli"
 	protojson "github.com/aperturerobotics/protobuf-go-lite/json"
@@ -15,6 +17,22 @@ import (
 	session_pb "github.com/s4wave/spacewave/core/session"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 	s4wave_status "github.com/s4wave/spacewave/sdk/status"
+)
+
+const statusMountSessionStage = "mount session"
+
+const statusMountSessionTimeoutEnvVar = "SPACEWAVE_STATUS_MOUNT_TIMEOUT"
+
+var defaultStatusMountSessionTimeout = 10 * time.Second
+
+var (
+	statusConnectDaemon = connectDaemonFromContext
+	statusCloseClient   = func(client *sdkClient) { client.close() }
+	statusMountSession  = func(ctx context.Context, client *sdkClient, idx uint32) (*s4wave_session.Session, error) {
+		return client.mountSession(ctx, idx)
+	}
+	statusResolveStatePath    = resolveStatePathFromContext
+	statusEffectiveSocketPath = effectiveSocketPath
 )
 
 // newStatusCommand builds the status CLI command.
@@ -34,23 +52,37 @@ func newStatusCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 // runStatus implements the status command logic.
 func runStatus(c *cli.Context, statePath, outputFormat string, sessionIdx uint32) error {
 	ctx := c.Context
-	client, err := connectDaemonFromContext(ctx, c, statePath)
+	client, err := statusConnectDaemon(ctx, c, statePath)
 	if err != nil {
 		return errors.Wrap(err, "connect daemon")
 	}
-	defer client.close()
+	defer statusCloseClient(client)
 
-	sockPath := effectiveSocketPath(c, "")
+	sockPath := statusEffectiveSocketPath(c, "")
 	if sockPath == "" {
-		resolved, err := resolveStatePathFromContext(c, statePath)
+		resolved, err := statusResolveStatePath(c, statePath)
 		if err != nil {
 			return err
 		}
 		sockPath = filepath.Join(resolved, socketName)
 	}
 
-	sess, err := client.mountSession(ctx, sessionIdx)
+	mountTimeout, err := getStatusMountSessionTimeout()
 	if err != nil {
+		return err
+	}
+	mountCtx, mountCancel := context.WithTimeout(ctx, mountTimeout)
+	defer mountCancel()
+
+	sess, err := statusMountSession(mountCtx, client, sessionIdx)
+	if err != nil {
+		if stderrors.Is(mountCtx.Err(), context.DeadlineExceeded) {
+			errMsg := statusMountSessionStage + " timed out after " + mountTimeout.String()
+			if writeErr := writeStatusStageError(outputFormat, sockPath, sessionIdx, statusMountSessionStage, errMsg); writeErr != nil {
+				return writeErr
+			}
+			return errors.New(errMsg)
+		}
 		if outputFormat == "json" || outputFormat == "yaml" {
 			buf, ms := newMarshalBuf()
 			ms.WriteObjectStart()
@@ -178,6 +210,58 @@ func runStatus(c *cli.Context, statePath, outputFormat string, sessionIdx uint32
 	fields = append(fields, [2]string{"Spaces", spaceCount})
 	appendRecoveryStatusFields(&fields, recovery, recoveryErr)
 	writeFields(os.Stdout, fields)
+	return nil
+}
+
+// getStatusMountSessionTimeout returns the configured status mount bound.
+func getStatusMountSessionTimeout() (time.Duration, error) {
+	raw := os.Getenv(statusMountSessionTimeoutEnvVar)
+	if raw == "" {
+		return defaultStatusMountSessionTimeout, nil
+	}
+	dur, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, errors.Wrap(err, statusMountSessionTimeoutEnvVar)
+	}
+	return dur, nil
+}
+
+func writeStatusStageError(
+	outputFormat string,
+	sockPath string,
+	sessionIdx uint32,
+	stage string,
+	errMsg string,
+) error {
+	if outputFormat == "json" || outputFormat == "yaml" {
+		buf, ms := newMarshalBuf()
+		ms.WriteObjectStart()
+		var f bool
+		ms.WriteMoreIf(&f)
+		ms.WriteObjectField("status")
+		ms.WriteString("running")
+		ms.WriteMoreIf(&f)
+		ms.WriteObjectField("socket")
+		ms.WriteString(sockPath)
+		ms.WriteMoreIf(&f)
+		ms.WriteObjectField("sessionIndex")
+		ms.WriteUint32(sessionIdx)
+		ms.WriteMoreIf(&f)
+		ms.WriteObjectField("stage")
+		ms.WriteString(stage)
+		ms.WriteMoreIf(&f)
+		ms.WriteObjectField("error")
+		ms.WriteString(errMsg)
+		ms.WriteObjectEnd()
+		return formatOutput(buf.Bytes(), outputFormat)
+	}
+	writeFields(os.Stdout, [][2]string{
+		{"Status", "running"},
+		{"Socket", sockPath},
+		{"Session Index", strconv.FormatUint(uint64(sessionIdx), 10)},
+		{"Stage", stage},
+		{"Error", errMsg},
+	})
 	return nil
 }
 
