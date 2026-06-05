@@ -51,12 +51,6 @@ var (
 		"spacewave-app",
 		"web",
 	}
-	goScriptUnsupportedGoPkgs = []string{
-		"./core/space/http/export",
-	}
-	goScriptUnsupportedConfigKeys = []string{
-		"export",
-	}
 )
 
 // E2EWasmCompiler selects the browser Go plugin compiler used by e2e/wasm.
@@ -330,7 +324,7 @@ func ConfigureTinyGoForManifest(manifestID string) func(*bldr_project.ProjectCon
 }
 
 // ConfigureGoScriptForManifest enables GoScript and removes dev-only config
-// that pulls packages the seed GoScript browser lane should not compile.
+// that pulls packages the browser lane should not compile.
 func ConfigureGoScriptForManifest(manifestID string) func(*bldr_project.ProjectConfig) error {
 	return ConfigureCompilerModeForManifest(manifestID, bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT)
 }
@@ -365,9 +359,6 @@ func ConfigureCompilerModeForManifest(
 		setWebCompilerMode(goConf, mode)
 		removeDebugTraceConfig(goConf)
 		removeSessionHarnessWebRTCConfig(goConf)
-		if mode == bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT {
-			removeGoScriptUnsupportedConfig(goConf)
-		}
 		return nil
 	})
 }
@@ -463,24 +454,6 @@ func removeDebugTraceConfig(goConf *bldr_plugin_compiler_go.Config) {
 func removeSessionHarnessWebRTCConfig(goConf *bldr_plugin_compiler_go.Config) {
 	goConf.GoPkgs = removeGoPkg(goConf.GetGoPkgs(), "github.com/s4wave/spacewave/net/transport/webrtc")
 	delete(goConf.ConfigSet, "e2e-session-harness-webrtc")
-}
-
-func removeGoScriptUnsupportedConfig(goConf *bldr_plugin_compiler_go.Config) {
-	if goConf == nil {
-		return
-	}
-	for _, pkg := range goScriptUnsupportedGoPkgs {
-		goConf.GoPkgs = removeGoPkg(goConf.GetGoPkgs(), pkg)
-	}
-	for _, key := range goScriptUnsupportedConfigKeys {
-		delete(goConf.ConfigSet, key)
-	}
-	for _, buildTypeConf := range goConf.GetBuildTypes() {
-		removeGoScriptUnsupportedConfig(buildTypeConf)
-	}
-	for _, platformConf := range goConf.GetPlatformTypes() {
-		removeGoScriptUnsupportedConfig(platformConf)
-	}
 }
 
 func removeGoPkg(pkgs []string, remove string) []string {

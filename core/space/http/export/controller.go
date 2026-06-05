@@ -1,5 +1,3 @@
-//go:build !goscript
-
 // Package export serves projected space data via HTTP zip routes.
 // URL: /p/spacewave-core/export/u/{idx}/so/{soId}/...
 // URL: /p/spacewave-core/export-batch/{base-path}/{b64}/{filename}.zip

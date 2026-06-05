@@ -90,7 +90,6 @@ def desktop_status_projector_config_set():
     }
 
 def spacewave_core_config(web_compiler_mode=None):
-    include_export = web_compiler_mode != "COMPILER_MODE_GOSCRIPT"
     platform_types = {
         "desktop": {
             "goPkgs": ["./core/resource/desktop/statusprojector"],
@@ -102,8 +101,8 @@ def spacewave_core_config(web_compiler_mode=None):
             "compilerMode": web_compiler_mode,
         }
     return {
-        "goPkgs": core_go_pkgs(include_export=include_export),
-        "configSet": core_config_set(include_export=include_export),
+        "goPkgs": core_go_pkgs(),
+        "configSet": core_config_set(),
         "buildTypes": {
             "dev": {
                 "goPkgs": ["./core/debug/trace"],

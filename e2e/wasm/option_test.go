@@ -251,10 +251,12 @@ func TestConfigureGoScriptForManifestRemovesSeedRuntimeConfig(t *testing.T) {
 			"dev": {
 				GoPkgs: []string{
 					"./core/debug/trace",
+					"./core/space/http/export",
 					"./core/plugin/space",
 				},
 				ConfigSet: map[string]*configset_proto.ControllerConfig{
 					"debug-trace": {Id: "debug/trace"},
+					"export":      {Id: "space/http/export"},
 					"space":       {Id: "plugin/space"},
 				},
 			},
@@ -303,11 +305,11 @@ func TestConfigureGoScriptForManifestRemovesSeedRuntimeConfig(t *testing.T) {
 	if _, ok := got.GetConfigSet()["e2e-session-harness"]; !ok {
 		t.Fatal("expected session harness controller config to remain")
 	}
-	if slices.Contains(devConf.GetGoPkgs(), "./core/space/http/export") {
-		t.Fatal("GoScript config still includes ./core/space/http/export")
+	if !slices.Contains(devConf.GetGoPkgs(), "./core/space/http/export") {
+		t.Fatal("GoScript config removed ./core/space/http/export")
 	}
-	if _, ok := devConf.GetConfigSet()["export"]; ok {
-		t.Fatal("GoScript config still includes export config")
+	if _, ok := devConf.GetConfigSet()["export"]; !ok {
+		t.Fatal("GoScript config removed export config")
 	}
 }
 
@@ -395,11 +397,11 @@ func TestConfigureGoScriptBrowserStartupUsesLauncherAndCore(t *testing.T) {
 	if coreWeb == nil || coreWeb.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT {
 		t.Fatalf("core web GoScript config missing: %#v", coreWeb)
 	}
-	if slices.Contains(core.GetGoPkgs(), "./core/space/http/export") {
-		t.Fatalf("core GoScript startup config still includes ./core/space/http/export: %v", core.GetGoPkgs())
+	if !slices.Contains(core.GetGoPkgs(), "./core/space/http/export") {
+		t.Fatalf("core GoScript startup config removed ./core/space/http/export: %v", core.GetGoPkgs())
 	}
-	if _, ok := core.GetConfigSet()["export"]; ok {
-		t.Fatal("core GoScript startup config still includes export config")
+	if _, ok := core.GetConfigSet()["export"]; !ok {
+		t.Fatal("core GoScript startup config removed export config")
 	}
 	if _, ok := core.GetConfigSet()["root-resource"]; !ok {
 		t.Fatal("core GoScript startup config removed root-resource")
