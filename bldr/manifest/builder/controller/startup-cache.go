@@ -28,9 +28,9 @@ import (
 )
 
 // startupCacheFormatEnvKey is bumped when compiler-owned output policy changes
-// without changing a plugin source file. V7 invalidates web-plugin manifests
-// cached before the browser shim recorded its startup validation inputs.
-const startupCacheFormatEnvKey = "BLDR_STARTUP_CACHE_FORMAT_V7"
+// without changing a plugin source file. V8 invalidates GoScript web-plugin
+// manifests cached before browser stderr output moved onto console.log.
+const startupCacheFormatEnvKey = "BLDR_STARTUP_CACHE_FORMAT_V8"
 
 // startupValidationResult contains the startup cache validation result.
 type startupValidationResult struct {

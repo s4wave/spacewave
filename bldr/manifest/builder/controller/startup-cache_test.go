@@ -297,6 +297,27 @@ func TestValidateStartupInputsRequiresCacheFormat(t *testing.T) {
 	}
 }
 
+func TestValidateStartupInputsRejectsOldCacheFormat(t *testing.T) {
+	controllerConfig := &configset_proto.ControllerConfig{}
+	controllerConfigDigest, err := marshalControllerConfigDigest(controllerConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	inputManifest := bldr_manifest_builder.NewInputManifest(nil, nil)
+	inputManifest.AddStartupInput(
+		bldr_manifest_builder.NewControllerConfigDigestStartupInput(controllerConfigDigest),
+	)
+	inputManifest.AddStartupInput(
+		bldr_manifest_builder.NewEnvStartupInput("BLDR_STARTUP_CACHE_FORMAT_V7", ""),
+	)
+
+	err = validateStartupInputs(controllerConfig, inputManifest)
+	if err == nil || !strings.Contains(err.Error(), "missing startup cache format marker") {
+		t.Fatalf("validate startup inputs error = %v, want missing current cache format", err)
+	}
+}
+
 func TestEnrichBuilderResultForStartupReuse(t *testing.T) {
 	tmpDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
@@ -345,8 +366,8 @@ func TestEnrichBuilderResultForStartupReuse(t *testing.T) {
 	if !foundCacheFormat {
 		t.Fatal("expected startup cache format marker input")
 	}
-	if startupCacheFormatEnvKey != "BLDR_STARTUP_CACHE_FORMAT_V7" {
-		t.Fatalf("startup cache format marker = %s, want V7", startupCacheFormatEnvKey)
+	if startupCacheFormatEnvKey != "BLDR_STARTUP_CACHE_FORMAT_V8" {
+		t.Fatalf("startup cache format marker = %s, want V8", startupCacheFormatEnvKey)
 	}
 }
 
