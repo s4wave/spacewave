@@ -307,6 +307,60 @@ func TestQuickstartSecondTabReusesRuntimeAndCloseKeepsFirstTab(t *testing.T) {
 	}
 }
 
+func TestGoScriptQuickstartReturnVisitorMountsBodyRoute(t *testing.T) {
+	if compiler, err := resolveReleaseWasmCompiler(); err != nil {
+		t.Fatalf("resolve release wasm compiler: %v", err)
+	} else if compiler != releaseWasmCompilerGoScript {
+		t.Skipf("release-WASM return visitor body route gate requires %s=true", E2EReleaseWasmGoScriptEnv)
+	}
+
+	pageA := testHarness.newPage(t)
+	quickstartURL := testHarness.getBaseURL() + "/quickstart/drive"
+	if _, err := pageA.Goto(quickstartURL); err != nil {
+		t.Fatalf("goto quickstart drive: %v", err)
+	}
+	waitForPrerenderRoot(t, pageA)
+	waitForBootFunction(t, pageA)
+	waitForLiveApp(t, pageA)
+	waitForQuickstartAppRoute(t, pageA)
+	completeQuickstartDriveIntroIfPresent(t, pageA)
+	if err := pageA.Locator("[data-testid='unixfs-browser']:visible").First().WaitFor(
+		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
+	); err != nil {
+		dumpPageState(t, pageA)
+		t.Fatalf("wait for quickstart frame-ready: %v", err)
+	}
+	hash, err := pageA.Evaluate(`() => window.location.hash`)
+	if err != nil {
+		t.Fatalf("read created direct route hash: %v", err)
+	}
+	hashText, ok := hash.(string)
+	if !ok || !strings.HasPrefix(hashText, "#/u/") || !strings.Contains(hashText, "/so/") {
+		t.Fatalf("quickstart did not produce direct SharedObject route hash: %#v", hash)
+	}
+	directURL := testHarness.getBaseURL() + "/" + hashText
+
+	pageB := testHarness.newPageInContext(t, pageA.Context())
+	if _, err := pageB.Goto(directURL); err != nil {
+		t.Fatalf("goto direct SharedObject route: %v", err)
+	}
+	waitForPrerenderRootOrLiveApp(t, pageB)
+	waitForBootFunction(t, pageB)
+	waitForLiveApp(t, pageB)
+	waitForQuickstartAppRoute(t, pageB)
+	if err := pageB.Locator("[data-testid='unixfs-browser']:visible").First().WaitFor(
+		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
+	); err != nil {
+		dumpPageState(t, pageB)
+		t.Fatalf("wait for return visitor direct route frame-ready: %v", err)
+	}
+	if _, err := waitForQuickstartDriveContentReady(t, pageB); err != "" {
+		t.Fatalf("wait for return visitor direct route content-ready: %s", err)
+	}
+	assertReturnVisitorBodyRouteStartupMarks(t, pageB)
+	assertReturnVisitorBodyRouteSpaceState(t, pageB)
+}
+
 type quickstartRuntimeTraceCapture struct {
 	started bool
 	stopped bool
@@ -574,6 +628,151 @@ func logQuickstartTiming(t *testing.T, page playwright.Page) {
 		return
 	}
 	t.Logf("quickstart timing: %v", timing)
+}
+
+func assertReturnVisitorBodyRouteStartupMarks(t testing.TB, page playwright.Page) {
+	t.Helper()
+
+	raw, err := page.Evaluate(`() => (globalThis.__swStartupMarks ?? []).map((mark) => ({
+		label: mark.label,
+		sequence: mark.sequence,
+		detail: mark.detail ?? null,
+	}))`, nil)
+	if err != nil {
+		t.Fatalf("read return visitor body route startup marks: %v", err)
+	}
+	items, ok := raw.([]any)
+	if !ok {
+		t.Fatalf("unexpected return visitor body route startup marks %T: %#v", raw, raw)
+	}
+	labels := make([]string, 0, len(items))
+	for _, item := range items {
+		mark, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		if label, ok := mark["label"].(string); ok {
+			labels = append(labels, label)
+		}
+	}
+	for _, label := range []string{
+		"quickstart.session-mount-start",
+		"quickstart.session-mount-ready",
+		"quickstart.shared-object-mount-start",
+		"quickstart.shared-object-mount-ready",
+		"quickstart.shared-object-body-mount-start",
+		"quickstart.shared-object-body-mount-ready",
+		"quickstart.space-resource-created",
+		"quickstart.space-world-access-ready",
+		"quickstart.space-contents-mount-ready",
+		"unixfs.browser-mounted",
+		"unixfs.seeded-file-visible",
+	} {
+		if !slices.Contains(labels, label) {
+			t.Fatalf("return visitor body route missing startup mark %q; labels=%v", label, labels)
+		}
+	}
+	for _, label := range []string{
+		"quickstart.session-handoff-used",
+		"quickstart.shared-object-handoff-used",
+		"quickstart.shared-object-body-handoff-used",
+		"quickstart.space-handoff-used",
+		"quickstart.space-world-handoff-used",
+		"quickstart.space-contents-handoff-used",
+	} {
+		if slices.Contains(labels, label) {
+			t.Fatalf("return visitor body route unexpectedly used Quickstart handoff mark %q; labels=%v", label, labels)
+		}
+	}
+}
+
+func assertReturnVisitorBodyRouteSpaceState(t testing.TB, page playwright.Page) {
+	t.Helper()
+
+	raw, err := page.Evaluate(`async () => {
+		async function firstStreamValue(stream) {
+			for await (const value of stream) {
+				return value
+			}
+			return null
+		}
+		const match = window.location.hash.match(/^#\/u\/([0-9]+)\/so\/([^/]+)/)
+		const debug = globalThis.__s4wave_debug
+		const root = debug?.root
+		const mountSpace = debug?.mountSpace
+		if (!match || !root || !mountSpace) {
+			return { error: 'missing direct SharedObject route or debug root' }
+		}
+		const sessionIdx = Number(match[1])
+		const sharedObjectId = decodeURIComponent(match[2])
+		const mountedResources = {
+			session: null,
+			space: null,
+		}
+		const cleanupStack = []
+		const cleanup = (resource) => {
+			cleanupStack.push(resource)
+			return resource
+		}
+		try {
+			const abort = AbortSignal.timeout(15000)
+			const mounted = await root.mountSessionByIdx({ sessionIdx }, abort)
+			mountedResources.session = mounted?.session ?? null
+			if (!mountedResources.session) return { error: 'mountSessionByIdx returned no session' }
+			mountedResources.space = await mountSpace({
+				session: mountedResources.session,
+				spaceResp: {
+					sharedObjectRef: {
+						providerResourceRef: {
+							id: sharedObjectId,
+						},
+					},
+				},
+				abortSignal: abort,
+				cleanup,
+			})
+			const state = await firstStreamValue(mountedResources.space.watchSpaceState({}, abort))
+			return {
+				ready: !!state?.ready,
+				indexPath: state?.settings?.indexPath ?? '',
+				objectKeys: (state?.worldContents?.objects ?? []).map((obj) => obj.objectKey ?? ''),
+			}
+		} catch (err) {
+			return { error: String(err?.stack ?? err) }
+		} finally {
+			while (cleanupStack.length) {
+				cleanupStack.pop()?.release?.()
+			}
+			mountedResources.session?.release?.()
+		}
+	}`, nil)
+	if err != nil {
+		t.Fatalf("read return visitor body route Space state: %v", err)
+	}
+	result, ok := raw.(map[string]any)
+	if !ok {
+		t.Fatalf("unexpected return visitor body route Space state %T: %#v", raw, raw)
+	}
+	if errMsg := releaseStringField(result, "error"); errMsg != "" {
+		t.Fatalf("return visitor body route Space state probe failed: %s", errMsg)
+	}
+	if !releaseBoolField(result, "ready") {
+		t.Fatalf("return visitor body route Space state was not ready: %#v", result)
+	}
+	objectKeys, ok := result["objectKeys"].([]any)
+	if !ok || len(objectKeys) == 0 {
+		t.Fatalf("return visitor body route Space state had no world contents: %#v", result)
+	}
+}
+
+func releaseStringField(m map[string]any, key string) string {
+	v, _ := m[key].(string)
+	return v
+}
+
+func releaseBoolField(m map[string]any, key string) bool {
+	v, _ := m[key].(bool)
+	return v
 }
 
 func waitForQuickstartDriveContentReady(t *testing.T, page playwright.Page) (*int, string) {
