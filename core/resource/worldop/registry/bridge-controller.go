@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package resource_worldop_registry
 
 import (
@@ -210,8 +208,10 @@ func (o *bridgeOperation) ApplyWorldObjectOp(
 	}
 	defer resources.Release()
 
-	// Attach an ObjectStateResource so the TS handler can mutate the object.
-	objResource := resource_world.NewObjectStateResource(o.le, o.b, os, nil)
+	// Attach an ObjectStateResource so the TS handler can mutate the object and
+	// apply nested object operations through the same lookup chain as world ops.
+	lookupOp := space_world_optypes.BuildSpaceLookupOp(o.b, o.le, o.engineID)
+	objResource := resource_world.NewObjectStateResource(o.le, o.b, os, lookupOp)
 	objectStateResourceID, err := resources.Client.AttachResource(ctx, "object-state", objResource.GetMux())
 	if err != nil {
 		return true, errors.Wrap(err, "attach object state resource")
