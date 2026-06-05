@@ -416,9 +416,8 @@ export class BldrElectronApp {
       }
       sendE2EJSON(res, 404, { error: 'not found' })
     } catch (err) {
-      sendE2EJSON(res, 500, {
-        error: err instanceof Error ? err.message : String(err),
-      })
+      console.error('electron e2e control request failed', err)
+      sendE2EError(res, 500)
     }
   }
 
@@ -751,6 +750,10 @@ function sendE2EJSON(res: ServerResponse, statusCode: number, value: unknown) {
       typeof val === 'bigint' ? val.toString() : val,
     ),
   )
+}
+
+function sendE2EError(res: ServerResponse, statusCode: number) {
+  sendE2EJSON(res, statusCode, { error: 'internal server error' })
 }
 
 async function readE2EJSON<T>(req: IncomingMessage): Promise<T> {

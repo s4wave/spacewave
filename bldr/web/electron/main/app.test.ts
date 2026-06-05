@@ -166,6 +166,9 @@ vi.mock('./desktop-runtime.js', () => ({
     public readonly setMainWindowOpen = vi.fn()
     public readonly setQuitting = vi.fn()
     public readonly resourceServer = {}
+    public readonly desktopCLIInstallResource = {
+      recheck: vi.fn(async () => ({})),
+    }
   },
 }))
 
@@ -534,6 +537,28 @@ describe('BldrElectronApp', () => {
     const resource = Reflect.get(app, 'desktopRuntimeResource')
     expect(resource.QuitDesktopRuntime).toHaveBeenCalledWith({})
   })
+
+  it('does not expose exception details from the e2e control server', async () => {
+    const { BldrElectronApp } = await import('./app.js')
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      {},
+    ])
+    const handleE2EControlRequest = Reflect.get(app, 'handleE2EControlRequest')
+    const res = new MockServerResponse()
+
+    await Reflect.apply(handleE2EControlRequest, app, [
+      new MockIncomingMessage('POST', '/desktop-state', ['{bad json']),
+      res,
+    ])
+
+    expect(res.statusCode).toBe(500)
+    expect(res.headers.get('content-type')).toBe('application/json')
+    expect(JSON.parse(res.body)).toEqual({ error: 'internal server error' })
+    expect(res.body).not.toContain('JSON')
+    expect(res.body).not.toContain('SyntaxError')
+  })
 })
 
 async function createWebDocument(app: object, id: string) {
@@ -559,4 +584,32 @@ function getAppHandler(event: string) {
     throw new Error(`${event} handler not found`)
   }
   return handler
+}
+
+class MockIncomingMessage {
+  constructor(
+    public readonly method: string,
+    public readonly url: string,
+    private readonly chunks: string[] = [],
+  ) {}
+
+  public async *[Symbol.asyncIterator]() {
+    for (const chunk of this.chunks) {
+      yield Buffer.from(chunk)
+    }
+  }
+}
+
+class MockServerResponse {
+  public statusCode = 0
+  public readonly headers = new Map<string, string>()
+  public body = ''
+
+  public setHeader(name: string, value: string) {
+    this.headers.set(name.toLowerCase(), value)
+  }
+
+  public end(value: string) {
+    this.body = value
+  }
 }
