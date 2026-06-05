@@ -13,7 +13,7 @@ import (
 
 const (
 	GoScriptCommandEnv = "BLDR_GOSCRIPT"
-	goScriptModule     = "github.com/aperturerobotics/goscript/cmd/goscript@82f78ec7bedfa9d1401c1077c69671961948f68d"
+	goScriptModule     = "github.com/aperturerobotics/goscript/cmd/goscript@d48c209543378e8b438e00702e32cf8b312fc67c"
 	goScriptNoSumDB    = "github.com/aperturerobotics/goscript"
 )
 

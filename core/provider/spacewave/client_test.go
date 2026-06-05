@@ -955,7 +955,7 @@ func TestRegisterSessionWithRequest_SendsRequestShape(t *testing.T) {
 		if got := r.Header.Get("X-Turnstile-Token"); got != "turnstile-token" {
 			t.Errorf("unexpected turnstile token header: %s", got)
 		}
-		if got := r.Header.Get("X-Device-Type"); got != "desktop" {
+		if got := r.Header.Get("X-Device-Type"); got != deviceTypeValue {
 			t.Errorf("unexpected device type header: %s", got)
 		}
 
