@@ -149,12 +149,30 @@ func statHTTPFile(hfs http.FileSystem, name string) (fs.FileInfo, error) {
 }
 
 func openHTTPFile(hfs http.FileSystem, name string) (http.File, error) {
-	clean := path.Clean(name)
-	f, err := hfs.Open(clean)
-	if err == nil || !strings.HasPrefix(clean, "/") {
-		return f, err
+	clean, err := cleanHTTPFilePath(name)
+	if err != nil {
+		return nil, err
 	}
-	return hfs.Open(strings.TrimPrefix(clean, "/"))
+	return hfs.Open(clean)
+}
+
+func cleanHTTPFilePath(name string) (string, error) {
+	if strings.Contains(name, "\\") {
+		return "", fs.ErrPermission
+	}
+	for part := range strings.SplitSeq(name, "/") {
+		if part == ".." {
+			return "", fs.ErrPermission
+		}
+	}
+	clean := strings.TrimPrefix(path.Clean("/"+strings.TrimPrefix(name, "/")), "/")
+	if clean == "" {
+		clean = "."
+	}
+	if !fs.ValidPath(clean) {
+		return "", fs.ErrPermission
+	}
+	return clean, nil
 }
 
 // ToHTTPError maps filesystem errors to the HTTP status used by http.FileServer.

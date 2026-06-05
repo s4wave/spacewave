@@ -1,7 +1,9 @@
 package bifrost_http
 
 import (
+	"errors"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -93,6 +95,28 @@ func TestEncodedAssetFileServerMissingGzipDoesNotSetEncodedHeaders(t *testing.T)
 	}
 	if got := res.Header.Get("Content-Encoding"); got != "" {
 		t.Fatalf("Content-Encoding = %q, want empty", got)
+	}
+}
+
+func TestCleanHTTPFilePathRejectsTraversal(t *testing.T) {
+	tests := []string{
+		"../secrets/runtime.wasm.gz",
+		"/entrypoint/../secrets/runtime.wasm.gz",
+		`entrypoint\..\secrets\runtime.wasm.gz`,
+	}
+
+	for _, test := range tests {
+		if _, err := cleanHTTPFilePath(test); !errors.Is(err, fs.ErrPermission) {
+			t.Fatalf("cleanHTTPFilePath(%q) error = %v, want permission", test, err)
+		}
+	}
+
+	got, err := cleanHTTPFilePath("/entrypoint/runtime.wasm.gz")
+	if err != nil {
+		t.Fatalf("cleanHTTPFilePath(valid) error = %v", err)
+	}
+	if got != "entrypoint/runtime.wasm.gz" {
+		t.Fatalf("cleanHTTPFilePath(valid) = %q, want entrypoint/runtime.wasm.gz", got)
 	}
 }
 
