@@ -460,6 +460,7 @@ func TestGoScriptResourceService(t *testing.T) {
 			assertBoolResult(t, results, "nestedChildRpc", true)
 			assertBoolResult(t, results, "nestedAfterReleaseEngineRpc", true)
 			assertBoolResult(t, results, "nestedChildReleaseOnce", true)
+			assertBoolResult(t, results, "nestedEngineReleaseOnce", true)
 			assertBoolResult(t, results, "concurrentChildEchoUnary", true)
 			assertBoolResult(t, results, "concurrentChildEchoStreams", true)
 			assertBoolResult(t, results, "spaceMountContents", true)

@@ -34,6 +34,7 @@ declare global {
       nestedChildRpc: boolean
       nestedAfterReleaseEngineRpc: boolean
       nestedChildReleaseOnce: boolean
+      nestedEngineReleaseOnce: boolean
       concurrentChildEchoUnary: boolean
       concurrentChildEchoStreams: boolean
       spaceMountContents: boolean
@@ -174,6 +175,7 @@ async function proveResourceService(
   nestedChildRpc: boolean
   nestedAfterReleaseEngineRpc: boolean
   nestedChildReleaseOnce: boolean
+  nestedEngineReleaseOnce: boolean
   concurrentChildEchoUnary: boolean
   concurrentChildEchoStreams: boolean
   spaceMountContents: boolean
@@ -361,10 +363,12 @@ async function proveNestedResourceRpc(
   nestedChildRpc: boolean
   nestedAfterReleaseEngineRpc: boolean
   nestedChildReleaseOnce: boolean
+  nestedEngineReleaseOnce: boolean
 }> {
   let childRpcObserved = false
   let afterReleaseEngineRpcObserved = false
   let childReleaseCount = 0
+  let engineReleaseCount = 0
   let child:
     | Awaited<ReturnType<ResourceClient['attachResourceTree']>>
     | undefined
@@ -411,21 +415,28 @@ async function proveNestedResourceRpc(
   const engineRef = await resourceClient.attachResourceTree(
     'nested-engine',
     engineMux.lookupMethod,
+    undefined,
+    () => {
+      engineReleaseCount++
+    },
   )
+  let response: MockMsg | undefined
   try {
     const rootMock = new MockClient(rootRef.client)
-    const response = await rootMock.MockRequest({
+    response = await rootMock.MockRequest({
       body: `run-nested:${engineRef.resourceId}`,
     })
-    return {
-      nestedParentResponse: response.body === 'seed-ok',
-      nestedChildRpc: childRpcObserved,
-      nestedAfterReleaseEngineRpc: afterReleaseEngineRpcObserved,
-      nestedChildReleaseOnce: childReleaseCount === 1,
-    }
   } finally {
     child?.cleanup()
     engineRef.cleanup()
+  }
+
+  return {
+    nestedParentResponse: response?.body === 'seed-ok',
+    nestedChildRpc: childRpcObserved,
+    nestedAfterReleaseEngineRpc: afterReleaseEngineRpcObserved,
+    nestedChildReleaseOnce: childReleaseCount === 1,
+    nestedEngineReleaseOnce: engineReleaseCount === 1,
   }
 }
 
@@ -508,6 +519,7 @@ async function run() {
       resource.nestedChildRpc &&
       resource.nestedAfterReleaseEngineRpc &&
       resource.nestedChildReleaseOnce &&
+      resource.nestedEngineReleaseOnce &&
       resource.concurrentChildEchoUnary &&
       resource.concurrentChildEchoStreams &&
       resource.spaceMountContents &&
@@ -529,6 +541,7 @@ async function run() {
             `nestedChildRpc=${resource.nestedChildRpc}`,
             `nestedAfterReleaseEngineRpc=${resource.nestedAfterReleaseEngineRpc}`,
             `nestedChildReleaseOnce=${resource.nestedChildReleaseOnce}`,
+            `nestedEngineReleaseOnce=${resource.nestedEngineReleaseOnce}`,
             `concurrentChildEchoUnary=${resource.concurrentChildEchoUnary}`,
             `concurrentChildEchoStreams=${resource.concurrentChildEchoStreams}`,
             `spaceMountContents=${resource.spaceMountContents}`,
@@ -544,6 +557,7 @@ async function run() {
       nestedChildRpc: resource.nestedChildRpc,
       nestedAfterReleaseEngineRpc: resource.nestedAfterReleaseEngineRpc,
       nestedChildReleaseOnce: resource.nestedChildReleaseOnce,
+      nestedEngineReleaseOnce: resource.nestedEngineReleaseOnce,
       concurrentChildEchoUnary: resource.concurrentChildEchoUnary,
       concurrentChildEchoStreams: resource.concurrentChildEchoStreams,
       spaceMountContents: resource.spaceMountContents,
@@ -563,6 +577,7 @@ async function run() {
       nestedChildRpc: false,
       nestedAfterReleaseEngineRpc: false,
       nestedChildReleaseOnce: false,
+      nestedEngineReleaseOnce: false,
       concurrentChildEchoUnary: false,
       concurrentChildEchoStreams: false,
       spaceMountContents: false,
