@@ -9,6 +9,7 @@ import (
 	layout_testbed "github.com/s4wave/spacewave/core/resource/layout/testbed"
 	s4wave_layout "github.com/s4wave/spacewave/sdk/layout"
 	s4wave_layout_world "github.com/s4wave/spacewave/sdk/layout/world"
+	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	s4wave_web_object "github.com/s4wave/spacewave/web/object"
 )
 
@@ -165,6 +166,53 @@ func TestLayoutResource(t *testing.T) {
 		}
 
 		t.Logf("Successfully received initial layout model with main tabset containing %d tabs", len(mainTabSet.GetChildren()))
+	})
+
+	t.Run("EngineAccessTypedObjectSeedModel", func(t *testing.T) {
+		objectKey := "object-layout/test-engine-access-" + t.Name()
+		setup, err := tb.SetupLayoutEngine(ctx, objectKey)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer setup.Release()
+
+		engineClient, err := setup.Engine.GetResourceRef().GetClient()
+		if err != nil {
+			t.Fatalf("GetClient(engine) failed: %v", err)
+		}
+		typedSvcClient := s4wave_world.NewSRPCTypedObjectResourceServiceClient(engineClient)
+		resp, err := typedSvcClient.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{
+			ObjectKey: objectKey,
+		})
+		if err != nil {
+			t.Fatalf("AccessTypedObject via engine failed: %v", err)
+		}
+		if resp.GetTypeId() != s4wave_layout_world.ObjectLayoutTypeID {
+			t.Fatalf("expected type %q, got %q", s4wave_layout_world.ObjectLayoutTypeID, resp.GetTypeId())
+		}
+		if resp.GetResourceId() == 0 {
+			t.Fatal("expected non-zero layout resource ID")
+		}
+
+		layoutClient := openLayoutClient(t, tb, resp.GetResourceId())
+		strm, err := layoutClient.WatchLayoutModel(ctx)
+		if err != nil {
+			t.Fatalf("WatchLayoutModel via engine typed object failed: %v", err)
+		}
+		model, err := strm.Recv()
+		if err != nil {
+			t.Fatalf("Recv engine typed object model failed: %v", err)
+		}
+		filesTab := getMainFilesTabState(t, model)
+		if filesTab.tabID != "files" {
+			t.Fatalf("expected seeded files tab id, got %q", filesTab.tabID)
+		}
+		if filesTab.name != "Files" {
+			t.Fatalf("expected seeded files tab name, got %q", filesTab.name)
+		}
+		if filesTab.objectKey != "files" {
+			t.Fatalf("expected seeded tab object key files, got %q", filesTab.objectKey)
+		}
 	})
 
 	t.Run("SetModel", func(t *testing.T) {
@@ -344,6 +392,49 @@ func TestLayoutResource(t *testing.T) {
 		reopenedTab := getMainFilesTabState(t, reopenedModel)
 		if reopenedTab.path != "/test/final" {
 			t.Fatalf("expected persisted final path %q, got %q", "/test/final", reopenedTab.path)
+		}
+	})
+
+	t.Run("DirectAddTabNoOp", func(t *testing.T) {
+		objectKey := "object-layout/test-add-tab-no-op-" + t.Name()
+		setup, err := tb.SetupLayoutEngine(ctx, objectKey)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer setup.Release()
+
+		layoutClient := openLayoutClient(t, tb, setup.LayoutResourceID)
+		resp, err := layoutClient.AddTab(ctx, &s4wave_layout.AddTabRequest{
+			Tab: &s4wave_layout.TabDef{
+				Id:          "direct-add",
+				Name:        "Direct Add",
+				EnableClose: true,
+				Data:        objectLayoutTabData(t, "files", "unixfs/fs-node", "/direct-add", ""),
+			},
+			Select: true,
+		})
+		if err != nil {
+			t.Fatalf("AddTab failed: %v", err)
+		}
+		if resp.GetTabId() != "" {
+			t.Fatalf("expected current ObjectLayout AddTab no-op to return empty tab id, got %q", resp.GetTabId())
+		}
+
+		reopenedClient := openLayoutClient(t, tb, setup.LayoutResourceID)
+		reopenedStrm, err := reopenedClient.WatchLayoutModel(ctx)
+		if err != nil {
+			t.Fatalf("WatchLayoutModel on reopened client failed: %v", err)
+		}
+		reopenedModel, err := reopenedStrm.Recv()
+		if err != nil {
+			t.Fatalf("Recv reopened model failed: %v", err)
+		}
+		mainTabSet := reopenedModel.GetLayout().GetChildren()[0].GetTabSet()
+		if got := len(mainTabSet.GetChildren()); got != 1 {
+			t.Fatalf("expected direct AddTab no-op to preserve one tab, got %d", got)
+		}
+		if mainTabSet.GetChildren()[0].GetId() != "files" {
+			t.Fatalf("expected original files tab to remain, got %q", mainTabSet.GetChildren()[0].GetId())
 		}
 	})
 

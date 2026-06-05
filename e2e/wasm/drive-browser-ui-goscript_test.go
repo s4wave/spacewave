@@ -5,6 +5,7 @@ package wasm
 import (
 	"fmt"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -322,12 +323,7 @@ func uploadDriveFileThroughUIWithObservedSummaries(t testing.TB, page playwright
 }
 
 func driveUploadSummariesContain(summaries []string, want string) bool {
-	for _, summary := range summaries {
-		if summary == want {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(summaries, want)
 }
 
 func waitForUnixFSFileText(t testing.TB, page playwright.Page, label string, want string) {

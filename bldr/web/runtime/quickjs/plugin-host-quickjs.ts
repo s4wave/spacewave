@@ -877,7 +877,7 @@ export default async function main(
       }
       console.log("[QuickJS stdout]", line);
     },
-    stderr: (line) => console.error("[QuickJS stderr]", line),
+    stderr: (line) => console.log("[QuickJS stderr]", line),
     onDevOut: (data) => devOutStream.push(new Uint8Array(data)),
   });
 
