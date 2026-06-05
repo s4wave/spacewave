@@ -4,8 +4,8 @@
  * Tests the main user flow for spacewave-app using the full App component:
  * 1. Load the app (see landing page)
  * 2. Click "Create a Drive" (quickstart option)
- * 3. Complete the Drive intro wizard
- * 4. Confirm file browser is visible with expected files
+ * 3. Confirm Drive opens directly into the file browser
+ * 4. Confirm getting-started guidance and expected files are visible
  * 5. Double-click on getting-started.md
  * 6. Confirm file contents are shown
  *
@@ -124,21 +124,7 @@ describe('User Story: Create Drive and View File', () => {
         )
         .toBe(true)
 
-      // Step 3: Complete the Drive intro wizard.
-      await expect
-        .poll(
-          () => document.body.textContent?.includes('Your Drive is ready'),
-          { timeout: 30000 },
-        )
-        .toBe(true)
-
-      const openFilesButton = Array.from(
-        document.querySelectorAll('button'),
-      ).find((button) => button.textContent?.includes('Open files'))
-      expect(openFilesButton).toBeDefined()
-      openFilesButton?.click()
-
-      // Step 4: Verify file browser is visible with the starter guide
+      // Step 3: Verify file browser is visible with the starter guide.
       // Note: The file browser may take time to load after navigation completes
       await expect
         .poll(
@@ -153,6 +139,10 @@ describe('User Story: Create Drive and View File', () => {
           { timeout: 30000 },
         )
         .toBe(true)
+
+      expect(
+        document.querySelector('[data-testid="drive-welcome"]'),
+      ).toBeTruthy()
 
       // Step 5: Double-click on getting-started.md
       // File rows have role="row" attribute

@@ -27,11 +27,6 @@ import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import { CreateComputersDashboardOp } from '@s4wave/sdk/device/device.pb.js'
 import { CREATE_COMPUTERS_DASHBOARD_OP_ID } from '@s4wave/sdk/device/computers/create-computers-dashboard.js'
 import {
-  DriveIntroTargetObjectKey,
-  DriveIntroTargetTypeID,
-  DriveIntroWizardTypeID,
-} from '@s4wave/app/wizard/drive-intro.js'
-import {
   AddDeviceDefaultName,
   AddDeviceWizardTargetKeyPrefix,
   AddDeviceWizardTypeID,
@@ -681,22 +676,10 @@ describe('quickstart create', () => {
 
     await createDrive(spaceWorld as never)
 
-    expect(applyWorldOp).toHaveBeenCalledTimes(3)
+    expect(applyWorldOp).toHaveBeenCalledTimes(2)
     expect(applyWorldOp.mock.calls[0]?.[0]).toBe(INIT_UNIXFS_OP_ID)
 
-    const wizardCall = applyWorldOp.mock.calls[1]
-    if (!wizardCall) {
-      throw new Error('expected wizard op call')
-    }
-    expect(wizardCall[0]).toBe(CREATE_WIZARD_OBJECT_OP_ID)
-    const wizardOp = CreateWizardObjectOp.fromBinary(wizardCall[1])
-    expect(wizardOp.objectKey).toMatch(/^wizard\/drive-intro-/)
-    expect(wizardOp.wizardTypeId).toBe(DriveIntroWizardTypeID)
-    expect(wizardOp.targetTypeId).toBe(DriveIntroTargetTypeID)
-    expect(wizardOp.targetKeyPrefix).toBe(DriveIntroTargetObjectKey)
-    expect(wizardOp.name).toBe('My Drive')
-
-    const settingsCall = applyWorldOp.mock.calls[2]
+    const settingsCall = applyWorldOp.mock.calls[1]
     if (!settingsCall) {
       throw new Error('expected settings op call')
     }
@@ -705,7 +688,7 @@ describe('quickstart create', () => {
     if (!settings) {
       throw new Error('expected settings')
     }
-    expect(settings.indexPath).toBe(wizardOp.objectKey)
+    expect(settings.indexPath).toBe(UNIXFS_OBJECT_KEY)
     expect(spaceWorld.accessTypedObject).toHaveBeenCalledWith(
       UNIXFS_OBJECT_KEY,
       undefined,
@@ -817,7 +800,7 @@ describe('quickstart create', () => {
 
     await createDrive(spaceWorld as never, undefined, timing)
 
-    expect(newTransaction).toHaveBeenCalledTimes(3)
+    expect(newTransaction).toHaveBeenCalledTimes(2)
     expect(newTransaction).toHaveBeenCalledWith(true, undefined)
     expect(txApplyWorldOp).toHaveBeenNthCalledWith(
       1,
@@ -828,20 +811,13 @@ describe('quickstart create', () => {
     )
     expect(txApplyWorldOp).toHaveBeenNthCalledWith(
       2,
-      CREATE_WIZARD_OBJECT_OP_ID,
-      expect.any(Uint8Array),
-      '',
-      undefined,
-    )
-    expect(txApplyWorldOp).toHaveBeenNthCalledWith(
-      3,
       SET_SPACE_SETTINGS_OP_ID,
       expect.any(Uint8Array),
       '',
       undefined,
     )
-    expect(commit).toHaveBeenCalledTimes(3)
-    expect(discard).toHaveBeenCalledTimes(3)
+    expect(commit).toHaveBeenCalledTimes(2)
+    expect(discard).toHaveBeenCalledTimes(2)
     expect(applyWorldOp).not.toHaveBeenCalled()
     expect(timing.phases.map((phase) => phase.name)).toEqual([
       'init-drive-unixfs',
@@ -853,10 +829,6 @@ describe('quickstart create', () => {
       'write-drive-starter-guide-create',
       'write-drive-starter-guide-lookup',
       'write-drive-starter-guide-content',
-      'create-drive-intro-wizard-new-transaction',
-      'create-drive-intro-wizard-apply-op',
-      'create-drive-intro-wizard-commit',
-      'create-drive-intro-wizard-discard',
       'create-drive-settings',
       'create-drive-settings-get-object',
       'create-drive-settings-new-transaction',
@@ -875,34 +847,21 @@ describe('quickstart create', () => {
     {
       const { world, applyWorldOp } = buildQuickstartWorld()
       await populateSpace('drive', { spaceWorld: world } as never)
-      expect(getSettingsIndexPath(applyWorldOp)).toMatch(
-        /^wizard\/drive-intro-/,
-      )
+      expect(getSettingsIndexPath(applyWorldOp)).toBe(UNIXFS_OBJECT_KEY)
       const unixfsCall = applyWorldOp.mock.calls.find(
         (call) => call[0] === INIT_UNIXFS_OP_ID,
       )
       expect(InitUnixFSOp.fromBinary(unixfsCall?.[1]).objectKey).toBe(
         UNIXFS_OBJECT_KEY,
       )
-      const wizardCall = applyWorldOp.mock.calls.find(
-        (call) => call[0] === CREATE_WIZARD_OBJECT_OP_ID,
-      )
-      const wizardOp = CreateWizardObjectOp.fromBinary(wizardCall?.[1])
-      expect(wizardOp.wizardTypeId).toBe(DriveIntroWizardTypeID)
-      expect(wizardOp.targetKeyPrefix).toBe(DriveIntroTargetObjectKey)
       const settingsIndex = applyWorldOp.mock.calls.findIndex(
         (call) => call[0] === SET_SPACE_SETTINGS_OP_ID,
       )
       const unixfsIndex = applyWorldOp.mock.calls.findIndex(
         (call) => call[0] === INIT_UNIXFS_OP_ID,
       )
-      const wizardIndex = applyWorldOp.mock.calls.findIndex(
-        (call) => call[0] === CREATE_WIZARD_OBJECT_OP_ID,
-      )
       expect(unixfsIndex).toBeGreaterThanOrEqual(0)
-      expect(wizardIndex).toBeGreaterThan(unixfsIndex)
       expect(settingsIndex).toBeGreaterThan(unixfsIndex)
-      expect(settingsIndex).toBeGreaterThan(wizardIndex)
     }
     {
       const { world, applyWorldOp } = buildQuickstartWorld()

@@ -69,19 +69,33 @@ func CreateLocalOnboardingScenario(t testing.TB, h *Harness, session *TestSessio
 	}
 }
 
-// CompleteDriveIntroWizard waits for the Drive intro wizard and opens the raw
-// files browser.
+// CompleteDriveIntroWizard opens the raw files browser for both current Drive
+// wrapper quickstarts and legacy wizard-indexed quickstarts.
 func CompleteDriveIntroWizard(t testing.TB, page playwright.Page) {
 	t.Helper()
 
-	err := page.Locator("text=Your Drive is ready").First().WaitFor(
-		playwright.LocatorWaitForOptions{Timeout: playwright.Float(120000)},
-	)
+	_, err := page.Evaluate(`async () => {
+		const deadline = Date.now() + 120000
+		for (;;) {
+			const browser = document.querySelector('[data-testid="unixfs-browser"]')
+			if (browser) return null
+			const text = document.body.textContent ?? ''
+			if (text.includes('Your Drive is ready')) {
+				const open = Array.from(document.querySelectorAll('button')).find((button) =>
+					button.textContent?.includes('Open files')
+				)
+				if (open instanceof HTMLButtonElement) {
+					open.click()
+				}
+			}
+			if (Date.now() > deadline) {
+				throw new Error('Drive file browser did not appear')
+			}
+			await new Promise((resolve) => requestAnimationFrame(resolve))
+		}
+	}`)
 	if err != nil {
-		failWithPageBody(t, page, "wait for drive intro wizard", err)
-	}
-	if err := page.Locator("button:visible:has-text('Open files')").First().Click(); err != nil {
-		failWithPageBody(t, page, "complete drive intro wizard", err)
+		failWithPageBody(t, page, "open drive files", err)
 	}
 }
 

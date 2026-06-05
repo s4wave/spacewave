@@ -28,6 +28,7 @@ import {
   UNIXFS_OBJECT_KEY,
 } from '@s4wave/core/space/world/ops/init-unixfs.js'
 import { FSHandle, MknodType } from '@s4wave/sdk/unixfs/index.js'
+import { UnixFSTypeID } from '@s4wave/sdk/unixfs/type.js'
 import {
   INIT_OBJECT_LAYOUT_OP_ID,
   OBJECT_LAYOUT_OBJECT_KEY,
@@ -61,11 +62,6 @@ import {
   V86_WIZARD_TARGET_TYPE_ID,
   V86_WIZARD_TYPE_ID,
 } from '@s4wave/app/vm/v86-wizard-config.js'
-import {
-  DriveIntroTargetObjectKey,
-  DriveIntroTargetTypeID,
-  DriveIntroWizardTypeID,
-} from '@s4wave/app/wizard/drive-intro.js'
 import {
   AddDeviceDefaultName,
   AddDeviceWizardTargetKeyPrefix,
@@ -948,9 +944,9 @@ async function writeDriveStarterGuide(
     'write-drive-starter-guide-access',
     () => spaceWorld.accessTypedObject(UNIXFS_OBJECT_KEY, abortSignal),
   )
-  if (!access.resourceId || access.typeId !== DriveIntroTargetTypeID) {
+  if (!access.resourceId || access.typeId !== UnixFSTypeID) {
     throw new Error(
-      `Drive starter guide expected ${DriveIntroTargetTypeID}, got ${access.typeId || 'unknown'}`,
+      `Drive starter guide expected ${UnixFSTypeID}, got ${access.typeId || 'unknown'}`,
     )
   }
 
@@ -988,35 +984,6 @@ async function writeDriveStarterGuide(
   } finally {
     root.release()
   }
-}
-
-async function createDriveIntroWizard(
-  spaceWorld: EngineWorldState,
-  abortSignal?: AbortSignal,
-  timing?: QuickstartSetupTiming,
-): Promise<string> {
-  const now = new Date()
-  const wizardKey = buildWizardObjectKey(
-    'Drive Intro ' + now.getTime().toString(36),
-  )
-  const op: CreateWizardObjectOp = {
-    objectKey: wizardKey,
-    wizardTypeId: DriveIntroWizardTypeID,
-    targetTypeId: DriveIntroTargetTypeID,
-    targetKeyPrefix: DriveIntroTargetObjectKey,
-    name: 'My Drive',
-    timestamp: now,
-  }
-  await applyQuickstartWorldOp(
-    spaceWorld,
-    CREATE_WIZARD_OBJECT_OP_ID,
-    CreateWizardObjectOp.toBinary(op),
-    '',
-    abortSignal,
-    timing,
-    'create-drive-intro-wizard',
-  )
-  return wizardKey
 }
 
 // initObjectLayout initializes an ObjectLayout with starter content.
@@ -1162,16 +1129,11 @@ export async function createDrive(
     initUnixFS(spaceWorld, abortSignal, timing),
   )
   await writeDriveStarterGuide(spaceWorld, abortSignal, timing)
-  const wizardKey = await createDriveIntroWizard(
-    spaceWorld,
-    abortSignal,
-    timing,
-  )
   await timeQuickstartPhase(timing, 'create-drive-settings', () =>
     createSpaceSettingsObject(
       spaceWorld,
       abortSignal,
-      wizardKey,
+      UNIXFS_OBJECT_KEY,
       undefined,
       timing,
       'create-drive-settings',

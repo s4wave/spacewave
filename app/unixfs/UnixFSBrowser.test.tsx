@@ -98,7 +98,6 @@ const h = vi.hoisted(() => ({
   mockLookup: vi.fn(),
   mockMkdirAll: vi.fn(),
   mockMknod: vi.fn(),
-  mockInvokeCommand: vi.fn(),
   mockNavigate: vi.fn(),
   mockRootHandleResource: null as ReturnType<typeof buildResource> | null,
   mockPathHandleResource: null as ReturnType<typeof buildResource> | null,
@@ -260,10 +259,6 @@ vi.mock('@s4wave/web/command/useCommand.js', () => ({
   useCommand: (config: RegisteredCommand) => {
     h.registeredCommands.set(config.commandId, config)
   },
-}))
-
-vi.mock('@s4wave/web/command/CommandContext.js', () => ({
-  useInvokeCommand: () => h.mockInvokeCommand,
 }))
 
 vi.mock('@s4wave/web/contexts/TabActiveContext.js', () => ({
@@ -559,7 +554,6 @@ describe('UnixFSBrowser drag gating', () => {
     h.mockLookup.mockReset()
     h.mockMkdirAll.mockReset()
     h.mockMknod.mockReset()
-    h.mockInvokeCommand.mockReset()
     h.mockNavigate.mockReset()
     h.mockRootHandleResource = null
     h.mockPathHandleResource = null
@@ -632,8 +626,7 @@ describe('UnixFSBrowser drag gating', () => {
     })
   })
 
-  it('renders Drive welcome guidance on the quickstart root without replacing the file list', async () => {
-    const user = userEvent.setup()
+  it('renders owner-provided directory headers above the file list', async () => {
     h.mockFileEntries = [
       { id: 'guide', name: 'getting-started.md', isDir: false },
       { id: 'docs', name: 'docs', isDir: true },
@@ -645,22 +638,19 @@ describe('UnixFSBrowser drag gating', () => {
         basePath="/"
         currentPath="/"
         worldState={buildResource(null)}
+        directoryHeader={({ entries }) => (
+          <div data-testid="owner-directory-header">
+            {entries.map((entry) => entry.name).join(',')}
+          </div>
+        )}
       />,
     )
 
     expect(screen.getByTestId('file-entry-guide')).toBeTruthy()
     expect(screen.getByTestId('file-entry-docs')).toBeTruthy()
-    expect(screen.getByTestId('drive-welcome')).toBeTruthy()
-    expect(screen.getByText('Welcome to your Drive')).toBeTruthy()
-    expect(screen.getByTestId('drive-upload-cta')).toBeTruthy()
-
-    await user.click(screen.getByTestId('drive-open-guide-cta'))
-    expect(h.mockNavigate).toHaveBeenCalledWith({
-      path: './getting-started.md',
-    })
-
-    await user.click(screen.getByTestId('drive-new-folder-cta'))
-    expect(screen.getByPlaceholderText('Folder name')).toBeTruthy()
+    expect(screen.getByTestId('owner-directory-header').textContent).toBe(
+      'getting-started.md,docs',
+    )
   })
 
   it('accepts backend-cleaned directory handles for display paths with dot segments', () => {
@@ -794,47 +784,6 @@ describe('UnixFSBrowser drag gating', () => {
       '/gallery/logo.png',
     )
     expect(h.latestFileViewerProps).toBeNull()
-  })
-
-  it('renders root Drive welcome actions and invokes Space sharing', async () => {
-    const user = userEvent.setup()
-    h.mockFileEntries = [
-      { id: 'guide', name: 'getting-started.md', isDir: false },
-      { id: 'docs', name: 'docs', isDir: true },
-    ]
-    render(
-      <UnixFSBrowser
-        unixfsId="files"
-        basePath="/"
-        currentPath="/"
-        worldState={buildResource({} as IWorldState)}
-      />,
-    )
-
-    expect(screen.getByTestId('drive-welcome')).toBeTruthy()
-    expect(screen.getByText('Welcome to your Drive')).toBeTruthy()
-
-    await user.click(screen.getByTestId('drive-invite-cta'))
-    expect(h.mockInvokeCommand).toHaveBeenCalledWith('spacewave.share-space')
-  })
-
-  it('hides the Drive invite action when sharing cannot be managed', () => {
-    h.mockSpaceSharingState = { canManage: false }
-    h.mockFileEntries = [
-      { id: 'guide', name: 'getting-started.md', isDir: false },
-      { id: 'docs', name: 'docs', isDir: true },
-    ]
-    render(
-      <UnixFSBrowser
-        unixfsId="files"
-        basePath="/"
-        currentPath="/"
-        worldState={buildResource({} as IWorldState)}
-      />,
-    )
-
-    expect(screen.getByTestId('drive-welcome')).toBeTruthy()
-    expect(screen.queryByTestId('drive-invite-cta')).toBeNull()
   })
 
   it('ignores internal app drags', () => {
