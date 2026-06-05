@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	provider "github.com/s4wave/spacewave/core/provider"
 	session "github.com/s4wave/spacewave/core/session"
+	session_controller "github.com/s4wave/spacewave/core/session/controller"
 	"github.com/s4wave/spacewave/testbed"
 )
 
@@ -22,6 +23,15 @@ func TestProviderAccountPublishesBeforeLinkedCloudDiscovery(t *testing.T) {
 	defer tb.Release()
 
 	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
+	tb.StaticResolver.AddFactory(session_controller.NewFactory(tb.Bus))
+	_, sessCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&session_controller.Config{
+		VolumeId: tb.EngineVolumeID,
+	}), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer sessCtrlRef.Release()
+
 	_, provCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&Config{
 		ProviderId: ProviderID,
 		PeerId:     tb.Volume.GetPeerID().String(),
@@ -96,15 +106,36 @@ func TestProviderAccountPublishesBeforeLinkedCloudDiscovery(t *testing.T) {
 
 	mountCtx, mountCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer mountCancel()
-	sess, sessRef, err := session.ExMountSession(mountCtx, tb.Bus, &session.SessionRef{
+	localSessRef := &session.SessionRef{
 		ProviderResourceRef: &provider.ProviderResourceRef{
 			Id:                "local-session-123",
 			ProviderAccountId: "local-account-123",
 			ProviderId:        ProviderID,
 		},
-	}, false, nil)
+	}
+	sessCtrl, sessCtrlLookupRef, err := session.ExLookupSessionController(mountCtx, tb.Bus, "", false, nil)
 	if err != nil {
-		t.Fatalf("mount session while linked-cloud discovery is blocked: %v", err)
+		t.Fatal(err)
+	}
+	defer sessCtrlLookupRef.Release()
+	entry, err := sessCtrl.RegisterSession(mountCtx, localSessRef, &session.SessionMetadata{
+		ProviderDisplayName: "Local",
+		ProviderId:          ProviderID,
+		ProviderAccountId:   "local-account-123",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	indexedEntry, err := sessCtrl.GetSessionByIdx(mountCtx, entry.GetSessionIndex())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if indexedEntry == nil {
+		t.Fatalf("session index %d did not resolve", entry.GetSessionIndex())
+	}
+	sess, sessRef, err := session.ExMountSession(mountCtx, tb.Bus, indexedEntry.GetSessionRef(), false, nil)
+	if err != nil {
+		t.Fatalf("mount indexed session while linked-cloud discovery is blocked: %v", err)
 	}
 	defer sessRef.Release()
 	if got := sess.GetSessionRef().GetProviderResourceRef().GetId(); got != "local-session-123" {
