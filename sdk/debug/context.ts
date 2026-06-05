@@ -14,6 +14,7 @@ export interface TestDebugContext extends DebugContext {
   createQuickstartSetup: typeof import('../../app/quickstart/create.js').createQuickstartSetup
   mountSpace: typeof import('../../app/space/space.js').mountSpace
   FSHandle: typeof import('../unixfs/handle.js').FSHandle
+  downloadURL: typeof import('../../web/download.js').downloadURL
   SpacewaveProvider: typeof import('../provider/spacewave/spacewave.js').SpacewaveProvider
   UNIXFS_OBJECT_KEY: string
   runSOPerfTest: typeof import('../../app/quickstart/perf-test.js').runSOPerfTest

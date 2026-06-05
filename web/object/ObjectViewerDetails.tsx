@@ -139,7 +139,9 @@ export function ObjectViewerDetails({
 // ExportDataSection renders a download button for exporting object data.
 function ExportDataSection({ exportUrl }: { exportUrl: string }) {
   const handleExport = useCallback(() => {
-    downloadURL(exportUrl)
+    void downloadURL(exportUrl).catch((err: unknown) => {
+      console.error('failed to export object data', err)
+    })
   }, [exportUrl])
 
   return (

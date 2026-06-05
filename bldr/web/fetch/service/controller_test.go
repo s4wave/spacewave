@@ -5,6 +5,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -77,6 +79,77 @@ func TestFetchResolvesHTTPHandlerThroughBus(t *testing.T) {
 	}
 }
 
+func TestDirectLookupHTTPHandlerThroughBus(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	le := logrus.NewEntry(logrus.New())
+	b, _, err := core.NewCoreBus(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	handlerCtrl := &fetchServiceHTTPHandlerController{
+		pathPrefix: "/fs/",
+		handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != "/fs/proof.txt" {
+				t.Fatalf("request path = %q, want /fs/proof.txt", r.URL.Path)
+			}
+			w.Header().Set("Content-Type", "text/plain")
+			w.WriteHeader(http.StatusAccepted)
+			_, _ = w.Write([]byte("direct proof"))
+		}),
+	}
+	handlerRel, err := b.AddController(ctx, handlerCtrl, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer handlerRel()
+
+	handlerURL, err := url.Parse("https://example.test/fs/proof.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler, _, handlerRef, err := bifrost_http.ExLookupFirstHTTPHandler(
+		ctx,
+		b,
+		http.MethodGet,
+		handlerURL,
+		"",
+		true,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if handlerRef == nil || handler == nil {
+		t.Fatal("handler lookup returned no handler")
+	}
+	defer handlerRef.Release()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, handlerURL.String(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rw := httptest.NewRecorder()
+	handler.ServeHTTP(rw, req)
+
+	resp := rw.Result()
+	if resp.StatusCode != http.StatusAccepted {
+		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusAccepted)
+	}
+	if got := resp.Header.Get("Content-Type"); got != "text/plain" {
+		t.Fatalf("Content-Type = %q, want text/plain", got)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(body) != "direct proof" {
+		t.Fatalf("body = %q, want direct proof", string(body))
+	}
+}
+
 func TestServeHTTPReturnsNotFoundWhenLookupIsIdle(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -123,7 +196,7 @@ func (c *fetchServiceHTTPHandlerController) HandleDirective(
 ) ([]directive.Resolver, error) {
 	switch d := inst.GetDirective().(type) {
 	case bifrost_http.LookupHTTPHandler:
-		if c.pathPrefix == "" || len(d.LookupHTTPHandlerURL().Path) >= len(c.pathPrefix) && d.LookupHTTPHandlerURL().Path[:len(c.pathPrefix)] == c.pathPrefix {
+		if c.pathPrefix == "" || strings.HasPrefix(d.LookupHTTPHandlerURL().Path, c.pathPrefix) {
 			return directive.R(bifrost_http.NewLookupHTTPHandlerResolver(c.handler), nil)
 		}
 	}

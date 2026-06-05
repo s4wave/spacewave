@@ -77,9 +77,11 @@ export function SpaceCommands({
 
   const handleExportSpace = useCallback(() => {
     if (sessionIndex == null || !sharedObjectId) return
-    downloadURL(
+    void downloadURL(
       `${pluginPathPrefix}/export/u/${sessionIndex}/so/${encodeURIComponent(sharedObjectId)}`,
-    )
+    ).catch((err: unknown) => {
+      console.error('failed to export space', err)
+    })
   }, [sessionIndex, sharedObjectId])
 
   const handleShareSpace = useCallback(() => {

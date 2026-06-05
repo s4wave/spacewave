@@ -20,6 +20,7 @@ import { SpacewaveProvider } from '@s4wave/sdk/provider/spacewave/spacewave.js'
 import { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import { MknodType } from '@s4wave/sdk/unixfs/index.js'
 import { UNIXFS_OBJECT_KEY } from '@s4wave/core/space/world/ops/init-unixfs.js'
+import { downloadURL } from '@s4wave/web/download.js'
 
 import {
   ResourceServiceClient,
@@ -133,6 +134,7 @@ function AppAPIInner({
       createQuickstartSetup,
       mountSpace,
       FSHandle,
+      downloadURL,
       MknodType,
       SpacewaveProvider,
       UNIXFS_OBJECT_KEY,

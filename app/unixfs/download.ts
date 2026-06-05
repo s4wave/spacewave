@@ -196,7 +196,7 @@ export function downloadUnixFSSelection({
       currentPath,
       normalizedEntries[0].name,
     ])
-    downloadURL(
+    return downloadURL(
       buildUnixFSFileDownloadURL(
         sessionIndex,
         sharedObjectId,
@@ -205,7 +205,6 @@ export function downloadUnixFSSelection({
       ),
       normalizedEntries[0].name,
     )
-    return Promise.resolve()
   }
 
   if (normalizedEntries.length === 1) {
@@ -213,11 +212,10 @@ export function downloadUnixFSSelection({
       currentPath,
       normalizedEntries[0].name,
     ])
-    downloadURL(
+    return downloadURL(
       buildUnixFSExportURL(sessionIndex, sharedObjectId, objectKey, dirPath),
       `${normalizedEntries[0].name}.zip`,
     )
-    return Promise.resolve()
   }
 
   const batchDownload = buildUnixFSBatchExportURL(
@@ -227,6 +225,5 @@ export function downloadUnixFSSelection({
     currentPath,
     normalizedEntries,
   )
-  downloadURL(batchDownload.url, batchDownload.filename)
-  return Promise.resolve()
+  return downloadURL(batchDownload.url, batchDownload.filename)
 }

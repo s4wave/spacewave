@@ -236,8 +236,8 @@ function UnixFSGalleryBody({
                   <button
                     type="button"
                     className="rounded-full border border-white/20 bg-white/10 p-2 text-white transition hover:bg-white/20"
-                    onClick={() =>
-                      downloadURL(
+                    onClick={() => {
+                      void downloadURL(
                         buildUnixFSFileDownloadURL(
                           sessionIndex,
                           spaceId,
@@ -245,8 +245,10 @@ function UnixFSGalleryBody({
                           item.path,
                         ),
                         item.name,
-                      )
-                    }
+                      ).catch((err: unknown) => {
+                        console.error('failed to download unixfs file', err)
+                      })
+                    }}
                     title="Download"
                   >
                     <LuDownload className="size-4" />

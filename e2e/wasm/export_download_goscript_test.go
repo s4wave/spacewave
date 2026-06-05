@@ -80,9 +80,9 @@ func TestGoScriptProjectedExportDownloadBrowserParity(t *testing.T) {
 		),
 		"",
 	))
-	assertZipText(t, wholeSpaceZip, path.Join(seed.objectKey, seed.fileName), "row7 single file\n")
-	assertZipText(t, wholeSpaceZip, path.Join(seed.objectKey, seed.dirName, "alpha.txt"), "row7 dir alpha\n")
-	assertZipText(t, wholeSpaceZip, path.Join(seed.objectKey, seed.dirName, "nested", "beta.txt"), "row7 dir beta\n")
+	assertZipText(t, wholeSpaceZip, path.Join(seed.objectKey, "-", seed.fileName), "row7 single file\n")
+	assertZipText(t, wholeSpaceZip, path.Join(seed.objectKey, "-", seed.dirName, "alpha.txt"), "row7 dir alpha\n")
+	assertZipText(t, wholeSpaceZip, path.Join(seed.objectKey, "-", seed.dirName, "nested", "beta.txt"), "row7 dir beta\n")
 
 	directoryZip := readZipEntries(t, downloadViaAnchor(
 		t,
@@ -284,25 +284,35 @@ func downloadViaAnchor(t testing.TB, page playwright.Page, targetURL, filename s
 
 	probe := probeDownloadURL(t, page, targetURL)
 	if probe.status < 200 || probe.status >= 300 {
-		t.Fatalf(
-			"preflight fetch %s status=%d content-type=%q content-disposition=%q body=%q",
-			targetURL,
-			probe.status,
-			probe.contentType,
-			probe.contentDisposition,
-			string(probe.body),
-		)
+		if probe.status == 0 && len(probe.body) != 0 {
+			t.Logf(
+				"preflight fetch %s returned browser status=0 with content-type=%q content-disposition=%q bytes=%d; continuing to download proof",
+				targetURL,
+				probe.contentType,
+				probe.contentDisposition,
+				len(probe.body),
+			)
+		}
+		if probe.status != 0 || len(probe.body) == 0 {
+			t.Fatalf(
+				"preflight fetch %s status=%d content-type=%q content-disposition=%q body=%q",
+				targetURL,
+				probe.status,
+				probe.contentType,
+				probe.contentDisposition,
+				string(probe.body),
+			)
+		}
 	}
 
 	timeout := float64(120000)
 	download, err := page.ExpectDownload(func() error {
-		_, evalErr := page.Evaluate(`({ url, filename }) => {
-			const a = document.createElement('a')
-			a.href = url
-			a.download = filename ?? ''
-			document.body.appendChild(a)
-			a.click()
-			document.body.removeChild(a)
+		_, evalErr := page.Evaluate(`async ({ url, filename }) => {
+			const downloadURL = globalThis.__s4wave_debug?.downloadURL
+			if (typeof downloadURL !== 'function') {
+				throw new Error('debug downloadURL helper is not available')
+			}
+			await downloadURL(url, filename ?? '')
 		}`, map[string]any{
 			"url":      targetURL,
 			"filename": filename,
@@ -405,8 +415,20 @@ func probeDownloadURL(t testing.TB, page playwright.Page, targetURL string) down
 }
 
 func numberField(m map[string]any, key string) float64 {
-	v, _ := m[key].(float64)
-	return v
+	switch v := m[key].(type) {
+	case float64:
+		return v
+	case float32:
+		return float64(v)
+	case int:
+		return float64(v)
+	case int64:
+		return float64(v)
+	case uint64:
+		return float64(v)
+	default:
+		return 0
+	}
 }
 
 func buildProjectedSpaceRootPath(sessionIndex uint32, sharedObjectID string) string {

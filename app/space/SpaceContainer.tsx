@@ -532,7 +532,9 @@ export function SpaceContainer() {
     [sessionIndex, sharedObjectId],
   )
   const handleExportClick = useCallback(() => {
-    downloadURL(buildExportUrl())
+    void downloadURL(buildExportUrl()).catch((err: unknown) => {
+      console.error('failed to export space', err)
+    })
   }, [buildExportUrl])
   const handleCreateObject = useCallback(() => {
     openCommand('spacewave.create-object')
