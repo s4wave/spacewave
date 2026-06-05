@@ -42,6 +42,19 @@ func (a *ProviderAccount) setLinkedCloudAccountID(cloudAccountID string) {
 	a.accountSettingsCloudSync.SetState(cloudAccountID)
 }
 
+func defaultLinkedCloudAccountLoader(ctx context.Context, a *ProviderAccount) (string, error) {
+	return a.loadLinkedCloudAccountID(ctx)
+}
+
+func (a *ProviderAccount) runLinkedCloudAccountDiscovery(ctx context.Context) error {
+	linkedCloudAccountID, err := a.t.p.linkedCloudAccountLoader(ctx, a)
+	if err != nil {
+		return err
+	}
+	a.setLinkedCloudAccountID(linkedCloudAccountID)
+	return nil
+}
+
 func (a *ProviderAccount) loadLinkedCloudAccountID(ctx context.Context) (string, error) {
 	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(
 		ctx,

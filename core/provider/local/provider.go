@@ -37,6 +37,9 @@ type Provider struct {
 	peer peer.Peer
 	// handler is the provider handler
 	handler provider.ProviderHandler
+	// linkedCloudAccountLoader loads linked cloud account state for a local
+	// account after the account is published.
+	linkedCloudAccountLoader func(context.Context, *ProviderAccount) (string, error)
 }
 
 // providerBackoff is the default backoff for provider services.
@@ -71,6 +74,7 @@ func NewProvider(
 		handler:   handler,
 		sfs:       sfs,
 	}
+	p.linkedCloudAccountLoader = defaultLinkedCloudAccountLoader
 	p.accountRc = keyed.NewKeyedRefCountWithLogger(
 		p.buildProviderAccountTracker,
 		le,

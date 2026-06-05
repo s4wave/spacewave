@@ -64,6 +64,9 @@ type ProviderAccount struct {
 	// accountSettingsCloudSync mirrors local account settings to a linked cloud
 	// account settings SO when a linked cloud account is available.
 	accountSettingsCloudSync *routine.StateRoutineContainer[string]
+	// linkedCloudAccountDiscovery discovers an existing linked cloud account
+	// after the ProviderAccount is published.
+	linkedCloudAccountDiscovery *routine.RoutineContainer
 	// accountSettingsProcessor processes account settings operations.
 	accountSettingsProcessor *routine.RoutineContainer
 	// envelopeRewrapWatcher watches for envelope rewrap work.
@@ -203,6 +206,11 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		routine.WithRetry(providerBackoff),
 	)
 	providerAcc.accountSettingsCloudSync.SetStateRoutine(providerAcc.runAccountSettingsCloudSync)
+	providerAcc.linkedCloudAccountDiscovery = routine.NewRoutineContainerWithLogger(
+		le.WithField("routine", "linked-cloud-account-discovery"),
+		routine.WithRetry(providerBackoff),
+	)
+	providerAcc.linkedCloudAccountDiscovery.SetRoutine(providerAcc.runLinkedCloudAccountDiscovery)
 	providerAcc.accountSettingsProcessor = routine.NewRoutineContainerWithLogger(
 		le.WithField("routine", "account-settings-processor"),
 		routine.WithRetry(providerBackoff),
@@ -251,21 +259,6 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	// Start the sessions tracker
 	providerAcc.sessions.SetContext(ctx, true)
 	defer providerAcc.sessions.ClearContext()
-	if linkedCloudAccountID, err := providerAcc.loadLinkedCloudAccountID(ctx); err != nil {
-		return err
-	} else {
-		providerAcc.accountSettingsCloudSync.SetState(linkedCloudAccountID)
-	}
-	providerAcc.accountSettingsCloudSync.SetContext(ctx, true)
-	defer providerAcc.accountSettingsCloudSync.ClearContext()
-	providerAcc.accountSettingsProcessor.SetContext(ctx, true)
-	defer providerAcc.accountSettingsProcessor.ClearContext()
-	providerAcc.envelopeRewrapWatcher.SetContext(ctx, true)
-	defer providerAcc.envelopeRewrapWatcher.ClearContext()
-	providerAcc.orgProcessors.SetContext(ctx, true)
-	defer providerAcc.orgProcessors.ClearContext()
-	providerAcc.gcCleanup.SetContext(ctx, true)
-	defer providerAcc.gcCleanup.ClearContext()
 
 	// Cleanup on exit.
 	providerAcc.setPairingContext(ctx)
@@ -277,6 +270,19 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	// Startup complete
 	t.accCtr.SetValue(providerAcc)
 	defer t.accCtr.SetValue(nil)
+
+	providerAcc.linkedCloudAccountDiscovery.SetContext(ctx, true)
+	defer providerAcc.linkedCloudAccountDiscovery.ClearContext()
+	providerAcc.accountSettingsCloudSync.SetContext(ctx, true)
+	defer providerAcc.accountSettingsCloudSync.ClearContext()
+	providerAcc.accountSettingsProcessor.SetContext(ctx, true)
+	defer providerAcc.accountSettingsProcessor.ClearContext()
+	providerAcc.envelopeRewrapWatcher.SetContext(ctx, true)
+	defer providerAcc.envelopeRewrapWatcher.ClearContext()
+	providerAcc.orgProcessors.SetContext(ctx, true)
+	defer providerAcc.orgProcessors.ClearContext()
+	providerAcc.gcCleanup.SetContext(ctx, true)
+	defer providerAcc.gcCleanup.ClearContext()
 
 	<-ctx.Done()
 	return context.Canceled
