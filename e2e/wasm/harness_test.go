@@ -1030,6 +1030,116 @@ func TestGoScriptQuickstartDriveDirectRouteMountGate(t *testing.T) {
 	AssertBrowserStartupDone(t, testHarness, page)
 }
 
+// TestGoScriptSharedObjectDirectRouteBodyMountGate verifies a fresh page can
+// open an existing SharedObject route through Resource SDK mounts without
+// reusing quickstart handoff resources.
+func TestGoScriptSharedObjectDirectRouteBodyMountGate(t *testing.T) {
+	compiler, err := ResolveE2EWasmCompiler()
+	if err != nil {
+		t.Fatalf("resolve e2e wasm compiler: %v", err)
+	}
+	if compiler != E2EWasmCompilerGoScript {
+		t.Skipf("GoScript-only regression gate; compiler=%s", compiler)
+	}
+
+	sess := testHarness.NewCleanSession(t)
+	console, stopConsole := sess.WatchConsole()
+	defer stopConsole()
+	defer func() {
+		report := DrainCrashReport(console)
+		if report.HasCrash() {
+			t.Errorf("unexpected browser/WASM crash report during direct SharedObject route body mount gate: %+v", report)
+		}
+		if report.HasExitedGoLoop() {
+			t.Errorf("unexpected exited-Go loop during direct SharedObject route body mount gate: %+v", report)
+		}
+	}()
+
+	scenario := CreateDriveScenario(t, testHarness, sess)
+	page := scenario.GetSession().Page()
+	WaitForDriveReady(t, testHarness, page)
+
+	targetHash, err := currentHash(page.URL())
+	if err != nil {
+		t.Fatalf("current drive hash: %v", err)
+	}
+	script := "globalThis.__s4waveLogQuickstartTiming = true;"
+	if err := sess.BrowserContext().AddInitScript(playwright.Script{Content: &script}); err != nil {
+		t.Fatalf("install quickstart timing init script: %v", err)
+	}
+	if err := sess.ReplacePageInCurrentContext(); err != nil {
+		t.Fatalf("replace page in current context: %v", err)
+	}
+	if err := testHarness.loadAppPageURL(sess, testHarness.BaseURL()+"/"+targetHash); err != nil {
+		t.Fatalf("load direct SharedObject route after page replacement: %v", err)
+	}
+
+	page = sess.Page()
+	WaitForApp(t, page)
+	AssertRootImportMap(t, testHarness, page)
+	AssertBrowserStartupDone(t, testHarness, page)
+	WaitForDriveReady(t, testHarness, page)
+	assertDirectSharedObjectRouteStartupMarks(t, page)
+
+	t.Logf(
+		"goscript direct SharedObject route body mount gate passed: session_index=%d space_id=%s hash=%s",
+		scenario.GetSessionIndex(),
+		scenario.GetSpaceID(),
+		targetHash,
+	)
+}
+
+func assertDirectSharedObjectRouteStartupMarks(t testing.TB, page playwright.Page) {
+	t.Helper()
+
+	raw, err := page.Evaluate(`() => (globalThis.__swStartupMarks ?? []).map((mark) => ({
+		label: mark.label ?? mark.name ?? '',
+		detail: mark.detail ?? {},
+	}))`, nil)
+	if err != nil {
+		t.Fatalf("read startup marks: %v", err)
+	}
+	marks, ok := raw.([]any)
+	if !ok {
+		t.Fatalf("unexpected startup marks %T: %#v", raw, raw)
+	}
+	labels := make([]string, 0, len(marks))
+	for _, mark := range marks {
+		m, ok := mark.(map[string]any)
+		if !ok {
+			t.Fatalf("unexpected startup mark %T: %#v", mark, mark)
+		}
+		labels = append(labels, stringField(m, "label"))
+	}
+
+	for _, label := range []string{
+		"quickstart.session-mount-start",
+		"quickstart.session-mount-ready",
+		"quickstart.shared-object-mount-start",
+		"quickstart.shared-object-mount-ready",
+		"quickstart.shared-object-body-mount-start",
+		"quickstart.shared-object-body-mount-ready",
+		"quickstart.space-resource-created",
+	} {
+		if !slices.Contains(labels, label) {
+			t.Fatalf("direct SharedObject route missing startup mark %q; labels=%v", label, labels)
+		}
+	}
+
+	for _, label := range []string{
+		"quickstart.session-handoff-used",
+		"quickstart.shared-object-handoff-used",
+		"quickstart.shared-object-body-handoff-used",
+		"quickstart.space-handoff-used",
+		"quickstart.space-world-handoff-used",
+		"quickstart.space-contents-handoff-used",
+	} {
+		if slices.Contains(labels, label) {
+			t.Fatalf("direct SharedObject route used quickstart handoff mark %q; labels=%v", label, labels)
+		}
+	}
+}
+
 // TestDriveScenarioSequence verifies the owned drive flow as one ordered
 // sequence on a single harness session.
 func TestDriveScenarioSequence(t *testing.T) {
