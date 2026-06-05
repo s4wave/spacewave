@@ -3,16 +3,18 @@ package resource_objecttype_registry
 import (
 	"context"
 	"testing"
+	"time"
 
-	"github.com/aperturerobotics/controllerbus/bus/inmem"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	cdc "github.com/aperturerobotics/controllerbus/directive/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	"github.com/s4wave/spacewave/db/world"
+	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
+	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 	"github.com/sirupsen/logrus"
 )
@@ -20,9 +22,15 @@ import (
 func TestBridgeResolverKeepsPluginResourceClientAfterRequestContextCancel(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
 
+	childReleased := make(chan struct{}, 1)
 	pluginRoot := srpc.NewMux()
-	if err := s4wave_objecttype_registry.SRPCRegisterObjectTypeHandlerService(pluginRoot, &testObjectTypeHandler{}); err != nil {
+	if err := s4wave_objecttype_registry.SRPCRegisterObjectTypeHandlerService(pluginRoot, &testObjectTypeHandler{childReleased: childReleased}); err != nil {
 		t.Fatal(err)
 	}
 	pluginResourceMux := srpc.NewMux()
@@ -31,8 +39,7 @@ func TestBridgeResolverKeepsPluginResourceClientAfterRequestContextCancel(t *tes
 	}
 	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))
 
-	b := inmem.NewBus(cdc.NewController(ctx, le))
-	rel, err := b.AddController(ctx, &testPluginLoadController{client: pluginClient}, nil)
+	rel, err := tb.Bus.AddController(ctx, &testPluginLoadController{client: pluginClient}, nil)
 	if err != nil {
 		t.Fatalf("AddController: %v", err)
 	}
@@ -43,8 +50,8 @@ func TestBridgeResolverKeepsPluginResourceClientAfterRequestContextCancel(t *tes
 		RegistrationId: 1,
 		PluginId:       "test-plugin",
 	}
-	ctrl := NewBridgeController(le, b, registry)
-	rel, err = b.AddController(ctx, ctrl, nil)
+	ctrl := NewBridgeController(le, tb.Bus, registry)
+	rel, err = tb.Bus.AddController(ctx, ctrl, nil)
 	if err != nil {
 		t.Fatalf("AddController bridge: %v", err)
 	}
@@ -54,7 +61,7 @@ func TestBridgeResolverKeepsPluginResourceClientAfterRequestContextCancel(t *tes
 	defer ownerCancel()
 	requestCtx, requestCancel := context.WithCancel(resource_server.WithResourceClientContext(ctx, &testResourceClientContext{ctx: ownerCtx}))
 
-	ot, ref, err := objecttype.ExLookupObjectType(ctx, b, "test/type")
+	ot, ref, err := objecttype.ExLookupObjectType(ctx, tb.Bus, "test/type")
 	if err != nil {
 		t.Fatalf("ExLookupObjectType: %v", err)
 	}
@@ -71,17 +78,31 @@ func TestBridgeResolverKeepsPluginResourceClientAfterRequestContextCancel(t *tes
 	if ot == nil {
 		t.Fatalf("expected object type")
 	}
-	invoker, cleanup, err := ot.GetFactory()(requestCtx, le, b, nil, nil, "test/object")
+	invoker, cleanup, err := ot.GetFactory()(requestCtx, le, tb.Bus, tb.Engine, nil, "test/object")
 	if err != nil {
 		t.Fatalf("object type factory: %v", err)
 	}
-	defer cleanup()
 
 	requestCancel()
 
 	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invoker)))
 	if err := client.ExecCall(ctx, "test.Child", "Ping", &testPingMessage{}, &testPingMessage{}); err != nil {
 		t.Fatalf("child resource call after request context cancel: %v", err)
+	}
+	readTx, err := tb.Engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer readTx.Discard()
+	if _, err := world.MustGetObject(ctx, readTx, "test/objecttype-seed"); err != nil {
+		t.Fatalf("seeded object was not committed through attached engine: %v", err)
+	}
+
+	cleanup()
+	select {
+	case <-childReleased:
+	case <-time.After(time.Second):
+		t.Fatal("child resource release callback was not called")
 	}
 }
 
@@ -105,11 +126,51 @@ func (m *testPingMessage) UnmarshalVT([]byte) error {
 
 func (m *testPingMessage) Reset() {}
 
-type testObjectTypeHandler struct{}
+type testObjectTypeHandler struct {
+	childReleased chan struct{}
+}
 
-func (h *testObjectTypeHandler) InvokeObjectType(ctx context.Context, _ *s4wave_objecttype_registry.InvokeObjectTypeRequest) (*s4wave_objecttype_registry.InvokeObjectTypeResponse, error) {
+func (h *testObjectTypeHandler) InvokeObjectType(ctx context.Context, req *s4wave_objecttype_registry.InvokeObjectTypeRequest) (*s4wave_objecttype_registry.InvokeObjectTypeResponse, error) {
+	if req.GetTypeId() != "test/type" || req.GetObjectKey() != "test/object" {
+		return nil, resource.ErrInvalidResourceID
+	}
+	if req.GetAttachedEngineResourceId() == 0 {
+		return nil, resource.ErrInvalidResourceID
+	}
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
+		return nil, err
+	}
+	engineClient, err := resourceCtx.GetAttachedResource(req.GetAttachedEngineResourceId())
+	if err != nil {
+		return nil, err
+	}
+	engine := s4wave_world.NewSRPCEngineResourceServiceClient(engineClient)
+	txResp, err := engine.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{Write: true})
+	if err != nil {
+		return nil, err
+	}
+	txID := txResp.GetResourceId()
+	if txID == 0 {
+		return nil, resource.ErrInvalidResourceID
+	}
+	defer resourceCtx.ReleaseResource(txID)
+	txClient, err := resourceCtx.GetAttachedResource(txID)
+	if err != nil {
+		return nil, err
+	}
+	worldState := s4wave_world.NewSRPCWorldStateResourceServiceClient(txClient)
+	objResp, err := worldState.CreateObject(ctx, &s4wave_world.CreateObjectRequest{
+		ObjectKey: "test/objecttype-seed",
+	})
+	if err != nil {
+		return nil, err
+	}
+	if objID := objResp.GetResourceId(); objID != 0 {
+		defer resourceCtx.ReleaseResource(objID)
+	}
+	tx := s4wave_world.NewSRPCTxResourceServiceClient(txClient)
+	if _, err := tx.Commit(ctx, &s4wave_world.CommitRequest{}); err != nil {
 		return nil, err
 	}
 	id, err := resourceCtx.AddResource(srpc.InvokerFunc(func(serviceID string, methodID string, strm srpc.Stream) (bool, error) {
@@ -120,7 +181,14 @@ func (h *testObjectTypeHandler) InvokeObjectType(ctx context.Context, _ *s4wave_
 			return true, err
 		}
 		return true, strm.MsgSend(&testPingMessage{})
-	}), nil)
+	}), func() {
+		if h.childReleased != nil {
+			select {
+			case h.childReleased <- struct{}{}:
+			default:
+			}
+		}
+	})
 	if err != nil {
 		return nil, err
 	}

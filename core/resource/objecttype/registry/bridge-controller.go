@@ -1,5 +1,3 @@
-//go:build !goscript
-
 package resource_objecttype_registry
 
 import (
@@ -186,6 +184,9 @@ func (r *bridgeResolver) invokePlugin(
 	invoker := srpc.NewClientInvoker(childClient)
 	cleanup := func() {
 		childRef.Release()
+		if engineResourceID != 0 {
+			_ = resources.Client.DetachResource(resourceClientCtx, engineResourceID)
+		}
 		rootRef.Release()
 		resources.Release()
 	}
