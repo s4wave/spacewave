@@ -43,9 +43,9 @@ import {
 import { CanvasObjectNode } from './CanvasObjectNode.js'
 import { deleteCanvasGraphLink } from './graphLinkActions.js'
 import { isCanvasInsertableObject } from './object-picker.js'
+import { CanvasTypeID } from '../type.js'
 
-// CanvasTypeID is the type identifier for canvas objects.
-export const CanvasTypeID = 'canvas'
+export { CanvasTypeID }
 
 const graphLinkLookupLimit = 100
 

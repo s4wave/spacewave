@@ -9,6 +9,7 @@ import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { LocalProvider } from '@s4wave/sdk/provider/local/local.js'
 import { Space } from '@s4wave/sdk/space/space.js'
 import { SpaceContents } from '@s4wave/sdk/space/contents.js'
+import { SUBPATH_DELIMITER } from '@s4wave/sdk/space/object-uri.js'
 import { Engine } from '@s4wave/sdk/world/engine.js'
 import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import {
@@ -38,6 +39,7 @@ import {
   CANVAS_DEMO_OBJECT_KEY,
 } from '@s4wave/core/space/world/ops/init-canvas-demo.js'
 import { InitCanvasDemoOp } from '@s4wave/core/space/world/ops/ops.pb.js'
+import { CanvasTypeID } from '@s4wave/app/canvas/type.js'
 
 import { InitChatDemoOp } from '@s4wave/sdk/chat/chat.pb.js'
 import {
@@ -707,12 +709,13 @@ export function getQuickstartInitialObjectType(
   switch (quickstartId) {
     case 'drive':
       return ''
+    case 'canvas':
+      return CanvasTypeID
     case 'space':
     case 'git':
     case 'notebook':
     case 'docs':
     case 'blog':
-    case 'canvas':
     case 'chat':
     case 'v86':
     case 'forge':
@@ -744,7 +747,7 @@ export function buildQuickstartSpaceRoutePath(
   if (!objectKey) {
     return basePath
   }
-  return basePath.replace(/\/+$/, '') + '/' + objectKey
+  return basePath.replace(/\/+$/, '') + SUBPATH_DELIMITER + objectKey
 }
 
 // createSpaceSettingsObject creates the SpaceSettings object in the world.

@@ -458,10 +458,17 @@ describe('quickstart create', () => {
       '/u/2/so/space-1',
     )
     expect(getQuickstartInitialObjectRouteHandoff('drive')).toBeUndefined()
+    expect(getQuickstartInitialObjectRouteHandoff('notebook')).toBeUndefined()
+    expect(getQuickstartInitialObjectRouteHandoff('docs')).toBeUndefined()
+    expect(getQuickstartInitialObjectRouteHandoff('blog')).toBeUndefined()
+    expect(getQuickstartInitialObjectRouteHandoff('git')).toBeUndefined()
     expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1/', 'canvas')).toBe(
-      '/u/2/so/space-1/canvas-1',
+      '/u/2/so/space-1/-/canvas-1',
     )
-    expect(getQuickstartInitialObjectRouteHandoff('canvas')).toBeUndefined()
+    expect(getQuickstartInitialObjectRouteHandoff('canvas')).toEqual({
+      objectKey: 'canvas-1',
+      objectType: 'canvas',
+    })
     expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1', 'space')).toBe(
       '/u/2/so/space-1',
     )
