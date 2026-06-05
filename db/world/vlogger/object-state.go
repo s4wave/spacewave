@@ -28,7 +28,7 @@ func NewObjectState(le *logrus.Entry, objectState world.ObjectState) *ObjectStat
 
 // le returns a logger with object fields
 func (o *ObjectState) le() *logrus.Entry {
-	return o.ble.WithField("object-key", o.GetKey())
+	return o.ble.WithField("object-key", objectKeyForLogging(o.GetKey()))
 }
 
 // GetRootRef returns the root reference.
@@ -37,7 +37,7 @@ func (o *ObjectState) GetRootRef(ctx context.Context) (ref *bucket.ObjectRef, re
 	defer func() {
 		o.le().Debugf(
 			"GetRootRef() => ref(%v) rev(%v) err(%v)",
-			ref.MarshalString(),
+			objectRefForLogging(ref),
 			rev,
 			err,
 		)
@@ -53,7 +53,7 @@ func (o *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (r
 	defer func() {
 		o.le().Debugf(
 			"SetRootRef(%s) => rev(%v) err(%v)",
-			nref.MarshalString(),
+			objectRefForLogging(nref),
 			rev,
 			err,
 		)

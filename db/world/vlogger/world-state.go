@@ -2,6 +2,7 @@ package world_vlogger
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
@@ -24,6 +25,27 @@ func NewWorldState(le *logrus.Entry, worldState world.WorldState) *WorldState {
 		WorldState: worldState,
 		le:         le,
 	}
+}
+
+func objectKeyForLogging(key string) string {
+	return "len=" + strconv.Itoa(len(key))
+}
+
+func objectRefForLogging(ref *bucket.ObjectRef) string {
+	if ref == nil {
+		return "<nil>"
+	}
+	return ref.MarshalString()
+}
+
+func graphQuadForLogging(q world.GraphQuad) string {
+	if q == nil {
+		return "<nil>"
+	}
+	return "subject(" + objectKeyForLogging(q.GetSubject()) + ") predicate(" +
+		objectKeyForLogging(q.GetPredicate()) + ") object(" +
+		objectKeyForLogging(q.GetObj()) + ") label(" +
+		objectKeyForLogging(q.GetLabel()) + ")"
 }
 
 // ApplyWorldOp applies a batch operation at the world level.
@@ -62,7 +84,7 @@ func (w *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 		}
 		w.le.Debugf(
 			"CreateObject(%s, %s) => err(%v)",
-			key, rootRef.MarshalString(),
+			objectKeyForLogging(key), objectRefForLogging(rootRef),
 			err,
 		)
 	}()
@@ -78,7 +100,7 @@ func (w *WorldState) GetObject(ctx context.Context, key string) (objs world.Obje
 		}
 		w.le.Debugf(
 			"GetObject(%s) => found(%v) err(%v)",
-			key, found, err,
+			objectKeyForLogging(key), found, err,
 		)
 	}()
 	return w.WorldState.GetObject(ctx, key)
@@ -91,7 +113,7 @@ func (w *WorldState) DeleteObject(ctx context.Context, key string) (found bool, 
 	defer func() {
 		w.le.Debugf(
 			"DeleteObject(%s) => found(%v) err(%v)",
-			key, found, err,
+			objectKeyForLogging(key), found, err,
 		)
 	}()
 	return w.WorldState.DeleteObject(ctx, key)
@@ -104,16 +126,9 @@ func (w *WorldState) DeleteObject(ctx context.Context, key string) (found bool, 
 // If limit is set, stops after finding that number of matching quads.
 func (w *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) (qs []world.GraphQuad, err error) {
 	defer func() {
-		var filterStr string
-		if filter == nil {
-			filterStr = "<nil>"
-		} else {
-			cq, _ := world.GraphQuadToCayleyQuad(filter, false)
-			filterStr = cq.String()
-		}
 		w.le.Debugf(
 			"LookupGraphQuads(%s, %d) => found(%d) err(%v)",
-			filterStr, limit, len(qs), err,
+			graphQuadForLogging(filter), limit, len(qs), err,
 		)
 	}()
 	return w.WorldState.LookupGraphQuads(ctx, filter, limit)
@@ -141,10 +156,9 @@ func (w *WorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world.
 // If already exists, returns nil.
 func (w *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) (err error) {
 	defer func() {
-		cq, _ := world.GraphQuadToCayleyQuad(q, false)
 		w.le.Debugf(
 			"SetGraphQuad(%s) => err(%v)",
-			cq.String(), err,
+			graphQuadForLogging(q), err,
 		)
 	}()
 	return w.WorldState.SetGraphQuad(ctx, q)
@@ -154,10 +168,9 @@ func (w *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) (err e
 // Note: if quad did not exist, returns nil.
 func (w *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) (err error) {
 	defer func() {
-		cq, _ := world.GraphQuadToCayleyQuad(q, false)
 		w.le.Debugf(
 			"DeleteGraphQuad(%s) => err(%v)",
-			cq.String(), err,
+			graphQuadForLogging(q), err,
 		)
 	}()
 	return w.WorldState.DeleteGraphQuad(ctx, q)
@@ -169,7 +182,7 @@ func (w *WorldState) DeleteGraphObject(ctx context.Context, value string) (err e
 	defer func() {
 		w.le.Debugf(
 			"DeleteGraphObject(%s) => err(%v)",
-			value, err,
+			objectKeyForLogging(value), err,
 		)
 	}()
 	return w.WorldState.DeleteGraphObject(ctx, value)
