@@ -1,10 +1,11 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockNavigate = vi.hoisted(() => vi.fn())
 const mockUseVisibleQuickstartOptions = vi.hoisted(() => vi.fn())
 const mockSetOpenMenu = vi.hoisted(() => vi.fn())
 const mockSetStateAtom = vi.hoisted(() => vi.fn())
+const mockOpenPathInNewTab = vi.hoisted(() => vi.fn())
 
 vi.mock('@aptre/bldr', () => ({
   isDesktop: true,
@@ -42,15 +43,9 @@ vi.mock('@s4wave/app/session/setup/LocalSessionOnboardingContext.js', () => ({
 }))
 
 vi.mock('@s4wave/app/ShellTabContext.js', () => ({
-  addTab: vi.fn(() => ({
-    tabs: [{ id: 'docs', name: 'Docs', path: '/docs' }],
-    newTab: { id: 'docs', name: 'Docs', path: '/docs' },
-  })),
   useShellTabs: () => ({
-    tabs: [],
-    activeTabId: null,
-    setTabs: vi.fn(),
-    setActiveTabId: vi.fn(),
+    activeTabId: 'home',
+    openPathInNewTab: mockOpenPathInNewTab,
   }),
 }))
 
@@ -93,6 +88,7 @@ describe('SessionDashboard', () => {
     mockNavigate.mockReset()
     mockSetOpenMenu.mockReset()
     mockSetStateAtom.mockReset()
+    mockOpenPathInNewTab.mockReset()
     mockUseVisibleQuickstartOptions.mockReset()
     mockUseVisibleQuickstartOptions.mockReturnValue([
       {
@@ -172,5 +168,16 @@ describe('SessionDashboard', () => {
     expect(screen.queryByText('Create a Drive')).toBeNull()
     expect(screen.getByText('Other starts')).toBeDefined()
     expect(screen.getByText('Join Space')).toBeDefined()
+  })
+
+  it('opens Docs through provider Shell Tab semantics', () => {
+    render(<SessionDashboard spaces={[]} onQuickstartClick={vi.fn()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Docs' }))
+
+    expect(mockOpenPathInNewTab).toHaveBeenCalledWith('/docs', {
+      afterTabId: 'home',
+      focusExisting: true,
+    })
   })
 })

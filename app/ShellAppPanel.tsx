@@ -17,11 +17,11 @@ import type { AddTabRequest } from '@s4wave/sdk/layout/layout.pb.js'
 
 import { AppRoutes } from './routes/AppRoutes.js'
 import {
-  addTab as addShellTab,
   ShellTabStateProvider,
   useShellTabs,
   useTabId,
 } from './ShellTabContext.js'
+import { buildPathTab } from './shell-layout-tab-utils.js'
 
 // ShellAppPanelProps are the props for ShellAppPanel.
 export interface ShellAppPanelProps {
@@ -60,8 +60,7 @@ function ShellAppPanelInner({
 }) {
   const [openMenu, setOpenMenu] = useStateAtom<string>(null, 'openMenu', '')
   const tabId = useTabId()
-  const { tabs, activeTabId, setTabs, setActiveTabId, updateTabPath } =
-    useShellTabs()
+  const { tabs, activeTabId, addShellTab, updateTabPath } = useShellTabs()
 
   const addTab = useCallback(
     (request: AddTabRequest) => {
@@ -74,14 +73,14 @@ function ShellAppPanelInner({
         path = layoutTab.path || '/'
       }
 
-      const result = addShellTab(tabs, path, tabId ?? undefined)
-      setTabs(result.tabs)
-      if (request.select) {
-        setActiveTabId(result.newTab.id)
-      }
-      return Promise.resolve({ tabId: result.newTab.id })
+      const newTab = buildPathTab(path)
+      addShellTab(newTab, {
+        afterTabId: tabId ?? undefined,
+        select: request.select,
+      })
+      return Promise.resolve({ tabId: newTab.id })
     },
-    [tabs, tabId, setTabs, setActiveTabId],
+    [tabId, addShellTab],
   )
 
   const navigateTab = useCallback(

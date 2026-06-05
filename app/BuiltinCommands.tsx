@@ -10,32 +10,25 @@ import { EmailSupportDialog } from '@s4wave/app/EmailSupportDialog.js'
 import { DISCORD_INVITE_URL, GITHUB_ISSUES_URL } from '@s4wave/app/github.js'
 import { SPACEWAVE_PUBLIC_BASE_URL } from '@s4wave/app/urls.js'
 import { useAddSpaceRootAlias } from '@s4wave/app/hooks/useAddSpaceRootAlias.js'
-import {
-  addTab as addShellTab,
-  useShellTabs,
-} from '@s4wave/app/ShellTabContext.js'
+import { useShellTabs } from '@s4wave/app/ShellTabContext.js'
 
 // BuiltinCommands registers built-in commands with the command registry.
 // Returns null (no UI).
 export function BuiltinCommands() {
-  const { tabs, activeTabId, setTabs, setActiveTabId } = useShellTabs()
+  const { activeTabId, openPathInNewTab } = useShellTabs()
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
   const [emailSupportOpen, setEmailSupportOpen] = useState(false)
   const { add: addRootAlias, canAdd: canAddRootAlias } = useAddSpaceRootAlias()
 
-  const openPathInNewTab = useCallback(
+  const handleOpenPathInNewTab = useCallback(
     (path: string) => {
-      const currentPath = getAppPath()
-      if (!currentPath.startsWith('/u/') && !currentPath.startsWith('/g/')) {
-        setAppPath(path)
-        return
-      }
-      const result = addShellTab(tabs, path, activeTabId || undefined)
-      setTabs(result.tabs)
-      setActiveTabId(result.newTab.id)
+      openPathInNewTab(path, {
+        afterTabId: activeTabId || undefined,
+        focusExisting: true,
+      })
     },
-    [tabs, activeTabId, setTabs, setActiveTabId],
+    [activeTabId, openPathInNewTab],
   )
 
   useCommand({
@@ -119,8 +112,8 @@ export function BuiltinCommands() {
     menuGroup: 10,
     menuOrder: 1,
     handler: useCallback(() => {
-      openPathInNewTab('/docs')
-    }, [openPathInNewTab]),
+      handleOpenPathInNewTab('/docs')
+    }, [handleOpenPathInNewTab]),
   })
 
   useCommand({

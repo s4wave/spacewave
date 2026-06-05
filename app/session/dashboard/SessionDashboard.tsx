@@ -24,10 +24,7 @@ import { isDesktop } from '@aptre/bldr'
 
 import { useNavLinks } from '@s4wave/app/nav-links.js'
 import { QuickstartCommands } from '@s4wave/app/quickstart/QuickstartCommands.js'
-import {
-  addTab as addShellTab,
-  useShellTabs,
-} from '@s4wave/app/ShellTabContext.js'
+import { useShellTabs } from '@s4wave/app/ShellTabContext.js'
 import {
   getQuickstartPath,
   type QuickstartOption,
@@ -176,13 +173,14 @@ export function SessionDashboard({
 
 function DashboardNav() {
   const nav = useNavLinks()
-  const { tabs, activeTabId, setTabs, setActiveTabId } = useShellTabs()
+  const { activeTabId, openPathInNewTab } = useShellTabs()
 
   const handleDocsClick = useCallback(() => {
-    const result = addShellTab(tabs, '/docs', activeTabId || undefined)
-    setTabs(result.tabs)
-    setActiveTabId(result.newTab.id)
-  }, [tabs, activeTabId, setTabs, setActiveTabId])
+    openPathInNewTab('/docs', {
+      afterTabId: activeTabId || undefined,
+      focusExisting: true,
+    })
+  }, [activeTabId, openPathInNewTab])
 
   const links = [
     ...(!isDesktop ? [{ text: 'Download', onClick: nav.download }] : []),

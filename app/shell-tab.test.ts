@@ -3,6 +3,11 @@ import { describe, expect, it } from 'vitest'
 import { getTabNameFromPath } from './shell-tab.js'
 
 describe('getTabNameFromPath', () => {
+  it('labels docs routes as Docs', () => {
+    expect(getTabNameFromPath('/docs')).toBe('Docs')
+    expect(getTabNameFromPath('/docs/developer/install')).toBe('Docs')
+  })
+
   it('uses built-in object labels for space object routes', () => {
     expect(getTabNameFromPath('/u/1/so/space/-/unixfs')).toBe('Files')
     expect(getTabNameFromPath('/u/1/so/space/-/object-layout')).toBe('Layout')

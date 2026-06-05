@@ -61,8 +61,14 @@ import { buildShellExternalDrag } from './shell-app-drag.js'
 export function ShellGridLayout() {
   const { layoutData } = useParams()
   const navigate = useNavigate()
-  const { tabs, activeTabId, setTabs, setActiveTabId, startRenaming } =
-    useShellTabs()
+  const {
+    tabs,
+    activeTabId,
+    addShellTab,
+    selectShellTab,
+    retainShellTabs,
+    startRenaming,
+  } = useShellTabs()
 
   // Decode layout from URL - only on initial mount or when URL changes externally
   const initialDecodeResult = useMemo((): DecodeResult | null => {
@@ -131,12 +137,36 @@ export function ShellGridLayout() {
       findShellTab(tabs, selectedId) ??
       findShellTab(tabs, activeTabId) ??
       tabs[0]
-    setActiveTabId(selectedTab?.id ?? selectedId ?? 'home')
+    selectShellTab(selectedTab?.id ?? selectedId ?? 'home')
     structureRef.current = null
     queueMicrotask(() =>
       navigate({ path: selectedTab?.path ?? '/', replace: true }),
     )
-  }, [activeTabId, model, navigate, setActiveTabId, tabs])
+  }, [activeTabId, model, navigate, selectShellTab, tabs])
+
+  useEffect(() => {
+    if (!model || !hasGridLayout(model)) return
+
+    const activeTab = findShellTab(tabs, activeTabId)
+    if (!activeTab) return
+
+    if (model.getNodeById(activeTab.id)) {
+      if (getSelectedTabId(model) !== activeTab.id) {
+        model.doAction(Actions.selectTab(activeTab.id))
+      }
+      return
+    }
+
+    const activeTabsetId = getActiveTabsetId(model)
+    if (!activeTabsetId) return
+
+    addAndSelectShellModelTab(model, activeTabsetId, activeTab, 'shell-panel')
+    const newStructure = encodeGridLayoutStructure(model)
+    if (newStructure !== structureRef.current) {
+      structureRef.current = newStructure
+      navigate({ path: `/g/${encodeGridLayout(model)}`, replace: true })
+    }
+  }, [activeTabId, model, navigate, tabs])
 
   // renderTab renders ShellGridPanel for each tab
   const renderTab = useCallback(
@@ -156,7 +186,7 @@ export function ShellGridLayout() {
           modelTabIds.add(node.getId())
         }
       })
-      setTabs((prev) => prev.filter((t) => modelTabIds.has(t.id)))
+      retainShellTabs(modelTabIds, getSelectedTabId(newModel) ?? undefined)
 
       if (!hasGridLayout(newModel)) {
         // Collapsed to single tabset - exit grid mode
@@ -165,7 +195,7 @@ export function ShellGridLayout() {
           findShellTab(tabs, selectedId) ??
           findShellTab(tabs, activeTabId) ??
           tabs[0]
-        setActiveTabId(selectedTab?.id ?? selectedId ?? 'home')
+        selectShellTab(selectedTab?.id ?? selectedId ?? 'home')
         structureRef.current = null
         navigate({ path: selectedTab?.path ?? '/', replace: true })
         return
@@ -180,7 +210,7 @@ export function ShellGridLayout() {
         navigate({ path: `/g/${newLayoutData}`, replace: true })
       }
     },
-    [activeTabId, navigate, setActiveTabId, setTabs, tabs],
+    [activeTabId, navigate, retainShellTabs, selectShellTab, tabs],
   )
 
   // Handle adding a new tab to the active tabset
@@ -193,11 +223,10 @@ export function ShellGridLayout() {
     // Create new tab with home path
     const newTab = buildPathTab('/')
 
-    // Add to global tabs state
-    setTabs((prev) => [...prev, newTab])
+    addShellTab(newTab, { select: true })
 
     addAndSelectShellModelTab(model, activeTabsetId, newTab, 'shell-panel')
-  }, [model, setTabs])
+  }, [model, addShellTab])
 
   const handleAddTabAtTab = useCallback(
     (tabId: string) => {
@@ -210,10 +239,10 @@ export function ShellGridLayout() {
       const sourceTab = findShellTab(tabs, tabId)
       const newTab = buildContextualShellTab(sourceTab?.path)
 
-      setTabs((prev) => [...prev, newTab])
+      addShellTab(newTab, { select: true })
       addAndSelectShellModelTab(model, tabsetId, newTab, 'shell-panel')
     },
-    [model, tabs, setTabs],
+    [model, tabs, addShellTab],
   )
 
   // Handle closing a tab
@@ -256,10 +285,10 @@ export function ShellGridLayout() {
       if (!tabsetId) return
 
       const nextTab = cloneShellTab(tab)
-      setTabs((prev) => [...prev, nextTab])
+      addShellTab(nextTab, { select: true })
       addAndSelectShellModelTab(model, tabsetId, nextTab, 'shell-panel')
     },
-    [model, tabs, setTabs],
+    [model, tabs, addShellTab],
   )
 
   const handleCloseOtherTabs = useCallback(
@@ -352,16 +381,9 @@ export function ShellGridLayout() {
   const handleExternalAppDrag = useCallback(
     (event: ReactDragEvent<HTMLElement>) =>
       buildShellExternalDrag(event, (tab) => {
-        setTabs((prev) => {
-          const existingIdx = prev.findIndex((t) => t.id === tab.id)
-          if (existingIdx < 0) {
-            return [...prev, tab]
-          }
-          return prev.map((t) => (t.id === tab.id ? tab : t))
-        })
-        setActiveTabId(tab.id)
+        addShellTab(tab, { select: true })
       }),
-    [setActiveTabId, setTabs],
+    [addShellTab],
   )
 
   if (!model) {

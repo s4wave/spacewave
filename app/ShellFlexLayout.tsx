@@ -243,7 +243,9 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
     tabs,
     setTabs,
     activeTabId,
-    setActiveTabId,
+    addShellTab,
+    selectShellTab,
+    retainShellTabs,
     updateTabPath,
     startRenaming,
   } = useShellTabs()
@@ -330,18 +332,17 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
 
     const existingTab = tabs.find((t) => t.path === currentPath)
     if (existingTab) {
-      setActiveTabId(existingTab.id)
+      selectShellTab(existingTab.id)
       model.doAction(Actions.selectTab(existingTab.id))
     } else if (currentPath !== '/') {
       // Create new tab for non-home paths
       const newTab = buildPathTab(currentPath)
-      setTabs((prev) => [...prev, newTab])
-      setActiveTabId(newTab.id)
+      addShellTab(newTab, { select: true })
       addAndSelectShellModelTab(model, 'shell-tabset', newTab, 'shell-content')
     }
 
     markShellEngaged()
-  }, [model, tabs, setTabs, setActiveTabId, markShellEngaged, isGridMode])
+  }, [model, tabs, selectShellTab, addShellTab, markShellEngaged, isGridMode])
 
   // Sync URL hash when active tab selection changes (after initialization).
   // Tab path changes are owned by the route/hash listeners and should not
@@ -472,44 +473,20 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
           'shell-content',
         )
         setTabs([homeTab])
-        setActiveTabId(homeTab.id)
+        selectShellTab(homeTab.id)
         setAppPath(homeTab.path)
         return
       }
 
-      // Update tabs state: keep existing paths, remove deleted tabs, update names
-      setTabs((prevTabs) => {
-        const modelTabIds = new Set(modelTabs.map((t) => t.id))
-        const modelTabNames = new Map(modelTabs.map((t) => [t.id, t.name]))
+      const modelTabIds = new Set(modelTabs.map((t) => t.id))
+      retainShellTabs(modelTabIds, newActiveId ?? undefined)
 
-        // Keep tabs that still exist in model, update names
-        const updatedTabs = prevTabs.flatMap((t) =>
-          modelTabIds.has(t.id)
-            ? [
-                {
-                  ...t,
-                  name: modelTabNames.get(t.id) ?? t.name,
-                },
-              ]
-            : [],
-        )
-
-        // Add any new tabs from model (shouldn't happen often, but handle it)
-        for (const mt of modelTabs) {
-          if (!prevTabs.some((t) => t.id === mt.id)) {
-            updatedTabs.push({
-              id: mt.id,
-              name: mt.name,
-              path: '/',
-            })
-          }
-        }
-
-        return updatedTabs
-      })
-
-      if (newActiveId && newActiveId !== activeTabId) {
-        setActiveTabId(newActiveId)
+      if (
+        newActiveId &&
+        newActiveId !== activeTabId &&
+        tabs.some((tab) => tab.id === newActiveId)
+      ) {
+        selectShellTab(newActiveId)
         // Update URL to match selected tab (only if not in grid mode)
         if (!isGridMode()) {
           // Get path from current tabs state
@@ -521,7 +498,15 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
         markShellEngaged()
       }
     },
-    [setTabs, setActiveTabId, markShellEngaged, activeTabId, tabs, isGridMode],
+    [
+      setTabs,
+      selectShellTab,
+      retainShellTabs,
+      markShellEngaged,
+      activeTabId,
+      tabs,
+      isGridMode,
+    ],
   )
 
   // Custom icons for close button
@@ -534,10 +519,10 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
 
   const appendAndSelectTab = useCallback(
     (tab: ShellTab, tabsetId = 'shell-tabset') => {
-      setTabs((prev) => [...prev, tab])
+      addShellTab(tab, { select: true })
       addAndSelectShellModelTab(model, tabsetId, tab, 'shell-content')
     },
-    [model, setTabs],
+    [model, addShellTab],
   )
 
   const handleNewTabAtTab = useCallback(
@@ -615,18 +600,11 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
   const handleExternalAppDrag = useCallback(
     (event: ReactDragEvent<HTMLElement>) =>
       buildShellExternalDrag(event, (tab) => {
-        setTabs((prev) => {
-          const existingIdx = prev.findIndex((t) => t.id === tab.id)
-          if (existingIdx < 0) {
-            return [...prev, tab]
-          }
-          return prev.map((t) => (t.id === tab.id ? tab : t))
-        })
-        setActiveTabId(tab.id)
+        addShellTab(tab, { select: true })
         setAppPath(tab.path)
         markShellEngaged()
       }),
-    [setActiveTabId, markShellEngaged, setTabs],
+    [addShellTab, markShellEngaged],
   )
 
   const [contextMenu, setContextMenu] =

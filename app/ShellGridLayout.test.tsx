@@ -36,6 +36,7 @@ interface MockOptimizedLayoutProps {
     visitNodes: (
       callback: (node: { getType(): string; getId(): string }) => void,
     ) => void
+    doAction?: (action?: MockLayoutAction) => void
   }
   onContextMenu?: unknown
   onExternalDrag?: (event: unknown) => unknown
@@ -45,6 +46,13 @@ interface MockOptimizedLayoutProps {
 
 interface MockHasGridLayoutModel {
   tabsets?: unknown[]
+}
+
+interface MockLayoutAction {
+  type?: string
+  tabId?: string
+  node?: { id?: string; name?: string }
+  tabsetId?: string
 }
 
 interface MockJsonTab {
@@ -158,7 +166,8 @@ vi.mock('@s4wave/web/ui/DropdownMenu.js', () => ({
 vi.mock('./shell-grid-utils.js', () => ({
   decodeGridLayout: () => ({ model: mockJsonModel, localState: undefined }),
   encodeGridLayout: () => 'encoded-grid',
-  encodeGridLayoutStructure: () => 'grid-structure',
+  encodeGridLayoutStructure: (model: { tabs?: Array<{ id: string }> }) =>
+    model.tabs?.map((tab) => tab.id).join('|') ?? 'grid-structure',
   hasGridLayout: (model: MockHasGridLayoutModel) => mockHasGridLayout(model),
   getSelectedTabId: () => 'tab-1',
   getActiveTabsetId: () => 'tabset-1',
@@ -287,7 +296,43 @@ vi.mock('@aptre/flex-layout', () => {
       )
     }
 
-    doAction() {}
+    doAction(action?: MockLayoutAction) {
+      if (!action) return
+      if (action.type === 'addNode' && action.node?.id) {
+        const tabset =
+          this.tabsets.find((item) => item.id === action.tabsetId) ??
+          this.tabsets[0]
+        if (!tabset) return
+        const tab = new MockTabNode(
+          action.node.id,
+          action.node.name ?? 'Tab',
+          {},
+          tabset,
+        )
+        tabset.children.push(tab)
+        tabset.selected = tabset.children.length - 1
+        this.tabs.push(tab)
+      }
+      if (action.type === 'selectTab' && action.tabId) {
+        const tab = this.tabs.find((item) => item.id === action.tabId)
+        if (!tab) return
+        const idx = tab.parent.children.findIndex((item) => item.id === tab.id)
+        if (idx >= 0) {
+          tab.parent.selected = idx
+        }
+      }
+      if (action.type === 'deleteTab' && action.tabId) {
+        this.tabs = this.tabs.filter((tab) => tab.id !== action.tabId)
+        for (const tabset of this.tabsets) {
+          tabset.children = tabset.children.filter(
+            (tab) => tab.id !== action.tabId,
+          )
+          if ((tabset.selected ?? 0) >= tabset.children.length) {
+            tabset.selected = Math.max(0, tabset.children.length - 1)
+          }
+        }
+      }
+    }
   }
 
   function OptimizedLayout({
@@ -340,11 +385,20 @@ vi.mock('@aptre/flex-layout', () => {
 
   return {
     Actions: {
-      addNode: vi.fn(),
-      deleteTab: vi.fn(),
-      selectTab: vi.fn(),
+      addNode: vi.fn(
+        (node: { id?: string; name?: string }, tabsetId?: string) => ({
+          type: 'addNode',
+          node,
+          tabsetId,
+        }),
+      ),
+      deleteTab: vi.fn((tabId: string) => ({ type: 'deleteTab', tabId })),
+      selectTab: vi.fn((tabId: string) => ({ type: 'selectTab', tabId })),
     },
     BorderNode: class {},
+    DockLocation: {
+      CENTER: 'center',
+    },
     Model: MockModel,
     OptimizedLayout,
     TabNode: MockTabNode,
@@ -355,6 +409,23 @@ vi.mock('@aptre/flex-layout', () => {
 function RenamingStateProbe() {
   const { renamingTabId } = useShellTabs()
   return <div data-testid="renaming-tab-id">{renamingTabId ?? ''}</div>
+}
+
+function GridDocsCommandProbe() {
+  const { activeTabId, openPathInNewTab } = useShellTabs()
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        openPathInNewTab('/docs', {
+          afterTabId: activeTabId,
+          focusExisting: true,
+        })
+      }
+    >
+      Open Docs
+    </button>
+  )
 }
 
 function createUnixFSRowDragEvent() {
@@ -642,6 +713,47 @@ describe('ShellGridLayout', () => {
     fireEvent.click(screen.getByRole('button', { name: /rename tab/i }))
 
     expect(screen.getByTestId('renaming-tab-id').textContent).toBe('tab-1')
+  })
+
+  it('projects command-created docs tabs into the active grid tabset', async () => {
+    sessionStorage.setItem(
+      SHELL_TABS_STORAGE_KEY,
+      JSON.stringify({
+        tabs: [
+          { id: 'tab-2', name: 'Home', path: '/' },
+          { id: 'tab-3', name: 'Blog', path: '/blog' },
+        ],
+        activeTabId: 'tab-2',
+      }),
+    )
+
+    render(
+      <ShellTabsProvider>
+        <GridDocsCommandProbe />
+        <ShellGridLayout />
+      </ShellTabsProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Docs' }))
+
+    await waitFor(() => {
+      const stored = JSON.parse(
+        sessionStorage.getItem(SHELL_TABS_STORAGE_KEY) ?? 'null',
+      ) as {
+        activeTabId: string
+        tabs: Array<{ id: string; name: string; path: string }>
+      }
+      const activeTab = stored.tabs.find((tab) => tab.id === stored.activeTabId)
+      expect(activeTab).toMatchObject({ name: 'Docs', path: '/docs' })
+      const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0]
+      expect(
+        props?.model.tabs.some((tab) => tab.id === stored.activeTabId),
+      ).toBe(true)
+      expect(mockNavigate).toHaveBeenCalledWith({
+        path: '/g/encoded-grid',
+        replace: true,
+      })
+    })
   })
 
   it('accepts UnixFS row drags through the grid layout external-drag handler', async () => {

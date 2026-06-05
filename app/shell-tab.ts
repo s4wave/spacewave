@@ -42,6 +42,10 @@ export function getTabNameFromPath(path: string): string {
     return 'Blog'
   }
 
+  if (normalized.startsWith('docs')) {
+    return 'Docs'
+  }
+
   if (normalized.startsWith('changelog')) {
     return 'Changelog'
   }

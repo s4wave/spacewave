@@ -21,6 +21,9 @@ interface BuiltinCommandMocks {
   commands: RegisteredCommand[]
   quitDesktopRuntime: ReturnType<typeof vi.fn<() => Promise<void>>>
   addRootAlias: ReturnType<typeof vi.fn>
+  openPathInNewTab: ReturnType<typeof vi.fn>
+  appPath: string
+  setAppPath: ReturnType<typeof vi.fn>
 }
 
 const mocks = vi.hoisted<BuiltinCommandMocks>(() => ({
@@ -28,6 +31,9 @@ const mocks = vi.hoisted<BuiltinCommandMocks>(() => ({
   commands: [],
   quitDesktopRuntime: vi.fn(() => Promise.resolve()),
   addRootAlias: vi.fn(),
+  openPathInNewTab: vi.fn(),
+  appPath: '/',
+  setAppPath: vi.fn(),
 }))
 
 vi.mock('@aptre/bldr', () => ({
@@ -79,21 +85,15 @@ vi.mock('@s4wave/app/hooks/useAddSpaceRootAlias.js', () => ({
 }))
 
 vi.mock('@s4wave/app/ShellTabContext.js', () => ({
-  addTab: vi.fn((_tabs, path: string) => ({
-    tabs: [{ id: 'new', path }],
-    newTab: { id: 'new', path },
-  })),
   useShellTabs: () => ({
-    tabs: [],
-    activeTabId: '',
-    setTabs: vi.fn(),
-    setActiveTabId: vi.fn(),
+    activeTabId: 'home',
+    openPathInNewTab: mocks.openPathInNewTab,
   }),
 }))
 
 vi.mock('@s4wave/web/router/app-path.js', () => ({
-  getAppPath: () => '/',
-  setAppPath: vi.fn(),
+  getAppPath: () => mocks.appPath,
+  setAppPath: mocks.setAppPath,
 }))
 
 function findCommand(commandId: string): RegisteredCommand | undefined {
@@ -103,6 +103,7 @@ function findCommand(commandId: string): RegisteredCommand | undefined {
 describe('BuiltinCommands', () => {
   beforeEach(() => {
     mocks.isDesktop = true
+    mocks.appPath = '/'
     mocks.commands.length = 0
     mocks.quitDesktopRuntime.mockResolvedValue(undefined)
   })
@@ -158,5 +159,31 @@ describe('BuiltinCommands', () => {
     await waitFor(() => {
       expect(mocks.quitDesktopRuntime).toHaveBeenCalledTimes(1)
     })
+  })
+
+  it('opens Documentation through provider Shell Tab semantics inside a session', () => {
+    mocks.appPath = '/u/1'
+    render(<BuiltinCommands />)
+
+    findCommand('spacewave.help.docs')?.handler({})
+
+    expect(mocks.openPathInNewTab).toHaveBeenCalledWith('/docs', {
+      afterTabId: 'home',
+      focusExisting: true,
+    })
+    expect(mocks.setAppPath).not.toHaveBeenCalled()
+  })
+
+  it('opens Documentation through provider Shell Tab semantics from home', () => {
+    mocks.appPath = '/'
+    render(<BuiltinCommands />)
+
+    findCommand('spacewave.help.docs')?.handler({})
+
+    expect(mocks.openPathInNewTab).toHaveBeenCalledWith('/docs', {
+      afterTabId: 'home',
+      focusExisting: true,
+    })
+    expect(mocks.setAppPath).not.toHaveBeenCalled()
   })
 })

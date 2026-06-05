@@ -73,9 +73,39 @@ interface ShellTabsProviderState extends ShellTabsState {
   renamingTabId: string | null
 }
 
+export interface OpenShellTabOptions {
+  afterTabId?: string
+  select?: boolean
+  focusExisting?: boolean
+}
+
+export interface AddShellTabOptions {
+  afterTabId?: string
+  select?: boolean
+}
+
 type ShellTabsProviderAction =
   | { type: 'set_tabs'; update: React.SetStateAction<ShellTab[]> }
   | { type: 'set_active_tab_id'; update: React.SetStateAction<string> }
+  | {
+      type: 'open_path_in_new_tab'
+      path: string
+      tabId: string
+      afterTabId?: string
+      select: boolean
+      focusExisting: boolean
+    }
+  | {
+      type: 'add_shell_tab'
+      tab: ShellTab
+      afterTabId?: string
+      select: boolean
+    }
+  | { type: 'select_tab'; tabId: string }
+  | { type: 'update_tab_path'; tabId: string; path: string }
+  | { type: 'update_tab_auto_name'; tabId: string; name: string }
+  | { type: 'update_tab_custom_name'; tabId: string; customName?: string }
+  | { type: 'retain_tabs'; tabIds: Set<string>; fallbackActiveTabId?: string }
   | { type: 'start_renaming'; tabId: string }
   | { type: 'stop_renaming' }
 
@@ -108,6 +138,85 @@ function shellTabsEqual(a: ShellTab[], b: ShellTab[]): boolean {
   )
 }
 
+function normalizeShellTabsState(state: ShellTabsState): ShellTabsState {
+  const seen = new Set<string>()
+  const tabs = state.tabs.flatMap((tab) => {
+    if (
+      !tab ||
+      typeof tab.id !== 'string' ||
+      tab.id === '' ||
+      typeof tab.path !== 'string' ||
+      seen.has(tab.id)
+    ) {
+      return []
+    }
+    seen.add(tab.id)
+    const name =
+      typeof tab.name === 'string' && tab.name !== ''
+        ? tab.name
+        : getTabNameFromPath(tab.path)
+    const customName =
+      typeof tab.customName === 'string' && tab.customName !== ''
+        ? tab.customName
+        : undefined
+    return [{ id: tab.id, name, path: tab.path, customName }]
+  })
+
+  const normalizedTabs = tabs.length > 0 ? tabs : [DEFAULT_HOME_TAB]
+  const activeTab = normalizedTabs.find((tab) => tab.id === state.activeTabId)
+  return {
+    tabs: normalizedTabs,
+    activeTabId: activeTab?.id ?? normalizedTabs[0].id,
+  }
+}
+
+function applyShellTabsState(
+  state: ShellTabsProviderState,
+  nextState: ShellTabsState,
+): ShellTabsProviderState {
+  const normalized = normalizeShellTabsState(nextState)
+  const renamingTabId = normalized.tabs.some(
+    (t) => t.id === state.renamingTabId,
+  )
+    ? state.renamingTabId
+    : null
+  if (
+    normalized.activeTabId === state.activeTabId &&
+    renamingTabId === state.renamingTabId &&
+    shellTabsEqual(normalized.tabs, state.tabs)
+  ) {
+    return state
+  }
+  return {
+    ...state,
+    tabs: normalized.tabs,
+    activeTabId: normalized.activeTabId,
+    renamingTabId,
+  }
+}
+
+function insertShellTab(
+  tabs: ShellTab[],
+  tab: ShellTab,
+  afterTabId?: string,
+): ShellTab[] {
+  const existingIdx = tabs.findIndex((t) => t.id === tab.id)
+  if (existingIdx >= 0) {
+    const next = [...tabs]
+    next[existingIdx] = tab
+    return next
+  }
+  if (afterTabId) {
+    const idx = tabs.findIndex((t) => t.id === afterTabId)
+    if (idx >= 0) {
+      const next = [...tabs]
+      next.splice(idx + 1, 0, tab)
+      return next
+    }
+  }
+  return [...tabs, tab]
+}
+
 function shellTabsProviderReducer(
   state: ShellTabsProviderState,
   action: ShellTabsProviderAction,
@@ -115,26 +224,96 @@ function shellTabsProviderReducer(
   switch (action.type) {
     case 'set_tabs': {
       const tabs = applyStateUpdate(state.tabs, action.update)
-      if (tabs === state.tabs || shellTabsEqual(tabs, state.tabs)) {
-        return state
-      }
-      const renamingTabId = tabs.some((t) => t.id === state.renamingTabId)
-        ? state.renamingTabId
-        : null
-      if (renamingTabId === state.renamingTabId) {
-        return { ...state, tabs }
-      }
-      return { ...state, tabs, renamingTabId }
+      return applyShellTabsState(state, {
+        tabs,
+        activeTabId: state.activeTabId,
+      })
     }
     case 'set_active_tab_id': {
       const activeTabId = applyStateUpdate(state.activeTabId, action.update)
-      if (activeTabId === state.activeTabId) {
+      if (
+        activeTabId === state.activeTabId ||
+        !state.tabs.some((tab) => tab.id === activeTabId)
+      ) {
         return state
       }
-      return {
-        ...state,
-        activeTabId,
+      return { ...state, activeTabId }
+    }
+    case 'open_path_in_new_tab': {
+      const existingTab = action.focusExisting
+        ? state.tabs.find((tab) => tab.path === action.path)
+        : undefined
+      if (existingTab) {
+        const nextTabs = state.tabs.map((tab) =>
+          tab.id === existingTab.id
+            ? { ...tab, name: getTabNameFromPath(action.path) }
+            : tab,
+        )
+        return applyShellTabsState(state, {
+          tabs: nextTabs,
+          activeTabId: action.select ? existingTab.id : state.activeTabId,
+        })
       }
+
+      const newTab: ShellTab = {
+        id: action.tabId,
+        name: getTabNameFromPath(action.path),
+        path: action.path,
+      }
+      const tabs = insertShellTab(state.tabs, newTab, action.afterTabId)
+      return applyShellTabsState(state, {
+        tabs,
+        activeTabId: action.select ? newTab.id : state.activeTabId,
+      })
+    }
+    case 'add_shell_tab': {
+      const tabs = insertShellTab(state.tabs, action.tab, action.afterTabId)
+      return applyShellTabsState(state, {
+        tabs,
+        activeTabId: action.select ? action.tab.id : state.activeTabId,
+      })
+    }
+    case 'select_tab':
+      if (!state.tabs.some((tab) => tab.id === action.tabId)) return state
+      return { ...state, activeTabId: action.tabId }
+    case 'update_tab_path': {
+      const name = getTabNameFromPath(action.path)
+      const tabs = state.tabs.map((tab) =>
+        tab.id === action.tabId ? { ...tab, path: action.path, name } : tab,
+      )
+      return applyShellTabsState(state, {
+        tabs,
+        activeTabId: state.activeTabId,
+      })
+    }
+    case 'update_tab_auto_name': {
+      const tabs = state.tabs.map((tab) =>
+        tab.id === action.tabId ? { ...tab, name: action.name } : tab,
+      )
+      return applyShellTabsState(state, {
+        tabs,
+        activeTabId: state.activeTabId,
+      })
+    }
+    case 'update_tab_custom_name': {
+      const tabs = state.tabs.map((tab) =>
+        tab.id === action.tabId
+          ? { ...tab, customName: action.customName }
+          : tab,
+      )
+      return applyShellTabsState(state, {
+        tabs,
+        activeTabId: state.activeTabId,
+      })
+    }
+    case 'retain_tabs': {
+      const tabs = state.tabs.filter((tab) => action.tabIds.has(tab.id))
+      return applyShellTabsState(state, {
+        tabs,
+        activeTabId: action.tabIds.has(state.activeTabId)
+          ? state.activeTabId
+          : (action.fallbackActiveTabId ?? state.activeTabId),
+      })
     }
     case 'start_renaming':
       return { ...state, renamingTabId: action.tabId }
@@ -154,6 +333,10 @@ export interface ShellTabsContextValue {
   setTabs: React.Dispatch<React.SetStateAction<ShellTab[]>>
   activeTabId: string
   setActiveTabId: React.Dispatch<React.SetStateAction<string>>
+  openPathInNewTab: (path: string, options?: OpenShellTabOptions) => string
+  addShellTab: (tab: ShellTab, options?: AddShellTabOptions) => string
+  selectShellTab: (tabId: string) => void
+  retainShellTabs: (tabIds: Set<string>, fallbackActiveTabId?: string) => void
   updateTabPath: (tabId: string, path: string) => void
   // updateTabName sets a custom name for a tab. Empty string clears it.
   updateTabName: (tabId: string, customName: string) => void
@@ -187,7 +370,7 @@ function loadTabsFromStorage(): ShellTabsState {
     if (stored) {
       const parsed = JSON.parse(stored) as ShellTabsState
       if (parsed.tabs?.length > 0) {
-        return parsed
+        return normalizeShellTabsState(parsed)
       }
     }
   } catch {
@@ -227,59 +410,72 @@ export function ShellTabsProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'stop_renaming' })
   }, [])
 
+  const selectShellTab = useCallback((tabId: string) => {
+    dispatch({ type: 'select_tab', tabId })
+  }, [])
+
+  const openPathInNewTab = useCallback(
+    (path: string, options: OpenShellTabOptions = {}) => {
+      const existingTab = options.focusExisting
+        ? tabs.find((tab) => tab.path === path)
+        : undefined
+      const tabId = existingTab?.id ?? generateTabId()
+      dispatch({
+        type: 'open_path_in_new_tab',
+        path,
+        tabId,
+        afterTabId: options.afterTabId,
+        select: options.select ?? true,
+        focusExisting: options.focusExisting ?? false,
+      })
+      return tabId
+    },
+    [tabs],
+  )
+
+  const addShellTab = useCallback(
+    (tab: ShellTab, options: AddShellTabOptions = {}) => {
+      dispatch({
+        type: 'add_shell_tab',
+        tab,
+        afterTabId: options.afterTabId,
+        select: options.select ?? false,
+      })
+      return tab.id
+    },
+    [],
+  )
+
+  const retainShellTabs = useCallback(
+    (tabIds: Set<string>, fallbackActiveTabId?: string) => {
+      dispatch({ type: 'retain_tabs', tabIds, fallbackActiveTabId })
+    },
+    [],
+  )
+
   // Persist to sessionStorage when state changes.
   useEffect(() => {
     saveTabsToStorage({ tabs, activeTabId })
   }, [tabs, activeTabId])
 
   // Helper to update a specific tab's path
-  const updateTabPath = useCallback(
-    (tabId: string, path: string) => {
-      const name = getTabNameFromPath(path)
-      setTabs((prev) => {
-        const idx = prev.findIndex((t) => t.id === tabId)
-        const tab = idx >= 0 ? prev[idx] : null
-        if (!tab) return prev
-        if (tab.path === path && tab.name === name) return prev
-        const next = [...prev]
-        next[idx] = { ...tab, path, name }
-        return next
-      })
-    },
-    [setTabs],
-  )
+  const updateTabPath = useCallback((tabId: string, path: string) => {
+    dispatch({ type: 'update_tab_path', tabId, path })
+  }, [])
 
-  const updateTabAutoName = useCallback(
-    (tabId: string, name: string) => {
-      setTabs((prev) => {
-        const idx = prev.findIndex((t) => t.id === tabId)
-        const tab = idx >= 0 ? prev[idx] : null
-        if (!tab) return prev
-        if (tab.name === name) return prev
-        const next = [...prev]
-        next[idx] = { ...tab, name }
-        return next
-      })
-    },
-    [setTabs],
-  )
+  const updateTabAutoName = useCallback((tabId: string, name: string) => {
+    dispatch({ type: 'update_tab_auto_name', tabId, name })
+  }, [])
 
   // Helper to update a specific tab's custom name
-  const updateTabName = useCallback(
-    (tabId: string, customName: string) => {
-      const nextCustomName = customName || undefined
-      setTabs((prev) => {
-        const idx = prev.findIndex((t) => t.id === tabId)
-        const tab = idx >= 0 ? prev[idx] : null
-        if (!tab) return prev
-        if (tab.customName === nextCustomName) return prev
-        const next = [...prev]
-        next[idx] = { ...tab, customName: nextCustomName }
-        return next
-      })
-    },
-    [setTabs],
-  )
+  const updateTabName = useCallback((tabId: string, customName: string) => {
+    const nextCustomName = customName || undefined
+    dispatch({
+      type: 'update_tab_custom_name',
+      tabId,
+      customName: nextCustomName,
+    })
+  }, [])
 
   const value = useMemo<ShellTabsContextValue>(
     () => ({
@@ -287,6 +483,10 @@ export function ShellTabsProvider({ children }: { children: ReactNode }) {
       setTabs,
       activeTabId,
       setActiveTabId,
+      openPathInNewTab,
+      addShellTab,
+      selectShellTab,
+      retainShellTabs,
       updateTabPath,
       updateTabName,
       updateTabAutoName,
@@ -299,6 +499,10 @@ export function ShellTabsProvider({ children }: { children: ReactNode }) {
       setTabs,
       activeTabId,
       setActiveTabId,
+      openPathInNewTab,
+      addShellTab,
+      selectShellTab,
+      retainShellTabs,
       updateTabPath,
       updateTabName,
       updateTabAutoName,

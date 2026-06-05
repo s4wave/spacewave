@@ -1,6 +1,7 @@
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -8,11 +9,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 
-import {
-  addTab as addShellTab,
-  SHELL_TABS_STORAGE_KEY,
-  useShellTabs,
-} from './ShellTabContext.js'
+import { SHELL_TABS_STORAGE_KEY, useShellTabs } from './ShellTabContext.js'
 import { ShellTabStrip } from './ShellFlexLayout.js'
 
 const mockOptimizedLayoutProps = vi.hoisted(() => vi.fn())
@@ -168,6 +165,25 @@ vi.mock('@aptre/flex-layout', () => {
       return this.tabset.selectedTabId
     }
 
+    toJson() {
+      return {
+        layout: {
+          children: [
+            {
+              id: this.tabset.id,
+              selected: this.tabs.findIndex(
+                (tab) => tab.id === this.tabset.selectedTabId,
+              ),
+              children: this.tabs.map((tab) => ({
+                id: tab.id,
+                name: tab.name,
+              })),
+            },
+          ],
+        },
+      }
+    }
+
     doAction(action: {
       type: string
       tabId?: string
@@ -206,8 +222,14 @@ vi.mock('@aptre/flex-layout', () => {
     }
   }
 
-  function OptimizedLayout({ model }: { model: MockModel }) {
-    mockOptimizedLayoutProps({ model })
+  function OptimizedLayout({
+    model,
+    onModelChange,
+  }: {
+    model: MockModel
+    onModelChange?: (model: MockModel) => void
+  }) {
+    mockOptimizedLayoutProps({ model, onModelChange })
     return <div data-testid="layout-tab-count">{model.tabs.length}</div>
   }
 
@@ -241,14 +263,15 @@ vi.mock('@aptre/flex-layout', () => {
 })
 
 function StateOnlyDocsOpener() {
-  const { tabs, activeTabId, setTabs, setActiveTabId } = useShellTabs()
+  const { activeTabId, openPathInNewTab } = useShellTabs()
 
   return (
     <button
       onClick={() => {
-        const result = addShellTab(tabs, '/docs', activeTabId || undefined)
-        setTabs(result.tabs)
-        setActiveTabId(result.newTab.id)
+        openPathInNewTab('/docs', {
+          afterTabId: activeTabId || undefined,
+          focusExisting: true,
+        })
       }}
       type="button"
     >
@@ -333,6 +356,57 @@ describe('ShellTabStrip', () => {
             action.type === 'selectTab' && action.tabId === activeTabId,
         ),
       ).toBe(true)
+    })
+  })
+
+  it('does not synthesize blank shell routes from model-only flex tabs', async () => {
+    sessionStorage.setItem(
+      SHELL_TABS_STORAGE_KEY,
+      JSON.stringify({
+        tabs: [{ id: 'home', name: 'Home', path: '/' }],
+        activeTabId: 'home',
+      }),
+    )
+
+    render(<ShellTabStrip />)
+
+    const call = mockOptimizedLayoutProps.mock.calls.at(-1) as
+      | [
+          {
+            model: {
+              doAction: (action: {
+                type: string
+                tabId?: string
+                node?: { id: string; name: string }
+              }) => void
+            }
+            onModelChange?: (model: unknown) => void
+          },
+        ]
+      | undefined
+    const props = call?.[0]
+    if (!props?.onModelChange) {
+      throw new Error('layout did not provide onModelChange')
+    }
+
+    act(() => {
+      props.model.doAction({
+        type: 'addNode',
+        node: { id: 'model-only', name: 'Model Only' },
+      })
+      props.model.doAction({ type: 'selectTab', tabId: 'model-only' })
+      props.onModelChange?.(props.model)
+    })
+
+    await waitFor(() => {
+      const stored = JSON.parse(
+        sessionStorage.getItem(SHELL_TABS_STORAGE_KEY) ?? 'null',
+      ) as {
+        activeTabId: string
+        tabs: Array<{ id: string; path: string }>
+      }
+      expect(stored.activeTabId).toBe('home')
+      expect(stored.tabs).toEqual([{ id: 'home', name: 'Home', path: '/' }])
     })
   })
 })

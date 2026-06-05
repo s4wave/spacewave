@@ -1,6 +1,12 @@
 import { useEffect } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 
 import {
   ShellTabsProvider,
@@ -54,6 +60,27 @@ function ReplaceActiveTabPathProbe({ path }: { path: string }) {
     <>
       <div data-testid="tab-count">{tabs.length}</div>
       <div data-testid="tab-paths">{tabs.map((tab) => tab.path).join('|')}</div>
+    </>
+  )
+}
+
+function OpenDocsProbe() {
+  const { activeTabId, openPathInNewTab, tabs } = useShellTabs()
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() =>
+          openPathInNewTab('/docs', {
+            afterTabId: activeTabId,
+            focusExisting: true,
+          })
+        }
+      >
+        Open Docs
+      </button>
+      <div data-testid="active-tab-id">{activeTabId}</div>
+      <div data-testid="tabs-json">{JSON.stringify(tabs)}</div>
     </>
   )
 }
@@ -163,5 +190,90 @@ describe('ShellTabContext', () => {
     expect(screen.getByTestId('tab-paths').textContent).toBe(
       '/u/0/so/space/-/files|/docs',
     )
+  })
+
+  it('normalizes loaded active tab selection to a real tab', () => {
+    sessionStorage.setItem(
+      SHELL_TABS_STORAGE_KEY,
+      JSON.stringify({
+        tabs: [{ id: 'tab-1', name: 'Home', path: '/' }],
+        activeTabId: 'missing-tab',
+      }),
+    )
+
+    render(
+      <ShellTabsProvider>
+        <ActiveTabProbe />
+      </ShellTabsProvider>,
+    )
+
+    expect(screen.getByTestId('active-tab-id').textContent).toBe('tab-1')
+  })
+
+  it('creates a selected docs tab with the resolved Docs label', async () => {
+    sessionStorage.setItem(
+      SHELL_TABS_STORAGE_KEY,
+      JSON.stringify({
+        tabs: [{ id: 'home', name: 'Home', path: '/' }],
+        activeTabId: 'home',
+      }),
+    )
+
+    render(
+      <ShellTabsProvider>
+        <OpenDocsProbe />
+      </ShellTabsProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Docs' }))
+
+    await waitFor(() => {
+      const tabs = JSON.parse(
+        screen.getByTestId('tabs-json').textContent ?? '[]',
+      )
+      const docsTab = tabs.find((tab: { path: string }) => tab.path === '/docs')
+      expect(docsTab).toMatchObject({ name: 'Docs', path: '/docs' })
+      expect(screen.getByTestId('active-tab-id').textContent).toBe(docsTab.id)
+    })
+  })
+
+  it('focuses an existing exact docs tab and preserves its custom name', async () => {
+    sessionStorage.setItem(
+      SHELL_TABS_STORAGE_KEY,
+      JSON.stringify({
+        tabs: [
+          { id: 'home', name: 'Home', path: '/' },
+          {
+            id: 'docs-tab',
+            name: 'Tab',
+            path: '/docs',
+            customName: 'Reference',
+          },
+        ],
+        activeTabId: 'home',
+      }),
+    )
+
+    render(
+      <ShellTabsProvider>
+        <OpenDocsProbe />
+      </ShellTabsProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Docs' }))
+
+    await waitFor(() => {
+      const tabs = JSON.parse(
+        screen.getByTestId('tabs-json').textContent ?? '[]',
+      )
+      expect(tabs).toHaveLength(2)
+      expect(tabs[1]).toMatchObject({
+        id: 'docs-tab',
+        name: 'Docs',
+        path: '/docs',
+        customName: 'Reference',
+      })
+      expect(screen.getByTestId('active-tab-id').textContent).toBe('docs-tab')
+    })
   })
 })
