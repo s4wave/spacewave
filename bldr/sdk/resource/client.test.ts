@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from 'vitest'
 import { Packet } from 'starpc'
 import type { RpcStreamPacket } from 'starpc'
 
-import type { ResourceClientResponse } from './resource.pb.js'
+import type {
+  ResourceAttachResponse,
+  ResourceClientResponse,
+} from './resource.pb.js'
 import type { ResourceService } from './resource_srpc.pb.js'
 import { Client } from './client.js'
 
@@ -20,6 +23,7 @@ describe('ResourceClient', () => {
       controller,
       outgoing: { end, push: vi.fn() },
       attachIdCtr: 1,
+      closed: false,
       muxes: new Map([[1, vi.fn()]]),
       releaseFns: new Map(),
       pending: new Map([[1, { resolve: vi.fn(), reject }]]),
@@ -45,6 +49,7 @@ describe('ResourceClient', () => {
       controller,
       outgoing: { end, push: vi.fn() },
       attachIdCtr: 1,
+      closed: false,
       muxes: new Map(),
       releaseFns: new Map(),
       pending: new Map(),
@@ -121,10 +126,7 @@ describe('ResourceClient', () => {
       new AbortController().signal,
     )
     const sess = buildAttachSession()
-    vi.spyOn(
-      client as unknown as { ensureAttachSession: () => Promise<unknown> },
-      'ensureAttachSession',
-    ).mockResolvedValue(sess)
+    Reflect.set(client, 'ensureAttachSession', vi.fn().mockResolvedValue(sess))
 
     sess.outgoing.push.mockImplementation((pkt) => {
       if (pkt.body?.case === 'add') {
@@ -154,6 +156,68 @@ describe('ResourceClient', () => {
     expect(release).toHaveBeenCalledOnce()
     expect(sess.muxes.has(73)).toBe(false)
     expect(sess.releaseFns.has(73)).toBe(false)
+  })
+
+  it('ResourceAttach stream close runs release callback', async () => {
+    const closeAttach = deferredVoid()
+    const service = buildUnusedService()
+    service.ResourceAttach = async function* (request) {
+      const incoming = request[Symbol.asyncIterator]()
+
+      const init = await incoming.next()
+      expect(init.done).toBe(false)
+      expect(init.value?.body).toEqual({
+        case: 'init',
+        value: { clientHandleId: 7 },
+      })
+      const ack: ResourceAttachResponse = {
+        body: {
+          case: 'ack',
+          value: {},
+        },
+      }
+      yield ack
+
+      const add = await incoming.next()
+      expect(add.done).toBe(false)
+      expect(add.value?.body).toEqual({
+        case: 'add',
+        value: { attachId: 1, label: 'tree-handler' },
+      })
+      const addAck: ResourceAttachResponse = {
+        body: {
+          case: 'addAck',
+          value: { attachId: 1, resourceId: 73 },
+        },
+      }
+      yield addAck
+
+      await closeAttach.promise
+    }
+
+    const client = new Client(service, new AbortController().signal)
+    Reflect.set(client, 'initState', { clientHandleId: 7, rootResourceId: 1 })
+
+    const release = vi.fn()
+    await client.attachResourceTree('tree-handler', vi.fn(), undefined, release)
+    const sess = Reflect.get(client, 'attachSession')
+
+    expect(sess).toBeTruthy()
+    expect(release).not.toHaveBeenCalled()
+    expect(Reflect.get(sess, 'muxes').has(73)).toBe(true)
+    expect(Reflect.get(sess, 'releaseFns').has(73)).toBe(true)
+
+    closeAttach.resolve()
+
+    await waitForCondition(() => release.mock.calls.length === 1)
+    await waitForCondition(() => Reflect.get(client, 'attachSession') === null)
+
+    Reflect.get(client, 'clearAttachSession').call(client, sess)
+    expect(release).toHaveBeenCalledOnce()
+    expect(Reflect.get(sess, 'muxes').has(73)).toBe(false)
+    expect(Reflect.get(sess, 'releaseFns').has(73)).toBe(false)
+    expect(Reflect.get(sess, 'controller').signal.aborted).toBe(true)
+    expect(Reflect.get(sess, 'closed')).toBe(true)
   })
 
   it('invalidates cached resources when attach reports a missing client', async () => {
@@ -601,11 +665,36 @@ async function readResourceRpcPacket(
   return next.value
 }
 
+async function waitForCondition(condition: () => boolean): Promise<void> {
+  const deadline = Date.now() + 1000
+  while (Date.now() < deadline) {
+    if (condition()) {
+      return
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5))
+  }
+  throw new Error('timed out waiting for condition')
+}
+
+function deferredVoid(): { promise: Promise<void>; resolve: () => void } {
+  const holder: { resolve?: () => void } = {}
+  const promise = new Promise<void>((resolve) => {
+    holder.resolve = resolve
+  })
+  return {
+    promise,
+    resolve() {
+      holder.resolve?.()
+    },
+  }
+}
+
 function buildAttachSession() {
   return {
     controller: new AbortController(),
     outgoing: { end: vi.fn(), push: vi.fn() },
     attachIdCtr: 0,
+    closed: false,
     muxes: new Map<number, unknown>(),
     pending: new Map<
       number,

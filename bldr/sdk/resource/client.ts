@@ -282,6 +282,7 @@ interface AttachSession {
   controller: AbortController
   outgoing: Pushable<ResourceAttachRequest>
   attachIdCtr: number
+  closed: boolean
   muxes: Map<number, LookupMethod>
   releaseFns: Map<number, () => void>
   pending: Map<
@@ -555,6 +556,7 @@ export class Client {
       controller,
       outgoing,
       attachIdCtr: 0,
+      closed: false,
       muxes: new Map(),
       releaseFns: new Map(),
       pending: new Map(),
@@ -1225,6 +1227,10 @@ export class Client {
     if (this.attachSession === current) {
       this.attachSession = null
     }
+    if (current.closed) {
+      return
+    }
+    current.closed = true
     current.controller.abort()
     current.outgoing.end()
     for (const [, pending] of current.pending) {
