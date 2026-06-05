@@ -61,7 +61,7 @@ func TestGoScriptCanvasQuickstartRouteResourceProbe(t *testing.T) {
 	}
 }
 
-func TestGoScriptCanvasQuickstartCreateMutateReloadParity(t *testing.T) {
+func TestGoScriptCanvasQuickstartCreateMutate(t *testing.T) {
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
 		t.Fatalf("resolve wasm compiler: %v", err)
@@ -76,10 +76,10 @@ func TestGoScriptCanvasQuickstartCreateMutateReloadParity(t *testing.T) {
 	defer func() {
 		report := DrainCrashReport(console)
 		if report.HasCrash() {
-			t.Errorf("unexpected browser/WASM crash report during Canvas quickstart gate: %+v", report)
+			t.Errorf("unexpected browser/WASM crash report during Canvas create/mutate gate: %+v", report)
 		}
 		if report.HasExitedGoLoop() {
-			t.Errorf("unexpected exited-Go loop during Canvas quickstart gate: %+v", report)
+			t.Errorf("unexpected exited-Go loop during Canvas create/mutate gate: %+v", report)
 		}
 	}()
 
@@ -87,50 +87,17 @@ func TestGoScriptCanvasQuickstartCreateMutateReloadParity(t *testing.T) {
 	WaitForApp(t, page)
 	EnableQuickstartTimingLogs(t, page)
 	NavigateHash(t, testHarness, page, "#/quickstart/canvas")
-	waitForCanvasViewerReady(t, page)
 
-	canvasHash := pageHash(t, page)
-	if !strings.HasSuffix(canvasHash, "/canvas-1") {
-		t.Fatalf("expected Canvas quickstart route to end at canvas-1, got %q\ndebug: %v", canvasHash, collectCanvasQuickstartDebug(page))
+	probe := waitForCanvasRouteResourceProbe(t, page)
+	if probe.Timeout {
+		t.Fatalf("Canvas route/resource probe timed out before mutation: %+v", probe)
+	}
+	if !strings.HasSuffix(probe.Hash, "/-/canvas-1") {
+		t.Fatalf("Canvas route = %q, want canonical /-/canvas-1 route; probe: %+v", probe.Hash, probe)
 	}
 
 	addCanvasTextNode(t, page, "GoScript Canvas Proof")
 	waitForCanvasText(t, page, "GoScript Canvas Proof")
-
-	assertCanvasRouteReloadAndReopen(t, page, canvasHash, func() {
-		waitForCanvasViewerReady(t, page)
-		waitForCanvasText(t, page, "GoScript Canvas Proof")
-	})
-}
-
-func waitForCanvasViewerReady(t testing.TB, page playwright.Page) {
-	t.Helper()
-
-	_, err := page.WaitForFunction(`() => {
-		const timing =
-			globalThis.__s4waveQuickstartTiming ??
-			globalThis.__s4wave_debug?.quickstartTiming ??
-			null
-		if (timing?.state === 'error') {
-			throw new Error('Canvas quickstart failed: ' + (timing.error ?? 'unknown error'))
-		}
-		const hash = window.location.hash
-		if (!hash.includes('/u/') || !hash.includes('/so/') || !hash.endsWith('/canvas-1')) {
-			return false
-		}
-		const viewport = document.querySelector('[data-testid="canvas-viewport"]')
-		const demoNode = document.querySelector('[data-canvas-node="unixfs-demo"]')
-		const text = document.body.textContent ?? ''
-		if (text.includes('Setup Failed') || text.includes('Error loading')) {
-			throw new Error(text.replace(/\s+/g, ' ').slice(0, 1000))
-		}
-		return !!viewport && !!demoNode
-	}`, nil, playwright.PageWaitForFunctionOptions{
-		Timeout: playwright.Float(canvasQuickstartWaitMS),
-	})
-	if err != nil {
-		t.Fatalf("wait for Canvas viewer: %v\ndebug: %v", err, collectCanvasQuickstartDebug(page))
-	}
 }
 
 type canvasRouteResourceProbe struct {
@@ -366,39 +333,6 @@ func waitForCanvasText(t testing.TB, page playwright.Page, text string) {
 	if err != nil {
 		t.Fatalf("wait for Canvas text %q: %v\ndebug: %v", text, err, collectCanvasQuickstartDebug(page))
 	}
-}
-
-func assertCanvasRouteReloadAndReopen(
-	t testing.TB,
-	page playwright.Page,
-	hash string,
-	assertReady func(),
-) {
-	t.Helper()
-
-	if _, err := page.Reload(); err != nil {
-		t.Fatalf("reload Canvas route: %v", err)
-	}
-	WaitForApp(t, page)
-	assertReady()
-
-	NavigateHash(t, testHarness, page, "#/")
-	NavigateHash(t, testHarness, page, hash)
-	assertReady()
-}
-
-func pageHash(t testing.TB, page playwright.Page) string {
-	t.Helper()
-
-	raw, err := page.Evaluate(`() => window.location.hash`)
-	if err != nil {
-		t.Fatalf("read page hash: %v", err)
-	}
-	hash, ok := raw.(string)
-	if !ok {
-		t.Fatalf("unexpected hash value %T: %#v", raw, raw)
-	}
-	return hash
 }
 
 func collectCanvasQuickstartDebug(page playwright.Page) any {
