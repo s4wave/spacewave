@@ -19,6 +19,12 @@ import { Client as ResourceClient } from '../../../sdk/resource/client.js'
 import { ResourceServiceClient } from '../../../resource/resource_srpc.pb.js'
 import { ViewerRegistryResourceServiceClient } from '../../../../sdk/viewer/registry/registry_srpc.pb.js'
 import { SpaceResourceServiceClient } from '../../../../sdk/space/space_srpc.pb.js'
+import {
+  EngineResourceServiceDefinition,
+  ObjectStateResourceServiceDefinition,
+  TxResourceServiceDefinition,
+  WorldStateResourceServiceDefinition,
+} from '../../../../sdk/world/world_srpc.pb.js'
 
 declare global {
   interface Window {
@@ -35,6 +41,13 @@ declare global {
       nestedAfterReleaseEngineRpc: boolean
       nestedChildReleaseOnce: boolean
       nestedEngineReleaseOnce: boolean
+      worldTreeParentResponse: boolean
+      worldTreeEngineRpc: boolean
+      worldTreeWorldStateRpc: boolean
+      worldTreeObjectStateRpc: boolean
+      worldTreeObjectReleaseOnce: boolean
+      worldTreeWorldStateReleaseOnce: boolean
+      worldTreeEngineReleaseOnce: boolean
       concurrentChildEchoUnary: boolean
       concurrentChildEchoStreams: boolean
       spaceMountContents: boolean
@@ -176,6 +189,13 @@ async function proveResourceService(
   nestedAfterReleaseEngineRpc: boolean
   nestedChildReleaseOnce: boolean
   nestedEngineReleaseOnce: boolean
+  worldTreeParentResponse: boolean
+  worldTreeEngineRpc: boolean
+  worldTreeWorldStateRpc: boolean
+  worldTreeObjectStateRpc: boolean
+  worldTreeObjectReleaseOnce: boolean
+  worldTreeWorldStateReleaseOnce: boolean
+  worldTreeEngineReleaseOnce: boolean
   concurrentChildEchoUnary: boolean
   concurrentChildEchoStreams: boolean
   spaceMountContents: boolean
@@ -228,6 +248,10 @@ async function proveResourceService(
       initialRegistrations.length === 1 && releasedRegistrations.length === 0
 
     const nested = await proveNestedResourceRpc(resourceClient, rootRef)
+    const worldTree = await proveAttachedWorldResourceTrees(
+      resourceClient,
+      rootRef,
+    )
     const concurrentChild = await proveConcurrentChildResourceRpc(
       resourceClient,
       rootRef,
@@ -239,6 +263,7 @@ async function proveResourceService(
       registeredViewer,
       releaseRemovedViewer,
       ...nested,
+      ...worldTree,
       ...concurrentChild,
       ...spaceChild,
     }
@@ -440,6 +465,226 @@ async function proveNestedResourceRpc(
   }
 }
 
+async function proveAttachedWorldResourceTrees(
+  resourceClient: ResourceClient,
+  rootRef: Awaited<ReturnType<ResourceClient['accessRootResource']>>,
+): Promise<{
+  worldTreeParentResponse: boolean
+  worldTreeEngineRpc: boolean
+  worldTreeWorldStateRpc: boolean
+  worldTreeObjectStateRpc: boolean
+  worldTreeObjectReleaseOnce: boolean
+  worldTreeWorldStateReleaseOnce: boolean
+  worldTreeEngineReleaseOnce: boolean
+}> {
+  const observed: {
+    engineRpc: boolean
+    worldStateRpc: boolean
+    objectStateRpc: boolean
+    objectReleaseCount: number
+    worldStateReleaseCount: number
+    engineReleaseCount: number
+    objectRev: bigint
+    object?: Awaited<ReturnType<ResourceClient['attachResourceTree']>>
+    worldState?: Awaited<ReturnType<ResourceClient['attachResourceTree']>>
+  } = {
+    engineRpc: false,
+    worldStateRpc: false,
+    objectStateRpc: false,
+    objectReleaseCount: 0,
+    worldStateReleaseCount: 0,
+    engineReleaseCount: 0,
+    objectRev: 11n,
+  }
+
+  const objectMux = createMux()
+  objectMux.register(
+    createHandler(ObjectStateResourceServiceDefinition, {
+      async GetKey() {
+        observed.objectStateRpc = true
+        return { objectKey: 'goscript/world-tree-object' }
+      },
+      async GetRootRef() {
+        observed.objectStateRpc = true
+        return {
+          rootRef: { bucketId: 'goscript-world-tree-bucket' },
+          rev: observed.objectRev,
+        }
+      },
+      async SetRootRef() {
+        observed.objectStateRpc = true
+        observed.objectRev++
+        return { rev: observed.objectRev }
+      },
+      async AccessWorldState() {
+        observed.objectStateRpc = true
+        return { resourceId: 0 }
+      },
+      async ApplyObjectOp() {
+        observed.objectStateRpc = true
+        return { rev: observed.objectRev, sysErr: false }
+      },
+      async IncrementRev() {
+        observed.objectStateRpc = true
+        observed.objectRev++
+        return { rev: observed.objectRev }
+      },
+      async WaitRev(request: { rev?: bigint }) {
+        observed.objectStateRpc = true
+        const requestedRev = request.rev ?? 0n
+        if (observed.objectRev < requestedRev) {
+          observed.objectRev = requestedRev
+        }
+        return { rev: observed.objectRev }
+      },
+    }),
+  )
+
+  const worldStateMux = createMux()
+  worldStateMux.register(
+    createHandler(WorldStateResourceServiceDefinition, {
+      async GetReadOnly() {
+        observed.worldStateRpc = true
+        return { readOnly: false }
+      },
+      async GetSeqno() {
+        observed.worldStateRpc = true
+        return { seqno: 8n }
+      },
+      async WaitSeqno(request: { seqno?: bigint }) {
+        observed.worldStateRpc = true
+        return { seqno: request.seqno ?? 8n }
+      },
+      async CreateObject(request: { objectKey?: string }) {
+        observed.worldStateRpc = true
+        observed.object = await resourceClient.attachResourceTree(
+          'world-tree-object-state',
+          objectMux.lookupMethod,
+          undefined,
+          () => {
+            observed.objectReleaseCount++
+          },
+        )
+        return {
+          resourceId: observed.object.resourceId,
+          objectKey: request.objectKey ?? '',
+        }
+      },
+    }),
+  )
+  worldStateMux.register(
+    createHandler(TxResourceServiceDefinition, {
+      async Commit() {
+        observed.worldStateRpc = true
+        return {}
+      },
+      async Discard() {
+        observed.worldStateRpc = true
+        return {}
+      },
+    }),
+  )
+
+  const engineMux = createMux()
+  engineMux.register(
+    createHandler(EngineResourceServiceDefinition, {
+      async GetEngineInfo() {
+        observed.engineRpc = true
+        return {
+          engineInfo: {
+            engineId: 'goscript-world-tree-engine',
+            bucketId: 'goscript-world-tree-bucket',
+          },
+        }
+      },
+      async GetWorldRootSnapshot() {
+        observed.engineRpc = true
+        return {
+          seqno: 7n,
+          engineInfo: {
+            engineId: 'goscript-world-tree-engine',
+            bucketId: 'goscript-world-tree-bucket',
+          },
+        }
+      },
+      async NewTransaction(request: { write?: boolean }) {
+        observed.engineRpc = true
+        if (request.write !== true) {
+          throw new Error(`unexpected NewTransaction write=${request.write}`)
+        }
+        observed.worldState = await resourceClient.attachResourceTree(
+          'world-tree-world-state',
+          worldStateMux.lookupMethod,
+          undefined,
+          () => {
+            observed.worldStateReleaseCount++
+          },
+        )
+        return { resourceId: observed.worldState.resourceId, readOnly: false }
+      },
+      async GetSeqno() {
+        observed.engineRpc = true
+        return { seqno: 7n }
+      },
+      async WaitSeqno(request: { seqno?: bigint }) {
+        observed.engineRpc = true
+        return { seqno: request.seqno ?? 7n }
+      },
+    }),
+  )
+
+  const engine = await resourceClient.attachResourceTree(
+    'world-tree-engine',
+    engineMux.lookupMethod,
+    undefined,
+    () => {
+      observed.engineReleaseCount++
+    },
+  )
+  try {
+    const rootMock = new MockClient(rootRef.client)
+    const response = await rootMock.MockRequest({
+      body: `run-world-tree:${engine.resourceId}`,
+    })
+    await waitForResourceTreeRelease(() =>
+      observed.objectReleaseCount === 1 &&
+      observed.worldStateReleaseCount === 1 &&
+      observed.engineReleaseCount === 1
+        ? true
+        : `object=${observed.objectReleaseCount} world=${observed.worldStateReleaseCount} engine=${observed.engineReleaseCount}`,
+    )
+    return {
+      worldTreeParentResponse: response.body === 'world-tree-ok',
+      worldTreeEngineRpc: observed.engineRpc,
+      worldTreeWorldStateRpc: observed.worldStateRpc,
+      worldTreeObjectStateRpc: observed.objectStateRpc,
+      worldTreeObjectReleaseOnce: observed.objectReleaseCount === 1,
+      worldTreeWorldStateReleaseOnce: observed.worldStateReleaseCount === 1,
+      worldTreeEngineReleaseOnce: observed.engineReleaseCount === 1,
+    }
+  } finally {
+    observed.object?.cleanup()
+    observed.worldState?.cleanup()
+    engine.cleanup()
+  }
+}
+
+async function waitForResourceTreeRelease(
+  isReleased: () => true | string,
+  remaining = 50,
+  last = '',
+): Promise<void> {
+  const released = isReleased()
+  if (released === true) {
+    return
+  }
+  if (remaining <= 0) {
+    throw new Error(`resource tree release counts did not settle: ${last}`)
+  }
+  await new Promise((resolve) => setTimeout(resolve, 20))
+  await waitForResourceTreeRelease(isReleased, remaining - 1, released)
+}
+
 async function run() {
   const log = document.getElementById('log')!
   const errors: string[] = []
@@ -520,6 +765,13 @@ async function run() {
       resource.nestedAfterReleaseEngineRpc &&
       resource.nestedChildReleaseOnce &&
       resource.nestedEngineReleaseOnce &&
+      resource.worldTreeParentResponse &&
+      resource.worldTreeEngineRpc &&
+      resource.worldTreeWorldStateRpc &&
+      resource.worldTreeObjectStateRpc &&
+      resource.worldTreeObjectReleaseOnce &&
+      resource.worldTreeWorldStateReleaseOnce &&
+      resource.worldTreeEngineReleaseOnce &&
       resource.concurrentChildEchoUnary &&
       resource.concurrentChildEchoStreams &&
       resource.spaceMountContents &&
@@ -542,6 +794,13 @@ async function run() {
             `nestedAfterReleaseEngineRpc=${resource.nestedAfterReleaseEngineRpc}`,
             `nestedChildReleaseOnce=${resource.nestedChildReleaseOnce}`,
             `nestedEngineReleaseOnce=${resource.nestedEngineReleaseOnce}`,
+            `worldTreeParentResponse=${resource.worldTreeParentResponse}`,
+            `worldTreeEngineRpc=${resource.worldTreeEngineRpc}`,
+            `worldTreeWorldStateRpc=${resource.worldTreeWorldStateRpc}`,
+            `worldTreeObjectStateRpc=${resource.worldTreeObjectStateRpc}`,
+            `worldTreeObjectReleaseOnce=${resource.worldTreeObjectReleaseOnce}`,
+            `worldTreeWorldStateReleaseOnce=${resource.worldTreeWorldStateReleaseOnce}`,
+            `worldTreeEngineReleaseOnce=${resource.worldTreeEngineReleaseOnce}`,
             `concurrentChildEchoUnary=${resource.concurrentChildEchoUnary}`,
             `concurrentChildEchoStreams=${resource.concurrentChildEchoStreams}`,
             `spaceMountContents=${resource.spaceMountContents}`,
@@ -558,6 +817,13 @@ async function run() {
       nestedAfterReleaseEngineRpc: resource.nestedAfterReleaseEngineRpc,
       nestedChildReleaseOnce: resource.nestedChildReleaseOnce,
       nestedEngineReleaseOnce: resource.nestedEngineReleaseOnce,
+      worldTreeParentResponse: resource.worldTreeParentResponse,
+      worldTreeEngineRpc: resource.worldTreeEngineRpc,
+      worldTreeWorldStateRpc: resource.worldTreeWorldStateRpc,
+      worldTreeObjectStateRpc: resource.worldTreeObjectStateRpc,
+      worldTreeObjectReleaseOnce: resource.worldTreeObjectReleaseOnce,
+      worldTreeWorldStateReleaseOnce: resource.worldTreeWorldStateReleaseOnce,
+      worldTreeEngineReleaseOnce: resource.worldTreeEngineReleaseOnce,
       concurrentChildEchoUnary: resource.concurrentChildEchoUnary,
       concurrentChildEchoStreams: resource.concurrentChildEchoStreams,
       spaceMountContents: resource.spaceMountContents,
@@ -578,6 +844,13 @@ async function run() {
       nestedAfterReleaseEngineRpc: false,
       nestedChildReleaseOnce: false,
       nestedEngineReleaseOnce: false,
+      worldTreeParentResponse: false,
+      worldTreeEngineRpc: false,
+      worldTreeWorldStateRpc: false,
+      worldTreeObjectStateRpc: false,
+      worldTreeObjectReleaseOnce: false,
+      worldTreeWorldStateReleaseOnce: false,
+      worldTreeEngineReleaseOnce: false,
       concurrentChildEchoUnary: false,
       concurrentChildEchoStreams: false,
       spaceMountContents: false,

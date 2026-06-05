@@ -16,7 +16,9 @@ import (
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	web_runtime_wasm "github.com/s4wave/spacewave/bldr/web/runtime/wasm"
 	resource_viewer_registry "github.com/s4wave/spacewave/core/resource/viewer/registry"
+	"github.com/s4wave/spacewave/db/world"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
+	sdk_world_engine "github.com/s4wave/spacewave/sdk/world/engine"
 )
 
 func main() {
@@ -99,6 +101,11 @@ func (nestedResourceMock) MockRequest(ctx context.Context, msg *e2e_mock.MockMsg
 		return &e2e_mock.MockMsg{Body: "space-child:" + strconv.FormatUint(uint64(childID), 10)}, nil
 	}
 
+	worldTreeID, ok := strings.CutPrefix(msg.GetBody(), "run-world-tree:")
+	if ok {
+		return runAttachedWorldTree(ctx, worldTreeID)
+	}
+
 	engineID, ok := strings.CutPrefix(msg.GetBody(), "run-nested:")
 	if !ok {
 		return &e2e_mock.MockMsg{Body: "unknown"}, nil
@@ -160,6 +167,74 @@ func (nestedResourceMock) MockRequest(ctx context.Context, msg *e2e_mock.MockMsg
 	}
 
 	return &e2e_mock.MockMsg{Body: "seed-ok"}, nil
+}
+
+func runAttachedWorldTree(ctx context.Context, engineID string) (*e2e_mock.MockMsg, error) {
+	engineResourceID, err := strconv.ParseUint(engineID, 10, 32)
+	if err != nil {
+		return nil, err
+	}
+
+	engine, err := sdk_world_engine.NewAttachedEngine(ctx, uint32(engineResourceID))
+	if err != nil {
+		return nil, err
+	}
+	defer engine.Release()
+
+	seqno, err := engine.GetSeqno(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if seqno != 7 {
+		return nil, errors.Errorf("engine seqno: got %d want 7", seqno)
+	}
+
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+
+	txSeqno, err := tx.GetSeqno(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if txSeqno != 8 {
+		return nil, errors.Errorf("world-state seqno: got %d want 8", txSeqno)
+	}
+
+	obj, err := tx.CreateObject(ctx, "goscript/world-tree-object", nil)
+	if err != nil {
+		return nil, err
+	}
+	defer world.ReleaseObjectState(obj)
+
+	if got := obj.GetKey(); got != "goscript/world-tree-object" {
+		return nil, errors.Errorf("object key: got %q", got)
+	}
+	ref, rev, err := obj.GetRootRef(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if ref.GetBucketId() != "goscript-world-tree-bucket" || rev != 11 {
+		return nil, errors.Errorf("object root: got bucket=%q rev=%d", ref.GetBucketId(), rev)
+	}
+	rev, err = obj.IncrementRev(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if rev != 12 {
+		return nil, errors.Errorf("increment rev: got %d want 12", rev)
+	}
+	waitRev, err := obj.WaitRev(ctx, rev, false)
+	if err != nil {
+		return nil, err
+	}
+	if waitRev != rev {
+		return nil, errors.Errorf("wait rev: got %d want %d", waitRev, rev)
+	}
+
+	return &e2e_mock.MockMsg{Body: "world-tree-ok"}, nil
 }
 
 type spaceResourceMock struct{}
