@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	git_world "github.com/s4wave/spacewave/db/git/world"
+	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
@@ -47,7 +48,14 @@ func (o *CreateGitRepoWizardOp) ApplyWorldOp(
 		return false, errors.New("clone must be imported before applying create git repo op")
 	}
 
-	initOp := git_world.NewGitInitOp(objKey, nil, true, nil, o.GetTimestamp())
+	worktreeOp := &git_world.GitCreateWorktreeOp{
+		ObjectKey:       objKey + "/worktree",
+		CreateWorkdir:   true,
+		WorkdirRef:      &unixfs_world.UnixfsRef{ObjectKey: objKey + "/workdir"},
+		DisableCheckout: true,
+		Timestamp:       o.GetTimestamp(),
+	}
+	initOp := git_world.NewGitInitOp(objKey, nil, false, worktreeOp, o.GetTimestamp())
 	_, sysErr, err = ws.ApplyWorldOp(ctx, initOp, sender)
 	return sysErr, err
 }

@@ -59,6 +59,9 @@ func TestCreateGitRepoWizardOpCreatesTypedRepo(t *testing.T) {
 	if !worldContentsHasObject(contents, objectKey, git_world.GitRepoTypeID) {
 		t.Fatalf("world contents missing typed repo %q: %#v", objectKey, contents.GetObjects())
 	}
+	if !worldContentsHasObject(contents, objectKey+"/worktree", git_world.GitWorktreeTypeID) {
+		t.Fatalf("world contents missing typed worktree %q: %#v", objectKey+"/worktree", contents.GetObjects())
+	}
 }
 
 func worldContentsHasObject(contents *space_world.WorldContents, objectKey, typeID string) bool {

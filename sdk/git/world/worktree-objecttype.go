@@ -2,6 +2,7 @@ package s4wave_git_world
 
 import (
 	"context"
+	stderrors "errors"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -62,9 +63,12 @@ func GitWorktreeFactory(
 			}
 			headRef, err := hrs.GetReference(plumbing.HEAD)
 			if err != nil {
+				if stderrors.Is(err, plumbing.ErrReferenceNotFound) {
+					return nil
+				}
 				return err
 			}
-			if headRef != nil {
+			if headRef != nil && headRef.Hash() != plumbing.ZeroHash {
 				snap.CheckedOutRef = headRef.Name().Short()
 				snap.HeadCommitHash = headRef.Hash().String()
 			}

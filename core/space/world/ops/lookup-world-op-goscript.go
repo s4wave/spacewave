@@ -5,6 +5,8 @@ package space_world_ops
 import (
 	"context"
 
+	s4wave_git "github.com/s4wave/spacewave/core/git"
+	git_world "github.com/s4wave/spacewave/db/git/world"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
@@ -13,6 +15,7 @@ import (
 // LookupWorldOp looks up the GoScript-supported built-in space world operation types.
 func LookupWorldOp(ctx context.Context, opTypeID string) (world.Operation, error) {
 	return world.LookupOpSlice([]world.LookupOp{
+		lookupLocalGitOp,
 		LookupSetSpaceSettingsOp,
 		LookupInitUnixFSOp,
 		LookupInitObjectLayoutOp,
@@ -25,5 +28,16 @@ func LookupWorldOp(ctx context.Context, opTypeID string) (world.Operation, error
 		LookupCanvasRemoveEdgeOp,
 		s4wave_device.LookupCreateComputersDashboardOp,
 		s4wave_terminal.LookupCreateTerminalOp,
+		s4wave_git.LookupCreateGitRepoWizardOp,
 	}).LookupOp(ctx, opTypeID)
+}
+
+func lookupLocalGitOp(_ context.Context, opTypeID string) (world.Operation, error) {
+	switch opTypeID {
+	case git_world.GitInitOpId:
+		return &git_world.GitInitOp{}, nil
+	case git_world.GitCreateWorktreeOpId:
+		return &git_world.GitCreateWorktreeOp{}, nil
+	}
+	return nil, nil
 }

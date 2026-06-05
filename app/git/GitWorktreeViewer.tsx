@@ -238,9 +238,11 @@ export function GitWorktreeViewer({
     if (hasWorkdir) {
       modes.push('workdir', 'changes')
     }
-    modes.push('readme', 'log')
+    if (effectiveRef) {
+      modes.push('readme', 'log')
+    }
     return modes
-  }, [hasWorkdir])
+  }, [effectiveRef, hasWorkdir])
   const handleChangesFileClick = useCallback(
     (filePath: string) => {
       navigate({ path: '/workdir/' + filePath })
@@ -338,6 +340,29 @@ export function GitWorktreeViewer({
           }
           detail={`Object: ${objectKey || 'none'}`}
         />
+      )
+    }
+
+    if (
+      !effectiveRef &&
+      (route.mode === 'files' ||
+        route.mode === 'readme' ||
+        route.mode === 'log')
+    ) {
+      return (
+        <GitViewerFrame
+          {...viewerFrameProps}
+          mode={route.mode}
+          onModeChange={nav.handleModeChange}
+          hasReadme={!!readmePath}
+          availableModes={availableModes}
+        >
+          <GitViewerCenteredState
+            title="Empty Repository"
+            subtitle={objectKey}
+            detail="This repository has no commits yet."
+          />
+        </GitViewerFrame>
       )
     }
 

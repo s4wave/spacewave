@@ -5,7 +5,9 @@ package optypes
 import (
 	"context"
 
+	s4wave_git "github.com/s4wave/spacewave/core/git"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
+	git_world "github.com/s4wave/spacewave/db/git/world"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
@@ -18,6 +20,7 @@ import (
 func LookupWorldOp(ctx context.Context, opTypeID string) (world.Operation, error) {
 	return world.LookupOpSlice([]world.LookupOp{
 		unixfs_world.LookupFsOp,
+		lookupLocalGitOp,
 		space_world_ops.LookupSetSpaceSettingsOp,
 		space_world_ops.LookupInitUnixFSOp,
 		space_world_ops.LookupInitObjectLayoutOp,
@@ -31,6 +34,17 @@ func LookupWorldOp(ctx context.Context, opTypeID string) (world.Operation, error
 		s4wave_device.LookupCreateComputersDashboardOp,
 		s4wave_sshhost.LookupCreateSshHostOp,
 		s4wave_terminal.LookupCreateTerminalOp,
+		s4wave_git.LookupCreateGitRepoWizardOp,
 		s4wave_wizard.LookupCreateWizardObjectOp,
 	}).LookupOp(ctx, opTypeID)
+}
+
+func lookupLocalGitOp(_ context.Context, opTypeID string) (world.Operation, error) {
+	switch opTypeID {
+	case git_world.GitInitOpId:
+		return &git_world.GitInitOp{}, nil
+	case git_world.GitCreateWorktreeOpId:
+		return &git_world.GitCreateWorktreeOp{}, nil
+	}
+	return nil, nil
 }
