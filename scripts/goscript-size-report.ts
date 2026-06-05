@@ -15,7 +15,7 @@ import { gzipSync } from 'zlib'
 import { rolldown, type Plugin } from 'rolldown'
 
 const goscriptModule =
-  'github.com/aperturerobotics/goscript/cmd/goscript@d48c209543378e8b438e00702e32cf8b312fc67c'
+  'github.com/aperturerobotics/goscript/cmd/goscript@081ad9ff6fcf06bd9908d1194f9d34679cab5895'
 
 interface Options {
   outDir: string
