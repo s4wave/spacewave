@@ -9,7 +9,7 @@ import {
   IJsonTabNode,
   Model,
 } from '@aptre/flex-layout'
-import isDeepEqual from 'lodash.isequal'
+import isDeepEqual from '../../web/util/isEqual.js'
 
 import {
   BorderDef,

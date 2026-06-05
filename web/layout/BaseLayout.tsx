@@ -10,12 +10,12 @@ import {
   Actions,
   DockLocation,
 } from '@aptre/flex-layout'
-import isDeepEqual from 'lodash.isequal'
 
 import { AbortComponent } from '@aptre/bldr-react'
 import { ItState, retryWithAbort } from '@aptre/bldr'
 
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
+import isDeepEqual from '@s4wave/web/util/isEqual.js'
 
 import {
   LayoutModel,

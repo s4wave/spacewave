@@ -7,9 +7,9 @@ import {
   useRef,
   useState,
 } from 'react'
-import isEqual from 'lodash.isequal'
 import { List as VirtualList, ListImperativeAPI } from 'react-window'
 import { cn } from '@s4wave/web/style/utils.js'
+import isEqual from '@s4wave/web/util/isEqual.js'
 import {
   useStateReducerAtom,
   StateNamespace,

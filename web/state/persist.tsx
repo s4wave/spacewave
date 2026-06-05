@@ -9,8 +9,8 @@ import React, {
   type ReactNode,
 } from 'react'
 import superjson, { type SuperJSONResult } from 'superjson'
-import isDeepEqual from 'lodash.isequal'
 import { useLatestRef } from '@aptre/bldr-react'
+import isDeepEqual from '@s4wave/web/util/isEqual.js'
 import type { StateAtomAccessor } from './useBackendStateAtom.js'
 import { useBackendStateAtom } from './useBackendStateAtom.js'
 import {

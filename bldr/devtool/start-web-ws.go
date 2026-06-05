@@ -88,13 +88,14 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) (err error) {
 	}
 
 	// execute the project controller
-	projCtrl, projCtrlRef, err := d.StartProjectController(
+	projCtrl, projCtrlRef, err := d.StartProjectControllerWithStartup(
 		ctx,
 		d.GetBus(),
 		repoRoot,
 		a.ConfigPath,
 		a.Remote,
 		a.StartPlugins.Value(),
+		false,
 	)
 	if err != nil {
 		return err
@@ -160,6 +161,8 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) (err error) {
 	if relPluginHost != nil {
 		defer relPluginHost()
 	}
+
+	currProjCtrl.StartStartup(ctx)
 
 	statusMux := srpc.NewMux()
 	if err := devtool_status.RegisterDevtoolStatusService(statusMux, d.GetStatusProducer()); err != nil {
