@@ -275,14 +275,17 @@ func (b *BatchFSWriter) Commit(ctx context.Context) error {
 		return unixfs_errors.ErrNotExist
 	}
 
-	ordered := b.sortedPendingDirs()
 	_, _, err = world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
 		root, err := unixfs_block.NewFSTree(ctx, bcs, unixfs_block.NodeType_NodeType_UNKNOWN)
 		if err != nil {
 			return err
 		}
+		resolvedDirs := map[string]*unixfs_block.FSTree{
+			joinPathKey(nil): root,
+		}
+		ordered := b.sortedPendingDirs()
 		for _, pd := range ordered {
-			if err := b.mergePendingDir(ctx, root, pd); err != nil {
+			if err := b.mergePendingDir(ctx, root, resolvedDirs, pd); err != nil {
 				return err
 			}
 		}
@@ -331,18 +334,24 @@ func (b *BatchFSWriter) sortedPendingDirs() []*pendingDir {
 func (b *BatchFSWriter) mergePendingDir(
 	ctx context.Context,
 	root *unixfs_block.FSTree,
+	resolvedDirs map[string]*unixfs_block.FSTree,
 	pd *pendingDir,
 ) error {
 	dir := root
 	if len(pd.parentPath) != 0 {
-		var err error
-		dir, _, err = unixfs_block.LookupFSTreePath(root, pd.parentPath)
-		if err != nil {
-			return errors.Wrapf(
-				err,
-				"batch writer parent path %q not present in fs and not declared via AddDir",
-				strings.Join(pd.parentPath, "/"),
-			)
+		key := joinPathKey(pd.parentPath)
+		dir = resolvedDirs[key]
+		if dir == nil {
+			var err error
+			dir, _, err = unixfs_block.LookupFSTreePath(root, pd.parentPath)
+			if err != nil {
+				return errors.Wrapf(
+					err,
+					"batch writer parent path %q not present in fs and not declared via AddDir",
+					strings.Join(pd.parentPath, "/"),
+				)
+			}
+			resolvedDirs[key] = dir
 		}
 	}
 
@@ -352,8 +361,15 @@ func (b *BatchFSWriter) mergePendingDir(
 		case unixfs_block.NodeType_NodeType_DIRECTORY:
 			// Mkdir is idempotent: an existing dir with the same name
 			// is reused rather than duplicated.
-			if _, err := dir.Mkdir(e.permissions, e.ts, e.name); err != nil {
+			children, err := dir.Mkdir(e.permissions, e.ts, e.name)
+			if err != nil {
 				return err
+			}
+			if child := children[e.name]; child != nil {
+				childPath := make([]string, 0, len(pd.parentPath)+1)
+				childPath = append(childPath, pd.parentPath...)
+				childPath = append(childPath, e.name)
+				resolvedDirs[joinPathKey(childPath)] = child
 			}
 		case unixfs_block.NodeType_NodeType_FILE:
 			existing, err := dir.Lookup(e.name)
@@ -371,6 +387,7 @@ func (b *BatchFSWriter) mergePendingDir(
 				// directory's ModTime. The per-op path leaves the parent
 				// untouched on a file-content overwrite (billy OpenFile +
 				// Write path), and IC-1 requires byte-identical root refs.
+				deleteResolvedDirSubtree(resolvedDirs, childPath)
 				if _, err := dir.Remove([]string{e.name}, nil); err != nil {
 					return err
 				}
@@ -386,6 +403,10 @@ func (b *BatchFSWriter) mergePendingDir(
 		case unixfs_block.NodeType_NodeType_SYMLINK:
 			// Symlink(checkExist=false) already replaces an existing
 			// dirent in-place, preserving sort order.
+			childPath := make([]string, 0, len(pd.parentPath)+1)
+			childPath = append(childPath, pd.parentPath...)
+			childPath = append(childPath, e.name)
+			deleteResolvedDirSubtree(resolvedDirs, childPath)
 			if _, err := dir.Symlink(false, e.name, e.symlink, e.ts); err != nil {
 				return err
 			}
@@ -394,6 +415,15 @@ func (b *BatchFSWriter) mergePendingDir(
 		}
 	}
 	return nil
+}
+
+func deleteResolvedDirSubtree(resolvedDirs map[string]*unixfs_block.FSTree, path []string) {
+	key := joinPathKey(path)
+	for resolvedPath := range resolvedDirs {
+		if resolvedPath == key || strings.HasPrefix(resolvedPath, key+"\x00") {
+			delete(resolvedDirs, resolvedPath)
+		}
+	}
 }
 
 // syncExistingFile replays the existing-file overwrite semantics used by the

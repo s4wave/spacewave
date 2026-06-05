@@ -396,3 +396,61 @@ func TestBatchFSWriter_NestedDirs(t *testing.T) {
 		t.Fatalf("nested size got %d want %d", size, len("nested"))
 	}
 }
+
+func TestBatchFSWriter_DirFileConflictInvalidatesResolvedDir(t *testing.T) {
+	ctx := context.Background()
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(logger)
+
+	htb, err := hydra_testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	wtb, err := world_testbed.NewTestbed(htb)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	fsHandle, err := InitTestbed(wtb, objKey, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer fsHandle.Release()
+
+	sender := wtb.Volume.GetPeerID()
+	bw := unixfs_world.NewBatchFSWriter(wtb.WorldState, objKey, unixfs_world.FSType_FSType_FS_NODE, sender)
+
+	now := time.Now()
+	if err := bw.AddDir(ctx, nil, "conflict", 0o755, now); err != nil {
+		t.Fatalf("AddDir conflict: %v", err)
+	}
+	if err := bw.AddFile(
+		ctx,
+		nil,
+		"conflict",
+		unixfs.NewFSCursorNodeType_File(),
+		int64(len("file")),
+		bytes.NewReader([]byte("file")),
+		0o644,
+		now,
+	); err != nil {
+		t.Fatalf("AddFile conflict: %v", err)
+	}
+	if err := bw.AddFile(
+		ctx,
+		[]string{"conflict"},
+		"child.txt",
+		unixfs.NewFSCursorNodeType_File(),
+		int64(len("child")),
+		bytes.NewReader([]byte("child")),
+		0o644,
+		now,
+	); err != nil {
+		t.Fatalf("AddFile child: %v", err)
+	}
+
+	if err := bw.Commit(ctx); err == nil {
+		t.Fatal("Commit succeeded after replacing a pending directory with a file")
+	}
+	bw.Release()
+}
