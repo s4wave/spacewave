@@ -83,16 +83,19 @@ func (s *SpacewaveProviderResource) CreateAccount(
 		return nil, errors.New("credential is required")
 	}
 
+	s.le.WithField("entity-id-len", len(entityID)).Debug("creating spacewave account: lookup session controller")
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer sessionCtrlRef.Release()
 
+	s.le.WithField("entity-id-len", len(entityID)).Debug("creating spacewave account: register cloud account")
 	listEntry, err := s.provider.CreateSpacewaveAccountAndSession(ctx, entityID, []byte(password), turnstileToken, sessionCtrl)
 	if err != nil {
 		return nil, err
 	}
+	s.le.WithField("entity-id-len", len(entityID)).Debug("creating spacewave account: session ready")
 
 	return &s4wave_provider_spacewave.CreateAccountResponse{SessionListEntry: listEntry}, nil
 }

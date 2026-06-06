@@ -39,6 +39,10 @@ type SharedObjectProvider interface {
 	// AccessSharedObjectList adds a reference to the list of shared objects and returns the container.
 	// Returns a release function. Accepts a function that is called if the Watchable becomes invalid.
 	AccessSharedObjectList(ctx context.Context, released func()) (ccontainer.Watchable[*SharedObjectList], func(), error)
+
+	// RefreshSharedObjectList invalidates and reloads the current shared object
+	// list snapshot when the provider has a remote list owner.
+	RefreshSharedObjectList(ctx context.Context) error
 }
 
 // SharedObjectHealthProvider streams SharedObject health snapshots before body mount.

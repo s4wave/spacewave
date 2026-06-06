@@ -3,6 +3,7 @@ package cdn_world_controller
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -10,6 +11,7 @@ import (
 	"github.com/aperturerobotics/util/ccontainer"
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
 	cdn_sharedobject "github.com/s4wave/spacewave/core/cdn/sharedobject"
+	"github.com/s4wave/spacewave/core/sobject"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
@@ -20,6 +22,8 @@ const ControllerID = "spacewave/cdn/world"
 
 // Version is the version of the world implementation.
 var Version = controller.MustParseVersion("0.0.1")
+
+const missingHeadRetryDelay = time.Second
 
 // Controller exposes a read-only CDN-backed world engine.
 type Controller struct {
@@ -65,18 +69,29 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	engine, err := cdn_sharedobject.NewWorldEngine(ctx, c.le, c.b, so, space_world_optypes.LookupWorldOp)
-	if err != nil {
-		return err
+	for {
+		engine, err := cdn_sharedobject.NewWorldEngine(ctx, c.le, c.b, so, space_world_optypes.LookupWorldOp)
+		if err != nil {
+			if !shouldRetryMissingPublishedHead() || !isMissingPublishedHead(err) {
+				return err
+			}
+			c.le.WithError(err).Debug("CDN world engine waiting for published head")
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-time.After(missingHeadRetryDelay):
+				continue
+			}
+		}
+		c.engine = engine
+		c.ctr.SetValue(engine.Engine)
+		c.le.Info("CDN world engine ready")
+		<-ctx.Done()
+		engine.Release()
+		c.engine = nil
+		c.ctr.SetValue(nil)
+		return nil
 	}
-	c.engine = engine
-	c.ctr.SetValue(engine.Engine)
-	c.le.Info("CDN world engine ready")
-	<-ctx.Done()
-	engine.Release()
-	c.engine = nil
-	c.ctr.SetValue(nil)
-	return nil
 }
 
 // HandleDirective asks if the handler can resolve the directive.
@@ -103,6 +118,15 @@ func (c *Controller) Close() error {
 		c.engine = nil
 	}
 	return nil
+}
+
+func isMissingPublishedHead(err error) bool {
+	health, ok := sobject.GetSharedObjectHealthFromError(err)
+	if !ok || health == nil {
+		return false
+	}
+	return health.GetStatus() == sobject.SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_LOADING &&
+		health.GetLayer() == sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT
 }
 
 // _ is a type assertion.

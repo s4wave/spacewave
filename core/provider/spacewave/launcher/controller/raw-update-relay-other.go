@@ -1,4 +1,4 @@
-//go:build !js && !windows
+//go:build !js && !goscript && !windows
 
 package spacewave_launcher_controller
 

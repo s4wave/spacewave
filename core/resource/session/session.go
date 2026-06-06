@@ -82,6 +82,10 @@ type SessionResource struct {
 	cdnLookup func(sharedObjectID string) (sobject.SharedObject, *sobject.SharedObjectMeta)
 }
 
+type acceptedCloudInviteAccount interface {
+	RefreshSharedObjectList(context.Context) error
+}
+
 // NewSessionResource creates a new SessionResource.
 func NewSessionResource(le *logrus.Entry, b bus.Bus, sess session.Session) *SessionResource {
 	return NewSessionResourceWithHostPluginID(le, b, sess, "")
@@ -518,7 +522,7 @@ func (r *SessionResource) MountSharedObject(
 
 	soListEntry, err := r.lookupSharedObjectListEntry(
 		ctx,
-		providerAcc,
+		soProvider,
 		soListCtr,
 		req.GetSharedObjectId(),
 	)
@@ -857,17 +861,20 @@ func (r *SessionResource) mountInviteHost(
 	}
 	defer relSoListCtr()
 
-	soListEntry, err := r.lookupSharedObjectListEntry(
-		ctx,
-		providerAcc,
-		soListCtr,
-		spaceID,
-	)
+	soListEntry, err := r.lookupSharedObjectListEntry(ctx, soFeature, soListCtr, spaceID)
 	if err != nil {
 		return nil, nil, err
 	}
-	if soListEntry == nil {
-		return nil, nil, sobject.ErrSharedObjectNotFound
+	var blockStoreID string
+	if soListEntry != nil {
+		blockStoreID = soListEntry.GetRef().GetBlockStoreId()
+	} else if _, ok := providerAcc.(*provider_spacewave.ProviderAccount); ok {
+		blockStoreID = provider_spacewave.SobjectBlockStoreID(spaceID)
+	} else {
+		return nil, nil, errors.Wrap(
+			sobject.ErrSharedObjectNotFound,
+			"lookup shared object list entry",
+		)
 	}
 	sessRef := r.session.GetSessionRef().GetProviderResourceRef()
 	soRef := &sobject.SharedObjectRef{
@@ -876,7 +883,7 @@ func (r *SessionResource) mountInviteHost(
 			ProviderAccountId: sessRef.GetProviderAccountId(),
 			Id:                spaceID,
 		},
-		BlockStoreId: soListEntry.GetRef().GetBlockStoreId(),
+		BlockStoreId: blockStoreID,
 	}
 
 	mountedSo, mountedSoRef, err := sobject.ExMountSharedObject(ctx, r.session.GetBus(), soRef, false, nil)
@@ -897,7 +904,7 @@ func (r *SessionResource) mountInviteHost(
 // fresh cloud snapshot before returning not found.
 func (r *SessionResource) lookupSharedObjectListEntry(
 	ctx context.Context,
-	providerAcc provider.ProviderAccount,
+	soFeature sobject.SharedObjectProvider,
 	soListCtr ccontainer.Watchable[*sobject.SharedObjectList],
 	sharedObjectID string,
 ) (*sobject.SharedObjectListEntry, error) {
@@ -912,11 +919,7 @@ func (r *SessionResource) lookupSharedObjectListEntry(
 		return soList.GetSharedObjects()[soIdx], nil
 	}
 
-	swAcc, ok := providerAcc.(*provider_spacewave.ProviderAccount)
-	if !ok {
-		return nil, nil
-	}
-	if err := swAcc.RefreshSharedObjectList(ctx); err != nil {
+	if err := soFeature.RefreshSharedObjectList(ctx); err != nil {
 		return nil, err
 	}
 
@@ -942,7 +945,7 @@ func (r *SessionResource) CreateSpaceInvite(
 
 	ih, rel, err := r.mountInviteHost(ctx, spaceID)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "mount invite host")
 	}
 	defer rel()
 
@@ -1192,10 +1195,7 @@ func (r *SessionResource) JoinSpaceViaInvite(
 			)
 		}
 		if status == "accepted" {
-			return &s4wave_session.JoinSpaceViaInviteResponse{
-				SharedObjectId: inviteMsg.GetSharedObjectId(),
-				Result:         s4wave_session.JoinSpaceViaInviteResult_JoinSpaceViaInviteResult_ACCEPTED,
-			}, nil
+			return acceptedCloudInviteJoinResponse(ctx, acc, inviteMsg.GetSharedObjectId())
 		}
 		waitCtx, waitCancel := context.WithTimeout(ctx, inviteAcceptFastPathTimeout)
 		defer waitCancel()
@@ -1207,10 +1207,7 @@ func (r *SessionResource) JoinSpaceViaInvite(
 		)
 		if err == nil {
 			if status == "accepted" {
-				return &s4wave_session.JoinSpaceViaInviteResponse{
-					SharedObjectId: inviteMsg.GetSharedObjectId(),
-					Result:         s4wave_session.JoinSpaceViaInviteResult_JoinSpaceViaInviteResult_ACCEPTED,
-				}, nil
+				return acceptedCloudInviteJoinResponse(ctx, acc, inviteMsg.GetSharedObjectId())
 			}
 			if status == "rejected" {
 				return &s4wave_session.JoinSpaceViaInviteResponse{
@@ -1228,6 +1225,20 @@ func (r *SessionResource) JoinSpaceViaInvite(
 	default:
 		return nil, errors.New("unsupported provider type for invite join")
 	}
+}
+
+func acceptedCloudInviteJoinResponse(
+	ctx context.Context,
+	acc acceptedCloudInviteAccount,
+	soID string,
+) (*s4wave_session.JoinSpaceViaInviteResponse, error) {
+	if err := acc.RefreshSharedObjectList(ctx); err != nil {
+		return nil, errors.Wrap(err, "refresh shared object list after accepted invite")
+	}
+	return &s4wave_session.JoinSpaceViaInviteResponse{
+		SharedObjectId: soID,
+		Result:         s4wave_session.JoinSpaceViaInviteResult_JoinSpaceViaInviteResult_ACCEPTED,
+	}, nil
 }
 
 // _ is a type assertion

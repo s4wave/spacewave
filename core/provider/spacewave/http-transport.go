@@ -1,4 +1,4 @@
-//go:build !js || !tinygo || !bldr_tinygo_js_imports
+//go:build !js || (js && !goscript && (!tinygo || !bldr_tinygo_js_imports))
 
 package provider_spacewave
 

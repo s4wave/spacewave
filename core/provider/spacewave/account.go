@@ -977,6 +977,7 @@ func (a *ProviderAccount) GetAccountState(ctx context.Context) (*api.AccountStat
 				a.state.infoFetching = false
 				broadcast()
 			})
+			a.syncSharedObjectListAccess(fetched.GetSubscriptionStatus())
 			a.refreshSelfRejoinSweepState()
 			return fetched, nil
 		}

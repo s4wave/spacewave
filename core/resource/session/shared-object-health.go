@@ -40,7 +40,7 @@ func (r *SessionResource) WatchSharedObjectHealth(
 
 	soListEntry, err := r.lookupSharedObjectListEntry(
 		ctx,
-		providerAcc,
+		soProvider,
 		soListCtr,
 		sharedObjectID,
 	)
@@ -169,7 +169,7 @@ func (r *SessionResource) loadSharedObjectHealthSnapshot(
 
 	soListEntry, err := r.lookupSharedObjectListEntry(
 		ctx,
-		providerAcc,
+		soProvider,
 		soListCtr,
 		sharedObjectID,
 	)

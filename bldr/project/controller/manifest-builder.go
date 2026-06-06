@@ -24,8 +24,15 @@ import (
 	"github.com/s4wave/spacewave/bldr/manifest/builder/resultworld"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	manifestBuildBufferedStoreMaxPendingEntries = 16384
+	manifestBuildBufferedStoreMaxPendingBytes   = 512 << 20
+	manifestBuildBufferedStoreDrainBatchEntries = 1024
 )
 
 // manifestBuilderTracker tracks a running manifest build controller.
@@ -65,6 +72,22 @@ func NewManifestBuilderConfigWithTargetPlatforms(manifestID, buildType, platform
 		RemoteId:          remoteID,
 		TargetPlatformIds: targetPlatformIDs,
 	}
+}
+
+type bufferedStoreSettingsTx interface {
+	SetBufferedStoreSettings(*block.BufferedStoreSettings)
+}
+
+func configureManifestBuildTransactionBuffer(tx world.Tx) {
+	bufferedTx, ok := tx.(bufferedStoreSettingsTx)
+	if !ok {
+		return
+	}
+	bufferedTx.SetBufferedStoreSettings(&block.BufferedStoreSettings{
+		MaxPendingEntries: manifestBuildBufferedStoreMaxPendingEntries,
+		MaxPendingBytes:   manifestBuildBufferedStoreMaxPendingBytes,
+		DrainBatchEntries: manifestBuildBufferedStoreDrainBatchEntries,
+	})
 }
 
 // UnmarshalManifestBuilderConfigB58 unmarshals a b58 manifest builder config.
@@ -226,6 +249,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		t.setManifestBuilderStatus(ManifestBuilderStatusStateError, "open world transaction", err)
 		return err
 	}
+	configureManifestBuildTransactionBuffer(tx)
 
 	// create the plugin host key if it doesn't exist.
 	createdStore, err := bldr_manifest_world.CreateManifestStore(ctx, tx, storeObjKey)

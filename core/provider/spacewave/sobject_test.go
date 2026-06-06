@@ -607,6 +607,88 @@ func TestEnsureSharedObjectListLoaded_InvalidationRefetchesOnce(t *testing.T) {
 	}
 }
 
+func TestGetAccountStateEnablesSharedObjectListAccess(t *testing.T) {
+	var listCalls int
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/account/state":
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(mustMarshalVT(t, &api.AccountStateResponse{
+				SubscriptionStatus: s4wave_provider_spacewave.BillingStatus_BillingStatus_ACTIVE,
+			}))
+		case "/api/sobject/list":
+			listCalls++
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(mustMarshalVT(t, &sobject.SharedObjectList{}))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+
+	acc := NewTestProviderAccount(t, srv.URL)
+	if acc.hasSharedObjectListAccess() {
+		t.Fatal("expected new account to start without SO list access")
+	}
+
+	if _, err := acc.GetAccountState(context.Background()); err != nil {
+		t.Fatalf("GetAccountState: %v", err)
+	}
+	if !acc.hasSharedObjectListAccess() {
+		t.Fatal("expected account state fetch to enable SO list access")
+	}
+
+	if err := acc.RefreshSharedObjectList(context.Background()); err != nil {
+		t.Fatalf("RefreshSharedObjectList: %v", err)
+	}
+	if listCalls != 1 {
+		t.Fatalf("expected one shared object list fetch, got %d", listCalls)
+	}
+}
+
+func TestRefreshSharedObjectListRefreshesAccountAccess(t *testing.T) {
+	var accountStateCalls int
+	var listCalls int
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/account/state":
+			accountStateCalls++
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(mustMarshalVT(t, &api.AccountStateResponse{
+				SubscriptionStatus: s4wave_provider_spacewave.BillingStatus_BillingStatus_ACTIVE,
+			}))
+		case "/api/sobject/list":
+			listCalls++
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(mustMarshalVT(t, &sobject.SharedObjectList{}))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+
+	acc := NewTestProviderAccount(t, srv.URL)
+	if acc.hasSharedObjectListAccess() {
+		t.Fatal("expected new account to start without SO list access")
+	}
+
+	if err := acc.RefreshSharedObjectList(context.Background()); err != nil {
+		t.Fatalf("RefreshSharedObjectList: %v", err)
+	}
+	if accountStateCalls != 1 {
+		t.Fatalf("expected one account state fetch, got %d", accountStateCalls)
+	}
+	if listCalls != 1 {
+		t.Fatalf("expected one shared object list fetch, got %d", listCalls)
+	}
+}
+
 // TestPostRoot_MissingWriteTicketExecutor verifies PostRoot fails locally when
 // the write-ticket executor is unavailable.
 func TestPostRoot_MissingWriteTicketExecutor(t *testing.T) {

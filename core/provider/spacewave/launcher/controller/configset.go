@@ -30,12 +30,14 @@ func (c *Controller) applyDistConfigSet(ctx context.Context) error {
 		if distConf.GetRev() == 0 {
 			continue
 		}
-		distConfCs := &configset_proto.ConfigSet{Configs: distConf.GetLauncherConfigSet()}
+		launcherConfigSet := filterRuntimeLauncherConfigSet(
+			configset_proto.ConfigSetMap(distConf.GetLauncherConfigSet()),
+		)
+		distConfCs := &configset_proto.ConfigSet{Configs: launcherConfigSet}
 		if currCs != nil && currCs.EqualVT(distConfCs) {
 			continue
 		}
 
-		launcherConfigSet := configset_proto.ConfigSetMap(distConf.GetLauncherConfigSet())
 		if err := launcherConfigSet.Validate(); err != nil {
 			c.le.WithError(err).Warn("ignoring invalid launcher config set")
 			launcherConfigSet = nil

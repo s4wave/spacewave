@@ -763,9 +763,14 @@ func hasSOListAccess(
 // RefreshSharedObjectList invalidates and reloads the current shared object list snapshot.
 func (a *ProviderAccount) RefreshSharedObjectList(ctx context.Context) error {
 	if !a.hasSharedObjectListAccess() {
-		a.soListCtr.SetValue(&sobject.SharedObjectList{})
-		a.refreshSelfEnrollmentSummary(ctx)
-		return nil
+		if _, err := a.GetAccountState(ctx); err != nil {
+			return err
+		}
+		if !a.hasSharedObjectListAccess() {
+			a.soListCtr.SetValue(&sobject.SharedObjectList{})
+			a.refreshSelfEnrollmentSummary(ctx)
+			return nil
+		}
 	}
 	prev := a.soListCtr.GetValue()
 	a.invalidateSharedObjectList()

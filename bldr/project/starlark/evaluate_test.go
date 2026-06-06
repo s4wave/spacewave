@@ -714,6 +714,7 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 	if goscriptE2EReleaseLauncherWebConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT {
 		t.Fatalf("GoScript release-web e2e spacewave-launcher compilerMode: got %s, want COMPILER_MODE_GOSCRIPT", goscriptE2EReleaseLauncherWebConf.GetCompilerMode())
 	}
+	assertBrowserLauncherOmitsReleaseWorld(t, "GoScript release-web e2e", goscriptE2EReleaseLauncherConf)
 
 	cli := result.Config.GetManifests()["spacewave"]
 	if cli == nil {
@@ -730,6 +731,24 @@ func mustGoPluginConfig(t *testing.T, data []byte) *bldr_plugin_compiler_go.Conf
 		t.Fatalf("unmarshal Go plugin config: %v\n%s", err, string(data))
 	}
 	return conf
+}
+
+func assertBrowserLauncherOmitsReleaseWorld(t *testing.T, label string, conf *bldr_plugin_compiler_go.Config) {
+	t.Helper()
+	for _, key := range []string{"release-world", "release-world-fetch", "release-world-ops"} {
+		if conf.GetConfigSet()[key] != nil {
+			t.Fatalf("%s launcher configSet includes %s", label, key)
+		}
+	}
+	for _, pkg := range []string{
+		"github.com/s4wave/spacewave/bldr/manifest/fetch/world",
+		"github.com/s4wave/spacewave/core/cdn/world/controller",
+		"github.com/s4wave/spacewave/core/space/world/optypes",
+	} {
+		if slices.Contains(conf.GetGoPkgs(), pkg) {
+			t.Fatalf("%s launcher goPkgs includes %s", label, pkg)
+		}
+	}
 }
 
 func mustCliConfig(t *testing.T, data []byte) *bldr_cli_compiler.Config {

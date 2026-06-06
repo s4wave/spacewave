@@ -40,6 +40,13 @@ LAUNCHER_GO_PKGS = [
     "github.com/s4wave/spacewave/db/object/peer",
 ]
 
+LAUNCHER_BROWSER_GO_PKGS = [
+    "./core/provider/spacewave/launcher/controller",
+    "github.com/s4wave/spacewave/db/block/store/overlay",
+    "github.com/s4wave/spacewave/db/block/store/rpc/server",
+    "github.com/s4wave/spacewave/db/object/peer",
+]
+
 PRODUCTION_DIST_PEER_ID = "12D3KooWL2DEcvqSXXrrCmUxMdPbqFcqzhHBvqseZWHwjAt7aXfW"
 PRODUCTION_RELEASE_CONFIG_URL = "https://spacewave.app/api/release/config"
 
@@ -151,27 +158,29 @@ def spacewave_launcher_controller_config(
 
 def spacewave_launcher_config(
         launcher_controller_config=spacewave_launcher_controller_config(),
-        web_compiler_mode=None):
-    conf = {
-        "goPkgs": LAUNCHER_GO_PKGS,
-        "configSet": {
-            "spacewave-launcher": config_entry(
-                "spacewave/launcher/controller", 1,
-                launcher_controller_config,
-            ),
-            "store-peer": config_entry("object/peer", 1, {
-                "objectStoreId": "s4wave-peer",
-                "volumeId": "plugin-host",
-                "transformConf": {
-                    "steps": [{
-                        "id": "hydra/transform/blockenc",
-                        "config": {
-                            "blockEnc": "BlockEnc_XCHACHA20_POLY1305",
-                            "key": PEER_ENCRYPTION_KEY,
-                        },
-                    }],
-                },
-            }),
+        web_compiler_mode=None,
+        include_release_world=True):
+    config_set = {
+        "spacewave-launcher": config_entry(
+            "spacewave/launcher/controller", 1,
+            launcher_controller_config,
+        ),
+        "store-peer": config_entry("object/peer", 1, {
+            "objectStoreId": "s4wave-peer",
+            "volumeId": "plugin-host",
+            "transformConf": {
+                "steps": [{
+                    "id": "hydra/transform/blockenc",
+                    "config": {
+                        "blockEnc": "BlockEnc_XCHACHA20_POLY1305",
+                        "key": PEER_ENCRYPTION_KEY,
+                    },
+                }],
+            },
+        }),
+    }
+    if include_release_world:
+        config_set.update({
             "release-world": config_entry("spacewave/cdn/world", 1, {
                 "engineId": "spacewave-release-world",
                 "spaceId": "01kqjmfxd44r7ggrq78efad3d2",
@@ -184,7 +193,10 @@ def spacewave_launcher_config(
                 "engineId": "spacewave-release-world",
                 "objectKeys": ["spacewave/release/manifests"],
             }),
-        },
+        })
+    conf = {
+        "goPkgs": LAUNCHER_GO_PKGS if include_release_world else LAUNCHER_BROWSER_GO_PKGS,
+        "configSet": config_set,
     }
     if web_compiler_mode:
         conf["platformTypes"] = {
@@ -193,6 +205,12 @@ def spacewave_launcher_config(
             },
         }
     return conf
+
+def browser_release_launcher_config(web_compiler_mode=None):
+    return spacewave_launcher_config(
+        web_compiler_mode=web_compiler_mode,
+        include_release_world=False,
+    )
 
 def e2e_release_wasm_launcher_config(web_compiler_mode=None):
     return spacewave_launcher_config(
@@ -203,6 +221,7 @@ def e2e_release_wasm_launcher_config(web_compiler_mode=None):
             disable_endpoint_fetch=True,
         ),
         web_compiler_mode=web_compiler_mode,
+        include_release_world=False,
     )
 
 # Web packages excluded by JS plugins that consume spacewave-web packages.

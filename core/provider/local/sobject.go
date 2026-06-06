@@ -572,6 +572,12 @@ func (a *ProviderAccount) AccessSharedObjectList(ctx context.Context, released f
 	return a.soListCtr, func() {}, nil
 }
 
+// RefreshSharedObjectList keeps the SharedObjectProvider contract uniform.
+// Local provider lists are updated synchronously by local mutations.
+func (a *ProviderAccount) RefreshSharedObjectList(context.Context) error {
+	return nil
+}
+
 // initSharedObjectState initializes or loads the shared object state from the object store.
 func (t *sobjectTracker) initSharedObjectState(
 	ctx context.Context,

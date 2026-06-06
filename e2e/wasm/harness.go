@@ -834,6 +834,12 @@ func resolveBldrDependency(repoRoot string) (version, sum, srcPath string, err e
 		}
 		return "", "", repoRoot, nil
 	}
+	if repoModulePath == bldrModPath {
+		if p, ok := resolveLocalModulePath("", repoRoot); ok {
+			return "", "", p, nil
+		}
+		return "", "", repoRoot, nil
+	}
 
 	buildInfo, ok := debug.ReadBuildInfo()
 	if !ok {

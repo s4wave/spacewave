@@ -80,6 +80,41 @@ func TestApplyDistConfigSetSwapsAndReleasesSignedLauncherConfigSet(t *testing.T)
 	waitActiveControllerCount(t, ctx, stopped, &factory.active, 0)
 }
 
+func TestFilterBrowserLauncherConfigSetDropsReleaseWorldCDNControllers(t *testing.T) {
+	input := configset_proto.ConfigSetMap{
+		"release-world": {
+			Id:  "spacewave/cdn/world",
+			Rev: 1,
+		},
+		"release-world-cdn-store": {
+			Id:  "spacewave/cdn/bstore",
+			Rev: 1,
+		},
+		"download": {
+			Id:  "download",
+			Rev: 1,
+		},
+		"miskeyed-cdn-world": {
+			Id:  "spacewave/cdn/world",
+			Rev: 1,
+		},
+	}
+
+	filtered := filterBrowserLauncherConfigSet(input)
+	if _, ok := filtered["release-world"]; ok {
+		t.Fatal("browser launcher configset kept release-world CDN world controller")
+	}
+	if _, ok := filtered["release-world-cdn-store"]; ok {
+		t.Fatal("browser launcher configset kept release-world CDN block-store controller")
+	}
+	if _, ok := filtered["miskeyed-cdn-world"]; ok {
+		t.Fatal("browser launcher configset kept CDN world controller under a non-release key")
+	}
+	if got := filtered["download"]; got == nil || got.GetId() != "download" {
+		t.Fatalf("browser launcher configset dropped non-CDN controller: %#v", got)
+	}
+}
+
 func launcherConfigSetTestDistConfig(rev uint64) *spacewave_launcher.DistConfig {
 	return &spacewave_launcher.DistConfig{
 		Rev: rev,
