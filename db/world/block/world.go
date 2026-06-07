@@ -30,6 +30,11 @@ import (
 // objectKeyPrefix is the prefix used for object keys in storage
 var objectKeyPrefix = "o/"
 
+const (
+	defaultGCJournalReconcileEntryLimit uint64 = 64
+	defaultGCJournalReconcileEdgeLimit  uint64 = 4096
+)
+
 // WorldState implements world state backed by a block graph.
 // Note: GetRoot, WaitSeqno are concurrency safe.
 // Note: all other calls are not concurrency safe. Use Tx if you want a mutex.
@@ -57,6 +62,7 @@ type WorldState struct {
 	refGraph       *block_gc.RefGraph
 	gcJournalTree  kvtx.BlockTx
 	gcJournal      *gcJournal
+	gcJournalDirty bool
 
 	storage  world.WorldStorage
 	lookupOp world.LookupOp
@@ -563,7 +569,11 @@ func (t *WorldState) Commit(ctx context.Context) error {
 			return err
 		}
 	}
-	journalChanged := t.gcJournalTree != nil && t.GetGCJournalEntries() != journalEntriesBefore
+	journalTreeDirty := false
+	if t.gcJournalTree != nil && t.gcJournalTree.GetCursor() != nil {
+		journalTreeDirty = t.gcJournalTree.GetCursor().IsDirty()
+	}
+	journalChanged := t.gcJournalTree != nil && (t.GetGCJournalEntries() != journalEntriesBefore || journalTreeDirty || t.gcJournalDirty)
 	if journalChanged {
 		// The world GC flush appends to the journal after the primary write.
 		// Persist that journal update through the inner store so it does not
@@ -580,6 +590,7 @@ func (t *WorldState) Commit(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		t.gcJournalDirty = false
 	}
 	if !journalChanged {
 		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/clear-block-tree")
@@ -627,9 +638,21 @@ func (t *WorldState) GarbageCollect(ctx context.Context) (*block_gc.Stats, error
 	if release != nil {
 		defer release()
 	}
-	// Reconcile deferred journal before collecting.
-	if _, err := t.ReconcileGCJournal(ctx); err != nil {
+	// Reconcile one bounded deferred-journal chunk before collecting.
+	reconcile, err := t.reconcileGCJournal(ctx, defaultGCJournalReconcileEntryLimit, defaultGCJournalReconcileEdgeLimit)
+	if err != nil {
 		return nil, errors.Wrap(err, "reconcile gc journal before collect")
+	}
+	if reconcile.remainingEntries != 0 {
+		trace.Logf(
+			ctx,
+			"gc-journal",
+			"defer collect: remaining_entries=%d applied_entries=%d applied_edges=%d",
+			reconcile.remainingEntries,
+			reconcile.appliedEntries,
+			reconcile.appliedEdges,
+		)
+		return &block_gc.Stats{}, nil
 	}
 	if err := t.removeCurrentWorldRootUnreferenced(ctx); err != nil {
 		return nil, errors.Wrap(err, "mark pinned world root for gc")
@@ -673,47 +696,66 @@ func (t *WorldState) removeCurrentWorldRootUnreferenced(ctx context.Context) err
 	return t.refGraph.RemoveRef(ctx, block_gc.NodeUnreferenced, rootIRI)
 }
 
-// ReconcileGCJournal applies pending GC journal entries to the Cayley ref graph
-// and clears the journal. Call during idle periods or forced checkpoints. The
-// caller must commit the world state afterward to persist the reconciled graph
-// and cleared journal.
+// ReconcileGCJournal applies one bounded pending GC journal chunk to the Cayley
+// ref graph. Call during idle periods or forced checkpoints. The caller must
+// commit the world state afterward to persist the reconciled graph and journal
+// cursor.
 //
 // Returns the number of journal entries applied, or 0 if the journal was empty
 // or GC is not enabled.
 func (t *WorldState) ReconcileGCJournal(ctx context.Context) (int, error) {
+	result, err := t.reconcileGCJournal(ctx, defaultGCJournalReconcileEntryLimit, defaultGCJournalReconcileEdgeLimit)
+	return result.appliedEntries, err
+}
+
+func (t *WorldState) reconcileGCJournal(ctx context.Context, maxEntries, maxEdges uint64) (gcJournalReconcileResult, error) {
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/reconcile-gc-journal")
 	defer task.End()
 
 	if t.refGraph == nil || t.gcJournal == nil {
-		return 0, nil
+		return gcJournalReconcileResult{}, nil
 	}
 
-	// Collect all journal entries into one merged batch.
 	var allAdds, allRemoves []block_gc.RefEdge
-	count := 0
-	err := t.gcJournal.Iterate(ctx, func(adds, removes []block_gc.RefEdge) error {
-		allAdds = append(allAdds, adds...)
-		allRemoves = append(allRemoves, removes...)
-		count++
-		return nil
-	})
+	entries, err := t.gcJournal.Take(ctx, maxEntries, maxEdges)
 	if err != nil {
-		return 0, errors.Wrap(err, "iterate gc journal")
+		return gcJournalReconcileResult{}, errors.Wrap(err, "iterate gc journal")
 	}
-	if count == 0 {
-		return 0, nil
+	if len(entries) == 0 {
+		return gcJournalReconcileResult{}, nil
+	}
+	for _, entry := range entries {
+		allAdds = append(allAdds, entry.adds...)
+		allRemoves = append(allRemoves, entry.removes...)
 	}
 
-	// Apply the merged batch to the Cayley ref graph.
 	if err := t.refGraph.ApplyRefBatch(ctx, allAdds, allRemoves); err != nil {
-		return 0, errors.Wrap(err, "apply gc journal batch")
+		return gcJournalReconcileResult{}, errors.Wrap(err, "apply gc journal batch")
 	}
+	if err := t.gcJournal.DeleteApplied(ctx, entries); err != nil {
+		return gcJournalReconcileResult{}, errors.Wrap(err, "delete applied gc journal entries")
+	}
+	t.gcJournalDirty = true
+	result := gcJournalReconcileResult{
+		appliedEntries:   len(entries),
+		appliedEdges:     len(allAdds) + len(allRemoves),
+		remainingEntries: t.gcJournal.Entries(),
+	}
+	trace.Logf(
+		ctx,
+		"gc-journal",
+		"applied_entries=%d applied_edges=%d remaining_entries=%d",
+		result.appliedEntries,
+		result.appliedEdges,
+		result.remainingEntries,
+	)
+	return result, nil
+}
 
-	// Clear the journal.
-	if err := t.gcJournal.Clear(ctx); err != nil {
-		return 0, errors.Wrap(err, "clear gc journal")
-	}
-	return count, nil
+type gcJournalReconcileResult struct {
+	appliedEntries   int
+	appliedEdges     int
+	remainingEntries uint64
 }
 
 // buildObjectTree builds the object tree handle.

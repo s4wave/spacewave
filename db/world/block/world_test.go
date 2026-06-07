@@ -1739,6 +1739,99 @@ func TestWorldState_GC_PinsCurrentRootDuringPhysicalSweep(t *testing.T) {
 	}
 }
 
+func TestWorldState_GC_ReconcileJournalInBoundedDurableChunks(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(ocs.Release)
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	for i := range 65 {
+		if _, err := world_block.BuildMockObject(ctx, ws, "gc-bounded-"+strconv.Itoa(i)); err != nil {
+			t.Fatal(err.Error())
+		}
+		if err := ws.Commit(ctx); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	if entries := ws.GetGCJournalEntries(); entries <= 64 {
+		t.Fatalf("journal entries = %d, want more than one default chunk", entries)
+	}
+
+	stats, err := ws.GarbageCollect(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if stats == nil {
+		t.Fatal("expected bounded GC stats")
+	}
+	if stats.NodesSwept != 0 {
+		t.Fatalf("nodes swept during partial journal reconciliation = %d, want 0", stats.NodesSwept)
+	}
+	if entries := ws.GetGCJournalEntries(); entries != 1 {
+		t.Fatalf("remaining journal entries = %d, want 1", entries)
+	}
+	if err := ws.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	ocs.SetRootRef(ws.GetRootRef())
+
+	reopened, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if entries := reopened.GetGCJournalEntries(); entries == 0 || entries >= 65 {
+		t.Fatalf("reopened journal entries = %d, want bounded pending suffix", entries)
+	}
+	if _, err := world.MustGetObject(ctx, reopened, "gc-bounded-64"); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := world_block.BuildMockObject(ctx, reopened, "gc-pending-write"); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := reopened.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	ocs.SetRootRef(reopened.GetRootRef())
+
+	reopened, err = world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := world.MustGetObject(ctx, reopened, "gc-pending-write"); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	for i := 0; i < 4 && reopened.GetGCJournalEntries() != 0; i++ {
+		if _, err := reopened.GarbageCollect(ctx); err != nil {
+			t.Fatal(err.Error())
+		}
+		if err := reopened.Commit(ctx); err != nil {
+			t.Fatal(err.Error())
+		}
+		ocs.SetRootRef(reopened.GetRootRef())
+		reopened, err = world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	if entries := reopened.GetGCJournalEntries(); entries > 1 {
+		t.Fatalf("journal entries after resumed GC drain = %d, want at most maintenance floor", entries)
+	}
+}
+
 // TestWorldState_GC_Fork verifies that forking a WorldState preserves
 // GC tracking: the forked state has a RefGraph, existing GC edges are
 // visible, new objects get GC edges, and GarbageCollect works.

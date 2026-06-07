@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"slices"
+	"strconv"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -16,6 +17,7 @@ type gcJournalTestTree struct {
 	values         map[string][]byte
 	scanPrefixKeys int
 	scanPrefix     int
+	scanValues     int
 }
 
 func newGCJournalTestTree() *gcJournalTestTree {
@@ -56,6 +58,7 @@ func (t *gcJournalTestTree) ScanPrefix(ctx context.Context, prefix []byte, cb fu
 		if err := ctx.Err(); err != nil {
 			return err
 		}
+		t.scanValues++
 		if err := cb([]byte(key), bytes.Clone(t.values[key])); err != nil {
 			return err
 		}
@@ -122,6 +125,7 @@ func TestGCJournalReadsSequenceMetadataWithoutScan(t *testing.T) {
 	ctx := context.Background()
 	tree := newGCJournalTestTree()
 	storeGCJournalSeqForTest(t, tree, 42)
+	storeGCJournalCountForTest(t, tree, 42)
 
 	journal, err := newGCJournal(ctx, tree, false)
 	if err != nil {
@@ -216,11 +220,156 @@ func TestGCJournalIterateAndClearIgnoreMetadata(t *testing.T) {
 	}
 }
 
+func TestGCJournalTakeDeleteAppliedPreservesPendingEntries(t *testing.T) {
+	ctx := context.Background()
+	tree := newGCJournalTestTree()
+	journal, err := newGCJournal(ctx, tree, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range 3 {
+		err := journal.Append(ctx, []block_gc.RefEdge{{
+			Subject: "subject-" + string(rune('a'+i)),
+			Object:  "object-" + string(rune('a'+i)),
+		}}, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	entries, err := journal.Take(ctx, 2, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("take entries = %d, want 2", len(entries))
+	}
+	if tree.scanValues != 3 {
+		t.Fatalf("scanned values = %d, want 3", tree.scanValues)
+	}
+	if err := journal.DeleteApplied(ctx, entries); err != nil {
+		t.Fatal(err)
+	}
+	if journal.Entries() != 1 {
+		t.Fatalf("pending entries = %d, want 1", journal.Entries())
+	}
+
+	reloaded, err := newGCJournal(ctx, tree, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reloaded.Entries() != 1 {
+		t.Fatalf("reloaded pending entries = %d, want 1", reloaded.Entries())
+	}
+	remaining, err := reloaded.Take(ctx, 10, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(remaining) != 1 {
+		t.Fatalf("remaining entries = %d, want 1", len(remaining))
+	}
+	if got := remaining[0].adds[0].Subject; got != "subject-c" {
+		t.Fatalf("remaining subject = %q, want subject-c", got)
+	}
+}
+
+func TestGCJournalTakeSplitsOversizedFirstEntry(t *testing.T) {
+	ctx := context.Background()
+	tree := newGCJournalTestTree()
+	journal, err := newGCJournal(ctx, tree, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := journal.Append(ctx, []block_gc.RefEdge{
+		{Subject: "subject-a", Object: "object-a"},
+		{Subject: "subject-b", Object: "object-b"},
+		{Subject: "subject-c", Object: "object-c"},
+	}, []block_gc.RefEdge{
+		{Subject: "subject-d", Object: "object-d"},
+		{Subject: "subject-e", Object: "object-e"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	entries, err := journal.Take(ctx, 64, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("take entries = %d, want 1", len(entries))
+	}
+	if got := len(entries[0].adds) + len(entries[0].removes); got != 2 {
+		t.Fatalf("taken edges = %d, want 2", got)
+	}
+	if err := journal.DeleteApplied(ctx, entries); err != nil {
+		t.Fatal(err)
+	}
+	if journal.Entries() != 1 {
+		t.Fatalf("pending entries = %d, want oversized entry retained", journal.Entries())
+	}
+
+	remaining, err := journal.Take(ctx, 64, 64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(remaining) != 1 {
+		t.Fatalf("remaining entries = %d, want 1", len(remaining))
+	}
+	if got := len(remaining[0].adds) + len(remaining[0].removes); got != 3 {
+		t.Fatalf("remaining edges = %d, want 3", got)
+	}
+	if remaining[0].adds[0].Subject != "subject-c" {
+		t.Fatalf("first remaining add = %q, want subject-c", remaining[0].adds[0].Subject)
+	}
+}
+
+func TestGCJournalAppendSplitsAtDefaultEdgeLimit(t *testing.T) {
+	ctx := context.Background()
+	tree := newGCJournalTestTree()
+	journal, err := newGCJournal(ctx, tree, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	adds := make([]block_gc.RefEdge, defaultGCJournalReconcileEdgeLimit+1)
+	for i := range adds {
+		adds[i] = block_gc.RefEdge{
+			Subject: "subject-" + strconv.Itoa(i),
+			Object:  "object-" + strconv.Itoa(i),
+		}
+	}
+	if err := journal.Append(ctx, adds, nil); err != nil {
+		t.Fatal(err)
+	}
+	if journal.Entries() != 2 {
+		t.Fatalf("pending entries = %d, want 2", journal.Entries())
+	}
+
+	entries, err := journal.Take(ctx, 64, defaultGCJournalReconcileEdgeLimit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("taken entries = %d, want 1", len(entries))
+	}
+	if got := len(entries[0].adds) + len(entries[0].removes); got != int(defaultGCJournalReconcileEdgeLimit) {
+		t.Fatalf("taken edges = %d, want %d", got, defaultGCJournalReconcileEdgeLimit)
+	}
+}
+
 func storeGCJournalSeqForTest(t *testing.T, tree *gcJournalTestTree, seq uint64) {
 	t.Helper()
 	var buf [8]byte
 	binary.BigEndian.PutUint64(buf[:], seq)
 	if err := tree.Set(context.Background(), gcJournalSeqKey, buf[:]); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func storeGCJournalCountForTest(t *testing.T, tree *gcJournalTestTree, count uint64) {
+	t.Helper()
+	var buf [8]byte
+	binary.BigEndian.PutUint64(buf[:], count)
+	if err := tree.Set(context.Background(), gcJournalCountKey, buf[:]); err != nil {
 		t.Fatal(err)
 	}
 }
