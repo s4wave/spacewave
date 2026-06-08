@@ -8,8 +8,9 @@ import {
   promoteBrowserRelease,
   retainedGenerationIds,
 } from './browser-release-state.js'
+import type { BrowserReleaseDescriptor } from './browser-release-state.js'
 
-function buildRelease(generationId: string) {
+function buildRelease(generationId: string): BrowserReleaseDescriptor {
   return {
     schemaVersion: 1,
     generationId,
@@ -43,6 +44,18 @@ describe('browser release state helpers', () => {
       '/shw-gen-a.mjs',
       '/sw-gen-a.mjs',
     ])
+  })
+
+  it('builds cache paths for a release without a wasm shell asset', () => {
+    const release = buildRelease('gen-a')
+    delete release.shellAssets.wasm
+
+    expect(buildReleaseCachePaths(release)).not.toContain(
+      '/entrypoint/gen-a/runtime.wasm.gz',
+    )
+    expect(buildReleaseCachePaths(release)).toContain(
+      '/entrypoint/gen-a/entrypoint.mjs',
+    )
   })
 
   it('falls back to the promoted root document for non-prerendered routes', () => {

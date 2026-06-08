@@ -42,7 +42,7 @@ type BuildManifest struct {
 	Entrypoint    string   `json:"entrypoint"`
 	ServiceWorker string   `json:"serviceWorker"`
 	SharedWorker  string   `json:"sharedWorker"`
-	Wasm          string   `json:"wasm"`
+	Wasm          string   `json:"wasm,omitempty"`
 	CSS           []string `json:"css"`
 	AutoStart     bool     `json:"autoStart,omitempty"`
 }
@@ -60,7 +60,9 @@ func WriteBuildManifest(dir string, manifest *BuildManifest) error {
 	obj.Set("entrypoint", a.NewString(manifest.Entrypoint))
 	obj.Set("serviceWorker", a.NewString(manifest.ServiceWorker))
 	obj.Set("sharedWorker", a.NewString(manifest.SharedWorker))
-	obj.Set("wasm", a.NewString(manifest.Wasm))
+	if manifest.Wasm != "" {
+		obj.Set("wasm", a.NewString(manifest.Wasm))
+	}
 	css := a.NewArray()
 	for _, path := range manifest.CSS {
 		css.SetArrayItem(len(css.GetArray()), a.NewString(path))
@@ -83,7 +85,9 @@ func writeBrowserReleaseManifest(dir string, manifest *BuildManifest) error {
 	shellAssets.Set("entrypoint", a.NewString(manifest.Entrypoint))
 	shellAssets.Set("serviceWorker", a.NewString(manifest.ServiceWorker))
 	shellAssets.Set("sharedWorker", a.NewString(manifest.SharedWorker))
-	shellAssets.Set("wasm", a.NewString(manifest.Wasm))
+	if manifest.Wasm != "" {
+		shellAssets.Set("wasm", a.NewString(manifest.Wasm))
+	}
 	css := a.NewArray()
 	for _, path := range manifest.CSS {
 		css.SetArrayItem(len(css.GetArray()), a.NewString(path))
@@ -336,7 +340,6 @@ function loadRelease(){
     const wasm=absPath(shellAssets.wasm);
     const serviceWorker=absPath(shellAssets.serviceWorker);
     if(!entrypoint)throw new Error('browser release manifest missing shellAssets.entrypoint');
-    if(!wasm)throw new Error('browser release manifest missing shellAssets.wasm');
     if(!serviceWorker)throw new Error('browser release manifest missing shellAssets.serviceWorker');
     g.__swEntry=entrypoint;
     g.__swServiceWorker=serviceWorker;
@@ -349,8 +352,10 @@ function loadRelease(){
 function primeRelease(){
   if(primePromise)return primePromise;
   primePromise=loadRelease().then(function(release){
-    setBootStatus('wasm','Preparing runtime...');
-    fetch(release.wasm);
+    if(release.wasm){
+      setBootStatus('wasm','Preparing runtime...');
+      fetch(release.wasm);
+    }
     return release;
   });
   return primePromise;

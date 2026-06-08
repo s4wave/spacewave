@@ -3,7 +3,7 @@ export interface BrowserReleaseShellAssets {
   entrypoint: string
   serviceWorker: string
   sharedWorker: string
-  wasm: string
+  wasm?: string
   css: string[]
 }
 
@@ -79,7 +79,10 @@ export function buildReleaseCachePaths(
   release: BrowserReleaseDescriptor,
 ): string[] {
   const paths = new Set<string>()
-  const addPath = (path: string) => {
+  const addPath = (path?: string) => {
+    if (!path) {
+      return
+    }
     const normalized = normalizeReleasePath(path)
     if (normalized) {
       paths.add(normalized)

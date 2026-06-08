@@ -5,7 +5,6 @@ package bldr_dist_compiler
 import (
 	"context"
 	"encoding/base32"
-	stderrors "errors"
 	"hash"
 	"io"
 	"os"
@@ -27,12 +26,14 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_build "github.com/s4wave/spacewave/bldr/manifest/build"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
+	bldr_platform_go "github.com/s4wave/spacewave/bldr/platform/go"
 	plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	default_storage "github.com/s4wave/spacewave/bldr/storage/default"
 	bldr_compress "github.com/s4wave/spacewave/bldr/util/compress"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
 	browser_build "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/build"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
+	web_runtime_goscript_build "github.com/s4wave/spacewave/bldr/web/runtime/goscript/build"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
@@ -48,8 +49,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"
 )
-
-var errGoScriptDistUnsupported = stderrors.New("goscript Go compiler is not yet supported for the dist browser shell runtime")
 
 // BuildDistBundle builds the distribution bundle for an application.
 //
@@ -88,6 +87,7 @@ func BuildDistBundle(
 		return err
 	}
 	enableTinygo := goCompiler.IsTinyGo()
+	useGoScript := goCompiler.IsGoScript()
 
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
@@ -336,6 +336,13 @@ func BuildDistBundle(
 		embedAssetsFS = append(embedAssetsFS, outConfigSetFilename)
 	}
 
+	writeDistEntrypoint := func(embedAssets bool) error {
+		le.Debug("writing dist entrypoint")
+		entrypointSrc := FormatDistEntrypoint(meta, embedAssetsFS, cliImports, embedAssets)
+		entrypointMainPath := filepath.Join(entrypointBuildDir, "main.go")
+		return os.WriteFile(entrypointMainPath, []byte(entrypointSrc), 0o644)
+	}
+
 	// on the Web platform we distribute the kvfile separately
 	// we also name the entrypoint file differently
 	var outBinPath string
@@ -376,6 +383,12 @@ func BuildDistBundle(
 		// quickstart frame is ready, leaving the browser stuck before content.
 		forceMessagePortWorkerComms := enableTinygo
 
+		runtimeWorkerName := "runtime-wasm.mjs"
+		if useGoScript {
+			runtimeWorkerName = "runtime-goscript.mjs"
+		}
+		runtimeWorkerPath := "/entrypoint/" + entrypointHash + "/" + runtimeWorkerName
+
 		// Compile the bldr entrypoint (js bundle and index.html)
 		le.Debug("building browser bundle")
 		entrypoint_browser_bundle.EsbuildLogLevel = esbuild.LogLevelError
@@ -386,7 +399,7 @@ func BuildDistBundle(
 			srcPath,
 			distSrcPath,
 			outputPath,
-			"/entrypoint/"+entrypointHash+"/runtime-wasm.mjs",
+			runtimeWorkerPath,
 			entrypointToRootPrefix+"sw.mjs",
 			entrypointToRootPrefix+"shw.mjs",
 			webStartupSrcPath, // startupPath
@@ -401,34 +414,80 @@ func BuildDistBundle(
 			return err
 		}
 
-		outWasmRelPath := "./runtime.wasm"
-		if enableCompression {
-			outWasmRelPath += ".gz"
-		}
-
-		le.Info("building web wasm entrypoint script")
-		err = browser_build.BuildWasmRuntimeEntrypoint(
-			ctx,
-			le,
-			distSrcPath,
-			outEntryDir,
-			jsMinify,
-			jsSourcemaps,
-			enableTinygo,
-			outWasmRelPath,
-		)
-		if err != nil {
+		if err := writeDistEntrypoint(false); err != nil {
 			return err
 		}
 
-		// store the wasm file where the entrypoint expects.
-		outBinPath = filepath.Join(outEntryDir, "runtime.wasm")
+		var wasmManifestPath string
+		if useGoScript {
+			le.Info("compiling dist TypeScript package tree")
+			goScriptBuildFlags := newDistGoScriptBuildFlags(buildType, enableCgo)
+			goScriptEnv, err := newDistGoScriptEnv(buildPlatform)
+			if err != nil {
+				return err
+			}
+			goScriptOverrideDirs := existingSourceDirs(srcPath, "gs")
+			mainPackagePath, err := gocompiler.GoListImportPath(ctx, entrypointBuildDir, goScriptBuildFlags, goScriptEnv...)
+			if err != nil {
+				return err
+			}
+			goScriptOutputPath := filepath.Join(workingPath, "dist-goscript")
+			if err := gocompiler.ExecGoScriptCompile(ctx, le, gocompiler.GoScriptCompileOptions{
+				WorkDir:                   entrypointBuildDir,
+				OutputPath:                goScriptOutputPath,
+				Packages:                  []string{"."},
+				BuildFlags:                goScriptBuildFlags,
+				Env:                       goScriptEnv,
+				OverrideDirs:              goScriptOverrideDirs,
+				AllDependencies:           true,
+				ProtobufTypeScriptBinding: true,
+			}); err != nil {
+				return err
+			}
+			_, err = web_runtime_goscript_build.BuildWebGoScriptRuntimeScript(
+				ctx,
+				le,
+				distSrcPath,
+				entrypointBuildDir,
+				goScriptOutputPath,
+				filepath.Join(outEntryDir, runtimeWorkerName),
+				mainPackagePath,
+				jsMinify,
+				jsSourcemaps,
+			)
+			if err != nil {
+				return err
+			}
+		} else {
+			outWasmRelPath := "./runtime.wasm"
+			if enableCompression {
+				outWasmRelPath += ".gz"
+			}
+
+			le.Info("building web wasm entrypoint script")
+			err = browser_build.BuildWasmRuntimeEntrypoint(
+				ctx,
+				le,
+				distSrcPath,
+				outEntryDir,
+				jsMinify,
+				jsSourcemaps,
+				enableTinygo,
+				outWasmRelPath,
+			)
+			if err != nil {
+				return err
+			}
+
+			// store the wasm file where the entrypoint expects.
+			outBinPath = filepath.Join(outEntryDir, "runtime.wasm")
+			wasmManifestPath = "entrypoint/" + entrypointHash + "/runtime.wasm"
+			if enableCompression {
+				wasmManifestPath += ".gz"
+			}
+		}
 
 		// write manifest.json for the prerender build script
-		wasmManifestPath := "entrypoint/" + entrypointHash + "/runtime.wasm"
-		if enableCompression {
-			wasmManifestPath += ".gz"
-		}
 		manifest := &entrypoint_browser_bundle.BuildManifest{
 			Entrypoint:    bundleResult.EntrypointPath,
 			ServiceWorker: bundleResult.ServiceWorkerFilename,
@@ -443,17 +502,17 @@ func BuildDistBundle(
 		// otherwise we go:embed it
 		embedAssetsFS = append(embedAssetsFS, embeddedVolumeFilename)
 		outBinPath = filepath.Join(outputPath, outBinName)
+		if err := writeDistEntrypoint(true); err != nil {
+			return err
+		}
 	}
 
-	// Format and write the main.go file.
-	le.Debug("compiling dist entrypoint")
-	entrypointSrc := FormatDistEntrypoint(meta, embedAssetsFS, cliImports, !isWebPlatform)
-	entrypointMainPath := filepath.Join(entrypointBuildDir, "main.go")
-	if err := os.WriteFile(entrypointMainPath, []byte(entrypointSrc), 0o644); err != nil {
-		return err
+	if isWebPlatform && useGoScript {
+		return nil
 	}
 
 	// compile runtime.wasm or the native entrypoint
+	le.Debug("compiling dist entrypoint")
 	err = gocompiler.ExecBuildEntrypoint(
 		ctx,
 		le,
@@ -502,7 +561,28 @@ func resolveDistGoCompiler(
 		return "", err
 	}
 	if goCompiler.IsGoScript() {
-		return "", errGoScriptDistUnsupported
+		return goCompiler, nil
 	}
 	return goCompiler, nil
+}
+
+func newDistGoScriptBuildFlags(buildType bldr_manifest.BuildType, enableCgo bool) []string {
+	buildTags := gocompiler.NewBuildTags(buildType, enableCgo)
+	buildTags = append(buildTags, gocompiler.GoScriptBuildTag)
+	return []string{"-tags=" + strings.Join(buildTags, ",")}
+}
+
+func newDistGoScriptEnv(platform bldr_platform.Platform) ([]string, error) {
+	return bldr_platform_go.PlatformToGoEnv(platform)
+}
+
+func existingSourceDirs(root string, names ...string) []string {
+	var dirs []string
+	for _, name := range names {
+		path := filepath.Join(root, name)
+		if info, err := os.Stat(path); err == nil && info.IsDir() {
+			dirs = append(dirs, path)
+		}
+	}
+	return dirs
 }

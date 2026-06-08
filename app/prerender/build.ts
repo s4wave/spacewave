@@ -60,7 +60,7 @@ interface BldrManifest {
   entrypoint: string
   serviceWorker: string
   sharedWorker: string
-  wasm: string
+  wasm?: string
   css: string[]
 }
 
@@ -245,7 +245,9 @@ export function buildPrerenderContext(
     readFileSync(manifestPath, 'utf-8'),
   )
   const manifest = parsedManifest as BldrManifest
-  log(`Read manifest: entrypoint=${manifest.entrypoint}, wasm=${manifest.wasm}`)
+  log(
+    `Read manifest: entrypoint=${manifest.entrypoint}, wasm=${manifest.wasm ?? ''}`,
+  )
 
   // Extract importmap from bldr dist index.html.
   const distIndexPath = join(DIST_DIR, 'index.html')

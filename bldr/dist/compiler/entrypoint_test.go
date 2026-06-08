@@ -1,11 +1,12 @@
 package bldr_dist_compiler
 
 import (
-	"errors"
+	"slices"
 	"strings"
 	"testing"
 
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
@@ -65,11 +66,34 @@ func TestResolveDistGoCompiler(t *testing.T) {
 		t.Fatalf("goCompiler = %s, want %s", goCompiler, gocompiler.GoCompilerTinyGo)
 	}
 
-	_, err = resolveDistGoCompiler(platform, plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT)
-	if err == nil {
-		t.Fatal("expected GoScript dist compiler error")
+	goCompiler, err = resolveDistGoCompiler(platform, plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if !errors.Is(err, errGoScriptDistUnsupported) {
-		t.Fatalf("error = %v, want %v", err, errGoScriptDistUnsupported)
+	if goCompiler != gocompiler.GoCompilerGoScript {
+		t.Fatalf("goCompiler = %s, want %s", goCompiler, gocompiler.GoCompilerGoScript)
+	}
+}
+
+func TestNewDistGoScriptBuildFlagsAddsGoScriptTag(t *testing.T) {
+	flags := strings.Join(newDistGoScriptBuildFlags(bldr_manifest.BuildType_RELEASE, false), " ")
+	if !strings.Contains(flags, "goscript") {
+		t.Fatalf("flags = %q, want goscript tag", flags)
+	}
+}
+
+func TestNewDistGoScriptEnvUsesWebPlatform(t *testing.T) {
+	platform, err := bldr_platform.ParsePlatform("web/js/wasm")
+	if err != nil {
+		t.Fatal(err)
+	}
+	env, err := newDistGoScriptEnv(platform)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"GOOS=js", "GOARCH=wasm"} {
+		if !slices.Contains(env, want) {
+			t.Fatalf("env = %v, want %s", env, want)
+		}
 	}
 }

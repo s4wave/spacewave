@@ -170,6 +170,14 @@ function buildMalformedFetchEvent(url: string): FetchEvent {
   } as FetchEvent
 }
 
+function requireShellWasm(release: BrowserReleaseDescriptor): string {
+  const { wasm } = release.shellAssets
+  if (!wasm) {
+    throw new Error('test release missing wasm shell asset')
+  }
+  return wasm
+}
+
 describe('service worker browser release requests', () => {
   beforeEach(() => {
     resetServiceWorkerTestState()
@@ -329,6 +337,7 @@ describe('service worker fetch release cache routing', () => {
 
   it('serves promoted generation assets from the generation cache', async () => {
     const release = buildRelease('gen-a')
+    const wasm = requireShellWasm(release)
     const caches = globalThis.caches as unknown as FakeCacheStorage
     await writeBrowserReleaseState(caches, {
       ...createEmptyBrowserReleaseState(),
@@ -337,14 +346,12 @@ describe('service worker fetch release cache routing', () => {
     await writeGenerationCacheResponse(
       caches,
       release.generationId,
-      release.shellAssets.wasm,
+      wasm,
       new Response('cached wasm', { status: 200 }),
     )
     vi.mocked(fetch).mockResolvedValue(new Response('network', { status: 200 }))
 
-    const response = await swFetch(
-      buildFetchOnlyEvent(release.shellAssets.wasm),
-    )
+    const response = await swFetch(buildFetchOnlyEvent(wasm))
 
     expect(await response.text()).toBe('cached wasm')
     expect(fetch).not.toHaveBeenCalled()
@@ -369,6 +376,7 @@ describe('service worker fetch release cache routing', () => {
 
   it('uses native fetch on promoted generation cache miss', async () => {
     const release = buildRelease('gen-a')
+    const wasm = requireShellWasm(release)
     await writeBrowserReleaseState(
       globalThis.caches as unknown as FakeCacheStorage,
       {
@@ -378,9 +386,7 @@ describe('service worker fetch release cache routing', () => {
     )
     vi.mocked(fetch).mockResolvedValue(new Response('network', { status: 200 }))
 
-    const response = await swFetch(
-      buildFetchOnlyEvent(release.shellAssets.wasm),
-    )
+    const response = await swFetch(buildFetchOnlyEvent(wasm))
 
     expect(await response.text()).toBe('network')
     expect(fetch).toHaveBeenCalledTimes(1)

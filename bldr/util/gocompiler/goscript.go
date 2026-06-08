@@ -27,13 +27,14 @@ type GoScriptCompileOptions struct {
 	OutputPath                string
 	Packages                  []string
 	BuildFlags                []string
+	Env                       []string
 	OverrideDirs              []string
 	AllDependencies           bool
 	ProtobufTypeScriptBinding bool
 }
 
 // GoListImportPath returns the import path for the package in workDir under the given build flags.
-func GoListImportPath(ctx context.Context, workDir string, buildFlags []string) (string, error) {
+func GoListImportPath(ctx context.Context, workDir string, buildFlags []string, env ...string) (string, error) {
 	args := []string{"list"}
 	for _, flag := range buildFlags {
 		flag = strings.TrimSpace(flag)
@@ -45,6 +46,7 @@ func GoListImportPath(ctx context.Context, workDir string, buildFlags []string) 
 	args = append(args, "-f", "{{.ImportPath}}", ".")
 	cmd := exec.CommandContext(ctx, "go", args...)
 	cmd.Env = append(os.Environ(), GetDefaultEnv()...)
+	cmd.Env = append(cmd.Env, env...)
 	cmd.Dir = workDir
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -71,6 +73,11 @@ func ExecGoScriptCompile(ctx context.Context, le *logrus.Entry, opts GoScriptCom
 	}
 	if len(opts.Packages) == 0 {
 		return errors.New("goscript packages cannot be empty")
+	}
+	for _, env := range opts.Env {
+		if strings.TrimSpace(env) == "" {
+			return errors.New("goscript env cannot be empty")
+		}
 	}
 
 	args := []string{
@@ -108,6 +115,7 @@ func ExecGoScriptCompile(ctx context.Context, le *logrus.Entry, opts GoScriptCom
 
 	ecmd := newGoScriptCmd(ctx, args...)
 	ecmd.Dir = opts.WorkDir
+	ecmd.Env = append(ecmd.Env, opts.Env...)
 
 	timeStart := time.Now()
 	if err := ExecGoCompiler(le, ecmd); err != nil {

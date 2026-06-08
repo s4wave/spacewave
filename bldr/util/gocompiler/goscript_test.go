@@ -57,6 +57,65 @@ func TestExecGoScriptCompilePreservesBuildFlags(t *testing.T) {
 	}
 }
 
+func TestExecGoScriptCompilePreservesEnv(t *testing.T) {
+	dir := t.TempDir()
+	bin := filepath.Join(dir, "goscript")
+	logPath := filepath.Join(dir, "env.txt")
+	script := strings.Join([]string{
+		"#!/bin/sh",
+		"printf 'GOOS=%s\\nGOARCH=%s\\n' \"$GOOS\" \"$GOARCH\" > \"$GOSCRIPT_ENV_LOG\"",
+		"exit 0",
+		"",
+	}, "\n")
+	if err := os.WriteFile(bin, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv(GoScriptCommandEnv, bin)
+	t.Setenv("GOSCRIPT_ENV_LOG", logPath)
+
+	err := ExecGoScriptCompile(context.Background(), logrus.NewEntry(logrus.New()), GoScriptCompileOptions{
+		WorkDir:    dir,
+		OutputPath: filepath.Join(dir, "out"),
+		Packages:   []string{"."},
+		Env:        []string{"GOOS=js", "GOARCH=wasm"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := string(data), "GOOS=js\nGOARCH=wasm\n"; got != want {
+		t.Fatalf("env log = %q, want %q", got, want)
+	}
+}
+
+func TestGoListImportPathPreservesEnv(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/goscriptenv\n\ngo 1.24\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	src := strings.Join([]string{
+		"//go:build js && wasm",
+		"",
+		"package goscriptenv",
+		"",
+	}, "\n")
+	if err := os.WriteFile(filepath.Join(dir, "browser.go"), []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	importPath, err := GoListImportPath(context.Background(), dir, nil, "GOOS=js", "GOARCH=wasm")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if importPath != "example.com/goscriptenv" {
+		t.Fatalf("import path = %q, want example.com/goscriptenv", importPath)
+	}
+}
+
 func TestNewGoScriptCmdDefaultsToPinnedModule(t *testing.T) {
 	t.Setenv(GoScriptCommandEnv, "")
 

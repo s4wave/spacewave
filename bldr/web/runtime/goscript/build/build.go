@@ -91,6 +91,42 @@ func BuildWebGoScriptPluginScript(
 	return runRolldownGoScriptBundle(ctx, le, bldrDistRoot, workDir, goScriptOutputRoot, entrypointPath, outPath, minify, sourcemaps)
 }
 
+// BuildWebGoScriptRuntimeScript builds the browser shell runtime entrypoint.
+func BuildWebGoScriptRuntimeScript(
+	ctx context.Context,
+	le *logrus.Entry,
+	bldrDistRoot,
+	workDir,
+	goScriptOutputRoot,
+	outPath,
+	mainPackagePath string,
+	minify,
+	sourcemaps bool,
+) ([]string, error) {
+	if strings.TrimSpace(mainPackagePath) == "" {
+		return nil, errors.New("runtime-goscript: main package path cannot be empty")
+	}
+	if err := os.MkdirAll(workDir, 0o755); err != nil {
+		return nil, errors.Wrap(err, "create goscript runtime work dir")
+	}
+
+	runtimeJsDir := filepath.Join(bldrDistRoot, "web/entrypoint/browser")
+	entrypointPath := filepath.Join(workDir, "runtime-goscript-entrypoint.ts")
+	runtimeImport, err := relativeImportPath(workDir, filepath.Join(runtimeJsDir, "runtime-goscript.ts"))
+	if err != nil {
+		return nil, err
+	}
+	mainImport := "@goscript/" + strings.Trim(mainPackagePath, "/") + "/main.gs.js"
+	entrypoint := "import runGoScriptRuntime from " + strconv.Quote(runtimeImport) + "\n" +
+		"import { main as distMain } from " + strconv.Quote(mainImport) + "\n\n" +
+		"runGoScriptRuntime(distMain)\n"
+	if err := os.WriteFile(entrypointPath, []byte(entrypoint), 0o644); err != nil {
+		return nil, errors.Wrap(err, "write goscript runtime entrypoint")
+	}
+
+	return runRolldownGoScriptBundle(ctx, le, bldrDistRoot, workDir, goScriptOutputRoot, entrypointPath, outPath, minify, sourcemaps)
+}
+
 func runRolldownGoScriptBundle(
 	ctx context.Context,
 	le *logrus.Entry,

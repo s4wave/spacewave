@@ -235,6 +235,9 @@ func TestWriteBuildManifestIncludesServiceWorker(t *testing.T) {
 	if got := string(v.GetStringBytes("entrypoint")); got != manifest.Entrypoint {
 		t.Fatalf("unexpected entrypoint: %q", got)
 	}
+	if got := string(v.GetStringBytes("wasm")); got != manifest.Wasm {
+		t.Fatalf("unexpected wasm: %q", got)
+	}
 
 	data, err = os.ReadFile(filepath.Join(dir, "browser-release.json"))
 	if err != nil {
@@ -252,6 +255,48 @@ func TestWriteBuildManifestIncludesServiceWorker(t *testing.T) {
 	}
 	if got := string(v.GetStringBytes("shellAssets", "entrypoint")); got != manifest.Entrypoint {
 		t.Fatalf("unexpected release entrypoint: %q", got)
+	}
+	if got := string(v.GetStringBytes("shellAssets", "wasm")); got != manifest.Wasm {
+		t.Fatalf("unexpected release wasm: %q", got)
+	}
+}
+
+func TestWriteBuildManifestOmitsOptionalWasm(t *testing.T) {
+	dir := t.TempDir()
+	manifest := &BuildManifest{
+		Entrypoint:    "entrypoint/abc123/entrypoint.mjs",
+		ServiceWorker: "sw-deadbeef.mjs",
+		SharedWorker:  "shw-beadfeed.mjs",
+		CSS:           []string{"static/app.css"},
+	}
+	if err := WriteBuildManifest(dir, manifest); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(dir, "manifest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var p fastjson.Parser
+	v, err := p.ParseBytes(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := v.Get("wasm"); got != nil {
+		t.Fatalf("unexpected manifest wasm: %s", got)
+	}
+
+	data, err = os.ReadFile(filepath.Join(dir, "browser-release.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	v, err = p.ParseBytes(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := v.Get("shellAssets", "wasm"); got != nil {
+		t.Fatalf("unexpected release wasm: %s", got)
 	}
 }
 

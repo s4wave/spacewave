@@ -52,4 +52,17 @@ describe('buildBrowserReleaseDescriptor', () => {
     expect(a.prerenderedRoutes).toEqual(b.prerenderedRoutes)
     expect(a.requiredStaticAssets).toEqual(b.requiredStaticAssets)
   })
+
+  it('accepts shell assets without a wasm path', () => {
+    const shellAssets = {
+      entrypoint: 'entrypoint/abc123/entrypoint.mjs',
+      serviceWorker: 'sw-deadbeef.mjs',
+      sharedWorker: 'shw-def456.mjs',
+      css: ['/static/app.css'],
+    }
+
+    const descriptor = buildBrowserReleaseDescriptor(shellAssets, ['/'], [])
+
+    expect(descriptor.shellAssets).toEqual(shellAssets)
+  })
 })

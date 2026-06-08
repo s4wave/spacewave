@@ -6,7 +6,7 @@ export interface BrowserReleaseShellAssets {
   entrypoint: string
   serviceWorker: string
   sharedWorker: string
-  wasm: string
+  wasm?: string
   css: string[]
 }
 
