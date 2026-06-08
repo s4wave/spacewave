@@ -107,9 +107,6 @@ func (m *BrowserShellMetadata) Validate() error {
 	if strings.TrimSpace(m.GetSharedWorkerPath()) == "" {
 		return errors.New("missing shared worker path")
 	}
-	if strings.TrimSpace(m.GetWasmPath()) == "" {
-		return errors.New("missing wasm path")
-	}
 	if len(m.GetAssets()) == 0 {
 		return errors.New("no browser assets")
 	}

@@ -49,7 +49,7 @@ message BrowserShellMetadata {
   string service_worker_path = 4;
   // SharedWorkerPath is the shared worker path.
   string shared_worker_path = 5;
-  // WasmPath is the Go runtime WASM path.
+  // WasmPath is the optional native Go runtime WASM path.
   string wasm_path = 6;
   // Assets is the set of shell assets.
   repeated BrowserAsset assets = 7;

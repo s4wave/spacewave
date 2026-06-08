@@ -174,6 +174,7 @@ func TestReleaseMetadataValidation(t *testing.T) {
 		{name: "channel refs", err: testChannelDirectory(ref).ValidateReleaseMetadataRefs(func(*block.BlockRef) bool { return true })},
 		{name: "release metadata", err: testReleaseMetadata(ref).Validate()},
 		{name: "browser shell metadata", err: testBrowserShellMetadata(ref).Validate()},
+		{name: "browser shell metadata without wasm", err: testBrowserShellMetadataWithoutWasm(ref).Validate()},
 		{name: "browser asset", err: testBrowserAsset(ref).Validate()},
 		{name: "browser asset without content ref", err: testBrowserAsset(nil).Validate()},
 		{name: "browser asset with empty content ref", err: testBrowserAsset(&block.BlockRef{}).Validate()},
@@ -231,6 +232,12 @@ func testBrowserShellMetadata(ref *block.BlockRef) *BrowserShellMetadata {
 		WasmPath:          "/b/entrypoint/spacewave.wasm",
 		Assets:            []*BrowserAsset{testBrowserAsset(ref)},
 	}
+}
+
+func testBrowserShellMetadataWithoutWasm(ref *block.BlockRef) *BrowserShellMetadata {
+	msg := testBrowserShellMetadata(ref)
+	msg.WasmPath = ""
+	return msg
 }
 
 func testBrowserAsset(ref *block.BlockRef) *BrowserAsset {
