@@ -1,10 +1,14 @@
 package bldr_dist_compiler
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
+	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
+	plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
+	"github.com/s4wave/spacewave/bldr/util/gocompiler"
 )
 
 func TestFormatDistEntrypointNativeCLI(t *testing.T) {
@@ -44,5 +48,28 @@ func TestFormatDistEntrypointWeb(t *testing.T) {
 	}
 	if !strings.Contains(src, `dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS)`) {
 		t.Fatalf("expected web main call without cliCommands, got:\n%s", src)
+	}
+}
+
+func TestResolveDistGoCompiler(t *testing.T) {
+	platform, err := bldr_platform.ParsePlatform("web/js/wasm")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	goCompiler, err := resolveDistGoCompiler(platform, plugin_compiler_go.GoCompiler_GO_COMPILER_TINYGO)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if goCompiler != gocompiler.GoCompilerTinyGo {
+		t.Fatalf("goCompiler = %s, want %s", goCompiler, gocompiler.GoCompilerTinyGo)
+	}
+
+	_, err = resolveDistGoCompiler(platform, plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT)
+	if err == nil {
+		t.Fatal("expected GoScript dist compiler error")
+	}
+	if !errors.Is(err, errGoScriptDistUnsupported) {
+		t.Fatalf("error = %v, want %v", err, errGoScriptDistUnsupported)
 	}
 }

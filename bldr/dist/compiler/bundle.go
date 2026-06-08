@@ -5,6 +5,7 @@ package bldr_dist_compiler
 import (
 	"context"
 	"encoding/base32"
+	stderrors "errors"
 	"hash"
 	"io"
 	"os"
@@ -48,6 +49,8 @@ import (
 	"github.com/zeebo/blake3"
 )
 
+var errGoScriptDistUnsupported = stderrors.New("goscript Go compiler is not yet supported for the dist browser shell runtime")
+
 // BuildDistBundle builds the distribution bundle for an application.
 //
 // initEmbeddedWorld should initialize the embedded manifest world.
@@ -80,20 +83,9 @@ func BuildDistBundle(
 	enableCgo := enableCgoOpt.IsEnabled(false)
 	// enable compression for release mode only on default
 	enableCompression := enableCompressionOpt.IsEnabled(isRelease)
-	resolvedGoCompilerOpt, err := goCompilerOpt.GoCompiler()
+	goCompiler, err := resolveDistGoCompiler(buildPlatform, goCompilerOpt)
 	if err != nil {
 		return err
-	}
-	goCompiler, err := gocompiler.ResolveGoCompiler(
-		buildPlatform,
-		resolvedGoCompilerOpt,
-		false,
-	)
-	if err != nil {
-		return err
-	}
-	if goCompiler.IsGoScript() {
-		return errors.New("goscript Go compiler is not yet supported for the dist browser shell runtime")
 	}
 	enableTinygo := goCompiler.IsTinyGo()
 
@@ -491,4 +483,26 @@ func BuildDistBundle(
 	}
 
 	return nil
+}
+
+func resolveDistGoCompiler(
+	buildPlatform bldr_platform.Platform,
+	goCompilerOpt plugin_compiler_go.GoCompiler,
+) (gocompiler.GoCompiler, error) {
+	resolvedGoCompilerOpt, err := goCompilerOpt.GoCompiler()
+	if err != nil {
+		return "", err
+	}
+	goCompiler, err := gocompiler.ResolveGoCompiler(
+		buildPlatform,
+		resolvedGoCompilerOpt,
+		false,
+	)
+	if err != nil {
+		return "", err
+	}
+	if goCompiler.IsGoScript() {
+		return "", errGoScriptDistUnsupported
+	}
+	return goCompiler, nil
 }
