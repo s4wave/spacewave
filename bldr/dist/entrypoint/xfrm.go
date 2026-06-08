@@ -8,7 +8,6 @@ import (
 	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
 	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
 	"github.com/s4wave/spacewave/db/util/blockenc"
-	"github.com/zeebo/blake3"
 )
 
 var (
@@ -34,7 +33,7 @@ func getBldrMagic() []byte {
 func buildStorageTransformConf(projectID string) []config.Config {
 	var key [32]byte
 	material := bytes.Join([][]byte{getBldrMagic(), xor([]byte(projectID))}, []byte("--- COMBUSTIBLE LEMON ---"))
-	blake3.DeriveKey("bldr dist entrypoint Tue Apr 11 01:33:30 PM PDT 2023", material, key[:])
+	blockenc.DeriveKeySHA256("bldr dist entrypoint 2026-06-08 sha256 v1", material, key[:])
 	return []config.Config{
 		&transform_chksum.Config{},
 		&transform_s2.Config{},

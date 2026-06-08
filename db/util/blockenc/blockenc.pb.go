@@ -31,7 +31,7 @@ const (
 	BlockEnc_BlockEnc_SECRET_BOX BlockEnc = 3
 	// BlockEnc_AES_256_GCM uses AES-256-GCM encryption.
 	// Key size of 32 bytes.
-	// Derives the nonce with blake3 key derivation.
+	// Derives the nonce with SHA256.
 	// Stores the nonce in the first 12 bytes of the ciphertext.
 	BlockEnc_BlockEnc_AES_256_GCM BlockEnc = 4
 )

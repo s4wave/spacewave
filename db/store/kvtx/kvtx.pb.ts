@@ -19,7 +19,7 @@ export const protobufPackage = 'store.kvtx'
 export interface Config {
   /**
    * HashType is the hash type to use for block refs.
-   * If unset (0 value) will use default for Hydra (BLAKE3).
+   * If unset (0 value) will use the Spacewave default (SHA256).
    *
    * @generated from field: hash.HashType hash_type = 2;
    */

@@ -3,6 +3,7 @@ package sobject
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"slices"
 	"time"
 
@@ -12,13 +13,12 @@ import (
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
-	"github.com/zeebo/blake3"
 )
 
 // CreateSOInviteOp creates an invite on the shared object and returns the
 // signed SOInviteMessage for out-of-band distribution.
 //
-// Generates a random 32-byte token, BLAKE3 hashes it for on-chain storage,
+// Generates a random 32-byte token, SHA256 hashes it for on-chain storage,
 // builds and signs the SOInviteMessage, then stores the invite metadata in
 // SOState.invites via a signed config chain entry.
 func BuildSOInviteMessage(
@@ -90,7 +90,7 @@ func buildSOInviteMessage(
 		return nil, nil, errors.Wrap(err, "generate invite token")
 	}
 
-	tokenHashArr := blake3.Sum256(token)
+	tokenHashArr := sha256.Sum256(token)
 	tokenHash := tokenHashArr[:]
 
 	msg := &SOInviteMessage{
@@ -135,7 +135,7 @@ func buildSOInviteMessage(
 // CreateSOInviteOp creates an invite on the shared object and returns the
 // signed SOInviteMessage for out-of-band distribution.
 //
-// Generates a random 32-byte token, BLAKE3 hashes it for on-chain storage,
+// Generates a random 32-byte token, SHA256 hashes it for on-chain storage,
 // builds and signs the SOInviteMessage, then stores the invite metadata in
 // SOState.invites via a signed config chain entry.
 func (s *SOHost) CreateSOInviteOp(

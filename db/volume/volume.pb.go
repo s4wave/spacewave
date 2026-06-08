@@ -31,7 +31,7 @@ type VolumeInfo struct {
 	// Note: may be empty.
 	ControllerInfo *controller.Info `protobuf:"bytes,4,opt,name=controller_info,json=controllerInfo,proto3" json:"controllerInfo,omitempty"`
 	// HashType is the default block hash type to use for blocks.
-	// If unset (0 value) will use default for Hydra (BLAKE3).
+	// If unset (0 value) will use the Spacewave default (SHA256).
 	HashType hash.HashType `protobuf:"varint,5,opt,name=hash_type,json=hashType,proto3" json:"hashType,omitempty"`
 }
 
@@ -221,8 +221,10 @@ func (m *VolumeBucketInfo) CloneVT() *VolumeBucketInfo {
 		return (*VolumeBucketInfo)(nil)
 	}
 	r := new(VolumeBucketInfo)
-	r.BucketInfo = m.BucketInfo.CloneVT()
 	r.VolumeInfo = m.VolumeInfo.CloneVT()
+	if rhs := m.BucketInfo; rhs != nil {
+		r.BucketInfo = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

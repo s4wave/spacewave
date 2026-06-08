@@ -6,7 +6,7 @@ import "github.com/s4wave/spacewave/net/hash/hash.proto";
 // Config is the configuration for the kvtx store.
 message Config {
   // HashType is the hash type to use for block refs.
-  // If unset (0 value) will use default for Hydra (BLAKE3).
+  // If unset (0 value) will use the Spacewave default (SHA256).
   .hash.HashType hash_type = 2;
   // DisableHashGet disables hashing values for Get requests.
   // This improves performance if the underlying store is trusted & consistent.

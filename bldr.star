@@ -52,8 +52,8 @@ PRODUCTION_RELEASE_CONFIG_URL = "https://spacewave.app/api/release/config"
 
 # Signed by a checked-in test-only peer ID. The private key is not needed at
 # runtime; this packed DistConfig only seeds the release-WASM e2e fixture.
-E2E_RELEASE_WASM_INIT_DIST_CONFIG = "QnF9fgszS28jFAMjKER3ciABGzwDZkg7BRMvIixUcVEWdSA5EXc8Yi8SfgQsamlyJXIWHy1nEkRcQlQISZbVKR4BNZYv-UzPrdwbTabvlAEk2wWd9WE4-IHcGqhqXSaKWF6lXUUQjlrPKQR-xmsBQCI5ypSqcorbixh5QlUx33-kteLxWSSPBEI1a61XSXzSjK4pORWs5oYDFLzJw0Qd8qFPYHRgOveAs1Xs9-Cr9CnWCLmiqXtF"
-E2E_RELEASE_WASM_DIST_PEER_ID = "12D3KooWMkaFstnFSvNbN9MVcncTqQZ6nqXu8daU6Nanopm7ZSbg"
+E2E_RELEASE_WASM_INIT_DIST_CONFIG = "QnF9fgszS28jFAQYB2t0Nx0lOx8KM1VoPCAjKShHamY9cXwMfVVQbjskPBo7R3FIMg0pPws1EkRcQlQImHAm4evJX816W1ZueiWpxzExZyZWv1gerVT0-gbD34GuNied4VzXsHGfTa6sG61t8q9C0PgfEylbZYCUALSnTFVsClHn7sqR2OZPikT405ESAbYmf7rjOJ8kw5554IZXVFPXU83lSBXRaZI9DgLim3kd90GNr2qcznKz-FKKOxfcHf-kjy-pUnR7qBQ0ZF4sCZ2zJUqe6BJL-EZIGczDuXKnli5WfY8V32P9jF2D--5UwB2ZNPU"
+E2E_RELEASE_WASM_DIST_PEER_ID = "12D3KooWJPNip1SbsUG7SjteoegGjfq22D4WThuctPvCwJzHesD5"
 
 # Core configSet shared between Go plugin and CLI manifests.
 def core_config_set(listener_path="git:.spacewave/spacewave.sock", include_export=True):

@@ -12,8 +12,6 @@ import (
 )
 
 const (
-	// LegacyDefaultHashType is the hash type used by persisted configs that predate explicit hash selection.
-	LegacyDefaultHashType = hash.HashType_HashType_BLAKE3
 	// DefaultHashType is the hash type for new refs when callers do not choose one.
 	DefaultHashType = hash.HashType_HashType_SHA256
 )

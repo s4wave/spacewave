@@ -3,6 +3,7 @@ package provider_spacewave
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"time"
 
 	"github.com/aperturerobotics/util/keyed"
@@ -12,7 +13,6 @@ import (
 	sobject_invite "github.com/s4wave/spacewave/core/sobject/invite"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
-	"github.com/zeebo/blake3"
 )
 
 type mailboxAutoProcessKey struct {
@@ -391,7 +391,7 @@ func validateTargetedMailboxProof(
 	if inviteMsg.GetRole() != invite.GetRole() {
 		return errors.New("targeted invitation payload role mismatch")
 	}
-	tokenHash := blake3.Sum256(inviteMsg.GetToken())
+	tokenHash := sha256.Sum256(inviteMsg.GetToken())
 	if !bytes.Equal(tokenHash[:], invite.GetTokenHash()) {
 		return errors.New("targeted invitation payload token mismatch")
 	}

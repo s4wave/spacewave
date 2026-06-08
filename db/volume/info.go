@@ -35,15 +35,15 @@ func NewVolumeInfo(ctx context.Context, ci *controller.Info, vol Volume) (*Volum
 	}, nil
 }
 
-// ResolveHashType resolves persisted volume hash defaults.
+// ResolveHashType resolves the volume hash choice.
 func ResolveHashType(hashType hash.HashType) hash.HashType {
 	if hashType != 0 {
 		return hashType
 	}
-	return block.LegacyDefaultHashType
+	return block.DefaultHashType
 }
 
-// ResolveHashType resolves persisted volume hash defaults.
+// ResolveHashType resolves the volume info hash choice.
 func (i *VolumeInfo) ResolveHashType() hash.HashType {
 	return ResolveHashType(i.GetHashType())
 }

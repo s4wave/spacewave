@@ -7,11 +7,11 @@ import (
 	"github.com/klauspost/compress/s2"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/util/packedmsg"
+	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
-	"github.com/zeebo/blake3"
 	"golang.org/x/crypto/chacha20poly1305"
 )
 
@@ -137,17 +137,9 @@ func EncodeSignedDistConfig(peerPriv crypto.PrivKey, distConf *DistConfig) ([]by
 func deriveDistConfigKey(senderPeerID string, signatureHashType hash.HashType, projectID string) (encKey []byte, nonce []byte, err error) {
 	var out [chacha20poly1305.KeySize]byte
 	material := []byte(strings.Join([]string{senderPeerID, signatureHashType.String(), projectID}, "---COMBUSTIBLE LEMON---"))
-	blake3.DeriveKey(
-		"bldr/app/dist-config 2024-05-21T07:07:33.279912Z",
-		material,
-		out[:],
-	)
+	blockenc.DeriveKeySHA256("bldr/app/dist-config key 2026-06-08 sha256 v1", material, out[:])
 	var nonceOut [chacha20poly1305.NonceSizeX]byte
-	blake3.DeriveKey(
-		"bldr/app/dist-config 2024-05-21T07:07:51.952028Z",
-		material,
-		nonceOut[:],
-	)
+	blockenc.DeriveKeySHA256("bldr/app/dist-config nonce 2026-06-08 sha256 v1", material, nonceOut[:])
 	scrub.Scrub(material[:])
 	return out[:], nonceOut[:], nil
 }

@@ -9,10 +9,10 @@ import (
 	"github.com/aperturerobotics/util/scrub"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
-	"github.com/zeebo/blake3"
 )
 
 // baseCryptoContext is the base string for the crypto context.
@@ -49,7 +49,7 @@ func BuildSOOperationSignatureContext(sharedObjectID string, peerID string, nonc
 func hashNonce(sb *strings.Builder, nonce uint64) {
 	opNonceBytes := binary.LittleEndian.AppendUint64(nil, nonce)
 	key := make([]byte, 32)
-	blake3.DeriveKey(sb.String(), opNonceBytes, key)
+	blockenc.DeriveKeySHA256(sb.String(), opNonceBytes, key)
 	sb.WriteString(" op-nonce ")
 	sb.WriteString(b58.Encode(key))
 	scrub.Scrub(key)

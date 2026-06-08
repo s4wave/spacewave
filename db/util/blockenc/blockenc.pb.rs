@@ -21,7 +21,7 @@ pub enum BlockEnc {
     SecretBox = 3,
     /// BlockEnc_AES_256_GCM uses AES-256-GCM encryption.
     /// Key size of 32 bytes.
-    /// Derives the nonce with blake3 key derivation.
+    /// Derives the nonce with SHA256.
     /// Stores the nonce in the first 12 bytes of the ciphertext.
     Aes256Gcm = 4,
 }

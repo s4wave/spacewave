@@ -3,6 +3,7 @@ package blockenc
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/hex"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -55,5 +56,13 @@ func TestDefaultBlockEncIsAES256GCM(t *testing.T) {
 	}
 	if err := ValidateKeySize(DefaultBlockEnc, 32); err != nil {
 		t.Fatalf("ValidateKeySize(DefaultBlockEnc): %v", err)
+	}
+}
+
+func TestDeriveNonceSHA256Fixture(t *testing.T) {
+	var nonce [12]byte
+	DeriveNonceSHA256([]byte("spacewave blockenc nonce fixture"), nonce[:])
+	if got, want := hex.EncodeToString(nonce[:]), "76f4a5c5138c6e104b372532"; got != want {
+		t.Fatalf("nonce = %s, want %s", got, want)
 	}
 }

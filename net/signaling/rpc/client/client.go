@@ -207,7 +207,7 @@ func (r *ClientPeerRef) GetRemotePeerID() peer.ID {
 func (r *ClientPeerRef) Send(ctx context.Context, msg []byte) (_ *signaling_rpc.SessionMsg, outErr error) {
 	tkr := r.tkr
 	seqno := tkr.txNonce.Add(1)
-	sessMsg, err := signaling_rpc.NewSessionMsg(r.c.privKey, hash.HashType_HashType_BLAKE3, msg, seqno)
+	sessMsg, err := signaling_rpc.NewSessionMsg(r.c.privKey, hash.RecommendedHashType, msg, seqno)
 	if err != nil {
 		return nil, err
 	}

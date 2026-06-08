@@ -23,7 +23,7 @@ type AcceptInviteRequest struct {
 	// JoinResponse is the signed join response from the invitee.
 	JoinResponse *sobject.SOJoinResponse `protobuf:"bytes,1,opt,name=join_response,json=joinResponse,proto3" json:"joinResponse,omitempty"`
 	// Token is the raw invite token.
-	// The owner BLAKE3 hashes it to verify against the on-chain token_hash.
+	// The owner SHA256 hashes it to verify against the on-chain token_hash.
 	// Only the owner sees the raw token on the authenticated stream.
 	// The cloud beacon/mailbox layer gates on token_hash (never sees raw token).
 	Token []byte `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`

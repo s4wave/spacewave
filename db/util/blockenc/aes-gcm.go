@@ -18,5 +18,5 @@ func NewAES256GCM(key []byte) (Method, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newAeadCipher(c), nil
+	return newAeadCipher(c, DeriveNonceSHA256), nil
 }

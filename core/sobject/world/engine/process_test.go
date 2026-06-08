@@ -1,6 +1,7 @@
 package sobject_world_engine
 
 import (
+	"bytes"
 	"context"
 	"testing"
 
@@ -262,6 +263,163 @@ func TestProcessOpDisabledMaintenanceAllowsOrdinaryApplyTx(t *testing.T) {
 	}
 	if res == nil || !res.GetSuccess() {
 		t.Fatalf("expected ordinary transaction success, got %#v", res)
+	}
+}
+
+func TestProcessOpCandidateRequiresSharedObjectRootUpdate(t *testing.T) {
+	ctx := context.Background()
+	sharedObjectID := "test-candidate-finalization"
+	priv, _, err := crypto.GenerateEd25519Key(nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	pid, err := peer.IDFromPrivateKey(priv)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	pub, err := pid.ExtractPublicKey()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	c, so, headState := newProcessTestWorld(t, ctx)
+	baseStateData, err := headState.MarshalVT()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	transformConf := newStateTestTransformConfig(t, &transform_s2.Config{})
+	grant, err := sobject.EncryptSOGrant(
+		priv,
+		pub,
+		sharedObjectID,
+		&sobject.SOGrantInner{TransformConf: transformConf},
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	sfs := block_transform.NewStepFactorySet()
+	sfs.AddStepFactory(transform_s2.NewStepFactory())
+	sfs.AddStepFactory(transform_blockenc.NewStepFactory())
+	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{
+		Logger: logrus.NewEntry(logrus.New()),
+	}, sfs, transformConf)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	rootInnerData, err := (&sobject.SORootInner{
+		Seqno:     1,
+		StateData: baseStateData,
+	}).MarshalVT()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	encodedStateData, err := xfrm.EncodeBlock(rootInnerData)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	state := &sobject.SOState{
+		Config: &sobject.SharedObjectConfig{
+			Participants: []*sobject.SOParticipantConfig{{
+				PeerId: pid.String(),
+				Role:   sobject.SOParticipantRole_SOParticipantRole_OWNER,
+			}},
+		},
+		Root: &sobject.SORoot{
+			Inner:      encodedStateData,
+			InnerSeqno: 1,
+		},
+		RootGrants: []*sobject.SOGrant{grant},
+	}
+	snap := sobject.NewSOStateParticipantHandle(
+		logrus.NewEntry(logrus.New()),
+		sfs,
+		sharedObjectID,
+		state,
+		priv,
+		pid,
+	)
+
+	objectTx, err := world_block_tx.NewTxCreateObject("candidate-object", headState.GetHeadRef())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	encodedOpData, err := xfrm.EncodeBlock(marshalApplyTxOpForProcessTest(t, objectTx))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	op, err := sobject.BuildSOOperation(
+		sharedObjectID,
+		priv,
+		encodedOpData,
+		1,
+		sobject.NewSOOperationLocalID(),
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := state.QueueOperation(sharedObjectID, op); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	nextRoot, rejectedOps, acceptedOps, err := snap.ProcessOperations(
+		ctx,
+		[]*sobject.SOOperation{op},
+		func(ctx context.Context, currentStateData []byte, ops []*sobject.SOOperationInner) (*[]byte, []*sobject.SOOperationResult, error) {
+			if len(ops) != 1 {
+				t.Fatalf("expected 1 op, got %d", len(ops))
+			}
+			currentHead := &InnerState{}
+			if err := currentHead.UnmarshalVT(currentStateData); err != nil {
+				t.Fatal(err.Error())
+			}
+			nextState, res, err := c.processOp(
+				ctx,
+				logrus.NewEntry(logrus.New()),
+				so,
+				ops[0].GetOpData(),
+				ops[0].GetLocalId(),
+				pid,
+				ops[0].GetNonce(),
+				0,
+				currentHead,
+			)
+			if err != nil {
+				return nil, nil, err
+			}
+			nextStateData, err := nextState.MarshalVT()
+			if err != nil {
+				return nil, nil, err
+			}
+			return &nextStateData, []*sobject.SOOperationResult{res}, nil
+		},
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(rejectedOps) != 0 {
+		t.Fatalf("expected no rejected ops, got %d", len(rejectedOps))
+	}
+	if len(acceptedOps) != 1 {
+		t.Fatalf("expected 1 accepted op, got %d", len(acceptedOps))
+	}
+	rootInner, err := snap.GetRootInner(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !bytes.Equal(rootInner.GetStateData(), baseStateData) {
+		t.Fatal("candidate processing must not update the SharedObject root before UpdateRootState")
+	}
+
+	if err := state.UpdateRootState(sharedObjectID, nextRoot, pid.String(), rejectedOps, acceptedOps); err != nil {
+		t.Fatal(err.Error())
+	}
+	rootInner, err = snap.GetRootInner(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if bytes.Equal(rootInner.GetStateData(), baseStateData) {
+		t.Fatal("SharedObject root state should change only after UpdateRootState accepts the candidate")
 	}
 }
 

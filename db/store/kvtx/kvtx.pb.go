@@ -20,7 +20,7 @@ import (
 type Config struct {
 	unknownFields []byte
 	// HashType is the hash type to use for block refs.
-	// If unset (0 value) will use default for Hydra (BLAKE3).
+	// If unset (0 value) will use the Spacewave default (SHA256).
 	HashType hash.HashType `protobuf:"varint,2,opt,name=hash_type,json=hashType,proto3" json:"hashType,omitempty"`
 	// DisableHashGet disables hashing values for Get requests.
 	// This improves performance if the underlying store is trusted & consistent.

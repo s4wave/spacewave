@@ -349,7 +349,7 @@ pub struct SoInvite {
     /// InviteId is the unique identifier for this invite.
     #[prost(string, tag="1")]
     pub invite_id: ::prost::alloc::string::String,
-    /// TokenHash is the BLAKE3 hash of the invite token.
+    /// TokenHash is the SHA256 hash of the invite token.
     /// The raw token is never stored on-chain.
     #[prost(bytes="vec", tag="2")]
     pub token_hash: ::prost::alloc::vec::Vec<u8>,
@@ -500,7 +500,7 @@ pub struct SoInviteMessage {
     /// ProviderId is the provider to use for signaling (not a raw URL).
     #[prost(string, tag="4")]
     pub provider_id: ::prost::alloc::string::String,
-    /// Token is the raw invite token. The BLAKE3 hash is stored on-chain.
+    /// Token is the raw invite token. The SHA256 hash is stored on-chain.
     #[prost(bytes="vec", tag="5")]
     pub token: ::prost::alloc::vec::Vec<u8>,
     /// Role is the role granted to the invitee on acceptance.

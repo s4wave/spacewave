@@ -499,8 +499,8 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	}
 	e2eLauncherCfg := string(e2eLauncherOverride.GetConfig())
 	for _, want := range []string{
-		`"distPeerIds":["12D3KooWMkaFstnFSvNbN9MVcncTqQZ6nqXu8daU6Nanopm7ZSbg"]`,
-		`"initDistConfig":"QnF9fgszS28jFAMjKER3ciABGzwDZkg7BRMvIixUcVEWdSA5EXc8Yi8SfgQsamlyJXIWHy1nEkRcQlQISZbVKR4BNZYv-UzPrdwbTabvlAEk2wWd9WE4-IHcGqhqXSaKWF6lXUUQjlrPKQR-xmsBQCI5ypSqcorbixh5QlUx33-kteLxWSSPBEI1a61XSXzSjK4pORWs5oYDFLzJw0Qd8qFPYHRgOveAs1Xs9-Cr9CnWCLmiqXtF"`,
+		`"distPeerIds":["12D3KooWJPNip1SbsUG7SjteoegGjfq22D4WThuctPvCwJzHesD5"]`,
+		`"initDistConfig":"QnF9fgszS28jFAQYB2t0Nx0lOx8KM1VoPCAjKShHamY9cXwMfVVQbjskPBo7R3FIMg0pPws1EkRcQlQImHAm4evJX816W1ZueiWpxzExZyZWv1gerVT0-gbD34GuNied4VzXsHGfTa6sG61t8q9C0PgfEylbZYCUALSnTFVsClHn7sqR2OZPikT405ESAbYmf7rjOJ8kw5554IZXVFPXU83lSBXRaZI9DgLim3kd90GNr2qcznKz-FKKOxfcHf-kjy-pUnR7qBQ0ZF4sCZ2zJUqe6BJL-EZIGczDuXKnli5WfY8V32P9jF2D--5UwB2ZNPU"`,
 		`"disableEndpointFetch":true`,
 	} {
 		if !strings.Contains(e2eLauncherCfg, want) {

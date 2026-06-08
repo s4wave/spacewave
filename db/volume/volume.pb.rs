@@ -17,7 +17,7 @@ pub struct VolumeInfo {
     #[prost(message, optional, tag="4")]
     pub controller_info: ::core::option::Option<super::controller::Info>,
     /// HashType is the default block hash type to use for blocks.
-    /// If unset (0 value) will use default for Hydra (BLAKE3).
+    /// If unset (0 value) will use the Spacewave default (SHA256).
     #[prost(enumeration="super::hash::HashType", tag="5")]
     pub hash_type: i32,
 }

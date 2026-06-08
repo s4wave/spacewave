@@ -46,7 +46,7 @@ export interface VolumeInfo {
   controllerInfo?: Info
   /**
    * HashType is the default block hash type to use for blocks.
-   * If unset (0 value) will use default for Hydra (BLAKE3).
+   * If unset (0 value) will use the Spacewave default (SHA256).
    *
    * @generated from field: hash.HashType hash_type = 5;
    */

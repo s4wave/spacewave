@@ -3,6 +3,7 @@ package sobject_invite
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -15,7 +16,6 @@ import (
 	"github.com/s4wave/spacewave/net/protocol"
 	stream_srpc_server "github.com/s4wave/spacewave/net/stream/srpc/server"
 	"github.com/sirupsen/logrus"
-	"github.com/zeebo/blake3"
 )
 
 // ProtocolID is the bifrost protocol ID for the SO invite handshake.
@@ -79,8 +79,8 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 
 	// Hash the raw token to look up the on-chain invite.
 	// The invitee proves possession of the raw token; the on-chain state
-	// stores only the BLAKE3 hash.
-	tokenHashArr := blake3.Sum256(token)
+	// stores only the SHA256 hash.
+	tokenHashArr := sha256.Sum256(token)
 	tokenHash := tokenHashArr[:]
 
 	// Verify the invitee is who they say they are via mounted stream context.

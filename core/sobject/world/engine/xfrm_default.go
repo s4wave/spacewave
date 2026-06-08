@@ -10,7 +10,6 @@ import (
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	"github.com/s4wave/spacewave/db/util/blockenc"
-	"github.com/zeebo/blake3"
 )
 
 // buildDefaultTransformConf builds the transform used to store the head state.
@@ -22,7 +21,7 @@ func buildDefaultTransformConf() (*block_transform.Config, error) {
 	}
 	defer scrub.Scrub(material[:])
 
-	blake3.DeriveKey("sobject/world/engine transform-config Sat Oct 22 15:21:51 PDT 2024 v1.", material[:], encKey[:])
+	blockenc.DeriveKeySHA256("sobject/world/engine transform-config 2026-06-08 sha256 v1.", material[:], encKey[:])
 
 	return block_transform.NewConfig([]config.Config{&transform_blockenc.Config{
 		BlockEnc: blockenc.DefaultBlockEnc,

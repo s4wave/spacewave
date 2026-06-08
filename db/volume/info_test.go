@@ -8,8 +8,8 @@ import (
 )
 
 func TestResolveHashType(t *testing.T) {
-	if got := ResolveHashType(0); got != block.LegacyDefaultHashType {
-		t.Fatalf("expected zero hash type to resolve legacy BLAKE3, got %s", got)
+	if got := ResolveHashType(0); got != block.DefaultHashType {
+		t.Fatalf("expected zero hash type to resolve SHA256, got %s", got)
 	}
 	info := &VolumeInfo{HashType: hash.HashType_HashType_SHA256}
 	if got := info.ResolveHashType(); got != hash.HashType_HashType_SHA256 {

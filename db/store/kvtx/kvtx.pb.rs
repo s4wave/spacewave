@@ -4,7 +4,7 @@
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Config {
     /// HashType is the hash type to use for block refs.
-    /// If unset (0 value) will use default for Hydra (BLAKE3).
+    /// If unset (0 value) will use the Spacewave default (SHA256).
     #[prost(enumeration="super::super::hash::HashType", tag="2")]
     pub hash_type: i32,
     /// DisableHashGet disables hashing values for Get requests.

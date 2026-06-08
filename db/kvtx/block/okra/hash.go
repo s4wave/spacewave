@@ -3,33 +3,34 @@
 package kvtx_block_okra
 
 import (
+	"crypto/sha256"
 	"encoding/binary"
+	"hash"
 	"math"
 	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/zeebo/blake3"
 )
 
 var okraHasherPool = sync.Pool{
 	New: func() any {
-		return blake3.New()
+		return sha256.New()
 	},
 }
 
-func borrowOkraHasher() *blake3.Hasher {
-	h := okraHasherPool.Get().(*blake3.Hasher)
+func borrowOkraHasher() hash.Hash {
+	h := okraHasherPool.Get().(hash.Hash)
 	h.Reset()
 	return h
 }
 
-func releaseOkraHasher(h *blake3.Hasher) {
+func releaseOkraHasher(h hash.Hash) {
 	h.Reset()
 	okraHasherPool.Put(h)
 }
 
-func finishOkraHash(h *blake3.Hasher) []byte {
+func finishOkraHash(h hash.Hash) []byte {
 	sum := h.Sum(nil)
 	return sum[:HashSize]
 }

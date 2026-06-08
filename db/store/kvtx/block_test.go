@@ -110,11 +110,11 @@ func TestKVTxForwardsBlockStoreExtensions(t *testing.T) {
 
 func TestConfigResolveHashType(t *testing.T) {
 	var nilConfig *Config
-	if got := nilConfig.ResolveHashType(); got != block.LegacyDefaultHashType {
-		t.Fatalf("expected nil config to resolve legacy BLAKE3, got %s", got)
+	if got := nilConfig.ResolveHashType(); got != block.DefaultHashType {
+		t.Fatalf("expected nil config to resolve SHA256, got %s", got)
 	}
-	if got := (&Config{}).ResolveHashType(); got != block.LegacyDefaultHashType {
-		t.Fatalf("expected zero config to resolve legacy BLAKE3, got %s", got)
+	if got := (&Config{}).ResolveHashType(); got != block.DefaultHashType {
+		t.Fatalf("expected zero config to resolve SHA256, got %s", got)
 	}
 	if got := (&Config{HashType: hash.HashType_HashType_SHA256}).ResolveHashType(); got != hash.HashType_HashType_SHA256 {
 		t.Fatalf("expected explicit SHA256 config to win, got %s", got)

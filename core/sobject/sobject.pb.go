@@ -1353,7 +1353,7 @@ type SOInvite struct {
 	unknownFields []byte
 	// InviteId is the unique identifier for this invite.
 	InviteId string `protobuf:"bytes,1,opt,name=invite_id,json=inviteId,proto3" json:"inviteId,omitempty"`
-	// TokenHash is the BLAKE3 hash of the invite token.
+	// TokenHash is the SHA256 hash of the invite token.
 	// The raw token is never stored on-chain.
 	TokenHash []byte `protobuf:"bytes,2,opt,name=token_hash,json=tokenHash,proto3" json:"tokenHash,omitempty"`
 	// Role is the role granted to the invitee on acceptance.
@@ -1737,7 +1737,7 @@ type SOInviteMessage struct {
 	OwnerPeerId string `protobuf:"bytes,3,opt,name=owner_peer_id,json=ownerPeerId,proto3" json:"ownerPeerId,omitempty"`
 	// ProviderId is the provider to use for signaling (not a raw URL).
 	ProviderId string `protobuf:"bytes,4,opt,name=provider_id,json=providerId,proto3" json:"providerId,omitempty"`
-	// Token is the raw invite token. The BLAKE3 hash is stored on-chain.
+	// Token is the raw invite token. The SHA256 hash is stored on-chain.
 	Token []byte `protobuf:"bytes,5,opt,name=token,proto3" json:"token,omitempty"`
 	// Role is the role granted to the invitee on acceptance.
 	Role SOParticipantRole `protobuf:"varint,6,opt,name=role,proto3" json:"role,omitempty"`
@@ -1882,8 +1882,10 @@ func (m *SharedObjectRef) CloneVT() *SharedObjectRef {
 		return (*SharedObjectRef)(nil)
 	}
 	r := new(SharedObjectRef)
-	r.ProviderResourceRef = m.ProviderResourceRef.CloneVT()
 	r.BlockStoreId = m.BlockStoreId
+	if rhs := m.ProviderResourceRef; rhs != nil {
+		r.ProviderResourceRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2029,11 +2031,13 @@ func (m *SOConfigChange) CloneVT() *SOConfigChange {
 	r := new(SOConfigChange)
 	r.ConfigSeqno = m.ConfigSeqno
 	r.Config = m.Config.CloneVT()
-	r.Signature = m.Signature.CloneVT()
 	r.ChangeType = m.ChangeType
 	r.RevocationInfo = m.RevocationInfo.CloneVT()
 	if rhs := m.SignedBy; rhs != nil {
 		r.SignedBy = slices.Clone(rhs)
+	}
+	if rhs := m.Signature; rhs != nil {
+		r.Signature = rhs.CloneVT()
 	}
 	if rhs := m.PreviousHash; rhs != nil {
 		r.PreviousHash = slices.Clone(rhs)
@@ -2138,9 +2142,11 @@ func (m *SOOperation) CloneVT() *SOOperation {
 		return (*SOOperation)(nil)
 	}
 	r := new(SOOperation)
-	r.Signature = m.Signature.CloneVT()
 	if rhs := m.Inner; rhs != nil {
 		r.Inner = slices.Clone(rhs)
+	}
+	if rhs := m.Signature; rhs != nil {
+		r.Signature = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -2242,9 +2248,11 @@ func (m *SOOperationRejection) CloneVT() *SOOperationRejection {
 		return (*SOOperationRejection)(nil)
 	}
 	r := new(SOOperationRejection)
-	r.Signature = m.Signature.CloneVT()
 	if rhs := m.Inner; rhs != nil {
 		r.Inner = slices.Clone(rhs)
+	}
+	if rhs := m.Signature; rhs != nil {
+		r.Signature = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -2299,9 +2307,11 @@ func (m *SOGrant) CloneVT() *SOGrant {
 	}
 	r := new(SOGrant)
 	r.PeerId = m.PeerId
-	r.Signature = m.Signature.CloneVT()
 	if rhs := m.InnerData; rhs != nil {
 		r.InnerData = slices.Clone(rhs)
+	}
+	if rhs := m.Signature; rhs != nil {
+		r.Signature = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -2318,7 +2328,9 @@ func (m *SOGrantInner) CloneVT() *SOGrantInner {
 		return (*SOGrantInner)(nil)
 	}
 	r := new(SOGrantInner)
-	r.TransformConf = m.TransformConf.CloneVT()
+	if rhs := m.TransformConf; rhs != nil {
+		r.TransformConf = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2473,9 +2485,11 @@ func (m *SOClearOperationResult) CloneVT() *SOClearOperationResult {
 		return (*SOClearOperationResult)(nil)
 	}
 	r := new(SOClearOperationResult)
-	r.Signature = m.Signature.CloneVT()
 	if rhs := m.Inner; rhs != nil {
 		r.Inner = slices.Clone(rhs)
+	}
+	if rhs := m.Signature; rhs != nil {
+		r.Signature = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -2586,12 +2600,14 @@ func (m *SOInviteMessage) CloneVT() *SOInviteMessage {
 	r.Role = m.Role
 	r.TargetPeerId = m.TargetPeerId
 	r.MaxUses = m.MaxUses
-	r.Signature = m.Signature.CloneVT()
 	if rhs := m.Token; rhs != nil {
 		r.Token = slices.Clone(rhs)
 	}
 	if rhs := m.ExpiresAt; rhs != nil {
 		r.ExpiresAt = rhs.CloneVT()
+	}
+	if rhs := m.Signature; rhs != nil {
+		r.Signature = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -2610,9 +2626,11 @@ func (m *SOJoinResponse) CloneVT() *SOJoinResponse {
 	r := new(SOJoinResponse)
 	r.InviteId = m.InviteId
 	r.ResponderPeerId = m.ResponderPeerId
-	r.Signature = m.Signature.CloneVT()
 	if rhs := m.ResponderPubkey; rhs != nil {
 		r.ResponderPubkey = slices.Clone(rhs)
+	}
+	if rhs := m.Signature; rhs != nil {
+		r.Signature = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)

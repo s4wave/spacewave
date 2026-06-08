@@ -1426,7 +1426,7 @@ export interface SOInvite {
    */
   inviteId?: string
   /**
-   * TokenHash is the BLAKE3 hash of the invite token.
+   * TokenHash is the SHA256 hash of the invite token.
    * The raw token is never stored on-chain.
    *
    * @generated from field: bytes token_hash = 2;
@@ -1860,7 +1860,7 @@ export interface SOInviteMessage {
    */
   providerId?: string
   /**
-   * Token is the raw invite token. The BLAKE3 hash is stored on-chain.
+   * Token is the raw invite token. The SHA256 hash is stored on-chain.
    *
    * @generated from field: bytes token = 5;
    */

@@ -14,7 +14,7 @@ message AcceptInviteRequest {
   // JoinResponse is the signed join response from the invitee.
   .sobject.SOJoinResponse join_response = 1;
   // Token is the raw invite token.
-  // The owner BLAKE3 hashes it to verify against the on-chain token_hash.
+  // The owner SHA256 hashes it to verify against the on-chain token_hash.
   // Only the owner sees the raw token on the authenticated stream.
   // The cloud beacon/mailbox layer gates on token_hash (never sees raw token).
   bytes token = 2;

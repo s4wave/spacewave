@@ -3,12 +3,12 @@ package sobject_invite
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"testing"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/peer"
-	"github.com/zeebo/blake3"
 )
 
 func TestBuildJoinResponse(t *testing.T) {
@@ -115,13 +115,13 @@ func TestHashInviteToken(t *testing.T) {
 
 func TestHashInviteTokenMatchesCreateSOInviteOp(t *testing.T) {
 	// Verify that HashInviteToken produces the same result as the
-	// BLAKE3 hashing used in CreateSOInviteOp.
+	// SHA256 hashing used in CreateSOInviteOp.
 	token := []byte("a]b^c_d`e{f|g}h~i")
-	hashArr := blake3.Sum256(token)
+	hashArr := sha256.Sum256(token)
 	expected := hashArr[:]
 	got := HashInviteToken(token)
 	if !bytes.Equal(got, expected) {
-		t.Fatal("HashInviteToken should match blake3.Sum256")
+		t.Fatal("HashInviteToken should match sha256.Sum256")
 	}
 }
 

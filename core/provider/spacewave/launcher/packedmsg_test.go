@@ -123,10 +123,10 @@ func TestDistConfigKeyDerivationFixture(t *testing.T) {
 	if got, want := signedMsg.GetSignature().GetHashType().String(), "HashType_SHA256"; got != want {
 		t.Fatalf("signature hash type=%q want %q", got, want)
 	}
-	if got, want := hex.EncodeToString(key), "511ad49309b02c6cfda84f6eaba60089b795ddd4125f48fba29429cdbaac11a2"; got != want {
+	if got, want := hex.EncodeToString(key), "5fa507eb513fc8d925f04d3cdace6ac08d42fd5484ee1a22aebfc400e7f652ef"; got != want {
 		t.Fatalf("derived key=%s want %s", got, want)
 	}
-	if got, want := hex.EncodeToString(nonce), "3b0e8b955cf88591b3ae2e6dad74d3f3005378850d195fdf"; got != want {
+	if got, want := hex.EncodeToString(nonce), "cff685c3a87fdb3c23a1c932cd61e51256ef61af94e6380c"; got != want {
 		t.Fatalf("derived nonce=%s want %s", got, want)
 	}
 }

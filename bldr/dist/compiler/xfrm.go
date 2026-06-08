@@ -7,14 +7,13 @@ import (
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
 	"github.com/s4wave/spacewave/db/util/blockenc"
-	"github.com/zeebo/blake3"
 )
 
 // buildEmbedTransformConf is the block transform conf to use for the embedded manifest world.
 func buildEmbedTransformConf(workingID string) []config.Config {
 	var key [32]byte
 	material := bytes.Join([][]byte{[]byte("embed manifest blockenc"), []byte(workingID)}, []byte("--- SENTIENT CLOUD ---"))
-	blake3.DeriveKey("bldr dist compiler embed transform conf Tue Apr 11 02:54:00 PM PDT 2023", material, key[:])
+	blockenc.DeriveKeySHA256("bldr dist compiler embed transform conf 2026-06-08 sha256 v1", material, key[:])
 	return []config.Config{
 		&transform_s2.Config{},
 		&transform_blockenc.Config{

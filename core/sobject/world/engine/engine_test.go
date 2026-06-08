@@ -2,6 +2,7 @@ package sobject_world_engine_test
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"runtime"
 	"testing"
@@ -18,7 +19,6 @@ import (
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	"github.com/s4wave/spacewave/testbed"
-	"github.com/zeebo/blake3"
 )
 
 // TestWorldEngineController tests constructing the engine controller, looking up
@@ -98,7 +98,8 @@ func TestWorldEngineController(t *testing.T) {
 	engineID := "test-world-engine"
 
 	encKey := make([]byte, 32)
-	blake3.DeriveKey("hydra/test/sobject: engine_test.go", []byte(sobjectID), encKey)
+	hash := sha256.Sum256([]byte("hydra/test/sobject: engine_test.go\x00" + sobjectID))
+	copy(encKey, hash[:])
 
 	// initialize world engine
 	startEngine := func() (*sobject_world_engine.Controller, directive.Reference) {

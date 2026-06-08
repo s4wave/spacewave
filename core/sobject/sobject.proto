@@ -441,7 +441,7 @@ message SOEntityRecoveryMaterial {
 message SOInvite {
   // InviteId is the unique identifier for this invite.
   string invite_id = 1;
-  // TokenHash is the BLAKE3 hash of the invite token.
+  // TokenHash is the SHA256 hash of the invite token.
   // The raw token is never stored on-chain.
   bytes token_hash = 2;
   // Role is the role granted to the invitee on acceptance.
@@ -569,7 +569,7 @@ message SOInviteMessage {
   string owner_peer_id = 3;
   // ProviderId is the provider to use for signaling (not a raw URL).
   string provider_id = 4;
-  // Token is the raw invite token. The BLAKE3 hash is stored on-chain.
+  // Token is the raw invite token. The SHA256 hash is stored on-chain.
   bytes token = 5;
   // Role is the role granted to the invitee on acceptance.
   SOParticipantRole role = 6;

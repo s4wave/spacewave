@@ -10,7 +10,7 @@ import (
 
 // TestBlockRef ensures the marshaling is consistent
 func TestBlockRef(t *testing.T) {
-	h, err := hash.Sum(LegacyDefaultHashType, []byte("test"))
+	h, err := hash.Sum(DefaultHashType, []byte("test"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -20,7 +20,7 @@ func TestBlockRef(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	expected := "2W1M3cypWDWXjwjZKPFVoPEZtHwTBo7xzU1YH1mAoVd2b8jHjy3r"
+	expected := "2W1M3RQW66FbepAmaPcufU8oiKnPhwL6AxpDdk6nqcKSAAitdX8B"
 	if v := b58.Encode(mk); v != expected {
 		t.Fatalf("unexpected value: %s", v)
 	}
@@ -44,9 +44,6 @@ func TestBlockRef(t *testing.T) {
 }
 
 func TestHashDefaults(t *testing.T) {
-	if LegacyDefaultHashType != hash.HashType_HashType_BLAKE3 {
-		t.Fatalf("expected legacy default BLAKE3, got %s", LegacyDefaultHashType)
-	}
 	if DefaultHashType != hash.HashType_HashType_SHA256 {
 		t.Fatalf("expected default SHA256, got %s", DefaultHashType)
 	}
@@ -66,11 +63,11 @@ func TestPutOptsSelectHashType(t *testing.T) {
 	if got := (*PutOpts)(nil).SelectHashType(0); got != hash.HashType_HashType_SHA256 {
 		t.Fatalf("expected nil opts to select SHA256, got %s", got)
 	}
-	if got := (&PutOpts{}).SelectHashType(hash.HashType_HashType_BLAKE3); got != hash.HashType_HashType_BLAKE3 {
-		t.Fatalf("expected store default BLAKE3 to win, got %s", got)
+	if got := (&PutOpts{}).SelectHashType(hash.HashType_HashType_SHA256); got != hash.HashType_HashType_SHA256 {
+		t.Fatalf("expected store default SHA256 to win, got %s", got)
 	}
 	opts := &PutOpts{HashType: hash.HashType_HashType_SHA1}
-	if got := opts.SelectHashType(hash.HashType_HashType_BLAKE3); got != hash.HashType_HashType_SHA1 {
+	if got := opts.SelectHashType(hash.HashType_HashType_SHA256); got != hash.HashType_HashType_SHA1 {
 		t.Fatalf("expected explicit opts SHA1 to win, got %s", got)
 	}
 	opts = &PutOpts{

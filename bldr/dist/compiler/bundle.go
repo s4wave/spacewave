@@ -4,6 +4,7 @@ package bldr_dist_compiler
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base32"
 	"hash"
 	"io"
@@ -47,7 +48,6 @@ import (
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
-	"github.com/zeebo/blake3"
 )
 
 // BuildDistBundle builds the distribution bundle for an application.
@@ -292,7 +292,7 @@ func BuildDistBundle(
 	var embeddedVolumeHash hash.Hash
 	if isWebPlatform {
 		// on the web platform add a hash to the filename to cache miss when the file changes
-		embeddedVolumeHash = blake3.New()
+		embeddedVolumeHash = sha256.New()
 		_, _ = embeddedVolumeHash.Write([]byte("bldr hash " + embeddedVolumeFilename + " Fri May  3 21:35:53 PDT 2024 embedded volume"))
 		embeddedVolumeWrite = io.MultiWriter(embeddedVolFile, embeddedVolumeHash)
 	}

@@ -2,14 +2,18 @@ package blockenc
 
 import "crypto/cipher"
 
+// NonceDeriver derives a deterministic nonce for an encrypted block body.
+type NonceDeriver func(src, out []byte)
+
 // aeadCipher uses a cipher AEAD object to encrypt/decrypt.
 type aeadCipher struct {
-	c cipher.AEAD
+	c           cipher.AEAD
+	deriveNonce NonceDeriver
 }
 
 // newAeadCipher constructs a new aead cipher.
-func newAeadCipher(c cipher.AEAD) *aeadCipher {
-	return &aeadCipher{c: c}
+func newAeadCipher(c cipher.AEAD, deriveNonce NonceDeriver) *aeadCipher {
+	return &aeadCipher{c: c, deriveNonce: deriveNonce}
 }
 
 // Encrypt encrypts the block and returns the encrypted buf.
@@ -17,7 +21,7 @@ func (b *aeadCipher) Encrypt(alloc AllocFn, src []byte) ([]byte, error) {
 	nonceSize := b.c.NonceSize()
 	outSize := nonceSize + len(src) + b.c.Overhead()
 	nonce := alloc(outSize)[:nonceSize]
-	DeriveNonceBlake3(src, nonce)
+	b.deriveNonce(src, nonce)
 	// note: Seal appends the data to nonce
 	encrypted := b.c.Seal(nonce, nonce, src, nil)
 	return encrypted, nil

@@ -2,6 +2,7 @@ package sobject_invite
 
 import (
 	"context"
+	"crypto/sha256"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -11,7 +12,6 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	stream_srpc "github.com/s4wave/spacewave/net/stream/srpc"
-	"github.com/zeebo/blake3"
 )
 
 // JoinResult contains the result of a successful invite join.
@@ -111,9 +111,9 @@ func BuildJoinResponse(inviteID string, privKey crypto.PrivKey) (*sobject.SOJoin
 	return unsigned, nil
 }
 
-// HashInviteToken computes the BLAKE3 hash of a raw invite token.
-// Used by the invitee to produce the token_hash for AcceptInviteRequest.
+// HashInviteToken computes the SHA256 hash of a raw invite token.
+// Used by clients that need to compare raw invite tokens with SOInvite.token_hash.
 func HashInviteToken(token []byte) []byte {
-	h := blake3.Sum256(token)
+	h := sha256.Sum256(token)
 	return h[:]
 }

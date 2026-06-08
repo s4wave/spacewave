@@ -11,5 +11,5 @@ func NewXChaCha20Poly1305(key []byte) (Method, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newAeadCipher(c), nil
+	return newAeadCipher(c, DeriveNonceBlake3), nil
 }
