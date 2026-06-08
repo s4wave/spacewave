@@ -16,6 +16,7 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	enabled "github.com/aperturerobotics/util/enabled"
+	_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 )
 
 // EmbedManifest selects one manifest build to embed in the dist binary.
@@ -96,11 +97,8 @@ type Config struct {
 	//
 	// Cgo may still be force-disabled if incompatible with the target (wasm, tinygo).
 	EnableCgo enabled.Enabled `protobuf:"varint,5,opt,name=enable_cgo,json=enableCgo,proto3" json:"enableCgo,omitempty"`
-	// EnableTinygo enables using TinyGo instead of the Go compiler.
-	// Explicit ENABLE is only supported for TinyGo-compatible WebAssembly
-	// targets. The default remains the standard Go compiler because the dist
-	// runtime embeds the browser host and QuickJS runtime support.
-	EnableTinygo enabled.Enabled `protobuf:"varint,6,opt,name=enable_tinygo,json=enableTinygo,proto3" json:"enableTinygo,omitempty"`
+	// GoCompiler selects the Go compiler used for the dist entrypoint.
+	GoCompiler _go.GoCompiler `protobuf:"varint,6,opt,name=go_compiler,json=goCompiler,proto3" json:"goCompiler,omitempty"`
 	// EnableCompression can optionally force-enable or force-disable binary compression.
 	// The default is ENABLE for release-mode only.
 	// Only applicable for the web platform (WebAssembly) (currently).
@@ -172,11 +170,11 @@ func (x *Config) GetEnableCgo() enabled.Enabled {
 	return enabled.Enabled(0)
 }
 
-func (x *Config) GetEnableTinygo() enabled.Enabled {
+func (x *Config) GetGoCompiler() _go.GoCompiler {
 	if x != nil {
-		return x.EnableTinygo
+		return x.GoCompiler
 	}
-	return enabled.Enabled(0)
+	return _go.GoCompiler(0)
 }
 
 func (x *Config) GetEnableCompression() enabled.Enabled {
@@ -267,7 +265,7 @@ func (m *Config) CloneVT() *Config {
 	r.EntrypointRole = m.EntrypointRole
 	r.ChannelKey = m.ChannelKey
 	r.EnableCgo = m.EnableCgo
-	r.EnableTinygo = m.EnableTinygo
+	r.GoCompiler = m.GoCompiler
 	r.EnableCompression = m.EnableCompression
 	if rhs := m.EmbedManifests; rhs != nil {
 		r.EmbedManifests = make([]*EmbedManifest, len(rhs))
@@ -394,7 +392,7 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.EnableCgo != that.EnableCgo {
 		return false
 	}
-	if this.EnableTinygo != that.EnableTinygo {
+	if this.GoCompiler != that.GoCompiler {
 		return false
 	}
 	if this.EnableCompression != that.EnableCompression {
@@ -599,10 +597,10 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("enableCgo")
 		x.EnableCgo.MarshalProtoJSON(s)
 	}
-	if x.EnableTinygo != 0 || s.HasField("enableTinygo") {
+	if x.GoCompiler != 0 || s.HasField("goCompiler") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("enableTinygo")
-		x.EnableTinygo.MarshalProtoJSON(s)
+		s.WriteObjectField("goCompiler")
+		x.GoCompiler.MarshalProtoJSON(s)
 	}
 	if x.EnableCompression != 0 || s.HasField("enableCompression") {
 		s.WriteMoreIf(&wroteField)
@@ -689,9 +687,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "enable_cgo", "enableCgo":
 			s.AddField("enable_cgo")
 			x.EnableCgo.UnmarshalProtoJSON(s)
-		case "enable_tinygo", "enableTinygo":
-			s.AddField("enable_tinygo")
-			x.EnableTinygo.UnmarshalProtoJSON(s)
+		case "go_compiler", "goCompiler":
+			s.AddField("go_compiler")
+			x.GoCompiler.UnmarshalProtoJSON(s)
 		case "enable_compression", "enableCompression":
 			s.AddField("enable_compression")
 			x.EnableCompression.UnmarshalProtoJSON(s)
@@ -878,8 +876,8 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x38
 	}
-	if m.EnableTinygo != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.EnableTinygo))
+	if m.GoCompiler != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.GoCompiler))
 		i--
 		dAtA[i] = 0x30
 	}
@@ -1040,8 +1038,8 @@ func (m *Config) SizeVT() (n int) {
 	if m.EnableCgo != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.EnableCgo))
 	}
-	if m.EnableTinygo != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.EnableTinygo))
+	if m.GoCompiler != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.GoCompiler))
 	}
 	if m.EnableCompression != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.EnableCompression))
@@ -1199,13 +1197,13 @@ func (x *Config) MarshalProtoText() string {
 		sb.WriteString(enabled.Enabled(x.EnableCgo).String())
 		sb.WriteString("\"")
 	}
-	if x.EnableTinygo != 0 {
+	if x.GoCompiler != 0 {
 		if sb.Len() > 8 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("enable_tinygo: ")
+		sb.WriteString("go_compiler: ")
 		sb.WriteString("\"")
-		sb.WriteString(enabled.Enabled(x.EnableTinygo).String())
+		sb.WriteString(_go.GoCompiler(x.GoCompiler).String())
 		sb.WriteString("\"")
 	}
 	if x.EnableCompression != 0 {
@@ -1560,12 +1558,12 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 		case 6:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EnableTinygo", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field GoCompiler", wireType)
 			}
-			m.EnableTinygo = 0
+			m.GoCompiler = 0
 			var _v uint64
 			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.EnableTinygo = enabled.Enabled(_v)
+			m.GoCompiler = _go.GoCompiler(_v)
 			if err != nil {
 				return err
 			}

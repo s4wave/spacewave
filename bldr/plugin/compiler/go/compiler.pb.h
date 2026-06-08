@@ -70,10 +70,10 @@ namespace bldr {
 namespace plugin {
 namespace compiler {
 namespace go {
-enum CompilerMode : int;
-extern const uint32_t CompilerMode_internal_data_[];
 enum EsbuildVarType : int;
 extern const uint32_t EsbuildVarType_internal_data_[];
+enum GoCompiler : int;
+extern const uint32_t GoCompiler_internal_data_[];
 enum InputFileKind : int;
 extern const uint32_t InputFileKind_internal_data_[];
 enum ViteVarType : int;
@@ -133,11 +133,11 @@ extern const ::google::protobuf::internal::ClassDataFull ViteEntrypointVar_class
 namespace google {
 namespace protobuf {
 template <>
-internal::EnumTraitsT<::bldr::plugin::compiler::go::CompilerMode_internal_data_>
-    internal::EnumTraitsImpl::value<::bldr::plugin::compiler::go::CompilerMode>;
-template <>
 internal::EnumTraitsT<::bldr::plugin::compiler::go::EsbuildVarType_internal_data_>
     internal::EnumTraitsImpl::value<::bldr::plugin::compiler::go::EsbuildVarType>;
+template <>
+internal::EnumTraitsT<::bldr::plugin::compiler::go::GoCompiler_internal_data_>
+    internal::EnumTraitsImpl::value<::bldr::plugin::compiler::go::GoCompiler>;
 template <>
 internal::EnumTraitsT<::bldr::plugin::compiler::go::InputFileKind_internal_data_>
     internal::EnumTraitsImpl::value<::bldr::plugin::compiler::go::InputFileKind>;
@@ -151,42 +151,42 @@ namespace bldr {
 namespace plugin {
 namespace compiler {
 namespace go {
-enum CompilerMode : int {
-  COMPILER_MODE_DEFAULT = 0,
-  COMPILER_MODE_GO = 1,
-  COMPILER_MODE_TINYGO = 2,
-  COMPILER_MODE_GOSCRIPT = 3,
-  CompilerMode_INT_MIN_SENTINEL_DO_NOT_USE_ =
+enum GoCompiler : int {
+  GO_COMPILER_DEFAULT = 0,
+  GO_COMPILER_GO = 1,
+  GO_COMPILER_TINYGO = 2,
+  GO_COMPILER_GOSCRIPT = 3,
+  GoCompiler_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
-  CompilerMode_INT_MAX_SENTINEL_DO_NOT_USE_ =
+  GoCompiler_INT_MAX_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::max(),
 };
 
-extern const uint32_t CompilerMode_internal_data_[];
-inline constexpr CompilerMode CompilerMode_MIN =
-    static_cast<CompilerMode>(0);
-inline constexpr CompilerMode CompilerMode_MAX =
-    static_cast<CompilerMode>(3);
-inline bool CompilerMode_IsValid(int value) {
+extern const uint32_t GoCompiler_internal_data_[];
+inline constexpr GoCompiler GoCompiler_MIN =
+    static_cast<GoCompiler>(0);
+inline constexpr GoCompiler GoCompiler_MAX =
+    static_cast<GoCompiler>(3);
+inline bool GoCompiler_IsValid(int value) {
   return 0 <= value && value <= 3;
 }
-inline constexpr int CompilerMode_ARRAYSIZE = 3 + 1;
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL CompilerMode_descriptor();
+inline constexpr int GoCompiler_ARRAYSIZE = 3 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL GoCompiler_descriptor();
 template <typename T>
-const ::std::string& CompilerMode_Name(T value) {
-  static_assert(::std::is_same<T, CompilerMode>::value ||
+const ::std::string& GoCompiler_Name(T value) {
+  static_assert(::std::is_same<T, GoCompiler>::value ||
                     ::std::is_integral<T>::value,
-                "Incorrect type passed to CompilerMode_Name().");
-  return CompilerMode_Name(static_cast<CompilerMode>(value));
+                "Incorrect type passed to GoCompiler_Name().");
+  return GoCompiler_Name(static_cast<GoCompiler>(value));
 }
 template <>
-inline const ::std::string& CompilerMode_Name(CompilerMode value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<CompilerMode_descriptor, 0, 3>(
+inline const ::std::string& GoCompiler_Name(GoCompiler value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<GoCompiler_descriptor, 0, 3>(
       static_cast<int>(value));
 }
-inline bool CompilerMode_Parse(
-    ::absl::string_view name, CompilerMode* PROTOBUF_NONNULL value) {
-  return ::google::protobuf::internal::ParseNamedEnum<CompilerMode>(CompilerMode_descriptor(), name,
+inline bool GoCompiler_Parse(
+    ::absl::string_view name, GoCompiler* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<GoCompiler>(GoCompiler_descriptor(), name,
                                            value);
 }
 enum InputFileKind : int {
@@ -1709,7 +1709,7 @@ class Config final : public ::google::protobuf::Message
     kProjectIdFieldNumber = 1,
     kDelveAddrFieldNumber = 8,
     kWebPluginIdFieldNumber = 13,
-    kCompilerModeFieldNumber = 7,
+    kGoCompilerFieldNumber = 7,
     kEnableCgoFieldNumber = 9,
     kEnableCompressionFieldNumber = 11,
     kDisableRpcFetchFieldNumber = 6,
@@ -1848,14 +1848,14 @@ class Config final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_web_plugin_id();
 
   public:
-  // .bldr.plugin.compiler.go.CompilerMode compiler_mode = 7;
-  void clear_compiler_mode() ;
-  ::bldr::plugin::compiler::go::CompilerMode compiler_mode() const;
-  void set_compiler_mode(::bldr::plugin::compiler::go::CompilerMode value);
+  // .bldr.plugin.compiler.go.GoCompiler go_compiler = 7;
+  void clear_go_compiler() ;
+  ::bldr::plugin::compiler::go::GoCompiler go_compiler() const;
+  void set_go_compiler(::bldr::plugin::compiler::go::GoCompiler value);
 
   private:
-  ::bldr::plugin::compiler::go::CompilerMode _internal_compiler_mode() const;
-  void _internal_set_compiler_mode(::bldr::plugin::compiler::go::CompilerMode value);
+  ::bldr::plugin::compiler::go::GoCompiler _internal_go_compiler() const;
+  void _internal_set_go_compiler(::bldr::plugin::compiler::go::GoCompiler value);
 
   public:
   // .enabled.Enabled enable_cgo = 9;
@@ -2001,7 +2001,7 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr project_id_;
     ::google::protobuf::internal::ArenaStringPtr delve_addr_;
     ::google::protobuf::internal::ArenaStringPtr web_plugin_id_;
-    int compiler_mode_;
+    int go_compiler_;
     int enable_cgo_;
     int enable_compression_;
     bool disable_rpc_fetch_;
@@ -2458,7 +2458,7 @@ class InputManifestMeta final : public ::google::protobuf::Message
     kGoscriptBuildFlagsFieldNumber = 12,
     kGoscriptOverrideDirsFieldNumber = 13,
     kDevInfoFieldNumber = 1,
-    kCompilerModeFieldNumber = 11,
+    kGoCompilerFieldNumber = 11,
     kViteDisableProjectConfigFieldNumber = 10,
     kGoscriptAllDependenciesFieldNumber = 14,
   };
@@ -2667,14 +2667,14 @@ class InputManifestMeta final : public ::google::protobuf::Message
   ::bldr::plugin::vardef::PluginDevInfo* PROTOBUF_NONNULL _internal_mutable_dev_info();
 
   public:
-  // .bldr.plugin.compiler.go.CompilerMode compiler_mode = 11;
-  void clear_compiler_mode() ;
-  ::bldr::plugin::compiler::go::CompilerMode compiler_mode() const;
-  void set_compiler_mode(::bldr::plugin::compiler::go::CompilerMode value);
+  // .bldr.plugin.compiler.go.GoCompiler go_compiler = 11;
+  void clear_go_compiler() ;
+  ::bldr::plugin::compiler::go::GoCompiler go_compiler() const;
+  void set_go_compiler(::bldr::plugin::compiler::go::GoCompiler value);
 
   private:
-  ::bldr::plugin::compiler::go::CompilerMode _internal_compiler_mode() const;
-  void _internal_set_compiler_mode(::bldr::plugin::compiler::go::CompilerMode value);
+  ::bldr::plugin::compiler::go::GoCompiler _internal_go_compiler() const;
+  void _internal_set_go_compiler(::bldr::plugin::compiler::go::GoCompiler value);
 
   public:
   // bool vite_disable_project_config = 10;
@@ -2734,7 +2734,7 @@ class InputManifestMeta final : public ::google::protobuf::Message
     ::google::protobuf::RepeatedPtrField<::std::string> goscript_build_flags_;
     ::google::protobuf::RepeatedPtrField<::std::string> goscript_override_dirs_;
     ::bldr::plugin::vardef::PluginDevInfo* PROTOBUF_NULLABLE dev_info_;
-    int compiler_mode_;
+    int go_compiler_;
     bool vite_disable_project_config_;
     bool goscript_all_dependencies_;
     PROTOBUF_TSAN_DECLARE_MEMBER
@@ -3220,29 +3220,29 @@ inline void Config::_internal_set_enable_cgo(::enabled::Enabled value) {
   _impl_.enable_cgo_ = value;
 }
 
-// .bldr.plugin.compiler.go.CompilerMode compiler_mode = 7;
-inline void Config::clear_compiler_mode() {
+// .bldr.plugin.compiler.go.GoCompiler go_compiler = 7;
+inline void Config::clear_go_compiler() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.compiler_mode_ = 0;
+  _impl_.go_compiler_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000080U);
 }
-inline ::bldr::plugin::compiler::go::CompilerMode Config::compiler_mode() const {
-  // @@protoc_insertion_point(field_get:bldr.plugin.compiler.go.Config.compiler_mode)
-  return _internal_compiler_mode();
+inline ::bldr::plugin::compiler::go::GoCompiler Config::go_compiler() const {
+  // @@protoc_insertion_point(field_get:bldr.plugin.compiler.go.Config.go_compiler)
+  return _internal_go_compiler();
 }
-inline void Config::set_compiler_mode(::bldr::plugin::compiler::go::CompilerMode value) {
-  _internal_set_compiler_mode(value);
+inline void Config::set_go_compiler(::bldr::plugin::compiler::go::GoCompiler value) {
+  _internal_set_go_compiler(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000080U);
-  // @@protoc_insertion_point(field_set:bldr.plugin.compiler.go.Config.compiler_mode)
+  // @@protoc_insertion_point(field_set:bldr.plugin.compiler.go.Config.go_compiler)
 }
-inline ::bldr::plugin::compiler::go::CompilerMode Config::_internal_compiler_mode() const {
+inline ::bldr::plugin::compiler::go::GoCompiler Config::_internal_go_compiler() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return static_cast<::bldr::plugin::compiler::go::CompilerMode>(_impl_.compiler_mode_);
+  return static_cast<::bldr::plugin::compiler::go::GoCompiler>(_impl_.go_compiler_);
 }
-inline void Config::_internal_set_compiler_mode(::bldr::plugin::compiler::go::CompilerMode value) {
+inline void Config::_internal_set_go_compiler(::bldr::plugin::compiler::go::GoCompiler value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.compiler_mode_ = value;
+  _impl_.go_compiler_ = value;
 }
 
 // .enabled.Enabled enable_compression = 11;
@@ -4206,29 +4206,29 @@ inline void InputManifestMeta::_internal_set_vite_disable_project_config(bool va
   _impl_.vite_disable_project_config_ = value;
 }
 
-// .bldr.plugin.compiler.go.CompilerMode compiler_mode = 11;
-inline void InputManifestMeta::clear_compiler_mode() {
+// .bldr.plugin.compiler.go.GoCompiler go_compiler = 11;
+inline void InputManifestMeta::clear_go_compiler() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.compiler_mode_ = 0;
+  _impl_.go_compiler_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000800U);
 }
-inline ::bldr::plugin::compiler::go::CompilerMode InputManifestMeta::compiler_mode() const {
-  // @@protoc_insertion_point(field_get:bldr.plugin.compiler.go.InputManifestMeta.compiler_mode)
-  return _internal_compiler_mode();
+inline ::bldr::plugin::compiler::go::GoCompiler InputManifestMeta::go_compiler() const {
+  // @@protoc_insertion_point(field_get:bldr.plugin.compiler.go.InputManifestMeta.go_compiler)
+  return _internal_go_compiler();
 }
-inline void InputManifestMeta::set_compiler_mode(::bldr::plugin::compiler::go::CompilerMode value) {
-  _internal_set_compiler_mode(value);
+inline void InputManifestMeta::set_go_compiler(::bldr::plugin::compiler::go::GoCompiler value) {
+  _internal_set_go_compiler(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000800U);
-  // @@protoc_insertion_point(field_set:bldr.plugin.compiler.go.InputManifestMeta.compiler_mode)
+  // @@protoc_insertion_point(field_set:bldr.plugin.compiler.go.InputManifestMeta.go_compiler)
 }
-inline ::bldr::plugin::compiler::go::CompilerMode InputManifestMeta::_internal_compiler_mode() const {
+inline ::bldr::plugin::compiler::go::GoCompiler InputManifestMeta::_internal_go_compiler() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return static_cast<::bldr::plugin::compiler::go::CompilerMode>(_impl_.compiler_mode_);
+  return static_cast<::bldr::plugin::compiler::go::GoCompiler>(_impl_.go_compiler_);
 }
-inline void InputManifestMeta::_internal_set_compiler_mode(::bldr::plugin::compiler::go::CompilerMode value) {
+inline void InputManifestMeta::_internal_set_go_compiler(::bldr::plugin::compiler::go::GoCompiler value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.compiler_mode_ = value;
+  _impl_.go_compiler_ = value;
 }
 
 // repeated string goscript_build_flags = 12;
@@ -5347,10 +5347,10 @@ namespace google {
 namespace protobuf {
 
 template <>
-struct is_proto_enum<::bldr::plugin::compiler::go::CompilerMode> : std::true_type {};
+struct is_proto_enum<::bldr::plugin::compiler::go::GoCompiler> : std::true_type {};
 template <>
-inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::bldr::plugin::compiler::go::CompilerMode>() {
-  return ::bldr::plugin::compiler::go::CompilerMode_descriptor();
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::bldr::plugin::compiler::go::GoCompiler>() {
+  return ::bldr::plugin::compiler::go::GoCompiler_descriptor();
 }
 template <>
 struct is_proto_enum<::bldr::plugin::compiler::go::InputFileKind> : std::true_type {};

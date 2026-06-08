@@ -8,62 +8,62 @@ import (
 	bldr_platform_go "github.com/s4wave/spacewave/bldr/platform/go"
 )
 
-func TestResolveGoPluginCompilerMode(t *testing.T) {
+func TestResolveGoCompiler(t *testing.T) {
 	testCases := []struct {
 		name                 string
 		platformID           string
-		compilerMode         GoPluginCompilerMode
+		goCompiler           GoCompiler
 		defaultTinygoEnabled bool
-		expected             GoPluginCompilerMode
+		expected             GoCompiler
 		expectError          bool
 	}{
 		{
-			name:         "explicit tinygo browser wasm",
-			platformID:   "web/js/wasm",
-			compilerMode: GoPluginCompilerModeTinyGo,
-			expected:     GoPluginCompilerModeTinyGo,
+			name:       "explicit tinygo browser wasm",
+			platformID: "web/js/wasm",
+			goCompiler: GoCompilerTinyGo,
+			expected:   GoCompilerTinyGo,
 		},
 		{
-			name:         "explicit standard go overrides default tinygo",
-			platformID:   "web/js/wasm",
-			compilerMode: GoPluginCompilerModeGo,
-			expected:     GoPluginCompilerModeGo,
+			name:       "explicit standard go overrides default tinygo",
+			platformID: "web/js/wasm",
+			goCompiler: GoCompilerGo,
+			expected:   GoCompilerGo,
 		},
 		{
-			name:         "explicit tinygo mode",
-			platformID:   "web/js/wasm",
-			compilerMode: GoPluginCompilerModeTinyGo,
-			expected:     GoPluginCompilerModeTinyGo,
+			name:       "explicit tinygo mode",
+			platformID: "web/js/wasm",
+			goCompiler: GoCompilerTinyGo,
+			expected:   GoCompilerTinyGo,
 		},
 		{
-			name:         "explicit goscript mode",
-			platformID:   "web/js/wasm",
-			compilerMode: GoPluginCompilerModeGoScript,
-			expected:     GoPluginCompilerModeGoScript,
+			name:       "explicit goscript mode",
+			platformID: "web/js/wasm",
+			goCompiler: GoCompilerGoScript,
+			expected:   GoCompilerGoScript,
 		},
 		{
-			name:         "explicit tinygo unsupported js",
-			platformID:   "js",
-			compilerMode: GoPluginCompilerModeTinyGo,
-			expectError:  true,
+			name:        "explicit tinygo unsupported js",
+			platformID:  "js",
+			goCompiler:  GoCompilerTinyGo,
+			expectError: true,
 		},
 		{
 			name:       "default standard go",
 			platformID: "web/js/wasm",
-			expected:   GoPluginCompilerModeGo,
+			expected:   GoCompilerGo,
 		},
 		{
 			name:                 "default browser release tinygo",
 			platformID:           "web/js/wasm",
 			defaultTinygoEnabled: true,
-			expected:             GoPluginCompilerModeTinyGo,
+			expected:             GoCompilerTinyGo,
 		},
 		{
 			name:                 "explicit standard go overrides default",
 			platformID:           "web/js/wasm",
-			compilerMode:         GoPluginCompilerModeGo,
+			goCompiler:           GoCompilerGo,
 			defaultTinygoEnabled: true,
-			expected:             GoPluginCompilerModeGo,
+			expected:             GoCompilerGo,
 		},
 	}
 
@@ -74,9 +74,9 @@ func TestResolveGoPluginCompilerMode(t *testing.T) {
 				t.Fatalf("%s: unexpected error: %s", tc.platformID, err.Error())
 			}
 
-			actual, err := ResolveGoPluginCompilerMode(
+			actual, err := ResolveGoCompiler(
 				plat,
-				tc.compilerMode,
+				tc.goCompiler,
 				tc.defaultTinygoEnabled,
 			)
 			if tc.expectError {
@@ -98,34 +98,34 @@ func TestResolveGoPluginCompilerMode(t *testing.T) {
 	}
 }
 
-func TestResolveGoPluginCompilerModeUsesEnvForDefault(t *testing.T) {
-	t.Setenv(GoPluginCompilerModeEnv, string(GoPluginCompilerModeGoScript))
+func TestResolveGoCompilerUsesEnvForDefault(t *testing.T) {
+	t.Setenv(GoCompilerEnv, string(GoCompilerGoScript))
 	plat, err := bldr_platform.ParsePlatform("web/js/wasm")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	actual, err := ResolveGoPluginCompilerMode(plat, GoPluginCompilerModeDefault, false)
+	actual, err := ResolveGoCompiler(plat, GoCompilerDefault, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if actual != GoPluginCompilerModeGoScript {
-		t.Fatalf("compiler mode = %s, want %s", actual, GoPluginCompilerModeGoScript)
+	if actual != GoCompilerGoScript {
+		t.Fatalf("compiler mode = %s, want %s", actual, GoCompilerGoScript)
 	}
 }
 
-func TestResolveGoPluginCompilerModeExplicitOverridesEnv(t *testing.T) {
-	t.Setenv(GoPluginCompilerModeEnv, string(GoPluginCompilerModeGoScript))
+func TestResolveGoCompilerExplicitOverridesEnv(t *testing.T) {
+	t.Setenv(GoCompilerEnv, string(GoCompilerGoScript))
 	plat, err := bldr_platform.ParsePlatform("web/js/wasm")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	actual, err := ResolveGoPluginCompilerMode(plat, GoPluginCompilerModeGo, false)
+	actual, err := ResolveGoCompiler(plat, GoCompilerGo, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if actual != GoPluginCompilerModeGo {
-		t.Fatalf("compiler mode = %s, want %s", actual, GoPluginCompilerModeGo)
+	if actual != GoCompilerGo {
+		t.Fatalf("compiler mode = %s, want %s", actual, GoCompilerGo)
 	}
 }

@@ -296,23 +296,23 @@ func WithGoScriptBrowserStartup() Option {
 // EnableTinyGoForManifest enables TinyGo for a Go plugin Manifest's web
 // platform override.
 func EnableTinyGoForManifest(manifestID string) func(*bldr_project.ProjectConfig) error {
-	return EnableCompilerModeForManifest(manifestID, bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_TINYGO)
+	return EnableGoCompilerForManifest(manifestID, bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_TINYGO)
 }
 
 // EnableGoScriptForManifest enables GoScript for a Go plugin Manifest's web
 // platform override.
 func EnableGoScriptForManifest(manifestID string) func(*bldr_project.ProjectConfig) error {
-	return EnableCompilerModeForManifest(manifestID, bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT)
+	return EnableGoCompilerForManifest(manifestID, bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT)
 }
 
-// EnableCompilerModeForManifest enables a compiler mode for a Go plugin
+// EnableGoCompilerForManifest enables a compiler mode for a Go plugin
 // Manifest's web platform override.
-func EnableCompilerModeForManifest(
+func EnableGoCompilerForManifest(
 	manifestID string,
-	mode bldr_plugin_compiler_go.CompilerMode,
+	mode bldr_plugin_compiler_go.GoCompiler,
 ) func(*bldr_project.ProjectConfig) error {
 	return updateGoPluginManifest(manifestID, func(goConf *bldr_plugin_compiler_go.Config) error {
-		setWebCompilerMode(goConf, mode)
+		setWebGoCompiler(goConf, mode)
 		return nil
 	})
 }
@@ -320,13 +320,13 @@ func EnableCompilerModeForManifest(
 // ConfigureTinyGoForManifest enables TinyGo and removes dev-only config that
 // pulls packages TinyGo cannot compile.
 func ConfigureTinyGoForManifest(manifestID string) func(*bldr_project.ProjectConfig) error {
-	return ConfigureCompilerModeForManifest(manifestID, bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_TINYGO)
+	return ConfigureGoCompilerForManifest(manifestID, bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_TINYGO)
 }
 
 // ConfigureGoScriptForManifest enables GoScript and removes dev-only config
 // that pulls packages the browser lane should not compile.
 func ConfigureGoScriptForManifest(manifestID string) func(*bldr_project.ProjectConfig) error {
-	return ConfigureCompilerModeForManifest(manifestID, bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT)
+	return ConfigureGoCompilerForManifest(manifestID, bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT)
 }
 
 // ConfigureGoScriptBrowserStartup makes the local GoScript e2e lane cover the
@@ -349,14 +349,14 @@ func ConfigureGoScriptBrowserStartup(conf *bldr_project.ProjectConfig) error {
 	return nil
 }
 
-// ConfigureCompilerModeForManifest enables an alternate browser Go plugin
+// ConfigureGoCompilerForManifest enables an alternate browser Go plugin
 // compiler and removes dev-only config outside the seed compiler proof.
-func ConfigureCompilerModeForManifest(
+func ConfigureGoCompilerForManifest(
 	manifestID string,
-	mode bldr_plugin_compiler_go.CompilerMode,
+	mode bldr_plugin_compiler_go.GoCompiler,
 ) func(*bldr_project.ProjectConfig) error {
 	return updateGoPluginManifest(manifestID, func(goConf *bldr_plugin_compiler_go.Config) error {
-		setWebCompilerMode(goConf, mode)
+		setWebGoCompiler(goConf, mode)
 		removeDebugTraceConfig(goConf)
 		removeSessionHarnessWebRTCConfig(goConf)
 		return nil
@@ -427,7 +427,7 @@ func setStartupPlugins(conf *bldr_project.ProjectConfig, plugins []string) {
 	conf.Start.Plugins = append([]string(nil), plugins...)
 }
 
-func setWebCompilerMode(goConf *bldr_plugin_compiler_go.Config, mode bldr_plugin_compiler_go.CompilerMode) {
+func setWebGoCompiler(goConf *bldr_plugin_compiler_go.Config, mode bldr_plugin_compiler_go.GoCompiler) {
 	if goConf.PlatformTypes == nil {
 		goConf.PlatformTypes = make(map[string]*bldr_plugin_compiler_go.Config)
 	}
@@ -435,7 +435,7 @@ func setWebCompilerMode(goConf *bldr_plugin_compiler_go.Config, mode bldr_plugin
 	if webConf == nil {
 		webConf = &bldr_plugin_compiler_go.Config{}
 	}
-	webConf.CompilerMode = mode
+	webConf.GoCompiler = mode
 	goConf.PlatformTypes["web"] = webConf
 }
 

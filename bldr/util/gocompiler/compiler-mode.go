@@ -9,92 +9,92 @@ import (
 	bldr_platform_go "github.com/s4wave/spacewave/bldr/platform/go"
 )
 
-// GoPluginCompilerMode identifies the compiler used for a Go plugin artifact.
-type GoPluginCompilerMode string
+// GoCompiler identifies the compiler used for a Go plugin artifact.
+type GoCompiler string
 
 const (
-	// GoPluginCompilerModeDefault preserves the current default policy.
-	GoPluginCompilerModeDefault GoPluginCompilerMode = ""
-	// GoPluginCompilerModeGo uses the standard Go compiler.
-	GoPluginCompilerModeGo GoPluginCompilerMode = "go"
-	// GoPluginCompilerModeTinyGo uses TinyGo.
-	GoPluginCompilerModeTinyGo GoPluginCompilerMode = "tinygo"
-	// GoPluginCompilerModeGoScript uses GoScript.
-	GoPluginCompilerModeGoScript GoPluginCompilerMode = "goscript"
+	// GoCompilerDefault preserves the current default policy.
+	GoCompilerDefault GoCompiler = ""
+	// GoCompilerGo uses the standard Go compiler.
+	GoCompilerGo GoCompiler = "go"
+	// GoCompilerTinyGo uses TinyGo.
+	GoCompilerTinyGo GoCompiler = "tinygo"
+	// GoCompilerGoScript uses GoScript.
+	GoCompilerGoScript GoCompiler = "goscript"
 )
 
-// GoPluginCompilerModeEnv is the devtool-wide default Go plugin compiler mode.
-// Explicit manifest compilerMode config still wins over this process default.
-const GoPluginCompilerModeEnv = "BLDR_GO_PLUGIN_COMPILER_MODE"
+// GoCompilerEnv is the devtool-wide default Go compiler.
+// Explicit manifest goCompiler config still wins over this process default.
+const GoCompilerEnv = "BLDR_GO_COMPILER"
 
 // IsTinyGo returns true when this mode uses TinyGo.
-func (m GoPluginCompilerMode) IsTinyGo() bool {
-	return m == GoPluginCompilerModeTinyGo
+func (m GoCompiler) IsTinyGo() bool {
+	return m == GoCompilerTinyGo
 }
 
 // IsGoScript returns true when this mode uses GoScript.
-func (m GoPluginCompilerMode) IsGoScript() bool {
-	return m == GoPluginCompilerModeGoScript
+func (m GoCompiler) IsGoScript() bool {
+	return m == GoCompilerGoScript
 }
 
-// ParseGoPluginCompilerMode parses the CLI/env compiler mode value.
-func ParseGoPluginCompilerMode(mode string) (GoPluginCompilerMode, error) {
-	switch GoPluginCompilerMode(strings.TrimSpace(strings.ToLower(mode))) {
-	case GoPluginCompilerModeDefault:
-		return GoPluginCompilerModeDefault, nil
-	case GoPluginCompilerModeGo:
-		return GoPluginCompilerModeGo, nil
-	case GoPluginCompilerModeTinyGo:
-		return GoPluginCompilerModeTinyGo, nil
-	case GoPluginCompilerModeGoScript:
-		return GoPluginCompilerModeGoScript, nil
+// ParseGoCompiler parses the CLI/env compiler mode value.
+func ParseGoCompiler(mode string) (GoCompiler, error) {
+	switch GoCompiler(strings.TrimSpace(strings.ToLower(mode))) {
+	case GoCompilerDefault:
+		return GoCompilerDefault, nil
+	case GoCompilerGo:
+		return GoCompilerGo, nil
+	case GoCompilerTinyGo:
+		return GoCompilerTinyGo, nil
+	case GoCompilerGoScript:
+		return GoCompilerGoScript, nil
 	default:
-		return "", errors.Errorf("unknown Go plugin compiler mode %q", mode)
+		return "", errors.Errorf("unknown Go compiler %q", mode)
 	}
 }
 
-// GoPluginCompilerModeStartupCacheEnvKeys returns env keys that affect default
-// Go plugin compiler-mode selection.
-func GoPluginCompilerModeStartupCacheEnvKeys() []string {
-	return []string{GoPluginCompilerModeEnv}
+// GoCompilerStartupCacheEnvKeys returns env keys that affect default Go
+// compiler selection.
+func GoCompilerStartupCacheEnvKeys() []string {
+	return []string{GoCompilerEnv}
 }
 
-// ResolveGoPluginCompilerMode resolves the Go plugin compiler choice.
-func ResolveGoPluginCompilerMode(
+// ResolveGoCompiler resolves the Go compiler choice.
+func ResolveGoCompiler(
 	buildPlatform bldr_platform.Platform,
-	compilerMode GoPluginCompilerMode,
+	goCompiler GoCompiler,
 	defaultTinygoEnabled bool,
-) (GoPluginCompilerMode, error) {
-	if compilerMode == GoPluginCompilerModeDefault {
-		envMode, err := ParseGoPluginCompilerMode(os.Getenv(GoPluginCompilerModeEnv))
+) (GoCompiler, error) {
+	if goCompiler == GoCompilerDefault {
+		envMode, err := ParseGoCompiler(os.Getenv(GoCompilerEnv))
 		if err != nil {
 			return "", err
 		}
-		if envMode != GoPluginCompilerModeDefault {
-			compilerMode = envMode
+		if envMode != GoCompilerDefault {
+			goCompiler = envMode
 		}
 	}
 
-	switch compilerMode {
-	case GoPluginCompilerModeDefault:
-	case GoPluginCompilerModeGo:
-		return GoPluginCompilerModeGo, nil
-	case GoPluginCompilerModeTinyGo:
+	switch goCompiler {
+	case GoCompilerDefault:
+	case GoCompilerGo:
+		return GoCompilerGo, nil
+	case GoCompilerTinyGo:
 		if _, err := bldr_platform_go.PlatformToTinyGoTarget(buildPlatform); err != nil {
 			return "", errors.Wrap(err, "tinygo enabled")
 		}
-		return GoPluginCompilerModeTinyGo, nil
-	case GoPluginCompilerModeGoScript:
-		return GoPluginCompilerModeGoScript, nil
+		return GoCompilerTinyGo, nil
+	case GoCompilerGoScript:
+		return GoCompilerGoScript, nil
 	default:
-		return "", errors.Errorf("unknown Go plugin compiler mode %q", compilerMode)
+		return "", errors.Errorf("unknown Go compiler %q", goCompiler)
 	}
 
 	if !defaultTinygoEnabled {
-		return GoPluginCompilerModeGo, nil
+		return GoCompilerGo, nil
 	}
 	if _, err := bldr_platform_go.PlatformToTinyGoTarget(buildPlatform); err != nil {
 		return "", errors.Wrap(err, "tinygo enabled")
 	}
-	return GoPluginCompilerModeTinyGo, nil
+	return GoCompilerTinyGo, nil
 }

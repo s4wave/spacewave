@@ -315,7 +315,7 @@ func (c *Controller) BuildManifest(
 			pluginBuildConf.GetConfigSet(),
 			pluginBuildConf.GetHostConfigSet(),
 			pluginBuildConf.GetEnableCgo(),
-			pluginBuildConf.GetCompilerMode(),
+			pluginBuildConf.GetGoCompiler(),
 			pluginBuildConf.GetEnableImportedFactoryDiscovery(),
 			pluginBuildConf.GetEnableCompression(),
 			pluginBuildConf.GetEsbuildFlags(),
@@ -397,7 +397,7 @@ func (c *Controller) BuildPlugin(
 	configSet map[string]*configset_proto.ControllerConfig,
 	hostConfigSet map[string]*configset_proto.ControllerConfig,
 	enableCgoOpt enabled.Enabled,
-	compilerModeOpt CompilerMode,
+	goCompilerOpt GoCompiler,
 	enableImportedFactoryDiscoveryOpt enabled.Enabled,
 	enableCompressionOpt enabled.Enabled,
 	baseEsbuildFlags []string,
@@ -419,11 +419,11 @@ func (c *Controller) BuildPlugin(
 	enableCgo := enableCgoOpt.IsEnabled(false)
 	// enable compression for release mode only on default (isRelease means default value depends on release mode)
 	enableCompression := enableCompressionOpt.IsEnabled(isRelease)
-	resolvedModeOpt, err := compilerModeOpt.GoPluginCompilerMode()
+	resolvedModeOpt, err := goCompilerOpt.GoCompiler()
 	if err != nil {
 		return nil, nil, err
 	}
-	compilerMode, err := gocompiler.ResolveGoPluginCompilerMode(
+	goCompiler, err := gocompiler.ResolveGoCompiler(
 		buildPlatform,
 		resolvedModeOpt,
 		isWebBuildPlatform && gocompiler.DefaultTinyGoEnabled(buildPlatform, isRelease),
@@ -431,15 +431,15 @@ func (c *Controller) BuildPlugin(
 	if err != nil {
 		return nil, nil, err
 	}
-	useGoScript := compilerMode == gocompiler.GoPluginCompilerModeGoScript
+	useGoScript := goCompiler == gocompiler.GoCompilerGoScript
 	if useGoScript && !isWebBuildPlatform {
 		return nil, nil, errors.New("goscript Go plugin compiler mode currently requires a browser WebAssembly platform")
 	}
-	resolvedCompilerMode, err := CompilerModeFromGoPluginCompilerMode(compilerMode)
+	resolvedGoCompiler, err := GoCompilerFromGoCompiler(goCompiler)
 	if err != nil {
 		return nil, nil, err
 	}
-	enableTinygo := compilerMode.IsTinyGo()
+	enableTinygo := goCompiler.IsTinyGo()
 	enableImportedFactoryDiscovery := enableImportedFactoryDiscoveryOpt.IsEnabled(false)
 
 	// build the config set based on configuration
@@ -549,7 +549,7 @@ func (c *Controller) BuildPlugin(
 
 	// analyze go packages
 	le.Info("analyzing go packages")
-	buildTagsForAnalyze := newBuildTagsForAnalyze(buildType, enableCgo, compilerMode)
+	buildTagsForAnalyze := newBuildTagsForAnalyze(buildType, enableCgo, goCompiler)
 	// Match analysis GOOS/GOARCH to the target so factories gated on
 	// platform-specific build tags (e.g. volume_bolt with "//go:build !js")
 	// are excluded from the generated factory list when targeting js/wasm.
@@ -1033,7 +1033,7 @@ func (c *Controller) BuildPlugin(
 		ViteConfigPaths:          conf.GetViteConfigPaths(),
 		ViteOutputs:              viteOutputMeta,
 		ViteDisableProjectConfig: conf.GetViteDisableProjectConfig(),
-		CompilerMode:             resolvedCompilerMode,
+		GoCompiler:               resolvedGoCompiler,
 		GoscriptBuildFlags:       goScriptBuildFlags,
 		GoscriptOverrideDirs:     goScriptOverrideDirRels,
 		GoscriptAllDependencies:  useGoScript,
@@ -1096,7 +1096,7 @@ func (c *Controller) BuildPlugin(
 			StartupOnly: true,
 		})
 	}
-	addCompilerStartupCacheInputs(inputManifest, compilerModeOpt, compilerMode)
+	addCompilerStartupCacheInputs(inputManifest, goCompilerOpt, goCompiler)
 	inputManifest.SortFiles()
 
 	return an, inputManifest, nil
@@ -1110,19 +1110,19 @@ func newGoScriptBuildFlags(buildType bldr_manifest.BuildType, enableCgo bool) []
 
 func addCompilerStartupCacheInputs(
 	inputManifest *bldr_manifest_builder.InputManifest,
-	compilerModeOpt CompilerMode,
-	compilerMode gocompiler.GoPluginCompilerMode,
+	goCompilerOpt GoCompiler,
+	goCompiler gocompiler.GoCompiler,
 ) {
-	if compilerMode.IsTinyGo() {
+	if goCompiler.IsTinyGo() {
 		addTinyGoStartupCacheInputs(inputManifest)
 	}
-	if compilerModeOpt == CompilerMode_COMPILER_MODE_DEFAULT {
-		addGoPluginCompilerModeStartupCacheInputs(inputManifest)
+	if goCompilerOpt == GoCompiler_GO_COMPILER_DEFAULT {
+		addGoCompilerStartupCacheInputs(inputManifest)
 	}
-	if compilerMode == gocompiler.GoPluginCompilerModeGo {
+	if goCompiler == gocompiler.GoCompilerGo {
 		addGoWasmOptimizeStartupCacheInputs(inputManifest)
 	}
-	if compilerMode.IsGoScript() {
+	if goCompiler.IsGoScript() {
 		addGoScriptStartupCacheInputs(inputManifest)
 	}
 }
@@ -1134,8 +1134,8 @@ func addTinyGoStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManif
 	inputManifest.SortStartupInputs()
 }
 
-func addGoPluginCompilerModeStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
-	for _, envKey := range gocompiler.GoPluginCompilerModeStartupCacheEnvKeys() {
+func addGoCompilerStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
+	for _, envKey := range gocompiler.GoCompilerStartupCacheEnvKeys() {
 		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
 	}
 	inputManifest.SortStartupInputs()
@@ -1208,14 +1208,14 @@ func filterPathsUnderBase(basePath string, paths []string) []string {
 func newBuildTagsForAnalyze(
 	buildType bldr_manifest.BuildType,
 	enableCgo bool,
-	compilerMode gocompiler.GoPluginCompilerMode,
+	goCompiler gocompiler.GoCompiler,
 ) []string {
 	buildTags := gocompiler.NewBuildTags(buildType, enableCgo)
-	if compilerMode.IsTinyGo() {
+	if goCompiler.IsTinyGo() {
 		buildTags = append(buildTags, "tinygo")
 		buildTags = append(buildTags, gocompiler.BldrTinyGoJSImportBuildTag)
 	}
-	if compilerMode.IsGoScript() {
+	if goCompiler.IsGoScript() {
 		buildTags = append(buildTags, gocompiler.GoScriptBuildTag)
 	}
 	return buildTags

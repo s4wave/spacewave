@@ -23,44 +23,44 @@ import (
 	pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 )
 
-// CompilerMode selects the compiler used for the Go plugin artifact.
-type CompilerMode int32
+// GoCompiler selects the compiler used for the Go plugin artifact.
+type GoCompiler int32
 
 const (
-	// COMPILER_MODE_DEFAULT preserves the current default policy.
-	CompilerMode_COMPILER_MODE_DEFAULT CompilerMode = 0
-	// COMPILER_MODE_GO uses the standard Go compiler.
-	CompilerMode_COMPILER_MODE_GO CompilerMode = 1
-	// COMPILER_MODE_TINYGO uses TinyGo.
-	CompilerMode_COMPILER_MODE_TINYGO CompilerMode = 2
-	// COMPILER_MODE_GOSCRIPT uses GoScript.
-	CompilerMode_COMPILER_MODE_GOSCRIPT CompilerMode = 3
+	// GO_COMPILER_DEFAULT preserves the current default policy.
+	GoCompiler_GO_COMPILER_DEFAULT GoCompiler = 0
+	// GO_COMPILER_GO uses the standard Go compiler.
+	GoCompiler_GO_COMPILER_GO GoCompiler = 1
+	// GO_COMPILER_TINYGO uses TinyGo.
+	GoCompiler_GO_COMPILER_TINYGO GoCompiler = 2
+	// GO_COMPILER_GOSCRIPT uses GoScript.
+	GoCompiler_GO_COMPILER_GOSCRIPT GoCompiler = 3
 )
 
-// Enum value maps for CompilerMode.
+// Enum value maps for GoCompiler.
 var (
-	CompilerMode_name = map[int32]string{
-		0: "COMPILER_MODE_DEFAULT",
-		1: "COMPILER_MODE_GO",
-		2: "COMPILER_MODE_TINYGO",
-		3: "COMPILER_MODE_GOSCRIPT",
+	GoCompiler_name = map[int32]string{
+		0: "GO_COMPILER_DEFAULT",
+		1: "GO_COMPILER_GO",
+		2: "GO_COMPILER_TINYGO",
+		3: "GO_COMPILER_GOSCRIPT",
 	}
-	CompilerMode_value = map[string]int32{
-		"COMPILER_MODE_DEFAULT":  0,
-		"COMPILER_MODE_GO":       1,
-		"COMPILER_MODE_TINYGO":   2,
-		"COMPILER_MODE_GOSCRIPT": 3,
+	GoCompiler_value = map[string]int32{
+		"GO_COMPILER_DEFAULT":  0,
+		"GO_COMPILER_GO":       1,
+		"GO_COMPILER_TINYGO":   2,
+		"GO_COMPILER_GOSCRIPT": 3,
 	}
 )
 
-func (x CompilerMode) Enum() *CompilerMode {
-	p := new(CompilerMode)
+func (x GoCompiler) Enum() *GoCompiler {
+	p := new(GoCompiler)
 	*p = x
 	return p
 }
 
-func (x CompilerMode) String() string {
-	name, valid := CompilerMode_name[int32(x)]
+func (x GoCompiler) String() string {
+	name, valid := GoCompiler_name[int32(x)]
 	if valid {
 		return name
 	}
@@ -253,9 +253,9 @@ type Config struct {
 	//
 	// Cgo may still be force-disabled if incompatible with the target (wasm, tinygo).
 	EnableCgo enabled.Enabled `protobuf:"varint,9,opt,name=enable_cgo,json=enableCgo,proto3" json:"enableCgo,omitempty"`
-	// CompilerMode selects the Go plugin compiler. DEFAULT preserves the current
+	// GoCompiler selects the Go plugin compiler. DEFAULT preserves the current
 	// release browser default policy.
-	CompilerMode CompilerMode `protobuf:"varint,7,opt,name=compiler_mode,json=compilerMode,proto3" json:"compilerMode,omitempty"`
+	GoCompiler GoCompiler `protobuf:"varint,7,opt,name=go_compiler,json=goCompiler,proto3" json:"goCompiler,omitempty"`
 	// EnableCompression can optionally force-enable or force-disable binary compression.
 	// The default is ENABLE for release-mode only.
 	// Only applicable for the web platform (WebAssembly) (currently).
@@ -362,11 +362,11 @@ func (x *Config) GetEnableCgo() enabled.Enabled {
 	return enabled.Enabled(0)
 }
 
-func (x *Config) GetCompilerMode() CompilerMode {
+func (x *Config) GetGoCompiler() GoCompiler {
 	if x != nil {
-		return x.CompilerMode
+		return x.GoCompiler
 	}
-	return CompilerMode_COMPILER_MODE_DEFAULT
+	return GoCompiler_GO_COMPILER_DEFAULT
 }
 
 func (x *Config) GetEnableCompression() enabled.Enabled {
@@ -476,8 +476,8 @@ type InputManifestMeta struct {
 	// ViteDisableProjectConfig indicates whether to disable automatic project config detection.
 	// Disables finding the root vite.conf.ts for the project.
 	ViteDisableProjectConfig bool `protobuf:"varint,10,opt,name=vite_disable_project_config,json=viteDisableProjectConfig,proto3" json:"viteDisableProjectConfig,omitempty"`
-	// CompilerMode is the resolved compiler used to produce this artifact.
-	CompilerMode CompilerMode `protobuf:"varint,11,opt,name=compiler_mode,json=compilerMode,proto3" json:"compilerMode,omitempty"`
+	// GoCompiler is the resolved compiler used to produce this artifact.
+	GoCompiler GoCompiler `protobuf:"varint,11,opt,name=go_compiler,json=goCompiler,proto3" json:"goCompiler,omitempty"`
 	// GoScriptBuildFlags are the exact Go build flags forwarded to GoScript.
 	GoscriptBuildFlags []string `protobuf:"bytes,12,rep,name=goscript_build_flags,json=goscriptBuildFlags,proto3" json:"goscriptBuildFlags,omitempty"`
 	// GoScriptOverrideDirs are source-relative project-local GoScript override roots.
@@ -562,11 +562,11 @@ func (x *InputManifestMeta) GetViteDisableProjectConfig() bool {
 	return false
 }
 
-func (x *InputManifestMeta) GetCompilerMode() CompilerMode {
+func (x *InputManifestMeta) GetGoCompiler() GoCompiler {
 	if x != nil {
-		return x.CompilerMode
+		return x.GoCompiler
 	}
-	return CompilerMode_COMPILER_MODE_DEFAULT
+	return GoCompiler_GO_COMPILER_DEFAULT
 }
 
 func (x *InputManifestMeta) GetGoscriptBuildFlags() []string {
@@ -893,7 +893,7 @@ func (m *Config) CloneVT() *Config {
 	r.DisableRpcFetch = m.DisableRpcFetch
 	r.DelveAddr = m.DelveAddr
 	r.EnableCgo = m.EnableCgo
-	r.CompilerMode = m.CompilerMode
+	r.GoCompiler = m.GoCompiler
 	r.EnableCompression = m.EnableCompression
 	r.WebPluginId = m.WebPluginId
 	r.EnableImportedFactoryDiscovery = m.EnableImportedFactoryDiscovery
@@ -985,7 +985,7 @@ func (m *InputManifestMeta) CloneVT() *InputManifestMeta {
 	r := new(InputManifestMeta)
 	r.DevInfo = m.DevInfo.CloneVT()
 	r.ViteDisableProjectConfig = m.ViteDisableProjectConfig
-	r.CompilerMode = m.CompilerMode
+	r.GoCompiler = m.GoCompiler
 	r.GoscriptAllDependencies = m.GoscriptAllDependencies
 	if rhs := m.WebPkgRefs; rhs != nil {
 		r.WebPkgRefs = make([]*pkg.WebPkgRef, len(rhs))
@@ -1213,7 +1213,7 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.DisableRpcFetch != that.DisableRpcFetch {
 		return false
 	}
-	if this.CompilerMode != that.CompilerMode {
+	if this.GoCompiler != that.GoCompiler {
 		return false
 	}
 	if this.DelveAddr != that.DelveAddr {
@@ -1475,7 +1475,7 @@ func (this *InputManifestMeta) EqualVT(that *InputManifestMeta) bool {
 	if this.ViteDisableProjectConfig != that.ViteDisableProjectConfig {
 		return false
 	}
-	if this.CompilerMode != that.CompilerMode {
+	if this.GoCompiler != that.GoCompiler {
 		return false
 	}
 	if len(this.GoscriptBuildFlags) != len(that.GoscriptBuildFlags) {
@@ -1666,43 +1666,43 @@ func (this *ViteEntrypointVar) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
-// MarshalProtoJSON marshals the CompilerMode to JSON.
-func (x CompilerMode) MarshalProtoJSON(s *json.MarshalState) {
-	s.WriteEnum(int32(x), CompilerMode_name)
+// MarshalProtoJSON marshals the GoCompiler to JSON.
+func (x GoCompiler) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), GoCompiler_name)
 }
 
-// MarshalText marshals the CompilerMode to text.
-func (x CompilerMode) MarshalText() ([]byte, error) {
-	return []byte(json.GetEnumString(int32(x), CompilerMode_name)), nil
+// MarshalText marshals the GoCompiler to text.
+func (x GoCompiler) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), GoCompiler_name)), nil
 }
 
-// MarshalJSON marshals the CompilerMode to JSON.
-func (x CompilerMode) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the GoCompiler to JSON.
+func (x GoCompiler) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the CompilerMode from JSON.
-func (x *CompilerMode) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	v := s.ReadEnum(CompilerMode_value)
+// UnmarshalProtoJSON unmarshals the GoCompiler from JSON.
+func (x *GoCompiler) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(GoCompiler_value)
 	if err := s.Err(); err != nil {
-		s.SetErrorf("could not read CompilerMode enum: %v", err)
+		s.SetErrorf("could not read GoCompiler enum: %v", err)
 		return
 	}
-	*x = CompilerMode(v)
+	*x = GoCompiler(v)
 }
 
-// UnmarshalText unmarshals the CompilerMode from text.
-func (x *CompilerMode) UnmarshalText(b []byte) error {
-	i, err := json.ParseEnumString(string(b), CompilerMode_value)
+// UnmarshalText unmarshals the GoCompiler from text.
+func (x *GoCompiler) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), GoCompiler_value)
 	if err != nil {
 		return err
 	}
-	*x = CompilerMode(i)
+	*x = GoCompiler(i)
 	return nil
 }
 
-// UnmarshalJSON unmarshals the CompilerMode from JSON.
-func (x *CompilerMode) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the GoCompiler from JSON.
+func (x *GoCompiler) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2100,10 +2100,10 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("disableRpcFetch")
 		s.WriteBool(x.DisableRpcFetch)
 	}
-	if x.CompilerMode != 0 || s.HasField("compilerMode") {
+	if x.GoCompiler != 0 || s.HasField("goCompiler") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("compilerMode")
-		x.CompilerMode.MarshalProtoJSON(s)
+		s.WriteObjectField("goCompiler")
+		x.GoCompiler.MarshalProtoJSON(s)
 	}
 	if x.DelveAddr != "" || s.HasField("delveAddr") {
 		s.WriteMoreIf(&wroteField)
@@ -2241,9 +2241,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "disable_rpc_fetch", "disableRpcFetch":
 			s.AddField("disable_rpc_fetch")
 			x.DisableRpcFetch = s.ReadBool()
-		case "compiler_mode", "compilerMode":
-			s.AddField("compiler_mode")
-			x.CompilerMode.UnmarshalProtoJSON(s)
+		case "go_compiler", "goCompiler":
+			s.AddField("go_compiler")
+			x.GoCompiler.UnmarshalProtoJSON(s)
 		case "delve_addr", "delveAddr":
 			s.AddField("delve_addr")
 			x.DelveAddr = s.ReadString()
@@ -2491,10 +2491,10 @@ func (x *InputManifestMeta) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("viteDisableProjectConfig")
 		s.WriteBool(x.ViteDisableProjectConfig)
 	}
-	if x.CompilerMode != 0 || s.HasField("compilerMode") {
+	if x.GoCompiler != 0 || s.HasField("goCompiler") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("compilerMode")
-		x.CompilerMode.MarshalProtoJSON(s)
+		s.WriteObjectField("goCompiler")
+		x.GoCompiler.MarshalProtoJSON(s)
 	}
 	if len(x.GoscriptBuildFlags) > 0 || s.HasField("goscriptBuildFlags") {
 		s.WriteMoreIf(&wroteField)
@@ -2660,9 +2660,9 @@ func (x *InputManifestMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "vite_disable_project_config", "viteDisableProjectConfig":
 			s.AddField("vite_disable_project_config")
 			x.ViteDisableProjectConfig = s.ReadBool()
-		case "compiler_mode", "compilerMode":
-			s.AddField("compiler_mode")
-			x.CompilerMode.UnmarshalProtoJSON(s)
+		case "go_compiler", "goCompiler":
+			s.AddField("go_compiler")
+			x.GoCompiler.UnmarshalProtoJSON(s)
 		case "goscript_build_flags", "goscriptBuildFlags":
 			s.AddField("goscript_build_flags")
 			if s.ReadNil() {
@@ -3140,8 +3140,8 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x42
 	}
-	if m.CompilerMode != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CompilerMode))
+	if m.GoCompiler != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.GoCompiler))
 		i--
 		dAtA[i] = 0x38
 	}
@@ -3369,8 +3369,8 @@ func (m *InputManifestMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0x62
 		}
 	}
-	if m.CompilerMode != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CompilerMode))
+	if m.GoCompiler != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.GoCompiler))
 		i--
 		dAtA[i] = 0x58
 	}
@@ -3795,8 +3795,8 @@ func (m *Config) SizeVT() (n int) {
 	if m.DisableRpcFetch {
 		n += 2
 	}
-	if m.CompilerMode != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.CompilerMode))
+	if m.GoCompiler != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.GoCompiler))
 	}
 	l = len(m.DelveAddr)
 	if l > 0 {
@@ -3948,8 +3948,8 @@ func (m *InputManifestMeta) SizeVT() (n int) {
 	if m.ViteDisableProjectConfig {
 		n += 2
 	}
-	if m.CompilerMode != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.CompilerMode))
+	if m.GoCompiler != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.GoCompiler))
 	}
 	if len(m.GoscriptBuildFlags) > 0 {
 		for _, s := range m.GoscriptBuildFlags {
@@ -4079,7 +4079,7 @@ func (m *ViteEntrypointVar) SizeVT() (n int) {
 	return n
 }
 
-func (x CompilerMode) MarshalProtoText() string {
+func (x GoCompiler) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -4278,13 +4278,13 @@ func (x *Config) MarshalProtoText() string {
 		sb.WriteString("disable_rpc_fetch: ")
 		sb.WriteString(strconv.FormatBool(x.DisableRpcFetch))
 	}
-	if x.CompilerMode != 0 {
+	if x.GoCompiler != 0 {
 		if sb.Len() > 8 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("compiler_mode: ")
+		sb.WriteString("go_compiler: ")
 		sb.WriteString("\"")
-		sb.WriteString(CompilerMode(x.CompilerMode).String())
+		sb.WriteString(GoCompiler(x.GoCompiler).String())
 		sb.WriteString("\"")
 	}
 	if x.DelveAddr != "" {
@@ -4588,13 +4588,13 @@ func (x *InputManifestMeta) MarshalProtoText() string {
 		sb.WriteString("vite_disable_project_config: ")
 		sb.WriteString(strconv.FormatBool(x.ViteDisableProjectConfig))
 	}
-	if x.CompilerMode != 0 {
+	if x.GoCompiler != 0 {
 		if sb.Len() > 19 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("compiler_mode: ")
+		sb.WriteString("go_compiler: ")
 		sb.WriteString("\"")
-		sb.WriteString(CompilerMode(x.CompilerMode).String())
+		sb.WriteString(GoCompiler(x.GoCompiler).String())
 		sb.WriteString("\"")
 	}
 	if len(x.GoscriptBuildFlags) > 0 {
@@ -5120,12 +5120,12 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			m.DisableRpcFetch = bool(v != 0)
 		case 7:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CompilerMode", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field GoCompiler", wireType)
 			}
-			m.CompilerMode = 0
+			m.GoCompiler = 0
 			var _v uint64
 			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.CompilerMode = CompilerMode(_v)
+			m.GoCompiler = GoCompiler(_v)
 			if err != nil {
 				return err
 			}
@@ -5858,12 +5858,12 @@ func (m *InputManifestMeta) UnmarshalVT(dAtA []byte) error {
 			m.ViteDisableProjectConfig = bool(v != 0)
 		case 11:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CompilerMode", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field GoCompiler", wireType)
 			}
-			m.CompilerMode = 0
+			m.GoCompiler = 0
 			var _v uint64
 			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.CompilerMode = CompilerMode(_v)
+			m.GoCompiler = GoCompiler(_v)
 			if err != nil {
 				return err
 			}

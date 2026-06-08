@@ -9,6 +9,8 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ControllerConfig } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
 import type { Enabled } from '@go/github.com/aperturerobotics/util/enabled/enabled.pb.js'
 import { Enabled_Enum } from '@go/github.com/aperturerobotics/util/enabled/enabled.pb.js'
+import type { GoCompiler } from '../../plugin/compiler/go/compiler.pb.js'
+import { GoCompiler_Enum } from '../../plugin/compiler/go/compiler.pb.js'
 
 export const protobufPackage = 'bldr.dist.compiler'
 
@@ -127,14 +129,11 @@ export interface Config {
    */
   enableCgo?: Enabled
   /**
-   * EnableTinygo enables using TinyGo instead of the Go compiler.
-   * Explicit ENABLE is only supported for TinyGo-compatible WebAssembly
-   * targets. The default remains the standard Go compiler because the dist
-   * runtime embeds the browser host and QuickJS runtime support.
+   * GoCompiler selects the Go compiler used for the dist entrypoint.
    *
-   * @generated from field: enabled.Enabled enable_tinygo = 6;
+   * @generated from field: bldr.plugin.compiler.go.GoCompiler go_compiler = 6;
    */
-  enableTinygo?: Enabled
+  goCompiler?: GoCompiler
   /**
    * EnableCompression can optionally force-enable or force-disable binary compression.
    * The default is ENABLE for release-mode only.
@@ -181,7 +180,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 10, name: 'entrypoint_role', kind: 'scalar', T: ScalarType.STRING },
     { no: 11, name: 'channel_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 5, name: 'enable_cgo', kind: 'enum', T: Enabled_Enum },
-    { no: 6, name: 'enable_tinygo', kind: 'enum', T: Enabled_Enum },
+    { no: 6, name: 'go_compiler', kind: 'enum', T: GoCompiler_Enum },
     { no: 7, name: 'enable_compression', kind: 'enum', T: Enabled_Enum },
     {
       no: 9,

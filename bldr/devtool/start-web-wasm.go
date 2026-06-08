@@ -36,22 +36,22 @@ import (
 // ExecuteWebGoScriptProject starts the browser-hosted devtool path with
 // GoScript as the default Go plugin compiler mode.
 func (a *DevtoolArgs) ExecuteWebGoScriptProject(ctx context.Context) error {
-	return withGoPluginCompilerMode(gocompiler.GoPluginCompilerModeGoScript, func() error {
+	return withGoCompiler(gocompiler.GoCompilerGoScript, func() error {
 		return a.ExecuteWebWasmProject(ctx)
 	})
 }
 
-func withGoPluginCompilerMode(mode gocompiler.GoPluginCompilerMode, fn func() error) error {
-	prev, hadPrev := os.LookupEnv(gocompiler.GoPluginCompilerModeEnv)
-	if err := os.Setenv(gocompiler.GoPluginCompilerModeEnv, string(mode)); err != nil {
+func withGoCompiler(mode gocompiler.GoCompiler, fn func() error) error {
+	prev, hadPrev := os.LookupEnv(gocompiler.GoCompilerEnv)
+	if err := os.Setenv(gocompiler.GoCompilerEnv, string(mode)); err != nil {
 		return err
 	}
 	defer func() {
 		if hadPrev {
-			_ = os.Setenv(gocompiler.GoPluginCompilerModeEnv, prev)
+			_ = os.Setenv(gocompiler.GoCompilerEnv, prev)
 			return
 		}
-		_ = os.Unsetenv(gocompiler.GoPluginCompilerModeEnv)
+		_ = os.Unsetenv(gocompiler.GoCompilerEnv)
 	}()
 	return fn()
 }

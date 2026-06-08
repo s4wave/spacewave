@@ -3,6 +3,7 @@ package bldr.dist.compiler;
 
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
 import "github.com/aperturerobotics/util/enabled/enabled.proto";
+import "github.com/s4wave/spacewave/bldr/plugin/compiler/go/compiler.proto";
 
 // EmbedManifest selects one manifest build to embed in the dist binary.
 //
@@ -68,11 +69,8 @@ message Config {
   // Cgo may still be force-disabled if incompatible with the target (wasm, tinygo).
   .enabled.Enabled enable_cgo = 5;
 
-  // EnableTinygo enables using TinyGo instead of the Go compiler.
-  // Explicit ENABLE is only supported for TinyGo-compatible WebAssembly
-  // targets. The default remains the standard Go compiler because the dist
-  // runtime embeds the browser host and QuickJS runtime support.
-  .enabled.Enabled enable_tinygo = 6;
+  // GoCompiler selects the Go compiler used for the dist entrypoint.
+  .bldr.plugin.compiler.go.GoCompiler go_compiler = 6;
 
   // EnableCompression can optionally force-enable or force-disable binary compression.
   // The default is ENABLE for release-mode only.

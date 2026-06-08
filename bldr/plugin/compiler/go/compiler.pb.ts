@@ -19,47 +19,47 @@ import { ViteOutputMeta } from '../../../web/bundler/vite/vite.pb.js'
 export const protobufPackage = 'bldr.plugin.compiler.go'
 
 /**
- * CompilerMode selects the compiler used for the Go plugin artifact.
+ * GoCompiler selects the compiler used for the Go plugin artifact.
  *
- * @generated from enum bldr.plugin.compiler.go.CompilerMode
+ * @generated from enum bldr.plugin.compiler.go.GoCompiler
  */
-export enum CompilerMode {
+export enum GoCompiler {
   /**
-   * COMPILER_MODE_DEFAULT preserves the current default policy.
+   * GO_COMPILER_DEFAULT preserves the current default policy.
    *
-   * @generated from enum value: COMPILER_MODE_DEFAULT = 0;
+   * @generated from enum value: GO_COMPILER_DEFAULT = 0;
    */
   DEFAULT = 0,
 
   /**
-   * COMPILER_MODE_GO uses the standard Go compiler.
+   * GO_COMPILER_GO uses the standard Go compiler.
    *
-   * @generated from enum value: COMPILER_MODE_GO = 1;
+   * @generated from enum value: GO_COMPILER_GO = 1;
    */
   GO = 1,
 
   /**
-   * COMPILER_MODE_TINYGO uses TinyGo.
+   * GO_COMPILER_TINYGO uses TinyGo.
    *
-   * @generated from enum value: COMPILER_MODE_TINYGO = 2;
+   * @generated from enum value: GO_COMPILER_TINYGO = 2;
    */
   TINYGO = 2,
 
   /**
-   * COMPILER_MODE_GOSCRIPT uses GoScript.
+   * GO_COMPILER_GOSCRIPT uses GoScript.
    *
-   * @generated from enum value: COMPILER_MODE_GOSCRIPT = 3;
+   * @generated from enum value: GO_COMPILER_GOSCRIPT = 3;
    */
   GOSCRIPT = 3,
 }
 
-export const CompilerMode_Enum = /* @__PURE__ */ createEnumType(
-  'bldr.plugin.compiler.go.CompilerMode',
+export const GoCompiler_Enum = /* @__PURE__ */ createEnumType(
+  'bldr.plugin.compiler.go.GoCompiler',
   [
-    [0, 'COMPILER_MODE_DEFAULT'],
-    [1, 'COMPILER_MODE_GO'],
-    [2, 'COMPILER_MODE_TINYGO'],
-    [3, 'COMPILER_MODE_GOSCRIPT'],
+    [0, 'GO_COMPILER_DEFAULT'],
+    [1, 'GO_COMPILER_GO'],
+    [2, 'GO_COMPILER_TINYGO'],
+    [3, 'GO_COMPILER_GOSCRIPT'],
   ],
 )
 
@@ -279,12 +279,12 @@ export interface Config {
    */
   enableCgo?: Enabled
   /**
-   * CompilerMode selects the Go plugin compiler. DEFAULT preserves the current
+   * GoCompiler selects the Go plugin compiler. DEFAULT preserves the current
    * release browser default policy.
    *
-   * @generated from field: bldr.plugin.compiler.go.CompilerMode compiler_mode = 7;
+   * @generated from field: bldr.plugin.compiler.go.GoCompiler go_compiler = 7;
    */
-  compilerMode?: CompilerMode
+  goCompiler?: GoCompiler
   /**
    * EnableCompression can optionally force-enable or force-disable binary compression.
    * The default is ENABLE for release-mode only.
@@ -387,7 +387,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 6, name: 'disable_rpc_fetch', kind: 'scalar', T: ScalarType.BOOL },
     { no: 8, name: 'delve_addr', kind: 'scalar', T: ScalarType.STRING },
     { no: 9, name: 'enable_cgo', kind: 'enum', T: Enabled_Enum },
-    { no: 7, name: 'compiler_mode', kind: 'enum', T: CompilerMode_Enum },
+    { no: 7, name: 'go_compiler', kind: 'enum', T: GoCompiler_Enum },
     { no: 11, name: 'enable_compression', kind: 'enum', T: Enabled_Enum },
     {
       no: 12,
@@ -742,11 +742,11 @@ export interface InputManifestMeta {
    */
   viteDisableProjectConfig?: boolean
   /**
-   * CompilerMode is the resolved compiler used to produce this artifact.
+   * GoCompiler is the resolved compiler used to produce this artifact.
    *
-   * @generated from field: bldr.plugin.compiler.go.CompilerMode compiler_mode = 11;
+   * @generated from field: bldr.plugin.compiler.go.GoCompiler go_compiler = 11;
    */
-  compilerMode?: CompilerMode
+  goCompiler?: GoCompiler
   /**
    * GoScriptBuildFlags are the exact Go build flags forwarded to GoScript.
    *
@@ -834,7 +834,7 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
         kind: 'scalar',
         T: ScalarType.BOOL,
       },
-      { no: 11, name: 'compiler_mode', kind: 'enum', T: CompilerMode_Enum },
+      { no: 11, name: 'go_compiler', kind: 'enum', T: GoCompiler_Enum },
       {
         no: 12,
         name: 'goscript_build_flags',

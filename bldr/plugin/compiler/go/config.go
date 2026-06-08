@@ -84,8 +84,8 @@ func (c *Config) Validate() error {
 	if _, err := c.ParseEsbuildFlags(); err != nil {
 		return errors.Wrap(err, "esbuild_flags")
 	}
-	if _, err := c.GetCompilerMode().GoPluginCompilerMode(); err != nil {
-		return errors.Wrap(err, "compiler_mode")
+	if _, err := c.GetGoCompiler().GoCompiler(); err != nil {
+		return errors.Wrap(err, "go_compiler")
 	}
 	for buildTypeStr, buildTypeConf := range c.GetBuildTypes() {
 		if err := bldr_manifest.BuildType(buildTypeStr).Validate(false); err != nil {
@@ -167,8 +167,8 @@ func (c *Config) Merge(o *Config) {
 	}
 
 	c.EnableCgo = c.EnableCgo.Merge(o.GetEnableCgo())
-	if compilerMode := o.GetCompilerMode(); compilerMode != CompilerMode_COMPILER_MODE_DEFAULT {
-		c.CompilerMode = compilerMode
+	if goCompiler := o.GetGoCompiler(); goCompiler != GoCompiler_GO_COMPILER_DEFAULT {
+		c.GoCompiler = goCompiler
 	}
 	c.EnableImportedFactoryDiscovery = c.EnableImportedFactoryDiscovery.Merge(o.GetEnableImportedFactoryDiscovery())
 	c.EnableCompression = c.EnableCompression.Merge(o.GetEnableCompression())
@@ -178,35 +178,35 @@ func (c *Config) Merge(o *Config) {
 	}
 }
 
-// GoPluginCompilerMode returns the shared compiler mode value.
-func (m CompilerMode) GoPluginCompilerMode() (gocompiler.GoPluginCompilerMode, error) {
+// GoCompiler returns the shared compiler mode value.
+func (m GoCompiler) GoCompiler() (gocompiler.GoCompiler, error) {
 	switch m {
-	case CompilerMode_COMPILER_MODE_DEFAULT:
-		return gocompiler.GoPluginCompilerModeDefault, nil
-	case CompilerMode_COMPILER_MODE_GO:
-		return gocompiler.GoPluginCompilerModeGo, nil
-	case CompilerMode_COMPILER_MODE_TINYGO:
-		return gocompiler.GoPluginCompilerModeTinyGo, nil
-	case CompilerMode_COMPILER_MODE_GOSCRIPT:
-		return gocompiler.GoPluginCompilerModeGoScript, nil
+	case GoCompiler_GO_COMPILER_DEFAULT:
+		return gocompiler.GoCompilerDefault, nil
+	case GoCompiler_GO_COMPILER_GO:
+		return gocompiler.GoCompilerGo, nil
+	case GoCompiler_GO_COMPILER_TINYGO:
+		return gocompiler.GoCompilerTinyGo, nil
+	case GoCompiler_GO_COMPILER_GOSCRIPT:
+		return gocompiler.GoCompilerGoScript, nil
 	default:
 		return "", errors.Errorf("unknown compiler mode %d", m)
 	}
 }
 
-// CompilerModeFromGoPluginCompilerMode returns the protobuf compiler mode.
-func CompilerModeFromGoPluginCompilerMode(m gocompiler.GoPluginCompilerMode) (CompilerMode, error) {
+// GoCompilerFromGoCompiler returns the protobuf compiler mode.
+func GoCompilerFromGoCompiler(m gocompiler.GoCompiler) (GoCompiler, error) {
 	switch m {
-	case gocompiler.GoPluginCompilerModeDefault:
-		return CompilerMode_COMPILER_MODE_DEFAULT, nil
-	case gocompiler.GoPluginCompilerModeGo:
-		return CompilerMode_COMPILER_MODE_GO, nil
-	case gocompiler.GoPluginCompilerModeTinyGo:
-		return CompilerMode_COMPILER_MODE_TINYGO, nil
-	case gocompiler.GoPluginCompilerModeGoScript:
-		return CompilerMode_COMPILER_MODE_GOSCRIPT, nil
+	case gocompiler.GoCompilerDefault:
+		return GoCompiler_GO_COMPILER_DEFAULT, nil
+	case gocompiler.GoCompilerGo:
+		return GoCompiler_GO_COMPILER_GO, nil
+	case gocompiler.GoCompilerTinyGo:
+		return GoCompiler_GO_COMPILER_TINYGO, nil
+	case gocompiler.GoCompilerGoScript:
+		return GoCompiler_GO_COMPILER_GOSCRIPT, nil
 	default:
-		return CompilerMode_COMPILER_MODE_DEFAULT, errors.Errorf("unknown Go plugin compiler mode %q", m)
+		return GoCompiler_GO_COMPILER_DEFAULT, errors.Errorf("unknown Go plugin compiler mode %q", m)
 	}
 }
 

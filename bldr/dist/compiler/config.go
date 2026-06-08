@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
+	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"github.com/s4wave/spacewave/bldr/util/merge"
 	"golang.org/x/mod/module"
@@ -141,8 +142,10 @@ func (c *Config) Merge(o *Config) {
 	}
 
 	c.EnableCgo = c.EnableCgo.Merge(o.GetEnableCgo())
-	c.EnableTinygo = c.EnableCgo.Merge(o.GetEnableTinygo())
-	c.EnableCompression = c.EnableCompression.Merge(o.GetEnableCgo())
+	if goCompiler := o.GetGoCompiler(); goCompiler != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_DEFAULT {
+		c.GoCompiler = goCompiler
+	}
+	c.EnableCompression = c.EnableCompression.Merge(o.GetEnableCompression())
 }
 
 // Normalize sorts and deduplicates the fields.

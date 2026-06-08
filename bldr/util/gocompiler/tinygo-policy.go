@@ -21,7 +21,7 @@ func ResolveTinyGoEnabled(
 	enableTinygoOpt enabled.Enabled,
 	defaultEnabled bool,
 ) (bool, error) {
-	mode, err := ResolveGoPluginCompilerMode(
+	mode, err := ResolveGoCompiler(
 		buildPlatform,
 		resolveLegacyTinyGoMode(enableTinygoOpt),
 		defaultEnabled,
@@ -32,13 +32,13 @@ func ResolveTinyGoEnabled(
 	return mode.IsTinyGo(), nil
 }
 
-func resolveLegacyTinyGoMode(enableTinygoOpt enabled.Enabled) GoPluginCompilerMode {
+func resolveLegacyTinyGoMode(enableTinygoOpt enabled.Enabled) GoCompiler {
 	switch enableTinygoOpt {
 	case enabled.Enabled_ENABLE:
-		return GoPluginCompilerModeTinyGo
+		return GoCompilerTinyGo
 	case enabled.Enabled_DISABLE:
-		return GoPluginCompilerModeGo
+		return GoCompilerGo
 	default:
-		return GoPluginCompilerModeDefault
+		return GoCompilerDefault
 	}
 }

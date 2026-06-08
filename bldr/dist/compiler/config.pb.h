@@ -37,6 +37,7 @@
 #include "google/protobuf/unknown_field_set.h"
 #include "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.h"
 #include "github.com/aperturerobotics/util/enabled/enabled.pb.h"
+#include "../../plugin/compiler/go/compiler.pb.h"
 // @@protoc_insertion_point(includes)
 
 // Must be included last.
@@ -497,7 +498,7 @@ class Config final : public ::google::protobuf::Message
     kEntrypointRoleFieldNumber = 10,
     kChannelKeyFieldNumber = 11,
     kEnableCgoFieldNumber = 5,
-    kEnableTinygoFieldNumber = 6,
+    kGoCompilerFieldNumber = 6,
     kEnableCompressionFieldNumber = 7,
     kHostConfigSetFieldNumber = 3,
   };
@@ -632,14 +633,14 @@ class Config final : public ::google::protobuf::Message
   void _internal_set_enable_cgo(::enabled::Enabled value);
 
   public:
-  // .enabled.Enabled enable_tinygo = 6;
-  void clear_enable_tinygo() ;
-  ::enabled::Enabled enable_tinygo() const;
-  void set_enable_tinygo(::enabled::Enabled value);
+  // .bldr.plugin.compiler.go.GoCompiler go_compiler = 6;
+  void clear_go_compiler() ;
+  ::bldr::plugin::compiler::go::GoCompiler go_compiler() const;
+  void set_go_compiler(::bldr::plugin::compiler::go::GoCompiler value);
 
   private:
-  ::enabled::Enabled _internal_enable_tinygo() const;
-  void _internal_set_enable_tinygo(::enabled::Enabled value);
+  ::bldr::plugin::compiler::go::GoCompiler _internal_go_compiler() const;
+  void _internal_set_go_compiler(::bldr::plugin::compiler::go::GoCompiler value);
 
   public:
   // .enabled.Enabled enable_compression = 7;
@@ -701,7 +702,7 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr entrypoint_role_;
     ::google::protobuf::internal::ArenaStringPtr channel_key_;
     int enable_cgo_;
-    int enable_tinygo_;
+    int go_compiler_;
     int enable_compression_;
     ::google::protobuf::internal::MapField<Config_HostConfigSetEntry_DoNotUse, ::std::string, ::configset::proto::ControllerConfig,
                       ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
@@ -1501,29 +1502,29 @@ inline void Config::_internal_set_enable_cgo(::enabled::Enabled value) {
   _impl_.enable_cgo_ = value;
 }
 
-// .enabled.Enabled enable_tinygo = 6;
-inline void Config::clear_enable_tinygo() {
+// .bldr.plugin.compiler.go.GoCompiler go_compiler = 6;
+inline void Config::clear_go_compiler() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.enable_tinygo_ = 0;
+  _impl_.go_compiler_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000100U);
 }
-inline ::enabled::Enabled Config::enable_tinygo() const {
-  // @@protoc_insertion_point(field_get:bldr.dist.compiler.Config.enable_tinygo)
-  return _internal_enable_tinygo();
+inline ::bldr::plugin::compiler::go::GoCompiler Config::go_compiler() const {
+  // @@protoc_insertion_point(field_get:bldr.dist.compiler.Config.go_compiler)
+  return _internal_go_compiler();
 }
-inline void Config::set_enable_tinygo(::enabled::Enabled value) {
-  _internal_set_enable_tinygo(value);
+inline void Config::set_go_compiler(::bldr::plugin::compiler::go::GoCompiler value) {
+  _internal_set_go_compiler(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000100U);
-  // @@protoc_insertion_point(field_set:bldr.dist.compiler.Config.enable_tinygo)
+  // @@protoc_insertion_point(field_set:bldr.dist.compiler.Config.go_compiler)
 }
-inline ::enabled::Enabled Config::_internal_enable_tinygo() const {
+inline ::bldr::plugin::compiler::go::GoCompiler Config::_internal_go_compiler() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return static_cast<::enabled::Enabled>(_impl_.enable_tinygo_);
+  return static_cast<::bldr::plugin::compiler::go::GoCompiler>(_impl_.go_compiler_);
 }
-inline void Config::_internal_set_enable_tinygo(::enabled::Enabled value) {
+inline void Config::_internal_set_go_compiler(::bldr::plugin::compiler::go::GoCompiler value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.enable_tinygo_ = value;
+  _impl_.go_compiler_ = value;
 }
 
 // .enabled.Enabled enable_compression = 7;

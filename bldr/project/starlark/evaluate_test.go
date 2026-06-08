@@ -652,14 +652,14 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 
 	webConf := flattenGoConfigForPlatform(t, coreConf, "web/js/wasm")
 	assertGoConfigOmitsDesktopStatusProjector(t, "web spacewave-core", webConf)
-	if webConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_DEFAULT {
-		t.Fatalf("web spacewave-core compilerMode: got %s, want COMPILER_MODE_DEFAULT", webConf.GetCompilerMode())
+	if webConf.GetGoCompiler() != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_DEFAULT {
+		t.Fatalf("web spacewave-core goCompiler: got %s, want GO_COMPILER_DEFAULT", webConf.GetGoCompiler())
 	}
 
 	jsConf := flattenGoConfigForPlatform(t, coreConf, "js")
 	assertGoConfigOmitsDesktopStatusProjector(t, "js spacewave-core", jsConf)
-	if jsConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_DEFAULT {
-		t.Fatalf("js spacewave-core compilerMode: got %s, want COMPILER_MODE_DEFAULT", jsConf.GetCompilerMode())
+	if jsConf.GetGoCompiler() != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_DEFAULT {
+		t.Fatalf("js spacewave-core goCompiler: got %s, want GO_COMPILER_DEFAULT", jsConf.GetGoCompiler())
 	}
 
 	tinygoBuild := result.Config.GetBuild()["plugin-release-browser-tinygo"]
@@ -673,8 +673,8 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 	tinygoCoreConf := mustGoPluginConfig(t, tinygoOverride.GetConfig())
 	tinygoWebConf := flattenGoConfigForPlatform(t, tinygoCoreConf, "web/js/wasm")
 	assertGoConfigOmitsDesktopStatusProjector(t, "TinyGo web spacewave-core", tinygoWebConf)
-	if tinygoWebConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_TINYGO {
-		t.Fatalf("TinyGo web spacewave-core compilerMode: got %s, want COMPILER_MODE_TINYGO", tinygoWebConf.GetCompilerMode())
+	if tinygoWebConf.GetGoCompiler() != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_TINYGO {
+		t.Fatalf("TinyGo web spacewave-core goCompiler: got %s, want GO_COMPILER_TINYGO", tinygoWebConf.GetGoCompiler())
 	}
 
 	tinygoReleaseBuild := result.Config.GetBuild()["release-web-tinygo"]
@@ -687,8 +687,8 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 	}
 	tinygoReleaseCoreConf := mustGoPluginConfig(t, tinygoReleaseOverride.GetConfig())
 	tinygoReleaseWebConf := flattenGoConfigForPlatform(t, tinygoReleaseCoreConf, "web/js/wasm")
-	if tinygoReleaseWebConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_TINYGO {
-		t.Fatalf("TinyGo release-web spacewave-core compilerMode: got %s, want COMPILER_MODE_TINYGO", tinygoReleaseWebConf.GetCompilerMode())
+	if tinygoReleaseWebConf.GetGoCompiler() != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_TINYGO {
+		t.Fatalf("TinyGo release-web spacewave-core goCompiler: got %s, want GO_COMPILER_TINYGO", tinygoReleaseWebConf.GetGoCompiler())
 	}
 
 	goscriptE2EReleaseBuild := result.Config.GetBuild()["release-web-e2e-goscript"]
@@ -701,8 +701,8 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 	}
 	goscriptE2EReleaseCoreConf := mustGoPluginConfig(t, goscriptE2EReleaseOverride.GetConfig())
 	goscriptE2EReleaseWebConf := flattenGoConfigForPlatform(t, goscriptE2EReleaseCoreConf, "web/js/wasm")
-	if goscriptE2EReleaseWebConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT {
-		t.Fatalf("GoScript release-web e2e spacewave-core compilerMode: got %s, want COMPILER_MODE_GOSCRIPT", goscriptE2EReleaseWebConf.GetCompilerMode())
+	if goscriptE2EReleaseWebConf.GetGoCompiler() != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT {
+		t.Fatalf("GoScript release-web e2e spacewave-core goCompiler: got %s, want GO_COMPILER_GOSCRIPT", goscriptE2EReleaseWebConf.GetGoCompiler())
 	}
 	assertGoConfigIncludesHTTPExport(t, "GoScript release-web e2e spacewave-core", goscriptE2EReleaseWebConf)
 	goscriptE2EReleaseLauncherOverride := goscriptE2EReleaseBuild.GetManifestOverrides()["spacewave-launcher"]
@@ -711,8 +711,8 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 	}
 	goscriptE2EReleaseLauncherConf := mustGoPluginConfig(t, goscriptE2EReleaseLauncherOverride.GetConfig())
 	goscriptE2EReleaseLauncherWebConf := flattenGoConfigForPlatform(t, goscriptE2EReleaseLauncherConf, "web/js/wasm")
-	if goscriptE2EReleaseLauncherWebConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT {
-		t.Fatalf("GoScript release-web e2e spacewave-launcher compilerMode: got %s, want COMPILER_MODE_GOSCRIPT", goscriptE2EReleaseLauncherWebConf.GetCompilerMode())
+	if goscriptE2EReleaseLauncherWebConf.GetGoCompiler() != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT {
+		t.Fatalf("GoScript release-web e2e spacewave-launcher goCompiler: got %s, want GO_COMPILER_GOSCRIPT", goscriptE2EReleaseLauncherWebConf.GetGoCompiler())
 	}
 	assertBrowserLauncherOmitsReleaseWorld(t, "GoScript release-web e2e", goscriptE2EReleaseLauncherConf)
 

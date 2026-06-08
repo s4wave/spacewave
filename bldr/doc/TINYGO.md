@@ -3,7 +3,7 @@
 TinyGo is available for compatible WebAssembly Go plugin builds.
 
 Enable it from Bldr Go plugin config with
-`compilerMode: "COMPILER_MODE_TINYGO"` on a TinyGo-compatible WebAssembly
+`goCompiler: "GO_COMPILER_TINYGO"` on a TinyGo-compatible WebAssembly
 platform such as `web/js/wasm`. Dist compiler config still uses
 `enableTinygo: "ENABLE"` for the browser host runtime Wasm compiler choice.
 

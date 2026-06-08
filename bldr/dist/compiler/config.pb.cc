@@ -97,7 +97,7 @@ inline constexpr Config::Impl_::Impl_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
         enable_cgo_{static_cast< ::enabled::Enabled >(0)},
-        enable_tinygo_{static_cast< ::enabled::Enabled >(0)},
+        go_compiler_{static_cast< ::bldr::plugin::compiler::go::GoCompiler >(0)},
         enable_compression_{static_cast< ::enabled::Enabled >(0)},
         host_config_set_{} {}
 
@@ -180,7 +180,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::bldr::dist::compiler::Config, _impl_.entrypoint_role_),
         PROTOBUF_FIELD_OFFSET(::bldr::dist::compiler::Config, _impl_.channel_key_),
         PROTOBUF_FIELD_OFFSET(::bldr::dist::compiler::Config, _impl_.enable_cgo_),
-        PROTOBUF_FIELD_OFFSET(::bldr::dist::compiler::Config, _impl_.enable_tinygo_),
+        PROTOBUF_FIELD_OFFSET(::bldr::dist::compiler::Config, _impl_.go_compiler_),
         PROTOBUF_FIELD_OFFSET(::bldr::dist::compiler::Config, _impl_.enable_compression_),
         PROTOBUF_FIELD_OFFSET(::bldr::dist::compiler::Config, _impl_.cli_pkgs_),
         0,
@@ -221,39 +221,42 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "r\032Tgithub.com/aperturerobotics/controlle"
     "rbus/controller/configset/proto/configse"
     "t.proto\0326github.com/aperturerobotics/uti"
-    "l/enabled/enabled.proto\"9\n\rEmbedManifest"
-    "\022\023\n\013manifest_id\030\001 \001(\t\022\023\n\013platform_id\030\002 \001"
-    "(\t\"\346\003\n\006Config\022:\n\017embed_manifests\030\001 \003(\0132!"
-    ".bldr.dist.compiler.EmbedManifest\022\024\n\014loa"
-    "d_plugins\030\002 \003(\t\022\030\n\020load_web_startup\030\010 \001("
-    "\t\022F\n\017host_config_set\030\003 \003(\0132-.bldr.dist.c"
-    "ompiler.Config.HostConfigSetEntry\022\022\n\npro"
-    "ject_id\030\004 \001(\t\022\027\n\017entrypoint_role\030\n \001(\t\022\023"
-    "\n\013channel_key\030\013 \001(\t\022$\n\nenable_cgo\030\005 \001(\0162"
-    "\020.enabled.Enabled\022\'\n\renable_tinygo\030\006 \001(\016"
-    "2\020.enabled.Enabled\022,\n\022enable_compression"
-    "\030\007 \001(\0162\020.enabled.Enabled\022\020\n\010cli_pkgs\030\t \003"
-    "(\t\032W\n\022HostConfigSetEntry\022\013\n\003key\030\001 \001(\t\0220\n"
-    "\005value\030\002 \001(\0132!.configset.proto.Controlle"
-    "rConfig:\0028\001\"@\n\022PreBuildHookResult\022*\n\006con"
-    "fig\030\001 \001(\0132\032.bldr.dist.compiler.Configb\006p"
-    "roto3"
+    "l/enabled/enabled.proto\032Bgithub.com/s4wa"
+    "ve/spacewave/bldr/plugin/compiler/go/com"
+    "piler.proto\"9\n\rEmbedManifest\022\023\n\013manifest"
+    "_id\030\001 \001(\t\022\023\n\013platform_id\030\002 \001(\t\"\367\003\n\006Confi"
+    "g\022:\n\017embed_manifests\030\001 \003(\0132!.bldr.dist.c"
+    "ompiler.EmbedManifest\022\024\n\014load_plugins\030\002 "
+    "\003(\t\022\030\n\020load_web_startup\030\010 \001(\t\022F\n\017host_co"
+    "nfig_set\030\003 \003(\0132-.bldr.dist.compiler.Conf"
+    "ig.HostConfigSetEntry\022\022\n\nproject_id\030\004 \001("
+    "\t\022\027\n\017entrypoint_role\030\n \001(\t\022\023\n\013channel_ke"
+    "y\030\013 \001(\t\022$\n\nenable_cgo\030\005 \001(\0162\020.enabled.En"
+    "abled\0228\n\013go_compiler\030\006 \001(\0162#.bldr.plugin"
+    ".compiler.go.GoCompiler\022,\n\022enable_compre"
+    "ssion\030\007 \001(\0162\020.enabled.Enabled\022\020\n\010cli_pkg"
+    "s\030\t \003(\t\032W\n\022HostConfigSetEntry\022\013\n\003key\030\001 \001"
+    "(\t\0220\n\005value\030\002 \001(\0132!.configset.proto.Cont"
+    "rollerConfig:\0028\001\"@\n\022PreBuildHookResult\022*"
+    "\n\006config\030\001 \001(\0132\032.bldr.dist.compiler.Conf"
+    "igb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
-    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fcompiler_2fconfig_2eproto_deps[2] = {
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fcompiler_2fconfig_2eproto_deps[3] = {
         &::descriptor_table_github_2ecom_2faperturerobotics_2fcontrollerbus_2fcontroller_2fconfigset_2fproto_2fconfigset_2eproto,
         &::descriptor_table_github_2ecom_2faperturerobotics_2futil_2fenabled_2fenabled_2eproto,
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fplugin_2fcompiler_2fgo_2fcompiler_2eproto,
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fcompiler_2fconfig_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fcompiler_2fconfig_2eproto = {
     false,
     false,
-    845,
+    930,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fcompiler_2fconfig_2eproto,
     "github.com/s4wave/spacewave/bldr/dist/compiler/config.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fcompiler_2fconfig_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fdist_2fcompiler_2fconfig_2eproto_deps,
-    2,
+    3,
     4,
     schemas,
     file_default_instances,
@@ -890,10 +893,10 @@ Config::_table_ = {
     {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.enable_cgo_), 7>(),
      {40, 7, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.enable_cgo_)}},
-    // .enabled.Enabled enable_tinygo = 6;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.enable_tinygo_), 8>(),
+    // .bldr.plugin.compiler.go.GoCompiler go_compiler = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.go_compiler_), 8>(),
      {48, 8, 0,
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.enable_tinygo_)}},
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.go_compiler_)}},
     // .enabled.Enabled enable_compression = 7;
     {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.enable_compression_), 9>(),
      {56, 9, 0,
@@ -931,8 +934,8 @@ Config::_table_ = {
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.project_id_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // .enabled.Enabled enable_cgo = 5;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.enable_cgo_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
-    // .enabled.Enabled enable_tinygo = 6;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.enable_tinygo_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // .bldr.plugin.compiler.go.GoCompiler go_compiler = 6;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.go_compiler_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // .enabled.Enabled enable_compression = 7;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.enable_compression_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // string load_web_startup = 8;
@@ -995,9 +998,9 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
   _impl_.enable_cgo_ = 0;
   if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
-    ::memset(&_impl_.enable_tinygo_, 0, static_cast<::size_t>(
+    ::memset(&_impl_.go_compiler_, 0, static_cast<::size_t>(
         reinterpret_cast<char*>(&_impl_.enable_compression_) -
-        reinterpret_cast<char*>(&_impl_.enable_tinygo_)) + sizeof(_impl_.enable_compression_));
+        reinterpret_cast<char*>(&_impl_.go_compiler_)) + sizeof(_impl_.enable_compression_));
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000400U)) {
       _impl_.host_config_set_.Clear();
     }
@@ -1096,12 +1099,12 @@ PROTOBUF_NOINLINE void Config::Clear() {
     }
   }
 
-  // .enabled.Enabled enable_tinygo = 6;
+  // .bldr.plugin.compiler.go.GoCompiler go_compiler = 6;
   if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-    if (this_._internal_enable_tinygo() != 0) {
+    if (this_._internal_go_compiler() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
-          6, this_._internal_enable_tinygo(), target);
+          6, this_._internal_go_compiler(), target);
     }
   }
 
@@ -1242,11 +1245,11 @@ PROTOBUF_NOINLINE void Config::Clear() {
     }
   }
   if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
-    // .enabled.Enabled enable_tinygo = 6;
+    // .bldr.plugin.compiler.go.GoCompiler go_compiler = 6;
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-      if (this_._internal_enable_tinygo() != 0) {
+      if (this_._internal_go_compiler() != 0) {
         total_size += 1 +
-                      ::_pbi::WireFormatLite::EnumSize(this_._internal_enable_tinygo());
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_go_compiler());
       }
     }
     // .enabled.Enabled enable_compression = 7;
@@ -1346,8 +1349,8 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
   }
   if (BatchCheckHasBit(cached_has_bits, 0x00000700U)) {
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-      if (from._internal_enable_tinygo() != 0) {
-        _this->_impl_.enable_tinygo_ = from._impl_.enable_tinygo_;
+      if (from._internal_go_compiler() != 0) {
+        _this->_impl_.go_compiler_ = from._impl_.go_compiler_;
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000200U)) {

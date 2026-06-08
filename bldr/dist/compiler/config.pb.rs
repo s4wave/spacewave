@@ -67,12 +67,9 @@ pub struct Config {
     /// Cgo may still be force-disabled if incompatible with the target (wasm, tinygo).
     #[prost(enumeration="super::super::super::enabled::Enabled", tag="5")]
     pub enable_cgo: i32,
-    /// EnableTinygo enables using TinyGo instead of the Go compiler.
-    /// Explicit ENABLE is only supported for TinyGo-compatible WebAssembly
-    /// targets. The default remains the standard Go compiler because the dist
-    /// runtime embeds the browser host and QuickJS runtime support.
-    #[prost(enumeration="super::super::super::enabled::Enabled", tag="6")]
-    pub enable_tinygo: i32,
+    /// GoCompiler selects the Go compiler used for the dist entrypoint.
+    #[prost(enumeration="super::super::plugin::compiler::go::GoCompiler", tag="6")]
+    pub go_compiler: i32,
     /// EnableCompression can optionally force-enable or force-disable binary compression.
     /// The default is ENABLE for release-mode only.
     /// Only applicable for the web platform (WebAssembly) (currently).

@@ -46,8 +46,8 @@ func TestEnableTinyGoForManifest(t *testing.T) {
 	if webConf == nil {
 		t.Fatal("missing web platform override")
 	}
-	if webConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_TINYGO {
-		t.Fatalf("compilerMode = %s, want COMPILER_MODE_TINYGO", webConf.GetCompilerMode())
+	if webConf.GetGoCompiler() != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_TINYGO {
+		t.Fatalf("goCompiler = %s, want GO_COMPILER_TINYGO", webConf.GetGoCompiler())
 	}
 }
 
@@ -80,8 +80,8 @@ func TestEnableGoScriptForManifest(t *testing.T) {
 	if webConf == nil {
 		t.Fatal("missing web platform override")
 	}
-	if webConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT {
-		t.Fatalf("compilerMode = %s, want COMPILER_MODE_GOSCRIPT", webConf.GetCompilerMode())
+	if webConf.GetGoCompiler() != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT {
+		t.Fatalf("goCompiler = %s, want GO_COMPILER_GOSCRIPT", webConf.GetGoCompiler())
 	}
 }
 
@@ -185,7 +185,7 @@ func TestConfigureTinyGoForManifestRemovesDebugTrace(t *testing.T) {
 		t.Fatal("expected unrelated dev config to remain")
 	}
 	webConf := got.GetPlatformTypes()["web"]
-	if webConf == nil || webConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_TINYGO {
+	if webConf == nil || webConf.GetGoCompiler() != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_TINYGO {
 		t.Fatalf("web tinygo config missing: %#v", webConf)
 	}
 }
@@ -286,7 +286,7 @@ func TestConfigureGoScriptForManifestRemovesSeedRuntimeConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	webConf := got.GetPlatformTypes()["web"]
-	if webConf == nil || webConf.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT {
+	if webConf == nil || webConf.GetGoCompiler() != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT {
 		t.Fatalf("web GoScript config missing: %#v", webConf)
 	}
 	devConf := got.GetBuildTypes()["dev"]
@@ -385,7 +385,7 @@ func TestConfigureGoScriptBrowserStartupUsesLauncherAndCore(t *testing.T) {
 		t.Fatalf("launcher did not use e2e override config: %v", launcher.GetGoPkgs())
 	}
 	launcherWeb := launcher.GetPlatformTypes()["web"]
-	if launcherWeb == nil || launcherWeb.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT {
+	if launcherWeb == nil || launcherWeb.GetGoCompiler() != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT {
 		t.Fatalf("launcher web GoScript config missing: %#v", launcherWeb)
 	}
 
@@ -394,7 +394,7 @@ func TestConfigureGoScriptBrowserStartupUsesLauncherAndCore(t *testing.T) {
 		t.Fatal(err)
 	}
 	coreWeb := core.GetPlatformTypes()["web"]
-	if coreWeb == nil || coreWeb.GetCompilerMode() != bldr_plugin_compiler_go.CompilerMode_COMPILER_MODE_GOSCRIPT {
+	if coreWeb == nil || coreWeb.GetGoCompiler() != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT {
 		t.Fatalf("core web GoScript config missing: %#v", coreWeb)
 	}
 	if !slices.Contains(core.GetGoPkgs(), "./core/space/http/export") {

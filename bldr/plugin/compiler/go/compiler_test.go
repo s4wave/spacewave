@@ -63,11 +63,11 @@ func TestAddGoScriptStartupCacheInputsIncludesCommandIdentity(t *testing.T) {
 	}
 }
 
-func TestAddGoPluginCompilerModeStartupCacheInputsIncludesModeIdentity(t *testing.T) {
-	t.Setenv(gocompiler.GoPluginCompilerModeEnv, string(gocompiler.GoPluginCompilerModeGoScript))
+func TestAddGoCompilerStartupCacheInputsIncludesModeIdentity(t *testing.T) {
+	t.Setenv(gocompiler.GoCompilerEnv, string(gocompiler.GoCompilerGoScript))
 
 	inputManifest := bldr_manifest_builder.NewInputManifest(nil, nil)
-	addGoPluginCompilerModeStartupCacheInputs(inputManifest)
+	addGoCompilerStartupCacheInputs(inputManifest)
 
 	got := make(map[string]string, len(inputManifest.GetStartupInputs()))
 	for _, input := range inputManifest.GetStartupInputs() {
@@ -76,8 +76,8 @@ func TestAddGoPluginCompilerModeStartupCacheInputsIncludesModeIdentity(t *testin
 		}
 		got[input.GetKey()] = input.GetStringValue()
 	}
-	if got[gocompiler.GoPluginCompilerModeEnv] != string(gocompiler.GoPluginCompilerModeGoScript) {
-		t.Fatalf("startup input %s = %q, want %q", gocompiler.GoPluginCompilerModeEnv, got[gocompiler.GoPluginCompilerModeEnv], gocompiler.GoPluginCompilerModeGoScript)
+	if got[gocompiler.GoCompilerEnv] != string(gocompiler.GoCompilerGoScript) {
+		t.Fatalf("startup input %s = %q, want %q", gocompiler.GoCompilerEnv, got[gocompiler.GoCompilerEnv], gocompiler.GoCompilerGoScript)
 	}
 }
 
@@ -100,14 +100,14 @@ func TestAddGoWasmOptimizeStartupCacheInputsIncludesOptimizerIdentity(t *testing
 }
 
 func TestAddCompilerStartupCacheInputsIncludesOptimizerIdentityForExplicitGo(t *testing.T) {
-	t.Setenv(gocompiler.GoPluginCompilerModeEnv, string(gocompiler.GoPluginCompilerModeTinyGo))
+	t.Setenv(gocompiler.GoCompilerEnv, string(gocompiler.GoCompilerTinyGo))
 	t.Setenv(gocompiler.GoWasmOptimizeEnv, "false")
 
 	inputManifest := bldr_manifest_builder.NewInputManifest(nil, nil)
 	addCompilerStartupCacheInputs(
 		inputManifest,
-		CompilerMode_COMPILER_MODE_GO,
-		gocompiler.GoPluginCompilerModeGo,
+		GoCompiler_GO_COMPILER_GO,
+		gocompiler.GoCompilerGo,
 	)
 
 	got := make(map[string]string, len(inputManifest.GetStartupInputs()))
@@ -117,7 +117,7 @@ func TestAddCompilerStartupCacheInputsIncludesOptimizerIdentityForExplicitGo(t *
 	if got[gocompiler.GoWasmOptimizeEnv] != "false" {
 		t.Fatalf("startup input %s = %q, want false", gocompiler.GoWasmOptimizeEnv, got[gocompiler.GoWasmOptimizeEnv])
 	}
-	if _, ok := got[gocompiler.GoPluginCompilerModeEnv]; ok {
+	if _, ok := got[gocompiler.GoCompilerEnv]; ok {
 		t.Fatalf("explicit Go compiler mode should not depend on default-mode env: %v", got)
 	}
 }

@@ -96,16 +96,16 @@ def desktop_status_projector_config_set():
         "desktop-status-projector": config_entry("resource/desktop/status-projector", 1),
     }
 
-def spacewave_core_config(web_compiler_mode=None):
+def spacewave_core_config(web_go_compiler=None):
     platform_types = {
         "desktop": {
             "goPkgs": ["./core/resource/desktop/statusprojector"],
             "configSet": desktop_status_projector_config_set(),
         },
     }
-    if web_compiler_mode:
+    if web_go_compiler:
         platform_types["web"] = {
-            "compilerMode": web_compiler_mode,
+            "goCompiler": web_go_compiler,
         }
     return {
         "goPkgs": core_go_pkgs(),
@@ -158,7 +158,7 @@ def spacewave_launcher_controller_config(
 
 def spacewave_launcher_config(
         launcher_controller_config=spacewave_launcher_controller_config(),
-        web_compiler_mode=None,
+        web_go_compiler=None,
         include_release_world=True):
     config_set = {
         "spacewave-launcher": config_entry(
@@ -198,21 +198,21 @@ def spacewave_launcher_config(
         "goPkgs": LAUNCHER_GO_PKGS if include_release_world else LAUNCHER_BROWSER_GO_PKGS,
         "configSet": config_set,
     }
-    if web_compiler_mode:
+    if web_go_compiler:
         conf["platformTypes"] = {
             "web": {
-                "compilerMode": web_compiler_mode,
+                "goCompiler": web_go_compiler,
             },
         }
     return conf
 
-def browser_release_launcher_config(web_compiler_mode=None):
+def browser_release_launcher_config(web_go_compiler=None):
     return spacewave_launcher_config(
-        web_compiler_mode=web_compiler_mode,
+        web_go_compiler=web_go_compiler,
         include_release_world=False,
     )
 
-def e2e_release_wasm_launcher_config(web_compiler_mode=None):
+def e2e_release_wasm_launcher_config(web_go_compiler=None):
     return spacewave_launcher_config(
         spacewave_launcher_controller_config(
             dist_peer_ids=[E2E_RELEASE_WASM_DIST_PEER_ID],
@@ -220,7 +220,7 @@ def e2e_release_wasm_launcher_config(web_compiler_mode=None):
             init_dist_config=E2E_RELEASE_WASM_INIT_DIST_CONFIG,
             disable_endpoint_fetch=True,
         ),
-        web_compiler_mode=web_compiler_mode,
+        web_go_compiler=web_go_compiler,
         include_release_world=False,
     )
 
@@ -400,8 +400,8 @@ BROWSER_RELEASE_E2E_LOAD_PLUGINS = [
     "spacewave-core", "spacewave-web", "spacewave-app", "web",
 ]
 
-def dist_release_config(embed_manifests, load_plugins, entrypoint_role="desktop"):
-    return dist_compiler_config(
+def dist_release_config(embed_manifests, load_plugins, entrypoint_role="desktop", go_compiler=None):
+    conf = dist_compiler_config(
         cliPkgs=["./cmd/spacewave/cli"],
         embedManifests=embed_manifests,
         entrypointRole=entrypoint_role,
@@ -409,6 +409,9 @@ def dist_release_config(embed_manifests, load_plugins, entrypoint_role="desktop"
         loadPlugins=load_plugins,
         loadWebStartup=WEB_STARTUP,
     )
+    if go_compiler:
+        conf["goCompiler"] = go_compiler
+    return conf
 
 manifest("spacewave-dist",
     builder="bldr/dist/compiler",
@@ -540,11 +543,12 @@ build("release-web-tinygo",
     manifests=BROWSER_RELEASE_MANIFESTS,
     targets=["browser"],
     manifestOverrides={
-        "spacewave-core": spacewave_core_config(web_compiler_mode="COMPILER_MODE_TINYGO"),
+        "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_TINYGO"),
         "spacewave-dist": dist_release_config(
             BROWSER_RELEASE_EMBED_MANIFESTS,
             BROWSER_RELEASE_LOAD_PLUGINS,
             entrypoint_role="browser",
+            go_compiler="GO_COMPILER_TINYGO",
         ),
     },
 )
@@ -552,12 +556,13 @@ build("release-web-e2e-tinygo",
     manifests=BROWSER_RELEASE_E2E_MANIFESTS,
     targets=["browser"],
     manifestOverrides={
-        "spacewave-core": spacewave_core_config(web_compiler_mode="COMPILER_MODE_TINYGO"),
+        "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_TINYGO"),
         "spacewave-launcher": e2e_release_wasm_launcher_config(),
         "spacewave-dist": dist_release_config(
             BROWSER_RELEASE_E2E_EMBED_MANIFESTS,
             BROWSER_RELEASE_E2E_LOAD_PLUGINS,
             entrypoint_role="browser",
+            go_compiler="GO_COMPILER_TINYGO",
         ),
     },
 )
@@ -565,12 +570,13 @@ build("release-web-e2e-goscript",
     manifests=BROWSER_RELEASE_E2E_MANIFESTS,
     targets=["browser"],
     manifestOverrides={
-        "spacewave-core": spacewave_core_config(web_compiler_mode="COMPILER_MODE_GOSCRIPT"),
-        "spacewave-launcher": e2e_release_wasm_launcher_config(web_compiler_mode="COMPILER_MODE_GOSCRIPT"),
+        "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
+        "spacewave-launcher": e2e_release_wasm_launcher_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
         "spacewave-dist": dist_release_config(
             BROWSER_RELEASE_E2E_EMBED_MANIFESTS,
             BROWSER_RELEASE_E2E_LOAD_PLUGINS,
             entrypoint_role="browser",
+            go_compiler="GO_COMPILER_GOSCRIPT",
         ),
     },
 )
@@ -588,7 +594,7 @@ build("plugin-release-browser-tinygo",
     manifests=REMOTE_WORLD_MANIFESTS,
     targets=["browser"],
     manifestOverrides={
-        "spacewave-core": spacewave_core_config(web_compiler_mode="COMPILER_MODE_TINYGO"),
+        "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_TINYGO"),
     },
 )
 

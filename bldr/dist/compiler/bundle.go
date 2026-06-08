@@ -26,6 +26,7 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_build "github.com/s4wave/spacewave/bldr/manifest/build"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
+	plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	default_storage "github.com/s4wave/spacewave/bldr/storage/default"
 	bldr_compress "github.com/s4wave/spacewave/bldr/util/compress"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
@@ -67,7 +68,7 @@ func BuildDistBundle(
 	initEmbeddedWorld func(ctx context.Context, embedEngine world.Engine, embedOpPeerID peer.ID) error,
 	cliImports map[string]string,
 	enableCgoOpt enabled.Enabled,
-	enableTinygoOpt enabled.Enabled,
+	goCompilerOpt plugin_compiler_go.GoCompiler,
 	enableCompressionOpt enabled.Enabled,
 ) error {
 	isRelease := buildType.IsRelease()
@@ -79,14 +80,22 @@ func BuildDistBundle(
 	enableCgo := enableCgoOpt.IsEnabled(false)
 	// enable compression for release mode only on default
 	enableCompression := enableCompressionOpt.IsEnabled(isRelease)
-	enableTinygo, err := gocompiler.ResolveTinyGoEnabled(
+	resolvedGoCompilerOpt, err := goCompilerOpt.GoCompiler()
+	if err != nil {
+		return err
+	}
+	goCompiler, err := gocompiler.ResolveGoCompiler(
 		buildPlatform,
-		enableTinygoOpt,
+		resolvedGoCompilerOpt,
 		false,
 	)
 	if err != nil {
 		return err
 	}
+	if goCompiler.IsGoScript() {
+		return errors.New("goscript Go compiler is not yet supported for the dist browser shell runtime")
+	}
+	enableTinygo := goCompiler.IsTinyGo()
 
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()

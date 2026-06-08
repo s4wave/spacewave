@@ -241,7 +241,7 @@ go_plugin_config(
 | `disableRpcFetch` | bool |
 | `delveAddr` | string |
 | `enableCgo` | bool |
-| `compilerMode` | string |
+| `goCompiler` | string |
 | `enableCompression` | bool |
 | `esbuildFlags` | list[string] |
 

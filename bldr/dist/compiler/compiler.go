@@ -437,7 +437,7 @@ func (c *Controller) BuildManifest(
 		initEmbeddedWorld,
 		cliImports,
 		conf.GetEnableCgo(),
-		conf.GetEnableTinygo(),
+		conf.GetGoCompiler(),
 		conf.GetEnableCompression(),
 	)
 	if err != nil {
