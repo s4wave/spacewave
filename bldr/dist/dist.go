@@ -3,8 +3,10 @@ package bldr_dist
 import (
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // StaticBlockStoreID is the BlockStoreId for the StaticBlockStore.
@@ -33,9 +35,14 @@ func NewDistBucketConfig(projectID string) (*bucket.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	return bucket.NewConfig(
+	conf, err := bucket.NewConfig(
 		GetDistBucketID(projectID),
 		1, // rev
 		&bucket.LookupConfig{Controller: cc},
 	)
+	if err != nil {
+		return nil, err
+	}
+	conf.PutOpts = &block.PutOpts{HashType: hash.HashType_HashType_SHA256}
+	return conf, nil
 }

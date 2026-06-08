@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 func TestDistBucketConfigDoesNotWriteBackStaticFallbackBlocks(t *testing.T) {
@@ -24,5 +25,8 @@ func TestDistBucketConfigDoesNotWriteBackStaticFallbackBlocks(t *testing.T) {
 	}
 	if lookup.GetPutBlockBehavior() != lookup_concurrent.PutBlockBehavior_PutBlockBehavior_ALL {
 		t.Fatalf("put block behavior = %v, want all", lookup.GetPutBlockBehavior())
+	}
+	if got := conf.GetPutOpts().GetHashType(); got != hash.HashType_HashType_SHA256 {
+		t.Fatalf("put opts hash type = %v, want SHA256", got)
 	}
 }

@@ -293,9 +293,20 @@ func (c *Cursor) BuildTransactionAtRefWithStore(putOpts *block.PutOpts, ref *blo
 	if store == nil {
 		store = c.bkt
 	}
+	if putOpts == nil {
+		putOpts = c.defaultPutOpts()
+	}
 	tx, cursor := block.NewTransaction(store, c.xfrm, ref, putOpts)
 	tx.SetDecodedBlockCache(c.decodedBlocks)
 	return tx, cursor
+}
+
+func (c *Cursor) defaultPutOpts() *block.PutOpts {
+	bkt, ok := c.bkt.(bucket.Bucket)
+	if !ok {
+		return nil
+	}
+	return bkt.GetBucketConfig().GetPutOpts()
 }
 
 // FollowRef attempts to follow a object reference using the bucket ID from the reference.

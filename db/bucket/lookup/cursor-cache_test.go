@@ -13,6 +13,7 @@ import (
 	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 func TestCursorUnmarshalBorrowsLifecycleDecodedCache(t *testing.T) {
@@ -116,6 +117,44 @@ func TestCursorUnmarshalBorrowsLifecycleDecodedCache(t *testing.T) {
 		fourthSnapshot.DecodedBlockCacheHitCount != 1 {
 		t.Fatalf("cursor release should not close lifecycle cache: %+v", fourthSnapshot)
 	}
+}
+
+func TestCursorBuildTransactionUsesBucketDefaultPutOpts(t *testing.T) {
+	ctx := context.Background()
+	store := block_mock.NewMockStore(hash.HashType_HashType_BLAKE3)
+	cursor := bucket_lookup.NewCursor(
+		ctx,
+		nil,
+		nil,
+		nil,
+		&cursorDefaultPutOptsBucket{
+			StoreOps: store,
+			conf: &bucket.Config{
+				Id:      "test",
+				Rev:     1,
+				PutOpts: &block.PutOpts{HashType: hash.HashType_HashType_SHA256},
+			},
+		},
+		nil,
+		&bucket.ObjectRef{},
+		nil,
+		nil,
+	)
+	defer cursor.Release()
+
+	tx, _ := cursor.BuildTransaction(nil)
+	if got := tx.GetPutOpts().GetHashType(); got != hash.HashType_HashType_SHA256 {
+		t.Fatalf("transaction hash type = %v, want SHA256", got)
+	}
+}
+
+type cursorDefaultPutOptsBucket struct {
+	block.StoreOps
+	conf *bucket.Config
+}
+
+func (b *cursorDefaultPutOptsBucket) GetBucketConfig() *bucket.Config {
+	return b.conf
 }
 
 func TestCursorUnmarshalBorrowsTransformAwareLifecycleDecodedCache(t *testing.T) {
