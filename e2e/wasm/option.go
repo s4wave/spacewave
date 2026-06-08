@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	// E2EWasmCompilerEnv selects the browser Go plugin compiler for app tests.
+	// E2EWasmCompilerEnv selects the browser Go compiler for app tests.
 	E2EWasmCompilerEnv = "E2E_WASM_COMPILER"
 	// E2EWasmLegacyTinyGoEnv was the old boolean TinyGo selector.
 	E2EWasmLegacyTinyGoEnv = "E2E_WASM_TINYGO"
@@ -53,11 +53,11 @@ var (
 	}
 )
 
-// E2EWasmCompiler selects the browser Go plugin compiler used by e2e/wasm.
+// E2EWasmCompiler selects the browser Go compiler used by e2e/wasm.
 type E2EWasmCompiler string
 
 const (
-	// E2EWasmCompilerGo keeps the default Bldr browser Go plugin compiler.
+	// E2EWasmCompilerGo keeps the default Bldr browser Go compiler.
 	E2EWasmCompilerGo E2EWasmCompiler = "go"
 	// E2EWasmCompilerTinyGo selects TinyGo for spacewave-core.
 	E2EWasmCompilerTinyGo E2EWasmCompiler = "tinygo"
@@ -150,7 +150,7 @@ func WithSessionHarness() Option {
 	return WithConfigMutator(e2e_wasm_session.InjectSessionHarnessConfig)
 }
 
-// ResolveE2EWasmCompiler resolves the browser Go plugin compiler for local
+// ResolveE2EWasmCompiler resolves the browser Go compiler for local
 // harness runs.
 func ResolveE2EWasmCompiler() (E2EWasmCompiler, error) {
 	legacyTinyGo := strings.TrimSpace(os.Getenv(E2EWasmLegacyTinyGoEnv))

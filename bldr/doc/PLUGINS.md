@@ -19,7 +19,7 @@ Go plugin:
 
 ### GoScript browser mode
 
-`GO_COMPILER_GOSCRIPT` is the browser-only Go plugin compiler mode for the
+`GO_COMPILER_GOSCRIPT` is the browser-only Go compiler for the
 `web/js/wasm` platform. Bldr compiles the generated plugin module with GoScript,
 using the release/dev build tags, source-local `gs` overrides, full dependency
 graph output, and protobuf TypeScript binding.

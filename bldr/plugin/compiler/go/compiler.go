@@ -433,7 +433,7 @@ func (c *Controller) BuildPlugin(
 	}
 	useGoScript := goCompiler == gocompiler.GoCompilerGoScript
 	if useGoScript && !isWebBuildPlatform {
-		return nil, nil, errors.New("goscript Go plugin compiler mode currently requires a browser WebAssembly platform")
+		return nil, nil, errors.New("goscript Go compiler currently requires a browser WebAssembly platform")
 	}
 	resolvedGoCompiler, err := GoCompilerFromGoCompiler(goCompiler)
 	if err != nil {

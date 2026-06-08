@@ -97,7 +97,7 @@ message Config {
 
   reserved 10;
 
-  // GoCompiler selects the Go plugin compiler. DEFAULT preserves the current
+  // GoCompiler selects the Go compiler. DEFAULT preserves the current
   // release browser default policy.
   GoCompiler go_compiler = 7;
 

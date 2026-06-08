@@ -206,7 +206,7 @@ func GoCompilerFromGoCompiler(m gocompiler.GoCompiler) (GoCompiler, error) {
 	case gocompiler.GoCompilerGoScript:
 		return GoCompiler_GO_COMPILER_GOSCRIPT, nil
 	default:
-		return GoCompiler_GO_COMPILER_DEFAULT, errors.Errorf("unknown Go plugin compiler mode %q", m)
+		return GoCompiler_GO_COMPILER_DEFAULT, errors.Errorf("unknown Go compiler %q", m)
 	}
 }
 

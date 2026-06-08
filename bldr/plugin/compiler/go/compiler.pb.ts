@@ -279,7 +279,7 @@ export interface Config {
    */
   enableCgo?: Enabled
   /**
-   * GoCompiler selects the Go plugin compiler. DEFAULT preserves the current
+   * GoCompiler selects the Go compiler. DEFAULT preserves the current
    * release browser default policy.
    *
    * @generated from field: bldr.plugin.compiler.go.GoCompiler go_compiler = 7;

@@ -75,7 +75,7 @@ pub struct Config {
     /// Cgo may still be force-disabled if incompatible with the target (wasm, tinygo).
     #[prost(enumeration="super::super::super::super::enabled::Enabled", tag="9")]
     pub enable_cgo: i32,
-    /// GoCompiler selects the Go plugin compiler. DEFAULT preserves the current
+    /// GoCompiler selects the Go compiler. DEFAULT preserves the current
     /// release browser default policy.
     #[prost(enumeration="GoCompiler", tag="7")]
     pub go_compiler: i32,

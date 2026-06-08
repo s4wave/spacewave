@@ -253,7 +253,7 @@ type Config struct {
 	//
 	// Cgo may still be force-disabled if incompatible with the target (wasm, tinygo).
 	EnableCgo enabled.Enabled `protobuf:"varint,9,opt,name=enable_cgo,json=enableCgo,proto3" json:"enableCgo,omitempty"`
-	// GoCompiler selects the Go plugin compiler. DEFAULT preserves the current
+	// GoCompiler selects the Go compiler. DEFAULT preserves the current
 	// release browser default policy.
 	GoCompiler GoCompiler `protobuf:"varint,7,opt,name=go_compiler,json=goCompiler,proto3" json:"goCompiler,omitempty"`
 	// EnableCompression can optionally force-enable or force-disable binary compression.

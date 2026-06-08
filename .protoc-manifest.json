@@ -255,7 +255,7 @@
       "protoFiles": ["bldr/plugin/assets/http/config.proto"]
     },
     "github.com/s4wave/spacewave/bldr/plugin/compiler/go": {
-      "hash": "688c0151ec69854f0a111559bd0aa35a121978aa433bb08b4f33a1992f0dff95",
+      "hash": "1938fc258a2e921e0cceebc80047f966b65d4cbe05c6e1b486d665f32f11457b",
       "generatedFiles": [
         "bldr/plugin/compiler/go/compiler.pb.cc",
         "bldr/plugin/compiler/go/compiler.pb.go",

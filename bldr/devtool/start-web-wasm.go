@@ -34,7 +34,7 @@ import (
 )
 
 // ExecuteWebGoScriptProject starts the browser-hosted devtool path with
-// GoScript as the default Go plugin compiler mode.
+// GoScript as the default Go compiler.
 func (a *DevtoolArgs) ExecuteWebGoScriptProject(ctx context.Context) error {
 	return withGoCompiler(gocompiler.GoCompilerGoScript, func() error {
 		return a.ExecuteWebWasmProject(ctx)
