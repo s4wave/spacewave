@@ -394,3 +394,111 @@ export const UnstageFilesResponse: MessageType<UnstageFilesResponse> =
     's4wave.git.UnstageFilesResponse',
     true,
   )
+
+/**
+ * CommitFilesRequest is the request for CommitFiles.
+ *
+ * @generated from message s4wave.git.CommitFilesRequest
+ */
+export interface CommitFilesRequest {
+  /**
+   * Paths is the list of staged file paths that must be included in the commit.
+   * Empty accepts all currently staged paths.
+   *
+   * @generated from field: repeated string paths = 1;
+   */
+  paths?: string[]
+  /**
+   * Message is the commit message.
+   *
+   * @generated from field: string message = 2;
+   */
+  message?: string
+  /**
+   * AuthorName is the commit author name.
+   *
+   * @generated from field: string author_name = 3;
+   */
+  authorName?: string
+  /**
+   * AuthorEmail is the commit author email.
+   *
+   * @generated from field: string author_email = 4;
+   */
+  authorEmail?: string
+  /**
+   * AuthorTimestamp is the author timestamp as Unix seconds.
+   *
+   * @generated from field: int64 author_timestamp = 5;
+   */
+  authorTimestamp?: bigint
+}
+
+export const CommitFilesRequest: MessageType<CommitFilesRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.git.CommitFilesRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'paths',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 2, name: 'message', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'author_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'author_email', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'author_timestamp', kind: 'scalar', T: ScalarType.INT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CommitFilesResponse is the response for CommitFiles.
+ *
+ * @generated from message s4wave.git.CommitFilesResponse
+ */
+export interface CommitFilesResponse {
+  /**
+   * CommitHash is the hash of the newly created commit.
+   *
+   * @generated from field: string commit_hash = 1;
+   */
+  commitHash?: string
+  /**
+   * BaseCommitHash is the HEAD commit before the commit operation.
+   *
+   * @generated from field: string base_commit_hash = 2;
+   */
+  baseCommitHash?: string
+  /**
+   * BranchRef is the current branch/ref updated by the commit.
+   *
+   * @generated from field: string branch_ref = 3;
+   */
+  branchRef?: string
+  /**
+   * AffectedPaths are the staged paths accepted by the commit operation.
+   *
+   * @generated from field: repeated string affected_paths = 4;
+   */
+  affectedPaths?: string[]
+}
+
+export const CommitFilesResponse: MessageType<CommitFilesResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.git.CommitFilesResponse',
+    fields: [
+      { no: 1, name: 'commit_hash', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'base_commit_hash', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'branch_ref', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 4,
+        name: 'affected_paths',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

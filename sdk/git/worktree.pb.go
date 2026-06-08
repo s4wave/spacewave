@@ -336,6 +336,110 @@ func (x *UnstageFilesResponse) Reset() {
 
 func (*UnstageFilesResponse) ProtoMessage() {}
 
+// CommitFilesRequest is the request for CommitFiles.
+type CommitFilesRequest struct {
+	unknownFields []byte
+	// Paths is the list of staged file paths that must be included in the commit.
+	// Empty accepts all currently staged paths.
+	Paths []string `protobuf:"bytes,1,rep,name=paths,proto3" json:"paths,omitempty"`
+	// Message is the commit message.
+	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	// AuthorName is the commit author name.
+	AuthorName string `protobuf:"bytes,3,opt,name=author_name,json=authorName,proto3" json:"authorName,omitempty"`
+	// AuthorEmail is the commit author email.
+	AuthorEmail string `protobuf:"bytes,4,opt,name=author_email,json=authorEmail,proto3" json:"authorEmail,omitempty"`
+	// AuthorTimestamp is the author timestamp as Unix seconds.
+	AuthorTimestamp int64 `protobuf:"varint,5,opt,name=author_timestamp,json=authorTimestamp,proto3" json:"authorTimestamp,omitempty"`
+}
+
+func (x *CommitFilesRequest) Reset() {
+	*x = CommitFilesRequest{}
+}
+
+func (*CommitFilesRequest) ProtoMessage() {}
+
+func (x *CommitFilesRequest) GetPaths() []string {
+	if x != nil {
+		return x.Paths
+	}
+	return nil
+}
+
+func (x *CommitFilesRequest) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *CommitFilesRequest) GetAuthorName() string {
+	if x != nil {
+		return x.AuthorName
+	}
+	return ""
+}
+
+func (x *CommitFilesRequest) GetAuthorEmail() string {
+	if x != nil {
+		return x.AuthorEmail
+	}
+	return ""
+}
+
+func (x *CommitFilesRequest) GetAuthorTimestamp() int64 {
+	if x != nil {
+		return x.AuthorTimestamp
+	}
+	return 0
+}
+
+// CommitFilesResponse is the response for CommitFiles.
+type CommitFilesResponse struct {
+	unknownFields []byte
+	// CommitHash is the hash of the newly created commit.
+	CommitHash string `protobuf:"bytes,1,opt,name=commit_hash,json=commitHash,proto3" json:"commitHash,omitempty"`
+	// BaseCommitHash is the HEAD commit before the commit operation.
+	BaseCommitHash string `protobuf:"bytes,2,opt,name=base_commit_hash,json=baseCommitHash,proto3" json:"baseCommitHash,omitempty"`
+	// BranchRef is the current branch/ref updated by the commit.
+	BranchRef string `protobuf:"bytes,3,opt,name=branch_ref,json=branchRef,proto3" json:"branchRef,omitempty"`
+	// AffectedPaths are the staged paths accepted by the commit operation.
+	AffectedPaths []string `protobuf:"bytes,4,rep,name=affected_paths,json=affectedPaths,proto3" json:"affectedPaths,omitempty"`
+}
+
+func (x *CommitFilesResponse) Reset() {
+	*x = CommitFilesResponse{}
+}
+
+func (*CommitFilesResponse) ProtoMessage() {}
+
+func (x *CommitFilesResponse) GetCommitHash() string {
+	if x != nil {
+		return x.CommitHash
+	}
+	return ""
+}
+
+func (x *CommitFilesResponse) GetBaseCommitHash() string {
+	if x != nil {
+		return x.BaseCommitHash
+	}
+	return ""
+}
+
+func (x *CommitFilesResponse) GetBranchRef() string {
+	if x != nil {
+		return x.BranchRef
+	}
+	return ""
+}
+
+func (x *CommitFilesResponse) GetAffectedPaths() []string {
+	if x != nil {
+		return x.AffectedPaths
+	}
+	return nil
+}
+
 func (m *GetWorktreeInfoRequest) CloneVT() *GetWorktreeInfoRequest {
 	if m == nil {
 		return (*GetWorktreeInfoRequest)(nil)
@@ -550,6 +654,49 @@ func (m *UnstageFilesResponse) CloneVT() *UnstageFilesResponse {
 }
 
 func (m *UnstageFilesResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CommitFilesRequest) CloneVT() *CommitFilesRequest {
+	if m == nil {
+		return (*CommitFilesRequest)(nil)
+	}
+	r := new(CommitFilesRequest)
+	r.Message = m.Message
+	r.AuthorName = m.AuthorName
+	r.AuthorEmail = m.AuthorEmail
+	r.AuthorTimestamp = m.AuthorTimestamp
+	if rhs := m.Paths; rhs != nil {
+		r.Paths = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CommitFilesRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CommitFilesResponse) CloneVT() *CommitFilesResponse {
+	if m == nil {
+		return (*CommitFilesResponse)(nil)
+	}
+	r := new(CommitFilesResponse)
+	r.CommitHash = m.CommitHash
+	r.BaseCommitHash = m.BaseCommitHash
+	r.BranchRef = m.BranchRef
+	if rhs := m.AffectedPaths; rhs != nil {
+		r.AffectedPaths = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CommitFilesResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -833,6 +980,79 @@ func (this *UnstageFilesResponse) EqualVT(that *UnstageFilesResponse) bool {
 
 func (this *UnstageFilesResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*UnstageFilesResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CommitFilesRequest) EqualVT(that *CommitFilesRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.Paths) != len(that.Paths) {
+		return false
+	}
+	for i, vx := range this.Paths {
+		vy := that.Paths[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if this.Message != that.Message {
+		return false
+	}
+	if this.AuthorName != that.AuthorName {
+		return false
+	}
+	if this.AuthorEmail != that.AuthorEmail {
+		return false
+	}
+	if this.AuthorTimestamp != that.AuthorTimestamp {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CommitFilesRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CommitFilesRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CommitFilesResponse) EqualVT(that *CommitFilesResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.CommitHash != that.CommitHash {
+		return false
+	}
+	if this.BaseCommitHash != that.BaseCommitHash {
+		return false
+	}
+	if this.BranchRef != that.BranchRef {
+		return false
+	}
+	if len(this.AffectedPaths) != len(that.AffectedPaths) {
+		return false
+	}
+	for i, vx := range this.AffectedPaths {
+		vy := that.AffectedPaths[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CommitFilesResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CommitFilesResponse)
 	if !ok {
 		return false
 	}
@@ -1430,6 +1650,154 @@ func (x *UnstageFilesResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the CommitFilesRequest message to JSON.
+func (x *CommitFilesRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Paths) > 0 || s.HasField("paths") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("paths")
+		s.WriteStringArray(x.Paths)
+	}
+	if x.Message != "" || s.HasField("message") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("message")
+		s.WriteString(x.Message)
+	}
+	if x.AuthorName != "" || s.HasField("authorName") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("authorName")
+		s.WriteString(x.AuthorName)
+	}
+	if x.AuthorEmail != "" || s.HasField("authorEmail") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("authorEmail")
+		s.WriteString(x.AuthorEmail)
+	}
+	if x.AuthorTimestamp != 0 || s.HasField("authorTimestamp") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("authorTimestamp")
+		s.WriteInt64(x.AuthorTimestamp)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CommitFilesRequest to JSON.
+func (x *CommitFilesRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CommitFilesRequest message from JSON.
+func (x *CommitFilesRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "paths":
+			s.AddField("paths")
+			if s.ReadNil() {
+				x.Paths = nil
+				return
+			}
+			x.Paths = s.ReadStringArray()
+		case "message":
+			s.AddField("message")
+			x.Message = s.ReadString()
+		case "author_name", "authorName":
+			s.AddField("author_name")
+			x.AuthorName = s.ReadString()
+		case "author_email", "authorEmail":
+			s.AddField("author_email")
+			x.AuthorEmail = s.ReadString()
+		case "author_timestamp", "authorTimestamp":
+			s.AddField("author_timestamp")
+			x.AuthorTimestamp = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CommitFilesRequest from JSON.
+func (x *CommitFilesRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CommitFilesResponse message to JSON.
+func (x *CommitFilesResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.CommitHash != "" || s.HasField("commitHash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("commitHash")
+		s.WriteString(x.CommitHash)
+	}
+	if x.BaseCommitHash != "" || s.HasField("baseCommitHash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("baseCommitHash")
+		s.WriteString(x.BaseCommitHash)
+	}
+	if x.BranchRef != "" || s.HasField("branchRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("branchRef")
+		s.WriteString(x.BranchRef)
+	}
+	if len(x.AffectedPaths) > 0 || s.HasField("affectedPaths") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("affectedPaths")
+		s.WriteStringArray(x.AffectedPaths)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CommitFilesResponse to JSON.
+func (x *CommitFilesResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CommitFilesResponse message from JSON.
+func (x *CommitFilesResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "commit_hash", "commitHash":
+			s.AddField("commit_hash")
+			x.CommitHash = s.ReadString()
+		case "base_commit_hash", "baseCommitHash":
+			s.AddField("base_commit_hash")
+			x.BaseCommitHash = s.ReadString()
+		case "branch_ref", "branchRef":
+			s.AddField("branch_ref")
+			x.BranchRef = s.ReadString()
+		case "affected_paths", "affectedPaths":
+			s.AddField("affected_paths")
+			if s.ReadNil() {
+				x.AffectedPaths = nil
+				return
+			}
+			x.AffectedPaths = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CommitFilesResponse from JSON.
+func (x *CommitFilesResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *GetWorktreeInfoRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1954,6 +2322,137 @@ func (m *UnstageFilesResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	return len(dAtA) - i, nil
 }
 
+func (m *CommitFilesRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CommitFilesRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CommitFilesRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.AuthorTimestamp != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AuthorTimestamp))
+		i--
+		dAtA[i] = 0x28
+	}
+	if len(m.AuthorEmail) > 0 {
+		i -= len(m.AuthorEmail)
+		copy(dAtA[i:], m.AuthorEmail)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.AuthorEmail)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.AuthorName) > 0 {
+		i -= len(m.AuthorName)
+		copy(dAtA[i:], m.AuthorName)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.AuthorName)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Message) > 0 {
+		i -= len(m.Message)
+		copy(dAtA[i:], m.Message)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Message)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Paths) > 0 {
+		for iNdEx := len(m.Paths) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Paths[iNdEx])
+			copy(dAtA[i:], m.Paths[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Paths[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CommitFilesResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CommitFilesResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CommitFilesResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.AffectedPaths) > 0 {
+		for iNdEx := len(m.AffectedPaths) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.AffectedPaths[iNdEx])
+			copy(dAtA[i:], m.AffectedPaths[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.AffectedPaths[iNdEx])))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.BranchRef) > 0 {
+		i -= len(m.BranchRef)
+		copy(dAtA[i:], m.BranchRef)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.BranchRef)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.BaseCommitHash) > 0 {
+		i -= len(m.BaseCommitHash)
+		copy(dAtA[i:], m.BaseCommitHash)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.BaseCommitHash)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.CommitHash) > 0 {
+		i -= len(m.CommitHash)
+		copy(dAtA[i:], m.CommitHash)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.CommitHash)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *GetWorktreeInfoRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2133,6 +2632,65 @@ func (m *UnstageFilesResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CommitFilesRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Paths) > 0 {
+		for _, s := range m.Paths {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	l = len(m.Message)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.AuthorName)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.AuthorEmail)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.AuthorTimestamp != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.AuthorTimestamp))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CommitFilesResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.CommitHash)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.BaseCommitHash)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.BranchRef)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.AffectedPaths) > 0 {
+		for _, s := range m.AffectedPaths {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2398,6 +2956,103 @@ func (x *UnstageFilesResponse) MarshalProtoText() string {
 }
 
 func (x *UnstageFilesResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CommitFilesRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CommitFilesRequest {")
+	if len(x.Paths) > 0 {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("paths: [")
+		for i, v := range x.Paths {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if x.Message != "" {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("message: ")
+		sb.WriteString(strconv.Quote(x.Message))
+	}
+	if x.AuthorName != "" {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("author_name: ")
+		sb.WriteString(strconv.Quote(x.AuthorName))
+	}
+	if x.AuthorEmail != "" {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("author_email: ")
+		sb.WriteString(strconv.Quote(x.AuthorEmail))
+	}
+	if x.AuthorTimestamp != 0 {
+		if sb.Len() > 20 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("author_timestamp: ")
+		sb.WriteString(strconv.FormatInt(int64(x.AuthorTimestamp), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CommitFilesRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CommitFilesResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CommitFilesResponse {")
+	if x.CommitHash != "" {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("commit_hash: ")
+		sb.WriteString(strconv.Quote(x.CommitHash))
+	}
+	if x.BaseCommitHash != "" {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("base_commit_hash: ")
+		sb.WriteString(strconv.Quote(x.BaseCommitHash))
+	}
+	if x.BranchRef != "" {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("branch_ref: ")
+		sb.WriteString(strconv.Quote(x.BranchRef))
+	}
+	if len(x.AffectedPaths) > 0 {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("affected_paths: [")
+		for i, v := range x.AffectedPaths {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CommitFilesResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3169,6 +3824,277 @@ func (m *UnstageFilesResponse) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: UnstageFilesResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CommitFilesRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CommitFilesRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CommitFilesRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Paths", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Paths = append(m.Paths, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Message", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Message = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AuthorName", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AuthorName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AuthorEmail", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AuthorEmail = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AuthorTimestamp", wireType)
+			}
+			m.AuthorTimestamp = 0
+			m.AuthorTimestamp, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CommitFilesResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CommitFilesResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CommitFilesResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CommitHash", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CommitHash = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BaseCommitHash", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BaseCommitHash = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BranchRef", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BranchRef = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AffectedPaths", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AffectedPaths = append(m.AffectedPaths, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

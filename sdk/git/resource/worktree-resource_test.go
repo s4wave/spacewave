@@ -2,6 +2,7 @@ package resource_git
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -188,6 +189,113 @@ func TestGitWorktreeResourceStatusStageUnstageUsesWorkdir(t *testing.T) {
 	entry = findResourceStatus(t, status, "README.md")
 	if entry.GetStagingStatus() != s4wave_git.FileStatusCode_FILE_STATUS_CODE_UNMODIFIED || entry.GetWorktreeStatus() != s4wave_git.FileStatusCode_FILE_STATUS_CODE_MODIFIED {
 		t.Fatalf("unexpected unstaged status staging=%s worktree=%s", entry.GetStagingStatus().String(), entry.GetWorktreeStatus().String())
+	}
+
+	if _, err := resource.CommitFiles(ctx, &s4wave_git.CommitFilesRequest{
+		Paths:           []string{"README.md"},
+		Message:         "should reject unstaged path",
+		AuthorName:      "Test",
+		AuthorEmail:     "test@example.com",
+		AuthorTimestamp: time.Now().Unix(),
+	}); err == nil || !strings.Contains(err.Error(), "path is not staged: README.md") {
+		t.Fatalf("expected unstaged commit rejection, got %v", err)
+	}
+	status, err = watchResourceStatus(ctx, resource)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry = findResourceStatus(t, status, "README.md")
+	if entry.GetStagingStatus() != s4wave_git.FileStatusCode_FILE_STATUS_CODE_UNMODIFIED || entry.GetWorktreeStatus() != s4wave_git.FileStatusCode_FILE_STATUS_CODE_MODIFIED {
+		t.Fatalf("failed commit should leave status inspectable staging=%s worktree=%s", entry.GetStagingStatus().String(), entry.GetWorktreeStatus().String())
+	}
+
+	if _, err := resource.StageFiles(ctx, &s4wave_git.StageFilesRequest{Paths: []string{"README.md"}}); err != nil {
+		t.Fatal(err)
+	}
+	err = git_world.AccessWorldObjectRepoWithWorktree(ctx, le, ws, repoKey, worktreeKey, time.Now(), true, sender, func(repo *git.Repository, workdir billy.Filesystem) error {
+		f, err := workdir.Create("extra.txt")
+		if err != nil {
+			return err
+		}
+		if _, err := f.Write([]byte("extra\n")); err != nil {
+			_ = f.Close()
+			return err
+		}
+		if err := f.Close(); err != nil {
+			return err
+		}
+		wt, err := repo.Worktree()
+		if err != nil {
+			return err
+		}
+		_, err = wt.Add("extra.txt")
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := resource.CommitFiles(ctx, &s4wave_git.CommitFilesRequest{
+		Paths:           []string{"README.md"},
+		Message:         "should reject extra staged path",
+		AuthorName:      "Test",
+		AuthorEmail:     "test@example.com",
+		AuthorTimestamp: time.Now().Unix(),
+	}); err == nil || !strings.Contains(err.Error(), "unexpected staged path: extra.txt") {
+		t.Fatalf("expected extra staged path rejection, got %v", err)
+	}
+	if _, err := resource.UnstageFiles(ctx, &s4wave_git.UnstageFilesRequest{Paths: []string{"extra.txt"}}); err != nil {
+		t.Fatal(err)
+	}
+	err = git_world.AccessWorldObjectRepoWithWorktree(ctx, le, ws, repoKey, worktreeKey, time.Now(), true, sender, func(repo *git.Repository, workdir billy.Filesystem) error {
+		return workdir.Remove("extra.txt")
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	commitResp, err := resource.CommitFiles(ctx, &s4wave_git.CommitFilesRequest{
+		Paths:       []string{"README.md"},
+		Message:     "update readme",
+		AuthorName:  "Test",
+		AuthorEmail: "test@example.com",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if commitResp.GetCommitHash() == "" || commitResp.GetCommitHash() == firstHash {
+		t.Fatalf("commit hash: got %q first %q", commitResp.GetCommitHash(), firstHash)
+	}
+	if commitResp.GetBaseCommitHash() != firstHash ||
+		commitResp.GetBranchRef() != "master" ||
+		len(commitResp.GetAffectedPaths()) != 1 ||
+		commitResp.GetAffectedPaths()[0] != "README.md" {
+		t.Fatalf("commit response: %+v", commitResp)
+	}
+	err = git_world.AccessWorldObjectRepoWithWorktree(ctx, le, ws, repoKey, worktreeKey, time.Now(), false, "", func(repo *git.Repository, workdir billy.Filesystem) error {
+		commit, err := repo.CommitObject(plumbing.NewHash(commitResp.GetCommitHash()))
+		if err != nil {
+			return err
+		}
+		if commit.Author.When.IsZero() || commit.Author.When.Equal(time.Unix(0, 0)) {
+			t.Fatalf("expected omitted author timestamp to default away from Unix epoch, got %s", commit.Author.When)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	info, err := resource.GetWorktreeInfo(ctx, &s4wave_git.GetWorktreeInfoRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.GetHeadCommitHash() != firstHash {
+		t.Fatalf("snapshot head should remain initial until resource is reloaded: %+v", info)
+	}
+	status, err = watchResourceStatus(ctx, resource)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(status.GetEntries()) != 0 {
+		t.Fatalf("commit should clean worktree status: %+v", status.GetEntries())
 	}
 }
 

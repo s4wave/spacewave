@@ -60,6 +60,14 @@ namespace s4wave {
 namespace git {
 enum FileStatusCode : int;
 extern const uint32_t FileStatusCode_internal_data_[];
+class CommitFilesRequest;
+struct CommitFilesRequestDefaultTypeInternal;
+extern CommitFilesRequestDefaultTypeInternal _CommitFilesRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CommitFilesRequest_class_data_;
+class CommitFilesResponse;
+struct CommitFilesResponseDefaultTypeInternal;
+extern CommitFilesResponseDefaultTypeInternal _CommitFilesResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CommitFilesResponse_class_data_;
 class GetRepoResourceRequest;
 struct GetRepoResourceRequestDefaultTypeInternal;
 extern GetRepoResourceRequestDefaultTypeInternal _GetRepoResourceRequest_default_instance_;
@@ -2237,6 +2245,524 @@ class GetRepoResourceRequest final : public ::google::protobuf::internal::ZeroFi
 extern const ::google::protobuf::internal::ClassDataFull GetRepoResourceRequest_class_data_;
 // -------------------------------------------------------------------
 
+class CommitFilesResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.git.CommitFilesResponse) */ {
+ public:
+  inline CommitFilesResponse() : CommitFilesResponse(nullptr) {}
+  ~CommitFilesResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CommitFilesResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CommitFilesResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CommitFilesResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline CommitFilesResponse(const CommitFilesResponse& from) : CommitFilesResponse(nullptr, from) {}
+  inline CommitFilesResponse(CommitFilesResponse&& from) noexcept
+      : CommitFilesResponse(nullptr, ::std::move(from)) {}
+  inline CommitFilesResponse& operator=(const CommitFilesResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CommitFilesResponse& operator=(CommitFilesResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CommitFilesResponse& default_instance() {
+    return *reinterpret_cast<const CommitFilesResponse*>(
+        &_CommitFilesResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 14;
+  friend void swap(CommitFilesResponse& a, CommitFilesResponse& b) { a.Swap(&b); }
+  inline void Swap(CommitFilesResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CommitFilesResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CommitFilesResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CommitFilesResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CommitFilesResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CommitFilesResponse& from) { CommitFilesResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CommitFilesResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.git.CommitFilesResponse"; }
+
+  explicit CommitFilesResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CommitFilesResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CommitFilesResponse& from);
+  CommitFilesResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CommitFilesResponse&& from) noexcept
+      : CommitFilesResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kAffectedPathsFieldNumber = 4,
+    kCommitHashFieldNumber = 1,
+    kBaseCommitHashFieldNumber = 2,
+    kBranchRefFieldNumber = 3,
+  };
+  // repeated string affected_paths = 4;
+  int affected_paths_size() const;
+  private:
+  int _internal_affected_paths_size() const;
+
+  public:
+  void clear_affected_paths() ;
+  const ::std::string& affected_paths(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_affected_paths(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_affected_paths(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_affected_paths();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_affected_paths(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& affected_paths() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_affected_paths();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_affected_paths() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_affected_paths();
+
+  public:
+  // string commit_hash = 1;
+  void clear_commit_hash() ;
+  const ::std::string& commit_hash() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_commit_hash(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_commit_hash();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_commit_hash();
+  void set_allocated_commit_hash(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_commit_hash() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_commit_hash(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_commit_hash();
+
+  public:
+  // string base_commit_hash = 2;
+  void clear_base_commit_hash() ;
+  const ::std::string& base_commit_hash() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_base_commit_hash(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_base_commit_hash();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_base_commit_hash();
+  void set_allocated_base_commit_hash(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_base_commit_hash() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_base_commit_hash(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_base_commit_hash();
+
+  public:
+  // string branch_ref = 3;
+  void clear_branch_ref() ;
+  const ::std::string& branch_ref() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_branch_ref(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_branch_ref();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_branch_ref();
+  void set_allocated_branch_ref(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_branch_ref() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_branch_ref(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_branch_ref();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.git.CommitFilesResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   0, 90,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CommitFilesResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> affected_paths_;
+    ::google::protobuf::internal::ArenaStringPtr commit_hash_;
+    ::google::protobuf::internal::ArenaStringPtr base_commit_hash_;
+    ::google::protobuf::internal::ArenaStringPtr branch_ref_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fgit_2fworktree_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CommitFilesResponse_class_data_;
+// -------------------------------------------------------------------
+
+class CommitFilesRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.git.CommitFilesRequest) */ {
+ public:
+  inline CommitFilesRequest() : CommitFilesRequest(nullptr) {}
+  ~CommitFilesRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CommitFilesRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CommitFilesRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CommitFilesRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline CommitFilesRequest(const CommitFilesRequest& from) : CommitFilesRequest(nullptr, from) {}
+  inline CommitFilesRequest(CommitFilesRequest&& from) noexcept
+      : CommitFilesRequest(nullptr, ::std::move(from)) {}
+  inline CommitFilesRequest& operator=(const CommitFilesRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CommitFilesRequest& operator=(CommitFilesRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CommitFilesRequest& default_instance() {
+    return *reinterpret_cast<const CommitFilesRequest*>(
+        &_CommitFilesRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 13;
+  friend void swap(CommitFilesRequest& a, CommitFilesRequest& b) { a.Swap(&b); }
+  inline void Swap(CommitFilesRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CommitFilesRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CommitFilesRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CommitFilesRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CommitFilesRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CommitFilesRequest& from) { CommitFilesRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CommitFilesRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.git.CommitFilesRequest"; }
+
+  explicit CommitFilesRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CommitFilesRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CommitFilesRequest& from);
+  CommitFilesRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CommitFilesRequest&& from) noexcept
+      : CommitFilesRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kPathsFieldNumber = 1,
+    kMessageFieldNumber = 2,
+    kAuthorNameFieldNumber = 3,
+    kAuthorEmailFieldNumber = 4,
+    kAuthorTimestampFieldNumber = 5,
+  };
+  // repeated string paths = 1;
+  int paths_size() const;
+  private:
+  int _internal_paths_size() const;
+
+  public:
+  void clear_paths() ;
+  const ::std::string& paths(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_paths(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_paths(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_paths();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_paths(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& paths() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_paths();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_paths() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_paths();
+
+  public:
+  // string message = 2;
+  void clear_message() ;
+  const ::std::string& message() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_message(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_message();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_message();
+  void set_allocated_message(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_message() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_message(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_message();
+
+  public:
+  // string author_name = 3;
+  void clear_author_name() ;
+  const ::std::string& author_name() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_author_name(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_author_name();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_author_name();
+  void set_allocated_author_name(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_author_name() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_author_name(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_author_name();
+
+  public:
+  // string author_email = 4;
+  void clear_author_email() ;
+  const ::std::string& author_email() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_author_email(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_author_email();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_author_email();
+  void set_allocated_author_email(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_author_email() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_author_email(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_author_email();
+
+  public:
+  // int64 author_timestamp = 5;
+  void clear_author_timestamp() ;
+  ::int64_t author_timestamp() const;
+  void set_author_timestamp(::int64_t value);
+
+  private:
+  ::int64_t _internal_author_timestamp() const;
+  void _internal_set_author_timestamp(::int64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.git.CommitFilesRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   0, 73,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CommitFilesRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> paths_;
+    ::google::protobuf::internal::ArenaStringPtr message_;
+    ::google::protobuf::internal::ArenaStringPtr author_name_;
+    ::google::protobuf::internal::ArenaStringPtr author_email_;
+    ::int64_t author_timestamp_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fgit_2fworktree_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CommitFilesRequest_class_data_;
+// -------------------------------------------------------------------
+
 class WatchStatusResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.git.WatchStatusResponse) */ {
  public:
@@ -3146,6 +3672,573 @@ UnstageFilesRequest::_internal_mutable_paths() {
 // -------------------------------------------------------------------
 
 // UnstageFilesResponse
+
+// -------------------------------------------------------------------
+
+// CommitFilesRequest
+
+// repeated string paths = 1;
+inline int CommitFilesRequest::_internal_paths_size() const {
+  return _internal_paths().size();
+}
+inline int CommitFilesRequest::paths_size() const {
+  return _internal_paths_size();
+}
+inline void CommitFilesRequest::clear_paths() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.paths_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL CommitFilesRequest::add_paths()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_paths()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:s4wave.git.CommitFilesRequest.paths)
+  return _s;
+}
+inline const ::std::string& CommitFilesRequest::paths(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.git.CommitFilesRequest.paths)
+  return _internal_paths().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL CommitFilesRequest::mutable_paths(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.git.CommitFilesRequest.paths)
+  return _internal_mutable_paths()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void CommitFilesRequest::set_paths(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_paths()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:s4wave.git.CommitFilesRequest.paths)
+}
+template <typename Arg_, typename... Args_>
+inline void CommitFilesRequest::add_paths(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_paths(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.git.CommitFilesRequest.paths)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& CommitFilesRequest::paths()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.git.CommitFilesRequest.paths)
+  return _internal_paths();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+CommitFilesRequest::mutable_paths() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.git.CommitFilesRequest.paths)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_paths();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+CommitFilesRequest::_internal_paths() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.paths_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+CommitFilesRequest::_internal_mutable_paths() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.paths_;
+}
+
+// string message = 2;
+inline void CommitFilesRequest::clear_message() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.message_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& CommitFilesRequest::message() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.git.CommitFilesRequest.message)
+  return _internal_message();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CommitFilesRequest::set_message(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.message_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.git.CommitFilesRequest.message)
+}
+inline ::std::string* PROTOBUF_NONNULL CommitFilesRequest::mutable_message()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_message();
+  // @@protoc_insertion_point(field_mutable:s4wave.git.CommitFilesRequest.message)
+  return _s;
+}
+inline const ::std::string& CommitFilesRequest::_internal_message() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.message_.Get();
+}
+inline void CommitFilesRequest::_internal_set_message(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.message_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CommitFilesRequest::_internal_mutable_message() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.message_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CommitFilesRequest::release_message() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.git.CommitFilesRequest.message)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.message_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.message_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CommitFilesRequest::set_allocated_message(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.message_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.message_.IsDefault()) {
+    _impl_.message_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.git.CommitFilesRequest.message)
+}
+
+// string author_name = 3;
+inline void CommitFilesRequest::clear_author_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.author_name_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& CommitFilesRequest::author_name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.git.CommitFilesRequest.author_name)
+  return _internal_author_name();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CommitFilesRequest::set_author_name(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.author_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.git.CommitFilesRequest.author_name)
+}
+inline ::std::string* PROTOBUF_NONNULL CommitFilesRequest::mutable_author_name()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_author_name();
+  // @@protoc_insertion_point(field_mutable:s4wave.git.CommitFilesRequest.author_name)
+  return _s;
+}
+inline const ::std::string& CommitFilesRequest::_internal_author_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.author_name_.Get();
+}
+inline void CommitFilesRequest::_internal_set_author_name(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.author_name_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CommitFilesRequest::_internal_mutable_author_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.author_name_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CommitFilesRequest::release_author_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.git.CommitFilesRequest.author_name)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.author_name_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.author_name_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CommitFilesRequest::set_allocated_author_name(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.author_name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.author_name_.IsDefault()) {
+    _impl_.author_name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.git.CommitFilesRequest.author_name)
+}
+
+// string author_email = 4;
+inline void CommitFilesRequest::clear_author_email() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.author_email_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& CommitFilesRequest::author_email() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.git.CommitFilesRequest.author_email)
+  return _internal_author_email();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CommitFilesRequest::set_author_email(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.author_email_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.git.CommitFilesRequest.author_email)
+}
+inline ::std::string* PROTOBUF_NONNULL CommitFilesRequest::mutable_author_email()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_author_email();
+  // @@protoc_insertion_point(field_mutable:s4wave.git.CommitFilesRequest.author_email)
+  return _s;
+}
+inline const ::std::string& CommitFilesRequest::_internal_author_email() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.author_email_.Get();
+}
+inline void CommitFilesRequest::_internal_set_author_email(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.author_email_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CommitFilesRequest::_internal_mutable_author_email() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.author_email_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CommitFilesRequest::release_author_email() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.git.CommitFilesRequest.author_email)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.author_email_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.author_email_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CommitFilesRequest::set_allocated_author_email(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.author_email_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.author_email_.IsDefault()) {
+    _impl_.author_email_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.git.CommitFilesRequest.author_email)
+}
+
+// int64 author_timestamp = 5;
+inline void CommitFilesRequest::clear_author_timestamp() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.author_timestamp_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::int64_t CommitFilesRequest::author_timestamp() const {
+  // @@protoc_insertion_point(field_get:s4wave.git.CommitFilesRequest.author_timestamp)
+  return _internal_author_timestamp();
+}
+inline void CommitFilesRequest::set_author_timestamp(::int64_t value) {
+  _internal_set_author_timestamp(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:s4wave.git.CommitFilesRequest.author_timestamp)
+}
+inline ::int64_t CommitFilesRequest::_internal_author_timestamp() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.author_timestamp_;
+}
+inline void CommitFilesRequest::_internal_set_author_timestamp(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.author_timestamp_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// CommitFilesResponse
+
+// string commit_hash = 1;
+inline void CommitFilesResponse::clear_commit_hash() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.commit_hash_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& CommitFilesResponse::commit_hash() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.git.CommitFilesResponse.commit_hash)
+  return _internal_commit_hash();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CommitFilesResponse::set_commit_hash(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.commit_hash_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.git.CommitFilesResponse.commit_hash)
+}
+inline ::std::string* PROTOBUF_NONNULL CommitFilesResponse::mutable_commit_hash()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_commit_hash();
+  // @@protoc_insertion_point(field_mutable:s4wave.git.CommitFilesResponse.commit_hash)
+  return _s;
+}
+inline const ::std::string& CommitFilesResponse::_internal_commit_hash() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.commit_hash_.Get();
+}
+inline void CommitFilesResponse::_internal_set_commit_hash(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.commit_hash_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CommitFilesResponse::_internal_mutable_commit_hash() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.commit_hash_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CommitFilesResponse::release_commit_hash() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.git.CommitFilesResponse.commit_hash)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.commit_hash_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.commit_hash_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CommitFilesResponse::set_allocated_commit_hash(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.commit_hash_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.commit_hash_.IsDefault()) {
+    _impl_.commit_hash_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.git.CommitFilesResponse.commit_hash)
+}
+
+// string base_commit_hash = 2;
+inline void CommitFilesResponse::clear_base_commit_hash() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.base_commit_hash_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& CommitFilesResponse::base_commit_hash() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.git.CommitFilesResponse.base_commit_hash)
+  return _internal_base_commit_hash();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CommitFilesResponse::set_base_commit_hash(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.base_commit_hash_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.git.CommitFilesResponse.base_commit_hash)
+}
+inline ::std::string* PROTOBUF_NONNULL CommitFilesResponse::mutable_base_commit_hash()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_base_commit_hash();
+  // @@protoc_insertion_point(field_mutable:s4wave.git.CommitFilesResponse.base_commit_hash)
+  return _s;
+}
+inline const ::std::string& CommitFilesResponse::_internal_base_commit_hash() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.base_commit_hash_.Get();
+}
+inline void CommitFilesResponse::_internal_set_base_commit_hash(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.base_commit_hash_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CommitFilesResponse::_internal_mutable_base_commit_hash() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.base_commit_hash_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CommitFilesResponse::release_base_commit_hash() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.git.CommitFilesResponse.base_commit_hash)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.base_commit_hash_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.base_commit_hash_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CommitFilesResponse::set_allocated_base_commit_hash(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.base_commit_hash_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.base_commit_hash_.IsDefault()) {
+    _impl_.base_commit_hash_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.git.CommitFilesResponse.base_commit_hash)
+}
+
+// string branch_ref = 3;
+inline void CommitFilesResponse::clear_branch_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.branch_ref_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& CommitFilesResponse::branch_ref() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.git.CommitFilesResponse.branch_ref)
+  return _internal_branch_ref();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CommitFilesResponse::set_branch_ref(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.branch_ref_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.git.CommitFilesResponse.branch_ref)
+}
+inline ::std::string* PROTOBUF_NONNULL CommitFilesResponse::mutable_branch_ref()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_branch_ref();
+  // @@protoc_insertion_point(field_mutable:s4wave.git.CommitFilesResponse.branch_ref)
+  return _s;
+}
+inline const ::std::string& CommitFilesResponse::_internal_branch_ref() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.branch_ref_.Get();
+}
+inline void CommitFilesResponse::_internal_set_branch_ref(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.branch_ref_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CommitFilesResponse::_internal_mutable_branch_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.branch_ref_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CommitFilesResponse::release_branch_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.git.CommitFilesResponse.branch_ref)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.branch_ref_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.branch_ref_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CommitFilesResponse::set_allocated_branch_ref(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.branch_ref_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.branch_ref_.IsDefault()) {
+    _impl_.branch_ref_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.git.CommitFilesResponse.branch_ref)
+}
+
+// repeated string affected_paths = 4;
+inline int CommitFilesResponse::_internal_affected_paths_size() const {
+  return _internal_affected_paths().size();
+}
+inline int CommitFilesResponse::affected_paths_size() const {
+  return _internal_affected_paths_size();
+}
+inline void CommitFilesResponse::clear_affected_paths() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.affected_paths_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL CommitFilesResponse::add_affected_paths()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_affected_paths()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:s4wave.git.CommitFilesResponse.affected_paths)
+  return _s;
+}
+inline const ::std::string& CommitFilesResponse::affected_paths(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.git.CommitFilesResponse.affected_paths)
+  return _internal_affected_paths().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL CommitFilesResponse::mutable_affected_paths(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.git.CommitFilesResponse.affected_paths)
+  return _internal_mutable_affected_paths()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void CommitFilesResponse::set_affected_paths(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_affected_paths()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:s4wave.git.CommitFilesResponse.affected_paths)
+}
+template <typename Arg_, typename... Args_>
+inline void CommitFilesResponse::add_affected_paths(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_affected_paths(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.git.CommitFilesResponse.affected_paths)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& CommitFilesResponse::affected_paths()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.git.CommitFilesResponse.affected_paths)
+  return _internal_affected_paths();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+CommitFilesResponse::mutable_affected_paths() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.git.CommitFilesResponse.affected_paths)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_affected_paths();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+CommitFilesResponse::_internal_affected_paths() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.affected_paths_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+CommitFilesResponse::_internal_mutable_affected_paths() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.affected_paths_;
+}
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop

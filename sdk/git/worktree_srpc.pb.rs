@@ -34,6 +34,8 @@ pub trait GitWorktreeResourceServiceClient: Send + Sync {
     async fn stage_files(&self, request: &StageFilesRequest) -> starpc::Result<StageFilesResponse>;
     /// UnstageFiles.
     async fn unstage_files(&self, request: &UnstageFilesRequest) -> starpc::Result<UnstageFilesResponse>;
+    /// CommitFiles.
+    async fn commit_files(&self, request: &CommitFilesRequest) -> starpc::Result<CommitFilesResponse>;
 }
 
 /// Client implementation for GitWorktreeResourceService.
@@ -72,6 +74,9 @@ impl<C: starpc::Client + 'static> GitWorktreeResourceServiceClient for GitWorktr
     async fn unstage_files(&self, request: &UnstageFilesRequest) -> starpc::Result<UnstageFilesResponse> {
         self.client.exec_call("s4wave.git.GitWorktreeResourceService", "UnstageFiles", request).await
     }
+    async fn commit_files(&self, request: &CommitFilesRequest) -> starpc::Result<CommitFilesResponse> {
+        self.client.exec_call("s4wave.git.GitWorktreeResourceService", "CommitFiles", request).await
+    }
 }
 
 struct GitWorktreeResourceServiceWatchStatusStreamImpl {
@@ -106,6 +111,8 @@ pub trait GitWorktreeResourceServiceServer: Send + Sync {
     async fn stage_files(&self, request: StageFilesRequest) -> starpc::Result<StageFilesResponse>;
     /// UnstageFiles.
     async fn unstage_files(&self, request: UnstageFilesRequest) -> starpc::Result<UnstageFilesResponse>;
+    /// CommitFiles.
+    async fn commit_files(&self, request: CommitFilesRequest) -> starpc::Result<CommitFilesResponse>;
 }
 
 const GIT_WORKTREE_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
@@ -115,6 +122,7 @@ const GIT_WORKTREE_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "WatchStatus",
     "StageFiles",
     "UnstageFiles",
+    "CommitFiles",
 ];
 
 /// Handler for GitWorktreeResourceService.
@@ -216,6 +224,21 @@ impl<S: GitWorktreeResourceServiceServer + 'static> starpc::Invoker for GitWorkt
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.unstage_files(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "CommitFiles" => {
+                let request: CommitFilesRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.commit_files(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

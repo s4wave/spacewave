@@ -43,6 +43,8 @@ class SRPCGitWorktreeResourceServiceClient {
   virtual starpc::Error StageFiles(const s4wave::git::StageFilesRequest& in, s4wave::git::StageFilesResponse* out) = 0;
   // UnstageFiles
   virtual starpc::Error UnstageFiles(const s4wave::git::UnstageFilesRequest& in, s4wave::git::UnstageFilesResponse* out) = 0;
+  // CommitFiles
+  virtual starpc::Error CommitFiles(const s4wave::git::CommitFilesRequest& in, s4wave::git::CommitFilesResponse* out) = 0;
 };
 
 // SRPCGitWorktreeResourceServiceClientImpl implements SRPCGitWorktreeResourceServiceClient.
@@ -65,6 +67,8 @@ class SRPCGitWorktreeResourceServiceClientImpl : public SRPCGitWorktreeResourceS
   virtual starpc::Error StageFiles(const s4wave::git::StageFilesRequest& in, s4wave::git::StageFilesResponse* out) override;
   // UnstageFiles
   virtual starpc::Error UnstageFiles(const s4wave::git::UnstageFilesRequest& in, s4wave::git::UnstageFilesResponse* out) override;
+  // CommitFiles
+  virtual starpc::Error CommitFiles(const s4wave::git::CommitFilesRequest& in, s4wave::git::CommitFilesResponse* out) override;
 
  private:
   starpc::Client* cc_;
@@ -93,6 +97,8 @@ class SRPCGitWorktreeResourceServiceServer {
   virtual starpc::Error StageFiles(const s4wave::git::StageFilesRequest& req, s4wave::git::StageFilesResponse* resp) = 0;
   // UnstageFiles
   virtual starpc::Error UnstageFiles(const s4wave::git::UnstageFilesRequest& req, s4wave::git::UnstageFilesResponse* resp) = 0;
+  // CommitFiles
+  virtual starpc::Error CommitFiles(const s4wave::git::CommitFilesRequest& req, s4wave::git::CommitFilesResponse* resp) = 0;
 };
 
 // SRPCGitWorktreeResourceServiceHandler implements starpc::Handler for GitWorktreeResourceService.

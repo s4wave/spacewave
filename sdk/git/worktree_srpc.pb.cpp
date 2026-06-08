@@ -40,6 +40,10 @@ starpc::Error SRPCGitWorktreeResourceServiceClientImpl::UnstageFiles(const s4wav
   return cc_->ExecCall(service_id_, "UnstageFiles", in, out);
 }
 
+starpc::Error SRPCGitWorktreeResourceServiceClientImpl::CommitFiles(const s4wave::git::CommitFilesRequest& in, s4wave::git::CommitFilesResponse* out) {
+  return cc_->ExecCall(service_id_, "CommitFiles", in, out);
+}
+
 std::vector<std::string> SRPCGitWorktreeResourceServiceHandler::GetMethodIDs() const {
   return {
     "GetWorktreeInfo",
@@ -48,6 +52,7 @@ std::vector<std::string> SRPCGitWorktreeResourceServiceHandler::GetMethodIDs() c
     "WatchStatus",
     "StageFiles",
     "UnstageFiles",
+    "CommitFiles",
   };
 }
 
@@ -103,6 +108,14 @@ std::pair<bool, starpc::Error> SRPCGitWorktreeResourceServiceHandler::InvokeMeth
     if (err != starpc::Error::OK) return {true, err};
     s4wave::git::UnstageFilesResponse resp;
     err = impl_->UnstageFiles(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "CommitFiles") {
+    s4wave::git::CommitFilesRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::git::CommitFilesResponse resp;
+    err = impl_->CommitFiles(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   }

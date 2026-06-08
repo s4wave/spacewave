@@ -16,6 +16,8 @@ service GitWorktreeResourceService {
   rpc StageFiles(StageFilesRequest) returns (StageFilesResponse);
 
   rpc UnstageFiles(UnstageFilesRequest) returns (UnstageFilesResponse);
+
+  rpc CommitFiles(CommitFilesRequest) returns (CommitFilesResponse);
 }
 
 // GetWorktreeInfoRequest is the request for GetWorktreeInfo.
@@ -110,3 +112,30 @@ message UnstageFilesRequest {
 
 // UnstageFilesResponse is the response for UnstageFiles.
 message UnstageFilesResponse {}
+
+// CommitFilesRequest is the request for CommitFiles.
+message CommitFilesRequest {
+  // Paths is the list of staged file paths that must be included in the commit.
+  // Empty accepts all currently staged paths.
+  repeated string paths = 1;
+  // Message is the commit message.
+  string message = 2;
+  // AuthorName is the commit author name.
+  string author_name = 3;
+  // AuthorEmail is the commit author email.
+  string author_email = 4;
+  // AuthorTimestamp is the author timestamp as Unix seconds.
+  int64 author_timestamp = 5;
+}
+
+// CommitFilesResponse is the response for CommitFiles.
+message CommitFilesResponse {
+  // CommitHash is the hash of the newly created commit.
+  string commit_hash = 1;
+  // BaseCommitHash is the HEAD commit before the commit operation.
+  string base_commit_hash = 2;
+  // BranchRef is the current branch/ref updated by the commit.
+  string branch_ref = 3;
+  // AffectedPaths are the staged paths accepted by the commit operation.
+  repeated string affected_paths = 4;
+}

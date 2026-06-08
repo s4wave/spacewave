@@ -3,6 +3,8 @@
 /* eslint-disable */
 
 import {
+  CommitFilesRequest,
+  CommitFilesResponse,
   GetRepoResourceRequest,
   GetRepoResourceResponse,
   GetWorkdirResourceRequest,
@@ -79,6 +81,15 @@ export const GitWorktreeResourceServiceDefinition = {
       O: UnstageFilesResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * @generated from rpc s4wave.git.GitWorktreeResourceService.CommitFiles
+     */
+    CommitFiles: {
+      name: 'CommitFiles',
+      I: CommitFilesRequest,
+      O: CommitFilesResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -133,6 +144,14 @@ export interface GitWorktreeResourceService {
     request: UnstageFilesRequest,
     abortSignal?: AbortSignal,
   ): Promise<UnstageFilesResponse>
+
+  /**
+   * @generated from rpc s4wave.git.GitWorktreeResourceService.CommitFiles
+   */
+  CommitFiles(
+    request: CommitFilesRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CommitFilesResponse>
 }
 
 export const GitWorktreeResourceServiceServiceName =
@@ -150,6 +169,7 @@ export class GitWorktreeResourceServiceClient implements GitWorktreeResourceServ
     this.WatchStatus = this.WatchStatus.bind(this)
     this.StageFiles = this.StageFiles.bind(this)
     this.UnstageFiles = this.UnstageFiles.bind(this)
+    this.CommitFiles = this.CommitFiles.bind(this)
   }
   /**
    * @generated from rpc s4wave.git.GitWorktreeResourceService.GetWorktreeInfo
@@ -251,5 +271,22 @@ export class GitWorktreeResourceServiceClient implements GitWorktreeResourceServ
       abortSignal || undefined,
     )
     return UnstageFilesResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.git.GitWorktreeResourceService.CommitFiles
+   */
+  async CommitFiles(
+    request: CommitFilesRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CommitFilesResponse> {
+    const requestMsg = CommitFilesRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      GitWorktreeResourceServiceDefinition.methods.CommitFiles.name,
+      CommitFilesRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return CommitFilesResponse.fromBinary(result)
   }
 }

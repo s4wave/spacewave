@@ -303,6 +303,75 @@ struct GetRepoResourceRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetRepoResourceRequestDefaultTypeInternal _GetRepoResourceRequest_default_instance_;
 
+inline constexpr CommitFilesResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        affected_paths_{},
+        commit_hash_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        base_commit_hash_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        branch_ref_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR CommitFilesResponse::CommitFilesResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(CommitFilesResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct CommitFilesResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CommitFilesResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CommitFilesResponseDefaultTypeInternal() {}
+  union {
+    CommitFilesResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CommitFilesResponseDefaultTypeInternal _CommitFilesResponse_default_instance_;
+
+inline constexpr CommitFilesRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        paths_{},
+        message_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        author_name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        author_email_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        author_timestamp_{::int64_t{0}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR CommitFilesRequest::CommitFilesRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(CommitFilesRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct CommitFilesRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CommitFilesRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CommitFilesRequestDefaultTypeInternal() {}
+  union {
+    CommitFilesRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CommitFilesRequestDefaultTypeInternal _CommitFilesRequest_default_instance_;
+
 inline constexpr WatchStatusResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -389,6 +458,30 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::git::UnstageFilesRequest, _impl_.paths_),
         0,
         0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::git::CommitFilesRequest, _impl_._has_bits_),
+        8, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::git::CommitFilesRequest, _impl_.paths_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::git::CommitFilesRequest, _impl_.message_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::git::CommitFilesRequest, _impl_.author_name_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::git::CommitFilesRequest, _impl_.author_email_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::git::CommitFilesRequest, _impl_.author_timestamp_),
+        0,
+        1,
+        2,
+        3,
+        4,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::git::CommitFilesResponse, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::git::CommitFilesResponse, _impl_.commit_hash_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::git::CommitFilesResponse, _impl_.base_commit_hash_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::git::CommitFilesResponse, _impl_.branch_ref_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::git::CommitFilesResponse, _impl_.affected_paths_),
+        1,
+        2,
+        3,
+        0,
 };
 
 static const ::_pbi::MigrationSchema
@@ -406,6 +499,8 @@ static const ::_pbi::MigrationSchema
         {46, sizeof(::s4wave::git::StageFilesResponse)},
         {47, sizeof(::s4wave::git::UnstageFilesRequest)},
         {52, sizeof(::s4wave::git::UnstageFilesResponse)},
+        {53, sizeof(::s4wave::git::CommitFilesRequest)},
+        {66, sizeof(::s4wave::git::CommitFilesResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::git::_GetWorktreeInfoRequest_default_instance_._instance,
@@ -421,6 +516,8 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::git::_StageFilesResponse_default_instance_._instance,
     &::s4wave::git::_UnstageFilesRequest_default_instance_._instance,
     &::s4wave::git::_UnstageFilesResponse_default_instance_._instance,
+    &::s4wave::git::_CommitFilesRequest_default_instance_._instance,
+    &::s4wave::git::_CommitFilesResponse_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fgit_2fworktree_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -442,41 +539,49 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fg
     "\027.s4wave.git.StatusEntry\"\"\n\021StageFilesRe"
     "quest\022\r\n\005paths\030\001 \003(\t\"\024\n\022StageFilesRespon"
     "se\"$\n\023UnstageFilesRequest\022\r\n\005paths\030\001 \003(\t"
-    "\"\026\n\024UnstageFilesResponse*\220\002\n\016FileStatusC"
-    "ode\022\037\n\033FILE_STATUS_CODE_UNMODIFIED\020\000\022\036\n\032"
-    "FILE_STATUS_CODE_UNTRACKED\020\001\022\035\n\031FILE_STA"
-    "TUS_CODE_MODIFIED\020\002\022\032\n\026FILE_STATUS_CODE_"
-    "ADDED\020\003\022\034\n\030FILE_STATUS_CODE_DELETED\020\004\022\034\n"
-    "\030FILE_STATUS_CODE_RENAMED\020\005\022\033\n\027FILE_STAT"
-    "US_CODE_COPIED\020\006\022)\n%FILE_STATUS_CODE_UPD"
-    "ATED_BUT_UNMERGED\020\0072\253\004\n\032GitWorktreeResou"
-    "rceService\022Z\n\017GetWorktreeInfo\022\".s4wave.g"
-    "it.GetWorktreeInfoRequest\032#.s4wave.git.G"
-    "etWorktreeInfoResponse\022Z\n\017GetRepoResourc"
-    "e\022\".s4wave.git.GetRepoResourceRequest\032#."
-    "s4wave.git.GetRepoResourceResponse\022c\n\022Ge"
-    "tWorkdirResource\022%.s4wave.git.GetWorkdir"
-    "ResourceRequest\032&.s4wave.git.GetWorkdirR"
-    "esourceResponse\022P\n\013WatchStatus\022\036.s4wave."
-    "git.WatchStatusRequest\032\037.s4wave.git.Watc"
-    "hStatusResponse0\001\022K\n\nStageFiles\022\035.s4wave"
-    ".git.StageFilesRequest\032\036.s4wave.git.Stag"
-    "eFilesResponse\022Q\n\014UnstageFiles\022\037.s4wave."
-    "git.UnstageFilesRequest\032 .s4wave.git.Uns"
-    "tageFilesResponseB0Z.github.com/s4wave/s"
-    "pacewave/sdk/git;s4wave_gitb\006proto3"
+    "\"\026\n\024UnstageFilesResponse\"y\n\022CommitFilesR"
+    "equest\022\r\n\005paths\030\001 \003(\t\022\017\n\007message\030\002 \001(\t\022\023"
+    "\n\013author_name\030\003 \001(\t\022\024\n\014author_email\030\004 \001("
+    "\t\022\030\n\020author_timestamp\030\005 \001(\003\"p\n\023CommitFil"
+    "esResponse\022\023\n\013commit_hash\030\001 \001(\t\022\030\n\020base_"
+    "commit_hash\030\002 \001(\t\022\022\n\nbranch_ref\030\003 \001(\t\022\026\n"
+    "\016affected_paths\030\004 \003(\t*\220\002\n\016FileStatusCode"
+    "\022\037\n\033FILE_STATUS_CODE_UNMODIFIED\020\000\022\036\n\032FIL"
+    "E_STATUS_CODE_UNTRACKED\020\001\022\035\n\031FILE_STATUS"
+    "_CODE_MODIFIED\020\002\022\032\n\026FILE_STATUS_CODE_ADD"
+    "ED\020\003\022\034\n\030FILE_STATUS_CODE_DELETED\020\004\022\034\n\030FI"
+    "LE_STATUS_CODE_RENAMED\020\005\022\033\n\027FILE_STATUS_"
+    "CODE_COPIED\020\006\022)\n%FILE_STATUS_CODE_UPDATE"
+    "D_BUT_UNMERGED\020\0072\373\004\n\032GitWorktreeResource"
+    "Service\022Z\n\017GetWorktreeInfo\022\".s4wave.git."
+    "GetWorktreeInfoRequest\032#.s4wave.git.GetW"
+    "orktreeInfoResponse\022Z\n\017GetRepoResource\022\""
+    ".s4wave.git.GetRepoResourceRequest\032#.s4w"
+    "ave.git.GetRepoResourceResponse\022c\n\022GetWo"
+    "rkdirResource\022%.s4wave.git.GetWorkdirRes"
+    "ourceRequest\032&.s4wave.git.GetWorkdirReso"
+    "urceResponse\022P\n\013WatchStatus\022\036.s4wave.git"
+    ".WatchStatusRequest\032\037.s4wave.git.WatchSt"
+    "atusResponse0\001\022K\n\nStageFiles\022\035.s4wave.gi"
+    "t.StageFilesRequest\032\036.s4wave.git.StageFi"
+    "lesResponse\022Q\n\014UnstageFiles\022\037.s4wave.git"
+    ".UnstageFilesRequest\032 .s4wave.git.Unstag"
+    "eFilesResponse\022N\n\013CommitFiles\022\036.s4wave.g"
+    "it.CommitFilesRequest\032\037.s4wave.git.Commi"
+    "tFilesResponseB0Z.github.com/s4wave/spac"
+    "ewave/sdk/git;s4wave_gitb\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fgit_2fworktree_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fgit_2fworktree_2eproto = {
     false,
     false,
-    1635,
+    1952,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fgit_2fworktree_2eproto,
     "github.com/s4wave/spacewave/sdk/git/worktree.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fgit_2fworktree_2eproto_once,
     nullptr,
     0,
-    13,
+    15,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fgit_2fworktree_2eproto::offsets,
@@ -3282,6 +3387,860 @@ UnstageFilesResponse::_table_ = {
 
 ::google::protobuf::Metadata UnstageFilesResponse::GetMetadata() const {
   return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CommitFilesRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<CommitFilesRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(CommitFilesRequest, _impl_._has_bits_);
+};
+
+CommitFilesRequest::CommitFilesRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CommitFilesRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.git.CommitFilesRequest)
+}
+PROTOBUF_NDEBUG_INLINE CommitFilesRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::git::CommitFilesRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        paths_{visibility, arena, from.paths_},
+        message_(arena, from.message_),
+        author_name_(arena, from.author_name_),
+        author_email_(arena, from.author_email_) {}
+
+CommitFilesRequest::CommitFilesRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const CommitFilesRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CommitFilesRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  CommitFilesRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.author_timestamp_ = from._impl_.author_timestamp_;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.git.CommitFilesRequest)
+}
+PROTOBUF_NDEBUG_INLINE CommitFilesRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        paths_{visibility, arena},
+        message_(arena),
+        author_name_(arena),
+        author_email_(arena) {}
+
+inline void CommitFilesRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.author_timestamp_ = {};
+}
+CommitFilesRequest::~CommitFilesRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.git.CommitFilesRequest)
+  SharedDtor(*this);
+}
+inline void CommitFilesRequest::SharedDtor(MessageLite& self) {
+  CommitFilesRequest& this_ = static_cast<CommitFilesRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.message_.Destroy();
+  this_._impl_.author_name_.Destroy();
+  this_._impl_.author_email_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL CommitFilesRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CommitFilesRequest(arena);
+}
+constexpr auto CommitFilesRequest::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(CommitFilesRequest, _impl_.paths_) +
+          decltype(CommitFilesRequest::_impl_.paths_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(CommitFilesRequest), alignof(CommitFilesRequest), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&CommitFilesRequest::PlacementNew_,
+                                 sizeof(CommitFilesRequest),
+                                 alignof(CommitFilesRequest));
+  }
+}
+constexpr auto CommitFilesRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CommitFilesRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CommitFilesRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<CommitFilesRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CommitFilesRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<CommitFilesRequest>(), &CommitFilesRequest::ByteSizeLong,
+              &CommitFilesRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CommitFilesRequest, _impl_._cached_size_),
+          false,
+      },
+      &CommitFilesRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fgit_2fworktree_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CommitFilesRequest_class_data_ =
+        CommitFilesRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CommitFilesRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CommitFilesRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CommitFilesRequest_class_data_.tc_table);
+  return CommitFilesRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 5, 0, 73, 2>
+CommitFilesRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(CommitFilesRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    5, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967264,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    5,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    CommitFilesRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::git::CommitFilesRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // repeated string paths = 1;
+    {::_pbi::TcParser::FastUR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(CommitFilesRequest, _impl_.paths_)}},
+    // string message = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(CommitFilesRequest, _impl_.message_)}},
+    // string author_name = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(CommitFilesRequest, _impl_.author_name_)}},
+    // string author_email = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 3, 0,
+      PROTOBUF_FIELD_OFFSET(CommitFilesRequest, _impl_.author_email_)}},
+    // int64 author_timestamp = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(CommitFilesRequest, _impl_.author_timestamp_), 4>(),
+     {40, 4, 0,
+      PROTOBUF_FIELD_OFFSET(CommitFilesRequest, _impl_.author_timestamp_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated string paths = 1;
+    {PROTOBUF_FIELD_OFFSET(CommitFilesRequest, _impl_.paths_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // string message = 2;
+    {PROTOBUF_FIELD_OFFSET(CommitFilesRequest, _impl_.message_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string author_name = 3;
+    {PROTOBUF_FIELD_OFFSET(CommitFilesRequest, _impl_.author_name_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string author_email = 4;
+    {PROTOBUF_FIELD_OFFSET(CommitFilesRequest, _impl_.author_email_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // int64 author_timestamp = 5;
+    {PROTOBUF_FIELD_OFFSET(CommitFilesRequest, _impl_.author_timestamp_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
+  }},
+  // no aux_entries
+  {{
+    "\35\5\7\13\14\0\0\0"
+    "s4wave.git.CommitFilesRequest"
+    "paths"
+    "message"
+    "author_name"
+    "author_email"
+  }},
+};
+PROTOBUF_NOINLINE void CommitFilesRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.git.CommitFilesRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.paths_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.message_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.author_name_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.author_email_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_.author_timestamp_ = ::int64_t{0};
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL CommitFilesRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const CommitFilesRequest& this_ = static_cast<const CommitFilesRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL CommitFilesRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const CommitFilesRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.git.CommitFilesRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated string paths = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (int i = 0, n = this_._internal_paths_size(); i < n; ++i) {
+      const auto& s = this_._internal_paths().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.git.CommitFilesRequest.paths");
+      target = stream->WriteString(1, s, target);
+    }
+  }
+
+  // string message = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_message().empty()) {
+      const ::std::string& _s = this_._internal_message();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.git.CommitFilesRequest.message");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string author_name = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_author_name().empty()) {
+      const ::std::string& _s = this_._internal_author_name();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.git.CommitFilesRequest.author_name");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string author_email = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_author_email().empty()) {
+      const ::std::string& _s = this_._internal_author_email();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.git.CommitFilesRequest.author_email");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  // int64 author_timestamp = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_author_timestamp() != 0) {
+      target =
+          ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<5>(
+              stream, this_._internal_author_timestamp(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.git.CommitFilesRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t CommitFilesRequest::ByteSizeLong(const MessageLite& base) {
+  const CommitFilesRequest& this_ = static_cast<const CommitFilesRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t CommitFilesRequest::ByteSizeLong() const {
+  const CommitFilesRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.git.CommitFilesRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    // repeated string paths = 1;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_paths().size());
+      for (int i = 0, n = this_._internal_paths().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_paths().Get(i));
+      }
+    }
+    // string message = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_message().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_message());
+      }
+    }
+    // string author_name = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_author_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_author_name());
+      }
+    }
+    // string author_email = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_author_email().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_author_email());
+      }
+    }
+    // int64 author_timestamp = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_author_timestamp() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+            this_._internal_author_timestamp());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void CommitFilesRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<CommitFilesRequest*>(&to_msg);
+  auto& from = static_cast<const CommitFilesRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.git.CommitFilesRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_paths()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_paths());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_message().empty()) {
+        _this->_internal_set_message(from._internal_message());
+      } else {
+        if (_this->_impl_.message_.IsDefault()) {
+          _this->_internal_set_message("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_author_name().empty()) {
+        _this->_internal_set_author_name(from._internal_author_name());
+      } else {
+        if (_this->_impl_.author_name_.IsDefault()) {
+          _this->_internal_set_author_name("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_author_email().empty()) {
+        _this->_internal_set_author_email(from._internal_author_email());
+      } else {
+        if (_this->_impl_.author_email_.IsDefault()) {
+          _this->_internal_set_author_email("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_author_timestamp() != 0) {
+        _this->_impl_.author_timestamp_ = from._impl_.author_timestamp_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void CommitFilesRequest::CopyFrom(const CommitFilesRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.git.CommitFilesRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void CommitFilesRequest::InternalSwap(CommitFilesRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.paths_.InternalSwap(&other->_impl_.paths_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.message_, &other->_impl_.message_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.author_name_, &other->_impl_.author_name_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.author_email_, &other->_impl_.author_email_, arena);
+  swap(_impl_.author_timestamp_, other->_impl_.author_timestamp_);
+}
+
+::google::protobuf::Metadata CommitFilesRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CommitFilesResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<CommitFilesResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(CommitFilesResponse, _impl_._has_bits_);
+};
+
+CommitFilesResponse::CommitFilesResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CommitFilesResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.git.CommitFilesResponse)
+}
+PROTOBUF_NDEBUG_INLINE CommitFilesResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::git::CommitFilesResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        affected_paths_{visibility, arena, from.affected_paths_},
+        commit_hash_(arena, from.commit_hash_),
+        base_commit_hash_(arena, from.base_commit_hash_),
+        branch_ref_(arena, from.branch_ref_) {}
+
+CommitFilesResponse::CommitFilesResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const CommitFilesResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CommitFilesResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  CommitFilesResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.git.CommitFilesResponse)
+}
+PROTOBUF_NDEBUG_INLINE CommitFilesResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        affected_paths_{visibility, arena},
+        commit_hash_(arena),
+        base_commit_hash_(arena),
+        branch_ref_(arena) {}
+
+inline void CommitFilesResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+CommitFilesResponse::~CommitFilesResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.git.CommitFilesResponse)
+  SharedDtor(*this);
+}
+inline void CommitFilesResponse::SharedDtor(MessageLite& self) {
+  CommitFilesResponse& this_ = static_cast<CommitFilesResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.commit_hash_.Destroy();
+  this_._impl_.base_commit_hash_.Destroy();
+  this_._impl_.branch_ref_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL CommitFilesResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CommitFilesResponse(arena);
+}
+constexpr auto CommitFilesResponse::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(CommitFilesResponse, _impl_.affected_paths_) +
+          decltype(CommitFilesResponse::_impl_.affected_paths_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(CommitFilesResponse), alignof(CommitFilesResponse), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&CommitFilesResponse::PlacementNew_,
+                                 sizeof(CommitFilesResponse),
+                                 alignof(CommitFilesResponse));
+  }
+}
+constexpr auto CommitFilesResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CommitFilesResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CommitFilesResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<CommitFilesResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CommitFilesResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<CommitFilesResponse>(), &CommitFilesResponse::ByteSizeLong,
+              &CommitFilesResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CommitFilesResponse, _impl_._cached_size_),
+          false,
+      },
+      &CommitFilesResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fgit_2fworktree_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CommitFilesResponse_class_data_ =
+        CommitFilesResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CommitFilesResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CommitFilesResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CommitFilesResponse_class_data_.tc_table);
+  return CommitFilesResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 0, 90, 2>
+CommitFilesResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(CommitFilesResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    CommitFilesResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::git::CommitFilesResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // repeated string affected_paths = 4;
+    {::_pbi::TcParser::FastUR1,
+     {34, 0, 0,
+      PROTOBUF_FIELD_OFFSET(CommitFilesResponse, _impl_.affected_paths_)}},
+    // string commit_hash = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 1, 0,
+      PROTOBUF_FIELD_OFFSET(CommitFilesResponse, _impl_.commit_hash_)}},
+    // string base_commit_hash = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 2, 0,
+      PROTOBUF_FIELD_OFFSET(CommitFilesResponse, _impl_.base_commit_hash_)}},
+    // string branch_ref = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 3, 0,
+      PROTOBUF_FIELD_OFFSET(CommitFilesResponse, _impl_.branch_ref_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string commit_hash = 1;
+    {PROTOBUF_FIELD_OFFSET(CommitFilesResponse, _impl_.commit_hash_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string base_commit_hash = 2;
+    {PROTOBUF_FIELD_OFFSET(CommitFilesResponse, _impl_.base_commit_hash_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string branch_ref = 3;
+    {PROTOBUF_FIELD_OFFSET(CommitFilesResponse, _impl_.branch_ref_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated string affected_paths = 4;
+    {PROTOBUF_FIELD_OFFSET(CommitFilesResponse, _impl_.affected_paths_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+  }},
+  // no aux_entries
+  {{
+    "\36\13\20\12\16\0\0\0"
+    "s4wave.git.CommitFilesResponse"
+    "commit_hash"
+    "base_commit_hash"
+    "branch_ref"
+    "affected_paths"
+  }},
+};
+PROTOBUF_NOINLINE void CommitFilesResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.git.CommitFilesResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.affected_paths_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.commit_hash_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.base_commit_hash_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.branch_ref_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL CommitFilesResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const CommitFilesResponse& this_ = static_cast<const CommitFilesResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL CommitFilesResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const CommitFilesResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.git.CommitFilesResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string commit_hash = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_commit_hash().empty()) {
+      const ::std::string& _s = this_._internal_commit_hash();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.git.CommitFilesResponse.commit_hash");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string base_commit_hash = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_base_commit_hash().empty()) {
+      const ::std::string& _s = this_._internal_base_commit_hash();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.git.CommitFilesResponse.base_commit_hash");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string branch_ref = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_branch_ref().empty()) {
+      const ::std::string& _s = this_._internal_branch_ref();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.git.CommitFilesResponse.branch_ref");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // repeated string affected_paths = 4;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (int i = 0, n = this_._internal_affected_paths_size(); i < n; ++i) {
+      const auto& s = this_._internal_affected_paths().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.git.CommitFilesResponse.affected_paths");
+      target = stream->WriteString(4, s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.git.CommitFilesResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t CommitFilesResponse::ByteSizeLong(const MessageLite& base) {
+  const CommitFilesResponse& this_ = static_cast<const CommitFilesResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t CommitFilesResponse::ByteSizeLong() const {
+  const CommitFilesResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.git.CommitFilesResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // repeated string affected_paths = 4;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_affected_paths().size());
+      for (int i = 0, n = this_._internal_affected_paths().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_affected_paths().Get(i));
+      }
+    }
+    // string commit_hash = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_commit_hash().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_commit_hash());
+      }
+    }
+    // string base_commit_hash = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_base_commit_hash().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_base_commit_hash());
+      }
+    }
+    // string branch_ref = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_branch_ref().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_branch_ref());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void CommitFilesResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<CommitFilesResponse*>(&to_msg);
+  auto& from = static_cast<const CommitFilesResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.git.CommitFilesResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_affected_paths()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_affected_paths());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_commit_hash().empty()) {
+        _this->_internal_set_commit_hash(from._internal_commit_hash());
+      } else {
+        if (_this->_impl_.commit_hash_.IsDefault()) {
+          _this->_internal_set_commit_hash("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_base_commit_hash().empty()) {
+        _this->_internal_set_base_commit_hash(from._internal_base_commit_hash());
+      } else {
+        if (_this->_impl_.base_commit_hash_.IsDefault()) {
+          _this->_internal_set_base_commit_hash("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_branch_ref().empty()) {
+        _this->_internal_set_branch_ref(from._internal_branch_ref());
+      } else {
+        if (_this->_impl_.branch_ref_.IsDefault()) {
+          _this->_internal_set_branch_ref("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void CommitFilesResponse::CopyFrom(const CommitFilesResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.git.CommitFilesResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void CommitFilesResponse::InternalSwap(CommitFilesResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.affected_paths_.InternalSwap(&other->_impl_.affected_paths_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.commit_hash_, &other->_impl_.commit_hash_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.base_commit_hash_, &other->_impl_.base_commit_hash_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.branch_ref_, &other->_impl_.branch_ref_, arena);
+}
+
+::google::protobuf::Metadata CommitFilesResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace git

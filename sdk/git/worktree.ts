@@ -6,6 +6,7 @@ import { GitRepoHandle } from './repo.js'
 import { FSHandle } from '../unixfs/handle.js'
 import { GitWorktreeResourceServiceClient } from './worktree_srpc.pb.js'
 import type {
+  CommitFilesResponse,
   GetWorktreeInfoResponse,
   StatusEntry,
   WatchStatusResponse,
@@ -70,5 +71,28 @@ export class GitWorktreeHandle extends Resource {
     signal?: AbortSignal,
   ): Promise<void> {
     await this.service.UnstageFiles({ paths }, signal)
+  }
+
+  // commitFiles commits staged files in the git index.
+  public async commitFiles(
+    args: {
+      paths?: string[]
+      message: string
+      authorName: string
+      authorEmail: string
+      authorTimestamp?: number
+    },
+    signal?: AbortSignal,
+  ): Promise<CommitFilesResponse> {
+    return this.service.CommitFiles(
+      {
+        paths: args.paths ?? [],
+        message: args.message,
+        authorName: args.authorName,
+        authorEmail: args.authorEmail,
+        authorTimestamp: args.authorTimestamp ?? Math.floor(Date.now() / 1000),
+      },
+      signal,
+    )
   }
 }

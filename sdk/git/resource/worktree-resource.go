@@ -2,12 +2,17 @@ package resource_git
 
 import (
 	"context"
+	stderrors "errors"
+	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/go-git/go-billy/v6"
 	"github.com/go-git/go-git/v6"
+	"github.com/go-git/go-git/v6/plumbing"
+	"github.com/go-git/go-git/v6/plumbing/object"
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_unixfs "github.com/s4wave/spacewave/core/resource/unixfs"
@@ -299,6 +304,82 @@ func (r *GitWorktreeResource) UnstageFiles(ctx context.Context, req *s4wave_git.
 	return &s4wave_git.UnstageFilesResponse{}, nil
 }
 
+// CommitFiles commits staged files in the git index.
+func (r *GitWorktreeResource) CommitFiles(ctx context.Context, req *s4wave_git.CommitFilesRequest) (*s4wave_git.CommitFilesResponse, error) {
+	message := strings.TrimSpace(req.GetMessage())
+	if message == "" {
+		return nil, errors.New("commit message cannot be empty")
+	}
+	authorName := strings.TrimSpace(req.GetAuthorName())
+	if authorName == "" {
+		return nil, errors.New("author name cannot be empty")
+	}
+	authorEmail := strings.TrimSpace(req.GetAuthorEmail())
+	if authorEmail == "" {
+		return nil, errors.New("author email cannot be empty")
+	}
+	authorTime := time.Now()
+	if req.GetAuthorTimestamp() > 0 {
+		authorTime = time.Unix(req.GetAuthorTimestamp(), 0)
+	}
+	paths := cleanPathList(req.GetPaths())
+	repoObjKey := r.snap.RepoObjectKey
+	if repoObjKey == "" {
+		return nil, errors.New("no linked repo object")
+	}
+
+	resp := &s4wave_git.CommitFilesResponse{}
+	err := git_world.AccessWorldObjectRepoWithWorktree(
+		ctx,
+		nil,
+		r.ws,
+		repoObjKey, r.objKey,
+		time.Time{},
+		true,
+		"",
+		func(repo *git.Repository, workDir billy.Filesystem) error {
+			headRef, err := repo.Head()
+			if err != nil && !stderrors.Is(err, plumbing.ErrReferenceNotFound) {
+				return errors.Wrap(err, "head")
+			}
+			if headRef != nil {
+				resp.BaseCommitHash = headRef.Hash().String()
+				resp.BranchRef = headRef.Name().Short()
+			}
+
+			wt, err := repo.Worktree()
+			if err != nil {
+				return errors.Wrap(err, "worktree")
+			}
+			status, err := wt.Status()
+			if err != nil {
+				return errors.Wrap(err, "status")
+			}
+			affected, err := stagedPathsForCommit(status, paths)
+			if err != nil {
+				return err
+			}
+			hash, err := wt.Commit(message, &git.CommitOptions{
+				Author: &object.Signature{
+					Name:  authorName,
+					Email: authorEmail,
+					When:  authorTime,
+				},
+			})
+			if err != nil {
+				return errors.Wrap(err, "commit")
+			}
+			resp.CommitHash = hash.String()
+			resp.AffectedPaths = affected
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
 // mapStatusCode maps a go-git StatusCode to a proto FileStatusCode.
 func mapStatusCode(sc git.StatusCode) s4wave_git.FileStatusCode {
 	switch sc {
@@ -321,6 +402,57 @@ func mapStatusCode(sc git.StatusCode) s4wave_git.FileStatusCode {
 	default:
 		return s4wave_git.FileStatusCode_FILE_STATUS_CODE_UNMODIFIED
 	}
+}
+
+func cleanPathList(paths []string) []string {
+	if len(paths) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(paths))
+	for _, p := range paths {
+		p = strings.TrimSpace(p)
+		if p == "" || slices.Contains(out, p) {
+			continue
+		}
+		out = append(out, p)
+	}
+	slices.Sort(out)
+	return out
+}
+
+func stagedPathsForCommit(status git.Status, requested []string) ([]string, error) {
+	if len(requested) != 0 {
+		out := make([]string, 0, len(requested))
+		for _, p := range requested {
+			fileStatus, ok := status[p]
+			if !ok || !isIndexStaged(fileStatus.Staging) {
+				return nil, errors.Errorf("path is not staged: %s", p)
+			}
+			out = append(out, p)
+		}
+		for path, fileStatus := range status {
+			if !isIndexStaged(fileStatus.Staging) || slices.Contains(requested, path) {
+				continue
+			}
+			return nil, errors.Errorf("unexpected staged path: %s", path)
+		}
+		return out, nil
+	}
+	out := make([]string, 0, len(status))
+	for path, fileStatus := range status {
+		if isIndexStaged(fileStatus.Staging) {
+			out = append(out, path)
+		}
+	}
+	if len(out) == 0 {
+		return nil, errors.New("no staged paths to commit")
+	}
+	slices.Sort(out)
+	return out, nil
+}
+
+func isIndexStaged(sc git.StatusCode) bool {
+	return sc != git.Unmodified && sc != git.Untracked
 }
 
 // _ is a type assertion

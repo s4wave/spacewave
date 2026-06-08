@@ -25,6 +25,8 @@ type SRPCGitWorktreeResourceServiceClient interface {
 	StageFiles(ctx context.Context, in *StageFilesRequest) (*StageFilesResponse, error)
 
 	UnstageFiles(ctx context.Context, in *UnstageFilesRequest) (*UnstageFilesResponse, error)
+
+	CommitFiles(ctx context.Context, in *CommitFilesRequest) (*CommitFilesResponse, error)
 }
 
 type srpcGitWorktreeResourceServiceClient struct {
@@ -124,6 +126,15 @@ func (c *srpcGitWorktreeResourceServiceClient) UnstageFiles(ctx context.Context,
 	return out, nil
 }
 
+func (c *srpcGitWorktreeResourceServiceClient) CommitFiles(ctx context.Context, in *CommitFilesRequest) (*CommitFilesResponse, error) {
+	out := new(CommitFilesResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "CommitFiles", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCGitWorktreeResourceServiceServer interface {
 	GetWorktreeInfo(context.Context, *GetWorktreeInfoRequest) (*GetWorktreeInfoResponse, error)
 
@@ -136,6 +147,8 @@ type SRPCGitWorktreeResourceServiceServer interface {
 	StageFiles(context.Context, *StageFilesRequest) (*StageFilesResponse, error)
 
 	UnstageFiles(context.Context, *UnstageFilesRequest) (*UnstageFilesResponse, error)
+
+	CommitFiles(context.Context, *CommitFilesRequest) (*CommitFilesResponse, error)
 }
 
 const SRPCGitWorktreeResourceServiceServiceID = "s4wave.git.GitWorktreeResourceService"
@@ -170,6 +183,7 @@ func (SRPCGitWorktreeResourceServiceHandler) GetMethodIDs() []string {
 		"WatchStatus",
 		"StageFiles",
 		"UnstageFiles",
+		"CommitFiles",
 	}
 }
 
@@ -194,6 +208,8 @@ func (d *SRPCGitWorktreeResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_StageFiles(d.impl, strm)
 	case "UnstageFiles":
 		return true, d.InvokeMethod_UnstageFiles(d.impl, strm)
+	case "CommitFiles":
+		return true, d.InvokeMethod_CommitFiles(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -268,6 +284,18 @@ func (SRPCGitWorktreeResourceServiceHandler) InvokeMethod_UnstageFiles(impl SRPC
 	return strm.MsgSend(out)
 }
 
+func (SRPCGitWorktreeResourceServiceHandler) InvokeMethod_CommitFiles(impl SRPCGitWorktreeResourceServiceServer, strm srpc.Stream) error {
+	req := new(CommitFilesRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.CommitFiles(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 type SRPCGitWorktreeResourceService_GetWorktreeInfoStream interface {
 	srpc.Stream
 }
@@ -328,5 +356,13 @@ type SRPCGitWorktreeResourceService_UnstageFilesStream interface {
 }
 
 type srpcGitWorktreeResourceService_UnstageFilesStream struct {
+	srpc.Stream
+}
+
+type SRPCGitWorktreeResourceService_CommitFilesStream interface {
+	srpc.Stream
+}
+
+type srpcGitWorktreeResourceService_CommitFilesStream struct {
 	srpc.Stream
 }
