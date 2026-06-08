@@ -50,12 +50,28 @@ func TestRenderIndexHTML(t *testing.T) {
 func TestRenderIndexHTMLInvalidTemplate(t *testing.T) {
 	// Temporarily modify the template to make it invalid
 	originalHTML := indexHTML
-	indexHTML = "{{.InvalidTemplate}}"
+	indexHTML = "<!doctype html>"
 	defer func() { indexHTML = originalHTML }()
 
 	_, err := RenderIndexHTML(IndexData{})
 	if err == nil {
 		t.Error("RenderIndexHTML() with invalid template should return error")
+	}
+}
+
+func TestRenderIndexHTMLEscapesEntrypointPath(t *testing.T) {
+	result, err := RenderIndexHTML(IndexData{
+		ImportMap:      ImportMap{Imports: map[string]string{}},
+		EntrypointPath: `/boot.mjs?x="bad"&y=<tag>`,
+	})
+	if err != nil {
+		t.Fatalf("RenderIndexHTML() error = %v", err)
+	}
+	if strings.Contains(result, `src="/boot.mjs?x="bad"&y=<tag>"`) {
+		t.Fatalf("RenderIndexHTML() rendered unescaped entrypoint path: %s", result)
+	}
+	if !strings.Contains(result, `src="/boot.mjs?x=&#34;bad&#34;&amp;y=&lt;tag&gt;"`) {
+		t.Fatalf("RenderIndexHTML() missing escaped entrypoint path: %s", result)
 	}
 }
 

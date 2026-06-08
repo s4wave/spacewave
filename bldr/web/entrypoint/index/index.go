@@ -1,9 +1,10 @@
 package web_entrypoint_index
 
 import (
-	"bytes"
+	"errors"
+	"html"
 	"slices"
-	"text/template"
+	"strings"
 
 	"github.com/aperturerobotics/fastjson"
 
@@ -42,15 +43,22 @@ func (m ImportMap) String() string {
 	return string(obj.MarshalTo(nil))
 }
 
-// RenderIndexHTML processes the index.html template with the provided data.
+// RenderIndexHTML renders the embedded browser index shell with the provided data.
 func RenderIndexHTML(data IndexData) (string, error) {
-	tmpl, err := template.New("index").Parse(indexHTML)
-	if err != nil {
-		return "", err
+	const (
+		importMapToken  = "{{ .ImportMap.String }}"
+		entrypointToken = "{{ .EntrypointPath }}"
+	)
+	if !strings.Contains(indexHTML, importMapToken) || !strings.Contains(indexHTML, entrypointToken) {
+		return "", errors.New("index HTML template missing render tokens")
 	}
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return "", err
-	}
-	return buf.String(), nil
+	rendered := strings.ReplaceAll(indexHTML, importMapToken, escapeScriptJSON(data.ImportMap.String()))
+	rendered = strings.ReplaceAll(rendered, entrypointToken, html.EscapeString(data.EntrypointPath))
+	return rendered, nil
+}
+
+func escapeScriptJSON(value string) string {
+	value = strings.ReplaceAll(value, "</", "<\\/")
+	value = strings.ReplaceAll(value, "<!--", "\\u003c!--")
+	return value
 }
