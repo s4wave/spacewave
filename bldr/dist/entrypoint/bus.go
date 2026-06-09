@@ -136,8 +136,7 @@ func BuildDistBus(
 	pluginsStateRoot := filepath.Join(pluginsRoot, "s")
 
 	// HACK: we cannot create paths on the web platform
-	isWebPlatform := platformID == "js" || strings.HasPrefix(platformID, "desktop/js/")
-	if !isWebPlatform {
+	if !isWebDistPlatform(platformID) {
 		if err := os.MkdirAll(pluginsDistRoot, 0o755); err != nil {
 			rel()
 			return nil, err
@@ -450,6 +449,12 @@ func newDistStorageVolumeConfig(storageID, projectID string) *storage_volume.Con
 			GcIntervalDur:       "0",
 		},
 	}
+}
+
+func isWebDistPlatform(platformID string) bool {
+	return platformID == "js" ||
+		platformID == "web/js/wasm" ||
+		strings.HasPrefix(platformID, "desktop/js/")
 }
 
 // GetContext returns the context.
