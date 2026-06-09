@@ -39,17 +39,25 @@ func (i *BoltDB) AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(volume_bolt.NewFactory(b))
 }
 
-// BuildVolumeConfig creates the volume config for the store ID.
-// Returns nil if the storage cannot produce Volume.
-func (i *BoltDB) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) (config.Config, error) {
+// BoltDBPath returns the native bbolt path for a storage volume ID.
+func BoltDBPath(rootDir, id string) (string, error) {
 	// replace any slashes with underscores
 	filename := strings.ReplaceAll(id, "/", "_") + BoltDBExt
 	if cleanFilename := filepath.Clean(filename); cleanFilename != filename {
-		return nil, errors.Errorf("invalid storage id: %s", filename)
+		return "", errors.Errorf("invalid storage id: %s", filename)
 	}
+	return filepath.Join(rootDir, filename), nil
+}
 
+// BuildVolumeConfig creates the volume config for the store ID.
+// Returns nil if the storage cannot produce Volume.
+func (i *BoltDB) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.Config) (config.Config, error) {
+	path, err := BoltDBPath(i.rootDir, id)
+	if err != nil {
+		return nil, err
+	}
 	return &volume_bolt.Config{
-		Path:         filepath.Join(i.rootDir, filename),
+		Path:         path,
 		Verbose:      i.verbose,
 		Sync:         false,
 		VolumeConfig: baseVolCtrlConf,
@@ -58,8 +66,10 @@ func (i *BoltDB) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller
 
 // DeleteVolume removes the BoltDB database file for the given volume ID.
 func (i *BoltDB) DeleteVolume(id string) error {
-	filename := strings.ReplaceAll(id, "/", "_") + BoltDBExt
-	path := filepath.Join(i.rootDir, filename)
+	path, err := BoltDBPath(i.rootDir, id)
+	if err != nil {
+		return err
+	}
 	return os.Remove(path)
 }
 
