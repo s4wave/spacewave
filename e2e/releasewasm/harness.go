@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -259,6 +260,38 @@ func (h *harness) newPage(t testing.TB) playwright.Page {
 	return page
 }
 
+func (h *harness) newDedicatedWorkerPage(t testing.TB) playwright.Page {
+	t.Helper()
+
+	ctx, err := h.browser.NewContext(h.newContextOptions(t))
+	if err != nil {
+		t.Fatalf("new browser context: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := ctx.Close(); err != nil {
+			t.Logf("close browser context: %v", err)
+		}
+	})
+
+	script := `
+Object.defineProperty(globalThis, 'SharedWorker', {
+	configurable: true,
+	value: undefined,
+});
+`
+	if err := ctx.AddInitScript(playwright.Script{Content: &script}); err != nil {
+		t.Fatalf("install dedicated-worker init script: %v", err)
+	}
+
+	page, err := ctx.NewPage()
+	if err != nil {
+		t.Fatalf("new page: %v", err)
+	}
+
+	h.attachPageDiagnostics(t, page)
+	return page
+}
+
 func (h *harness) newPageInContext(t testing.TB, ctx playwright.BrowserContext) playwright.Page {
 	t.Helper()
 
@@ -274,6 +307,12 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) {
 	t.Helper()
 
 	var errs []string
+	var errsMu sync.Mutex
+	recordBrowserError := func(msg string) {
+		errsMu.Lock()
+		defer errsMu.Unlock()
+		errs = append(errs, msg)
+	}
 	consoleTrace := os.Getenv("E2E_RELEASE_WASM_CONSOLE_TRACE") == "1"
 	page.OnFrameNavigated(func(frame playwright.Frame) {
 		if frame.ParentFrame() != nil {
@@ -304,22 +343,37 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) {
 		}
 		t.Logf("browser request failed: %s %s: %s", req.Method(), url, req.Failure())
 	})
-	if consoleTrace {
-		page.OnWorker(func(worker playwright.Worker) {
+	page.OnWorker(func(worker playwright.Worker) {
+		if consoleTrace {
 			t.Logf("browser worker: %s", worker.URL())
-			worker.OnConsole(func(msg playwright.ConsoleMessage) {
-				t.Logf("browser worker %s: %s", msg.Type(), msg.Text())
-			})
+		}
+		worker.OnConsole(func(msg playwright.ConsoleMessage) {
+			switch msg.Type() {
+			case "error":
+				if !ignoreBrowserError(msg.Text()) {
+					recordBrowserError("worker console error: " + msg.Text())
+				}
+			case "warning":
+				if consoleTrace {
+					t.Logf("browser worker warning: %s", msg.Text())
+				}
+			default:
+				if consoleTrace {
+					t.Logf("browser worker %s: %s", msg.Type(), msg.Text())
+				}
+			}
+		})
+		if consoleTrace {
 			worker.OnClose(func(worker playwright.Worker) {
 				t.Logf("browser worker closed: %s", worker.URL())
 			})
-		})
-	}
+		}
+	})
 	page.On("console", func(msg playwright.ConsoleMessage) {
 		switch msg.Type() {
 		case "error":
 			if !ignoreBrowserError(msg.Text()) {
-				errs = append(errs, "console error: "+msg.Text())
+				recordBrowserError("console error: " + msg.Text())
 			}
 		case "warning":
 			if consoleTrace {
@@ -334,7 +388,7 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) {
 	page.On("pageerror", func(err error) {
 		msg := browserPageErrorMessage(err)
 		if !ignoreBrowserError(msg) {
-			errs = append(errs, "page error: "+msg)
+			recordBrowserError("page error: " + msg)
 		}
 	})
 	page.On("response", func(resp playwright.Response) {
@@ -343,12 +397,14 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) {
 		}
 		url := resp.URL()
 		if strings.HasPrefix(url, h.baseURL) && !strings.HasSuffix(url, "/.vite/manifest.json") {
-			errs = append(errs, "http "+resp.StatusText()+": "+resp.URL())
+			recordBrowserError("http " + resp.StatusText() + ": " + resp.URL())
 			return
 		}
 		t.Logf("browser http warning: %d %s", resp.Status(), url)
 	})
 	t.Cleanup(func() {
+		errsMu.Lock()
+		defer errsMu.Unlock()
 		if len(errs) != 0 {
 			t.Fatalf("browser errors: %v", errs)
 		}

@@ -100,6 +100,32 @@ func TestRootPrerenderLoadsProductionWasmBundle(t *testing.T) {
 	waitForLiveApp(t, page)
 }
 
+func TestGoScriptDedicatedWorkerLocalBundleSmoke(t *testing.T) {
+	compiler, err := resolveReleaseWasmCompiler()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if compiler != releaseWasmCompilerGoScript {
+		t.Skipf("set %s=true to run GoScript dedicated-worker release smoke", E2EReleaseWasmGoScriptEnv)
+	}
+
+	page := testHarness.newDedicatedWorkerPage(t)
+	if _, err := page.Goto(testHarness.getBaseURL() + "/"); err != nil {
+		t.Fatalf("goto root: %v", err)
+	}
+
+	waitForPrerenderRoot(t, page)
+	waitForBootFunction(t, page)
+	_, err = page.Evaluate(`() => {
+		globalThis.__swBoot('#/')
+	}`)
+	if err != nil {
+		t.Fatalf("start root production goscript bundle: %v", err)
+	}
+	waitForLiveApp(t, page)
+	assertRuntimeWorkerMode(t, page, "dedicated-worker")
+}
+
 func TestProductionRuntimeMatchesReleaseDescriptor(t *testing.T) {
 	desc, err := testHarness.browserRelease(context.Background())
 	if err != nil {
@@ -556,6 +582,36 @@ func waitForBootFunction(t *testing.T, page playwright.Page) {
 	}`)
 	if err != nil {
 		t.Fatalf("wait for boot function: %v", err)
+	}
+}
+
+func assertRuntimeWorkerMode(t *testing.T, page playwright.Page, want string) {
+	t.Helper()
+
+	raw, err := page.Evaluate(`() => {
+		const marks = globalThis.__swStartupMarks ?? []
+		for (let i = marks.length - 1; i >= 0; i--) {
+			const mark = marks[i]
+			if (mark.label === 'runtime.mode-selected') {
+				return {
+					mode: mark.detail?.mode ?? null,
+					mark,
+				}
+			}
+		}
+		return null
+	}`, nil)
+	if err != nil {
+		t.Fatalf("read runtime worker mode: %v", err)
+	}
+	item, ok := raw.(map[string]any)
+	if !ok {
+		dumpPageState(t, page)
+		t.Fatalf("runtime mode mark missing or invalid: %#v", raw)
+	}
+	if got, _ := item["mode"].(string); got != want {
+		dumpPageState(t, page)
+		t.Fatalf("runtime worker mode: got %q, want %q; mark=%#v", got, want, item["mark"])
 	}
 }
 
