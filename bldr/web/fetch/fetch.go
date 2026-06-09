@@ -197,7 +197,14 @@ func BuildFetchResponse_Info(header http.Header, statusCode int) *FetchResponse 
 func BuildFetchResponse_Data(data []byte, done bool) *FetchResponse {
 	return &FetchResponse{
 		Body: &FetchResponse_ResponseData{
-			ResponseData: &ResponseData{Data: data, Done: done},
+			ResponseData: &ResponseData{Data: cloneFetchPacketData(data), Done: done},
 		},
 	}
+}
+
+func cloneFetchPacketData(data []byte) []byte {
+	if len(data) == 0 {
+		return nil
+	}
+	return append([]byte(nil), data...)
 }

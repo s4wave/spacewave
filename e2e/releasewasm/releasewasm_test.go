@@ -126,6 +126,141 @@ func TestGoScriptDedicatedWorkerLocalBundleSmoke(t *testing.T) {
 	assertRuntimeWorkerMode(t, page, "dedicated-worker")
 }
 
+func TestGoScriptServiceWorkerPluginDistModuleIntegrity(t *testing.T) {
+	compiler, err := resolveReleaseWasmCompiler()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if compiler != releaseWasmCompilerGoScript {
+		t.Skipf("set %s=true to run GoScript ServiceWorker plugin dist module probe", E2EReleaseWasmGoScriptEnv)
+	}
+
+	page := testHarness.newPage(t)
+	if _, err := page.Goto(testHarness.getBaseURL() + "/"); err != nil {
+		t.Fatalf("goto root: %v", err)
+	}
+
+	waitForPrerenderRoot(t, page)
+	waitForBootFunction(t, page)
+	_, err = page.Evaluate(`() => {
+		globalThis.__swBoot('#/')
+	}`)
+	if err != nil {
+		t.Fatalf("start root production goscript bundle: %v", err)
+	}
+	waitForLiveApp(t, page)
+	waitForPluginWorkersRunning(t, page, []string{
+		"plugin/spacewave-core",
+		"plugin/spacewave-launcher",
+	})
+
+	raw, err := page.Evaluate(`async (args) => {
+		await navigator.serviceWorker.ready
+		const controllerURL = navigator.serviceWorker.controller?.scriptURL || ''
+		if (!controllerURL) {
+			throw new Error('page is not controlled by the release ServiceWorker')
+		}
+
+		const hasDefaultExport = (text) =>
+			/\bexport\s*\{[^}]*\bas\s+default\b[^}]*\}\s*;?\s*$/.test(text) ||
+			/\bexport\s+default\b/.test(text)
+		const failures = []
+		const results = []
+		const recordFailure = (result, reason) => {
+			failures.push({ ...result, reason })
+		}
+
+		for (let round = 0; round < args.rounds; round++) {
+			for (const path of args.paths) {
+				const requestURL =
+					path +
+					(path.includes('?') ? '&' : '?') +
+					'sw_module_integrity=' +
+					round +
+					'-' +
+					Date.now()
+				const response = await fetch(requestURL, { cache: 'reload' })
+				const text = await response.text()
+				const result = {
+					path,
+					requestURL,
+					round,
+					status: response.status,
+					ok: response.ok,
+					contentType: response.headers.get('content-type') ?? '',
+					contentLength: response.headers.get('content-length') ?? '',
+					bodyLength: text.length,
+					hasDefaultExport: hasDefaultExport(text),
+					head: text.slice(0, 120),
+					tail: text.slice(-180),
+				}
+				results.push(result)
+				if (!response.ok) {
+					recordFailure(result, 'non-OK response')
+					continue
+				}
+				if (text.length < args.minBodyLength) {
+					recordFailure(result, 'body shorter than expected minimum')
+				}
+				if (/^\s*</.test(text)) {
+					recordFailure(result, 'response looks like HTML instead of JavaScript')
+				}
+				if (!result.hasDefaultExport) {
+					recordFailure(result, 'module body has no default export shape')
+				}
+			}
+		}
+
+		if (failures.length) {
+			throw new Error(
+				'ServiceWorker plugin dist module integrity probe failed: ' +
+					JSON.stringify(
+						{
+							controllerURL,
+							failures,
+							resultCount: results.length,
+						},
+						null,
+						2,
+					),
+			)
+		}
+		return { controllerURL, results }
+	}`, map[string]any{
+		"paths": []string{
+			"/b/pd/spacewave-core/spacewave-core.mjs",
+			"/b/pd/spacewave-launcher/spacewave-launcher.mjs",
+		},
+		"rounds":        3,
+		"minBodyLength": 1024 * 1024,
+	})
+	if err != nil {
+		dumpPageState(t, page)
+		t.Fatalf("probe ServiceWorker plugin dist module integrity: %v", err)
+	}
+	t.Logf("ServiceWorker plugin dist module integrity probe: %#v", raw)
+}
+
+func waitForPluginWorkersRunning(t *testing.T, page playwright.Page, workerIDs []string) {
+	t.Helper()
+
+	_, err := page.WaitForFunction(`(workerIds) => {
+		const marks = globalThis.__swStartupMarks ?? []
+		return workerIds.every((workerId) =>
+			marks.some((mark) =>
+				mark.label === 'plugin.running' &&
+				mark.detail?.workerId === workerId,
+			),
+		)
+	}`, workerIDs, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(browserWaitMS),
+	})
+	if err != nil {
+		dumpPageState(t, page)
+		t.Fatalf("wait for plugin workers running %v: %v", workerIDs, err)
+	}
+}
+
 func TestProductionRuntimeMatchesReleaseDescriptor(t *testing.T) {
 	desc, err := testHarness.browserRelease(context.Background())
 	if err != nil {

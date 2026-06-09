@@ -33,7 +33,7 @@ func NewFetchRequestWithData(data []byte, done bool) *FetchRequest {
 	return &FetchRequest{
 		Body: &FetchRequest_RequestData{
 			&FetchRequestData{
-				Data: data,
+				Data: cloneFetchPacketData(data),
 				Done: done,
 			},
 		},

@@ -78,3 +78,19 @@ func TestFetch(t *testing.T) {
 		t.Fatalf("incorrect content encoding: %s", contentEnc)
 	}
 }
+
+func TestFetchDataPacketsOwnPayloadBytes(t *testing.T) {
+	reqData := []byte("request-payload")
+	reqPkt := NewFetchRequestWithData(reqData, false)
+	reqData[0] = 'X'
+	if got, want := reqPkt.GetRequestData().GetData(), []byte("request-payload"); !bytes.Equal(got, want) {
+		t.Fatalf("request packet data mutated: got %q, want %q", got, want)
+	}
+
+	respData := []byte("response-payload")
+	respPkt := BuildFetchResponse_Data(respData, false)
+	respData[0] = 'X'
+	if got, want := respPkt.GetResponseData().GetData(), []byte("response-payload"); !bytes.Equal(got, want) {
+		t.Fatalf("response packet data mutated: got %q, want %q", got, want)
+	}
+}
