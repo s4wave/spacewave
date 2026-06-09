@@ -20,6 +20,7 @@ type mockResourceService struct {
 	nextResourceID uint32
 	clientEvents   chan *resource.ResourceClientResponse
 	onAttachSend   func(*mockResourceAttachClient, *resource.ResourceAttachRequest)
+	onResourceRPC  func(context.Context) (resource.SRPCResourceService_ResourceRpcClient, error)
 	onRelease      func(context.Context, *resource.ResourceRefReleaseRequest) (*resource.ResourceRefReleaseResponse, error)
 }
 
@@ -30,6 +31,9 @@ func (m *mockResourceService) ResourceClient(ctx context.Context, _ *resource.Re
 }
 
 func (m *mockResourceService) ResourceRpc(ctx context.Context) (resource.SRPCResourceService_ResourceRpcClient, error) {
+	if m.onResourceRPC != nil {
+		return m.onResourceRPC(ctx)
+	}
 	return nil, errors.New("unused")
 }
 
@@ -234,6 +238,64 @@ func (m *mockMuxedConn) OpenStream(context.Context) (srpc.MuxedStream, error) {
 
 func (m *mockMuxedConn) AcceptStream() (srpc.MuxedStream, error) {
 	return nil, errors.New("unused")
+}
+
+func TestResourceRPCHonorsCallerContext(t *testing.T) {
+	resourceRPCStarted := make(chan context.Context, 1)
+	svc := &mockResourceService{
+		onResourceRPC: func(ctx context.Context) (resource.SRPCResourceService_ResourceRpcClient, error) {
+			resourceRPCStarted <- ctx
+			<-ctx.Done()
+			return nil, ctx.Err()
+		},
+	}
+	client, err := NewClient(t.Context(), svc)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+
+	rootClient, err := client.AccessRootResource().GetClient()
+	if err != nil {
+		client.Release()
+		t.Fatalf("root client: %v", err)
+	}
+
+	callCtx, cancelCall := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		done <- rootClient.ExecCall(
+			callCtx,
+			"test.Service",
+			"Blocked",
+			&resource.ResourceRefReleaseRequest{},
+			&resource.ResourceRefReleaseResponse{},
+		)
+	}()
+
+	select {
+	case <-resourceRPCStarted:
+	case <-time.After(time.Second):
+		client.Release()
+		t.Fatal("ResourceRpc did not start")
+	}
+
+	cancelCall()
+
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("ExecCall error = %v, want context.Canceled", err)
+		}
+	case <-time.After(time.Second):
+		client.Release()
+		select {
+		case <-done:
+		case <-time.After(time.Second):
+		}
+		t.Fatal("ExecCall did not return after caller context cancellation")
+	}
+
+	client.Release()
 }
 
 func TestAttachResourceAddAckErrorReturnsError(t *testing.T) {

@@ -182,14 +182,52 @@ func (l *resourceLifetime) getOrCreateClientLocked(resourceID uint32) (srpc.Clie
 
 	resourceIDStr := strconv.FormatUint(uint64(resourceID), 10)
 	client := rpcstream.NewRpcStreamClient(
-		func(context.Context) (resource.SRPCResourceService_ResourceRpcClient, error) {
-			return l.service.ResourceRpc(resourceCtx)
+		func(ctx context.Context) (resource.SRPCResourceService_ResourceRpcClient, error) {
+			callCtx, releaseCallCtx := resourceRPCCallContext(resourceCtx, ctx)
+			strm, err := l.service.ResourceRpc(callCtx)
+			if err != nil {
+				releaseCallCtx()
+				return nil, err
+			}
+			return &resourceRPCClientWithContext{
+				SRPCResourceService_ResourceRpcClient: strm,
+				ctx:                                   callCtx,
+				release:                               releaseCallCtx,
+			}, nil
 		},
 		resourceIDStr,
 		true,
 	)
 	l.srpcClients[resourceID] = client
 	return client, nil
+}
+
+func resourceRPCCallContext(resourceCtx, callCtx context.Context) (context.Context, func()) {
+	if callCtx == nil {
+		callCtx = context.Background()
+	}
+	ctx, cancel := context.WithCancel(callCtx)
+	stopResourceCancel := context.AfterFunc(resourceCtx, cancel)
+	return ctx, func() {
+		stopResourceCancel()
+		cancel()
+	}
+}
+
+type resourceRPCClientWithContext struct {
+	resource.SRPCResourceService_ResourceRpcClient
+	ctx     context.Context
+	release func()
+}
+
+func (c *resourceRPCClientWithContext) Context() context.Context {
+	return c.ctx
+}
+
+func (c *resourceRPCClientWithContext) Close() error {
+	err := c.SRPCResourceService_ResourceRpcClient.Close()
+	c.release()
+	return err
 }
 
 type resourceRef struct {
