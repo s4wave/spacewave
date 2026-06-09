@@ -947,7 +947,7 @@
     },
     {
       "name": "github.com/aperturerobotics/goscript",
-      "version": "v0.2.4-0.20260609013407-3375761ff541",
+      "version": "v0.2.4-0.20260609052305-bbfc95d279a8",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/goscript",
