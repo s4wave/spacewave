@@ -953,12 +953,19 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       mode: useDedicatedRuntime ? 'dedicated-worker' : 'shared-worker',
     })
 
-    // setup the runtime worker
-    if (this.isElectron) {
-      const workerChannel = new MessageChannel()
-      this.webRuntimePort = workerChannel.port2
-      handleElectronWorkerPort(workerChannel.port1)
-    } else {
+    const startWebRuntimeWorker = () => {
+      if (this.webRuntimePort || this.closed) {
+        return
+      }
+      // setup the runtime worker
+      if (this.isElectron) {
+        const workerChannel = new MessageChannel()
+        this.webRuntimePort = workerChannel.port2
+        handleElectronWorkerPort(workerChannel.port1)
+        this.webRuntimePort.start()
+        return
+      }
+
       // request persistent storage
       markStartupBoundary('storage.mode-detected', {
         source: 'browser',
@@ -1055,19 +1062,52 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           mode: 'shared-worker',
         })
       }
+
+      // In DedicatedWorker runtime mode, acquire a Web Lock to ensure only one
+      // foreground tab creates plugin workers at a time. SharedWorker mode
+      // doesn't need this because the shared Go runtime owns the singleton in
+      // one process.
+      const usePluginSingletonLock = useDedicatedRuntime && !this.isElectron
+      if (usePluginSingletonLock) {
+        this.enablePluginSingletonLock()
+      }
+
+      // we don't expect any messages directly from the main worker port.
+      this.webRuntimePort.start()
     }
 
-    // In DedicatedWorker runtime mode, acquire a Web Lock to ensure only one
-    // foreground tab creates plugin workers at a time. SharedWorker mode
-    // doesn't need this because the shared Go runtime owns the singleton in
-    // one process.
-    const usePluginSingletonLock = useDedicatedRuntime && !this.isElectron
-    if (usePluginSingletonLock) {
-      this.enablePluginSingletonLock()
+    const startWebRuntimeConnection = () => {
+      if (this.closed) {
+        return
+      }
+      // Acquire a Web Lock to enable reliable disconnect detection.
+      // The WebRuntime (SharedWorker) will try to acquire the same lock.
+      // When this page closes (or crashes), the lock is released and the
+      // WebRuntime can detect the disconnect without relying on timeouts.
+      //
+      // IMPORTANT: We must acquire the lock BEFORE connecting to the WebRuntime,
+      // then send an armWebLock message to tell the WebRuntime to start watching.
+      // This avoids a race where the WebRuntime acquires the lock first.
+      if (shouldUseWebDocumentLivenessLock()) {
+        this.abortController = new AbortController()
+        const lockName = buildWebDocumentLockName(this.webDocumentUuid)
+        navigator.locks
+          .request(lockName, { signal: this.abortController.signal }, () => {
+            // Lock acquired - now safe to connect to WebRuntime.
+            // The WebRuntime will wait for this lock when we send armWebLock.
+            this.taskEnsureWebRuntimeConn()
+            // Hold the lock until the page closes or abort is called.
+            // This promise never resolves while the page is open.
+            return new Promise<void>(() => {})
+          })
+          .catch(() => {
+            // Lock request was aborted (during close) - this is expected.
+          })
+      } else {
+        // No Web Locks support - connect immediately.
+        this.taskEnsureWebRuntimeConn()
+      }
     }
-
-    // we don't expect any messages directly from the main worker port.
-    this.webRuntimePort.start()
 
     // setup the service worker
     // NOTE: if the script isn't in /, requires the Service-Worker-Allowed: '/' header
@@ -1085,34 +1125,16 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     })
     const wb = new Workbox(swUrl) // Not supported in Firefox: {type: 'module'}
     this.serviceWorker = wb
-    this.initServiceWorker(wb, swUrl)
 
-    // Acquire a Web Lock to enable reliable disconnect detection.
-    // The WebRuntime (SharedWorker) will try to acquire the same lock.
-    // When this page closes (or crashes), the lock is released and the
-    // WebRuntime can detect the disconnect without relying on timeouts.
-    //
-    // IMPORTANT: We must acquire the lock BEFORE connecting to the WebRuntime,
-    // then send an armWebLock message to tell the WebRuntime to start watching.
-    // This avoids a race where the WebRuntime acquires the lock first.
-    if (shouldUseWebDocumentLivenessLock()) {
-      this.abortController = new AbortController()
-      const lockName = buildWebDocumentLockName(this.webDocumentUuid)
-      navigator.locks
-        .request(lockName, { signal: this.abortController.signal }, () => {
-          // Lock acquired - now safe to connect to WebRuntime.
-          // The WebRuntime will wait for this lock when we send armWebLock.
-          this.taskEnsureWebRuntimeConn()
-          // Hold the lock until the page closes or abort is called.
-          // This promise never resolves while the page is open.
-          return new Promise<void>(() => {})
-        })
-        .catch(() => {
-          // Lock request was aborted (during close) - this is expected.
-        })
+    if (useDedicatedRuntime) {
+      void this.initServiceWorker(wb, swUrl, () => {
+        startWebRuntimeWorker()
+        startWebRuntimeConnection()
+      })
     } else {
-      // No Web Locks support - connect immediately.
-      this.taskEnsureWebRuntimeConn()
+      startWebRuntimeWorker()
+      void this.initServiceWorker(wb, swUrl)
+      startWebRuntimeConnection()
     }
   }
 
@@ -1522,7 +1544,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
   // initServiceWorker asynchronously initializes the service worker.
   // called in the constructor
-  private async initServiceWorker(wb: Workbox, swUrl: string) {
+  private async initServiceWorker(
+    wb: Workbox,
+    swUrl: string,
+    onControlReady?: () => void,
+  ) {
     if (this.closed) return
 
     const swMessageCallback = (ev: MessageEvent) => {
@@ -1589,6 +1615,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       documentId: this.webDocumentUuid,
       runtimeId: this.webRuntimeId,
     })
+    onControlReady?.()
     navigator.serviceWorker.addEventListener('message', swMessageCallback)
     this.initServiceWorkerPort(sw)
 
