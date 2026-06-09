@@ -812,7 +812,7 @@
     },
     {
       "name": "github.com/aperturerobotics/bbolt",
-      "version": "v0.0.0-20260512092909-91bbf14f1a0a",
+      "version": "v0.0.0-20260609012612-b7698b22dace",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/etcd-io/bbolt",
@@ -946,6 +946,14 @@
       "copyrightNotice": "Copyright (c) 2020 kolesnikovae"
     },
     {
+      "name": "github.com/aperturerobotics/goscript",
+      "version": "v0.2.4-0.20260609013407-3375761ff541",
+      "spdx": "MIT",
+      "source": "go",
+      "repo": "https://github.com/aperturerobotics/goscript",
+      "copyrightNotice": "Copyright (c) 2024-2025 Aperture Robotics, LLC.\nCopyright (c) 2019-2025 Christian Stewart <christian@cjs.zip>"
+    },
+    {
       "name": "github.com/aperturerobotics/json-iterator-lite",
       "version": "v1.1.0",
       "spdx": "MIT",
@@ -971,7 +979,7 @@
     },
     {
       "name": "github.com/aperturerobotics/util",
-      "version": "v1.34.8",
+      "version": "v1.34.9",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/util",
