@@ -31,9 +31,12 @@ import (
 	block_gc_wal "github.com/s4wave/spacewave/db/block/gc/wal"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/opfs/filelock"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	unixfs_sdk "github.com/s4wave/spacewave/db/unixfs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
@@ -46,6 +49,7 @@ import (
 	"github.com/s4wave/spacewave/db/volume/js/opfs/segment"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 	"github.com/s4wave/spacewave/net/hash"
 	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
 	"github.com/sirupsen/logrus"
@@ -260,8 +264,16 @@ func run(ctx context.Context, c *config) error {
 		return runVolumeRuntimeVerifyReset(ctx, c, volume_opfs.ResetReasonUnknown)
 	case "volume-runtime-delete-verify":
 		return runVolumeRuntimeDeleteVerify(ctx, c)
+	case "volume-coord-local":
+		return runVolumeCoordinatorLocal(ctx, c)
+	case "volume-coord-watch":
+		return runVolumeCoordinatorWatch(ctx, c)
+	case "volume-coord-broadcast":
+		return runVolumeCoordinatorBroadcast(ctx, c)
 	case "world-init-unixfs":
 		return runWorldInitUnixFS(ctx, c)
+	case "world-coord-multi-writer":
+		return runWorldCoordinatorMultiWriter(ctx, c)
 	case "world-large-unixfs-upload":
 		return runWorldLargeUnixFSUpload(ctx, c)
 	case "world-resource-large-unixfs-upload":
@@ -1610,6 +1622,187 @@ func runVolumeRuntimeDeleteVerify(ctx context.Context, c *config) error {
 	return nil
 }
 
+func runVolumeCoordinatorLocal(ctx context.Context, c *config) error {
+	reader, err := openVolume(ctx, c)
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
+	writer, err := openVolume(ctx, c)
+	if err != nil {
+		return err
+	}
+	defer writer.Close()
+
+	readerScope := volumeCoordScope(reader, c)
+	writerScope := volumeCoordScope(writer, c)
+	capability, err := reader.Capability(ctx, readerScope)
+	if err != nil {
+		return errors.Wrap(err, "coordinator capability")
+	}
+	if !capability.Supported || capability.Backend != coord.BackendKindOPFS {
+		return errors.Errorf("coordinator capability supported=%v backend=%s", capability.Supported, capability.Backend)
+	}
+
+	before, err := reader.Snapshot(ctx, readerScope)
+	if err != nil {
+		return errors.Wrap(err, "coordinator snapshot")
+	}
+	watch, err := reader.Watch(ctx, readerScope, before.Generation)
+	if err != nil {
+		return errors.Wrap(err, "coordinator watch")
+	}
+	defer watch.Close()
+
+	lease, ok, err := writer.TryAcquireWriteLease(ctx, writerScope)
+	if err != nil {
+		return errors.Wrap(err, "acquire coordinator lease")
+	}
+	if !ok {
+		return errors.New("coordinator lease unavailable")
+	}
+	if blocked, ok, err := reader.TryAcquireWriteLease(ctx, readerScope); err != nil {
+		return errors.Wrap(err, "try blocked coordinator lease")
+	} else if ok {
+		_ = blocked.Release(ctx)
+		return errors.New("second coordinator lease acquired while writer holds WebLock")
+	}
+
+	if err := advanceVolumeCoordinatorGeneration(ctx, writer, []byte("volume/coord/local")); err != nil {
+		return err
+	}
+	ref := volumeCoordRoot(c, "local")
+	if _, err := lease.Publish(ctx, coord.Event{
+		RootChanged:      ref,
+		KeyPrefixChanged: []byte("volume/coord/"),
+	}); err != nil {
+		return errors.Wrap(err, "publish coordinator event")
+	}
+	if err := lease.Release(ctx); err != nil {
+		return errors.Wrap(err, "release coordinator lease")
+	}
+
+	event, err := waitCoordEvent(ctx, watch.Events(), before.Generation)
+	if err != nil {
+		return err
+	}
+	if event.RootChanged == nil || !event.RootChanged.EqualsRef(ref) {
+		return errors.Errorf("root event=%v want=%v", event.RootChanged, ref)
+	}
+	if !bytes.Equal(event.KeyPrefixChanged, []byte("volume/coord/")) {
+		return errors.Errorf("prefix event=%q want volume/coord/", string(event.KeyPrefixChanged))
+	}
+
+	after, err := reader.Snapshot(ctx, readerScope)
+	if err != nil {
+		return errors.Wrap(err, "coordinator missed snapshot")
+	}
+	if after.Generation <= before.Generation {
+		return errors.Errorf("snapshot generation=%d want > %d", after.Generation, before.Generation)
+	}
+	if after.Root == nil || !after.Root.EqualsRef(ref) {
+		return errors.Errorf("snapshot root=%v want=%v", after.Root, ref)
+	}
+	return nil
+}
+
+func runVolumeCoordinatorWatch(ctx context.Context, c *config) error {
+	vol, err := openVolume(ctx, c)
+	if err != nil {
+		return err
+	}
+	defer vol.Close()
+
+	scope := volumeCoordScope(vol, c)
+	before, err := vol.Snapshot(ctx, scope)
+	if err != nil {
+		return errors.Wrap(err, "coordinator snapshot before watch")
+	}
+	watch, err := vol.Watch(ctx, scope, before.Generation)
+	if err != nil {
+		return errors.Wrap(err, "coordinator watch")
+	}
+	defer watch.Close()
+
+	postReady(c)
+	event, err := waitCoordEvent(ctx, watch.Events(), before.Generation)
+	if err != nil {
+		return err
+	}
+	if event.Generation <= before.Generation {
+		return errors.Errorf("broadcast generation=%d want > %d", event.Generation, before.Generation)
+	}
+	after, err := vol.Snapshot(ctx, scope)
+	if err != nil {
+		return errors.Wrap(err, "coordinator snapshot after broadcast")
+	}
+	if after.Generation <= before.Generation {
+		return errors.Errorf("snapshot generation after broadcast=%d want > %d", after.Generation, before.Generation)
+	}
+	return nil
+}
+
+func runVolumeCoordinatorBroadcast(ctx context.Context, c *config) error {
+	vol, err := openVolume(ctx, c)
+	if err != nil {
+		return err
+	}
+	defer vol.Close()
+
+	if err := advanceVolumeCoordinatorGeneration(ctx, vol, []byte("volume/coord/broadcast")); err != nil {
+		return err
+	}
+	if _, _, err := vol.PutBlock(ctx, []byte("volume-coord-broadcast"), nil); err != nil {
+		return errors.Wrap(err, "put broadcast block")
+	}
+	return nil
+}
+
+func volumeCoordScope(vol volume.Volume, c *config) coord.Scope {
+	return coord.Scope{
+		VolumeID:      vol.GetID(),
+		ObjectStoreID: c.root + "/coord",
+		ParticipantID: c.scenario + "-" + strconv.Itoa(c.worker),
+	}
+}
+
+func volumeCoordRoot(c *config, suffix string) *bucket.ObjectRef {
+	return &bucket.ObjectRef{BucketId: c.root + "/coord/" + suffix}
+}
+
+func advanceVolumeCoordinatorGeneration(ctx context.Context, vol *volume_opfs.Opfs, key []byte) error {
+	tx, err := vol.GetKvtxStore().NewTransaction(ctx, true)
+	if err != nil {
+		return errors.Wrap(err, "open coordinator generation tx")
+	}
+	defer tx.Discard()
+	if err := tx.Set(ctx, key, []byte("generation")); err != nil {
+		return errors.Wrap(err, "set coordinator generation key")
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return errors.Wrap(err, "commit coordinator generation tx")
+	}
+	return nil
+}
+
+func waitCoordEvent(ctx context.Context, events <-chan coord.Event, afterGeneration uint64) (coord.Event, error) {
+	waitCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	for {
+		select {
+		case event, ok := <-events:
+			if !ok {
+				return coord.Event{}, errors.New("coordinator watch closed")
+			}
+			if event.Generation > afterGeneration {
+				return event, nil
+			}
+		case <-waitCtx.Done():
+			return coord.Event{}, errors.Wrap(waitCtx.Err(), "wait coordinator event")
+		}
+	}
+}
+
 func runVolumeRuntimeSeedCurrentV1(c *config) error {
 	dir, err := openTestDirectory(c.root, []string{"volume"})
 	if err != nil {
@@ -1818,6 +2011,326 @@ func runWorldInitUnixFS(ctx context.Context, c *config) error {
 		return errors.Errorf("unixfs root entries = %v, want empty", entries)
 	}
 	return nil
+}
+
+func runWorldCoordinatorMultiWriter(ctx context.Context, c *config) error {
+	writer, err := openCoordinatorWorldEngine(ctx, c, "writer")
+	if err != nil {
+		return err
+	}
+	defer writer.release()
+	reader, err := openCoordinatorWorldEngine(ctx, c, "reader")
+	if err != nil {
+		return err
+	}
+	defer reader.release()
+
+	initTx, err := writer.engine.NewTransaction(ctx, true)
+	if err != nil {
+		return errors.Wrap(err, "open initial OPFS writer")
+	}
+	if _, err := initTx.CreateObject(ctx, "opfs-initial-head-object", nil); err != nil {
+		initTx.Discard()
+		return errors.Wrap(err, "create initial OPFS world object")
+	}
+	if err := initTx.Commit(ctx); err != nil {
+		return errors.Wrap(err, "commit initial OPFS world object")
+	}
+
+	baseHead := writer.engine.GetRootRef()
+	staleTx, err := writer.engine.NewTransaction(ctx, true)
+	if err != nil {
+		return errors.Wrap(err, "open stale writer")
+	}
+	if _, err := staleTx.CreateObject(ctx, "opfs-stale-head-object", nil); err != nil {
+		staleTx.Discard()
+		return errors.Wrap(err, "create stale writer object")
+	}
+	if err := writer.writeHead(ctx, &bucket.ObjectRef{BucketId: writer.bucketID}); err != nil {
+		staleTx.Discard()
+		return errors.Wrap(err, "write stale durable head")
+	}
+	if err := staleTx.Commit(ctx); !stderrors.Is(err, coord.ErrStaleGeneration) {
+		return errors.Errorf("stale OPFS writer commit error=%v want ErrStaleGeneration", err)
+	}
+	if err := writer.writeHead(ctx, baseHead); err != nil {
+		return errors.Wrap(err, "restore durable head after stale proof")
+	}
+
+	watchScope := coord.Scope{
+		VolumeID:      writer.vol.GetID(),
+		ObjectStoreID: writer.objectStoreID,
+		ParticipantID: "opfs-world-watch",
+	}
+	before, err := writer.vol.Snapshot(ctx, watchScope)
+	if err != nil {
+		return errors.Wrap(err, "snapshot before OPFS world watch")
+	}
+	watch, err := writer.vol.Watch(ctx, watchScope, before.Generation)
+	if err != nil {
+		return errors.Wrap(err, "open OPFS world watch")
+	}
+	defer watch.Close()
+
+	firstTx, err := writer.engine.NewTransaction(ctx, true)
+	if err != nil {
+		return errors.Wrap(err, "open first OPFS writer")
+	}
+	if _, err := firstTx.CreateObject(ctx, "opfs-serialized-writer-a", nil); err != nil {
+		firstTx.Discard()
+		return errors.Wrap(err, "create first OPFS writer object")
+	}
+	secondTxCh := make(chan world.Tx, 1)
+	secondErrCh := make(chan error, 1)
+	go func() {
+		tx, err := reader.engine.NewTransaction(ctx, true)
+		if err != nil {
+			secondErrCh <- err
+			return
+		}
+		secondTxCh <- tx
+	}()
+	select {
+	case err := <-secondErrCh:
+		firstTx.Discard()
+		return errors.Wrap(err, "second OPFS writer failed while waiting")
+	case tx := <-secondTxCh:
+		tx.Discard()
+		firstTx.Discard()
+		return errors.New("second OPFS writer acquired while first writer held coordinator lease")
+	case <-time.After(50 * time.Millisecond):
+	}
+	if err := firstTx.Commit(ctx); err != nil {
+		return errors.Wrap(err, "commit first OPFS writer")
+	}
+
+	var secondTx world.Tx
+	select {
+	case err := <-secondErrCh:
+		return errors.Wrap(err, "second OPFS writer failed after first commit")
+	case secondTx = <-secondTxCh:
+	case <-time.After(5 * time.Second):
+		return errors.New("second OPFS writer did not acquire after first commit")
+	}
+	if _, err := secondTx.CreateObject(ctx, "opfs-serialized-writer-b", nil); err != nil {
+		secondTx.Discard()
+		return errors.Wrap(err, "create second OPFS writer object")
+	}
+	if err := secondTx.Commit(ctx); err != nil {
+		return errors.Wrap(err, "commit second OPFS writer")
+	}
+
+	acceptedRoot := reader.engine.GetRootRef()
+	after, err := writer.vol.Snapshot(ctx, watchScope)
+	if err != nil {
+		return errors.Wrap(err, "snapshot after OPFS world commits")
+	}
+	if after.Root == nil || !after.Root.EqualsRef(acceptedRoot) {
+		return errors.Errorf("OPFS coordinator root=%v want=%v", after.Root, acceptedRoot)
+	}
+	if err := waitCoordinatorRootPrefix(ctx, watch.Events(), acceptedRoot, []byte("world-head")); err != nil {
+		return err
+	}
+	if err := writer.refreshHead(ctx); err != nil {
+		return errors.Wrap(err, "refresh OPFS reader head")
+	}
+	return writer.verifyObjects(ctx, "opfs-serialized-writer-a", "opfs-serialized-writer-b")
+}
+
+type coordinatorWorldEngine struct {
+	vol           *volume_opfs.Opfs
+	objectStoreID string
+	bucketID      string
+	store         object.ObjectStore
+	storeRelease  func()
+	cursor        *bucket_lookup.Cursor
+	engine        *world_block.Engine
+}
+
+func openCoordinatorWorldEngine(ctx context.Context, c *config, participant string) (*coordinatorWorldEngine, error) {
+	vol, err := openVolume(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	objectStoreID := c.root + "/world-coord-store"
+	bucketID := c.root + "/world-coord-bucket"
+	kvkey := store_kvkey.NewDefaultKVKey()
+	hydraStore := store_kvtx.NewKVTx(kvkey, vol.GetKvtxStore(), &store_kvtx.Config{})
+	objStore, storeRelease, err := hydraStore.AccessObjectStore(ctx, objectStoreID, nil)
+	if err != nil {
+		_ = vol.Close()
+		return nil, errors.Wrap(err, "open OPFS world object store")
+	}
+	h := &coordinatorWorldEngine{
+		vol:           vol,
+		objectStoreID: objectStoreID,
+		bucketID:      bucketID,
+		store:         objStore,
+		storeRelease:  storeRelease,
+	}
+
+	headRef, err := h.readHead(ctx)
+	if err != nil {
+		h.release()
+		return nil, err
+	}
+	if headRef == nil {
+		headRef = &bucket.ObjectRef{BucketId: bucketID}
+		if err := h.writeHead(ctx, headRef); err != nil {
+			h.release()
+			return nil, errors.Wrap(err, "seed OPFS world head")
+		}
+	}
+	le := logrus.NewEntry(logrus.New())
+	h.cursor = bucket_lookup.NewCursor(
+		ctx,
+		nil,
+		le,
+		nil,
+		vol,
+		nil,
+		headRef,
+		&bucket.BucketOpArgs{BucketId: bucketID, VolumeId: vol.GetID()},
+		nil,
+	)
+	commitFn := func(ctx context.Context, baseRef, nref *bucket.ObjectRef) error {
+		return h.casHead(ctx, baseRef, nref)
+	}
+	scope := coord.Scope{
+		VolumeID:      vol.GetID(),
+		ObjectStoreID: objectStoreID,
+		ParticipantID: participant,
+	}
+	engine, err := world_block.NewEngine(
+		ctx,
+		le,
+		h.cursor,
+		space_world_ops.LookupWorldOp,
+		commitFn,
+		false,
+		world_block.WithWriteCoordinator(vol, scope, []byte("world-head"), h.readHead),
+	)
+	if err != nil {
+		h.release()
+		return nil, errors.Wrap(err, "open OPFS coordinated world engine")
+	}
+	h.engine = engine
+	return h, nil
+}
+
+func (h *coordinatorWorldEngine) readHead(ctx context.Context) (*bucket.ObjectRef, error) {
+	tx, err := h.store.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+	data, found, err := tx.Get(ctx, []byte("world-head"))
+	if err != nil || !found {
+		return nil, err
+	}
+	state := &world_block_engine.HeadState{}
+	if err := state.UnmarshalVT(data); err != nil {
+		return nil, err
+	}
+	return state.GetHeadRef().Clone(), nil
+}
+
+func (h *coordinatorWorldEngine) writeHead(ctx context.Context, ref *bucket.ObjectRef) error {
+	tx, err := h.store.NewTransaction(ctx, true)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+	data, err := (&world_block_engine.HeadState{HeadRef: ref}).MarshalVT()
+	if err != nil {
+		return err
+	}
+	if err := tx.Set(ctx, []byte("world-head"), data); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+func (h *coordinatorWorldEngine) casHead(ctx context.Context, baseRef, nextRef *bucket.ObjectRef) error {
+	current, err := h.readHead(ctx)
+	if err != nil {
+		return err
+	}
+	if !objectRefsEqual(current, baseRef) {
+		return coord.ErrStaleGeneration
+	}
+	return h.writeHead(ctx, nextRef)
+}
+
+func objectRefsEqual(a, b *bucket.ObjectRef) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return a.EqualsRef(b)
+}
+
+func (h *coordinatorWorldEngine) refreshHead(ctx context.Context) error {
+	headRef, err := h.readHead(ctx)
+	if err != nil || headRef == nil || headRef.GetRootRef().GetEmpty() {
+		return err
+	}
+	return h.engine.SetRootRef(ctx, headRef)
+}
+
+func (h *coordinatorWorldEngine) verifyObjects(ctx context.Context, keys ...string) error {
+	tx, err := h.engine.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+	for _, key := range keys {
+		if _, found, err := tx.GetObject(ctx, key); err != nil {
+			return err
+		} else if !found {
+			return errors.Errorf("OPFS world object %q not found after refresh", key)
+		}
+	}
+	return nil
+}
+
+func (h *coordinatorWorldEngine) release() {
+	if h.engine != nil {
+		_ = h.engine.Close()
+	}
+	if h.cursor != nil {
+		h.cursor.Release()
+	}
+	if h.storeRelease != nil {
+		h.storeRelease()
+	}
+	if h.vol != nil {
+		_ = h.vol.Close()
+	}
+}
+
+func waitCoordinatorRootPrefix(
+	ctx context.Context,
+	events <-chan coord.Event,
+	root *bucket.ObjectRef,
+	prefix []byte,
+) error {
+	waitCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	for {
+		select {
+		case event, ok := <-events:
+			if !ok {
+				return errors.New("OPFS world coordinator watch closed")
+			}
+			if event.RootChanged != nil &&
+				event.RootChanged.EqualsRef(root) &&
+				bytes.Equal(event.KeyPrefixChanged, prefix) {
+				return nil
+			}
+		case <-waitCtx.Done():
+			return errors.Wrap(waitCtx.Err(), "wait OPFS world coordinator root/prefix event")
+		}
+	}
 }
 
 func runWorldLargeUnixFSUpload(ctx context.Context, c *config) error {

@@ -5,6 +5,7 @@
 package sobject_world_engine
 
 import (
+	base64 "encoding/base64"
 	fmt "fmt"
 	io "io"
 	slices "slices"
@@ -19,6 +20,58 @@ import (
 	bucket "github.com/s4wave/spacewave/db/bucket"
 	tx "github.com/s4wave/spacewave/db/world/block/tx"
 )
+
+// SpaceWorldFinalizationStatus is the authority owner's decision for a packet.
+type SpaceWorldFinalizationStatus int32
+
+const (
+	// SPACE_WORLD_FINALIZATION_STATUS_UNKNOWN is invalid.
+	SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_UNKNOWN SpaceWorldFinalizationStatus = 0
+	// SPACE_WORLD_FINALIZATION_STATUS_ACCEPTED means the SharedObject root was finalized.
+	SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_ACCEPTED SpaceWorldFinalizationStatus = 1
+	// SPACE_WORLD_FINALIZATION_STATUS_REJECTED means the candidate is not accepted and should be retained follower-side only.
+	SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_REJECTED SpaceWorldFinalizationStatus = 2
+	// SPACE_WORLD_FINALIZATION_STATUS_STALE_BASE means the candidate was based on stale SharedObject or World state.
+	SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_STALE_BASE SpaceWorldFinalizationStatus = 3
+	// SPACE_WORLD_FINALIZATION_STATUS_MISSING_BLOCK means the authority owner could not read candidate blocks.
+	SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_MISSING_BLOCK SpaceWorldFinalizationStatus = 4
+	// SPACE_WORLD_FINALIZATION_STATUS_LOST_AUTHORITY means the contacted owner no longer holds finalization authority.
+	SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_LOST_AUTHORITY SpaceWorldFinalizationStatus = 5
+)
+
+// Enum value maps for SpaceWorldFinalizationStatus.
+var (
+	SpaceWorldFinalizationStatus_name = map[int32]string{
+		0: "SPACE_WORLD_FINALIZATION_STATUS_UNKNOWN",
+		1: "SPACE_WORLD_FINALIZATION_STATUS_ACCEPTED",
+		2: "SPACE_WORLD_FINALIZATION_STATUS_REJECTED",
+		3: "SPACE_WORLD_FINALIZATION_STATUS_STALE_BASE",
+		4: "SPACE_WORLD_FINALIZATION_STATUS_MISSING_BLOCK",
+		5: "SPACE_WORLD_FINALIZATION_STATUS_LOST_AUTHORITY",
+	}
+	SpaceWorldFinalizationStatus_value = map[string]int32{
+		"SPACE_WORLD_FINALIZATION_STATUS_UNKNOWN":        0,
+		"SPACE_WORLD_FINALIZATION_STATUS_ACCEPTED":       1,
+		"SPACE_WORLD_FINALIZATION_STATUS_REJECTED":       2,
+		"SPACE_WORLD_FINALIZATION_STATUS_STALE_BASE":     3,
+		"SPACE_WORLD_FINALIZATION_STATUS_MISSING_BLOCK":  4,
+		"SPACE_WORLD_FINALIZATION_STATUS_LOST_AUTHORITY": 5,
+	}
+)
+
+func (x SpaceWorldFinalizationStatus) Enum() *SpaceWorldFinalizationStatus {
+	p := new(SpaceWorldFinalizationStatus)
+	*p = x
+	return p
+}
+
+func (x SpaceWorldFinalizationStatus) String() string {
+	name, valid := SpaceWorldFinalizationStatus_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
 
 // Config configures a World Graph engine bound to a block graph and controlled by a Shared Object.
 // Uses MountSharedObject to mount and access the shared object and block store.
@@ -265,13 +318,219 @@ func (x *ApplyTxOp) GetTx() *tx.Tx {
 	return nil
 }
 
+// SpaceWorldFinalizationPacket is submitted by a follower after it has produced
+// candidate World content but before any SharedObject root is finalized.
+type SpaceWorldFinalizationPacket struct {
+	unknownFields []byte
+	// BaseSharedObjectRoot is the SharedObject root observed before candidate work.
+	BaseSharedObjectRoot *sobject.SORoot `protobuf:"bytes,1,opt,name=base_shared_object_root,json=baseSharedObjectRoot,proto3" json:"baseSharedObjectRoot,omitempty"`
+	// BaseWorldRoot is the World root observed before candidate work.
+	BaseWorldRoot *bucket.ObjectRef `protobuf:"bytes,2,opt,name=base_world_root,json=baseWorldRoot,proto3" json:"baseWorldRoot,omitempty"`
+	// CandidateWorldRoot is the follower-produced candidate World root.
+	CandidateWorldRoot *bucket.ObjectRef `protobuf:"bytes,3,opt,name=candidate_world_root,json=candidateWorldRoot,proto3" json:"candidateWorldRoot,omitempty"`
+	// CandidateContentId identifies the candidate content/op payload being finalized.
+	CandidateContentId []byte `protobuf:"bytes,4,opt,name=candidate_content_id,json=candidateContentId,proto3" json:"candidateContentId,omitempty"`
+	// StorageGeneration is the storage coordinator generation observed by the follower.
+	StorageGeneration uint64 `protobuf:"varint,5,opt,name=storage_generation,json=storageGeneration,proto3" json:"storageGeneration,omitempty"`
+	// AuthorityEpoch identifies the leader/daemon authority epoch observed by the follower.
+	AuthorityEpoch uint64 `protobuf:"varint,6,opt,name=authority_epoch,json=authorityEpoch,proto3" json:"authorityEpoch,omitempty"`
+	// BlocksAvailable is true when the follower believes candidate blocks are readable by the authority owner.
+	BlocksAvailable bool `protobuf:"varint,7,opt,name=blocks_available,json=blocksAvailable,proto3" json:"blocksAvailable,omitempty"`
+	// Op is the SharedObject World operation that produced the candidate root.
+	Op *SOWorldOp `protobuf:"bytes,8,opt,name=op,proto3" json:"op,omitempty"`
+	// FollowerParticipantId identifies the submitting follower.
+	FollowerParticipantId string `protobuf:"bytes,9,opt,name=follower_participant_id,json=followerParticipantId,proto3" json:"followerParticipantId,omitempty"`
+	// LocalOperationId lets the follower correlate accepted/rejected decisions.
+	LocalOperationId string `protobuf:"bytes,10,opt,name=local_operation_id,json=localOperationId,proto3" json:"localOperationId,omitempty"`
+}
+
+func (x *SpaceWorldFinalizationPacket) Reset() {
+	*x = SpaceWorldFinalizationPacket{}
+}
+
+func (*SpaceWorldFinalizationPacket) ProtoMessage() {}
+
+func (x *SpaceWorldFinalizationPacket) GetBaseSharedObjectRoot() *sobject.SORoot {
+	if x != nil {
+		return x.BaseSharedObjectRoot
+	}
+	return nil
+}
+
+func (x *SpaceWorldFinalizationPacket) GetBaseWorldRoot() *bucket.ObjectRef {
+	if x != nil {
+		return x.BaseWorldRoot
+	}
+	return nil
+}
+
+func (x *SpaceWorldFinalizationPacket) GetCandidateWorldRoot() *bucket.ObjectRef {
+	if x != nil {
+		return x.CandidateWorldRoot
+	}
+	return nil
+}
+
+func (x *SpaceWorldFinalizationPacket) GetCandidateContentId() []byte {
+	if x != nil {
+		return x.CandidateContentId
+	}
+	return nil
+}
+
+func (x *SpaceWorldFinalizationPacket) GetStorageGeneration() uint64 {
+	if x != nil {
+		return x.StorageGeneration
+	}
+	return 0
+}
+
+func (x *SpaceWorldFinalizationPacket) GetAuthorityEpoch() uint64 {
+	if x != nil {
+		return x.AuthorityEpoch
+	}
+	return 0
+}
+
+func (x *SpaceWorldFinalizationPacket) GetBlocksAvailable() bool {
+	if x != nil {
+		return x.BlocksAvailable
+	}
+	return false
+}
+
+func (x *SpaceWorldFinalizationPacket) GetOp() *SOWorldOp {
+	if x != nil {
+		return x.Op
+	}
+	return nil
+}
+
+func (x *SpaceWorldFinalizationPacket) GetFollowerParticipantId() string {
+	if x != nil {
+		return x.FollowerParticipantId
+	}
+	return ""
+}
+
+func (x *SpaceWorldFinalizationPacket) GetLocalOperationId() string {
+	if x != nil {
+		return x.LocalOperationId
+	}
+	return ""
+}
+
+// SpaceWorldFinalizationDecision is returned by the leader or Spacewave daemon.
+type SpaceWorldFinalizationDecision struct {
+	unknownFields []byte
+	// Status is the accept/reject/fence result.
+	Status SpaceWorldFinalizationStatus `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
+	// AcceptedSharedObjectRoot is set only when status is ACCEPTED.
+	AcceptedSharedObjectRoot *sobject.SORoot `protobuf:"bytes,2,opt,name=accepted_shared_object_root,json=acceptedSharedObjectRoot,proto3" json:"acceptedSharedObjectRoot,omitempty"`
+	// AcceptedWorldRoot is set only when status is ACCEPTED.
+	AcceptedWorldRoot *bucket.ObjectRef `protobuf:"bytes,3,opt,name=accepted_world_root,json=acceptedWorldRoot,proto3" json:"acceptedWorldRoot,omitempty"`
+	// Error explains rejected or retryable decisions.
+	Error string `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
+	// Retryable indicates the follower may refresh and resubmit a new packet.
+	Retryable bool `protobuf:"varint,5,opt,name=retryable,proto3" json:"retryable,omitempty"`
+	// LocalOperationId echoes the packet local id for follower correlation.
+	LocalOperationId string `protobuf:"bytes,6,opt,name=local_operation_id,json=localOperationId,proto3" json:"localOperationId,omitempty"`
+}
+
+func (x *SpaceWorldFinalizationDecision) Reset() {
+	*x = SpaceWorldFinalizationDecision{}
+}
+
+func (*SpaceWorldFinalizationDecision) ProtoMessage() {}
+
+func (x *SpaceWorldFinalizationDecision) GetStatus() SpaceWorldFinalizationStatus {
+	if x != nil {
+		return x.Status
+	}
+	return SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_UNKNOWN
+}
+
+func (x *SpaceWorldFinalizationDecision) GetAcceptedSharedObjectRoot() *sobject.SORoot {
+	if x != nil {
+		return x.AcceptedSharedObjectRoot
+	}
+	return nil
+}
+
+func (x *SpaceWorldFinalizationDecision) GetAcceptedWorldRoot() *bucket.ObjectRef {
+	if x != nil {
+		return x.AcceptedWorldRoot
+	}
+	return nil
+}
+
+func (x *SpaceWorldFinalizationDecision) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *SpaceWorldFinalizationDecision) GetRetryable() bool {
+	if x != nil {
+		return x.Retryable
+	}
+	return false
+}
+
+func (x *SpaceWorldFinalizationDecision) GetLocalOperationId() string {
+	if x != nil {
+		return x.LocalOperationId
+	}
+	return ""
+}
+
+// SpaceWorldRejectedCandidate records follower-local retention bookkeeping for
+// a candidate that authority did not accept. The record does not grant any
+// leader-side block deletion authority.
+type SpaceWorldRejectedCandidate struct {
+	unknownFields []byte
+	// Packet is the candidate submission that was not accepted.
+	Packet *SpaceWorldFinalizationPacket `protobuf:"bytes,1,opt,name=packet,proto3" json:"packet,omitempty"`
+	// Decision is the non-accepted authority outcome.
+	Decision *SpaceWorldFinalizationDecision `protobuf:"bytes,2,opt,name=decision,proto3" json:"decision,omitempty"`
+	// RetainedUnixNano records when the follower retained cleanup bookkeeping.
+	RetainedUnixNano uint64 `protobuf:"varint,3,opt,name=retained_unix_nano,json=retainedUnixNano,proto3" json:"retainedUnixNano,omitempty"`
+}
+
+func (x *SpaceWorldRejectedCandidate) Reset() {
+	*x = SpaceWorldRejectedCandidate{}
+}
+
+func (*SpaceWorldRejectedCandidate) ProtoMessage() {}
+
+func (x *SpaceWorldRejectedCandidate) GetPacket() *SpaceWorldFinalizationPacket {
+	if x != nil {
+		return x.Packet
+	}
+	return nil
+}
+
+func (x *SpaceWorldRejectedCandidate) GetDecision() *SpaceWorldFinalizationDecision {
+	if x != nil {
+		return x.Decision
+	}
+	return nil
+}
+
+func (x *SpaceWorldRejectedCandidate) GetRetainedUnixNano() uint64 {
+	if x != nil {
+		return x.RetainedUnixNano
+	}
+	return 0
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
 	}
 	r := new(Config)
 	r.EngineId = m.EngineId
-	r.Ref = m.Ref.CloneVT()
 	r.InitWorldOp = m.InitWorldOp.CloneVT()
 	r.DisableLookup = m.DisableLookup
 	r.DisableApplyWorldOp = m.DisableApplyWorldOp
@@ -279,6 +538,9 @@ func (m *Config) CloneVT() *Config {
 	r.Verbose = m.Verbose
 	r.GcSweepIdleWindowDur = m.GcSweepIdleWindowDur
 	r.GcSweepBackstopIntervalDur = m.GcSweepBackstopIntervalDur
+	if rhs := m.Ref; rhs != nil {
+		r.Ref = rhs.CloneVT()
+	}
 	if rhs := m.ProcessOpsBackoff; rhs != nil {
 		r.ProcessOpsBackoff = rhs.CloneVT()
 	}
@@ -297,7 +559,9 @@ func (m *InnerState) CloneVT() *InnerState {
 		return (*InnerState)(nil)
 	}
 	r := new(InnerState)
-	r.HeadRef = m.HeadRef.CloneVT()
+	if rhs := m.HeadRef; rhs != nil {
+		r.HeadRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -358,7 +622,9 @@ func (m *InitWorldOp) CloneVT() *InitWorldOp {
 	}
 	r := new(InitWorldOp)
 	r.LastChangeDisable = m.LastChangeDisable
-	r.TransformConf = m.TransformConf.CloneVT()
+	if rhs := m.TransformConf; rhs != nil {
+		r.TransformConf = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -374,7 +640,9 @@ func (m *ApplyTxOp) CloneVT() *ApplyTxOp {
 		return (*ApplyTxOp)(nil)
 	}
 	r := new(ApplyTxOp)
-	r.Tx = m.Tx.CloneVT()
+	if rhs := m.Tx; rhs != nil {
+		r.Tx = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -382,6 +650,82 @@ func (m *ApplyTxOp) CloneVT() *ApplyTxOp {
 }
 
 func (m *ApplyTxOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SpaceWorldFinalizationPacket) CloneVT() *SpaceWorldFinalizationPacket {
+	if m == nil {
+		return (*SpaceWorldFinalizationPacket)(nil)
+	}
+	r := new(SpaceWorldFinalizationPacket)
+	r.StorageGeneration = m.StorageGeneration
+	r.AuthorityEpoch = m.AuthorityEpoch
+	r.BlocksAvailable = m.BlocksAvailable
+	r.Op = m.Op.CloneVT()
+	r.FollowerParticipantId = m.FollowerParticipantId
+	r.LocalOperationId = m.LocalOperationId
+	if rhs := m.BaseSharedObjectRoot; rhs != nil {
+		r.BaseSharedObjectRoot = rhs.CloneVT()
+	}
+	if rhs := m.BaseWorldRoot; rhs != nil {
+		r.BaseWorldRoot = rhs.CloneVT()
+	}
+	if rhs := m.CandidateWorldRoot; rhs != nil {
+		r.CandidateWorldRoot = rhs.CloneVT()
+	}
+	if rhs := m.CandidateContentId; rhs != nil {
+		r.CandidateContentId = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SpaceWorldFinalizationPacket) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SpaceWorldFinalizationDecision) CloneVT() *SpaceWorldFinalizationDecision {
+	if m == nil {
+		return (*SpaceWorldFinalizationDecision)(nil)
+	}
+	r := new(SpaceWorldFinalizationDecision)
+	r.Status = m.Status
+	r.Error = m.Error
+	r.Retryable = m.Retryable
+	r.LocalOperationId = m.LocalOperationId
+	if rhs := m.AcceptedSharedObjectRoot; rhs != nil {
+		r.AcceptedSharedObjectRoot = rhs.CloneVT()
+	}
+	if rhs := m.AcceptedWorldRoot; rhs != nil {
+		r.AcceptedWorldRoot = rhs.CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SpaceWorldFinalizationDecision) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SpaceWorldRejectedCandidate) CloneVT() *SpaceWorldRejectedCandidate {
+	if m == nil {
+		return (*SpaceWorldRejectedCandidate)(nil)
+	}
+	r := new(SpaceWorldRejectedCandidate)
+	r.Packet = m.Packet.CloneVT()
+	r.Decision = m.Decision.CloneVT()
+	r.RetainedUnixNano = m.RetainedUnixNano
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SpaceWorldRejectedCandidate) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -570,6 +914,154 @@ func (this *ApplyTxOp) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+func (this *SpaceWorldFinalizationPacket) EqualVT(that *SpaceWorldFinalizationPacket) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.BaseSharedObjectRoot.EqualVT(that.BaseSharedObjectRoot) {
+		return false
+	}
+	if !this.BaseWorldRoot.EqualVT(that.BaseWorldRoot) {
+		return false
+	}
+	if !this.CandidateWorldRoot.EqualVT(that.CandidateWorldRoot) {
+		return false
+	}
+	if string(this.CandidateContentId) != string(that.CandidateContentId) {
+		return false
+	}
+	if this.StorageGeneration != that.StorageGeneration {
+		return false
+	}
+	if this.AuthorityEpoch != that.AuthorityEpoch {
+		return false
+	}
+	if this.BlocksAvailable != that.BlocksAvailable {
+		return false
+	}
+	if !this.Op.EqualVT(that.Op) {
+		return false
+	}
+	if this.FollowerParticipantId != that.FollowerParticipantId {
+		return false
+	}
+	if this.LocalOperationId != that.LocalOperationId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SpaceWorldFinalizationPacket) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SpaceWorldFinalizationPacket)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SpaceWorldFinalizationDecision) EqualVT(that *SpaceWorldFinalizationDecision) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Status != that.Status {
+		return false
+	}
+	if !this.AcceptedSharedObjectRoot.EqualVT(that.AcceptedSharedObjectRoot) {
+		return false
+	}
+	if !this.AcceptedWorldRoot.EqualVT(that.AcceptedWorldRoot) {
+		return false
+	}
+	if this.Error != that.Error {
+		return false
+	}
+	if this.Retryable != that.Retryable {
+		return false
+	}
+	if this.LocalOperationId != that.LocalOperationId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SpaceWorldFinalizationDecision) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SpaceWorldFinalizationDecision)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SpaceWorldRejectedCandidate) EqualVT(that *SpaceWorldRejectedCandidate) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Packet.EqualVT(that.Packet) {
+		return false
+	}
+	if !this.Decision.EqualVT(that.Decision) {
+		return false
+	}
+	if this.RetainedUnixNano != that.RetainedUnixNano {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SpaceWorldRejectedCandidate) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SpaceWorldRejectedCandidate)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the SpaceWorldFinalizationStatus to JSON.
+func (x SpaceWorldFinalizationStatus) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SpaceWorldFinalizationStatus_name)
+}
+
+// MarshalText marshals the SpaceWorldFinalizationStatus to text.
+func (x SpaceWorldFinalizationStatus) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SpaceWorldFinalizationStatus_name)), nil
+}
+
+// MarshalJSON marshals the SpaceWorldFinalizationStatus to JSON.
+func (x SpaceWorldFinalizationStatus) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceWorldFinalizationStatus from JSON.
+func (x *SpaceWorldFinalizationStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SpaceWorldFinalizationStatus_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SpaceWorldFinalizationStatus enum: %v", err)
+		return
+	}
+	*x = SpaceWorldFinalizationStatus(v)
+}
+
+// UnmarshalText unmarshals the SpaceWorldFinalizationStatus from text.
+func (x *SpaceWorldFinalizationStatus) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SpaceWorldFinalizationStatus_value)
+	if err != nil {
+		return err
+	}
+	*x = SpaceWorldFinalizationStatus(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SpaceWorldFinalizationStatus from JSON.
+func (x *SpaceWorldFinalizationStatus) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the Config message to JSON.
@@ -905,6 +1397,292 @@ func (x *ApplyTxOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the ApplyTxOp from JSON.
 func (x *ApplyTxOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceWorldFinalizationPacket message to JSON.
+func (x *SpaceWorldFinalizationPacket) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.BaseSharedObjectRoot != nil || s.HasField("baseSharedObjectRoot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("baseSharedObjectRoot")
+		x.BaseSharedObjectRoot.MarshalProtoJSON(s.WithField("baseSharedObjectRoot"))
+	}
+	if x.BaseWorldRoot != nil || s.HasField("baseWorldRoot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("baseWorldRoot")
+		x.BaseWorldRoot.MarshalProtoJSON(s.WithField("baseWorldRoot"))
+	}
+	if x.CandidateWorldRoot != nil || s.HasField("candidateWorldRoot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("candidateWorldRoot")
+		x.CandidateWorldRoot.MarshalProtoJSON(s.WithField("candidateWorldRoot"))
+	}
+	if len(x.CandidateContentId) > 0 || s.HasField("candidateContentId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("candidateContentId")
+		s.WriteBytes(x.CandidateContentId)
+	}
+	if x.StorageGeneration != 0 || s.HasField("storageGeneration") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storageGeneration")
+		s.WriteUint64(x.StorageGeneration)
+	}
+	if x.AuthorityEpoch != 0 || s.HasField("authorityEpoch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("authorityEpoch")
+		s.WriteUint64(x.AuthorityEpoch)
+	}
+	if x.BlocksAvailable || s.HasField("blocksAvailable") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("blocksAvailable")
+		s.WriteBool(x.BlocksAvailable)
+	}
+	if x.Op != nil || s.HasField("op") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("op")
+		x.Op.MarshalProtoJSON(s.WithField("op"))
+	}
+	if x.FollowerParticipantId != "" || s.HasField("followerParticipantId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("followerParticipantId")
+		s.WriteString(x.FollowerParticipantId)
+	}
+	if x.LocalOperationId != "" || s.HasField("localOperationId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("localOperationId")
+		s.WriteString(x.LocalOperationId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SpaceWorldFinalizationPacket to JSON.
+func (x *SpaceWorldFinalizationPacket) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceWorldFinalizationPacket message from JSON.
+func (x *SpaceWorldFinalizationPacket) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "base_shared_object_root", "baseSharedObjectRoot":
+			if s.ReadNil() {
+				x.BaseSharedObjectRoot = nil
+				return
+			}
+			x.BaseSharedObjectRoot = &sobject.SORoot{}
+			x.BaseSharedObjectRoot.UnmarshalProtoJSON(s.WithField("base_shared_object_root", true))
+		case "base_world_root", "baseWorldRoot":
+			if s.ReadNil() {
+				x.BaseWorldRoot = nil
+				return
+			}
+			x.BaseWorldRoot = &bucket.ObjectRef{}
+			x.BaseWorldRoot.UnmarshalProtoJSON(s.WithField("base_world_root", true))
+		case "candidate_world_root", "candidateWorldRoot":
+			if s.ReadNil() {
+				x.CandidateWorldRoot = nil
+				return
+			}
+			x.CandidateWorldRoot = &bucket.ObjectRef{}
+			x.CandidateWorldRoot.UnmarshalProtoJSON(s.WithField("candidate_world_root", true))
+		case "candidate_content_id", "candidateContentId":
+			s.AddField("candidate_content_id")
+			x.CandidateContentId = s.ReadBytes()
+		case "storage_generation", "storageGeneration":
+			s.AddField("storage_generation")
+			x.StorageGeneration = s.ReadUint64()
+		case "authority_epoch", "authorityEpoch":
+			s.AddField("authority_epoch")
+			x.AuthorityEpoch = s.ReadUint64()
+		case "blocks_available", "blocksAvailable":
+			s.AddField("blocks_available")
+			x.BlocksAvailable = s.ReadBool()
+		case "op":
+			if s.ReadNil() {
+				x.Op = nil
+				return
+			}
+			x.Op = &SOWorldOp{}
+			x.Op.UnmarshalProtoJSON(s.WithField("op", true))
+		case "follower_participant_id", "followerParticipantId":
+			s.AddField("follower_participant_id")
+			x.FollowerParticipantId = s.ReadString()
+		case "local_operation_id", "localOperationId":
+			s.AddField("local_operation_id")
+			x.LocalOperationId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SpaceWorldFinalizationPacket from JSON.
+func (x *SpaceWorldFinalizationPacket) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceWorldFinalizationDecision message to JSON.
+func (x *SpaceWorldFinalizationDecision) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Status != 0 || s.HasField("status") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("status")
+		x.Status.MarshalProtoJSON(s)
+	}
+	if x.AcceptedSharedObjectRoot != nil || s.HasField("acceptedSharedObjectRoot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("acceptedSharedObjectRoot")
+		x.AcceptedSharedObjectRoot.MarshalProtoJSON(s.WithField("acceptedSharedObjectRoot"))
+	}
+	if x.AcceptedWorldRoot != nil || s.HasField("acceptedWorldRoot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("acceptedWorldRoot")
+		x.AcceptedWorldRoot.MarshalProtoJSON(s.WithField("acceptedWorldRoot"))
+	}
+	if x.Error != "" || s.HasField("error") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("error")
+		s.WriteString(x.Error)
+	}
+	if x.Retryable || s.HasField("retryable") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("retryable")
+		s.WriteBool(x.Retryable)
+	}
+	if x.LocalOperationId != "" || s.HasField("localOperationId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("localOperationId")
+		s.WriteString(x.LocalOperationId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SpaceWorldFinalizationDecision to JSON.
+func (x *SpaceWorldFinalizationDecision) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceWorldFinalizationDecision message from JSON.
+func (x *SpaceWorldFinalizationDecision) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "status":
+			s.AddField("status")
+			x.Status.UnmarshalProtoJSON(s)
+		case "accepted_shared_object_root", "acceptedSharedObjectRoot":
+			if s.ReadNil() {
+				x.AcceptedSharedObjectRoot = nil
+				return
+			}
+			x.AcceptedSharedObjectRoot = &sobject.SORoot{}
+			x.AcceptedSharedObjectRoot.UnmarshalProtoJSON(s.WithField("accepted_shared_object_root", true))
+		case "accepted_world_root", "acceptedWorldRoot":
+			if s.ReadNil() {
+				x.AcceptedWorldRoot = nil
+				return
+			}
+			x.AcceptedWorldRoot = &bucket.ObjectRef{}
+			x.AcceptedWorldRoot.UnmarshalProtoJSON(s.WithField("accepted_world_root", true))
+		case "error":
+			s.AddField("error")
+			x.Error = s.ReadString()
+		case "retryable":
+			s.AddField("retryable")
+			x.Retryable = s.ReadBool()
+		case "local_operation_id", "localOperationId":
+			s.AddField("local_operation_id")
+			x.LocalOperationId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SpaceWorldFinalizationDecision from JSON.
+func (x *SpaceWorldFinalizationDecision) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SpaceWorldRejectedCandidate message to JSON.
+func (x *SpaceWorldRejectedCandidate) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Packet != nil || s.HasField("packet") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packet")
+		x.Packet.MarshalProtoJSON(s.WithField("packet"))
+	}
+	if x.Decision != nil || s.HasField("decision") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("decision")
+		x.Decision.MarshalProtoJSON(s.WithField("decision"))
+	}
+	if x.RetainedUnixNano != 0 || s.HasField("retainedUnixNano") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("retainedUnixNano")
+		s.WriteUint64(x.RetainedUnixNano)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SpaceWorldRejectedCandidate to JSON.
+func (x *SpaceWorldRejectedCandidate) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceWorldRejectedCandidate message from JSON.
+func (x *SpaceWorldRejectedCandidate) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "packet":
+			if s.ReadNil() {
+				x.Packet = nil
+				return
+			}
+			x.Packet = &SpaceWorldFinalizationPacket{}
+			x.Packet.UnmarshalProtoJSON(s.WithField("packet", true))
+		case "decision":
+			if s.ReadNil() {
+				x.Decision = nil
+				return
+			}
+			x.Decision = &SpaceWorldFinalizationDecision{}
+			x.Decision.UnmarshalProtoJSON(s.WithField("decision", true))
+		case "retained_unix_nano", "retainedUnixNano":
+			s.AddField("retained_unix_nano")
+			x.RetainedUnixNano = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SpaceWorldRejectedCandidate from JSON.
+func (x *SpaceWorldRejectedCandidate) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1257,6 +2035,260 @@ func (m *ApplyTxOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *SpaceWorldFinalizationPacket) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SpaceWorldFinalizationPacket) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceWorldFinalizationPacket) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.LocalOperationId) > 0 {
+		i -= len(m.LocalOperationId)
+		copy(dAtA[i:], m.LocalOperationId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.LocalOperationId)))
+		i--
+		dAtA[i] = 0x52
+	}
+	if len(m.FollowerParticipantId) > 0 {
+		i -= len(m.FollowerParticipantId)
+		copy(dAtA[i:], m.FollowerParticipantId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.FollowerParticipantId)))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if m.Op != nil {
+		size, err := m.Op.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x42
+	}
+	if m.BlocksAvailable {
+		i--
+		if m.BlocksAvailable {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.AuthorityEpoch != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AuthorityEpoch))
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.StorageGeneration != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.StorageGeneration))
+		i--
+		dAtA[i] = 0x28
+	}
+	if len(m.CandidateContentId) > 0 {
+		i -= len(m.CandidateContentId)
+		copy(dAtA[i:], m.CandidateContentId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.CandidateContentId)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.CandidateWorldRoot != nil {
+		size, err := m.CandidateWorldRoot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.BaseWorldRoot != nil {
+		size, err := m.BaseWorldRoot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.BaseSharedObjectRoot != nil {
+		size, err := m.BaseSharedObjectRoot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceWorldFinalizationDecision) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SpaceWorldFinalizationDecision) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceWorldFinalizationDecision) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.LocalOperationId) > 0 {
+		i -= len(m.LocalOperationId)
+		copy(dAtA[i:], m.LocalOperationId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.LocalOperationId)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.Retryable {
+		i--
+		if m.Retryable {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x28
+	}
+	if len(m.Error) > 0 {
+		i -= len(m.Error)
+		copy(dAtA[i:], m.Error)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Error)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.AcceptedWorldRoot != nil {
+		size, err := m.AcceptedWorldRoot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.AcceptedSharedObjectRoot != nil {
+		size, err := m.AcceptedSharedObjectRoot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Status != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Status))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SpaceWorldRejectedCandidate) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SpaceWorldRejectedCandidate) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SpaceWorldRejectedCandidate) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.RetainedUnixNano != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RetainedUnixNano))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Decision != nil {
+		size, err := m.Decision.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Packet != nil {
+		size, err := m.Packet.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Config) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1387,6 +2419,110 @@ func (m *ApplyTxOp) SizeVT() (n int) {
 	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (m *SpaceWorldFinalizationPacket) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.BaseSharedObjectRoot != nil {
+		l = m.BaseSharedObjectRoot.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.BaseWorldRoot != nil {
+		l = m.BaseWorldRoot.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.CandidateWorldRoot != nil {
+		l = m.CandidateWorldRoot.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.CandidateContentId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.StorageGeneration != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.StorageGeneration))
+	}
+	if m.AuthorityEpoch != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.AuthorityEpoch))
+	}
+	if m.BlocksAvailable {
+		n += 2
+	}
+	if m.Op != nil {
+		l = m.Op.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.FollowerParticipantId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.LocalOperationId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SpaceWorldFinalizationDecision) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Status != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Status))
+	}
+	if m.AcceptedSharedObjectRoot != nil {
+		l = m.AcceptedSharedObjectRoot.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.AcceptedWorldRoot != nil {
+		l = m.AcceptedWorldRoot.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Error)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Retryable {
+		n += 2
+	}
+	l = len(m.LocalOperationId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SpaceWorldRejectedCandidate) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Packet != nil {
+		l = m.Packet.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Decision != nil {
+		l = m.Decision.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.RetainedUnixNano != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.RetainedUnixNano))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (x SpaceWorldFinalizationStatus) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x *Config) MarshalProtoText() string {
@@ -1561,6 +2697,176 @@ func (x *ApplyTxOp) MarshalProtoText() string {
 }
 
 func (x *ApplyTxOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SpaceWorldFinalizationPacket) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("SpaceWorldFinalizationPacket {")
+	if x.BaseSharedObjectRoot != nil {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("base_shared_object_root: ")
+		sb.WriteString(x.BaseSharedObjectRoot.MarshalProtoText())
+	}
+	if x.BaseWorldRoot != nil {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("base_world_root: ")
+		sb.WriteString(x.BaseWorldRoot.MarshalProtoText())
+	}
+	if x.CandidateWorldRoot != nil {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("candidate_world_root: ")
+		sb.WriteString(x.CandidateWorldRoot.MarshalProtoText())
+	}
+	if len(x.CandidateContentId) != 0 {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("candidate_content_id: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.CandidateContentId))
+		sb.WriteString("\"")
+	}
+	if x.StorageGeneration != 0 {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("storage_generation: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.StorageGeneration), 10))
+	}
+	if x.AuthorityEpoch != 0 {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("authority_epoch: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.AuthorityEpoch), 10))
+	}
+	if x.BlocksAvailable != false {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("blocks_available: ")
+		sb.WriteString(strconv.FormatBool(x.BlocksAvailable))
+	}
+	if x.Op != nil {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("op: ")
+		sb.WriteString(x.Op.MarshalProtoText())
+	}
+	if x.FollowerParticipantId != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("follower_participant_id: ")
+		sb.WriteString(strconv.Quote(x.FollowerParticipantId))
+	}
+	if x.LocalOperationId != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("local_operation_id: ")
+		sb.WriteString(strconv.Quote(x.LocalOperationId))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *SpaceWorldFinalizationPacket) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SpaceWorldFinalizationDecision) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("SpaceWorldFinalizationDecision {")
+	if x.Status != 0 {
+		if sb.Len() > 32 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("status: ")
+		sb.WriteString("\"")
+		sb.WriteString(SpaceWorldFinalizationStatus(x.Status).String())
+		sb.WriteString("\"")
+	}
+	if x.AcceptedSharedObjectRoot != nil {
+		if sb.Len() > 32 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("accepted_shared_object_root: ")
+		sb.WriteString(x.AcceptedSharedObjectRoot.MarshalProtoText())
+	}
+	if x.AcceptedWorldRoot != nil {
+		if sb.Len() > 32 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("accepted_world_root: ")
+		sb.WriteString(x.AcceptedWorldRoot.MarshalProtoText())
+	}
+	if x.Error != "" {
+		if sb.Len() > 32 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("error: ")
+		sb.WriteString(strconv.Quote(x.Error))
+	}
+	if x.Retryable != false {
+		if sb.Len() > 32 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("retryable: ")
+		sb.WriteString(strconv.FormatBool(x.Retryable))
+	}
+	if x.LocalOperationId != "" {
+		if sb.Len() > 32 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("local_operation_id: ")
+		sb.WriteString(strconv.Quote(x.LocalOperationId))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *SpaceWorldFinalizationDecision) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SpaceWorldRejectedCandidate) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("SpaceWorldRejectedCandidate {")
+	if x.Packet != nil {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("packet: ")
+		sb.WriteString(x.Packet.MarshalProtoText())
+	}
+	if x.Decision != nil {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("decision: ")
+		sb.WriteString(x.Decision.MarshalProtoText())
+	}
+	if x.RetainedUnixNano != 0 {
+		if sb.Len() > 29 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("retained_unix_nano: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.RetainedUnixNano), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *SpaceWorldRejectedCandidate) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2090,6 +3396,535 @@ func (m *ApplyTxOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SpaceWorldFinalizationPacket) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SpaceWorldFinalizationPacket: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SpaceWorldFinalizationPacket: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BaseSharedObjectRoot", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.BaseSharedObjectRoot == nil {
+				m.BaseSharedObjectRoot = &sobject.SORoot{}
+			}
+			if err := m.BaseSharedObjectRoot.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BaseWorldRoot", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.BaseWorldRoot == nil {
+				m.BaseWorldRoot = &bucket.ObjectRef{}
+			}
+			if err := m.BaseWorldRoot.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CandidateWorldRoot", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.CandidateWorldRoot == nil {
+				m.CandidateWorldRoot = &bucket.ObjectRef{}
+			}
+			if err := m.CandidateWorldRoot.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CandidateContentId", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CandidateContentId = append(m.CandidateContentId[:0], dAtA[iNdEx:postIndex]...)
+			if m.CandidateContentId == nil {
+				m.CandidateContentId = []byte{}
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StorageGeneration", wireType)
+			}
+			m.StorageGeneration = 0
+			m.StorageGeneration, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AuthorityEpoch", wireType)
+			}
+			m.AuthorityEpoch = 0
+			m.AuthorityEpoch, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlocksAvailable", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.BlocksAvailable = bool(v != 0)
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Op", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Op == nil {
+				m.Op = &SOWorldOp{}
+			}
+			if err := m.Op.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FollowerParticipantId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FollowerParticipantId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LocalOperationId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LocalOperationId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SpaceWorldFinalizationDecision) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SpaceWorldFinalizationDecision: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SpaceWorldFinalizationDecision: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			m.Status = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Status = SpaceWorldFinalizationStatus(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AcceptedSharedObjectRoot", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.AcceptedSharedObjectRoot == nil {
+				m.AcceptedSharedObjectRoot = &sobject.SORoot{}
+			}
+			if err := m.AcceptedSharedObjectRoot.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AcceptedWorldRoot", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.AcceptedWorldRoot == nil {
+				m.AcceptedWorldRoot = &bucket.ObjectRef{}
+			}
+			if err := m.AcceptedWorldRoot.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Error = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Retryable", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Retryable = bool(v != 0)
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LocalOperationId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LocalOperationId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SpaceWorldRejectedCandidate) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SpaceWorldRejectedCandidate: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SpaceWorldRejectedCandidate: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Packet", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Packet == nil {
+				m.Packet = &SpaceWorldFinalizationPacket{}
+			}
+			if err := m.Packet.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Decision", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Decision == nil {
+				m.Decision = &SpaceWorldFinalizationDecision{}
+			}
+			if err := m.Decision.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RetainedUnixNano", wireType)
+			}
+			m.RetainedUnixNano = 0
+			m.RetainedUnixNano, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

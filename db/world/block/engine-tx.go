@@ -2,12 +2,15 @@ package world_block
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"sync/atomic"
 
 	trace "github.com/s4wave/spacewave/db/traceutil"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 )
@@ -18,7 +21,10 @@ type EngineTx struct {
 	rel    atomic.Bool
 	engine *Engine
 
-	writeTx *Tx
+	readTx      *Tx
+	writeTx     *Tx
+	baseHeadRef *bucket.ObjectRef
+	lease       coord.WriteLease
 }
 
 // newEngineTx constructs a new EngineTx.
@@ -53,19 +59,30 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		e.Discard()
 		return nil, tx.ErrNotWrite
 	}
-
 	// ensure tx is not already discarded
 	// also marks the tx as discarded
 	if e.rel.Swap(true) {
 		// already discarded
 		return nil, tx.ErrDiscarded
 	}
+	// setRootRefLocked rebuilds transactions and discards the active writeTx.
+	// Keep the coordinator lease local so root publication still precedes release.
+	commitLease := e.lease
+	e.lease = nil
 
 	// commit
 	var nroot *block.BlockRef
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction/write-tx-commit")
 	nroot, commitErr := e.writeTx.CommitBlockTransaction(taskCtx)
 	subtask.End()
+	if commitLease != nil && isCoordinatedWriteSnapshotError(commitErr) {
+		commitErr = fmt.Errorf("commit world blocks: %w", coord.ErrStaleGeneration)
+	}
+	if commitErr == nil && commitLease != nil {
+		if _, err := commitLease.Refresh(ctx); err != nil {
+			commitErr = err
+		}
+	}
 
 	// validate the new root
 	if commitErr == nil {
@@ -81,36 +98,63 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	_, subtask = trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction/apply-root-update")
 	e.engine.rmtx.Lock()
 	var relWriteTx func()
-	if commitErr == nil {
-		if e.engine.writeTx != e {
-			// discarded mid-write
+	if e.engine.writeTx != e {
+		// discarded mid-write
+		if commitErr == nil {
 			commitErr = tx.ErrDiscarded
-		} else {
+		}
+	} else {
+		if commitErr == nil {
 			// call commitFn if set
 			nextRootRef = e.engine.root.GetRef().Clone()
 			// do nothing if nothing changed
 			if !nroot.EqualVT(nextRootRef.RootRef) {
 				nextRootRef.RootRef = nroot
+				commitErr = e.engine.validateRootRefLocked(ctx, nextRootRef)
+				if errors.Is(commitErr, block.ErrNotFound) {
+					commitErr = fmt.Errorf("validate committed root: %w", coord.ErrStaleGeneration)
+				}
 				// call the commit function if set
-				if e.engine.commitFn != nil {
-					commitErr = e.engine.commitFn(nextRootRef.Clone())
+				if commitErr == nil && e.engine.commitFn != nil {
+					commitErr = e.engine.commitFn(ctx, e.baseHeadRef, nextRootRef.Clone())
 				}
 				if commitErr == nil {
 					commitErr = e.engine.setRootRefLocked(ctx, nextRootRef)
 				}
 			}
-
-			// clear write tx
-			e.engine.writeTx = nil
-			relWriteTx = e.engine.writeTxRel
-			e.engine.writeTxRel = nil
 		}
+
+		// clear the owning write tx even when its commit path failed.
+		e.engine.writeTx = nil
+		relWriteTx = e.engine.writeTxRel
+		e.engine.writeTxRel = nil
 	}
 	e.engine.rmtx.Unlock()
 	subtask.End()
 
 	if relWriteTx != nil {
 		relWriteTx()
+	}
+	if commitErr == nil && commitLease != nil {
+		publishRoot := nextRootRef
+		if publishRoot == nil {
+			e.engine.rmtx.RLock()
+			publishRoot = e.engine.root.GetRef().Clone()
+			e.engine.rmtx.RUnlock()
+		}
+		event := coord.Event{
+			KeyPrefixChanged: append([]byte(nil), e.engine.writeCoordKeyPrefix...),
+		}
+		if publishRoot != nil {
+			event.RootChanged = publishRoot.Clone()
+		}
+		_, commitErr = commitLease.Publish(ctx, event)
+	}
+	if commitLease != nil {
+		leaseErr := commitLease.Release(ctx)
+		if commitErr == nil {
+			commitErr = leaseErr
+		}
 	}
 
 	if commitErr != nil {
@@ -137,6 +181,14 @@ func (e *EngineTx) discardLocked() {
 	// e.writeTx will be nil if this is a read-only txn.
 	if e.writeTx != nil {
 		e.writeTx.Discard()
+	}
+	if e.readTx != nil {
+		e.readTx.Discard()
+		e.readTx = nil
+	}
+	if e.lease != nil {
+		_ = e.lease.Release(context.Background())
+		e.lease = nil
 	}
 	// check if the engine writeTx is this one.
 	if e.engine.writeTx == e {

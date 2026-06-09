@@ -56,6 +56,40 @@ struct InitWorldOpDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 InitWorldOpDefaultTypeInternal _InitWorldOp_default_instance_;
 
+inline constexpr SpaceWorldFinalizationDecision::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        error_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        local_operation_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        accepted_shared_object_root_{nullptr},
+        accepted_world_root_{nullptr},
+        status_{static_cast< ::sobject::world::engine::SpaceWorldFinalizationStatus >(0)},
+        retryable_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SpaceWorldFinalizationDecision::SpaceWorldFinalizationDecision(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SpaceWorldFinalizationDecision_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SpaceWorldFinalizationDecisionDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SpaceWorldFinalizationDecisionDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SpaceWorldFinalizationDecisionDefaultTypeInternal() {}
+  union {
+    SpaceWorldFinalizationDecision _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SpaceWorldFinalizationDecisionDefaultTypeInternal _SpaceWorldFinalizationDecision_default_instance_;
+
 inline constexpr InnerState::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -167,11 +201,78 @@ struct SOWorldOpDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOWorldOpDefaultTypeInternal _SOWorldOp_default_instance_;
+
+inline constexpr SpaceWorldFinalizationPacket::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        candidate_content_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        follower_participant_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        local_operation_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        base_shared_object_root_{nullptr},
+        base_world_root_{nullptr},
+        candidate_world_root_{nullptr},
+        op_{nullptr},
+        storage_generation_{::uint64_t{0u}},
+        authority_epoch_{::uint64_t{0u}},
+        blocks_available_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SpaceWorldFinalizationPacket::SpaceWorldFinalizationPacket(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SpaceWorldFinalizationPacket_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SpaceWorldFinalizationPacketDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SpaceWorldFinalizationPacketDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SpaceWorldFinalizationPacketDefaultTypeInternal() {}
+  union {
+    SpaceWorldFinalizationPacket _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SpaceWorldFinalizationPacketDefaultTypeInternal _SpaceWorldFinalizationPacket_default_instance_;
+
+inline constexpr SpaceWorldRejectedCandidate::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        packet_{nullptr},
+        decision_{nullptr},
+        retained_unix_nano_{::uint64_t{0u}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SpaceWorldRejectedCandidate::SpaceWorldRejectedCandidate(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SpaceWorldRejectedCandidate_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SpaceWorldRejectedCandidateDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SpaceWorldRejectedCandidateDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SpaceWorldRejectedCandidateDefaultTypeInternal() {}
+  union {
+    SpaceWorldRejectedCandidate _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SpaceWorldRejectedCandidateDefaultTypeInternal _SpaceWorldRejectedCandidate_default_instance_;
 }  // namespace engine
 }  // namespace world
 }  // namespace sobject
-static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fworld_2fengine_2fengine_2eproto = nullptr;
+static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fworld_2fengine_2fengine_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fworld_2fengine_2fengine_2eproto = nullptr;
 const ::uint32_t
@@ -222,6 +323,53 @@ const ::uint32_t
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::sobject::world::engine::ApplyTxOp, _impl_.tx_),
         0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldFinalizationPacket, _impl_._has_bits_),
+        13, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldFinalizationPacket, _impl_.base_shared_object_root_),
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldFinalizationPacket, _impl_.base_world_root_),
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldFinalizationPacket, _impl_.candidate_world_root_),
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldFinalizationPacket, _impl_.candidate_content_id_),
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldFinalizationPacket, _impl_.storage_generation_),
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldFinalizationPacket, _impl_.authority_epoch_),
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldFinalizationPacket, _impl_.blocks_available_),
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldFinalizationPacket, _impl_.op_),
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldFinalizationPacket, _impl_.follower_participant_id_),
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldFinalizationPacket, _impl_.local_operation_id_),
+        3,
+        4,
+        5,
+        0,
+        7,
+        8,
+        9,
+        6,
+        1,
+        2,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldFinalizationDecision, _impl_._has_bits_),
+        9, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldFinalizationDecision, _impl_.status_),
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldFinalizationDecision, _impl_.accepted_shared_object_root_),
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldFinalizationDecision, _impl_.accepted_world_root_),
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldFinalizationDecision, _impl_.error_),
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldFinalizationDecision, _impl_.retryable_),
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldFinalizationDecision, _impl_.local_operation_id_),
+        4,
+        2,
+        3,
+        0,
+        5,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldRejectedCandidate, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldRejectedCandidate, _impl_.packet_),
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldRejectedCandidate, _impl_.decision_),
+        PROTOBUF_FIELD_OFFSET(::sobject::world::engine::SpaceWorldRejectedCandidate, _impl_.retained_unix_nano_),
+        0,
+        1,
+        2,
 };
 
 static const ::_pbi::MigrationSchema
@@ -231,6 +379,9 @@ static const ::_pbi::MigrationSchema
         {28, sizeof(::sobject::world::engine::SOWorldOp)},
         {33, sizeof(::sobject::world::engine::InitWorldOp)},
         {40, sizeof(::sobject::world::engine::ApplyTxOp)},
+        {45, sizeof(::sobject::world::engine::SpaceWorldFinalizationPacket)},
+        {68, sizeof(::sobject::world::engine::SpaceWorldFinalizationDecision)},
+        {83, sizeof(::sobject::world::engine::SpaceWorldRejectedCandidate)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::sobject::world::engine::_Config_default_instance_._instance,
@@ -238,6 +389,9 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::sobject::world::engine::_SOWorldOp_default_instance_._instance,
     &::sobject::world::engine::_InitWorldOp_default_instance_._instance,
     &::sobject::world::engine::_ApplyTxOp_default_instance_._instance,
+    &::sobject::world::engine::_SpaceWorldFinalizationPacket_default_instance_._instance,
+    &::sobject::world::engine::_SpaceWorldFinalizationDecision_default_instance_._instance,
+    &::sobject::world::engine::_SpaceWorldRejectedCandidate_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fworld_2fengine_2fengine_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -267,7 +421,36 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2f
     "itWorldOp\022\033\n\023last_change_disable\030\001 \001(\010\022/"
     "\n\016transform_conf\030\002 \001(\0132\027.block.transform"
     ".Config\"+\n\tApplyTxOp\022\036\n\002tx\030\001 \001(\0132\022.world"
-    ".block.tx.Txb\006proto3"
+    ".block.tx.Tx\"\204\003\n\034SpaceWorldFinalizationP"
+    "acket\0220\n\027base_shared_object_root\030\001 \001(\0132\017"
+    ".sobject.SORoot\022*\n\017base_world_root\030\002 \001(\013"
+    "2\021.bucket.ObjectRef\022/\n\024candidate_world_r"
+    "oot\030\003 \001(\0132\021.bucket.ObjectRef\022\034\n\024candidat"
+    "e_content_id\030\004 \001(\014\022\032\n\022storage_generation"
+    "\030\005 \001(\004\022\027\n\017authority_epoch\030\006 \001(\004\022\030\n\020block"
+    "s_available\030\007 \001(\010\022+\n\002op\030\010 \001(\0132\037.sobject."
+    "world.engine.SOWorldOp\022\037\n\027follower_parti"
+    "cipant_id\030\t \001(\t\022\032\n\022local_operation_id\030\n "
+    "\001(\t\"\210\002\n\036SpaceWorldFinalizationDecision\022B"
+    "\n\006status\030\001 \001(\01622.sobject.world.engine.Sp"
+    "aceWorldFinalizationStatus\0224\n\033accepted_s"
+    "hared_object_root\030\002 \001(\0132\017.sobject.SORoot"
+    "\022.\n\023accepted_world_root\030\003 \001(\0132\021.bucket.O"
+    "bjectRef\022\r\n\005error\030\004 \001(\t\022\021\n\tretryable\030\005 \001"
+    "(\010\022\032\n\022local_operation_id\030\006 \001(\t\"\305\001\n\033Space"
+    "WorldRejectedCandidate\022B\n\006packet\030\001 \001(\01322"
+    ".sobject.world.engine.SpaceWorldFinaliza"
+    "tionPacket\022F\n\010decision\030\002 \001(\01324.sobject.w"
+    "orld.engine.SpaceWorldFinalizationDecisi"
+    "on\022\032\n\022retained_unix_nano\030\003 \001(\004*\276\002\n\034Space"
+    "WorldFinalizationStatus\022+\n\'SPACE_WORLD_F"
+    "INALIZATION_STATUS_UNKNOWN\020\000\022,\n(SPACE_WO"
+    "RLD_FINALIZATION_STATUS_ACCEPTED\020\001\022,\n(SP"
+    "ACE_WORLD_FINALIZATION_STATUS_REJECTED\020\002"
+    "\022.\n*SPACE_WORLD_FINALIZATION_STATUS_STAL"
+    "E_BASE\020\003\0221\n-SPACE_WORLD_FINALIZATION_STA"
+    "TUS_MISSING_BLOCK\020\004\0222\n.SPACE_WORLD_FINAL"
+    "IZATION_STATUS_LOST_AUTHORITY\020\005b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fworld_2fengine_2fengine_2eproto_deps[5] = {
@@ -281,13 +464,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fco
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fworld_2fengine_2fengine_2eproto = {
     false,
     false,
-    1060,
+    2239,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fworld_2fengine_2fengine_2eproto,
     "github.com/s4wave/spacewave/core/sobject/world/engine/engine.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fworld_2fengine_2fengine_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fworld_2fengine_2fengine_2eproto_deps,
     5,
-    5,
+    8,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fworld_2fengine_2fengine_2eproto::offsets,
@@ -297,6 +480,12 @@ PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2
 namespace sobject {
 namespace world {
 namespace engine {
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SpaceWorldFinalizationStatus_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fworld_2fengine_2fengine_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fworld_2fengine_2fengine_2eproto[0];
+}
+PROTOBUF_CONSTINIT const uint32_t SpaceWorldFinalizationStatus_internal_data_[] = {
+    393216u, 0u, };
 // ===================================================================
 
 class Config::_Internal {
@@ -2131,6 +2320,1474 @@ void ApplyTxOp::InternalSwap(ApplyTxOp* PROTOBUF_RESTRICT PROTOBUF_NONNULL other
 }
 
 ::google::protobuf::Metadata ApplyTxOp::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SpaceWorldFinalizationPacket::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SpaceWorldFinalizationPacket>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_._has_bits_);
+};
+
+void SpaceWorldFinalizationPacket::clear_base_shared_object_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.base_shared_object_root_ != nullptr) _impl_.base_shared_object_root_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+void SpaceWorldFinalizationPacket::clear_base_world_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.base_world_root_ != nullptr) _impl_.base_world_root_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+void SpaceWorldFinalizationPacket::clear_candidate_world_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.candidate_world_root_ != nullptr) _impl_.candidate_world_root_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+SpaceWorldFinalizationPacket::SpaceWorldFinalizationPacket(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SpaceWorldFinalizationPacket_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:sobject.world.engine.SpaceWorldFinalizationPacket)
+}
+PROTOBUF_NDEBUG_INLINE SpaceWorldFinalizationPacket::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::sobject::world::engine::SpaceWorldFinalizationPacket& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        candidate_content_id_(arena, from.candidate_content_id_),
+        follower_participant_id_(arena, from.follower_participant_id_),
+        local_operation_id_(arena, from.local_operation_id_) {}
+
+SpaceWorldFinalizationPacket::SpaceWorldFinalizationPacket(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SpaceWorldFinalizationPacket& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SpaceWorldFinalizationPacket_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SpaceWorldFinalizationPacket* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.base_shared_object_root_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.base_shared_object_root_)
+                : nullptr;
+  _impl_.base_world_root_ = (CheckHasBit(cached_has_bits, 0x00000010U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.base_world_root_)
+                : nullptr;
+  _impl_.candidate_world_root_ = (CheckHasBit(cached_has_bits, 0x00000020U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.candidate_world_root_)
+                : nullptr;
+  _impl_.op_ = (CheckHasBit(cached_has_bits, 0x00000040U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.op_)
+                : nullptr;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, storage_generation_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, storage_generation_),
+           offsetof(Impl_, blocks_available_) -
+               offsetof(Impl_, storage_generation_) +
+               sizeof(Impl_::blocks_available_));
+
+  // @@protoc_insertion_point(copy_constructor:sobject.world.engine.SpaceWorldFinalizationPacket)
+}
+PROTOBUF_NDEBUG_INLINE SpaceWorldFinalizationPacket::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        candidate_content_id_(arena),
+        follower_participant_id_(arena),
+        local_operation_id_(arena) {}
+
+inline void SpaceWorldFinalizationPacket::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, base_shared_object_root_),
+           0,
+           offsetof(Impl_, blocks_available_) -
+               offsetof(Impl_, base_shared_object_root_) +
+               sizeof(Impl_::blocks_available_));
+}
+SpaceWorldFinalizationPacket::~SpaceWorldFinalizationPacket() {
+  // @@protoc_insertion_point(destructor:sobject.world.engine.SpaceWorldFinalizationPacket)
+  SharedDtor(*this);
+}
+inline void SpaceWorldFinalizationPacket::SharedDtor(MessageLite& self) {
+  SpaceWorldFinalizationPacket& this_ = static_cast<SpaceWorldFinalizationPacket&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.candidate_content_id_.Destroy();
+  this_._impl_.follower_participant_id_.Destroy();
+  this_._impl_.local_operation_id_.Destroy();
+  delete this_._impl_.base_shared_object_root_;
+  delete this_._impl_.base_world_root_;
+  delete this_._impl_.candidate_world_root_;
+  delete this_._impl_.op_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SpaceWorldFinalizationPacket::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SpaceWorldFinalizationPacket(arena);
+}
+constexpr auto SpaceWorldFinalizationPacket::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SpaceWorldFinalizationPacket),
+                                            alignof(SpaceWorldFinalizationPacket));
+}
+constexpr auto SpaceWorldFinalizationPacket::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SpaceWorldFinalizationPacket_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SpaceWorldFinalizationPacket::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SpaceWorldFinalizationPacket>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SpaceWorldFinalizationPacket::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SpaceWorldFinalizationPacket>(), &SpaceWorldFinalizationPacket::ByteSizeLong,
+              &SpaceWorldFinalizationPacket::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_._cached_size_),
+          false,
+      },
+      &SpaceWorldFinalizationPacket::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fworld_2fengine_2fengine_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SpaceWorldFinalizationPacket_class_data_ =
+        SpaceWorldFinalizationPacket::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SpaceWorldFinalizationPacket::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SpaceWorldFinalizationPacket_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SpaceWorldFinalizationPacket_class_data_.tc_table);
+  return SpaceWorldFinalizationPacket_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<4, 10, 4, 107, 2>
+SpaceWorldFinalizationPacket::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_._has_bits_),
+    0, // no _extensions_
+    10, 120,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294966272,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    10,  // num_field_entries
+    4,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    SpaceWorldFinalizationPacket_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::world::engine::SpaceWorldFinalizationPacket>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .sobject.SORoot base_shared_object_root = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 3, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.base_shared_object_root_)}},
+    // .bucket.ObjectRef base_world_root = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 4, 1,
+      PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.base_world_root_)}},
+    // .bucket.ObjectRef candidate_world_root = 3;
+    {::_pbi::TcParser::FastMtS1,
+     {26, 5, 2,
+      PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.candidate_world_root_)}},
+    // bytes candidate_content_id = 4;
+    {::_pbi::TcParser::FastBS1,
+     {34, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.candidate_content_id_)}},
+    // uint64 storage_generation = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SpaceWorldFinalizationPacket, _impl_.storage_generation_), 7>(),
+     {40, 7, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.storage_generation_)}},
+    // uint64 authority_epoch = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SpaceWorldFinalizationPacket, _impl_.authority_epoch_), 8>(),
+     {48, 8, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.authority_epoch_)}},
+    // bool blocks_available = 7;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(SpaceWorldFinalizationPacket, _impl_.blocks_available_), 9>(),
+     {56, 9, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.blocks_available_)}},
+    // .sobject.world.engine.SOWorldOp op = 8;
+    {::_pbi::TcParser::FastMtS1,
+     {66, 6, 3,
+      PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.op_)}},
+    // string follower_participant_id = 9;
+    {::_pbi::TcParser::FastUS1,
+     {74, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.follower_participant_id_)}},
+    // string local_operation_id = 10;
+    {::_pbi::TcParser::FastUS1,
+     {82, 2, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.local_operation_id_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .sobject.SORoot base_shared_object_root = 1;
+    {PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.base_shared_object_root_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .bucket.ObjectRef base_world_root = 2;
+    {PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.base_world_root_), _Internal::kHasBitsOffset + 4, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .bucket.ObjectRef candidate_world_root = 3;
+    {PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.candidate_world_root_), _Internal::kHasBitsOffset + 5, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // bytes candidate_content_id = 4;
+    {PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.candidate_content_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // uint64 storage_generation = 5;
+    {PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.storage_generation_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // uint64 authority_epoch = 6;
+    {PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.authority_epoch_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // bool blocks_available = 7;
+    {PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.blocks_available_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // .sobject.world.engine.SOWorldOp op = 8;
+    {PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.op_), _Internal::kHasBitsOffset + 6, 3, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // string follower_participant_id = 9;
+    {PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.follower_participant_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string local_operation_id = 10;
+    {PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.local_operation_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::sobject::SORoot>()},
+      {::_pbi::TcParser::GetTable<::bucket::ObjectRef>()},
+      {::_pbi::TcParser::GetTable<::bucket::ObjectRef>()},
+      {::_pbi::TcParser::GetTable<::sobject::world::engine::SOWorldOp>()},
+  }},
+  {{
+    "\61\0\0\0\0\0\0\0\0\27\22\0\0\0\0\0"
+    "sobject.world.engine.SpaceWorldFinalizationPacket"
+    "follower_participant_id"
+    "local_operation_id"
+  }},
+};
+PROTOBUF_NOINLINE void SpaceWorldFinalizationPacket::Clear() {
+// @@protoc_insertion_point(message_clear_start:sobject.world.engine.SpaceWorldFinalizationPacket)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.candidate_content_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.follower_participant_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.local_operation_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(_impl_.base_shared_object_root_ != nullptr);
+      _impl_.base_shared_object_root_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(_impl_.base_world_root_ != nullptr);
+      _impl_.base_world_root_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(_impl_.candidate_world_root_ != nullptr);
+      _impl_.candidate_world_root_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      ABSL_DCHECK(_impl_.op_ != nullptr);
+      _impl_.op_->Clear();
+    }
+  }
+  _impl_.storage_generation_ = ::uint64_t{0u};
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    ::memset(&_impl_.authority_epoch_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.blocks_available_) -
+        reinterpret_cast<char*>(&_impl_.authority_epoch_)) + sizeof(_impl_.blocks_available_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SpaceWorldFinalizationPacket::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SpaceWorldFinalizationPacket& this_ = static_cast<const SpaceWorldFinalizationPacket&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SpaceWorldFinalizationPacket::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SpaceWorldFinalizationPacket& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:sobject.world.engine.SpaceWorldFinalizationPacket)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .sobject.SORoot base_shared_object_root = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.base_shared_object_root_, this_._impl_.base_shared_object_root_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .bucket.ObjectRef base_world_root = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        2, *this_._impl_.base_world_root_, this_._impl_.base_world_root_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .bucket.ObjectRef candidate_world_root = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        3, *this_._impl_.candidate_world_root_, this_._impl_.candidate_world_root_->GetCachedSize(), target,
+        stream);
+  }
+
+  // bytes candidate_content_id = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_candidate_content_id().empty()) {
+      const ::std::string& _s = this_._internal_candidate_content_id();
+      target = stream->WriteBytesMaybeAliased(4, _s, target);
+    }
+  }
+
+  // uint64 storage_generation = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (this_._internal_storage_generation() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          5, this_._internal_storage_generation(), target);
+    }
+  }
+
+  // uint64 authority_epoch = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (this_._internal_authority_epoch() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          6, this_._internal_authority_epoch(), target);
+    }
+  }
+
+  // bool blocks_available = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (this_._internal_blocks_available() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          7, this_._internal_blocks_available(), target);
+    }
+  }
+
+  // .sobject.world.engine.SOWorldOp op = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        8, *this_._impl_.op_, this_._impl_.op_->GetCachedSize(), target,
+        stream);
+  }
+
+  // string follower_participant_id = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_follower_participant_id().empty()) {
+      const ::std::string& _s = this_._internal_follower_participant_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "sobject.world.engine.SpaceWorldFinalizationPacket.follower_participant_id");
+      target = stream->WriteStringMaybeAliased(9, _s, target);
+    }
+  }
+
+  // string local_operation_id = 10;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_local_operation_id().empty()) {
+      const ::std::string& _s = this_._internal_local_operation_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "sobject.world.engine.SpaceWorldFinalizationPacket.local_operation_id");
+      target = stream->WriteStringMaybeAliased(10, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:sobject.world.engine.SpaceWorldFinalizationPacket)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SpaceWorldFinalizationPacket::ByteSizeLong(const MessageLite& base) {
+  const SpaceWorldFinalizationPacket& this_ = static_cast<const SpaceWorldFinalizationPacket&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SpaceWorldFinalizationPacket::ByteSizeLong() const {
+  const SpaceWorldFinalizationPacket& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:sobject.world.engine.SpaceWorldFinalizationPacket)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // bytes candidate_content_id = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_candidate_content_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_candidate_content_id());
+      }
+    }
+    // string follower_participant_id = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_follower_participant_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_follower_participant_id());
+      }
+    }
+    // string local_operation_id = 10;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_local_operation_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_local_operation_id());
+      }
+    }
+    // .sobject.SORoot base_shared_object_root = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.base_shared_object_root_);
+    }
+    // .bucket.ObjectRef base_world_root = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.base_world_root_);
+    }
+    // .bucket.ObjectRef candidate_world_root = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.candidate_world_root_);
+    }
+    // .sobject.world.engine.SOWorldOp op = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.op_);
+    }
+    // uint64 storage_generation = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (this_._internal_storage_generation() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_storage_generation());
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    // uint64 authority_epoch = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (this_._internal_authority_epoch() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_authority_epoch());
+      }
+    }
+    // bool blocks_available = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (this_._internal_blocks_available() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SpaceWorldFinalizationPacket::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SpaceWorldFinalizationPacket*>(&to_msg);
+  auto& from = static_cast<const SpaceWorldFinalizationPacket&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:sobject.world.engine.SpaceWorldFinalizationPacket)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_candidate_content_id().empty()) {
+        _this->_internal_set_candidate_content_id(from._internal_candidate_content_id());
+      } else {
+        if (_this->_impl_.candidate_content_id_.IsDefault()) {
+          _this->_internal_set_candidate_content_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_follower_participant_id().empty()) {
+        _this->_internal_set_follower_participant_id(from._internal_follower_participant_id());
+      } else {
+        if (_this->_impl_.follower_participant_id_.IsDefault()) {
+          _this->_internal_set_follower_participant_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_local_operation_id().empty()) {
+        _this->_internal_set_local_operation_id(from._internal_local_operation_id());
+      } else {
+        if (_this->_impl_.local_operation_id_.IsDefault()) {
+          _this->_internal_set_local_operation_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(from._impl_.base_shared_object_root_ != nullptr);
+      if (_this->_impl_.base_shared_object_root_ == nullptr) {
+        _this->_impl_.base_shared_object_root_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.base_shared_object_root_);
+      } else {
+        _this->_impl_.base_shared_object_root_->MergeFrom(*from._impl_.base_shared_object_root_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(from._impl_.base_world_root_ != nullptr);
+      if (_this->_impl_.base_world_root_ == nullptr) {
+        _this->_impl_.base_world_root_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.base_world_root_);
+      } else {
+        _this->_impl_.base_world_root_->MergeFrom(*from._impl_.base_world_root_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(from._impl_.candidate_world_root_ != nullptr);
+      if (_this->_impl_.candidate_world_root_ == nullptr) {
+        _this->_impl_.candidate_world_root_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.candidate_world_root_);
+      } else {
+        _this->_impl_.candidate_world_root_->MergeFrom(*from._impl_.candidate_world_root_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      ABSL_DCHECK(from._impl_.op_ != nullptr);
+      if (_this->_impl_.op_ == nullptr) {
+        _this->_impl_.op_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.op_);
+      } else {
+        _this->_impl_.op_->MergeFrom(*from._impl_.op_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (from._internal_storage_generation() != 0) {
+        _this->_impl_.storage_generation_ = from._impl_.storage_generation_;
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (from._internal_authority_epoch() != 0) {
+        _this->_impl_.authority_epoch_ = from._impl_.authority_epoch_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (from._internal_blocks_available() != 0) {
+        _this->_impl_.blocks_available_ = from._impl_.blocks_available_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SpaceWorldFinalizationPacket::CopyFrom(const SpaceWorldFinalizationPacket& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:sobject.world.engine.SpaceWorldFinalizationPacket)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SpaceWorldFinalizationPacket::InternalSwap(SpaceWorldFinalizationPacket* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.candidate_content_id_, &other->_impl_.candidate_content_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.follower_participant_id_, &other->_impl_.follower_participant_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.local_operation_id_, &other->_impl_.local_operation_id_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.blocks_available_)
+      + sizeof(SpaceWorldFinalizationPacket::_impl_.blocks_available_)
+      - PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationPacket, _impl_.base_shared_object_root_)>(
+          reinterpret_cast<char*>(&_impl_.base_shared_object_root_),
+          reinterpret_cast<char*>(&other->_impl_.base_shared_object_root_));
+}
+
+::google::protobuf::Metadata SpaceWorldFinalizationPacket::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SpaceWorldFinalizationDecision::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SpaceWorldFinalizationDecision>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationDecision, _impl_._has_bits_);
+};
+
+void SpaceWorldFinalizationDecision::clear_accepted_shared_object_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.accepted_shared_object_root_ != nullptr) _impl_.accepted_shared_object_root_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+void SpaceWorldFinalizationDecision::clear_accepted_world_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.accepted_world_root_ != nullptr) _impl_.accepted_world_root_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+SpaceWorldFinalizationDecision::SpaceWorldFinalizationDecision(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SpaceWorldFinalizationDecision_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:sobject.world.engine.SpaceWorldFinalizationDecision)
+}
+PROTOBUF_NDEBUG_INLINE SpaceWorldFinalizationDecision::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::sobject::world::engine::SpaceWorldFinalizationDecision& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        error_(arena, from.error_),
+        local_operation_id_(arena, from.local_operation_id_) {}
+
+SpaceWorldFinalizationDecision::SpaceWorldFinalizationDecision(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SpaceWorldFinalizationDecision& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SpaceWorldFinalizationDecision_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SpaceWorldFinalizationDecision* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.accepted_shared_object_root_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.accepted_shared_object_root_)
+                : nullptr;
+  _impl_.accepted_world_root_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.accepted_world_root_)
+                : nullptr;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, status_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, status_),
+           offsetof(Impl_, retryable_) -
+               offsetof(Impl_, status_) +
+               sizeof(Impl_::retryable_));
+
+  // @@protoc_insertion_point(copy_constructor:sobject.world.engine.SpaceWorldFinalizationDecision)
+}
+PROTOBUF_NDEBUG_INLINE SpaceWorldFinalizationDecision::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        error_(arena),
+        local_operation_id_(arena) {}
+
+inline void SpaceWorldFinalizationDecision::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, accepted_shared_object_root_),
+           0,
+           offsetof(Impl_, retryable_) -
+               offsetof(Impl_, accepted_shared_object_root_) +
+               sizeof(Impl_::retryable_));
+}
+SpaceWorldFinalizationDecision::~SpaceWorldFinalizationDecision() {
+  // @@protoc_insertion_point(destructor:sobject.world.engine.SpaceWorldFinalizationDecision)
+  SharedDtor(*this);
+}
+inline void SpaceWorldFinalizationDecision::SharedDtor(MessageLite& self) {
+  SpaceWorldFinalizationDecision& this_ = static_cast<SpaceWorldFinalizationDecision&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.error_.Destroy();
+  this_._impl_.local_operation_id_.Destroy();
+  delete this_._impl_.accepted_shared_object_root_;
+  delete this_._impl_.accepted_world_root_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SpaceWorldFinalizationDecision::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SpaceWorldFinalizationDecision(arena);
+}
+constexpr auto SpaceWorldFinalizationDecision::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SpaceWorldFinalizationDecision),
+                                            alignof(SpaceWorldFinalizationDecision));
+}
+constexpr auto SpaceWorldFinalizationDecision::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SpaceWorldFinalizationDecision_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SpaceWorldFinalizationDecision::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SpaceWorldFinalizationDecision>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SpaceWorldFinalizationDecision::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SpaceWorldFinalizationDecision>(), &SpaceWorldFinalizationDecision::ByteSizeLong,
+              &SpaceWorldFinalizationDecision::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationDecision, _impl_._cached_size_),
+          false,
+      },
+      &SpaceWorldFinalizationDecision::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fworld_2fengine_2fengine_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SpaceWorldFinalizationDecision_class_data_ =
+        SpaceWorldFinalizationDecision::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SpaceWorldFinalizationDecision::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SpaceWorldFinalizationDecision_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SpaceWorldFinalizationDecision_class_data_.tc_table);
+  return SpaceWorldFinalizationDecision_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 6, 2, 83, 2>
+SpaceWorldFinalizationDecision::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationDecision, _impl_._has_bits_),
+    0, // no _extensions_
+    6, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967232,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    6,  // num_field_entries
+    2,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    SpaceWorldFinalizationDecision_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::world::engine::SpaceWorldFinalizationDecision>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .sobject.world.engine.SpaceWorldFinalizationStatus status = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SpaceWorldFinalizationDecision, _impl_.status_), 4>(),
+     {8, 4, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationDecision, _impl_.status_)}},
+    // .sobject.SORoot accepted_shared_object_root = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 2, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationDecision, _impl_.accepted_shared_object_root_)}},
+    // .bucket.ObjectRef accepted_world_root = 3;
+    {::_pbi::TcParser::FastMtS1,
+     {26, 3, 1,
+      PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationDecision, _impl_.accepted_world_root_)}},
+    // string error = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationDecision, _impl_.error_)}},
+    // bool retryable = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(SpaceWorldFinalizationDecision, _impl_.retryable_), 5>(),
+     {40, 5, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationDecision, _impl_.retryable_)}},
+    // string local_operation_id = 6;
+    {::_pbi::TcParser::FastUS1,
+     {50, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationDecision, _impl_.local_operation_id_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .sobject.world.engine.SpaceWorldFinalizationStatus status = 1;
+    {PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationDecision, _impl_.status_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // .sobject.SORoot accepted_shared_object_root = 2;
+    {PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationDecision, _impl_.accepted_shared_object_root_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .bucket.ObjectRef accepted_world_root = 3;
+    {PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationDecision, _impl_.accepted_world_root_), _Internal::kHasBitsOffset + 3, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // string error = 4;
+    {PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationDecision, _impl_.error_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bool retryable = 5;
+    {PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationDecision, _impl_.retryable_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string local_operation_id = 6;
+    {PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationDecision, _impl_.local_operation_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::sobject::SORoot>()},
+      {::_pbi::TcParser::GetTable<::bucket::ObjectRef>()},
+  }},
+  {{
+    "\63\0\0\0\5\0\22\0"
+    "sobject.world.engine.SpaceWorldFinalizationDecision"
+    "error"
+    "local_operation_id"
+  }},
+};
+PROTOBUF_NOINLINE void SpaceWorldFinalizationDecision::Clear() {
+// @@protoc_insertion_point(message_clear_start:sobject.world.engine.SpaceWorldFinalizationDecision)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.error_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.local_operation_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(_impl_.accepted_shared_object_root_ != nullptr);
+      _impl_.accepted_shared_object_root_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(_impl_.accepted_world_root_ != nullptr);
+      _impl_.accepted_world_root_->Clear();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000030U)) {
+    ::memset(&_impl_.status_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.retryable_) -
+        reinterpret_cast<char*>(&_impl_.status_)) + sizeof(_impl_.retryable_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SpaceWorldFinalizationDecision::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SpaceWorldFinalizationDecision& this_ = static_cast<const SpaceWorldFinalizationDecision&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SpaceWorldFinalizationDecision::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SpaceWorldFinalizationDecision& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:sobject.world.engine.SpaceWorldFinalizationDecision)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .sobject.world.engine.SpaceWorldFinalizationStatus status = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_status() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_status(), target);
+    }
+  }
+
+  // .sobject.SORoot accepted_shared_object_root = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        2, *this_._impl_.accepted_shared_object_root_, this_._impl_.accepted_shared_object_root_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .bucket.ObjectRef accepted_world_root = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        3, *this_._impl_.accepted_world_root_, this_._impl_.accepted_world_root_->GetCachedSize(), target,
+        stream);
+  }
+
+  // string error = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_error().empty()) {
+      const ::std::string& _s = this_._internal_error();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "sobject.world.engine.SpaceWorldFinalizationDecision.error");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  // bool retryable = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_retryable() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          5, this_._internal_retryable(), target);
+    }
+  }
+
+  // string local_operation_id = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_local_operation_id().empty()) {
+      const ::std::string& _s = this_._internal_local_operation_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "sobject.world.engine.SpaceWorldFinalizationDecision.local_operation_id");
+      target = stream->WriteStringMaybeAliased(6, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:sobject.world.engine.SpaceWorldFinalizationDecision)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SpaceWorldFinalizationDecision::ByteSizeLong(const MessageLite& base) {
+  const SpaceWorldFinalizationDecision& this_ = static_cast<const SpaceWorldFinalizationDecision&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SpaceWorldFinalizationDecision::ByteSizeLong() const {
+  const SpaceWorldFinalizationDecision& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:sobject.world.engine.SpaceWorldFinalizationDecision)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    // string error = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_error().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_error());
+      }
+    }
+    // string local_operation_id = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_local_operation_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_local_operation_id());
+      }
+    }
+    // .sobject.SORoot accepted_shared_object_root = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.accepted_shared_object_root_);
+    }
+    // .bucket.ObjectRef accepted_world_root = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.accepted_world_root_);
+    }
+    // .sobject.world.engine.SpaceWorldFinalizationStatus status = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_status() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_status());
+      }
+    }
+    // bool retryable = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_retryable() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SpaceWorldFinalizationDecision::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SpaceWorldFinalizationDecision*>(&to_msg);
+  auto& from = static_cast<const SpaceWorldFinalizationDecision&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:sobject.world.engine.SpaceWorldFinalizationDecision)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_error().empty()) {
+        _this->_internal_set_error(from._internal_error());
+      } else {
+        if (_this->_impl_.error_.IsDefault()) {
+          _this->_internal_set_error("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_local_operation_id().empty()) {
+        _this->_internal_set_local_operation_id(from._internal_local_operation_id());
+      } else {
+        if (_this->_impl_.local_operation_id_.IsDefault()) {
+          _this->_internal_set_local_operation_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(from._impl_.accepted_shared_object_root_ != nullptr);
+      if (_this->_impl_.accepted_shared_object_root_ == nullptr) {
+        _this->_impl_.accepted_shared_object_root_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.accepted_shared_object_root_);
+      } else {
+        _this->_impl_.accepted_shared_object_root_->MergeFrom(*from._impl_.accepted_shared_object_root_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(from._impl_.accepted_world_root_ != nullptr);
+      if (_this->_impl_.accepted_world_root_ == nullptr) {
+        _this->_impl_.accepted_world_root_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.accepted_world_root_);
+      } else {
+        _this->_impl_.accepted_world_root_->MergeFrom(*from._impl_.accepted_world_root_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_status() != 0) {
+        _this->_impl_.status_ = from._impl_.status_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_retryable() != 0) {
+        _this->_impl_.retryable_ = from._impl_.retryable_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SpaceWorldFinalizationDecision::CopyFrom(const SpaceWorldFinalizationDecision& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:sobject.world.engine.SpaceWorldFinalizationDecision)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SpaceWorldFinalizationDecision::InternalSwap(SpaceWorldFinalizationDecision* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.error_, &other->_impl_.error_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.local_operation_id_, &other->_impl_.local_operation_id_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationDecision, _impl_.retryable_)
+      + sizeof(SpaceWorldFinalizationDecision::_impl_.retryable_)
+      - PROTOBUF_FIELD_OFFSET(SpaceWorldFinalizationDecision, _impl_.accepted_shared_object_root_)>(
+          reinterpret_cast<char*>(&_impl_.accepted_shared_object_root_),
+          reinterpret_cast<char*>(&other->_impl_.accepted_shared_object_root_));
+}
+
+::google::protobuf::Metadata SpaceWorldFinalizationDecision::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SpaceWorldRejectedCandidate::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SpaceWorldRejectedCandidate>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SpaceWorldRejectedCandidate, _impl_._has_bits_);
+};
+
+SpaceWorldRejectedCandidate::SpaceWorldRejectedCandidate(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SpaceWorldRejectedCandidate_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:sobject.world.engine.SpaceWorldRejectedCandidate)
+}
+PROTOBUF_NDEBUG_INLINE SpaceWorldRejectedCandidate::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::sobject::world::engine::SpaceWorldRejectedCandidate& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0} {}
+
+SpaceWorldRejectedCandidate::SpaceWorldRejectedCandidate(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SpaceWorldRejectedCandidate& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SpaceWorldRejectedCandidate_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SpaceWorldRejectedCandidate* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.packet_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.packet_)
+                : nullptr;
+  _impl_.decision_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.decision_)
+                : nullptr;
+  _impl_.retained_unix_nano_ = from._impl_.retained_unix_nano_;
+
+  // @@protoc_insertion_point(copy_constructor:sobject.world.engine.SpaceWorldRejectedCandidate)
+}
+PROTOBUF_NDEBUG_INLINE SpaceWorldRejectedCandidate::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void SpaceWorldRejectedCandidate::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, packet_),
+           0,
+           offsetof(Impl_, retained_unix_nano_) -
+               offsetof(Impl_, packet_) +
+               sizeof(Impl_::retained_unix_nano_));
+}
+SpaceWorldRejectedCandidate::~SpaceWorldRejectedCandidate() {
+  // @@protoc_insertion_point(destructor:sobject.world.engine.SpaceWorldRejectedCandidate)
+  SharedDtor(*this);
+}
+inline void SpaceWorldRejectedCandidate::SharedDtor(MessageLite& self) {
+  SpaceWorldRejectedCandidate& this_ = static_cast<SpaceWorldRejectedCandidate&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.packet_;
+  delete this_._impl_.decision_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SpaceWorldRejectedCandidate::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SpaceWorldRejectedCandidate(arena);
+}
+constexpr auto SpaceWorldRejectedCandidate::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(SpaceWorldRejectedCandidate),
+                                            alignof(SpaceWorldRejectedCandidate));
+}
+constexpr auto SpaceWorldRejectedCandidate::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SpaceWorldRejectedCandidate_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SpaceWorldRejectedCandidate::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SpaceWorldRejectedCandidate>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SpaceWorldRejectedCandidate::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SpaceWorldRejectedCandidate>(), &SpaceWorldRejectedCandidate::ByteSizeLong,
+              &SpaceWorldRejectedCandidate::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SpaceWorldRejectedCandidate, _impl_._cached_size_),
+          false,
+      },
+      &SpaceWorldRejectedCandidate::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fworld_2fengine_2fengine_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SpaceWorldRejectedCandidate_class_data_ =
+        SpaceWorldRejectedCandidate::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SpaceWorldRejectedCandidate::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SpaceWorldRejectedCandidate_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SpaceWorldRejectedCandidate_class_data_.tc_table);
+  return SpaceWorldRejectedCandidate_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 2, 0, 2>
+SpaceWorldRejectedCandidate::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SpaceWorldRejectedCandidate, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    2,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    SpaceWorldRejectedCandidate_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::world::engine::SpaceWorldRejectedCandidate>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .sobject.world.engine.SpaceWorldFinalizationPacket packet = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceWorldRejectedCandidate, _impl_.packet_)}},
+    // .sobject.world.engine.SpaceWorldFinalizationDecision decision = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 1, 1,
+      PROTOBUF_FIELD_OFFSET(SpaceWorldRejectedCandidate, _impl_.decision_)}},
+    // uint64 retained_unix_nano = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SpaceWorldRejectedCandidate, _impl_.retained_unix_nano_), 2>(),
+     {24, 2, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceWorldRejectedCandidate, _impl_.retained_unix_nano_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .sobject.world.engine.SpaceWorldFinalizationPacket packet = 1;
+    {PROTOBUF_FIELD_OFFSET(SpaceWorldRejectedCandidate, _impl_.packet_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.world.engine.SpaceWorldFinalizationDecision decision = 2;
+    {PROTOBUF_FIELD_OFFSET(SpaceWorldRejectedCandidate, _impl_.decision_), _Internal::kHasBitsOffset + 1, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // uint64 retained_unix_nano = 3;
+    {PROTOBUF_FIELD_OFFSET(SpaceWorldRejectedCandidate, _impl_.retained_unix_nano_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::sobject::world::engine::SpaceWorldFinalizationPacket>()},
+      {::_pbi::TcParser::GetTable<::sobject::world::engine::SpaceWorldFinalizationDecision>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void SpaceWorldRejectedCandidate::Clear() {
+// @@protoc_insertion_point(message_clear_start:sobject.world.engine.SpaceWorldRejectedCandidate)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      ABSL_DCHECK(_impl_.packet_ != nullptr);
+      _impl_.packet_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.decision_ != nullptr);
+      _impl_.decision_->Clear();
+    }
+  }
+  _impl_.retained_unix_nano_ = ::uint64_t{0u};
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SpaceWorldRejectedCandidate::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SpaceWorldRejectedCandidate& this_ = static_cast<const SpaceWorldRejectedCandidate&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SpaceWorldRejectedCandidate::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SpaceWorldRejectedCandidate& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:sobject.world.engine.SpaceWorldRejectedCandidate)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .sobject.world.engine.SpaceWorldFinalizationPacket packet = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.packet_, this_._impl_.packet_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .sobject.world.engine.SpaceWorldFinalizationDecision decision = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        2, *this_._impl_.decision_, this_._impl_.decision_->GetCachedSize(), target,
+        stream);
+  }
+
+  // uint64 retained_unix_nano = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_retained_unix_nano() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          3, this_._internal_retained_unix_nano(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:sobject.world.engine.SpaceWorldRejectedCandidate)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SpaceWorldRejectedCandidate::ByteSizeLong(const MessageLite& base) {
+  const SpaceWorldRejectedCandidate& this_ = static_cast<const SpaceWorldRejectedCandidate&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SpaceWorldRejectedCandidate::ByteSizeLong() const {
+  const SpaceWorldRejectedCandidate& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:sobject.world.engine.SpaceWorldRejectedCandidate)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // .sobject.world.engine.SpaceWorldFinalizationPacket packet = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.packet_);
+    }
+    // .sobject.world.engine.SpaceWorldFinalizationDecision decision = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.decision_);
+    }
+    // uint64 retained_unix_nano = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_retained_unix_nano() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_retained_unix_nano());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SpaceWorldRejectedCandidate::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SpaceWorldRejectedCandidate*>(&to_msg);
+  auto& from = static_cast<const SpaceWorldRejectedCandidate&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:sobject.world.engine.SpaceWorldRejectedCandidate)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      ABSL_DCHECK(from._impl_.packet_ != nullptr);
+      if (_this->_impl_.packet_ == nullptr) {
+        _this->_impl_.packet_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.packet_);
+      } else {
+        _this->_impl_.packet_->MergeFrom(*from._impl_.packet_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(from._impl_.decision_ != nullptr);
+      if (_this->_impl_.decision_ == nullptr) {
+        _this->_impl_.decision_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.decision_);
+      } else {
+        _this->_impl_.decision_->MergeFrom(*from._impl_.decision_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_retained_unix_nano() != 0) {
+        _this->_impl_.retained_unix_nano_ = from._impl_.retained_unix_nano_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SpaceWorldRejectedCandidate::CopyFrom(const SpaceWorldRejectedCandidate& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:sobject.world.engine.SpaceWorldRejectedCandidate)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SpaceWorldRejectedCandidate::InternalSwap(SpaceWorldRejectedCandidate* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SpaceWorldRejectedCandidate, _impl_.retained_unix_nano_)
+      + sizeof(SpaceWorldRejectedCandidate::_impl_.retained_unix_nano_)
+      - PROTOBUF_FIELD_OFFSET(SpaceWorldRejectedCandidate, _impl_.packet_)>(
+          reinterpret_cast<char*>(&_impl_.packet_),
+          reinterpret_cast<char*>(&other->_impl_.packet_));
+}
+
+::google::protobuf::Metadata SpaceWorldRejectedCandidate::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

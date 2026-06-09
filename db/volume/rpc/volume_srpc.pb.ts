@@ -3,12 +3,16 @@
 /* eslint-disable */
 
 import {
+  GetCoordinatorCapabilityRequest,
+  GetCoordinatorCapabilityResponse,
   GetPeerPrivRequest,
   GetPeerPrivResponse,
   GetStorageStatsRequest,
   GetStorageStatsResponse,
   GetVolumeInfoRequest,
   GetVolumeInfoResponse,
+  WatchCoordinatorEventsRequest,
+  WatchCoordinatorEventsResponse,
   WatchVolumeInfoRequest,
   WatchVolumeInfoResponse,
 } from './volume.pb.js'
@@ -166,6 +170,28 @@ export const ProxyVolumeDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * GetCoordinatorCapability reports direct coordination support for a scoped ObjectStore.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.GetCoordinatorCapability
+     */
+    GetCoordinatorCapability: {
+      name: 'GetCoordinatorCapability',
+      I: GetCoordinatorCapabilityRequest,
+      O: GetCoordinatorCapabilityResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * WatchCoordinatorEvents streams coordination events for a scoped ObjectStore.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.WatchCoordinatorEvents
+     */
+    WatchCoordinatorEvents: {
+      name: 'WatchCoordinatorEvents',
+      I: WatchCoordinatorEventsRequest,
+      O: WatchCoordinatorEventsResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
      * GetPeerPriv returns the volume peer private key.
      * Returns ErrPrivKeyUnavailable if the private key is unavailable.
      *
@@ -213,6 +239,26 @@ export interface ProxyVolume {
   ): Promise<GetVolumeInfoResponse>
 
   /**
+   * GetCoordinatorCapability reports direct coordination support for a scoped ObjectStore.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.GetCoordinatorCapability
+   */
+  GetCoordinatorCapability(
+    request: GetCoordinatorCapabilityRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetCoordinatorCapabilityResponse>
+
+  /**
+   * WatchCoordinatorEvents streams coordination events for a scoped ObjectStore.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.WatchCoordinatorEvents
+   */
+  WatchCoordinatorEvents(
+    request: WatchCoordinatorEventsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchCoordinatorEventsResponse>
+
+  /**
    * GetPeerPriv returns the volume peer private key.
    * Returns ErrPrivKeyUnavailable if the private key is unavailable.
    *
@@ -243,6 +289,8 @@ export class ProxyVolumeClient implements ProxyVolume {
     this.service = opts?.service || ProxyVolumeServiceName
     this.rpc = rpc
     this.GetVolumeInfo = this.GetVolumeInfo.bind(this)
+    this.GetCoordinatorCapability = this.GetCoordinatorCapability.bind(this)
+    this.WatchCoordinatorEvents = this.WatchCoordinatorEvents.bind(this)
     this.GetPeerPriv = this.GetPeerPriv.bind(this)
     this.GetStorageStats = this.GetStorageStats.bind(this)
   }
@@ -263,6 +311,44 @@ export class ProxyVolumeClient implements ProxyVolume {
       abortSignal || undefined,
     )
     return GetVolumeInfoResponse.fromBinary(result)
+  }
+
+  /**
+   * GetCoordinatorCapability reports direct coordination support for a scoped ObjectStore.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.GetCoordinatorCapability
+   */
+  async GetCoordinatorCapability(
+    request: GetCoordinatorCapabilityRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetCoordinatorCapabilityResponse> {
+    const requestMsg = GetCoordinatorCapabilityRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ProxyVolumeDefinition.methods.GetCoordinatorCapability.name,
+      GetCoordinatorCapabilityRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return GetCoordinatorCapabilityResponse.fromBinary(result)
+  }
+
+  /**
+   * WatchCoordinatorEvents streams coordination events for a scoped ObjectStore.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.WatchCoordinatorEvents
+   */
+  WatchCoordinatorEvents(
+    request: WatchCoordinatorEventsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchCoordinatorEventsResponse> {
+    const requestMsg = WatchCoordinatorEventsRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      ProxyVolumeDefinition.methods.WatchCoordinatorEvents.name,
+      WatchCoordinatorEventsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchCoordinatorEventsResponse)(result)
   }
 
   /**

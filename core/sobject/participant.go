@@ -187,6 +187,11 @@ func (s *SOStateParticipantHandle) GetRootInner(ctx context.Context) (*SORootInn
 	return s.decodeRootInnerWithTransformer(xfrm)
 }
 
+// GetRootState returns the raw SharedObject root.
+func (s *SOStateParticipantHandle) GetRootState(ctx context.Context) (*SORoot, error) {
+	return s.state.GetRoot().CloneVT(), nil
+}
+
 func (s *SOStateParticipantHandle) decodeRootInnerWithTransformer(xfrm *block_transform.Transformer) (*SORootInner, error) {
 	stateRoot := s.state.GetRoot()
 	if stateRoot.GetInnerSeqno() == 0 {

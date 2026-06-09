@@ -50,6 +50,9 @@ type SharedObjectStateSnapshot interface {
 	// If the shared object is blank, returns nil, nil.
 	GetRootInner(ctx context.Context) (*SORootInner, error)
 
+	// GetRootState returns the raw SharedObject root for authority and stale-base checks.
+	GetRootState(ctx context.Context) (*SORoot, error)
+
 	// ProcessOperations processes operations as a validator calling cb.
 	// The ops should be processed in the order they are provided.
 	// The results must be a subset of ops (but does not need to have all ops).

@@ -67,7 +67,7 @@ func (e *engineTxObjectIterator) Next() bool {
 	var valid bool
 	var prevIter world.ObjectIterator
 	var prevTx *Tx
-	err := e.e.performOp(func(tx *Tx) error {
+	err := e.e.performOp(e.ctx, func(tx *Tx) error {
 		var iter world.ObjectIterator
 		// fast path: same txn as before
 		if prevTx == tx {
@@ -140,7 +140,7 @@ func (e *engineTxObjectIterator) Seek(k string) error {
 	}
 
 	var valid bool
-	err := e.e.performOp(func(tx *Tx) error {
+	err := e.e.performOp(e.ctx, func(tx *Tx) error {
 		iter := tx.IterateObjects(e.ctx, e.prefix, e.reversed)
 		if iter == nil {
 			return nil

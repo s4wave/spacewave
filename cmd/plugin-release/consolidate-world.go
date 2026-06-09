@@ -228,7 +228,7 @@ func mountDevtoolWorld(ctx context.Context, le *logrus.Entry, vol volume.Volume,
 		}
 	}
 
-	commitFn := func(ref *bucket.ObjectRef) error {
+	commitFn := func(ctx context.Context, _ *bucket.ObjectRef, ref *bucket.ObjectRef) error {
 		return writeWorldHeadRef(ctx, vol, ref)
 	}
 	eng, err := world_block.NewEngine(ctx, le, cursor, bldr_manifest_world.LookupOp, commitFn, false)

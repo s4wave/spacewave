@@ -9,6 +9,8 @@ import (
 	bdb "github.com/aperturerobotics/bbolt"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
+	coord_bolt "github.com/s4wave/spacewave/db/coord/bolt"
+	coord_inmem "github.com/s4wave/spacewave/db/coord/inmem"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	skvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	sbolt "github.com/s4wave/spacewave/db/store/kvtx/bolt"
@@ -45,7 +47,7 @@ func NewBolt(
 		NoFreelistSync: false,
 		NoGrowSync:     false,
 		FreelistType:   bdb.FreelistMapType,
-		NoSync:         !conf.GetSync(),
+		NoSync:         false,
 	}
 
 	store, err := sbolt.Open(
@@ -81,7 +83,7 @@ func NewBolt(
 
 	boltDB := store.GetDB()
 	path := conf.GetPath()
-	return kvtx.NewVolume(
+	vol, err := kvtx.NewVolume(
 		ctx,
 		ControllerID,
 		kvkey,
@@ -114,6 +116,11 @@ func NewBolt(
 		closeFn,
 		func() error { return os.Remove(path) },
 	)
+	if err != nil {
+		return nil, err
+	}
+	vol.Coordinator = coord_bolt.NewCoordinator(boltDB, coord_inmem.ForVolume(vol.GetID()))
+	return vol, nil
 }
 
 // boltDBProvider is implemented by types that expose a *bdb.DB.

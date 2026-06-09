@@ -33,6 +33,7 @@
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
 #include "google/protobuf/unknown_field_set.h"
 #include "../volume.pb.h"
+#include "../../bucket/bucket.pb.h"
 #include "github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.h"
 // @@protoc_insertion_point(includes)
 
@@ -59,6 +60,26 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace volume {
 namespace rpc {
+class CoordinatorCapability;
+struct CoordinatorCapabilityDefaultTypeInternal;
+extern CoordinatorCapabilityDefaultTypeInternal _CoordinatorCapability_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CoordinatorCapability_class_data_;
+class CoordinatorEvent;
+struct CoordinatorEventDefaultTypeInternal;
+extern CoordinatorEventDefaultTypeInternal _CoordinatorEvent_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CoordinatorEvent_class_data_;
+class CoordinatorScope;
+struct CoordinatorScopeDefaultTypeInternal;
+extern CoordinatorScopeDefaultTypeInternal _CoordinatorScope_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CoordinatorScope_class_data_;
+class GetCoordinatorCapabilityRequest;
+struct GetCoordinatorCapabilityRequestDefaultTypeInternal;
+extern GetCoordinatorCapabilityRequestDefaultTypeInternal _GetCoordinatorCapabilityRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GetCoordinatorCapabilityRequest_class_data_;
+class GetCoordinatorCapabilityResponse;
+struct GetCoordinatorCapabilityResponseDefaultTypeInternal;
+extern GetCoordinatorCapabilityResponseDefaultTypeInternal _GetCoordinatorCapabilityResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GetCoordinatorCapabilityResponse_class_data_;
 class GetPeerPrivRequest;
 struct GetPeerPrivRequestDefaultTypeInternal;
 extern GetPeerPrivRequestDefaultTypeInternal _GetPeerPrivRequest_default_instance_;
@@ -83,6 +104,14 @@ class GetVolumeInfoResponse;
 struct GetVolumeInfoResponseDefaultTypeInternal;
 extern GetVolumeInfoResponseDefaultTypeInternal _GetVolumeInfoResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull GetVolumeInfoResponse_class_data_;
+class WatchCoordinatorEventsRequest;
+struct WatchCoordinatorEventsRequestDefaultTypeInternal;
+extern WatchCoordinatorEventsRequestDefaultTypeInternal _WatchCoordinatorEventsRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull WatchCoordinatorEventsRequest_class_data_;
+class WatchCoordinatorEventsResponse;
+struct WatchCoordinatorEventsResponseDefaultTypeInternal;
+extern WatchCoordinatorEventsResponseDefaultTypeInternal _WatchCoordinatorEventsResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull WatchCoordinatorEventsResponse_class_data_;
 class WatchVolumeInfoRequest;
 struct WatchVolumeInfoRequestDefaultTypeInternal;
 extern WatchVolumeInfoRequestDefaultTypeInternal _WatchVolumeInfoRequest_default_instance_;
@@ -489,7 +518,7 @@ class GetStorageStatsRequest final : public ::google::protobuf::internal::ZeroFi
     return *reinterpret_cast<const GetStorageStatsRequest*>(
         &_GetStorageStatsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 13;
   friend void swap(GetStorageStatsRequest& a, GetStorageStatsRequest& b) { a.Swap(&b); }
   inline void Swap(GetStorageStatsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -624,7 +653,7 @@ class GetPeerPrivResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetPeerPrivResponse*>(
         &_GetPeerPrivResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 12;
   friend void swap(GetPeerPrivResponse& a, GetPeerPrivResponse& b) { a.Swap(&b); }
   inline void Swap(GetPeerPrivResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -818,7 +847,7 @@ class GetPeerPrivRequest final : public ::google::protobuf::internal::ZeroFields
     return *reinterpret_cast<const GetPeerPrivRequest*>(
         &_GetPeerPrivRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 11;
   friend void swap(GetPeerPrivRequest& a, GetPeerPrivRequest& b) { a.Swap(&b); }
   inline void Swap(GetPeerPrivRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -898,6 +927,712 @@ class GetPeerPrivRequest final : public ::google::protobuf::internal::ZeroFields
 extern const ::google::protobuf::internal::ClassDataFull GetPeerPrivRequest_class_data_;
 // -------------------------------------------------------------------
 
+class CoordinatorScope final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:volume.rpc.CoordinatorScope) */ {
+ public:
+  inline CoordinatorScope() : CoordinatorScope(nullptr) {}
+  ~CoordinatorScope() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CoordinatorScope* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CoordinatorScope));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CoordinatorScope(::google::protobuf::internal::ConstantInitialized);
+
+  inline CoordinatorScope(const CoordinatorScope& from) : CoordinatorScope(nullptr, from) {}
+  inline CoordinatorScope(CoordinatorScope&& from) noexcept
+      : CoordinatorScope(nullptr, ::std::move(from)) {}
+  inline CoordinatorScope& operator=(const CoordinatorScope& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CoordinatorScope& operator=(CoordinatorScope&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CoordinatorScope& default_instance() {
+    return *reinterpret_cast<const CoordinatorScope*>(
+        &_CoordinatorScope_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 4;
+  friend void swap(CoordinatorScope& a, CoordinatorScope& b) { a.Swap(&b); }
+  inline void Swap(CoordinatorScope* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CoordinatorScope* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CoordinatorScope* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CoordinatorScope>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CoordinatorScope& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CoordinatorScope& from) { CoordinatorScope::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CoordinatorScope* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "volume.rpc.CoordinatorScope"; }
+
+  explicit CoordinatorScope(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CoordinatorScope(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CoordinatorScope& from);
+  CoordinatorScope(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CoordinatorScope&& from) noexcept
+      : CoordinatorScope(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kVolumeIdFieldNumber = 1,
+    kObjectStoreIdFieldNumber = 2,
+    kParticipantIdFieldNumber = 3,
+  };
+  // string volume_id = 1;
+  void clear_volume_id() ;
+  const ::std::string& volume_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_volume_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_volume_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_volume_id();
+  void set_allocated_volume_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_volume_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_volume_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_volume_id();
+
+  public:
+  // string object_store_id = 2;
+  void clear_object_store_id() ;
+  const ::std::string& object_store_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_object_store_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_object_store_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_object_store_id();
+  void set_allocated_object_store_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_object_store_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_object_store_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_object_store_id();
+
+  public:
+  // string participant_id = 3;
+  void clear_participant_id() ;
+  const ::std::string& participant_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_participant_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_participant_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_participant_id();
+  void set_allocated_participant_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_participant_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_participant_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_participant_id();
+
+  public:
+  // @@protoc_insertion_point(class_scope:volume.rpc.CoordinatorScope)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   0, 74,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CoordinatorScope& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr volume_id_;
+    ::google::protobuf::internal::ArenaStringPtr object_store_id_;
+    ::google::protobuf::internal::ArenaStringPtr participant_id_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CoordinatorScope_class_data_;
+// -------------------------------------------------------------------
+
+class CoordinatorCapability final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:volume.rpc.CoordinatorCapability) */ {
+ public:
+  inline CoordinatorCapability() : CoordinatorCapability(nullptr) {}
+  ~CoordinatorCapability() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CoordinatorCapability* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CoordinatorCapability));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CoordinatorCapability(::google::protobuf::internal::ConstantInitialized);
+
+  inline CoordinatorCapability(const CoordinatorCapability& from) : CoordinatorCapability(nullptr, from) {}
+  inline CoordinatorCapability(CoordinatorCapability&& from) noexcept
+      : CoordinatorCapability(nullptr, ::std::move(from)) {}
+  inline CoordinatorCapability& operator=(const CoordinatorCapability& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CoordinatorCapability& operator=(CoordinatorCapability&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CoordinatorCapability& default_instance() {
+    return *reinterpret_cast<const CoordinatorCapability*>(
+        &_CoordinatorCapability_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 5;
+  friend void swap(CoordinatorCapability& a, CoordinatorCapability& b) { a.Swap(&b); }
+  inline void Swap(CoordinatorCapability* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CoordinatorCapability* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CoordinatorCapability* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CoordinatorCapability>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CoordinatorCapability& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CoordinatorCapability& from) { CoordinatorCapability::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CoordinatorCapability* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "volume.rpc.CoordinatorCapability"; }
+
+  explicit CoordinatorCapability(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CoordinatorCapability(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CoordinatorCapability& from);
+  CoordinatorCapability(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CoordinatorCapability&& from) noexcept
+      : CoordinatorCapability(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kBackendFieldNumber = 2,
+    kVolumeIdFieldNumber = 3,
+    kObjectStoreIdFieldNumber = 4,
+    kFallbackReasonFieldNumber = 6,
+    kGenerationFieldNumber = 5,
+    kSupportedFieldNumber = 1,
+  };
+  // string backend = 2;
+  void clear_backend() ;
+  const ::std::string& backend() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_backend(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_backend();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_backend();
+  void set_allocated_backend(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_backend() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_backend(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_backend();
+
+  public:
+  // string volume_id = 3;
+  void clear_volume_id() ;
+  const ::std::string& volume_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_volume_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_volume_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_volume_id();
+  void set_allocated_volume_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_volume_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_volume_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_volume_id();
+
+  public:
+  // string object_store_id = 4;
+  void clear_object_store_id() ;
+  const ::std::string& object_store_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_object_store_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_object_store_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_object_store_id();
+  void set_allocated_object_store_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_object_store_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_object_store_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_object_store_id();
+
+  public:
+  // string fallback_reason = 6;
+  void clear_fallback_reason() ;
+  const ::std::string& fallback_reason() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_fallback_reason(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_fallback_reason();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_fallback_reason();
+  void set_allocated_fallback_reason(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_fallback_reason() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_fallback_reason(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_fallback_reason();
+
+  public:
+  // uint64 generation = 5;
+  void clear_generation() ;
+  ::uint64_t generation() const;
+  void set_generation(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_generation() const;
+  void _internal_set_generation(::uint64_t value);
+
+  public:
+  // bool supported = 1;
+  void clear_supported() ;
+  bool supported() const;
+  void set_supported(bool value);
+
+  private:
+  bool _internal_supported() const;
+  void _internal_set_supported(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:volume.rpc.CoordinatorCapability)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 6,
+                                   0, 87,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CoordinatorCapability& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr backend_;
+    ::google::protobuf::internal::ArenaStringPtr volume_id_;
+    ::google::protobuf::internal::ArenaStringPtr object_store_id_;
+    ::google::protobuf::internal::ArenaStringPtr fallback_reason_;
+    ::uint64_t generation_;
+    bool supported_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CoordinatorCapability_class_data_;
+// -------------------------------------------------------------------
+
+class WatchCoordinatorEventsRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:volume.rpc.WatchCoordinatorEventsRequest) */ {
+ public:
+  inline WatchCoordinatorEventsRequest() : WatchCoordinatorEventsRequest(nullptr) {}
+  ~WatchCoordinatorEventsRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(WatchCoordinatorEventsRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(WatchCoordinatorEventsRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR WatchCoordinatorEventsRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline WatchCoordinatorEventsRequest(const WatchCoordinatorEventsRequest& from) : WatchCoordinatorEventsRequest(nullptr, from) {}
+  inline WatchCoordinatorEventsRequest(WatchCoordinatorEventsRequest&& from) noexcept
+      : WatchCoordinatorEventsRequest(nullptr, ::std::move(from)) {}
+  inline WatchCoordinatorEventsRequest& operator=(const WatchCoordinatorEventsRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WatchCoordinatorEventsRequest& operator=(WatchCoordinatorEventsRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WatchCoordinatorEventsRequest& default_instance() {
+    return *reinterpret_cast<const WatchCoordinatorEventsRequest*>(
+        &_WatchCoordinatorEventsRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 9;
+  friend void swap(WatchCoordinatorEventsRequest& a, WatchCoordinatorEventsRequest& b) { a.Swap(&b); }
+  inline void Swap(WatchCoordinatorEventsRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WatchCoordinatorEventsRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WatchCoordinatorEventsRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<WatchCoordinatorEventsRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const WatchCoordinatorEventsRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const WatchCoordinatorEventsRequest& from) { WatchCoordinatorEventsRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(WatchCoordinatorEventsRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "volume.rpc.WatchCoordinatorEventsRequest"; }
+
+  explicit WatchCoordinatorEventsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  WatchCoordinatorEventsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchCoordinatorEventsRequest& from);
+  WatchCoordinatorEventsRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WatchCoordinatorEventsRequest&& from) noexcept
+      : WatchCoordinatorEventsRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kScopeFieldNumber = 1,
+    kAfterGenerationFieldNumber = 2,
+  };
+  // .volume.rpc.CoordinatorScope scope = 1;
+  bool has_scope() const;
+  void clear_scope() ;
+  const ::volume::rpc::CoordinatorScope& scope() const;
+  [[nodiscard]] ::volume::rpc::CoordinatorScope* PROTOBUF_NULLABLE release_scope();
+  ::volume::rpc::CoordinatorScope* PROTOBUF_NONNULL mutable_scope();
+  void set_allocated_scope(::volume::rpc::CoordinatorScope* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_scope(::volume::rpc::CoordinatorScope* PROTOBUF_NULLABLE value);
+  ::volume::rpc::CoordinatorScope* PROTOBUF_NULLABLE unsafe_arena_release_scope();
+
+  private:
+  const ::volume::rpc::CoordinatorScope& _internal_scope() const;
+  ::volume::rpc::CoordinatorScope* PROTOBUF_NONNULL _internal_mutable_scope();
+
+  public:
+  // uint64 after_generation = 2;
+  void clear_after_generation() ;
+  ::uint64_t after_generation() const;
+  void set_after_generation(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_after_generation() const;
+  void _internal_set_after_generation(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:volume.rpc.WatchCoordinatorEventsRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const WatchCoordinatorEventsRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::volume::rpc::CoordinatorScope* PROTOBUF_NULLABLE scope_;
+    ::uint64_t after_generation_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull WatchCoordinatorEventsRequest_class_data_;
+// -------------------------------------------------------------------
+
 class GetStorageStatsResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:volume.rpc.GetStorageStatsResponse) */ {
  public:
@@ -953,7 +1688,7 @@ class GetStorageStatsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetStorageStatsResponse*>(
         &_GetStorageStatsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 7;
+  static constexpr int kIndexInFileMessages = 14;
   friend void swap(GetStorageStatsResponse& a, GetStorageStatsResponse& b) { a.Swap(&b); }
   inline void Swap(GetStorageStatsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1091,6 +1826,396 @@ class GetStorageStatsResponse final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull GetStorageStatsResponse_class_data_;
+// -------------------------------------------------------------------
+
+class GetCoordinatorCapabilityResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:volume.rpc.GetCoordinatorCapabilityResponse) */ {
+ public:
+  inline GetCoordinatorCapabilityResponse() : GetCoordinatorCapabilityResponse(nullptr) {}
+  ~GetCoordinatorCapabilityResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GetCoordinatorCapabilityResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GetCoordinatorCapabilityResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GetCoordinatorCapabilityResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline GetCoordinatorCapabilityResponse(const GetCoordinatorCapabilityResponse& from) : GetCoordinatorCapabilityResponse(nullptr, from) {}
+  inline GetCoordinatorCapabilityResponse(GetCoordinatorCapabilityResponse&& from) noexcept
+      : GetCoordinatorCapabilityResponse(nullptr, ::std::move(from)) {}
+  inline GetCoordinatorCapabilityResponse& operator=(const GetCoordinatorCapabilityResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GetCoordinatorCapabilityResponse& operator=(GetCoordinatorCapabilityResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GetCoordinatorCapabilityResponse& default_instance() {
+    return *reinterpret_cast<const GetCoordinatorCapabilityResponse*>(
+        &_GetCoordinatorCapabilityResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 8;
+  friend void swap(GetCoordinatorCapabilityResponse& a, GetCoordinatorCapabilityResponse& b) { a.Swap(&b); }
+  inline void Swap(GetCoordinatorCapabilityResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GetCoordinatorCapabilityResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GetCoordinatorCapabilityResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GetCoordinatorCapabilityResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GetCoordinatorCapabilityResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GetCoordinatorCapabilityResponse& from) { GetCoordinatorCapabilityResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GetCoordinatorCapabilityResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "volume.rpc.GetCoordinatorCapabilityResponse"; }
+
+  explicit GetCoordinatorCapabilityResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GetCoordinatorCapabilityResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GetCoordinatorCapabilityResponse& from);
+  GetCoordinatorCapabilityResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GetCoordinatorCapabilityResponse&& from) noexcept
+      : GetCoordinatorCapabilityResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kCapabilityFieldNumber = 1,
+  };
+  // .volume.rpc.CoordinatorCapability capability = 1;
+  bool has_capability() const;
+  void clear_capability() ;
+  const ::volume::rpc::CoordinatorCapability& capability() const;
+  [[nodiscard]] ::volume::rpc::CoordinatorCapability* PROTOBUF_NULLABLE release_capability();
+  ::volume::rpc::CoordinatorCapability* PROTOBUF_NONNULL mutable_capability();
+  void set_allocated_capability(::volume::rpc::CoordinatorCapability* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_capability(::volume::rpc::CoordinatorCapability* PROTOBUF_NULLABLE value);
+  ::volume::rpc::CoordinatorCapability* PROTOBUF_NULLABLE unsafe_arena_release_capability();
+
+  private:
+  const ::volume::rpc::CoordinatorCapability& _internal_capability() const;
+  ::volume::rpc::CoordinatorCapability* PROTOBUF_NONNULL _internal_mutable_capability();
+
+  public:
+  // @@protoc_insertion_point(class_scope:volume.rpc.GetCoordinatorCapabilityResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GetCoordinatorCapabilityResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::volume::rpc::CoordinatorCapability* PROTOBUF_NULLABLE capability_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GetCoordinatorCapabilityResponse_class_data_;
+// -------------------------------------------------------------------
+
+class GetCoordinatorCapabilityRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:volume.rpc.GetCoordinatorCapabilityRequest) */ {
+ public:
+  inline GetCoordinatorCapabilityRequest() : GetCoordinatorCapabilityRequest(nullptr) {}
+  ~GetCoordinatorCapabilityRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GetCoordinatorCapabilityRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GetCoordinatorCapabilityRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GetCoordinatorCapabilityRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline GetCoordinatorCapabilityRequest(const GetCoordinatorCapabilityRequest& from) : GetCoordinatorCapabilityRequest(nullptr, from) {}
+  inline GetCoordinatorCapabilityRequest(GetCoordinatorCapabilityRequest&& from) noexcept
+      : GetCoordinatorCapabilityRequest(nullptr, ::std::move(from)) {}
+  inline GetCoordinatorCapabilityRequest& operator=(const GetCoordinatorCapabilityRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GetCoordinatorCapabilityRequest& operator=(GetCoordinatorCapabilityRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GetCoordinatorCapabilityRequest& default_instance() {
+    return *reinterpret_cast<const GetCoordinatorCapabilityRequest*>(
+        &_GetCoordinatorCapabilityRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 7;
+  friend void swap(GetCoordinatorCapabilityRequest& a, GetCoordinatorCapabilityRequest& b) { a.Swap(&b); }
+  inline void Swap(GetCoordinatorCapabilityRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GetCoordinatorCapabilityRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GetCoordinatorCapabilityRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GetCoordinatorCapabilityRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GetCoordinatorCapabilityRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GetCoordinatorCapabilityRequest& from) { GetCoordinatorCapabilityRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GetCoordinatorCapabilityRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "volume.rpc.GetCoordinatorCapabilityRequest"; }
+
+  explicit GetCoordinatorCapabilityRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GetCoordinatorCapabilityRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GetCoordinatorCapabilityRequest& from);
+  GetCoordinatorCapabilityRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GetCoordinatorCapabilityRequest&& from) noexcept
+      : GetCoordinatorCapabilityRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kScopeFieldNumber = 1,
+  };
+  // .volume.rpc.CoordinatorScope scope = 1;
+  bool has_scope() const;
+  void clear_scope() ;
+  const ::volume::rpc::CoordinatorScope& scope() const;
+  [[nodiscard]] ::volume::rpc::CoordinatorScope* PROTOBUF_NULLABLE release_scope();
+  ::volume::rpc::CoordinatorScope* PROTOBUF_NONNULL mutable_scope();
+  void set_allocated_scope(::volume::rpc::CoordinatorScope* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_scope(::volume::rpc::CoordinatorScope* PROTOBUF_NULLABLE value);
+  ::volume::rpc::CoordinatorScope* PROTOBUF_NULLABLE unsafe_arena_release_scope();
+
+  private:
+  const ::volume::rpc::CoordinatorScope& _internal_scope() const;
+  ::volume::rpc::CoordinatorScope* PROTOBUF_NONNULL _internal_mutable_scope();
+
+  public:
+  // @@protoc_insertion_point(class_scope:volume.rpc.GetCoordinatorCapabilityRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GetCoordinatorCapabilityRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::volume::rpc::CoordinatorScope* PROTOBUF_NULLABLE scope_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GetCoordinatorCapabilityRequest_class_data_;
 // -------------------------------------------------------------------
 
 class WatchVolumeInfoResponse final : public ::google::protobuf::Message
@@ -1493,6 +2618,517 @@ class GetVolumeInfoResponse final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull GetVolumeInfoResponse_class_data_;
+// -------------------------------------------------------------------
+
+class CoordinatorEvent final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:volume.rpc.CoordinatorEvent) */ {
+ public:
+  inline CoordinatorEvent() : CoordinatorEvent(nullptr) {}
+  ~CoordinatorEvent() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CoordinatorEvent* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CoordinatorEvent));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CoordinatorEvent(::google::protobuf::internal::ConstantInitialized);
+
+  inline CoordinatorEvent(const CoordinatorEvent& from) : CoordinatorEvent(nullptr, from) {}
+  inline CoordinatorEvent(CoordinatorEvent&& from) noexcept
+      : CoordinatorEvent(nullptr, ::std::move(from)) {}
+  inline CoordinatorEvent& operator=(const CoordinatorEvent& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CoordinatorEvent& operator=(CoordinatorEvent&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CoordinatorEvent& default_instance() {
+    return *reinterpret_cast<const CoordinatorEvent*>(
+        &_CoordinatorEvent_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 6;
+  friend void swap(CoordinatorEvent& a, CoordinatorEvent& b) { a.Swap(&b); }
+  inline void Swap(CoordinatorEvent* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CoordinatorEvent* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CoordinatorEvent* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CoordinatorEvent>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CoordinatorEvent& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CoordinatorEvent& from) { CoordinatorEvent::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CoordinatorEvent* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "volume.rpc.CoordinatorEvent"; }
+
+  explicit CoordinatorEvent(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CoordinatorEvent(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CoordinatorEvent& from);
+  CoordinatorEvent(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CoordinatorEvent&& from) noexcept
+      : CoordinatorEvent(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kProcessIdFieldNumber = 1,
+    kVolumeIdFieldNumber = 2,
+    kObjectStoreIdFieldNumber = 3,
+    kKeyPrefixChangedFieldNumber = 8,
+    kFallbackReasonFieldNumber = 9,
+    kRootChangedFieldNumber = 7,
+    kGenerationFieldNumber = 4,
+    kWantLockFieldNumber = 5,
+    kUnlockedFieldNumber = 6,
+  };
+  // string process_id = 1;
+  void clear_process_id() ;
+  const ::std::string& process_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_process_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_process_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_process_id();
+  void set_allocated_process_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_process_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_process_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_process_id();
+
+  public:
+  // string volume_id = 2;
+  void clear_volume_id() ;
+  const ::std::string& volume_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_volume_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_volume_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_volume_id();
+  void set_allocated_volume_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_volume_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_volume_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_volume_id();
+
+  public:
+  // string object_store_id = 3;
+  void clear_object_store_id() ;
+  const ::std::string& object_store_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_object_store_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_object_store_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_object_store_id();
+  void set_allocated_object_store_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_object_store_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_object_store_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_object_store_id();
+
+  public:
+  // bytes key_prefix_changed = 8;
+  void clear_key_prefix_changed() ;
+  const ::std::string& key_prefix_changed() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_key_prefix_changed(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_key_prefix_changed();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_key_prefix_changed();
+  void set_allocated_key_prefix_changed(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_key_prefix_changed() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_key_prefix_changed(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_key_prefix_changed();
+
+  public:
+  // string fallback_reason = 9;
+  void clear_fallback_reason() ;
+  const ::std::string& fallback_reason() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_fallback_reason(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_fallback_reason();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_fallback_reason();
+  void set_allocated_fallback_reason(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_fallback_reason() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_fallback_reason(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_fallback_reason();
+
+  public:
+  // .bucket.ObjectRef root_changed = 7;
+  bool has_root_changed() const;
+  void clear_root_changed() ;
+  const ::bucket::ObjectRef& root_changed() const;
+  [[nodiscard]] ::bucket::ObjectRef* PROTOBUF_NULLABLE release_root_changed();
+  ::bucket::ObjectRef* PROTOBUF_NONNULL mutable_root_changed();
+  void set_allocated_root_changed(::bucket::ObjectRef* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_root_changed(::bucket::ObjectRef* PROTOBUF_NULLABLE value);
+  ::bucket::ObjectRef* PROTOBUF_NULLABLE unsafe_arena_release_root_changed();
+
+  private:
+  const ::bucket::ObjectRef& _internal_root_changed() const;
+  ::bucket::ObjectRef* PROTOBUF_NONNULL _internal_mutable_root_changed();
+
+  public:
+  // uint64 generation = 4;
+  void clear_generation() ;
+  ::uint64_t generation() const;
+  void set_generation(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_generation() const;
+  void _internal_set_generation(::uint64_t value);
+
+  public:
+  // bool want_lock = 5;
+  void clear_want_lock() ;
+  bool want_lock() const;
+  void set_want_lock(bool value);
+
+  private:
+  bool _internal_want_lock() const;
+  void _internal_set_want_lock(bool value);
+
+  public:
+  // bool unlocked = 6;
+  void clear_unlocked() ;
+  bool unlocked() const;
+  void set_unlocked(bool value);
+
+  private:
+  bool _internal_unlocked() const;
+  void _internal_set_unlocked(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:volume.rpc.CoordinatorEvent)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<4, 9,
+                                   1, 93,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CoordinatorEvent& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr process_id_;
+    ::google::protobuf::internal::ArenaStringPtr volume_id_;
+    ::google::protobuf::internal::ArenaStringPtr object_store_id_;
+    ::google::protobuf::internal::ArenaStringPtr key_prefix_changed_;
+    ::google::protobuf::internal::ArenaStringPtr fallback_reason_;
+    ::bucket::ObjectRef* PROTOBUF_NULLABLE root_changed_;
+    ::uint64_t generation_;
+    bool want_lock_;
+    bool unlocked_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CoordinatorEvent_class_data_;
+// -------------------------------------------------------------------
+
+class WatchCoordinatorEventsResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:volume.rpc.WatchCoordinatorEventsResponse) */ {
+ public:
+  inline WatchCoordinatorEventsResponse() : WatchCoordinatorEventsResponse(nullptr) {}
+  ~WatchCoordinatorEventsResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(WatchCoordinatorEventsResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(WatchCoordinatorEventsResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR WatchCoordinatorEventsResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline WatchCoordinatorEventsResponse(const WatchCoordinatorEventsResponse& from) : WatchCoordinatorEventsResponse(nullptr, from) {}
+  inline WatchCoordinatorEventsResponse(WatchCoordinatorEventsResponse&& from) noexcept
+      : WatchCoordinatorEventsResponse(nullptr, ::std::move(from)) {}
+  inline WatchCoordinatorEventsResponse& operator=(const WatchCoordinatorEventsResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WatchCoordinatorEventsResponse& operator=(WatchCoordinatorEventsResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WatchCoordinatorEventsResponse& default_instance() {
+    return *reinterpret_cast<const WatchCoordinatorEventsResponse*>(
+        &_WatchCoordinatorEventsResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 10;
+  friend void swap(WatchCoordinatorEventsResponse& a, WatchCoordinatorEventsResponse& b) { a.Swap(&b); }
+  inline void Swap(WatchCoordinatorEventsResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WatchCoordinatorEventsResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WatchCoordinatorEventsResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<WatchCoordinatorEventsResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const WatchCoordinatorEventsResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const WatchCoordinatorEventsResponse& from) { WatchCoordinatorEventsResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(WatchCoordinatorEventsResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "volume.rpc.WatchCoordinatorEventsResponse"; }
+
+  explicit WatchCoordinatorEventsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  WatchCoordinatorEventsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchCoordinatorEventsResponse& from);
+  WatchCoordinatorEventsResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WatchCoordinatorEventsResponse&& from) noexcept
+      : WatchCoordinatorEventsResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kEventFieldNumber = 1,
+  };
+  // .volume.rpc.CoordinatorEvent event = 1;
+  bool has_event() const;
+  void clear_event() ;
+  const ::volume::rpc::CoordinatorEvent& event() const;
+  [[nodiscard]] ::volume::rpc::CoordinatorEvent* PROTOBUF_NULLABLE release_event();
+  ::volume::rpc::CoordinatorEvent* PROTOBUF_NONNULL mutable_event();
+  void set_allocated_event(::volume::rpc::CoordinatorEvent* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_event(::volume::rpc::CoordinatorEvent* PROTOBUF_NULLABLE value);
+  ::volume::rpc::CoordinatorEvent* PROTOBUF_NULLABLE unsafe_arena_release_event();
+
+  private:
+  const ::volume::rpc::CoordinatorEvent& _internal_event() const;
+  ::volume::rpc::CoordinatorEvent* PROTOBUF_NONNULL _internal_mutable_event();
+
+  public:
+  // @@protoc_insertion_point(class_scope:volume.rpc.WatchCoordinatorEventsResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const WatchCoordinatorEventsResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::volume::rpc::CoordinatorEvent* PROTOBUF_NULLABLE event_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull WatchCoordinatorEventsResponse_class_data_;
 
 // ===================================================================
 
@@ -1796,6 +3432,1453 @@ inline void GetVolumeInfoResponse::set_allocated_volume_info(::volume::VolumeInf
 
   _impl_.volume_info_ = reinterpret_cast<::volume::VolumeInfo*>(value);
   // @@protoc_insertion_point(field_set_allocated:volume.rpc.GetVolumeInfoResponse.volume_info)
+}
+
+// -------------------------------------------------------------------
+
+// CoordinatorScope
+
+// string volume_id = 1;
+inline void CoordinatorScope::clear_volume_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.volume_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& CoordinatorScope::volume_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.CoordinatorScope.volume_id)
+  return _internal_volume_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CoordinatorScope::set_volume_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.volume_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:volume.rpc.CoordinatorScope.volume_id)
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorScope::mutable_volume_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_volume_id();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.CoordinatorScope.volume_id)
+  return _s;
+}
+inline const ::std::string& CoordinatorScope::_internal_volume_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.volume_id_.Get();
+}
+inline void CoordinatorScope::_internal_set_volume_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.volume_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorScope::_internal_mutable_volume_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.volume_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CoordinatorScope::release_volume_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.CoordinatorScope.volume_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.volume_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.volume_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CoordinatorScope::set_allocated_volume_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.volume_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.volume_id_.IsDefault()) {
+    _impl_.volume_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.CoordinatorScope.volume_id)
+}
+
+// string object_store_id = 2;
+inline void CoordinatorScope::clear_object_store_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_store_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& CoordinatorScope::object_store_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.CoordinatorScope.object_store_id)
+  return _internal_object_store_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CoordinatorScope::set_object_store_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.object_store_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:volume.rpc.CoordinatorScope.object_store_id)
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorScope::mutable_object_store_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_object_store_id();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.CoordinatorScope.object_store_id)
+  return _s;
+}
+inline const ::std::string& CoordinatorScope::_internal_object_store_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.object_store_id_.Get();
+}
+inline void CoordinatorScope::_internal_set_object_store_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_store_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorScope::_internal_mutable_object_store_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.object_store_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CoordinatorScope::release_object_store_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.CoordinatorScope.object_store_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.object_store_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.object_store_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CoordinatorScope::set_allocated_object_store_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.object_store_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.object_store_id_.IsDefault()) {
+    _impl_.object_store_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.CoordinatorScope.object_store_id)
+}
+
+// string participant_id = 3;
+inline void CoordinatorScope::clear_participant_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.participant_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& CoordinatorScope::participant_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.CoordinatorScope.participant_id)
+  return _internal_participant_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CoordinatorScope::set_participant_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.participant_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:volume.rpc.CoordinatorScope.participant_id)
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorScope::mutable_participant_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_participant_id();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.CoordinatorScope.participant_id)
+  return _s;
+}
+inline const ::std::string& CoordinatorScope::_internal_participant_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.participant_id_.Get();
+}
+inline void CoordinatorScope::_internal_set_participant_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.participant_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorScope::_internal_mutable_participant_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.participant_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CoordinatorScope::release_participant_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.CoordinatorScope.participant_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.participant_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.participant_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CoordinatorScope::set_allocated_participant_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.participant_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.participant_id_.IsDefault()) {
+    _impl_.participant_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.CoordinatorScope.participant_id)
+}
+
+// -------------------------------------------------------------------
+
+// CoordinatorCapability
+
+// bool supported = 1;
+inline void CoordinatorCapability::clear_supported() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.supported_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline bool CoordinatorCapability::supported() const {
+  // @@protoc_insertion_point(field_get:volume.rpc.CoordinatorCapability.supported)
+  return _internal_supported();
+}
+inline void CoordinatorCapability::set_supported(bool value) {
+  _internal_set_supported(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:volume.rpc.CoordinatorCapability.supported)
+}
+inline bool CoordinatorCapability::_internal_supported() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.supported_;
+}
+inline void CoordinatorCapability::_internal_set_supported(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.supported_ = value;
+}
+
+// string backend = 2;
+inline void CoordinatorCapability::clear_backend() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.backend_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& CoordinatorCapability::backend() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.CoordinatorCapability.backend)
+  return _internal_backend();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CoordinatorCapability::set_backend(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.backend_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:volume.rpc.CoordinatorCapability.backend)
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorCapability::mutable_backend()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_backend();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.CoordinatorCapability.backend)
+  return _s;
+}
+inline const ::std::string& CoordinatorCapability::_internal_backend() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.backend_.Get();
+}
+inline void CoordinatorCapability::_internal_set_backend(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.backend_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorCapability::_internal_mutable_backend() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.backend_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CoordinatorCapability::release_backend() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.CoordinatorCapability.backend)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.backend_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.backend_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CoordinatorCapability::set_allocated_backend(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.backend_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.backend_.IsDefault()) {
+    _impl_.backend_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.CoordinatorCapability.backend)
+}
+
+// string volume_id = 3;
+inline void CoordinatorCapability::clear_volume_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.volume_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& CoordinatorCapability::volume_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.CoordinatorCapability.volume_id)
+  return _internal_volume_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CoordinatorCapability::set_volume_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.volume_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:volume.rpc.CoordinatorCapability.volume_id)
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorCapability::mutable_volume_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_volume_id();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.CoordinatorCapability.volume_id)
+  return _s;
+}
+inline const ::std::string& CoordinatorCapability::_internal_volume_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.volume_id_.Get();
+}
+inline void CoordinatorCapability::_internal_set_volume_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.volume_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorCapability::_internal_mutable_volume_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.volume_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CoordinatorCapability::release_volume_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.CoordinatorCapability.volume_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.volume_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.volume_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CoordinatorCapability::set_allocated_volume_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.volume_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.volume_id_.IsDefault()) {
+    _impl_.volume_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.CoordinatorCapability.volume_id)
+}
+
+// string object_store_id = 4;
+inline void CoordinatorCapability::clear_object_store_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_store_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& CoordinatorCapability::object_store_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.CoordinatorCapability.object_store_id)
+  return _internal_object_store_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CoordinatorCapability::set_object_store_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.object_store_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:volume.rpc.CoordinatorCapability.object_store_id)
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorCapability::mutable_object_store_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_object_store_id();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.CoordinatorCapability.object_store_id)
+  return _s;
+}
+inline const ::std::string& CoordinatorCapability::_internal_object_store_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.object_store_id_.Get();
+}
+inline void CoordinatorCapability::_internal_set_object_store_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_store_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorCapability::_internal_mutable_object_store_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.object_store_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CoordinatorCapability::release_object_store_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.CoordinatorCapability.object_store_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.object_store_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.object_store_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CoordinatorCapability::set_allocated_object_store_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.object_store_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.object_store_id_.IsDefault()) {
+    _impl_.object_store_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.CoordinatorCapability.object_store_id)
+}
+
+// uint64 generation = 5;
+inline void CoordinatorCapability::clear_generation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.generation_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::uint64_t CoordinatorCapability::generation() const {
+  // @@protoc_insertion_point(field_get:volume.rpc.CoordinatorCapability.generation)
+  return _internal_generation();
+}
+inline void CoordinatorCapability::set_generation(::uint64_t value) {
+  _internal_set_generation(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:volume.rpc.CoordinatorCapability.generation)
+}
+inline ::uint64_t CoordinatorCapability::_internal_generation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.generation_;
+}
+inline void CoordinatorCapability::_internal_set_generation(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.generation_ = value;
+}
+
+// string fallback_reason = 6;
+inline void CoordinatorCapability::clear_fallback_reason() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.fallback_reason_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& CoordinatorCapability::fallback_reason() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.CoordinatorCapability.fallback_reason)
+  return _internal_fallback_reason();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CoordinatorCapability::set_fallback_reason(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.fallback_reason_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:volume.rpc.CoordinatorCapability.fallback_reason)
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorCapability::mutable_fallback_reason()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_fallback_reason();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.CoordinatorCapability.fallback_reason)
+  return _s;
+}
+inline const ::std::string& CoordinatorCapability::_internal_fallback_reason() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.fallback_reason_.Get();
+}
+inline void CoordinatorCapability::_internal_set_fallback_reason(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.fallback_reason_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorCapability::_internal_mutable_fallback_reason() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.fallback_reason_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CoordinatorCapability::release_fallback_reason() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.CoordinatorCapability.fallback_reason)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.fallback_reason_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.fallback_reason_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CoordinatorCapability::set_allocated_fallback_reason(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.fallback_reason_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.fallback_reason_.IsDefault()) {
+    _impl_.fallback_reason_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.CoordinatorCapability.fallback_reason)
+}
+
+// -------------------------------------------------------------------
+
+// CoordinatorEvent
+
+// string process_id = 1;
+inline void CoordinatorEvent::clear_process_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.process_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& CoordinatorEvent::process_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.CoordinatorEvent.process_id)
+  return _internal_process_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CoordinatorEvent::set_process_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.process_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:volume.rpc.CoordinatorEvent.process_id)
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorEvent::mutable_process_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_process_id();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.CoordinatorEvent.process_id)
+  return _s;
+}
+inline const ::std::string& CoordinatorEvent::_internal_process_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.process_id_.Get();
+}
+inline void CoordinatorEvent::_internal_set_process_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.process_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorEvent::_internal_mutable_process_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.process_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CoordinatorEvent::release_process_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.CoordinatorEvent.process_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.process_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.process_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CoordinatorEvent::set_allocated_process_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.process_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.process_id_.IsDefault()) {
+    _impl_.process_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.CoordinatorEvent.process_id)
+}
+
+// string volume_id = 2;
+inline void CoordinatorEvent::clear_volume_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.volume_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& CoordinatorEvent::volume_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.CoordinatorEvent.volume_id)
+  return _internal_volume_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CoordinatorEvent::set_volume_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.volume_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:volume.rpc.CoordinatorEvent.volume_id)
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorEvent::mutable_volume_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_volume_id();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.CoordinatorEvent.volume_id)
+  return _s;
+}
+inline const ::std::string& CoordinatorEvent::_internal_volume_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.volume_id_.Get();
+}
+inline void CoordinatorEvent::_internal_set_volume_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.volume_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorEvent::_internal_mutable_volume_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.volume_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CoordinatorEvent::release_volume_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.CoordinatorEvent.volume_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.volume_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.volume_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CoordinatorEvent::set_allocated_volume_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.volume_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.volume_id_.IsDefault()) {
+    _impl_.volume_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.CoordinatorEvent.volume_id)
+}
+
+// string object_store_id = 3;
+inline void CoordinatorEvent::clear_object_store_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_store_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& CoordinatorEvent::object_store_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.CoordinatorEvent.object_store_id)
+  return _internal_object_store_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CoordinatorEvent::set_object_store_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.object_store_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:volume.rpc.CoordinatorEvent.object_store_id)
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorEvent::mutable_object_store_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_object_store_id();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.CoordinatorEvent.object_store_id)
+  return _s;
+}
+inline const ::std::string& CoordinatorEvent::_internal_object_store_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.object_store_id_.Get();
+}
+inline void CoordinatorEvent::_internal_set_object_store_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_store_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorEvent::_internal_mutable_object_store_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.object_store_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CoordinatorEvent::release_object_store_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.CoordinatorEvent.object_store_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.object_store_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.object_store_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CoordinatorEvent::set_allocated_object_store_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.object_store_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.object_store_id_.IsDefault()) {
+    _impl_.object_store_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.CoordinatorEvent.object_store_id)
+}
+
+// uint64 generation = 4;
+inline void CoordinatorEvent::clear_generation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.generation_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline ::uint64_t CoordinatorEvent::generation() const {
+  // @@protoc_insertion_point(field_get:volume.rpc.CoordinatorEvent.generation)
+  return _internal_generation();
+}
+inline void CoordinatorEvent::set_generation(::uint64_t value) {
+  _internal_set_generation(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:volume.rpc.CoordinatorEvent.generation)
+}
+inline ::uint64_t CoordinatorEvent::_internal_generation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.generation_;
+}
+inline void CoordinatorEvent::_internal_set_generation(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.generation_ = value;
+}
+
+// bool want_lock = 5;
+inline void CoordinatorEvent::clear_want_lock() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.want_lock_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline bool CoordinatorEvent::want_lock() const {
+  // @@protoc_insertion_point(field_get:volume.rpc.CoordinatorEvent.want_lock)
+  return _internal_want_lock();
+}
+inline void CoordinatorEvent::set_want_lock(bool value) {
+  _internal_set_want_lock(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  // @@protoc_insertion_point(field_set:volume.rpc.CoordinatorEvent.want_lock)
+}
+inline bool CoordinatorEvent::_internal_want_lock() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.want_lock_;
+}
+inline void CoordinatorEvent::_internal_set_want_lock(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.want_lock_ = value;
+}
+
+// bool unlocked = 6;
+inline void CoordinatorEvent::clear_unlocked() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.unlocked_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline bool CoordinatorEvent::unlocked() const {
+  // @@protoc_insertion_point(field_get:volume.rpc.CoordinatorEvent.unlocked)
+  return _internal_unlocked();
+}
+inline void CoordinatorEvent::set_unlocked(bool value) {
+  _internal_set_unlocked(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  // @@protoc_insertion_point(field_set:volume.rpc.CoordinatorEvent.unlocked)
+}
+inline bool CoordinatorEvent::_internal_unlocked() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.unlocked_;
+}
+inline void CoordinatorEvent::_internal_set_unlocked(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.unlocked_ = value;
+}
+
+// .bucket.ObjectRef root_changed = 7;
+inline bool CoordinatorEvent::has_root_changed() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
+  PROTOBUF_ASSUME(!value || _impl_.root_changed_ != nullptr);
+  return value;
+}
+inline const ::bucket::ObjectRef& CoordinatorEvent::_internal_root_changed() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::bucket::ObjectRef* p = _impl_.root_changed_;
+  return p != nullptr ? *p : reinterpret_cast<const ::bucket::ObjectRef&>(::bucket::_ObjectRef_default_instance_);
+}
+inline const ::bucket::ObjectRef& CoordinatorEvent::root_changed() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.CoordinatorEvent.root_changed)
+  return _internal_root_changed();
+}
+inline void CoordinatorEvent::unsafe_arena_set_allocated_root_changed(
+    ::bucket::ObjectRef* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.root_changed_);
+  }
+  _impl_.root_changed_ = reinterpret_cast<::bucket::ObjectRef*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:volume.rpc.CoordinatorEvent.root_changed)
+}
+inline ::bucket::ObjectRef* PROTOBUF_NULLABLE CoordinatorEvent::release_root_changed() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::bucket::ObjectRef* released = _impl_.root_changed_;
+  _impl_.root_changed_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::bucket::ObjectRef* PROTOBUF_NULLABLE CoordinatorEvent::unsafe_arena_release_root_changed() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.CoordinatorEvent.root_changed)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::bucket::ObjectRef* temp = _impl_.root_changed_;
+  _impl_.root_changed_ = nullptr;
+  return temp;
+}
+inline ::bucket::ObjectRef* PROTOBUF_NONNULL CoordinatorEvent::_internal_mutable_root_changed() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.root_changed_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::bucket::ObjectRef>(GetArena());
+    _impl_.root_changed_ = reinterpret_cast<::bucket::ObjectRef*>(p);
+  }
+  return _impl_.root_changed_;
+}
+inline ::bucket::ObjectRef* PROTOBUF_NONNULL CoordinatorEvent::mutable_root_changed()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::bucket::ObjectRef* _msg = _internal_mutable_root_changed();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.CoordinatorEvent.root_changed)
+  return _msg;
+}
+inline void CoordinatorEvent::set_allocated_root_changed(::bucket::ObjectRef* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.root_changed_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+
+  _impl_.root_changed_ = reinterpret_cast<::bucket::ObjectRef*>(value);
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.CoordinatorEvent.root_changed)
+}
+
+// bytes key_prefix_changed = 8;
+inline void CoordinatorEvent::clear_key_prefix_changed() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.key_prefix_changed_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& CoordinatorEvent::key_prefix_changed() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.CoordinatorEvent.key_prefix_changed)
+  return _internal_key_prefix_changed();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CoordinatorEvent::set_key_prefix_changed(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.key_prefix_changed_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:volume.rpc.CoordinatorEvent.key_prefix_changed)
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorEvent::mutable_key_prefix_changed()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_key_prefix_changed();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.CoordinatorEvent.key_prefix_changed)
+  return _s;
+}
+inline const ::std::string& CoordinatorEvent::_internal_key_prefix_changed() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.key_prefix_changed_.Get();
+}
+inline void CoordinatorEvent::_internal_set_key_prefix_changed(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.key_prefix_changed_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorEvent::_internal_mutable_key_prefix_changed() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.key_prefix_changed_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CoordinatorEvent::release_key_prefix_changed() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.CoordinatorEvent.key_prefix_changed)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.key_prefix_changed_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.key_prefix_changed_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CoordinatorEvent::set_allocated_key_prefix_changed(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.key_prefix_changed_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.key_prefix_changed_.IsDefault()) {
+    _impl_.key_prefix_changed_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.CoordinatorEvent.key_prefix_changed)
+}
+
+// string fallback_reason = 9;
+inline void CoordinatorEvent::clear_fallback_reason() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.fallback_reason_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& CoordinatorEvent::fallback_reason() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.CoordinatorEvent.fallback_reason)
+  return _internal_fallback_reason();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CoordinatorEvent::set_fallback_reason(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.fallback_reason_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:volume.rpc.CoordinatorEvent.fallback_reason)
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorEvent::mutable_fallback_reason()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_fallback_reason();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.CoordinatorEvent.fallback_reason)
+  return _s;
+}
+inline const ::std::string& CoordinatorEvent::_internal_fallback_reason() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.fallback_reason_.Get();
+}
+inline void CoordinatorEvent::_internal_set_fallback_reason(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.fallback_reason_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CoordinatorEvent::_internal_mutable_fallback_reason() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.fallback_reason_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CoordinatorEvent::release_fallback_reason() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.CoordinatorEvent.fallback_reason)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.fallback_reason_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.fallback_reason_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CoordinatorEvent::set_allocated_fallback_reason(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.fallback_reason_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.fallback_reason_.IsDefault()) {
+    _impl_.fallback_reason_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.CoordinatorEvent.fallback_reason)
+}
+
+// -------------------------------------------------------------------
+
+// GetCoordinatorCapabilityRequest
+
+// .volume.rpc.CoordinatorScope scope = 1;
+inline bool GetCoordinatorCapabilityRequest::has_scope() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.scope_ != nullptr);
+  return value;
+}
+inline void GetCoordinatorCapabilityRequest::clear_scope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.scope_ != nullptr) _impl_.scope_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::volume::rpc::CoordinatorScope& GetCoordinatorCapabilityRequest::_internal_scope() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::volume::rpc::CoordinatorScope* p = _impl_.scope_;
+  return p != nullptr ? *p : reinterpret_cast<const ::volume::rpc::CoordinatorScope&>(::volume::rpc::_CoordinatorScope_default_instance_);
+}
+inline const ::volume::rpc::CoordinatorScope& GetCoordinatorCapabilityRequest::scope() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.GetCoordinatorCapabilityRequest.scope)
+  return _internal_scope();
+}
+inline void GetCoordinatorCapabilityRequest::unsafe_arena_set_allocated_scope(
+    ::volume::rpc::CoordinatorScope* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.scope_);
+  }
+  _impl_.scope_ = reinterpret_cast<::volume::rpc::CoordinatorScope*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:volume.rpc.GetCoordinatorCapabilityRequest.scope)
+}
+inline ::volume::rpc::CoordinatorScope* PROTOBUF_NULLABLE GetCoordinatorCapabilityRequest::release_scope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::volume::rpc::CoordinatorScope* released = _impl_.scope_;
+  _impl_.scope_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::volume::rpc::CoordinatorScope* PROTOBUF_NULLABLE GetCoordinatorCapabilityRequest::unsafe_arena_release_scope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.GetCoordinatorCapabilityRequest.scope)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::volume::rpc::CoordinatorScope* temp = _impl_.scope_;
+  _impl_.scope_ = nullptr;
+  return temp;
+}
+inline ::volume::rpc::CoordinatorScope* PROTOBUF_NONNULL GetCoordinatorCapabilityRequest::_internal_mutable_scope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.scope_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::volume::rpc::CoordinatorScope>(GetArena());
+    _impl_.scope_ = reinterpret_cast<::volume::rpc::CoordinatorScope*>(p);
+  }
+  return _impl_.scope_;
+}
+inline ::volume::rpc::CoordinatorScope* PROTOBUF_NONNULL GetCoordinatorCapabilityRequest::mutable_scope()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::volume::rpc::CoordinatorScope* _msg = _internal_mutable_scope();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.GetCoordinatorCapabilityRequest.scope)
+  return _msg;
+}
+inline void GetCoordinatorCapabilityRequest::set_allocated_scope(::volume::rpc::CoordinatorScope* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.scope_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.scope_ = reinterpret_cast<::volume::rpc::CoordinatorScope*>(value);
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.GetCoordinatorCapabilityRequest.scope)
+}
+
+// -------------------------------------------------------------------
+
+// GetCoordinatorCapabilityResponse
+
+// .volume.rpc.CoordinatorCapability capability = 1;
+inline bool GetCoordinatorCapabilityResponse::has_capability() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.capability_ != nullptr);
+  return value;
+}
+inline void GetCoordinatorCapabilityResponse::clear_capability() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.capability_ != nullptr) _impl_.capability_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::volume::rpc::CoordinatorCapability& GetCoordinatorCapabilityResponse::_internal_capability() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::volume::rpc::CoordinatorCapability* p = _impl_.capability_;
+  return p != nullptr ? *p : reinterpret_cast<const ::volume::rpc::CoordinatorCapability&>(::volume::rpc::_CoordinatorCapability_default_instance_);
+}
+inline const ::volume::rpc::CoordinatorCapability& GetCoordinatorCapabilityResponse::capability() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.GetCoordinatorCapabilityResponse.capability)
+  return _internal_capability();
+}
+inline void GetCoordinatorCapabilityResponse::unsafe_arena_set_allocated_capability(
+    ::volume::rpc::CoordinatorCapability* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.capability_);
+  }
+  _impl_.capability_ = reinterpret_cast<::volume::rpc::CoordinatorCapability*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:volume.rpc.GetCoordinatorCapabilityResponse.capability)
+}
+inline ::volume::rpc::CoordinatorCapability* PROTOBUF_NULLABLE GetCoordinatorCapabilityResponse::release_capability() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::volume::rpc::CoordinatorCapability* released = _impl_.capability_;
+  _impl_.capability_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::volume::rpc::CoordinatorCapability* PROTOBUF_NULLABLE GetCoordinatorCapabilityResponse::unsafe_arena_release_capability() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.GetCoordinatorCapabilityResponse.capability)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::volume::rpc::CoordinatorCapability* temp = _impl_.capability_;
+  _impl_.capability_ = nullptr;
+  return temp;
+}
+inline ::volume::rpc::CoordinatorCapability* PROTOBUF_NONNULL GetCoordinatorCapabilityResponse::_internal_mutable_capability() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.capability_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::volume::rpc::CoordinatorCapability>(GetArena());
+    _impl_.capability_ = reinterpret_cast<::volume::rpc::CoordinatorCapability*>(p);
+  }
+  return _impl_.capability_;
+}
+inline ::volume::rpc::CoordinatorCapability* PROTOBUF_NONNULL GetCoordinatorCapabilityResponse::mutable_capability()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::volume::rpc::CoordinatorCapability* _msg = _internal_mutable_capability();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.GetCoordinatorCapabilityResponse.capability)
+  return _msg;
+}
+inline void GetCoordinatorCapabilityResponse::set_allocated_capability(::volume::rpc::CoordinatorCapability* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.capability_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.capability_ = reinterpret_cast<::volume::rpc::CoordinatorCapability*>(value);
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.GetCoordinatorCapabilityResponse.capability)
+}
+
+// -------------------------------------------------------------------
+
+// WatchCoordinatorEventsRequest
+
+// .volume.rpc.CoordinatorScope scope = 1;
+inline bool WatchCoordinatorEventsRequest::has_scope() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.scope_ != nullptr);
+  return value;
+}
+inline void WatchCoordinatorEventsRequest::clear_scope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.scope_ != nullptr) _impl_.scope_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::volume::rpc::CoordinatorScope& WatchCoordinatorEventsRequest::_internal_scope() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::volume::rpc::CoordinatorScope* p = _impl_.scope_;
+  return p != nullptr ? *p : reinterpret_cast<const ::volume::rpc::CoordinatorScope&>(::volume::rpc::_CoordinatorScope_default_instance_);
+}
+inline const ::volume::rpc::CoordinatorScope& WatchCoordinatorEventsRequest::scope() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.WatchCoordinatorEventsRequest.scope)
+  return _internal_scope();
+}
+inline void WatchCoordinatorEventsRequest::unsafe_arena_set_allocated_scope(
+    ::volume::rpc::CoordinatorScope* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.scope_);
+  }
+  _impl_.scope_ = reinterpret_cast<::volume::rpc::CoordinatorScope*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:volume.rpc.WatchCoordinatorEventsRequest.scope)
+}
+inline ::volume::rpc::CoordinatorScope* PROTOBUF_NULLABLE WatchCoordinatorEventsRequest::release_scope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::volume::rpc::CoordinatorScope* released = _impl_.scope_;
+  _impl_.scope_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::volume::rpc::CoordinatorScope* PROTOBUF_NULLABLE WatchCoordinatorEventsRequest::unsafe_arena_release_scope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.WatchCoordinatorEventsRequest.scope)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::volume::rpc::CoordinatorScope* temp = _impl_.scope_;
+  _impl_.scope_ = nullptr;
+  return temp;
+}
+inline ::volume::rpc::CoordinatorScope* PROTOBUF_NONNULL WatchCoordinatorEventsRequest::_internal_mutable_scope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.scope_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::volume::rpc::CoordinatorScope>(GetArena());
+    _impl_.scope_ = reinterpret_cast<::volume::rpc::CoordinatorScope*>(p);
+  }
+  return _impl_.scope_;
+}
+inline ::volume::rpc::CoordinatorScope* PROTOBUF_NONNULL WatchCoordinatorEventsRequest::mutable_scope()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::volume::rpc::CoordinatorScope* _msg = _internal_mutable_scope();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.WatchCoordinatorEventsRequest.scope)
+  return _msg;
+}
+inline void WatchCoordinatorEventsRequest::set_allocated_scope(::volume::rpc::CoordinatorScope* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.scope_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.scope_ = reinterpret_cast<::volume::rpc::CoordinatorScope*>(value);
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.WatchCoordinatorEventsRequest.scope)
+}
+
+// uint64 after_generation = 2;
+inline void WatchCoordinatorEventsRequest::clear_after_generation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.after_generation_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::uint64_t WatchCoordinatorEventsRequest::after_generation() const {
+  // @@protoc_insertion_point(field_get:volume.rpc.WatchCoordinatorEventsRequest.after_generation)
+  return _internal_after_generation();
+}
+inline void WatchCoordinatorEventsRequest::set_after_generation(::uint64_t value) {
+  _internal_set_after_generation(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:volume.rpc.WatchCoordinatorEventsRequest.after_generation)
+}
+inline ::uint64_t WatchCoordinatorEventsRequest::_internal_after_generation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.after_generation_;
+}
+inline void WatchCoordinatorEventsRequest::_internal_set_after_generation(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.after_generation_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// WatchCoordinatorEventsResponse
+
+// .volume.rpc.CoordinatorEvent event = 1;
+inline bool WatchCoordinatorEventsResponse::has_event() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.event_ != nullptr);
+  return value;
+}
+inline void WatchCoordinatorEventsResponse::clear_event() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.event_ != nullptr) _impl_.event_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::volume::rpc::CoordinatorEvent& WatchCoordinatorEventsResponse::_internal_event() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::volume::rpc::CoordinatorEvent* p = _impl_.event_;
+  return p != nullptr ? *p : reinterpret_cast<const ::volume::rpc::CoordinatorEvent&>(::volume::rpc::_CoordinatorEvent_default_instance_);
+}
+inline const ::volume::rpc::CoordinatorEvent& WatchCoordinatorEventsResponse::event() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.WatchCoordinatorEventsResponse.event)
+  return _internal_event();
+}
+inline void WatchCoordinatorEventsResponse::unsafe_arena_set_allocated_event(
+    ::volume::rpc::CoordinatorEvent* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.event_);
+  }
+  _impl_.event_ = reinterpret_cast<::volume::rpc::CoordinatorEvent*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:volume.rpc.WatchCoordinatorEventsResponse.event)
+}
+inline ::volume::rpc::CoordinatorEvent* PROTOBUF_NULLABLE WatchCoordinatorEventsResponse::release_event() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::volume::rpc::CoordinatorEvent* released = _impl_.event_;
+  _impl_.event_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::volume::rpc::CoordinatorEvent* PROTOBUF_NULLABLE WatchCoordinatorEventsResponse::unsafe_arena_release_event() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.WatchCoordinatorEventsResponse.event)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::volume::rpc::CoordinatorEvent* temp = _impl_.event_;
+  _impl_.event_ = nullptr;
+  return temp;
+}
+inline ::volume::rpc::CoordinatorEvent* PROTOBUF_NONNULL WatchCoordinatorEventsResponse::_internal_mutable_event() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.event_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::volume::rpc::CoordinatorEvent>(GetArena());
+    _impl_.event_ = reinterpret_cast<::volume::rpc::CoordinatorEvent*>(p);
+  }
+  return _impl_.event_;
+}
+inline ::volume::rpc::CoordinatorEvent* PROTOBUF_NONNULL WatchCoordinatorEventsResponse::mutable_event()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::volume::rpc::CoordinatorEvent* _msg = _internal_mutable_event();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.WatchCoordinatorEventsResponse.event)
+  return _msg;
+}
+inline void WatchCoordinatorEventsResponse::set_allocated_event(::volume::rpc::CoordinatorEvent* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.event_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.event_ = reinterpret_cast<::volume::rpc::CoordinatorEvent*>(value);
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.WatchCoordinatorEventsResponse.event)
 }
 
 // -------------------------------------------------------------------

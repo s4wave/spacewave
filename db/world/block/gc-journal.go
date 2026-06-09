@@ -6,6 +6,7 @@ import (
 	stderrors "errors"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
@@ -38,6 +39,9 @@ func newGCJournal(ctx context.Context, tree kvtx.BlockTx, write bool) (*gcJourna
 	}
 	j := &gcJournal{tree: tree}
 	seqData, found, err := tree.Get(ctx, gcJournalSeqKey)
+	if stderrors.Is(err, block.ErrNotFound) {
+		err = nil
+	}
 	if err != nil {
 		return nil, errors.Wrap(err, "get gc journal sequence")
 	}
@@ -47,6 +51,10 @@ func newGCJournal(ctx context.Context, tree kvtx.BlockTx, write bool) (*gcJourna
 		}
 		j.seq = binary.BigEndian.Uint64(seqData)
 		countData, found, err := tree.Get(ctx, gcJournalCountKey)
+		if stderrors.Is(err, block.ErrNotFound) {
+			err = nil
+			found = false
+		}
 		if err != nil {
 			return nil, errors.Wrap(err, "get gc journal count")
 		}
@@ -70,6 +78,9 @@ func newGCJournal(ctx context.Context, tree kvtx.BlockTx, write bool) (*gcJourna
 		}
 		return nil
 	})
+	if stderrors.Is(err, block.ErrNotFound) {
+		err = nil
+	}
 	if err != nil {
 		return nil, errors.Wrap(err, "scan gc journal")
 	}

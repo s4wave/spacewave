@@ -89,3 +89,39 @@ func TestFSCursor(t *testing.T) {
 		t.Fatal("test data mismatch")
 	}
 }
+
+func TestAccessUnixFSValueResolverRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	unixFsID := "test-fs"
+	accessCtrl := unixfs_access.NewController(
+		tb.Logger,
+		tb.Bus,
+		controller.NewInfo("hydra/unixfs/access/roundtrip-test", controller.MustParseVersion("0.0.1"), "access roundtrip test unixfs"),
+		[]string{unixFsID},
+		func(context.Context, func()) (*unixfs.FSHandle, func(), error) {
+			return nil, nil, nil
+		},
+	)
+	accessRel, err := tb.Bus.AddController(ctx, accessCtrl, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer accessRel()
+
+	accessUfs, ufsRef, err := unixfs_access.ExAccessUnixFS(ctx, tb.Bus, unixFsID, false, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ufsRef.Release()
+	if accessUfs == nil {
+		t.Fatal("expected access function")
+	}
+}

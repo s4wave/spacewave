@@ -96,4 +96,121 @@ pub struct ApplyTxOp {
     #[prost(message, optional, tag="1")]
     pub tx: ::core::option::Option<super::super::super::world::block::tx::Tx>,
 }
+/// SpaceWorldFinalizationPacket is submitted by a follower after it has produced
+/// candidate World content but before any SharedObject root is finalized.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SpaceWorldFinalizationPacket {
+    /// BaseSharedObjectRoot is the SharedObject root observed before candidate work.
+    #[prost(message, optional, tag="1")]
+    pub base_shared_object_root: ::core::option::Option<super::super::SoRoot>,
+    /// BaseWorldRoot is the World root observed before candidate work.
+    #[prost(message, optional, tag="2")]
+    pub base_world_root: ::core::option::Option<super::super::super::bucket::ObjectRef>,
+    /// CandidateWorldRoot is the follower-produced candidate World root.
+    #[prost(message, optional, tag="3")]
+    pub candidate_world_root: ::core::option::Option<super::super::super::bucket::ObjectRef>,
+    /// CandidateContentId identifies the candidate content/op payload being finalized.
+    #[prost(bytes="vec", tag="4")]
+    pub candidate_content_id: ::prost::alloc::vec::Vec<u8>,
+    /// StorageGeneration is the storage coordinator generation observed by the follower.
+    #[prost(uint64, tag="5")]
+    pub storage_generation: u64,
+    /// AuthorityEpoch identifies the leader/daemon authority epoch observed by the follower.
+    #[prost(uint64, tag="6")]
+    pub authority_epoch: u64,
+    /// BlocksAvailable is true when the follower believes candidate blocks are readable by the authority owner.
+    #[prost(bool, tag="7")]
+    pub blocks_available: bool,
+    /// Op is the SharedObject World operation that produced the candidate root.
+    #[prost(message, optional, tag="8")]
+    pub op: ::core::option::Option<SoWorldOp>,
+    /// FollowerParticipantId identifies the submitting follower.
+    #[prost(string, tag="9")]
+    pub follower_participant_id: ::prost::alloc::string::String,
+    /// LocalOperationId lets the follower correlate accepted/rejected decisions.
+    #[prost(string, tag="10")]
+    pub local_operation_id: ::prost::alloc::string::String,
+}
+/// SpaceWorldFinalizationDecision is returned by the leader or Spacewave daemon.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SpaceWorldFinalizationDecision {
+    /// Status is the accept/reject/fence result.
+    #[prost(enumeration="SpaceWorldFinalizationStatus", tag="1")]
+    pub status: i32,
+    /// AcceptedSharedObjectRoot is set only when status is ACCEPTED.
+    #[prost(message, optional, tag="2")]
+    pub accepted_shared_object_root: ::core::option::Option<super::super::SoRoot>,
+    /// AcceptedWorldRoot is set only when status is ACCEPTED.
+    #[prost(message, optional, tag="3")]
+    pub accepted_world_root: ::core::option::Option<super::super::super::bucket::ObjectRef>,
+    /// Error explains rejected or retryable decisions.
+    #[prost(string, tag="4")]
+    pub error: ::prost::alloc::string::String,
+    /// Retryable indicates the follower may refresh and resubmit a new packet.
+    #[prost(bool, tag="5")]
+    pub retryable: bool,
+    /// LocalOperationId echoes the packet local id for follower correlation.
+    #[prost(string, tag="6")]
+    pub local_operation_id: ::prost::alloc::string::String,
+}
+/// SpaceWorldRejectedCandidate records follower-local retention bookkeeping for
+/// a candidate that authority did not accept. The record does not grant any
+/// leader-side block deletion authority.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SpaceWorldRejectedCandidate {
+    /// Packet is the candidate submission that was not accepted.
+    #[prost(message, optional, tag="1")]
+    pub packet: ::core::option::Option<SpaceWorldFinalizationPacket>,
+    /// Decision is the non-accepted authority outcome.
+    #[prost(message, optional, tag="2")]
+    pub decision: ::core::option::Option<SpaceWorldFinalizationDecision>,
+    /// RetainedUnixNano records when the follower retained cleanup bookkeeping.
+    #[prost(uint64, tag="3")]
+    pub retained_unix_nano: u64,
+}
+/// SpaceWorldFinalizationStatus is the authority owner's decision for a packet.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SpaceWorldFinalizationStatus {
+    /// SPACE_WORLD_FINALIZATION_STATUS_UNKNOWN is invalid.
+    Unknown = 0,
+    /// SPACE_WORLD_FINALIZATION_STATUS_ACCEPTED means the SharedObject root was finalized.
+    Accepted = 1,
+    /// SPACE_WORLD_FINALIZATION_STATUS_REJECTED means the candidate is not accepted and should be retained follower-side only.
+    Rejected = 2,
+    /// SPACE_WORLD_FINALIZATION_STATUS_STALE_BASE means the candidate was based on stale SharedObject or World state.
+    StaleBase = 3,
+    /// SPACE_WORLD_FINALIZATION_STATUS_MISSING_BLOCK means the authority owner could not read candidate blocks.
+    MissingBlock = 4,
+    /// SPACE_WORLD_FINALIZATION_STATUS_LOST_AUTHORITY means the contacted owner no longer holds finalization authority.
+    LostAuthority = 5,
+}
+impl SpaceWorldFinalizationStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unknown => "SPACE_WORLD_FINALIZATION_STATUS_UNKNOWN",
+            Self::Accepted => "SPACE_WORLD_FINALIZATION_STATUS_ACCEPTED",
+            Self::Rejected => "SPACE_WORLD_FINALIZATION_STATUS_REJECTED",
+            Self::StaleBase => "SPACE_WORLD_FINALIZATION_STATUS_STALE_BASE",
+            Self::MissingBlock => "SPACE_WORLD_FINALIZATION_STATUS_MISSING_BLOCK",
+            Self::LostAuthority => "SPACE_WORLD_FINALIZATION_STATUS_LOST_AUTHORITY",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SPACE_WORLD_FINALIZATION_STATUS_UNKNOWN" => Some(Self::Unknown),
+            "SPACE_WORLD_FINALIZATION_STATUS_ACCEPTED" => Some(Self::Accepted),
+            "SPACE_WORLD_FINALIZATION_STATUS_REJECTED" => Some(Self::Rejected),
+            "SPACE_WORLD_FINALIZATION_STATUS_STALE_BASE" => Some(Self::StaleBase),
+            "SPACE_WORLD_FINALIZATION_STATUS_MISSING_BLOCK" => Some(Self::MissingBlock),
+            "SPACE_WORLD_FINALIZATION_STATUS_LOST_AUTHORITY" => Some(Self::LostAuthority),
+            _ => None,
+        }
+    }
+}
 // @@protoc_insertion_point(module)

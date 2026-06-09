@@ -8,6 +8,8 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	"github.com/s4wave/spacewave/db/coord"
+	coord_inmem "github.com/s4wave/spacewave/db/coord/inmem"
 	"github.com/s4wave/spacewave/db/kvtx"
 	hstore "github.com/s4wave/spacewave/db/store"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
@@ -25,6 +27,8 @@ type Volume struct {
 	volumeID string
 	// Store is the hydra store.
 	hstore.Store
+	// Coordinator coordinates direct multi-writer ObjectStore access.
+	coord.Coordinator
 	// Peer indicates the volume has a peer identity.
 	peer.Peer
 	// kvtxStore is the underlying kvtx store
@@ -87,7 +91,12 @@ func NewVolume(
 	if len(deleteFn) != 0 {
 		v.deleteFn = deleteFn[0]
 	}
-	return initVolume(ctx, v, storeID, store, noGenerateKey, noWriteKey)
+	v, err := initVolume(ctx, v, storeID, store, noGenerateKey, noWriteKey)
+	if err != nil {
+		return nil, err
+	}
+	v.Coordinator = coord_inmem.ForVolume(v.GetID())
+	return v, nil
 }
 
 // NewVolumeWithBlockStore builds a key/value volume with a custom block store.
@@ -117,7 +126,12 @@ func NewVolumeWithBlockStore(
 	if len(deleteFn) != 0 {
 		v.deleteFn = deleteFn[0]
 	}
-	return initVolume(ctx, v, storeID, store, noGenerateKey, noWriteKey)
+	v, err := initVolume(ctx, v, storeID, store, noGenerateKey, noWriteKey)
+	if err != nil {
+		return nil, err
+	}
+	v.Coordinator = coord_inmem.ForVolume(v.GetID())
+	return v, nil
 }
 
 // NewVolumeWithBlockStoreAndGC builds a key/value volume with a custom block
@@ -147,7 +161,12 @@ func NewVolumeWithBlockStoreAndGC(
 	if len(deleteFn) != 0 {
 		v.deleteFn = deleteFn[0]
 	}
-	return initVolumeSkipGC(ctx, v, storeID, noGenerateKey, noWriteKey)
+	v, err := initVolumeSkipGC(ctx, v, storeID, noGenerateKey, noWriteKey)
+	if err != nil {
+		return nil, err
+	}
+	v.Coordinator = coord_inmem.ForVolume(v.GetID())
+	return v, nil
 }
 
 // initVolume performs common volume initialization: peer key generation,

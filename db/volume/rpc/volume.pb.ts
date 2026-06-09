@@ -10,6 +10,7 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { StorageStats, VolumeInfo } from '../volume.pb.js'
+import { ObjectRef } from '../../bucket/bucket.pb.js'
 
 export const protobufPackage = 'volume.rpc'
 
@@ -98,6 +99,289 @@ export const GetVolumeInfoResponse: MessageType<GetVolumeInfoResponse> =
     typeName: 'volume.rpc.GetVolumeInfoResponse',
     fields: [
       { no: 1, name: 'volume_info', kind: 'message', T: () => VolumeInfo },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CoordinatorScope identifies a coordinated ObjectStore inside a Volume.
+ *
+ * @generated from message volume.rpc.CoordinatorScope
+ */
+export interface CoordinatorScope {
+  /**
+   * VolumeId is the owning Volume id.
+   *
+   * @generated from field: string volume_id = 1;
+   */
+  volumeId?: string
+  /**
+   * ObjectStoreId is the ObjectStore id inside the Volume.
+   *
+   * @generated from field: string object_store_id = 2;
+   */
+  objectStoreId?: string
+  /**
+   * ParticipantId identifies the process or handle performing the operation.
+   *
+   * @generated from field: string participant_id = 3;
+   */
+  participantId?: string
+}
+
+export const CoordinatorScope: MessageType<CoordinatorScope> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.rpc.CoordinatorScope',
+    fields: [
+      { no: 1, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'object_store_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'participant_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CoordinatorCapability describes direct coordination support for a scoped ObjectStore.
+ *
+ * @generated from message volume.rpc.CoordinatorCapability
+ */
+export interface CoordinatorCapability {
+  /**
+   * Supported is true when direct coordination is available.
+   *
+   * @generated from field: bool supported = 1;
+   */
+  supported?: boolean
+  /**
+   * Backend identifies the backend that would coordinate the scope.
+   *
+   * @generated from field: string backend = 2;
+   */
+  backend?: string
+  /**
+   * VolumeId is the owning Volume id.
+   *
+   * @generated from field: string volume_id = 3;
+   */
+  volumeId?: string
+  /**
+   * ObjectStoreId is the ObjectStore id inside the Volume.
+   *
+   * @generated from field: string object_store_id = 4;
+   */
+  objectStoreId?: string
+  /**
+   * Generation is the latest durable generation observed by the coordinator.
+   *
+   * @generated from field: uint64 generation = 5;
+   */
+  generation?: bigint
+  /**
+   * FallbackReason explains why Supported is false.
+   *
+   * @generated from field: string fallback_reason = 6;
+   */
+  fallbackReason?: string
+}
+
+export const CoordinatorCapability: MessageType<CoordinatorCapability> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.rpc.CoordinatorCapability',
+    fields: [
+      { no: 1, name: 'supported', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'backend', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'object_store_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'generation', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 6, name: 'fallback_reason', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CoordinatorEvent reports a coordination state change for a scoped ObjectStore.
+ *
+ * @generated from message volume.rpc.CoordinatorEvent
+ */
+export interface CoordinatorEvent {
+  /**
+   * ProcessId identifies the process that produced or requested the event.
+   *
+   * @generated from field: string process_id = 1;
+   */
+  processId?: string
+  /**
+   * VolumeId is the owning Volume id.
+   *
+   * @generated from field: string volume_id = 2;
+   */
+  volumeId?: string
+  /**
+   * ObjectStoreId is the ObjectStore id inside the Volume.
+   *
+   * @generated from field: string object_store_id = 3;
+   */
+  objectStoreId?: string
+  /**
+   * Generation is the durable generation associated with this event.
+   *
+   * @generated from field: uint64 generation = 4;
+   */
+  generation?: bigint
+  /**
+   * WantLock is true when another participant is waiting for the write lease.
+   *
+   * @generated from field: bool want_lock = 5;
+   */
+  wantLock?: boolean
+  /**
+   * Unlocked is true when a participant released the write lease.
+   *
+   * @generated from field: bool unlocked = 6;
+   */
+  unlocked?: boolean
+  /**
+   * RootChanged carries the accepted root after a commit.
+   *
+   * @generated from field: bucket.ObjectRef root_changed = 7;
+   */
+  rootChanged?: ObjectRef
+  /**
+   * KeyPrefixChanged carries a key prefix invalidated by a commit.
+   *
+   * @generated from field: bytes key_prefix_changed = 8;
+   */
+  keyPrefixChanged?: Uint8Array
+  /**
+   * FallbackReason carries a visible fallback reason when direct coordination fails.
+   *
+   * @generated from field: string fallback_reason = 9;
+   */
+  fallbackReason?: string
+}
+
+export const CoordinatorEvent: MessageType<CoordinatorEvent> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.rpc.CoordinatorEvent',
+    fields: [
+      { no: 1, name: 'process_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'object_store_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'generation', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 5, name: 'want_lock', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 6, name: 'unlocked', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 7, name: 'root_changed', kind: 'message', T: () => ObjectRef },
+      {
+        no: 8,
+        name: 'key_prefix_changed',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+      { no: 9, name: 'fallback_reason', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GetCoordinatorCapabilityRequest is a request to get direct coordination support.
+ *
+ * @generated from message volume.rpc.GetCoordinatorCapabilityRequest
+ */
+export interface GetCoordinatorCapabilityRequest {
+  /**
+   * Scope identifies the coordinated ObjectStore.
+   *
+   * @generated from field: volume.rpc.CoordinatorScope scope = 1;
+   */
+  scope?: CoordinatorScope
+}
+
+export const GetCoordinatorCapabilityRequest: MessageType<GetCoordinatorCapabilityRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.rpc.GetCoordinatorCapabilityRequest',
+    fields: [
+      { no: 1, name: 'scope', kind: 'message', T: () => CoordinatorScope },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GetCoordinatorCapabilityResponse is the response to coordinator capability negotiation.
+ *
+ * @generated from message volume.rpc.GetCoordinatorCapabilityResponse
+ */
+export interface GetCoordinatorCapabilityResponse {
+  /**
+   * Capability contains the direct coordination support report.
+   *
+   * @generated from field: volume.rpc.CoordinatorCapability capability = 1;
+   */
+  capability?: CoordinatorCapability
+}
+
+export const GetCoordinatorCapabilityResponse: MessageType<GetCoordinatorCapabilityResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.rpc.GetCoordinatorCapabilityResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'capability',
+        kind: 'message',
+        T: () => CoordinatorCapability,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WatchCoordinatorEventsRequest is a request to stream coordination events.
+ *
+ * @generated from message volume.rpc.WatchCoordinatorEventsRequest
+ */
+export interface WatchCoordinatorEventsRequest {
+  /**
+   * Scope identifies the coordinated ObjectStore.
+   *
+   * @generated from field: volume.rpc.CoordinatorScope scope = 1;
+   */
+  scope?: CoordinatorScope
+  /**
+   * AfterGeneration skips events at or before this generation.
+   *
+   * @generated from field: uint64 after_generation = 2;
+   */
+  afterGeneration?: bigint
+}
+
+export const WatchCoordinatorEventsRequest: MessageType<WatchCoordinatorEventsRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.rpc.WatchCoordinatorEventsRequest',
+    fields: [
+      { no: 1, name: 'scope', kind: 'message', T: () => CoordinatorScope },
+      { no: 2, name: 'after_generation', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WatchCoordinatorEventsResponse is a streamed coordination event response.
+ *
+ * @generated from message volume.rpc.WatchCoordinatorEventsResponse
+ */
+export interface WatchCoordinatorEventsResponse {
+  /**
+   * Event contains the coordination event.
+   *
+   * @generated from field: volume.rpc.CoordinatorEvent event = 1;
+   */
+  event?: CoordinatorEvent
+}
+
+export const WatchCoordinatorEventsResponse: MessageType<WatchCoordinatorEventsResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.rpc.WatchCoordinatorEventsResponse',
+    fields: [
+      { no: 1, name: 'event', kind: 'message', T: () => CoordinatorEvent },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -28,6 +28,103 @@ pub struct GetVolumeInfoResponse {
     #[prost(message, optional, tag="1")]
     pub volume_info: ::core::option::Option<super::VolumeInfo>,
 }
+/// CoordinatorScope identifies a coordinated ObjectStore inside a Volume.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CoordinatorScope {
+    /// VolumeId is the owning Volume id.
+    #[prost(string, tag="1")]
+    pub volume_id: ::prost::alloc::string::String,
+    /// ObjectStoreId is the ObjectStore id inside the Volume.
+    #[prost(string, tag="2")]
+    pub object_store_id: ::prost::alloc::string::String,
+    /// ParticipantId identifies the process or handle performing the operation.
+    #[prost(string, tag="3")]
+    pub participant_id: ::prost::alloc::string::String,
+}
+/// CoordinatorCapability describes direct coordination support for a scoped ObjectStore.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CoordinatorCapability {
+    /// Supported is true when direct coordination is available.
+    #[prost(bool, tag="1")]
+    pub supported: bool,
+    /// Backend identifies the backend that would coordinate the scope.
+    #[prost(string, tag="2")]
+    pub backend: ::prost::alloc::string::String,
+    /// VolumeId is the owning Volume id.
+    #[prost(string, tag="3")]
+    pub volume_id: ::prost::alloc::string::String,
+    /// ObjectStoreId is the ObjectStore id inside the Volume.
+    #[prost(string, tag="4")]
+    pub object_store_id: ::prost::alloc::string::String,
+    /// Generation is the latest durable generation observed by the coordinator.
+    #[prost(uint64, tag="5")]
+    pub generation: u64,
+    /// FallbackReason explains why Supported is false.
+    #[prost(string, tag="6")]
+    pub fallback_reason: ::prost::alloc::string::String,
+}
+/// CoordinatorEvent reports a coordination state change for a scoped ObjectStore.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CoordinatorEvent {
+    /// ProcessId identifies the process that produced or requested the event.
+    #[prost(string, tag="1")]
+    pub process_id: ::prost::alloc::string::String,
+    /// VolumeId is the owning Volume id.
+    #[prost(string, tag="2")]
+    pub volume_id: ::prost::alloc::string::String,
+    /// ObjectStoreId is the ObjectStore id inside the Volume.
+    #[prost(string, tag="3")]
+    pub object_store_id: ::prost::alloc::string::String,
+    /// Generation is the durable generation associated with this event.
+    #[prost(uint64, tag="4")]
+    pub generation: u64,
+    /// WantLock is true when another participant is waiting for the write lease.
+    #[prost(bool, tag="5")]
+    pub want_lock: bool,
+    /// Unlocked is true when a participant released the write lease.
+    #[prost(bool, tag="6")]
+    pub unlocked: bool,
+    /// RootChanged carries the accepted root after a commit.
+    #[prost(message, optional, tag="7")]
+    pub root_changed: ::core::option::Option<super::super::bucket::ObjectRef>,
+    /// KeyPrefixChanged carries a key prefix invalidated by a commit.
+    #[prost(bytes="vec", tag="8")]
+    pub key_prefix_changed: ::prost::alloc::vec::Vec<u8>,
+    /// FallbackReason carries a visible fallback reason when direct coordination fails.
+    #[prost(string, tag="9")]
+    pub fallback_reason: ::prost::alloc::string::String,
+}
+/// GetCoordinatorCapabilityRequest is a request to get direct coordination support.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetCoordinatorCapabilityRequest {
+    /// Scope identifies the coordinated ObjectStore.
+    #[prost(message, optional, tag="1")]
+    pub scope: ::core::option::Option<CoordinatorScope>,
+}
+/// GetCoordinatorCapabilityResponse is the response to coordinator capability negotiation.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetCoordinatorCapabilityResponse {
+    /// Capability contains the direct coordination support report.
+    #[prost(message, optional, tag="1")]
+    pub capability: ::core::option::Option<CoordinatorCapability>,
+}
+/// WatchCoordinatorEventsRequest is a request to stream coordination events.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WatchCoordinatorEventsRequest {
+    /// Scope identifies the coordinated ObjectStore.
+    #[prost(message, optional, tag="1")]
+    pub scope: ::core::option::Option<CoordinatorScope>,
+    /// AfterGeneration skips events at or before this generation.
+    #[prost(uint64, tag="2")]
+    pub after_generation: u64,
+}
+/// WatchCoordinatorEventsResponse is a streamed coordination event response.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WatchCoordinatorEventsResponse {
+    /// Event contains the coordination event.
+    #[prost(message, optional, tag="1")]
+    pub event: ::core::option::Option<CoordinatorEvent>,
+}
 /// GetPeerPrivRequest is a request to get the volume peer privkey.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetPeerPrivRequest {

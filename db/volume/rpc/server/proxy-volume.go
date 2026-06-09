@@ -10,6 +10,7 @@ import (
 	rpc_block_server "github.com/s4wave/spacewave/db/block/rpc/server"
 	rpc_bucket "github.com/s4wave/spacewave/db/bucket/store/rpc"
 	rpc_bucket_server "github.com/s4wave/spacewave/db/bucket/store/rpc/server"
+	"github.com/s4wave/spacewave/db/coord"
 	rpc_object "github.com/s4wave/spacewave/db/object/rpc"
 	rpc_object_server "github.com/s4wave/spacewave/db/object/rpc/server"
 	"github.com/s4wave/spacewave/db/volume"
@@ -105,6 +106,65 @@ func (v *ProxyVolume) GetVolumeInfo(
 	return &volume_rpc.GetVolumeInfoResponse{
 		VolumeInfo: volInfo,
 	}, nil
+}
+
+// GetCoordinatorCapability reports the remote coordinator capability.
+func (v *ProxyVolume) GetCoordinatorCapability(
+	ctx context.Context,
+	req *volume_rpc.GetCoordinatorCapabilityRequest,
+) (*volume_rpc.GetCoordinatorCapabilityResponse, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	scope := req.GetScope().ToCoordScope()
+	if scope.VolumeID == "" {
+		scope.VolumeID = v.vol.GetID()
+	}
+
+	return &volume_rpc.GetCoordinatorCapabilityResponse{
+		Capability: volume_rpc.NewCoordinatorCapability(&coord.Capability{
+			Supported:      false,
+			Backend:        coord.BackendKindRPC,
+			VolumeID:       scope.VolumeID,
+			ObjectStoreID:  scope.ObjectStoreID,
+			FallbackReason: coord.FallbackReasonUnsupported,
+		}),
+	}, nil
+}
+
+// WatchCoordinatorEvents streams remote coordinator events.
+func (v *ProxyVolume) WatchCoordinatorEvents(
+	req *volume_rpc.WatchCoordinatorEventsRequest,
+	strm volume_rpc.SRPCProxyVolume_WatchCoordinatorEventsStream,
+) error {
+	ctx := strm.Context()
+	scope := req.GetScope().ToCoordScope()
+	if scope.VolumeID == "" {
+		scope.VolumeID = v.vol.GetID()
+	}
+
+	watch, err := v.vol.Watch(ctx, scope, req.GetAfterGeneration())
+	if err != nil {
+		return err
+	}
+	defer watch.Close()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case event, ok := <-watch.Events():
+			if !ok {
+				return nil
+			}
+			if err := strm.Send(&volume_rpc.WatchCoordinatorEventsResponse{
+				Event: volume_rpc.NewCoordinatorEvent(event),
+			}); err != nil {
+				return err
+			}
+		}
+	}
 }
 
 // GetPeerPriv returns the private key for the volume (if enabled).

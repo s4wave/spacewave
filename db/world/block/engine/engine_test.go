@@ -3,6 +3,7 @@ package world_block_engine_test
 import (
 	"context"
 	"errors"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -17,8 +18,11 @@ import (
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/util/blockenc"
+	"github.com/s4wave/spacewave/db/volume"
+	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
@@ -163,6 +167,275 @@ func TestWorldEngineController(t *testing.T) {
 	engTx.Discard()
 
 	// success
+}
+
+func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	boltPath := filepath.Join(t.TempDir(), "world-head-watch.bolt")
+	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVolumeConfig(&volume_bolt.Config{Path: boltPath}))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+	tb.StaticResolver.AddFactory(world_block_engine.NewFactory(tb.Bus))
+
+	volumeID := tb.Volume.GetID()
+	objectStoreID := "test-world-engine-head-watch-store"
+	bucketID := tb.BucketId
+	transformConf, err := block_transform.NewConfig(nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	initWorldRef := &bucket.ObjectRef{
+		BucketId:      bucketID,
+		TransformConf: transformConf,
+	}
+
+	startEngine := func(engineID string) (*world_block_engine.Controller, directive.Reference) {
+		engineConf := world_block_engine.NewConfig(
+			engineID,
+			volumeID, bucketID,
+			objectStoreID,
+			initWorldRef,
+			nil,
+			false,
+		)
+		worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(ctx, tb.Bus, engineConf)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if _, err := worldCtrl.GetWorldEngine(ctx); err != nil {
+			worldCtrlRef.Release()
+			t.Fatal(err.Error())
+		}
+		return worldCtrl, worldCtrlRef
+	}
+
+	writerCtrl, writerRef := startEngine("test-world-engine-head-watch-writer")
+	defer writerRef.Release()
+	readerCtrl, readerRef := startEngine("test-world-engine-head-watch-reader")
+	defer readerRef.Release()
+
+	writerEngine, err := writerCtrl.GetWorldEngine(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	readerEngine, err := readerCtrl.GetWorldEngine(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	externalLease, err := tb.Volume.WaitAcquireWriteLease(ctx, coord.Scope{
+		VolumeID:      volumeID,
+		ObjectStoreID: objectStoreID,
+		ParticipantID: "external-writer",
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	blockedTx := make(chan world.Tx, 1)
+	blockedErr := make(chan error, 1)
+	go func() {
+		tx, err := writerEngine.NewTransaction(ctx, true)
+		if err != nil {
+			blockedErr <- err
+			return
+		}
+		blockedTx <- tx
+	}()
+	select {
+	case err := <-blockedErr:
+		t.Fatalf("writer transaction failed while waiting for lease: %v", err)
+	case tx := <-blockedTx:
+		tx.Discard()
+		t.Fatal("writer transaction acquired while external coordinator lease was held")
+	case <-time.After(50 * time.Millisecond):
+	}
+	if err := externalLease.Release(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	select {
+	case err := <-blockedErr:
+		t.Fatalf("writer transaction failed after lease release: %v", err)
+	case tx := <-blockedTx:
+		tx.Discard()
+	case <-time.After(5 * time.Second):
+		t.Fatal("writer transaction did not acquire after external lease release")
+	}
+
+	writeRawHead := func(ref *bucket.ObjectRef) {
+		storeVal, _, storeRef, err := volume.ExBuildObjectStoreAPI(ctx, tb.Bus, false, objectStoreID, volumeID, nil)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer storeRef.Release()
+		ktx, err := storeVal.GetObjectStore().NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer ktx.Discard()
+		data, err := (&world_block_engine.HeadState{HeadRef: ref}).MarshalVT()
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if err := ktx.Set(ctx, []byte("world-head"), data); err != nil {
+			t.Fatal(err.Error())
+		}
+		if err := ktx.Commit(ctx); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	baseHead := writerEngine.(*world_block.Engine).GetRootRef()
+	staleTx, err := writerEngine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := staleTx.CreateObject(ctx, "coordinator-stale-head-object", nil); err != nil {
+		staleTx.Discard()
+		t.Fatal(err.Error())
+	}
+	writeRawHead(&bucket.ObjectRef{BucketId: bucketID})
+	if err := staleTx.Commit(ctx); !errors.Is(err, coord.ErrStaleGeneration) {
+		t.Fatalf("stale head commit error = %v, want ErrStaleGeneration", err)
+	}
+	writeRawHead(baseHead)
+
+	watchScope := coord.Scope{
+		VolumeID:      volumeID,
+		ObjectStoreID: objectStoreID,
+		ParticipantID: "watcher",
+	}
+	capability, err := tb.Volume.Capability(ctx, watchScope)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	watch, err := tb.Volume.Watch(ctx, watchScope, capability.Generation)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer watch.Close()
+
+	tx, err := writerEngine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := tx.CreateObject(ctx, "coordinator-head-watch-object", nil); err != nil {
+		tx.Discard()
+		t.Fatal(err.Error())
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	acceptedRoot := writerEngine.(*world_block.Engine).GetRootRef()
+	if acceptedRoot.Clone() == nil {
+		t.Fatalf("accepted root clone was nil: %#v", acceptedRoot)
+	}
+	publishedSnapshot, err := tb.Volume.Snapshot(ctx, watchScope)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if publishedSnapshot.Root == nil || !publishedSnapshot.Root.EqualsRef(acceptedRoot) {
+		t.Fatalf("published coordinator root = %#v, want %#v", publishedSnapshot.Root, acceptedRoot)
+	}
+
+	foundPublish := false
+	var seenEvents []coord.Event
+	publishCtx, publishCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer publishCancel()
+	for !foundPublish {
+		select {
+		case <-publishCtx.Done():
+			t.Fatalf("coordinator watch did not observe accepted world root publication; events=%+v", seenEvents)
+		case event, ok := <-watch.Events():
+			if !ok {
+				t.Fatal("coordinator watch closed before accepted world root publication")
+			}
+			seenEvents = append(seenEvents, event)
+			foundPublish = event.RootChanged != nil &&
+				event.RootChanged.EqualsRef(acceptedRoot) &&
+				string(event.KeyPrefixChanged) == "world-head"
+		}
+	}
+
+	firstWriterTx, err := writerEngine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := firstWriterTx.CreateObject(ctx, "coordinator-serialized-writer-a", nil); err != nil {
+		firstWriterTx.Discard()
+		t.Fatal(err.Error())
+	}
+	secondWriterTx := make(chan world.Tx, 1)
+	secondWriterErr := make(chan error, 1)
+	go func() {
+		tx, err := readerEngine.NewTransaction(ctx, true)
+		if err != nil {
+			secondWriterErr <- err
+			return
+		}
+		secondWriterTx <- tx
+	}()
+	select {
+	case err := <-secondWriterErr:
+		t.Fatalf("second writer failed while waiting for peer lease: %v", err)
+	case tx := <-secondWriterTx:
+		tx.Discard()
+		t.Fatal("second writer acquired while first standalone writer held lease")
+	case <-time.After(50 * time.Millisecond):
+	}
+	if err := firstWriterTx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	var secondTx world.Tx
+	select {
+	case err := <-secondWriterErr:
+		t.Fatalf("second writer failed after first writer commit: %v", err)
+	case secondTx = <-secondWriterTx:
+	case <-time.After(5 * time.Second):
+		t.Fatal("second writer did not acquire after first writer commit")
+	}
+	if _, err := secondTx.CreateObject(ctx, "coordinator-serialized-writer-b", nil); err != nil {
+		secondTx.Discard()
+		t.Fatal(err.Error())
+	}
+	if err := secondTx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	waitCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	for {
+		rtx, err := readerEngine.NewTransaction(waitCtx, false)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		_, foundWatchObject, err := rtx.GetObject(waitCtx, "coordinator-head-watch-object")
+		if err == nil && foundWatchObject {
+			_, foundWriterA, err := rtx.GetObject(waitCtx, "coordinator-serialized-writer-a")
+			if err == nil && foundWriterA {
+				_, foundWriterB, err := rtx.GetObject(waitCtx, "coordinator-serialized-writer-b")
+				if err == nil {
+					foundWatchObject = foundWriterB
+				}
+			}
+		}
+		rtx.Discard()
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if foundWatchObject {
+			return
+		}
+		select {
+		case <-waitCtx.Done():
+			t.Fatal("reader did not adopt durable world head from coordinator generation event")
+		case <-time.After(10 * time.Millisecond):
+		}
+	}
 }
 
 // TestWorldEngineController_DisableChangelog tests constructing the engine

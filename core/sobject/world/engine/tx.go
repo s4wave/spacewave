@@ -3,11 +3,14 @@ package sobject_world_engine
 import (
 	"context"
 
+	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
+	bifhash "github.com/s4wave/spacewave/net/hash"
 )
 
 // soEngineWriteTx is the write txn attached to the soEngine
@@ -103,41 +106,81 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 		return err
 	}
 
-	// queue the operation
-	var localOpID string
-	{
-		taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/queue-operation")
-		var err error
-		localOpID, err = t.eng.so.QueueOperation(taskCtx, opData)
-		task.End()
-		if err != nil {
-			return err
-		}
-	}
-	_ = localOpID
-
 	// build the next obj ref
 	baseObjRef := t.eng.bengine.GetRootRef() // clone of current (pre-commit) root
 	nextObjRef := baseObjRef.CloneVT()
 	nextObjRef.RootRef = nroot
+	baseStoredObjRef := baseObjRef.CloneVT()
+	baseStoredObjRef.BucketId = ""
+	nextStoredObjRef := nextObjRef.CloneVT()
+	nextStoredObjRef.BucketId = ""
+
+	contentID, err := bifhash.Sum(bifhash.HashType_HashType_SHA256, opData)
+	if err != nil {
+		return err
+	}
+	contentIDData, err := contentID.MarshalVT()
+	if err != nil {
+		return err
+	}
+
+	baseSharedObjectState, err := t.eng.so.GetSharedObjectState(ctx)
+	if err != nil {
+		return err
+	}
+	baseSharedObjectRoot, err := baseSharedObjectState.GetRootState(ctx)
+	if err != nil {
+		return err
+	}
+	if baseSharedObjectRoot == nil {
+		return errors.New("base SharedObject root is missing")
+	}
+	candidateBlocksAvailable, err := t.eng.so.GetBlockStore().GetBlockExists(ctx, nextObjRef.GetRootRef())
+	if err != nil {
+		return err
+	}
+	packet := &SpaceWorldFinalizationPacket{
+		BaseSharedObjectRoot:  baseSharedObjectRoot,
+		BaseWorldRoot:         baseStoredObjRef,
+		CandidateWorldRoot:    nextStoredObjRef,
+		CandidateContentId:    contentIDData,
+		BlocksAvailable:       candidateBlocksAvailable,
+		Op:                    op,
+		FollowerParticipantId: t.eng.so.GetPeerID().String(),
+		LocalOperationId:      sobject.NewSOOperationLocalID(),
+		StorageGeneration:     0,
+		AuthorityEpoch:        baseSharedObjectRoot.GetInnerSeqno(),
+	}
 
 	// Cache the commit result for replay adoption. Watch-state and
 	// validator can adopt this instead of re-executing processOp when
 	// the base root ref and op bytes match.
 	{
-		cachedHeadRef := nextObjRef.CloneVT()
-		cachedHeadRef.BucketId = ""
 		t.eng.c.lastCommitResult.Store(&commitResult{
 			baseRootRef: baseObjRef.GetRootRef(),
 			opData:      opData,
-			resultState: &InnerState{HeadRef: cachedHeadRef},
+			resultState: &InnerState{HeadRef: nextStoredObjRef.CloneVT()},
 		})
 	}
 
-	// Update the local state
+	var decision *SpaceWorldFinalizationDecision
+	{
+		taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/finalize-candidate")
+		var err error
+		decision, err = t.eng.finalizeSpaceWorldCandidate(taskCtx, packet, opData)
+		task.End()
+		if err != nil {
+			return err
+		}
+	}
+	if decision.GetStatus() != SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_ACCEPTED {
+		return errors.New(decision.GetError())
+	}
+
+	// Update the local state only after SharedObject authority accepts the root.
 	{
 		taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/update-engine-state")
-		err := t.eng.updateEngineState(taskCtx, nextObjRef)
+		err := t.eng.updateEngineState(taskCtx, decision.GetAcceptedWorldRoot())
 		task.End()
 		if err != nil {
 			return err
@@ -147,17 +190,6 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 	t.eng.c.notifyGCSweepMaintenance()
 
 	release()
-	{
-		taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/wait-operation")
-		_, rejected, err := t.eng.so.WaitOperation(taskCtx, localOpID)
-		task.End()
-		if err != nil {
-			if rejected {
-				_ = t.eng.so.ClearOperationResult(ctx, localOpID)
-			}
-			return err
-		}
-	}
 
 	// done
 	return nil

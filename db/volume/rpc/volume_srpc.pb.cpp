@@ -61,6 +61,22 @@ starpc::Error SRPCProxyVolumeClientImpl::GetVolumeInfo(const volume::rpc::GetVol
   return cc_->ExecCall(service_id_, "GetVolumeInfo", in, out);
 }
 
+starpc::Error SRPCProxyVolumeClientImpl::GetCoordinatorCapability(const volume::rpc::GetCoordinatorCapabilityRequest& in, volume::rpc::GetCoordinatorCapabilityResponse* out) {
+  return cc_->ExecCall(service_id_, "GetCoordinatorCapability", in, out);
+}
+
+std::pair<std::unique_ptr<SRPCProxyVolume_WatchCoordinatorEventsClient>, starpc::Error> SRPCProxyVolumeClientImpl::WatchCoordinatorEvents(const volume::rpc::WatchCoordinatorEventsRequest& in) {
+  auto [strm, err] = cc_->NewStream(service_id_, "WatchCoordinatorEvents", &in);
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  err = strm->CloseSend();
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::make_unique<SRPCProxyVolume_WatchCoordinatorEventsClient>(std::move(strm)), starpc::Error::OK};
+}
+
 starpc::Error SRPCProxyVolumeClientImpl::GetPeerPriv(const volume::rpc::GetPeerPrivRequest& in, volume::rpc::GetPeerPrivResponse* out) {
   return cc_->ExecCall(service_id_, "GetPeerPriv", in, out);
 }
@@ -72,6 +88,8 @@ starpc::Error SRPCProxyVolumeClientImpl::GetStorageStats(const volume::rpc::GetS
 std::vector<std::string> SRPCProxyVolumeHandler::GetMethodIDs() const {
   return {
     "GetVolumeInfo",
+    "GetCoordinatorCapability",
+    "WatchCoordinatorEvents",
     "GetPeerPriv",
     "GetStorageStats",
   };
@@ -93,6 +111,20 @@ std::pair<bool, starpc::Error> SRPCProxyVolumeHandler::InvokeMethod(
     err = impl_->GetVolumeInfo(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
+  } else if (method_id == "GetCoordinatorCapability") {
+    volume::rpc::GetCoordinatorCapabilityRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    volume::rpc::GetCoordinatorCapabilityResponse resp;
+    err = impl_->GetCoordinatorCapability(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "WatchCoordinatorEvents") {
+    volume::rpc::WatchCoordinatorEventsRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    SRPCProxyVolume_WatchCoordinatorEventsStream serverStrm(strm);
+    return {true, impl_->WatchCoordinatorEvents(req, &serverStrm)};
   } else if (method_id == "GetPeerPriv") {
     volume::rpc::GetPeerPrivRequest req;
     starpc::Error err = strm->MsgRecv(&req);

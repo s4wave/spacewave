@@ -12,7 +12,7 @@ import (
 // Note: this contains the seqno of the tx if this is a transaction.
 func (e *EngineTx) GetSeqno(ctx context.Context) (uint64, error) {
 	var seqno uint64
-	err := e.performOp(func(tx *Tx) error {
+	err := e.performOp(ctx, func(tx *Tx) error {
 		var berr error
 		seqno, berr = tx.GetSeqno(ctx)
 		return berr

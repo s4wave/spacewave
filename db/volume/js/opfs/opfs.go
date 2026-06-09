@@ -10,6 +10,8 @@ import (
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/block/gc/gcgraph"
 	block_gc_wal "github.com/s4wave/spacewave/db/block/gc/wal"
+	coord_inmem "github.com/s4wave/spacewave/db/coord/inmem"
+	coord_opfs "github.com/s4wave/spacewave/db/coord/opfs"
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/opfs/filelock"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
@@ -171,6 +173,7 @@ func NewOpfs(
 	if err != nil {
 		return nil, err
 	}
+	vol.Coordinator = coord_opfs.NewCoordinator(meta, lockPrefix, coord_inmem.ForVolume(vol.GetID()))
 
 	// Store the WAL appender on the volume so the volume controller
 	// and bucket handles can propagate it to GCStoreOps instances.

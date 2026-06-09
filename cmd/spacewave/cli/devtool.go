@@ -136,7 +136,7 @@ func openDevtoolWorldEngine(
 		return nil, errors.Wrap(err, "access object store")
 	}
 
-	commitFn := func(nref *bucket.ObjectRef) error {
+	commitFn := func(ctx context.Context, _ *bucket.ObjectRef, nref *bucket.ObjectRef) error {
 		tx, err := store.NewTransaction(ctx, true)
 		if err != nil {
 			return errors.Wrap(err, "open object store tx")

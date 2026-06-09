@@ -43,6 +43,11 @@ func (b *objectStoreHandle) GetVolumeId() string {
 	return b.v.GetID()
 }
 
+// GetVolume returns the owning volume.
+func (b *objectStoreHandle) GetVolume() volume.Volume {
+	return b.v
+}
+
 // GetObjectStore returns the object store interface.
 func (b *objectStoreHandle) GetObjectStore() object.ObjectStore {
 	return b.objStore

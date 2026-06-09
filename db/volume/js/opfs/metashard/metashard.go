@@ -6,6 +6,7 @@ package metashard
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"syscall/js"
 
@@ -221,6 +222,32 @@ func (ms *MetaShard) Generation() uint64 {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 	return ms.generation
+}
+
+// RefreshGeneration reloads the committed superblock and returns its generation.
+func (ms *MetaShard) RefreshGeneration() (uint64, error) {
+	return ms.RefreshGenerationContext(context.Background())
+}
+
+// RefreshGenerationContext reloads the committed superblock and returns its generation.
+func (ms *MetaShard) RefreshGenerationContext(ctx context.Context) (uint64, error) {
+	release, err := filelock.AcquireWebLockContext(ctx, ms.lockPrefix+"/meta/write", false)
+	if err != nil {
+		return 0, errors.Wrap(err, "acquire meta read lock")
+	}
+
+	if err := ms.reloadCommittedState(); err != nil {
+		release()
+		if !IsCorruptError(err) {
+			return 0, errors.Wrap(err, "reload committed state")
+		}
+		if err := ms.recoverCorruptState(); err != nil {
+			return 0, errors.Wrap(err, "recover corrupt meta shard")
+		}
+		return ms.Generation(), nil
+	}
+	release()
+	return ms.Generation(), nil
 }
 
 // Close releases open metadata page-file handles.

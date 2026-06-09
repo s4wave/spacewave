@@ -188,6 +188,8 @@ class SRPCAccessVolumes_VolumeRpcStream {
 // Service ID for ProxyVolume
 constexpr const char* kSRPCProxyVolumeServiceID = "volume.rpc.ProxyVolume";
 
+class SRPCProxyVolume_WatchCoordinatorEventsClient;
+class SRPCProxyVolume_WatchCoordinatorEventsStream;
 
 // SRPCProxyVolumeClient is the client API for ProxyVolume service.
 class SRPCProxyVolumeClient {
@@ -199,6 +201,10 @@ class SRPCProxyVolumeClient {
 
   // GetVolumeInfo
   virtual starpc::Error GetVolumeInfo(const volume::rpc::GetVolumeInfoRequest& in, volume::rpc::GetVolumeInfoResponse* out) = 0;
+  // GetCoordinatorCapability
+  virtual starpc::Error GetCoordinatorCapability(const volume::rpc::GetCoordinatorCapabilityRequest& in, volume::rpc::GetCoordinatorCapabilityResponse* out) = 0;
+  // WatchCoordinatorEvents
+  virtual std::pair<std::unique_ptr<SRPCProxyVolume_WatchCoordinatorEventsClient>, starpc::Error> WatchCoordinatorEvents(const volume::rpc::WatchCoordinatorEventsRequest& in) = 0;
   // GetPeerPriv
   virtual starpc::Error GetPeerPriv(const volume::rpc::GetPeerPrivRequest& in, volume::rpc::GetPeerPrivResponse* out) = 0;
   // GetStorageStats
@@ -215,6 +221,10 @@ class SRPCProxyVolumeClientImpl : public SRPCProxyVolumeClient {
 
   // GetVolumeInfo
   virtual starpc::Error GetVolumeInfo(const volume::rpc::GetVolumeInfoRequest& in, volume::rpc::GetVolumeInfoResponse* out) override;
+  // GetCoordinatorCapability
+  virtual starpc::Error GetCoordinatorCapability(const volume::rpc::GetCoordinatorCapabilityRequest& in, volume::rpc::GetCoordinatorCapabilityResponse* out) override;
+  // WatchCoordinatorEvents
+  virtual std::pair<std::unique_ptr<SRPCProxyVolume_WatchCoordinatorEventsClient>, starpc::Error> WatchCoordinatorEvents(const volume::rpc::WatchCoordinatorEventsRequest& in) override;
   // GetPeerPriv
   virtual starpc::Error GetPeerPriv(const volume::rpc::GetPeerPrivRequest& in, volume::rpc::GetPeerPrivResponse* out) override;
   // GetStorageStats
@@ -237,6 +247,10 @@ class SRPCProxyVolumeServer {
 
   // GetVolumeInfo
   virtual starpc::Error GetVolumeInfo(const volume::rpc::GetVolumeInfoRequest& req, volume::rpc::GetVolumeInfoResponse* resp) = 0;
+  // GetCoordinatorCapability
+  virtual starpc::Error GetCoordinatorCapability(const volume::rpc::GetCoordinatorCapabilityRequest& req, volume::rpc::GetCoordinatorCapabilityResponse* resp) = 0;
+  // WatchCoordinatorEvents
+  virtual starpc::Error WatchCoordinatorEvents(const volume::rpc::WatchCoordinatorEventsRequest& req, SRPCProxyVolume_WatchCoordinatorEventsStream* strm) = 0;
   // GetPeerPriv
   virtual starpc::Error GetPeerPriv(const volume::rpc::GetPeerPrivRequest& req, volume::rpc::GetPeerPrivResponse* resp) = 0;
   // GetStorageStats
@@ -276,5 +290,40 @@ inline std::pair<std::unique_ptr<SRPCProxyVolumeHandler>, starpc::Error> SRPCReg
   }
   return {std::move(handler), starpc::Error::OK};
 }
+
+// SRPCProxyVolume_WatchCoordinatorEventsClient is the client stream for WatchCoordinatorEvents.
+class SRPCProxyVolume_WatchCoordinatorEventsClient {
+ public:
+  explicit SRPCProxyVolume_WatchCoordinatorEventsClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
+
+  starpc::Error Recv(volume::rpc::WatchCoordinatorEventsResponse* msg) {
+    return strm_->MsgRecv(msg);
+  }
+
+  starpc::Error CloseSend() { return strm_->CloseSend(); }
+  starpc::Error Close() { return strm_->Close(); }
+
+ private:
+  std::unique_ptr<starpc::Stream> strm_;
+};
+
+// SRPCProxyVolume_WatchCoordinatorEventsStream is the server stream for WatchCoordinatorEvents.
+class SRPCProxyVolume_WatchCoordinatorEventsStream {
+ public:
+  explicit SRPCProxyVolume_WatchCoordinatorEventsStream(starpc::Stream* strm) : strm_(strm) {}
+
+  starpc::Error Send(const volume::rpc::WatchCoordinatorEventsResponse& msg) {
+    return strm_->MsgSend(msg);
+  }
+
+  starpc::Error SendAndClose(const volume::rpc::WatchCoordinatorEventsResponse& msg) {
+    starpc::Error err = strm_->MsgSend(msg);
+    if (err != starpc::Error::OK) return err;
+    return strm_->CloseSend();
+  }
+
+ private:
+  starpc::Stream* strm_;
+};
 
 }  // namespace volume::rpc

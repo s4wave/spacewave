@@ -256,6 +256,10 @@ type SRPCProxyVolumeClient interface {
 
 	// GetVolumeInfo returns the basic volume information.
 	GetVolumeInfo(ctx context.Context, in *GetVolumeInfoRequest) (*GetVolumeInfoResponse, error)
+	// GetCoordinatorCapability reports direct coordination support for a scoped ObjectStore.
+	GetCoordinatorCapability(ctx context.Context, in *GetCoordinatorCapabilityRequest) (*GetCoordinatorCapabilityResponse, error)
+	// WatchCoordinatorEvents streams coordination events for a scoped ObjectStore.
+	WatchCoordinatorEvents(ctx context.Context, in *WatchCoordinatorEventsRequest) (SRPCProxyVolume_WatchCoordinatorEventsClient, error)
 	// GetPeerPriv returns the volume peer private key.
 	// Returns ErrPrivKeyUnavailable if the private key is unavailable.
 	GetPeerPriv(ctx context.Context, in *GetPeerPrivRequest) (*GetPeerPrivResponse, error)
@@ -290,6 +294,49 @@ func (c *srpcProxyVolumeClient) GetVolumeInfo(ctx context.Context, in *GetVolume
 	return out, nil
 }
 
+func (c *srpcProxyVolumeClient) GetCoordinatorCapability(ctx context.Context, in *GetCoordinatorCapabilityRequest) (*GetCoordinatorCapabilityResponse, error) {
+	out := new(GetCoordinatorCapabilityResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "GetCoordinatorCapability", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcProxyVolumeClient) WatchCoordinatorEvents(ctx context.Context, in *WatchCoordinatorEventsRequest) (SRPCProxyVolume_WatchCoordinatorEventsClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchCoordinatorEvents", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcProxyVolume_WatchCoordinatorEventsClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCProxyVolume_WatchCoordinatorEventsClient interface {
+	srpc.Stream
+	Recv() (*WatchCoordinatorEventsResponse, error)
+	RecvTo(*WatchCoordinatorEventsResponse) error
+}
+
+type srpcProxyVolume_WatchCoordinatorEventsClient struct {
+	srpc.Stream
+}
+
+func (x *srpcProxyVolume_WatchCoordinatorEventsClient) Recv() (*WatchCoordinatorEventsResponse, error) {
+	m := new(WatchCoordinatorEventsResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcProxyVolume_WatchCoordinatorEventsClient) RecvTo(m *WatchCoordinatorEventsResponse) error {
+	return x.MsgRecv(m)
+}
+
 func (c *srpcProxyVolumeClient) GetPeerPriv(ctx context.Context, in *GetPeerPrivRequest) (*GetPeerPrivResponse, error) {
 	out := new(GetPeerPrivResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "GetPeerPriv", in, out)
@@ -311,6 +358,10 @@ func (c *srpcProxyVolumeClient) GetStorageStats(ctx context.Context, in *GetStor
 type SRPCProxyVolumeServer interface {
 	// GetVolumeInfo returns the basic volume information.
 	GetVolumeInfo(context.Context, *GetVolumeInfoRequest) (*GetVolumeInfoResponse, error)
+	// GetCoordinatorCapability reports direct coordination support for a scoped ObjectStore.
+	GetCoordinatorCapability(context.Context, *GetCoordinatorCapabilityRequest) (*GetCoordinatorCapabilityResponse, error)
+	// WatchCoordinatorEvents streams coordination events for a scoped ObjectStore.
+	WatchCoordinatorEvents(*WatchCoordinatorEventsRequest, SRPCProxyVolume_WatchCoordinatorEventsStream) error
 	// GetPeerPriv returns the volume peer private key.
 	// Returns ErrPrivKeyUnavailable if the private key is unavailable.
 	GetPeerPriv(context.Context, *GetPeerPrivRequest) (*GetPeerPrivResponse, error)
@@ -345,6 +396,8 @@ func (d *SRPCProxyVolumeHandler) GetServiceID() string { return d.serviceID }
 func (SRPCProxyVolumeHandler) GetMethodIDs() []string {
 	return []string{
 		"GetVolumeInfo",
+		"GetCoordinatorCapability",
+		"WatchCoordinatorEvents",
 		"GetPeerPriv",
 		"GetStorageStats",
 	}
@@ -361,6 +414,10 @@ func (d *SRPCProxyVolumeHandler) InvokeMethod(
 	switch methodID {
 	case "GetVolumeInfo":
 		return true, d.InvokeMethod_GetVolumeInfo(d.impl, strm)
+	case "GetCoordinatorCapability":
+		return true, d.InvokeMethod_GetCoordinatorCapability(d.impl, strm)
+	case "WatchCoordinatorEvents":
+		return true, d.InvokeMethod_WatchCoordinatorEvents(d.impl, strm)
 	case "GetPeerPriv":
 		return true, d.InvokeMethod_GetPeerPriv(d.impl, strm)
 	case "GetStorageStats":
@@ -380,6 +437,27 @@ func (SRPCProxyVolumeHandler) InvokeMethod_GetVolumeInfo(impl SRPCProxyVolumeSer
 		return err
 	}
 	return strm.MsgSend(out)
+}
+
+func (SRPCProxyVolumeHandler) InvokeMethod_GetCoordinatorCapability(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(GetCoordinatorCapabilityRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.GetCoordinatorCapability(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCProxyVolumeHandler) InvokeMethod_WatchCoordinatorEvents(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(WatchCoordinatorEventsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcProxyVolume_WatchCoordinatorEventsStream{strm}
+	return impl.WatchCoordinatorEvents(req, serverStrm)
 }
 
 func (SRPCProxyVolumeHandler) InvokeMethod_GetPeerPriv(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
@@ -412,6 +490,37 @@ type SRPCProxyVolume_GetVolumeInfoStream interface {
 
 type srpcProxyVolume_GetVolumeInfoStream struct {
 	srpc.Stream
+}
+
+type SRPCProxyVolume_GetCoordinatorCapabilityStream interface {
+	srpc.Stream
+}
+
+type srpcProxyVolume_GetCoordinatorCapabilityStream struct {
+	srpc.Stream
+}
+
+type SRPCProxyVolume_WatchCoordinatorEventsStream interface {
+	srpc.Stream
+	Send(*WatchCoordinatorEventsResponse) error
+	SendAndClose(*WatchCoordinatorEventsResponse) error
+}
+
+type srpcProxyVolume_WatchCoordinatorEventsStream struct {
+	srpc.Stream
+}
+
+func (x *srpcProxyVolume_WatchCoordinatorEventsStream) Send(m *WatchCoordinatorEventsResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcProxyVolume_WatchCoordinatorEventsStream) SendAndClose(m *WatchCoordinatorEventsResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
 }
 
 type SRPCProxyVolume_GetPeerPrivStream interface {

@@ -63,6 +63,11 @@ func (l *lsoStateSnapshot) GetRootInner(ctx context.Context) (*sobject.SORootInn
 	return l.h.GetRootInner(ctx)
 }
 
+// GetRootState returns the raw SharedObject root.
+func (l *lsoStateSnapshot) GetRootState(ctx context.Context) (*sobject.SORoot, error) {
+	return l.h.GetRootState(ctx)
+}
+
 // GetTransformInfo returns redacted transform configuration for display.
 func (l *lsoStateSnapshot) GetTransformInfo(ctx context.Context) (*sobject.TransformInfo, error) {
 	return l.h.GetTransformInfo(ctx)

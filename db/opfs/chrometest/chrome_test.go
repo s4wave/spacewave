@@ -1024,6 +1024,33 @@ func TestOpfsChromeVolumeRuntimeSlice(t *testing.T) {
 	})
 }
 
+func TestOpfsChromeVolumeCoordinator(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-volume-coord-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario: "volume-coord-local",
+		root:     root,
+		shards:   defaultShards,
+	})
+	s.runWorkersStaged(t, []workerArgs{{
+		scenario: "volume-coord-watch",
+		root:     root,
+		shards:   defaultShards,
+	}}, []workerArgs{{
+		scenario: "volume-coord-broadcast",
+		root:     root,
+		shards:   defaultShards,
+	}})
+}
+
 func TestOpfsChromeVolumeRuntimeResetsCurrentV1Root(t *testing.T) {
 	requireChromeProfile(t, chromeSmoke)
 	h := newChromeHarness(t)
@@ -1106,6 +1133,24 @@ func TestOpfsChromeWorldInitUnixFS(t *testing.T) {
 	})
 	s.runWorker(t, workerArgs{
 		scenario: "world-init-unixfs",
+		root:     root,
+		shards:   defaultShards,
+	})
+}
+
+func TestOpfsChromeWorldCoordinatorMultiWriter(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-world-coord-multi-writer-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario: "world-coord-multi-writer",
 		root:     root,
 		shards:   defaultShards,
 	})

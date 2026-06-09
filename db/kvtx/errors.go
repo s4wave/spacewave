@@ -19,4 +19,7 @@ var (
 	ErrKvtxSizeUnimplemented = errors.New("kvtx store does not support size lookup")
 	// ErrNotFound is returned if the key was not found.
 	ErrNotFound = errors.New("key was not found")
+	// ErrInvalidSnapshot is returned when a transaction's storage snapshot can
+	// no longer be trusted and the caller must reopen at a fresh generation.
+	ErrInvalidSnapshot = errors.New("kvtx snapshot is invalid")
 )

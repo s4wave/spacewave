@@ -2,9 +2,15 @@ package world_block
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"strings"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/coord"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
@@ -42,7 +48,7 @@ func (e *EngineTx) ApplyWorldOp(
 ) (uint64, bool, error) {
 	var outSeqno uint64
 	var outSysErr bool
-	err := e.performOp(func(tx *Tx) error {
+	err := e.performOp(ctx, func(tx *Tx) error {
 		var berr error
 		outSeqno, outSysErr, berr = tx.ApplyWorldOp(ctx, op, opSender)
 		return berr
@@ -54,7 +60,7 @@ func (e *EngineTx) ApplyWorldOp(
 // Returns ErrObjectExists if the object already exists.
 func (e *EngineTx) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
 	var obj world.ObjectState
-	if err := e.performOp(func(tx *Tx) error {
+	if err := e.performOp(ctx, func(tx *Tx) error {
 		var err error
 		obj, err = tx.CreateObject(ctx, key, rootRef)
 		return err
@@ -71,7 +77,7 @@ func (e *EngineTx) GetObject(ctx context.Context, key string) (world.ObjectState
 	// check if object exists
 	var found bool
 	var obj world.ObjectState
-	err := e.performOp(func(tx *Tx) error {
+	err := e.performOp(ctx, func(tx *Tx) error {
 		var nerr error
 		obj, found, nerr = tx.GetObject(ctx, key)
 		return nerr
@@ -101,7 +107,7 @@ func (e *EngineTx) IterateObjects(ctx context.Context, prefix string, reversed b
 // Returns false, nil if not found.
 func (e *EngineTx) DeleteObject(ctx context.Context, key string) (bool, error) {
 	var deleted bool
-	err := e.performOp(func(tx *Tx) error {
+	err := e.performOp(ctx, func(tx *Tx) error {
 		var nerr error
 		deleted, nerr = tx.DeleteObject(ctx, key)
 		return nerr
@@ -112,7 +118,7 @@ func (e *EngineTx) DeleteObject(ctx context.Context, key string) (bool, error) {
 // RenameObject renames an object key and updates associated graph quads.
 func (e *EngineTx) RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (world.ObjectState, error) {
 	var obj world.ObjectState
-	if err := e.performOp(func(tx *Tx) error {
+	if err := e.performOp(ctx, func(tx *Tx) error {
 		var err error
 		obj, err = tx.RenameObject(ctx, oldKey, newKey, descendants)
 		return err
@@ -128,7 +134,7 @@ func (e *EngineTx) RenameObject(ctx context.Context, oldKey, newKey string, desc
 // Try to make access (queries) as short as possible.
 // Write operations will fail if the store is read-only.
 func (e *EngineTx) AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h world.CayleyHandle) error) error {
-	return e.performOp(func(tx *Tx) error {
+	return e.performOp(ctx, func(tx *Tx) error {
 		return tx.AccessCayleyGraph(ctx, write, cb)
 	})
 }
@@ -136,7 +142,7 @@ func (e *EngineTx) AccessCayleyGraph(ctx context.Context, write bool, cb func(ct
 // LookupGraphQuads searches for graph quads in the store.
 func (e *EngineTx) LookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
 	var quads []world.GraphQuad
-	err := e.performOp(func(tx *Tx) error {
+	err := e.performOp(ctx, func(tx *Tx) error {
 		var berr error
 		quads, berr = tx.LookupGraphQuads(ctx, filter, limit)
 		return berr
@@ -147,7 +153,7 @@ func (e *EngineTx) LookupGraphQuads(ctx context.Context, filter world.GraphQuad,
 // LookupGraphQuadsBatch searches for graph quads for each filter in one transaction operation.
 func (e *EngineTx) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
 	var results [][]world.GraphQuad
-	err := e.performOp(func(tx *Tx) error {
+	err := e.performOp(ctx, func(tx *Tx) error {
 		var berr error
 		results, berr = tx.LookupGraphQuadsBatch(ctx, filters, limitPerFilter)
 		return berr
@@ -158,7 +164,7 @@ func (e *EngineTx) LookupGraphQuadsBatch(ctx context.Context, filters []world.Gr
 // QueryGraphPath executes a bounded graph traversal.
 func (e *EngineTx) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
 	var result *world.GraphPathQueryResult
-	err := e.performOp(func(tx *Tx) error {
+	err := e.performOp(ctx, func(tx *Tx) error {
 		var berr error
 		result, berr = tx.QueryGraphPath(ctx, query)
 		return berr
@@ -172,7 +178,7 @@ func (e *EngineTx) QueryGraphPath(ctx context.Context, query *world.GraphPathQue
 // Object: an existing object IRI: <object-key>
 // If already exists, returns nil.
 func (e *EngineTx) SetGraphQuad(ctx context.Context, q world.GraphQuad) error {
-	return e.performOp(func(tx *Tx) error {
+	return e.performOp(ctx, func(tx *Tx) error {
 		return tx.SetGraphQuad(ctx, q)
 	})
 }
@@ -180,7 +186,7 @@ func (e *EngineTx) SetGraphQuad(ctx context.Context, q world.GraphQuad) error {
 // DeleteGraphQuad deletes a quad from the graph store.
 // Note: if quad did not exist, returns nil.
 func (e *EngineTx) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) error {
-	return e.performOp(func(tx *Tx) error {
+	return e.performOp(ctx, func(tx *Tx) error {
 		return tx.DeleteGraphQuad(ctx, q)
 	})
 }
@@ -188,7 +194,7 @@ func (e *EngineTx) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) error
 // DeleteGraphObject deletes all quads with Subject or Object set to value.
 // May also remove objects with <predicate> or <value> set to the value.
 func (e *EngineTx) DeleteGraphObject(ctx context.Context, value string) error {
-	return e.performOp(func(tx *Tx) error {
+	return e.performOp(ctx, func(tx *Tx) error {
 		return tx.DeleteGraphObject(ctx, value)
 	})
 }
@@ -196,7 +202,7 @@ func (e *EngineTx) DeleteGraphObject(ctx context.Context, value string) error {
 // GarbageCollect sweeps unreferenced nodes from the GC ref graph.
 // Only valid on writable EngineTx instances with GC enabled.
 func (e *EngineTx) GarbageCollect(ctx context.Context) error {
-	return e.performOp(func(tx *Tx) error {
+	return e.performOp(ctx, func(tx *Tx) error {
 		_, err := tx.state.GarbageCollect(ctx)
 		return err
 	})
@@ -204,9 +210,27 @@ func (e *EngineTx) GarbageCollect(ctx context.Context) error {
 
 // performOp performs an operation while retrying if the read tx was discarded
 // if ErrTxDiscarded is returned, retries against the updated txn
-func (e *EngineTx) performOp(cb func(tx *Tx) error) error {
+func (e *EngineTx) performOp(ctx context.Context, cb func(tx *Tx) error) error {
 	if e.writeTx != nil {
-		return cb(e.writeTx)
+		err := cb(e.writeTx)
+		if e.lease != nil && isCoordinatedWriteSnapshotError(err) {
+			e.Discard()
+			return fmt.Errorf("coordinated write snapshot: %w: %v", coord.ErrStaleGeneration, err)
+		}
+		return err
+	}
+	if e.readTx != nil {
+		var err error
+		for tries := 0; tries <= maxEngineTxTries; tries++ {
+			err = cb(e.readTx)
+			if !isCoordinatedWriteSnapshotError(err) || e.engine.writeCoordinator == nil {
+				return err
+			}
+			if refreshErr := e.refreshReadSnapshot(ctx); refreshErr != nil {
+				return refreshErr
+			}
+		}
+		return err
 	}
 
 	tries := 0
@@ -231,6 +255,45 @@ func (e *EngineTx) performOp(cb func(tx *Tx) error) error {
 		}
 	}
 	return err
+}
+
+func (e *EngineTx) refreshReadSnapshot(ctx context.Context) error {
+	e.engine.rmtx.Lock()
+	defer e.engine.rmtx.Unlock()
+	if e.engine.closed {
+		return errors.New("world block engine is closed")
+	}
+	if e.engine.writeHeadRefresh != nil {
+		if err := e.engine.refreshDurableHeadLocked(ctx); err != nil {
+			return err
+		}
+	}
+	world, err := e.engine.buildWorldState(ctx, true)
+	if err != nil {
+		return err
+	}
+	if e.readTx != nil {
+		e.readTx.Discard()
+	}
+	e.readTx = NewTx(world)
+	return nil
+}
+
+func isCoordinatedWriteSnapshotError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, block.ErrNotFound) {
+		return true
+	}
+	if errors.Is(err, kvtx.ErrInvalidSnapshot) {
+		return true
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "panic: page ") ||
+		strings.Contains(msg, "panic: invalid page type") ||
+		strings.Contains(msg, "misplaced bucket header") ||
+		strings.Contains(msg, "circular dependency occurred")
 }
 
 // _ is a type assertion

@@ -8,6 +8,7 @@ import (
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/store"
 	"github.com/s4wave/spacewave/net/peer"
@@ -44,6 +45,9 @@ type Volume interface {
 
 	// Store indicates the volume is a hydra store.
 	store.Store
+
+	// Coordinator coordinates direct multi-writer ObjectStore access.
+	coord.Coordinator
 
 	// Close closes the volume, returning any errors.
 	Close() error
@@ -83,6 +87,8 @@ type ObjectStoreHandle interface {
 	GetID() string
 	// GetVolumeId returns the volume ID of the object store handle.
 	GetVolumeId() string
+	// GetVolume returns the owning volume for this object store handle.
+	GetVolume() Volume
 	// GetObjectStore returns the object store.
 	GetObjectStore() object.ObjectStore
 }

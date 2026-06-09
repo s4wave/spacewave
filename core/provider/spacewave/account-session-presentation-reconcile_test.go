@@ -322,6 +322,13 @@ func (s *testSessionPresentationSnapshot) GetRootInner(context.Context) (*sobjec
 	return s.rootInner, nil
 }
 
+func (s *testSessionPresentationSnapshot) GetRootState(context.Context) (*sobject.SORoot, error) {
+	if s.rootInner == nil {
+		return nil, nil
+	}
+	return &sobject.SORoot{InnerSeqno: s.rootInner.GetSeqno()}, nil
+}
+
 func (s *testSessionPresentationSnapshot) ProcessOperations(
 	context.Context,
 	[]*sobject.SOOperation,

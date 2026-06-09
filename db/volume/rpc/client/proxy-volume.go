@@ -11,6 +11,7 @@ import (
 	rpc_block_client "github.com/s4wave/spacewave/db/block/rpc/client"
 	rpc_bucket "github.com/s4wave/spacewave/db/bucket/store/rpc"
 	rpc_bucket_client "github.com/s4wave/spacewave/db/bucket/store/rpc/client"
+	"github.com/s4wave/spacewave/db/coord"
 	rpc_object "github.com/s4wave/spacewave/db/object/rpc"
 	rpc_object_client "github.com/s4wave/spacewave/db/object/rpc/client"
 	"github.com/s4wave/spacewave/db/volume"
@@ -25,6 +26,7 @@ type ProxyVolume struct {
 	*rpc_block_client.BlockStore
 	*rpc_bucket_client.BucketStore
 	*rpc_object_client.ObjectStore
+	coord.Coordinator
 
 	// client is the client to use
 	client volume_rpc.SRPCProxyVolumeClient
@@ -59,6 +61,7 @@ func NewProxyVolume(
 		BlockStore:  rpc_block_client.NewBlockStore(blockStoreClient, volInfo.ResolveHashType(), false),
 		BucketStore: rpc_bucket_client.NewBucketStore(bucketStoreClient),
 		ObjectStore: rpc_object_client.NewObjectStore(objectStoreClient),
+		Coordinator: NewCoordinator(proxyVolumeClient),
 
 		client:   proxyVolumeClient,
 		refGraph: refGraph,

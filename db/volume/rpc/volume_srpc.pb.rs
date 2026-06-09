@@ -173,11 +173,26 @@ impl<S: AccessVolumesServer + 'static> starpc::Handler for AccessVolumesHandler<
 /// Service ID for ProxyVolume.
 pub const PROXY_VOLUME_SERVICE_ID: &str = "volume.rpc.ProxyVolume";
 
+/// Stream trait for ProxyVolume.WatchCoordinatorEvents.
+#[starpc::async_trait]
+pub trait ProxyVolumeWatchCoordinatorEventsStream: Send + Sync {
+    /// Returns the context for this stream.
+    fn context(&self) -> &starpc::Context;
+    /// Receives a message from the stream.
+    async fn recv(&self) -> starpc::Result<WatchCoordinatorEventsResponse>;
+    /// Closes the stream.
+    async fn close(&self) -> starpc::Result<()>;
+}
+
 /// Client trait for ProxyVolume.
 #[starpc::async_trait]
 pub trait ProxyVolumeClient: Send + Sync {
     /// GetVolumeInfo.
     async fn get_volume_info(&self, request: &GetVolumeInfoRequest) -> starpc::Result<GetVolumeInfoResponse>;
+    /// GetCoordinatorCapability.
+    async fn get_coordinator_capability(&self, request: &GetCoordinatorCapabilityRequest) -> starpc::Result<GetCoordinatorCapabilityResponse>;
+    /// WatchCoordinatorEvents.
+    async fn watch_coordinator_events(&self, request: &WatchCoordinatorEventsRequest) -> starpc::Result<Box<dyn ProxyVolumeWatchCoordinatorEventsStream>>;
     /// GetPeerPriv.
     async fn get_peer_priv(&self, request: &GetPeerPrivRequest) -> starpc::Result<GetPeerPrivResponse>;
     /// GetStorageStats.
@@ -201,6 +216,16 @@ impl<C: starpc::Client + 'static> ProxyVolumeClient for ProxyVolumeClientImpl<C>
     async fn get_volume_info(&self, request: &GetVolumeInfoRequest) -> starpc::Result<GetVolumeInfoResponse> {
         self.client.exec_call("volume.rpc.ProxyVolume", "GetVolumeInfo", request).await
     }
+    async fn get_coordinator_capability(&self, request: &GetCoordinatorCapabilityRequest) -> starpc::Result<GetCoordinatorCapabilityResponse> {
+        self.client.exec_call("volume.rpc.ProxyVolume", "GetCoordinatorCapability", request).await
+    }
+    async fn watch_coordinator_events(&self, request: &WatchCoordinatorEventsRequest) -> starpc::Result<Box<dyn ProxyVolumeWatchCoordinatorEventsStream>> {
+        use starpc::ProstMessage;
+        let data = request.encode_to_vec();
+        let stream = self.client.new_stream("volume.rpc.ProxyVolume", "WatchCoordinatorEvents", Some(&data)).await?;
+        stream.close_send().await?;
+        Ok(Box::new(ProxyVolumeWatchCoordinatorEventsStreamImpl { stream }))
+    }
     async fn get_peer_priv(&self, request: &GetPeerPrivRequest) -> starpc::Result<GetPeerPrivResponse> {
         self.client.exec_call("volume.rpc.ProxyVolume", "GetPeerPriv", request).await
     }
@@ -209,11 +234,32 @@ impl<C: starpc::Client + 'static> ProxyVolumeClient for ProxyVolumeClientImpl<C>
     }
 }
 
+struct ProxyVolumeWatchCoordinatorEventsStreamImpl {
+    stream: Box<dyn starpc::Stream>,
+}
+
+#[starpc::async_trait]
+impl ProxyVolumeWatchCoordinatorEventsStream for ProxyVolumeWatchCoordinatorEventsStreamImpl {
+    fn context(&self) -> &starpc::Context {
+        self.stream.context()
+    }
+    async fn recv(&self) -> starpc::Result<WatchCoordinatorEventsResponse> {
+        self.stream.msg_recv().await
+    }
+    async fn close(&self) -> starpc::Result<()> {
+        self.stream.close().await
+    }
+}
+
 /// Server trait for ProxyVolume.
 #[starpc::async_trait]
 pub trait ProxyVolumeServer: Send + Sync {
     /// GetVolumeInfo.
     async fn get_volume_info(&self, request: GetVolumeInfoRequest) -> starpc::Result<GetVolumeInfoResponse>;
+    /// GetCoordinatorCapability.
+    async fn get_coordinator_capability(&self, request: GetCoordinatorCapabilityRequest) -> starpc::Result<GetCoordinatorCapabilityResponse>;
+    /// WatchCoordinatorEvents.
+    async fn watch_coordinator_events(&self, request: WatchCoordinatorEventsRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// GetPeerPriv.
     async fn get_peer_priv(&self, request: GetPeerPrivRequest) -> starpc::Result<GetPeerPrivResponse>;
     /// GetStorageStats.
@@ -222,6 +268,8 @@ pub trait ProxyVolumeServer: Send + Sync {
 
 const PROXY_VOLUME_METHOD_IDS: &[&str] = &[
     "GetVolumeInfo",
+    "GetCoordinatorCapability",
+    "WatchCoordinatorEvents",
     "GetPeerPriv",
     "GetStorageStats",
 ];
@@ -266,6 +314,28 @@ impl<S: ProxyVolumeServer + 'static> starpc::Invoker for ProxyVolumeHandler<S> {
                     }
                     Err(e) => (true, Err(e)),
                 }
+            }
+            "GetCoordinatorCapability" => {
+                let request: GetCoordinatorCapabilityRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.get_coordinator_capability(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "WatchCoordinatorEvents" => {
+                let request: WatchCoordinatorEventsRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                (true, self.server.watch_coordinator_events(request, stream).await)
             }
             "GetPeerPriv" => {
                 let request: GetPeerPrivRequest = match stream.msg_recv().await {

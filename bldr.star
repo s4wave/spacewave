@@ -27,9 +27,6 @@ def core_go_pkgs(include_export=True):
             pkgs.append(pkg)
     return pkgs
 
-# Shared encryption key for peer object store
-PEER_ENCRYPTION_KEY = "KY8Lo3c7L+bXa8BFZcU/YFfHysRdl4aZqmDd9TeZ+p4="
-
 LAUNCHER_GO_PKGS = [
     "./core/provider/spacewave/launcher/controller",
     "github.com/s4wave/spacewave/bldr/manifest/fetch/world",
@@ -61,15 +58,6 @@ def core_config_set(listener_path="git:.spacewave/spacewave.sock", include_expor
         "store-peer": config_entry("object/peer", 1, {
             "objectStoreId": "s4wave-peer",
             "volumeId": "plugin-host",
-            "transformConf": {
-                "steps": [{
-                    "id": "hydra/transform/blockenc",
-                    "config": {
-                        "blockEnc": "BlockEnc_XCHACHA20_POLY1305",
-                        "key": PEER_ENCRYPTION_KEY,
-                    },
-                }],
-            },
         }),
         "root-resource": config_entry("resource/root", 1),
         "session-list": config_entry("session", 1),
@@ -168,15 +156,6 @@ def spacewave_launcher_config(
         "store-peer": config_entry("object/peer", 1, {
             "objectStoreId": "s4wave-peer",
             "volumeId": "plugin-host",
-            "transformConf": {
-                "steps": [{
-                    "id": "hydra/transform/blockenc",
-                    "config": {
-                        "blockEnc": "BlockEnc_XCHACHA20_POLY1305",
-                        "key": PEER_ENCRYPTION_KEY,
-                    },
-                }],
-            },
         }),
     }
     if include_release_world:

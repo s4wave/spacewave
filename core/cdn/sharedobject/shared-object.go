@@ -305,6 +305,14 @@ func (s *cdnStateSnapshot) GetRootInner(_ context.Context) (*sobject.SORootInner
 	return s.so.GetPlainRootInner()
 }
 
+func (s *cdnStateSnapshot) GetRootState(_ context.Context) (*sobject.SORoot, error) {
+	root := s.so.GetSORoot()
+	if root == nil {
+		return nil, nil
+	}
+	return root.CloneVT(), nil
+}
+
 // ProcessOperations is not supported on a read-only CDN mount.
 func (s *cdnStateSnapshot) ProcessOperations(
 	_ context.Context,

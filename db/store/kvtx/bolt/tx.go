@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 	"sync"
 
@@ -40,7 +41,8 @@ func (t *Tx) getBucket() (*bdb.Bucket, error) {
 }
 
 // Get returns values for a key.
-func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
+func (t *Tx) Get(ctx context.Context, key []byte) (out []byte, found bool, err error) {
+	defer recoverBoltTxPanic(&err)
 	if len(key) == 0 {
 		return nil, false, kvtx.ErrEmptyKey
 	}
@@ -64,7 +66,8 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 }
 
 // Size returns the number of keys in the store.
-func (t *Tx) Size(ctx context.Context) (uint64, error) {
+func (t *Tx) Size(ctx context.Context) (size uint64, err error) {
+	defer recoverBoltTxPanic(&err)
 	bkt, err := t.getBucket()
 	if err != nil {
 		return 0, err
@@ -75,7 +78,8 @@ func (t *Tx) Size(ctx context.Context) (uint64, error) {
 
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
-func (t *Tx) Set(ctx context.Context, key, value []byte) error {
+func (t *Tx) Set(ctx context.Context, key, value []byte) (err error) {
+	defer recoverBoltTxPanic(&err)
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
@@ -92,7 +96,8 @@ func (t *Tx) Set(ctx context.Context, key, value []byte) error {
 }
 
 // ScanPrefix iterates over keys with a prefix.
-func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
+func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) (err error) {
+	defer recoverBoltTxPanic(&err)
 	bkt, err := t.getBucket()
 	if err != nil {
 		return err
@@ -147,7 +152,8 @@ func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvt
 // Delete deletes a key.
 // This will not be committed until Commit is called.
 // Not found should not return an error.
-func (t *Tx) Delete(ctx context.Context, key []byte) error {
+func (t *Tx) Delete(ctx context.Context, key []byte) (err error) {
+	defer recoverBoltTxPanic(&err)
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
@@ -163,9 +169,9 @@ func (t *Tx) Delete(ctx context.Context, key []byte) error {
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 // Will return error if called after Discard()
-func (t *Tx) Commit(ctx context.Context) error {
+func (t *Tx) Commit(ctx context.Context) (err error) {
+	defer recoverBoltTxPanic(&err)
 	var done bool
-	var err error
 	t.discardOnce.Do(func() {
 		err = t.txn.Commit()
 		done = true
@@ -180,7 +186,8 @@ func (t *Tx) Commit(ctx context.Context) error {
 }
 
 // Exists checks if a key exists.
-func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
+func (t *Tx) Exists(ctx context.Context, key []byte) (exists bool, err error) {
+	defer recoverBoltTxPanic(&err)
 	if len(key) == 0 {
 		return false, kvtx.ErrEmptyKey
 	}
@@ -203,8 +210,17 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 // Can be called unlimited times.
 func (t *Tx) Discard() {
 	t.discardOnce.Do(func() {
+		defer func() {
+			_ = recover()
+		}()
 		_ = t.txn.Rollback()
 	})
+}
+
+func recoverBoltTxPanic(err *error) {
+	if p := recover(); p != nil {
+		*err = fmt.Errorf("%w: panic: %v", kvtx.ErrInvalidSnapshot, p)
+	}
 }
 
 // _ is a type assertion

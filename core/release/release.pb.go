@@ -155,7 +155,7 @@ type BrowserShellMetadata struct {
 	ServiceWorkerPath string `protobuf:"bytes,4,opt,name=service_worker_path,json=serviceWorkerPath,proto3" json:"serviceWorkerPath,omitempty"`
 	// SharedWorkerPath is the shared worker path.
 	SharedWorkerPath string `protobuf:"bytes,5,opt,name=shared_worker_path,json=sharedWorkerPath,proto3" json:"sharedWorkerPath,omitempty"`
-	// WasmPath is the Go runtime WASM path.
+	// WasmPath is the optional native Go runtime WASM path.
 	WasmPath string `protobuf:"bytes,6,opt,name=wasm_path,json=wasmPath,proto3" json:"wasmPath,omitempty"`
 	// Assets is the set of shell assets.
 	Assets []*BrowserAsset `protobuf:"bytes,7,rep,name=assets,proto3" json:"assets,omitempty"`
@@ -347,7 +347,9 @@ func (m *ChannelEntry) CloneVT() *ChannelEntry {
 	}
 	r := new(ChannelEntry)
 	r.ChannelKey = m.ChannelKey
-	r.ReleaseMetadataRef = m.ReleaseMetadataRef.CloneVT()
+	if rhs := m.ReleaseMetadataRef; rhs != nil {
+		r.ReleaseMetadataRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -418,10 +420,12 @@ func (m *BrowserAsset) CloneVT() *BrowserAsset {
 	}
 	r := new(BrowserAsset)
 	r.Path = m.Path
-	r.ContentRef = m.ContentRef.CloneVT()
 	r.Size = m.Size
 	r.ContentType = m.ContentType
 	r.CacheControl = m.CacheControl
+	if rhs := m.ContentRef; rhs != nil {
+		r.ContentRef = rhs.CloneVT()
+	}
 	if rhs := m.Sha256; rhs != nil {
 		r.Sha256 = slices.Clone(rhs)
 	}

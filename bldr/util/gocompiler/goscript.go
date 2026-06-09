@@ -7,18 +7,13 @@ import (
 	"strings"
 	"time"
 
+	goscript_compiler "github.com/aperturerobotics/goscript/compiler"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	GoScriptCommandEnv = "BLDR_GOSCRIPT"
-	goScriptModule     = "github.com/aperturerobotics/goscript/cmd/goscript@b5c5464b34668c8ae2112a1f3b19eab0407e9542"
-	goScriptNoSumDB    = "github.com/aperturerobotics/goscript"
-)
-
 func GoScriptStartupCacheEnvKeys() []string {
-	return []string{GoScriptCommandEnv}
+	return nil
 }
 
 // GoScriptCompileOptions configures one goscript compile invocation.
@@ -80,45 +75,41 @@ func ExecGoScriptCompile(ctx context.Context, le *logrus.Entry, opts GoScriptCom
 		}
 	}
 
-	args := []string{
-		"compile",
-		"--dir", opts.WorkDir,
-		"--output", opts.OutputPath,
+	conf := &goscript_compiler.Config{
+		Dir:                       opts.WorkDir,
+		OutputPath:                opts.OutputPath,
+		AllDependencies:           opts.AllDependencies,
+		ProtobufTypeScriptBinding: opts.ProtobufTypeScriptBinding,
 	}
+	packages := make([]string, 0, len(opts.Packages))
 	for _, pkg := range opts.Packages {
 		pkg = strings.TrimSpace(pkg)
 		if pkg == "" {
 			return errors.New("goscript package cannot be empty")
 		}
-		args = append(args, "--package", pkg)
+		packages = append(packages, pkg)
 	}
 	for _, flag := range opts.BuildFlags {
 		flag = strings.TrimSpace(flag)
 		if flag == "" {
 			return errors.New("goscript build flag cannot be empty")
 		}
-		args = append(args, "--build-flags", flag)
+		conf.BuildFlags = append(conf.BuildFlags, flag)
 	}
 	for _, dir := range opts.OverrideDirs {
 		dir = strings.TrimSpace(dir)
 		if dir == "" {
 			return errors.New("goscript override dir cannot be empty")
 		}
-		args = append(args, "--gs-path", dir)
+		conf.OverrideDirs = append(conf.OverrideDirs, dir)
 	}
-	if opts.AllDependencies {
-		args = append(args, "--all-dependencies")
-	}
-	if opts.ProtobufTypeScriptBinding {
-		args = append(args, "--protobuf-ts-binding")
-	}
-
-	ecmd := newGoScriptCmd(ctx, args...)
-	ecmd.Dir = opts.WorkDir
-	ecmd.Env = append(ecmd.Env, opts.Env...)
 
 	timeStart := time.Now()
-	if err := ExecGoCompiler(le, ecmd); err != nil {
+	comp, err := goscript_compiler.NewCompiler(conf, le, nil)
+	if err != nil {
+		return err
+	}
+	if _, err := comp.CompilePackages(ctx, packages...); err != nil {
 		return err
 	}
 	le.
@@ -126,16 +117,4 @@ func ExecGoScriptCompile(ctx context.Context, le *logrus.Entry, opts GoScriptCom
 		WithField("dur", time.Since(timeStart).String()).
 		Info("compiled plugin TypeScript package tree")
 	return nil
-}
-
-func newGoScriptCmd(ctx context.Context, args ...string) *exec.Cmd {
-	cmdName := os.Getenv(GoScriptCommandEnv)
-	if strings.TrimSpace(cmdName) != "" {
-		return NewGoCompilerCmd(ctx, cmdName, args...)
-	}
-
-	goArgs := append([]string{"run", goScriptModule}, args...)
-	ecmd := NewGoCompilerCmd(ctx, "go", goArgs...)
-	ecmd.Env = append(ecmd.Env, "GONOSUMDB="+goScriptNoSumDB)
-	return ecmd
 }

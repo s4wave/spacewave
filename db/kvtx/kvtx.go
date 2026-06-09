@@ -14,6 +14,12 @@ type Store interface {
 	NewTransaction(ctx context.Context, write bool) (Tx, error)
 }
 
+// CoordinationRefreshStore refreshes a store at an external coordination
+// boundary before callers open transactions derived from that boundary.
+type CoordinationRefreshStore interface {
+	RefreshForCoordinationLock() error
+}
+
 // TxOps contains the database transaction operations.
 type TxOps interface {
 	// Size returns the number of keys in the store.

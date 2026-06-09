@@ -11,6 +11,7 @@ import (
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
@@ -102,6 +103,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	var stateStore object.ObjectStore
+	var stateCoordinator coord.Coordinator
+	var stateCoordScope coord.Scope
 	if stateStoreID != "" {
 		storeVal, _, storeRef, err := volume.ExBuildObjectStoreAPI(ctx, c.bus, false, stateStoreID, stateStoreVol, nil)
 		if err != nil {
@@ -109,6 +112,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 		defer storeRef.Release()
 		stateStore = storeVal.GetObjectStore()
+		stateVolume := storeVal.GetVolume()
+		stateCoordScope = coord.Scope{
+			VolumeID:      storeVal.GetVolumeId(),
+			ObjectStoreID: storeVal.GetID(),
+			ParticipantID: c.engineID,
+		}
+		stateCoordinator = stateVolume
 	}
 	var headState *HeadState
 	if stateStore != nil {
@@ -167,6 +177,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 		headRef.RootRef = nrootRef
 		cursor.SetRootRef(nrootRef)
+		if stateStore != nil {
+			if err := c.writeHeadState(ctx, stateStore, nil, headRef.Clone()); err != nil {
+				return err
+			}
+		}
 	}
 
 	var lookupWorldOp world.LookupOp
@@ -181,7 +196,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			Debug("initialized root")
 	}
 
-	var commitFn world_block.CommitFn = func(nref *bucket.ObjectRef) error {
+	var commitFn world_block.CommitFn = func(ctx context.Context, baseRef, nref *bucket.ObjectRef) error {
 		if verbose {
 			le.
 				WithField("world-root", nref.MarshalB58()).
@@ -189,9 +204,19 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 		if stateStore != nil {
 			// write state back to state store
-			return c.writeHeadState(ctx, stateStore, nref)
+			return c.writeHeadState(ctx, stateStore, baseRef, nref)
 		}
 		return nil
+	}
+
+	var engineOpts []world_block.EngineOption
+	if stateCoordinator != nil && stateStore != nil {
+		engineOpts = append(engineOpts, world_block.WithWriteCoordinator(
+			stateCoordinator,
+			stateCoordScope,
+			c.objectStoreHeadKeyPrefix(),
+			c.refreshDurableHeadRef(stateStore),
+		))
 	}
 
 	engine, err := world_block.NewEngine(
@@ -201,9 +226,17 @@ func (c *Controller) Execute(ctx context.Context) error {
 		lookupWorldOp,
 		commitFn,
 		c.conf.GetVerbose(),
+		engineOpts...,
 	)
 	if err != nil {
 		return err
+	}
+	var headWatchDone <-chan struct{}
+	if stateCoordinator != nil && stateStore != nil {
+		headWatchDone = c.startCoordinatorHeadWatch(rctx, stateCoordinator, stateCoordScope, stateStore, engine)
+		defer func() {
+			<-headWatchDone
+		}()
 	}
 
 	seqno, err := engine.GetSeqno(ctx)

@@ -44,6 +44,12 @@ func (s *Store) GetDB() *bdb.DB {
 	return s.db
 }
 
+// RefreshForCoordinationLock refreshes the underlying bbolt handle after an
+// external coordinator has granted a write turn.
+func (s *Store) RefreshForCoordinationLock() error {
+	return s.db.RefreshForCoordinationLock()
+}
+
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.

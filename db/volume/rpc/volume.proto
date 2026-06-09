@@ -2,6 +2,7 @@ syntax = "proto3";
 package volume.rpc;
 
 import "github.com/s4wave/spacewave/db/volume/volume.proto";
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
 import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
 
 // AccessVolumes is a service to access available volumes over RPC.
@@ -40,6 +41,12 @@ service ProxyVolume {
   // GetVolumeInfo returns the basic volume information.
   rpc GetVolumeInfo(GetVolumeInfoRequest) returns (GetVolumeInfoResponse);
 
+  // GetCoordinatorCapability reports direct coordination support for a scoped ObjectStore.
+  rpc GetCoordinatorCapability(GetCoordinatorCapabilityRequest) returns (GetCoordinatorCapabilityResponse);
+
+  // WatchCoordinatorEvents streams coordination events for a scoped ObjectStore.
+  rpc WatchCoordinatorEvents(WatchCoordinatorEventsRequest) returns (stream WatchCoordinatorEventsResponse);
+
   // GetPeerPriv returns the volume peer private key.
   // Returns ErrPrivKeyUnavailable if the private key is unavailable.
   rpc GetPeerPriv(GetPeerPrivRequest) returns (GetPeerPrivResponse);
@@ -55,6 +62,80 @@ message GetVolumeInfoRequest {}
 message GetVolumeInfoResponse {
   // VolumeInfo is the volume information object.
   .volume.VolumeInfo volume_info = 1;
+}
+
+// CoordinatorScope identifies a coordinated ObjectStore inside a Volume.
+message CoordinatorScope {
+  // VolumeId is the owning Volume id.
+  string volume_id = 1;
+  // ObjectStoreId is the ObjectStore id inside the Volume.
+  string object_store_id = 2;
+  // ParticipantId identifies the process or handle performing the operation.
+  string participant_id = 3;
+}
+
+// CoordinatorCapability describes direct coordination support for a scoped ObjectStore.
+message CoordinatorCapability {
+  // Supported is true when direct coordination is available.
+  bool supported = 1;
+  // Backend identifies the backend that would coordinate the scope.
+  string backend = 2;
+  // VolumeId is the owning Volume id.
+  string volume_id = 3;
+  // ObjectStoreId is the ObjectStore id inside the Volume.
+  string object_store_id = 4;
+  // Generation is the latest durable generation observed by the coordinator.
+  uint64 generation = 5;
+  // FallbackReason explains why Supported is false.
+  string fallback_reason = 6;
+}
+
+// CoordinatorEvent reports a coordination state change for a scoped ObjectStore.
+message CoordinatorEvent {
+  // ProcessId identifies the process that produced or requested the event.
+  string process_id = 1;
+  // VolumeId is the owning Volume id.
+  string volume_id = 2;
+  // ObjectStoreId is the ObjectStore id inside the Volume.
+  string object_store_id = 3;
+  // Generation is the durable generation associated with this event.
+  uint64 generation = 4;
+  // WantLock is true when another participant is waiting for the write lease.
+  bool want_lock = 5;
+  // Unlocked is true when a participant released the write lease.
+  bool unlocked = 6;
+  // RootChanged carries the accepted root after a commit.
+  .bucket.ObjectRef root_changed = 7;
+  // KeyPrefixChanged carries a key prefix invalidated by a commit.
+  bytes key_prefix_changed = 8;
+  // FallbackReason carries a visible fallback reason when direct coordination fails.
+  string fallback_reason = 9;
+}
+
+// GetCoordinatorCapabilityRequest is a request to get direct coordination support.
+message GetCoordinatorCapabilityRequest {
+  // Scope identifies the coordinated ObjectStore.
+  CoordinatorScope scope = 1;
+}
+
+// GetCoordinatorCapabilityResponse is the response to coordinator capability negotiation.
+message GetCoordinatorCapabilityResponse {
+  // Capability contains the direct coordination support report.
+  CoordinatorCapability capability = 1;
+}
+
+// WatchCoordinatorEventsRequest is a request to stream coordination events.
+message WatchCoordinatorEventsRequest {
+  // Scope identifies the coordinated ObjectStore.
+  CoordinatorScope scope = 1;
+  // AfterGeneration skips events at or before this generation.
+  uint64 after_generation = 2;
+}
+
+// WatchCoordinatorEventsResponse is a streamed coordination event response.
+message WatchCoordinatorEventsResponse {
+  // Event contains the coordination event.
+  CoordinatorEvent event = 1;
 }
 
 // GetPeerPrivRequest is a request to get the volume peer privkey.

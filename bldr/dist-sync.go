@@ -90,6 +90,10 @@ func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncC
 	sourceModPath := distModFile.Module.Mod.Path
 	distModFile.Module.Mod.Path = DistGoMod
 
+	if err := absolutizeRelativeReplaces(distModFile, conf.RepoRoot); err != nil {
+		return err
+	}
+
 	if err := distModFile.AddModuleStmt(DistGoMod); err != nil {
 		return err
 	}
@@ -178,5 +182,30 @@ func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncC
 		le.WithError(err).Debug("failed to write bldr sources sync hash")
 	}
 	le.Info("done checking out bldr sources")
+	return nil
+}
+
+func absolutizeRelativeReplaces(modFile *modfile.File, repoRoot string) error {
+	absRepoRoot, err := filepath.Abs(repoRoot)
+	if err != nil {
+		return err
+	}
+	for _, replace := range modFile.Replace {
+		if replace.New.Version != "" {
+			continue
+		}
+		replacePath := replace.New.Path
+		if filepath.IsAbs(replacePath) {
+			continue
+		}
+		if !strings.HasPrefix(replacePath, ".") {
+			continue
+		}
+		absReplacePath := filepath.Clean(filepath.Join(absRepoRoot, replacePath))
+		replace.New.Path = absReplacePath
+		if replace.Syntax != nil && len(replace.Syntax.Token) > 0 {
+			replace.Syntax.Token[len(replace.Syntax.Token)-1] = absReplacePath
+		}
+	}
 	return nil
 }

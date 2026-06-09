@@ -28,5 +28,15 @@ func (p *Prefixer) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 	return newTx(btx, p.prefix), nil
 }
 
+// RefreshForCoordinationLock forwards coordination-boundary refreshes to the
+// underlying store when supported.
+func (p *Prefixer) RefreshForCoordinationLock() error {
+	refreshable, ok := p.base.(kvtx.CoordinationRefreshStore)
+	if !ok {
+		return nil
+	}
+	return refreshable.RefreshForCoordinationLock()
+}
+
 // _ is a type assertion
 var _ kvtx.Store = ((*Prefixer)(nil))

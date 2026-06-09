@@ -170,7 +170,7 @@ export interface BrowserShellMetadata {
    */
   sharedWorkerPath?: string
   /**
-   * WasmPath is the Go runtime WASM path.
+   * WasmPath is the optional native Go runtime WASM path.
    *
    * @generated from field: string wasm_path = 6;
    */

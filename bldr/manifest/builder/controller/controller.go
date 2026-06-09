@@ -306,7 +306,15 @@ func (c *Controller) Execute(ctx context.Context) error {
 				WithField("resolved-refs", len(refs)).
 				Debug("resolved manifest dep refs for watching")
 		}
-		if err := buildOwner.publishResult(ctx, le, resultPromise, result, err, cacheHit, fullRebuild, hotRebuild); err != nil {
+		if attempt.wasRestarted() {
+			attempt.release()
+			continue
+		}
+		if err := buildOwner.publishResult(attempt.ctx, le, resultPromise, result, err, cacheHit, fullRebuild, hotRebuild); err != nil {
+			if attempt.wasRestarted() || attempt.ctx.Err() != nil {
+				attempt.release()
+				continue
+			}
 			attempt.release()
 			return err
 		}

@@ -270,6 +270,13 @@ func (s *testSharedObjectSnapshot) GetRootInner(ctx context.Context) (*sobject.S
 	return s.rootInner, nil
 }
 
+func (s *testSharedObjectSnapshot) GetRootState(ctx context.Context) (*sobject.SORoot, error) {
+	if s.rootInner == nil {
+		return nil, nil
+	}
+	return &sobject.SORoot{InnerSeqno: s.rootInner.GetSeqno()}, nil
+}
+
 func (s *testSharedObjectSnapshot) ProcessOperations(
 	ctx context.Context,
 	ops []*sobject.SOOperation,

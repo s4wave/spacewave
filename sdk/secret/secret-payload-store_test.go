@@ -298,6 +298,13 @@ func (s *testSecretPayloadStoreSnapshot) GetRootInner(context.Context) (*sobject
 	return s.root, nil
 }
 
+func (s *testSecretPayloadStoreSnapshot) GetRootState(context.Context) (*sobject.SORoot, error) {
+	if s.root == nil {
+		return nil, nil
+	}
+	return &sobject.SORoot{InnerSeqno: s.root.GetSeqno()}, nil
+}
+
 func (s *testSecretPayloadStoreSnapshot) ProcessOperations(
 	context.Context,
 	[]*sobject.SOOperation,

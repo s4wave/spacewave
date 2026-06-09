@@ -329,6 +329,10 @@ func (s *testGCSweepSnapshot) GetRootInner(ctx context.Context) (*sobject.SORoot
 	return nil, nil
 }
 
+func (s *testGCSweepSnapshot) GetRootState(ctx context.Context) (*sobject.SORoot, error) {
+	return nil, nil
+}
+
 func (s *testGCSweepSnapshot) ProcessOperations(
 	ctx context.Context,
 	ops []*sobject.SOOperation,

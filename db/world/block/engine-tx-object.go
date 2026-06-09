@@ -31,7 +31,7 @@ func (t *EngineTxObjectState) GetKey() string {
 func (t *EngineTxObjectState) GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint64, error) {
 	var rref *bucket.ObjectRef
 	var outRev uint64
-	err := t.t.performOp(func(tx *Tx) error {
+	err := t.t.performOp(ctx, func(tx *Tx) error {
 		obj, err := t.lookupObject(ctx, tx)
 		if err != nil {
 			return err
@@ -61,7 +61,7 @@ func (t *EngineTxObjectState) SetRootRef(ctx context.Context, nref *bucket.Objec
 	}
 
 	var outRev uint64
-	err := t.t.performOp(func(tx *Tx) error {
+	err := t.t.performOp(ctx, func(tx *Tx) error {
 		obj, berr := t.lookupObject(ctx, tx)
 		if berr == nil {
 			outRev, berr = obj.SetRootRef(ctx, nref)
@@ -86,7 +86,7 @@ func (t *EngineTxObjectState) ApplyObjectOp(
 
 	var outRev uint64
 	var outSysErr bool
-	err := t.t.performOp(func(tx *Tx) error {
+	err := t.t.performOp(ctx, func(tx *Tx) error {
 		obj, berr := t.lookupObject(ctx, tx)
 		if berr == nil {
 			outRev, outSysErr, berr = obj.ApplyObjectOp(ctx, op, opSender)
@@ -104,7 +104,7 @@ func (t *EngineTxObjectState) IncrementRev(ctx context.Context) (uint64, error) 
 	}
 
 	var val uint64
-	err := t.t.performOp(func(tx *Tx) error {
+	err := t.t.performOp(ctx, func(tx *Tx) error {
 		obj, berr := t.lookupObject(ctx, tx)
 		if berr == nil {
 			val, berr = obj.IncrementRev(ctx)

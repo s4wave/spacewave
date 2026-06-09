@@ -3,6 +3,7 @@ package world_block
 import (
 	"context"
 	"sync"
+	"time"
 
 	trace "github.com/s4wave/spacewave/db/traceutil"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 )
@@ -45,6 +47,14 @@ type Engine struct {
 	// commitFn is a function to be called just before a commit is confirmed.
 	// can be nil
 	commitFn CommitFn
+	// writeCoordinator gates standalone ObjectStore-backed writers.
+	writeCoordinator coord.Coordinator
+	// writeCoordScope identifies this engine's durable ObjectStore head.
+	writeCoordScope coord.Scope
+	// writeCoordKeyPrefix is invalidated when the durable World head changes.
+	writeCoordKeyPrefix []byte
+	// writeHeadRefresh rereads the durable World head before a write mutation starts.
+	writeHeadRefresh func(context.Context) (*bucket.ObjectRef, error)
 	// closed is set after Close releases cursor and transaction resources.
 	closed bool
 }
@@ -54,7 +64,26 @@ type Engine struct {
 // Note: engine rmtx is locked while cb is called, do not block or call engine funcs!
 // If an error is returned the change will be rolled back.
 // Do not change the nrootBcs during this call.
-type CommitFn func(nref *bucket.ObjectRef) error
+type CommitFn func(ctx context.Context, baseRef, nref *bucket.ObjectRef) error
+
+// EngineOption configures optional Engine integrations.
+type EngineOption func(*Engine)
+
+// WithWriteCoordinator requires write transactions to acquire a coordinator
+// lease and refresh the durable World head before mutation.
+func WithWriteCoordinator(
+	coordinator coord.Coordinator,
+	scope coord.Scope,
+	keyPrefix []byte,
+	refreshHead func(context.Context) (*bucket.ObjectRef, error),
+) EngineOption {
+	return func(e *Engine) {
+		e.writeCoordinator = coordinator
+		e.writeCoordScope = scope
+		e.writeCoordKeyPrefix = append([]byte(nil), keyPrefix...)
+		e.writeHeadRefresh = refreshHead
+	}
+}
 
 // NewEngine constructs a new world engine.
 // commitFn can be nil.
@@ -65,6 +94,7 @@ func NewEngine(
 	lookupOp world.LookupOp,
 	commitFn CommitFn,
 	verbose bool,
+	opts ...EngineOption,
 ) (*Engine, error) {
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/new")
 	defer task.End()
@@ -76,6 +106,11 @@ func NewEngine(
 		root:     root.Clone(),
 		commitFn: commitFn,
 		verbose:  verbose,
+	}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(e)
+		}
 	}
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/new/update-read-write-txns")
 	err := e.updateReadWriteTxns(taskCtx)
@@ -120,6 +155,35 @@ func (e *Engine) SetRootRef(ctx context.Context, ref *bucket.ObjectRef) error {
 	return e.setRootRefLocked(ctx, ref)
 }
 
+// AdoptRootRefFromWatch updates the root from an advisory coordinator watch
+// only when no local write transaction is active. bbolt emits generation events
+// for intermediate block writes before the durable World head is updated; watch
+// adoption must not roll an in-flight local writer back to the previous head.
+func (e *Engine) AdoptRootRefFromWatch(ctx context.Context, ref *bucket.ObjectRef) error {
+	e.rmtx.Lock()
+	defer e.rmtx.Unlock()
+	if e.closed {
+		return errors.New("world block engine is closed")
+	}
+	if e.writeTx != nil {
+		return nil
+	}
+	currentSeqno, ok, err := e.currentRootSeqnoLocked(ctx)
+	if err != nil {
+		return err
+	}
+	if ok {
+		candidateSeqno, err := e.seqnoForRootRefLocked(ctx, ref)
+		if err != nil {
+			return err
+		}
+		if candidateSeqno < currentSeqno {
+			return nil
+		}
+	}
+	return e.setRootRefLocked(ctx, ref)
+}
+
 // setRootRefLocked updates the root reference while rmtx is locked.
 func (e *Engine) setRootRefLocked(ctx context.Context, ref *bucket.ObjectRef) error {
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/set-root-ref")
@@ -157,6 +221,66 @@ func (e *Engine) setRootRefLocked(ctx context.Context, ref *bucket.ObjectRef) er
 	return err
 }
 
+// validateRootRefLocked rebuilds the root's WorldState without publishing it.
+// Durable head publication must not happen before a fresh cursor can follow the
+// full root graph outside the committing transaction.
+func (e *Engine) validateRootRefLocked(ctx context.Context, ref *bucket.ObjectRef) error {
+	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/validate-root-ref")
+	defer task.End()
+
+	ws, err := e.worldStateForRootRefLocked(ctx, ref)
+	if err != nil {
+		return err
+	}
+	if _, err := ws.objTree.Size(ctx); err != nil {
+		ws.Discard()
+		return err
+	}
+	ws.Discard()
+	return nil
+}
+
+func (e *Engine) seqnoForRootRefLocked(ctx context.Context, ref *bucket.ObjectRef) (uint64, error) {
+	ws, err := e.worldStateForRootRefLocked(ctx, ref)
+	if err != nil {
+		return 0, err
+	}
+	defer ws.Discard()
+	return ws.GetSeqno(ctx)
+}
+
+func (e *Engine) worldStateForRootRefLocked(ctx context.Context, ref *bucket.ObjectRef) (*WorldState, error) {
+	if err := ref.Validate(); err != nil {
+		return nil, err
+	}
+	nextRoot, err := e.baseRoot.FollowRef(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+	defer nextRoot.Release()
+
+	store := nextRoot.GetBucket()
+	xfrm := nextRoot.GetTransformer()
+	_, bcs := nextRoot.BuildTransactionWithStore(nil, store)
+	ws, err := NewWorldState(
+		ctx,
+		e.le,
+		false,
+		nil,
+		bcs,
+		store,
+		xfrm,
+		nil,
+		e,
+		e.lookupOp,
+		e.verbose,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return ws, nil
+}
+
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
@@ -172,11 +296,32 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 
 	// writeTx is nil if it's a read-only tx
 	if !write {
-		e.rmtx.RLock()
-		closed := e.closed
-		e.rmtx.RUnlock()
-		if closed {
+		e.rmtx.Lock()
+		defer e.rmtx.Unlock()
+		if e.closed {
 			return nil, errors.New("world block engine is closed")
+		}
+		if e.writeTx == nil && e.writeHeadRefresh != nil {
+			if err := e.refreshDurableHeadLocked(ctx); err != nil {
+				if e.readTx != nil && isCoordinatedWriteSnapshotError(err) {
+					e.readTx.Discard()
+					e.readTx = nil
+				}
+				return nil, err
+			}
+		}
+		if e.writeCoordinator != nil {
+			world, err := e.buildWorldState(ctx, true)
+			if err != nil {
+				return nil, err
+			}
+			if e.readTx != nil {
+				e.readTx.Discard()
+				e.readTx = nil
+			}
+			engTx := newEngineTx(e, nil)
+			engTx.readTx = NewTx(world)
+			return engTx, nil
 		}
 		return newEngineTx(e, nil), nil
 	}
@@ -186,26 +331,117 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 	if err != nil {
 		return nil, err
 	}
+	var lease coord.WriteLease
+	if e.writeCoordinator != nil {
+		lease, err = e.writeCoordinator.WaitAcquireWriteLease(ctx, e.writeCoordScope)
+		if err != nil {
+			relLock()
+			return nil, err
+		}
+		if lease == nil {
+			relLock()
+			return nil, errors.New("world write coordinator returned nil lease")
+		}
+	}
 
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/new-block-engine-transaction/build-world-state")
 	e.rmtx.Lock()
 	defer e.rmtx.Unlock()
 	if e.closed {
+		if lease != nil {
+			_ = lease.Release(ctx)
+		}
 		relLock()
 		return nil, errors.New("world block engine is closed")
 	}
+	if lease != nil {
+		if e.readTx != nil {
+			e.readTx.Discard()
+			e.readTx = nil
+		}
+		if _, err := lease.Refresh(taskCtx); err != nil {
+			_ = lease.Release(ctx)
+			relLock()
+			return nil, err
+		}
+	}
+	if e.writeHeadRefresh != nil {
+		headRef, err := e.writeHeadRefresh(taskCtx)
+		if err != nil {
+			if lease != nil {
+				_ = lease.Release(ctx)
+			}
+			relLock()
+			return nil, err
+		}
+		if headRef != nil && !headRef.GetRootRef().GetEmpty() {
+			if err := e.setRootRefLocked(taskCtx, headRef); err != nil {
+				if lease != nil {
+					_ = lease.Release(ctx)
+				}
+				relLock()
+				if lease != nil && isCoordinatedWriteSnapshotError(err) {
+					return nil, errors.Wrap(coord.ErrStaleGeneration, "refresh durable head")
+				}
+				return nil, err
+			}
+		}
+	}
+	baseHeadRef := e.root.GetRef().Clone()
 
 	world, err := e.buildWorldState(taskCtx, false)
 	subtask.End()
 	if err != nil {
+		if lease != nil {
+			_ = lease.Release(ctx)
+		}
 		relLock()
+		if lease != nil && isCoordinatedWriteSnapshotError(err) {
+			return nil, errors.Wrapf(coord.ErrStaleGeneration, "build world state: %v", err)
+		}
 		return nil, err
 	}
 
 	engTx := newEngineTx(e, NewTx(world))
+	engTx.baseHeadRef = baseHeadRef
+	engTx.lease = lease
 	e.writeTx = engTx
 	e.writeTxRel = relLock
 	return engTx, nil
+}
+
+func (e *Engine) refreshDurableHeadLocked(ctx context.Context) error {
+	headRef, err := e.writeHeadRefresh(ctx)
+	if err != nil || headRef == nil || headRef.GetRootRef().GetEmpty() {
+		return err
+	}
+	currentSeqno, ok, err := e.currentRootSeqnoLocked(ctx)
+	if err != nil {
+		return err
+	}
+	if ok {
+		candidateSeqno, err := e.seqnoForRootRefLocked(ctx, headRef)
+		if err != nil {
+			return err
+		}
+		if candidateSeqno < currentSeqno {
+			return nil
+		}
+	}
+	return e.setRootRefLocked(ctx, headRef)
+}
+
+func (e *Engine) currentRootSeqnoLocked(ctx context.Context) (uint64, bool, error) {
+	if e.readTx != nil {
+		seqno, err := e.readTx.GetSeqno(ctx)
+		return seqno, true, err
+	}
+	ref := e.root.GetRef()
+	if ref == nil || ref.GetRootRef().GetEmpty() {
+		return 0, false, nil
+	}
+	seqno, err := e.seqnoForRootRefLocked(ctx, ref)
+	return seqno, true, err
 }
 
 // ForkBlockTransaction forks the transaction at the current state.
@@ -287,19 +523,43 @@ func (e *Engine) AccessWorldState(
 // Initializes at 0 for initial world state.
 func (e *Engine) GetSeqno(ctx context.Context) (uint64, error) {
 	e.rmtx.Lock()
+	defer e.rmtx.Unlock()
 	if e.closed {
-		e.rmtx.Unlock()
 		return 0, errors.New("world block engine is closed")
 	}
-	seqno, err := e.readTx.GetSeqno(ctx)
-	e.rmtx.Unlock()
-	return seqno, err
+	seqno, ok, err := e.currentRootSeqnoLocked(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if !ok {
+		return 0, nil
+	}
+	return seqno, nil
 }
 
 // WaitSeqno waits for the seqno of the world state to be >= value.
 // Returns the seqno when the condition is reached.
 // If value == 0, this might return immediately unconditionally.
 func (e *Engine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
+	if e.writeCoordinator != nil {
+		ticker := time.NewTicker(10 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			seqno, err := e.GetSeqno(ctx)
+			if err != nil {
+				return 0, err
+			}
+			if seqno >= value {
+				return seqno, nil
+			}
+			select {
+			case <-ctx.Done():
+				return 0, ctx.Err()
+			case <-ticker.C:
+			}
+		}
+	}
+
 	for {
 		e.rmtx.RLock()
 		if e.closed {
@@ -395,6 +655,10 @@ func (e *Engine) buildWorldState(ctx context.Context, readOnly bool) (*WorldStat
 
 	_, subtask := trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/get-bucket")
 	store := e.root.GetBucket()
+	worldStore := store
+	if !readOnly && e.writeCoordinator != nil {
+		worldStore = nil
+	}
 	subtask.End()
 	_, subtask = trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/get-transformer")
 	xfrm := e.root.GetTransformer()
@@ -411,7 +675,7 @@ func (e *Engine) buildWorldState(ctx context.Context, readOnly bool) (*WorldStat
 		e.le,
 		!readOnly,
 		btx, bcs,
-		store,
+		worldStore,
 		xfrm,
 		nil,
 		e,

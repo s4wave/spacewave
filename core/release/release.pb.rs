@@ -61,7 +61,7 @@ pub struct BrowserShellMetadata {
     /// SharedWorkerPath is the shared worker path.
     #[prost(string, tag="5")]
     pub shared_worker_path: ::prost::alloc::string::String,
-    /// WasmPath is the Go runtime WASM path.
+    /// WasmPath is the optional native Go runtime WASM path.
     #[prost(string, tag="6")]
     pub wasm_path: ::prost::alloc::string::String,
     /// Assets is the set of shell assets.

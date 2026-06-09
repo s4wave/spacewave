@@ -4,91 +4,71 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/sirupsen/logrus"
 )
 
-func TestExecGoScriptCompilePreservesBuildFlags(t *testing.T) {
+func TestExecGoScriptCompileIgnoresExternalCommandEnv(t *testing.T) {
 	dir := t.TempDir()
-	bin := filepath.Join(dir, "goscript")
-	logPath := filepath.Join(dir, "argv.txt")
-	script := strings.Join([]string{
-		"#!/bin/sh",
-		"printf '%s\\n' \"$@\" > \"$GOSCRIPT_ARGV_LOG\"",
-		"exit 0",
-		"",
-	}, "\n")
-	if err := os.WriteFile(bin, []byte(script), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv(GoScriptCommandEnv, bin)
-	t.Setenv("GOSCRIPT_ARGV_LOG", logPath)
-
-	err := ExecGoScriptCompile(context.Background(), logrus.NewEntry(logrus.New()), GoScriptCompileOptions{
-		WorkDir:                   dir,
-		OutputPath:                filepath.Join(dir, "out"),
-		Packages:                  []string{"."},
-		BuildFlags:                []string{"-tags=build_type_debug,purego"},
-		OverrideDirs:              []string{"./gs"},
-		AllDependencies:           true,
-		ProtobufTypeScriptBinding: true,
+	writeGoScriptModule(t, dir, "example.com/goscriptcmd", map[string]string{
+		"main.go": "package goscriptcmd\nconst Value = 1\n",
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	data, err := os.ReadFile(logPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := string(data)
-	for _, want := range []string{
-		"compile\n",
-		"--build-flags\n-tags=build_type_debug,purego\n",
-		"--gs-path\n./gs\n",
-		"--all-dependencies\n",
-		"--protobuf-ts-binding\n",
-	} {
-		if !strings.Contains(got, want) {
-			t.Fatalf("argv missing %q:\n%s", want, got)
-		}
-	}
-}
-
-func TestExecGoScriptCompilePreservesEnv(t *testing.T) {
-	dir := t.TempDir()
-	bin := filepath.Join(dir, "goscript")
-	logPath := filepath.Join(dir, "env.txt")
-	script := strings.Join([]string{
-		"#!/bin/sh",
-		"printf 'GOOS=%s\\nGOARCH=%s\\n' \"$GOOS\" \"$GOARCH\" > \"$GOSCRIPT_ENV_LOG\"",
-		"exit 0",
-		"",
-	}, "\n")
-	if err := os.WriteFile(bin, []byte(script), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv(GoScriptCommandEnv, bin)
-	t.Setenv("GOSCRIPT_ENV_LOG", logPath)
-
+	t.Setenv("BLDR_GOSCRIPT", filepath.Join(dir, "missing-goscript"))
 	err := ExecGoScriptCompile(context.Background(), logrus.NewEntry(logrus.New()), GoScriptCompileOptions{
 		WorkDir:    dir,
 		OutputPath: filepath.Join(dir, "out"),
 		Packages:   []string{"."},
-		Env:        []string{"GOOS=js", "GOARCH=wasm"},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
+	assertGoScriptOutputContains(t, filepath.Join(dir, "out"), "example.com/goscriptcmd", "Value")
+}
 
-	data, err := os.ReadFile(logPath)
+func TestExecGoScriptCompilePreservesBuildFlags(t *testing.T) {
+	dir := t.TempDir()
+	writeGoScriptModule(t, dir, "example.com/goscripttags", map[string]string{
+		"default.go": "package goscripttags\nconst DefaultValue = 1\n",
+		"tagged.go":  "//go:build customtag\n\npackage goscripttags\nconst TaggedValue = 2\n",
+	})
+	err := ExecGoScriptCompile(context.Background(), logrus.NewEntry(logrus.New()), GoScriptCompileOptions{
+		WorkDir:    dir,
+		OutputPath: filepath.Join(dir, "out"),
+		Packages:   []string{"."},
+		BuildFlags: []string{"-tags=customtag"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := string(data), "GOOS=js\nGOARCH=wasm\n"; got != want {
-		t.Fatalf("env log = %q, want %q", got, want)
+	assertGoScriptOutputContains(t, filepath.Join(dir, "out"), "example.com/goscripttags", "TaggedValue")
+}
+
+func TestExecGoScriptCompileUsesJsWasmTarget(t *testing.T) {
+	dir := t.TempDir()
+	writeGoScriptModule(t, dir, "example.com/goscripttarget", map[string]string{
+		"generic.go": "package goscripttarget\nconst GenericValue = 1\n",
+		"js.go":      "//go:build js && wasm\n\npackage goscripttarget\nconst JsWasmValue = 2\n",
+		"linux.go":   "//go:build linux\n\npackage goscripttarget\nconst LinuxValue = 3\n",
+	})
+	err := ExecGoScriptCompile(context.Background(), logrus.NewEntry(logrus.New()), GoScriptCompileOptions{
+		WorkDir:    dir,
+		OutputPath: filepath.Join(dir, "out"),
+		Packages:   []string{"."},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	output := readGoScriptOutput(t, filepath.Join(dir, "out"), "example.com/goscripttarget")
+	for _, want := range []string{"GenericValue", "JsWasmValue"} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("output missing %q:\n%s", want, output)
+		}
+	}
+	if strings.Contains(output, "LinuxValue") {
+		t.Fatalf("output should not include linux-only file:\n%s", output)
 	}
 }
 
@@ -116,32 +96,44 @@ func TestGoListImportPathPreservesEnv(t *testing.T) {
 	}
 }
 
-func TestNewGoScriptCmdDefaultsToPinnedModule(t *testing.T) {
-	t.Setenv(GoScriptCommandEnv, "")
-
-	cmd := newGoScriptCmd(context.Background(), "compile", "--dir", ".")
-	gotArgs := strings.Join(cmd.Args, "\n")
-	for _, want := range []string{
-		"go\n",
-		"run\n" + goScriptModule + "\n",
-		"compile\n--dir\n.\n",
-	} {
-		if !strings.Contains(gotArgs+"\n", want) {
-			t.Fatalf("argv missing %q:\n%s", want, gotArgs)
-		}
+func writeGoScriptModule(t *testing.T, dir, modulePath string, files map[string]string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module "+modulePath+"\n\ngo 1.25.3\n"), 0o644); err != nil {
+		t.Fatal(err)
 	}
-	if got := envValue(cmd.Env, "GONOSUMDB"); got != goScriptNoSumDB {
-		t.Fatalf("GONOSUMDB = %q, want %q", got, goScriptNoSumDB)
+	names := make([]string, 0, len(files))
+	for name := range files {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	for _, name := range names {
+		path := filepath.Join(dir, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(files[name]), 0o644); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
-func envValue(env []string, key string) string {
-	prefix := key + "="
-	var out string
-	for _, val := range env {
-		if after, ok := strings.CutPrefix(val, prefix); ok {
-			out = after
-		}
+func assertGoScriptOutputContains(t *testing.T, outputRoot, importPath, want string) {
+	t.Helper()
+	output := readGoScriptOutput(t, outputRoot, importPath)
+	if !strings.Contains(output, want) {
+		t.Fatalf("output missing %q:\n%s", want, output)
 	}
-	return out
+}
+
+func readGoScriptOutput(t *testing.T, outputRoot, importPath string) string {
+	t.Helper()
+	path := filepath.Join(outputRoot, "@goscript", filepath.FromSlash(importPath), "index.ts")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		path = filepath.Join(outputRoot, "@goscript", filepath.FromSlash(importPath), "main.gs.ts")
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(data)
 }

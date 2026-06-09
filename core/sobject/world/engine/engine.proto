@@ -83,3 +83,72 @@ message ApplyTxOp {
   // tx is the tx or tx batch to apply
   .world.block.tx.Tx tx = 1;
 }
+
+// SpaceWorldFinalizationPacket is submitted by a follower after it has produced
+// candidate World content but before any SharedObject root is finalized.
+message SpaceWorldFinalizationPacket {
+  // BaseSharedObjectRoot is the SharedObject root observed before candidate work.
+  .sobject.SORoot base_shared_object_root = 1;
+  // BaseWorldRoot is the World root observed before candidate work.
+  .bucket.ObjectRef base_world_root = 2;
+  // CandidateWorldRoot is the follower-produced candidate World root.
+  .bucket.ObjectRef candidate_world_root = 3;
+  // CandidateContentId identifies the candidate content/op payload being finalized.
+  bytes candidate_content_id = 4;
+  // StorageGeneration is the storage coordinator generation observed by the follower.
+  uint64 storage_generation = 5;
+  // AuthorityEpoch identifies the leader/daemon authority epoch observed by the follower.
+  uint64 authority_epoch = 6;
+  // BlocksAvailable is true when the follower believes candidate blocks are readable by the authority owner.
+  bool blocks_available = 7;
+  // Op is the SharedObject World operation that produced the candidate root.
+  SOWorldOp op = 8;
+  // FollowerParticipantId identifies the submitting follower.
+  string follower_participant_id = 9;
+  // LocalOperationId lets the follower correlate accepted/rejected decisions.
+  string local_operation_id = 10;
+}
+
+// SpaceWorldFinalizationStatus is the authority owner's decision for a packet.
+enum SpaceWorldFinalizationStatus {
+  // SPACE_WORLD_FINALIZATION_STATUS_UNKNOWN is invalid.
+  SPACE_WORLD_FINALIZATION_STATUS_UNKNOWN = 0;
+  // SPACE_WORLD_FINALIZATION_STATUS_ACCEPTED means the SharedObject root was finalized.
+  SPACE_WORLD_FINALIZATION_STATUS_ACCEPTED = 1;
+  // SPACE_WORLD_FINALIZATION_STATUS_REJECTED means the candidate is not accepted and should be retained follower-side only.
+  SPACE_WORLD_FINALIZATION_STATUS_REJECTED = 2;
+  // SPACE_WORLD_FINALIZATION_STATUS_STALE_BASE means the candidate was based on stale SharedObject or World state.
+  SPACE_WORLD_FINALIZATION_STATUS_STALE_BASE = 3;
+  // SPACE_WORLD_FINALIZATION_STATUS_MISSING_BLOCK means the authority owner could not read candidate blocks.
+  SPACE_WORLD_FINALIZATION_STATUS_MISSING_BLOCK = 4;
+  // SPACE_WORLD_FINALIZATION_STATUS_LOST_AUTHORITY means the contacted owner no longer holds finalization authority.
+  SPACE_WORLD_FINALIZATION_STATUS_LOST_AUTHORITY = 5;
+}
+
+// SpaceWorldFinalizationDecision is returned by the leader or Spacewave daemon.
+message SpaceWorldFinalizationDecision {
+  // Status is the accept/reject/fence result.
+  SpaceWorldFinalizationStatus status = 1;
+  // AcceptedSharedObjectRoot is set only when status is ACCEPTED.
+  .sobject.SORoot accepted_shared_object_root = 2;
+  // AcceptedWorldRoot is set only when status is ACCEPTED.
+  .bucket.ObjectRef accepted_world_root = 3;
+  // Error explains rejected or retryable decisions.
+  string error = 4;
+  // Retryable indicates the follower may refresh and resubmit a new packet.
+  bool retryable = 5;
+  // LocalOperationId echoes the packet local id for follower correlation.
+  string local_operation_id = 6;
+}
+
+// SpaceWorldRejectedCandidate records follower-local retention bookkeeping for
+// a candidate that authority did not accept. The record does not grant any
+// leader-side block deletion authority.
+message SpaceWorldRejectedCandidate {
+  // Packet is the candidate submission that was not accepted.
+  SpaceWorldFinalizationPacket packet = 1;
+  // Decision is the non-accepted authority outcome.
+  SpaceWorldFinalizationDecision decision = 2;
+  // RetainedUnixNano records when the follower retained cleanup bookkeeping.
+  uint64 retained_unix_nano = 3;
+}

@@ -30,6 +30,7 @@
 #include "google/protobuf/message_lite.h"
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
+#include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
 #include "../../sobject.pb.h"
 #include "../../../../db/world/block/tx/tx.pb.h"
@@ -62,6 +63,8 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 namespace sobject {
 namespace world {
 namespace engine {
+enum SpaceWorldFinalizationStatus : int;
+extern const uint32_t SpaceWorldFinalizationStatus_internal_data_[];
 class ApplyTxOp;
 struct ApplyTxOpDefaultTypeInternal;
 extern ApplyTxOpDefaultTypeInternal _ApplyTxOp_default_instance_;
@@ -82,17 +85,72 @@ class SOWorldOp;
 struct SOWorldOpDefaultTypeInternal;
 extern SOWorldOpDefaultTypeInternal _SOWorldOp_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull SOWorldOp_class_data_;
+class SpaceWorldFinalizationDecision;
+struct SpaceWorldFinalizationDecisionDefaultTypeInternal;
+extern SpaceWorldFinalizationDecisionDefaultTypeInternal _SpaceWorldFinalizationDecision_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SpaceWorldFinalizationDecision_class_data_;
+class SpaceWorldFinalizationPacket;
+struct SpaceWorldFinalizationPacketDefaultTypeInternal;
+extern SpaceWorldFinalizationPacketDefaultTypeInternal _SpaceWorldFinalizationPacket_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SpaceWorldFinalizationPacket_class_data_;
+class SpaceWorldRejectedCandidate;
+struct SpaceWorldRejectedCandidateDefaultTypeInternal;
+extern SpaceWorldRejectedCandidateDefaultTypeInternal _SpaceWorldRejectedCandidate_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SpaceWorldRejectedCandidate_class_data_;
 }  // namespace engine
 }  // namespace world
 }  // namespace sobject
 namespace google {
 namespace protobuf {
+template <>
+internal::EnumTraitsT<::sobject::world::engine::SpaceWorldFinalizationStatus_internal_data_>
+    internal::EnumTraitsImpl::value<::sobject::world::engine::SpaceWorldFinalizationStatus>;
 }  // namespace protobuf
 }  // namespace google
 
 namespace sobject {
 namespace world {
 namespace engine {
+enum SpaceWorldFinalizationStatus : int {
+  SPACE_WORLD_FINALIZATION_STATUS_UNKNOWN = 0,
+  SPACE_WORLD_FINALIZATION_STATUS_ACCEPTED = 1,
+  SPACE_WORLD_FINALIZATION_STATUS_REJECTED = 2,
+  SPACE_WORLD_FINALIZATION_STATUS_STALE_BASE = 3,
+  SPACE_WORLD_FINALIZATION_STATUS_MISSING_BLOCK = 4,
+  SPACE_WORLD_FINALIZATION_STATUS_LOST_AUTHORITY = 5,
+  SpaceWorldFinalizationStatus_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  SpaceWorldFinalizationStatus_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t SpaceWorldFinalizationStatus_internal_data_[];
+inline constexpr SpaceWorldFinalizationStatus SpaceWorldFinalizationStatus_MIN =
+    static_cast<SpaceWorldFinalizationStatus>(0);
+inline constexpr SpaceWorldFinalizationStatus SpaceWorldFinalizationStatus_MAX =
+    static_cast<SpaceWorldFinalizationStatus>(5);
+inline bool SpaceWorldFinalizationStatus_IsValid(int value) {
+  return 0 <= value && value <= 5;
+}
+inline constexpr int SpaceWorldFinalizationStatus_ARRAYSIZE = 5 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SpaceWorldFinalizationStatus_descriptor();
+template <typename T>
+const ::std::string& SpaceWorldFinalizationStatus_Name(T value) {
+  static_assert(::std::is_same<T, SpaceWorldFinalizationStatus>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to SpaceWorldFinalizationStatus_Name().");
+  return SpaceWorldFinalizationStatus_Name(static_cast<SpaceWorldFinalizationStatus>(value));
+}
+template <>
+inline const ::std::string& SpaceWorldFinalizationStatus_Name(SpaceWorldFinalizationStatus value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<SpaceWorldFinalizationStatus_descriptor, 0, 5>(
+      static_cast<int>(value));
+}
+inline bool SpaceWorldFinalizationStatus_Parse(
+    ::absl::string_view name, SpaceWorldFinalizationStatus* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<SpaceWorldFinalizationStatus>(SpaceWorldFinalizationStatus_descriptor(), name,
+                                           value);
+}
 
 // ===================================================================
 
@@ -304,6 +362,276 @@ class InitWorldOp final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull InitWorldOp_class_data_;
+// -------------------------------------------------------------------
+
+class SpaceWorldFinalizationDecision final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:sobject.world.engine.SpaceWorldFinalizationDecision) */ {
+ public:
+  inline SpaceWorldFinalizationDecision() : SpaceWorldFinalizationDecision(nullptr) {}
+  ~SpaceWorldFinalizationDecision() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SpaceWorldFinalizationDecision* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SpaceWorldFinalizationDecision));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SpaceWorldFinalizationDecision(::google::protobuf::internal::ConstantInitialized);
+
+  inline SpaceWorldFinalizationDecision(const SpaceWorldFinalizationDecision& from) : SpaceWorldFinalizationDecision(nullptr, from) {}
+  inline SpaceWorldFinalizationDecision(SpaceWorldFinalizationDecision&& from) noexcept
+      : SpaceWorldFinalizationDecision(nullptr, ::std::move(from)) {}
+  inline SpaceWorldFinalizationDecision& operator=(const SpaceWorldFinalizationDecision& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SpaceWorldFinalizationDecision& operator=(SpaceWorldFinalizationDecision&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SpaceWorldFinalizationDecision& default_instance() {
+    return *reinterpret_cast<const SpaceWorldFinalizationDecision*>(
+        &_SpaceWorldFinalizationDecision_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 6;
+  friend void swap(SpaceWorldFinalizationDecision& a, SpaceWorldFinalizationDecision& b) { a.Swap(&b); }
+  inline void Swap(SpaceWorldFinalizationDecision* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SpaceWorldFinalizationDecision* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SpaceWorldFinalizationDecision* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SpaceWorldFinalizationDecision>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SpaceWorldFinalizationDecision& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SpaceWorldFinalizationDecision& from) { SpaceWorldFinalizationDecision::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SpaceWorldFinalizationDecision* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.world.engine.SpaceWorldFinalizationDecision"; }
+
+  explicit SpaceWorldFinalizationDecision(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SpaceWorldFinalizationDecision(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SpaceWorldFinalizationDecision& from);
+  SpaceWorldFinalizationDecision(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SpaceWorldFinalizationDecision&& from) noexcept
+      : SpaceWorldFinalizationDecision(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kErrorFieldNumber = 4,
+    kLocalOperationIdFieldNumber = 6,
+    kAcceptedSharedObjectRootFieldNumber = 2,
+    kAcceptedWorldRootFieldNumber = 3,
+    kStatusFieldNumber = 1,
+    kRetryableFieldNumber = 5,
+  };
+  // string error = 4;
+  void clear_error() ;
+  const ::std::string& error() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_error(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_error();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_error();
+  void set_allocated_error(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_error() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_error(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_error();
+
+  public:
+  // string local_operation_id = 6;
+  void clear_local_operation_id() ;
+  const ::std::string& local_operation_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_local_operation_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_local_operation_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_local_operation_id();
+  void set_allocated_local_operation_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_local_operation_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_local_operation_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_local_operation_id();
+
+  public:
+  // .sobject.SORoot accepted_shared_object_root = 2;
+  bool has_accepted_shared_object_root() const;
+  void clear_accepted_shared_object_root() ;
+  const ::sobject::SORoot& accepted_shared_object_root() const;
+  [[nodiscard]] ::sobject::SORoot* PROTOBUF_NULLABLE release_accepted_shared_object_root();
+  ::sobject::SORoot* PROTOBUF_NONNULL mutable_accepted_shared_object_root();
+  void set_allocated_accepted_shared_object_root(::sobject::SORoot* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_accepted_shared_object_root(::sobject::SORoot* PROTOBUF_NULLABLE value);
+  ::sobject::SORoot* PROTOBUF_NULLABLE unsafe_arena_release_accepted_shared_object_root();
+
+  private:
+  const ::sobject::SORoot& _internal_accepted_shared_object_root() const;
+  ::sobject::SORoot* PROTOBUF_NONNULL _internal_mutable_accepted_shared_object_root();
+
+  public:
+  // .bucket.ObjectRef accepted_world_root = 3;
+  bool has_accepted_world_root() const;
+  void clear_accepted_world_root() ;
+  const ::bucket::ObjectRef& accepted_world_root() const;
+  [[nodiscard]] ::bucket::ObjectRef* PROTOBUF_NULLABLE release_accepted_world_root();
+  ::bucket::ObjectRef* PROTOBUF_NONNULL mutable_accepted_world_root();
+  void set_allocated_accepted_world_root(::bucket::ObjectRef* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_accepted_world_root(::bucket::ObjectRef* PROTOBUF_NULLABLE value);
+  ::bucket::ObjectRef* PROTOBUF_NULLABLE unsafe_arena_release_accepted_world_root();
+
+  private:
+  const ::bucket::ObjectRef& _internal_accepted_world_root() const;
+  ::bucket::ObjectRef* PROTOBUF_NONNULL _internal_mutable_accepted_world_root();
+
+  public:
+  // .sobject.world.engine.SpaceWorldFinalizationStatus status = 1;
+  void clear_status() ;
+  ::sobject::world::engine::SpaceWorldFinalizationStatus status() const;
+  void set_status(::sobject::world::engine::SpaceWorldFinalizationStatus value);
+
+  private:
+  ::sobject::world::engine::SpaceWorldFinalizationStatus _internal_status() const;
+  void _internal_set_status(::sobject::world::engine::SpaceWorldFinalizationStatus value);
+
+  public:
+  // bool retryable = 5;
+  void clear_retryable() ;
+  bool retryable() const;
+  void set_retryable(bool value);
+
+  private:
+  bool _internal_retryable() const;
+  void _internal_set_retryable(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:sobject.world.engine.SpaceWorldFinalizationDecision)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 6,
+                                   2, 83,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SpaceWorldFinalizationDecision& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr error_;
+    ::google::protobuf::internal::ArenaStringPtr local_operation_id_;
+    ::sobject::SORoot* PROTOBUF_NULLABLE accepted_shared_object_root_;
+    ::bucket::ObjectRef* PROTOBUF_NULLABLE accepted_world_root_;
+    int status_;
+    bool retryable_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fworld_2fengine_2fengine_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SpaceWorldFinalizationDecision_class_data_;
 // -------------------------------------------------------------------
 
 class InnerState final : public ::google::protobuf::Message
@@ -1247,6 +1575,563 @@ class SOWorldOp final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull SOWorldOp_class_data_;
+// -------------------------------------------------------------------
+
+class SpaceWorldFinalizationPacket final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:sobject.world.engine.SpaceWorldFinalizationPacket) */ {
+ public:
+  inline SpaceWorldFinalizationPacket() : SpaceWorldFinalizationPacket(nullptr) {}
+  ~SpaceWorldFinalizationPacket() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SpaceWorldFinalizationPacket* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SpaceWorldFinalizationPacket));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SpaceWorldFinalizationPacket(::google::protobuf::internal::ConstantInitialized);
+
+  inline SpaceWorldFinalizationPacket(const SpaceWorldFinalizationPacket& from) : SpaceWorldFinalizationPacket(nullptr, from) {}
+  inline SpaceWorldFinalizationPacket(SpaceWorldFinalizationPacket&& from) noexcept
+      : SpaceWorldFinalizationPacket(nullptr, ::std::move(from)) {}
+  inline SpaceWorldFinalizationPacket& operator=(const SpaceWorldFinalizationPacket& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SpaceWorldFinalizationPacket& operator=(SpaceWorldFinalizationPacket&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SpaceWorldFinalizationPacket& default_instance() {
+    return *reinterpret_cast<const SpaceWorldFinalizationPacket*>(
+        &_SpaceWorldFinalizationPacket_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 5;
+  friend void swap(SpaceWorldFinalizationPacket& a, SpaceWorldFinalizationPacket& b) { a.Swap(&b); }
+  inline void Swap(SpaceWorldFinalizationPacket* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SpaceWorldFinalizationPacket* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SpaceWorldFinalizationPacket* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SpaceWorldFinalizationPacket>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SpaceWorldFinalizationPacket& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SpaceWorldFinalizationPacket& from) { SpaceWorldFinalizationPacket::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SpaceWorldFinalizationPacket* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.world.engine.SpaceWorldFinalizationPacket"; }
+
+  explicit SpaceWorldFinalizationPacket(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SpaceWorldFinalizationPacket(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SpaceWorldFinalizationPacket& from);
+  SpaceWorldFinalizationPacket(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SpaceWorldFinalizationPacket&& from) noexcept
+      : SpaceWorldFinalizationPacket(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kCandidateContentIdFieldNumber = 4,
+    kFollowerParticipantIdFieldNumber = 9,
+    kLocalOperationIdFieldNumber = 10,
+    kBaseSharedObjectRootFieldNumber = 1,
+    kBaseWorldRootFieldNumber = 2,
+    kCandidateWorldRootFieldNumber = 3,
+    kOpFieldNumber = 8,
+    kStorageGenerationFieldNumber = 5,
+    kAuthorityEpochFieldNumber = 6,
+    kBlocksAvailableFieldNumber = 7,
+  };
+  // bytes candidate_content_id = 4;
+  void clear_candidate_content_id() ;
+  const ::std::string& candidate_content_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_candidate_content_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_candidate_content_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_candidate_content_id();
+  void set_allocated_candidate_content_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_candidate_content_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_candidate_content_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_candidate_content_id();
+
+  public:
+  // string follower_participant_id = 9;
+  void clear_follower_participant_id() ;
+  const ::std::string& follower_participant_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_follower_participant_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_follower_participant_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_follower_participant_id();
+  void set_allocated_follower_participant_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_follower_participant_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_follower_participant_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_follower_participant_id();
+
+  public:
+  // string local_operation_id = 10;
+  void clear_local_operation_id() ;
+  const ::std::string& local_operation_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_local_operation_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_local_operation_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_local_operation_id();
+  void set_allocated_local_operation_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_local_operation_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_local_operation_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_local_operation_id();
+
+  public:
+  // .sobject.SORoot base_shared_object_root = 1;
+  bool has_base_shared_object_root() const;
+  void clear_base_shared_object_root() ;
+  const ::sobject::SORoot& base_shared_object_root() const;
+  [[nodiscard]] ::sobject::SORoot* PROTOBUF_NULLABLE release_base_shared_object_root();
+  ::sobject::SORoot* PROTOBUF_NONNULL mutable_base_shared_object_root();
+  void set_allocated_base_shared_object_root(::sobject::SORoot* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_base_shared_object_root(::sobject::SORoot* PROTOBUF_NULLABLE value);
+  ::sobject::SORoot* PROTOBUF_NULLABLE unsafe_arena_release_base_shared_object_root();
+
+  private:
+  const ::sobject::SORoot& _internal_base_shared_object_root() const;
+  ::sobject::SORoot* PROTOBUF_NONNULL _internal_mutable_base_shared_object_root();
+
+  public:
+  // .bucket.ObjectRef base_world_root = 2;
+  bool has_base_world_root() const;
+  void clear_base_world_root() ;
+  const ::bucket::ObjectRef& base_world_root() const;
+  [[nodiscard]] ::bucket::ObjectRef* PROTOBUF_NULLABLE release_base_world_root();
+  ::bucket::ObjectRef* PROTOBUF_NONNULL mutable_base_world_root();
+  void set_allocated_base_world_root(::bucket::ObjectRef* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_base_world_root(::bucket::ObjectRef* PROTOBUF_NULLABLE value);
+  ::bucket::ObjectRef* PROTOBUF_NULLABLE unsafe_arena_release_base_world_root();
+
+  private:
+  const ::bucket::ObjectRef& _internal_base_world_root() const;
+  ::bucket::ObjectRef* PROTOBUF_NONNULL _internal_mutable_base_world_root();
+
+  public:
+  // .bucket.ObjectRef candidate_world_root = 3;
+  bool has_candidate_world_root() const;
+  void clear_candidate_world_root() ;
+  const ::bucket::ObjectRef& candidate_world_root() const;
+  [[nodiscard]] ::bucket::ObjectRef* PROTOBUF_NULLABLE release_candidate_world_root();
+  ::bucket::ObjectRef* PROTOBUF_NONNULL mutable_candidate_world_root();
+  void set_allocated_candidate_world_root(::bucket::ObjectRef* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_candidate_world_root(::bucket::ObjectRef* PROTOBUF_NULLABLE value);
+  ::bucket::ObjectRef* PROTOBUF_NULLABLE unsafe_arena_release_candidate_world_root();
+
+  private:
+  const ::bucket::ObjectRef& _internal_candidate_world_root() const;
+  ::bucket::ObjectRef* PROTOBUF_NONNULL _internal_mutable_candidate_world_root();
+
+  public:
+  // .sobject.world.engine.SOWorldOp op = 8;
+  bool has_op() const;
+  void clear_op() ;
+  const ::sobject::world::engine::SOWorldOp& op() const;
+  [[nodiscard]] ::sobject::world::engine::SOWorldOp* PROTOBUF_NULLABLE release_op();
+  ::sobject::world::engine::SOWorldOp* PROTOBUF_NONNULL mutable_op();
+  void set_allocated_op(::sobject::world::engine::SOWorldOp* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_op(::sobject::world::engine::SOWorldOp* PROTOBUF_NULLABLE value);
+  ::sobject::world::engine::SOWorldOp* PROTOBUF_NULLABLE unsafe_arena_release_op();
+
+  private:
+  const ::sobject::world::engine::SOWorldOp& _internal_op() const;
+  ::sobject::world::engine::SOWorldOp* PROTOBUF_NONNULL _internal_mutable_op();
+
+  public:
+  // uint64 storage_generation = 5;
+  void clear_storage_generation() ;
+  ::uint64_t storage_generation() const;
+  void set_storage_generation(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_storage_generation() const;
+  void _internal_set_storage_generation(::uint64_t value);
+
+  public:
+  // uint64 authority_epoch = 6;
+  void clear_authority_epoch() ;
+  ::uint64_t authority_epoch() const;
+  void set_authority_epoch(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_authority_epoch() const;
+  void _internal_set_authority_epoch(::uint64_t value);
+
+  public:
+  // bool blocks_available = 7;
+  void clear_blocks_available() ;
+  bool blocks_available() const;
+  void set_blocks_available(bool value);
+
+  private:
+  bool _internal_blocks_available() const;
+  void _internal_set_blocks_available(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:sobject.world.engine.SpaceWorldFinalizationPacket)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<4, 10,
+                                   4, 107,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SpaceWorldFinalizationPacket& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr candidate_content_id_;
+    ::google::protobuf::internal::ArenaStringPtr follower_participant_id_;
+    ::google::protobuf::internal::ArenaStringPtr local_operation_id_;
+    ::sobject::SORoot* PROTOBUF_NULLABLE base_shared_object_root_;
+    ::bucket::ObjectRef* PROTOBUF_NULLABLE base_world_root_;
+    ::bucket::ObjectRef* PROTOBUF_NULLABLE candidate_world_root_;
+    ::sobject::world::engine::SOWorldOp* PROTOBUF_NULLABLE op_;
+    ::uint64_t storage_generation_;
+    ::uint64_t authority_epoch_;
+    bool blocks_available_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fworld_2fengine_2fengine_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SpaceWorldFinalizationPacket_class_data_;
+// -------------------------------------------------------------------
+
+class SpaceWorldRejectedCandidate final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:sobject.world.engine.SpaceWorldRejectedCandidate) */ {
+ public:
+  inline SpaceWorldRejectedCandidate() : SpaceWorldRejectedCandidate(nullptr) {}
+  ~SpaceWorldRejectedCandidate() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SpaceWorldRejectedCandidate* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SpaceWorldRejectedCandidate));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SpaceWorldRejectedCandidate(::google::protobuf::internal::ConstantInitialized);
+
+  inline SpaceWorldRejectedCandidate(const SpaceWorldRejectedCandidate& from) : SpaceWorldRejectedCandidate(nullptr, from) {}
+  inline SpaceWorldRejectedCandidate(SpaceWorldRejectedCandidate&& from) noexcept
+      : SpaceWorldRejectedCandidate(nullptr, ::std::move(from)) {}
+  inline SpaceWorldRejectedCandidate& operator=(const SpaceWorldRejectedCandidate& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SpaceWorldRejectedCandidate& operator=(SpaceWorldRejectedCandidate&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SpaceWorldRejectedCandidate& default_instance() {
+    return *reinterpret_cast<const SpaceWorldRejectedCandidate*>(
+        &_SpaceWorldRejectedCandidate_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 7;
+  friend void swap(SpaceWorldRejectedCandidate& a, SpaceWorldRejectedCandidate& b) { a.Swap(&b); }
+  inline void Swap(SpaceWorldRejectedCandidate* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SpaceWorldRejectedCandidate* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SpaceWorldRejectedCandidate* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SpaceWorldRejectedCandidate>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SpaceWorldRejectedCandidate& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SpaceWorldRejectedCandidate& from) { SpaceWorldRejectedCandidate::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SpaceWorldRejectedCandidate* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.world.engine.SpaceWorldRejectedCandidate"; }
+
+  explicit SpaceWorldRejectedCandidate(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SpaceWorldRejectedCandidate(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SpaceWorldRejectedCandidate& from);
+  SpaceWorldRejectedCandidate(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SpaceWorldRejectedCandidate&& from) noexcept
+      : SpaceWorldRejectedCandidate(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kPacketFieldNumber = 1,
+    kDecisionFieldNumber = 2,
+    kRetainedUnixNanoFieldNumber = 3,
+  };
+  // .sobject.world.engine.SpaceWorldFinalizationPacket packet = 1;
+  bool has_packet() const;
+  void clear_packet() ;
+  const ::sobject::world::engine::SpaceWorldFinalizationPacket& packet() const;
+  [[nodiscard]] ::sobject::world::engine::SpaceWorldFinalizationPacket* PROTOBUF_NULLABLE release_packet();
+  ::sobject::world::engine::SpaceWorldFinalizationPacket* PROTOBUF_NONNULL mutable_packet();
+  void set_allocated_packet(::sobject::world::engine::SpaceWorldFinalizationPacket* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_packet(::sobject::world::engine::SpaceWorldFinalizationPacket* PROTOBUF_NULLABLE value);
+  ::sobject::world::engine::SpaceWorldFinalizationPacket* PROTOBUF_NULLABLE unsafe_arena_release_packet();
+
+  private:
+  const ::sobject::world::engine::SpaceWorldFinalizationPacket& _internal_packet() const;
+  ::sobject::world::engine::SpaceWorldFinalizationPacket* PROTOBUF_NONNULL _internal_mutable_packet();
+
+  public:
+  // .sobject.world.engine.SpaceWorldFinalizationDecision decision = 2;
+  bool has_decision() const;
+  void clear_decision() ;
+  const ::sobject::world::engine::SpaceWorldFinalizationDecision& decision() const;
+  [[nodiscard]] ::sobject::world::engine::SpaceWorldFinalizationDecision* PROTOBUF_NULLABLE release_decision();
+  ::sobject::world::engine::SpaceWorldFinalizationDecision* PROTOBUF_NONNULL mutable_decision();
+  void set_allocated_decision(::sobject::world::engine::SpaceWorldFinalizationDecision* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_decision(::sobject::world::engine::SpaceWorldFinalizationDecision* PROTOBUF_NULLABLE value);
+  ::sobject::world::engine::SpaceWorldFinalizationDecision* PROTOBUF_NULLABLE unsafe_arena_release_decision();
+
+  private:
+  const ::sobject::world::engine::SpaceWorldFinalizationDecision& _internal_decision() const;
+  ::sobject::world::engine::SpaceWorldFinalizationDecision* PROTOBUF_NONNULL _internal_mutable_decision();
+
+  public:
+  // uint64 retained_unix_nano = 3;
+  void clear_retained_unix_nano() ;
+  ::uint64_t retained_unix_nano() const;
+  void set_retained_unix_nano(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_retained_unix_nano() const;
+  void _internal_set_retained_unix_nano(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:sobject.world.engine.SpaceWorldRejectedCandidate)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   2, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SpaceWorldRejectedCandidate& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::sobject::world::engine::SpaceWorldFinalizationPacket* PROTOBUF_NULLABLE packet_;
+    ::sobject::world::engine::SpaceWorldFinalizationDecision* PROTOBUF_NULLABLE decision_;
+    ::uint64_t retained_unix_nano_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fworld_2fengine_2fengine_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SpaceWorldRejectedCandidate_class_data_;
 
 // ===================================================================
 
@@ -2257,6 +3142,1255 @@ inline void ApplyTxOp::set_allocated_tx(::world::block::tx::Tx* PROTOBUF_NULLABL
   // @@protoc_insertion_point(field_set_allocated:sobject.world.engine.ApplyTxOp.tx)
 }
 
+// -------------------------------------------------------------------
+
+// SpaceWorldFinalizationPacket
+
+// .sobject.SORoot base_shared_object_root = 1;
+inline bool SpaceWorldFinalizationPacket::has_base_shared_object_root() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  PROTOBUF_ASSUME(!value || _impl_.base_shared_object_root_ != nullptr);
+  return value;
+}
+inline const ::sobject::SORoot& SpaceWorldFinalizationPacket::_internal_base_shared_object_root() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SORoot* p = _impl_.base_shared_object_root_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SORoot&>(::sobject::_SORoot_default_instance_);
+}
+inline const ::sobject::SORoot& SpaceWorldFinalizationPacket::base_shared_object_root() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.world.engine.SpaceWorldFinalizationPacket.base_shared_object_root)
+  return _internal_base_shared_object_root();
+}
+inline void SpaceWorldFinalizationPacket::unsafe_arena_set_allocated_base_shared_object_root(
+    ::sobject::SORoot* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.base_shared_object_root_);
+  }
+  _impl_.base_shared_object_root_ = reinterpret_cast<::sobject::SORoot*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.world.engine.SpaceWorldFinalizationPacket.base_shared_object_root)
+}
+inline ::sobject::SORoot* PROTOBUF_NULLABLE SpaceWorldFinalizationPacket::release_base_shared_object_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::sobject::SORoot* released = _impl_.base_shared_object_root_;
+  _impl_.base_shared_object_root_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SORoot* PROTOBUF_NULLABLE SpaceWorldFinalizationPacket::unsafe_arena_release_base_shared_object_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.world.engine.SpaceWorldFinalizationPacket.base_shared_object_root)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::sobject::SORoot* temp = _impl_.base_shared_object_root_;
+  _impl_.base_shared_object_root_ = nullptr;
+  return temp;
+}
+inline ::sobject::SORoot* PROTOBUF_NONNULL SpaceWorldFinalizationPacket::_internal_mutable_base_shared_object_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.base_shared_object_root_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SORoot>(GetArena());
+    _impl_.base_shared_object_root_ = reinterpret_cast<::sobject::SORoot*>(p);
+  }
+  return _impl_.base_shared_object_root_;
+}
+inline ::sobject::SORoot* PROTOBUF_NONNULL SpaceWorldFinalizationPacket::mutable_base_shared_object_root()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::sobject::SORoot* _msg = _internal_mutable_base_shared_object_root();
+  // @@protoc_insertion_point(field_mutable:sobject.world.engine.SpaceWorldFinalizationPacket.base_shared_object_root)
+  return _msg;
+}
+inline void SpaceWorldFinalizationPacket::set_allocated_base_shared_object_root(::sobject::SORoot* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.base_shared_object_root_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+
+  _impl_.base_shared_object_root_ = reinterpret_cast<::sobject::SORoot*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.world.engine.SpaceWorldFinalizationPacket.base_shared_object_root)
+}
+
+// .bucket.ObjectRef base_world_root = 2;
+inline bool SpaceWorldFinalizationPacket::has_base_world_root() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
+  PROTOBUF_ASSUME(!value || _impl_.base_world_root_ != nullptr);
+  return value;
+}
+inline const ::bucket::ObjectRef& SpaceWorldFinalizationPacket::_internal_base_world_root() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::bucket::ObjectRef* p = _impl_.base_world_root_;
+  return p != nullptr ? *p : reinterpret_cast<const ::bucket::ObjectRef&>(::bucket::_ObjectRef_default_instance_);
+}
+inline const ::bucket::ObjectRef& SpaceWorldFinalizationPacket::base_world_root() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.world.engine.SpaceWorldFinalizationPacket.base_world_root)
+  return _internal_base_world_root();
+}
+inline void SpaceWorldFinalizationPacket::unsafe_arena_set_allocated_base_world_root(
+    ::bucket::ObjectRef* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.base_world_root_);
+  }
+  _impl_.base_world_root_ = reinterpret_cast<::bucket::ObjectRef*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.world.engine.SpaceWorldFinalizationPacket.base_world_root)
+}
+inline ::bucket::ObjectRef* PROTOBUF_NULLABLE SpaceWorldFinalizationPacket::release_base_world_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::bucket::ObjectRef* released = _impl_.base_world_root_;
+  _impl_.base_world_root_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::bucket::ObjectRef* PROTOBUF_NULLABLE SpaceWorldFinalizationPacket::unsafe_arena_release_base_world_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.world.engine.SpaceWorldFinalizationPacket.base_world_root)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::bucket::ObjectRef* temp = _impl_.base_world_root_;
+  _impl_.base_world_root_ = nullptr;
+  return temp;
+}
+inline ::bucket::ObjectRef* PROTOBUF_NONNULL SpaceWorldFinalizationPacket::_internal_mutable_base_world_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.base_world_root_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::bucket::ObjectRef>(GetArena());
+    _impl_.base_world_root_ = reinterpret_cast<::bucket::ObjectRef*>(p);
+  }
+  return _impl_.base_world_root_;
+}
+inline ::bucket::ObjectRef* PROTOBUF_NONNULL SpaceWorldFinalizationPacket::mutable_base_world_root()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::bucket::ObjectRef* _msg = _internal_mutable_base_world_root();
+  // @@protoc_insertion_point(field_mutable:sobject.world.engine.SpaceWorldFinalizationPacket.base_world_root)
+  return _msg;
+}
+inline void SpaceWorldFinalizationPacket::set_allocated_base_world_root(::bucket::ObjectRef* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.base_world_root_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+
+  _impl_.base_world_root_ = reinterpret_cast<::bucket::ObjectRef*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.world.engine.SpaceWorldFinalizationPacket.base_world_root)
+}
+
+// .bucket.ObjectRef candidate_world_root = 3;
+inline bool SpaceWorldFinalizationPacket::has_candidate_world_root() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
+  PROTOBUF_ASSUME(!value || _impl_.candidate_world_root_ != nullptr);
+  return value;
+}
+inline const ::bucket::ObjectRef& SpaceWorldFinalizationPacket::_internal_candidate_world_root() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::bucket::ObjectRef* p = _impl_.candidate_world_root_;
+  return p != nullptr ? *p : reinterpret_cast<const ::bucket::ObjectRef&>(::bucket::_ObjectRef_default_instance_);
+}
+inline const ::bucket::ObjectRef& SpaceWorldFinalizationPacket::candidate_world_root() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.world.engine.SpaceWorldFinalizationPacket.candidate_world_root)
+  return _internal_candidate_world_root();
+}
+inline void SpaceWorldFinalizationPacket::unsafe_arena_set_allocated_candidate_world_root(
+    ::bucket::ObjectRef* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.candidate_world_root_);
+  }
+  _impl_.candidate_world_root_ = reinterpret_cast<::bucket::ObjectRef*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.world.engine.SpaceWorldFinalizationPacket.candidate_world_root)
+}
+inline ::bucket::ObjectRef* PROTOBUF_NULLABLE SpaceWorldFinalizationPacket::release_candidate_world_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::bucket::ObjectRef* released = _impl_.candidate_world_root_;
+  _impl_.candidate_world_root_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::bucket::ObjectRef* PROTOBUF_NULLABLE SpaceWorldFinalizationPacket::unsafe_arena_release_candidate_world_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.world.engine.SpaceWorldFinalizationPacket.candidate_world_root)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::bucket::ObjectRef* temp = _impl_.candidate_world_root_;
+  _impl_.candidate_world_root_ = nullptr;
+  return temp;
+}
+inline ::bucket::ObjectRef* PROTOBUF_NONNULL SpaceWorldFinalizationPacket::_internal_mutable_candidate_world_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.candidate_world_root_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::bucket::ObjectRef>(GetArena());
+    _impl_.candidate_world_root_ = reinterpret_cast<::bucket::ObjectRef*>(p);
+  }
+  return _impl_.candidate_world_root_;
+}
+inline ::bucket::ObjectRef* PROTOBUF_NONNULL SpaceWorldFinalizationPacket::mutable_candidate_world_root()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::bucket::ObjectRef* _msg = _internal_mutable_candidate_world_root();
+  // @@protoc_insertion_point(field_mutable:sobject.world.engine.SpaceWorldFinalizationPacket.candidate_world_root)
+  return _msg;
+}
+inline void SpaceWorldFinalizationPacket::set_allocated_candidate_world_root(::bucket::ObjectRef* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.candidate_world_root_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+
+  _impl_.candidate_world_root_ = reinterpret_cast<::bucket::ObjectRef*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.world.engine.SpaceWorldFinalizationPacket.candidate_world_root)
+}
+
+// bytes candidate_content_id = 4;
+inline void SpaceWorldFinalizationPacket::clear_candidate_content_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.candidate_content_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& SpaceWorldFinalizationPacket::candidate_content_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.world.engine.SpaceWorldFinalizationPacket.candidate_content_id)
+  return _internal_candidate_content_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SpaceWorldFinalizationPacket::set_candidate_content_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.candidate_content_id_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.world.engine.SpaceWorldFinalizationPacket.candidate_content_id)
+}
+inline ::std::string* PROTOBUF_NONNULL SpaceWorldFinalizationPacket::mutable_candidate_content_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_candidate_content_id();
+  // @@protoc_insertion_point(field_mutable:sobject.world.engine.SpaceWorldFinalizationPacket.candidate_content_id)
+  return _s;
+}
+inline const ::std::string& SpaceWorldFinalizationPacket::_internal_candidate_content_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.candidate_content_id_.Get();
+}
+inline void SpaceWorldFinalizationPacket::_internal_set_candidate_content_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.candidate_content_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SpaceWorldFinalizationPacket::_internal_mutable_candidate_content_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.candidate_content_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SpaceWorldFinalizationPacket::release_candidate_content_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.world.engine.SpaceWorldFinalizationPacket.candidate_content_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.candidate_content_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.candidate_content_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SpaceWorldFinalizationPacket::set_allocated_candidate_content_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.candidate_content_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.candidate_content_id_.IsDefault()) {
+    _impl_.candidate_content_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.world.engine.SpaceWorldFinalizationPacket.candidate_content_id)
+}
+
+// uint64 storage_generation = 5;
+inline void SpaceWorldFinalizationPacket::clear_storage_generation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.storage_generation_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline ::uint64_t SpaceWorldFinalizationPacket::storage_generation() const {
+  // @@protoc_insertion_point(field_get:sobject.world.engine.SpaceWorldFinalizationPacket.storage_generation)
+  return _internal_storage_generation();
+}
+inline void SpaceWorldFinalizationPacket::set_storage_generation(::uint64_t value) {
+  _internal_set_storage_generation(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  // @@protoc_insertion_point(field_set:sobject.world.engine.SpaceWorldFinalizationPacket.storage_generation)
+}
+inline ::uint64_t SpaceWorldFinalizationPacket::_internal_storage_generation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.storage_generation_;
+}
+inline void SpaceWorldFinalizationPacket::_internal_set_storage_generation(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.storage_generation_ = value;
+}
+
+// uint64 authority_epoch = 6;
+inline void SpaceWorldFinalizationPacket::clear_authority_epoch() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.authority_epoch_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline ::uint64_t SpaceWorldFinalizationPacket::authority_epoch() const {
+  // @@protoc_insertion_point(field_get:sobject.world.engine.SpaceWorldFinalizationPacket.authority_epoch)
+  return _internal_authority_epoch();
+}
+inline void SpaceWorldFinalizationPacket::set_authority_epoch(::uint64_t value) {
+  _internal_set_authority_epoch(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  // @@protoc_insertion_point(field_set:sobject.world.engine.SpaceWorldFinalizationPacket.authority_epoch)
+}
+inline ::uint64_t SpaceWorldFinalizationPacket::_internal_authority_epoch() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.authority_epoch_;
+}
+inline void SpaceWorldFinalizationPacket::_internal_set_authority_epoch(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.authority_epoch_ = value;
+}
+
+// bool blocks_available = 7;
+inline void SpaceWorldFinalizationPacket::clear_blocks_available() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.blocks_available_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline bool SpaceWorldFinalizationPacket::blocks_available() const {
+  // @@protoc_insertion_point(field_get:sobject.world.engine.SpaceWorldFinalizationPacket.blocks_available)
+  return _internal_blocks_available();
+}
+inline void SpaceWorldFinalizationPacket::set_blocks_available(bool value) {
+  _internal_set_blocks_available(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  // @@protoc_insertion_point(field_set:sobject.world.engine.SpaceWorldFinalizationPacket.blocks_available)
+}
+inline bool SpaceWorldFinalizationPacket::_internal_blocks_available() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.blocks_available_;
+}
+inline void SpaceWorldFinalizationPacket::_internal_set_blocks_available(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.blocks_available_ = value;
+}
+
+// .sobject.world.engine.SOWorldOp op = 8;
+inline bool SpaceWorldFinalizationPacket::has_op() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000040U);
+  PROTOBUF_ASSUME(!value || _impl_.op_ != nullptr);
+  return value;
+}
+inline void SpaceWorldFinalizationPacket::clear_op() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.op_ != nullptr) _impl_.op_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::sobject::world::engine::SOWorldOp& SpaceWorldFinalizationPacket::_internal_op() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::world::engine::SOWorldOp* p = _impl_.op_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::world::engine::SOWorldOp&>(::sobject::world::engine::_SOWorldOp_default_instance_);
+}
+inline const ::sobject::world::engine::SOWorldOp& SpaceWorldFinalizationPacket::op() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.world.engine.SpaceWorldFinalizationPacket.op)
+  return _internal_op();
+}
+inline void SpaceWorldFinalizationPacket::unsafe_arena_set_allocated_op(
+    ::sobject::world::engine::SOWorldOp* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.op_);
+  }
+  _impl_.op_ = reinterpret_cast<::sobject::world::engine::SOWorldOp*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.world.engine.SpaceWorldFinalizationPacket.op)
+}
+inline ::sobject::world::engine::SOWorldOp* PROTOBUF_NULLABLE SpaceWorldFinalizationPacket::release_op() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::sobject::world::engine::SOWorldOp* released = _impl_.op_;
+  _impl_.op_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::world::engine::SOWorldOp* PROTOBUF_NULLABLE SpaceWorldFinalizationPacket::unsafe_arena_release_op() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.world.engine.SpaceWorldFinalizationPacket.op)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::sobject::world::engine::SOWorldOp* temp = _impl_.op_;
+  _impl_.op_ = nullptr;
+  return temp;
+}
+inline ::sobject::world::engine::SOWorldOp* PROTOBUF_NONNULL SpaceWorldFinalizationPacket::_internal_mutable_op() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.op_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::world::engine::SOWorldOp>(GetArena());
+    _impl_.op_ = reinterpret_cast<::sobject::world::engine::SOWorldOp*>(p);
+  }
+  return _impl_.op_;
+}
+inline ::sobject::world::engine::SOWorldOp* PROTOBUF_NONNULL SpaceWorldFinalizationPacket::mutable_op()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::sobject::world::engine::SOWorldOp* _msg = _internal_mutable_op();
+  // @@protoc_insertion_point(field_mutable:sobject.world.engine.SpaceWorldFinalizationPacket.op)
+  return _msg;
+}
+inline void SpaceWorldFinalizationPacket::set_allocated_op(::sobject::world::engine::SOWorldOp* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.op_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+
+  _impl_.op_ = reinterpret_cast<::sobject::world::engine::SOWorldOp*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.world.engine.SpaceWorldFinalizationPacket.op)
+}
+
+// string follower_participant_id = 9;
+inline void SpaceWorldFinalizationPacket::clear_follower_participant_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.follower_participant_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& SpaceWorldFinalizationPacket::follower_participant_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.world.engine.SpaceWorldFinalizationPacket.follower_participant_id)
+  return _internal_follower_participant_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SpaceWorldFinalizationPacket::set_follower_participant_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.follower_participant_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.world.engine.SpaceWorldFinalizationPacket.follower_participant_id)
+}
+inline ::std::string* PROTOBUF_NONNULL SpaceWorldFinalizationPacket::mutable_follower_participant_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_follower_participant_id();
+  // @@protoc_insertion_point(field_mutable:sobject.world.engine.SpaceWorldFinalizationPacket.follower_participant_id)
+  return _s;
+}
+inline const ::std::string& SpaceWorldFinalizationPacket::_internal_follower_participant_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.follower_participant_id_.Get();
+}
+inline void SpaceWorldFinalizationPacket::_internal_set_follower_participant_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.follower_participant_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SpaceWorldFinalizationPacket::_internal_mutable_follower_participant_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.follower_participant_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SpaceWorldFinalizationPacket::release_follower_participant_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.world.engine.SpaceWorldFinalizationPacket.follower_participant_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.follower_participant_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.follower_participant_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SpaceWorldFinalizationPacket::set_allocated_follower_participant_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.follower_participant_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.follower_participant_id_.IsDefault()) {
+    _impl_.follower_participant_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.world.engine.SpaceWorldFinalizationPacket.follower_participant_id)
+}
+
+// string local_operation_id = 10;
+inline void SpaceWorldFinalizationPacket::clear_local_operation_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.local_operation_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& SpaceWorldFinalizationPacket::local_operation_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.world.engine.SpaceWorldFinalizationPacket.local_operation_id)
+  return _internal_local_operation_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SpaceWorldFinalizationPacket::set_local_operation_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.local_operation_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.world.engine.SpaceWorldFinalizationPacket.local_operation_id)
+}
+inline ::std::string* PROTOBUF_NONNULL SpaceWorldFinalizationPacket::mutable_local_operation_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_local_operation_id();
+  // @@protoc_insertion_point(field_mutable:sobject.world.engine.SpaceWorldFinalizationPacket.local_operation_id)
+  return _s;
+}
+inline const ::std::string& SpaceWorldFinalizationPacket::_internal_local_operation_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.local_operation_id_.Get();
+}
+inline void SpaceWorldFinalizationPacket::_internal_set_local_operation_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.local_operation_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SpaceWorldFinalizationPacket::_internal_mutable_local_operation_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.local_operation_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SpaceWorldFinalizationPacket::release_local_operation_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.world.engine.SpaceWorldFinalizationPacket.local_operation_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.local_operation_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.local_operation_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SpaceWorldFinalizationPacket::set_allocated_local_operation_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.local_operation_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.local_operation_id_.IsDefault()) {
+    _impl_.local_operation_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.world.engine.SpaceWorldFinalizationPacket.local_operation_id)
+}
+
+// -------------------------------------------------------------------
+
+// SpaceWorldFinalizationDecision
+
+// .sobject.world.engine.SpaceWorldFinalizationStatus status = 1;
+inline void SpaceWorldFinalizationDecision::clear_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::sobject::world::engine::SpaceWorldFinalizationStatus SpaceWorldFinalizationDecision::status() const {
+  // @@protoc_insertion_point(field_get:sobject.world.engine.SpaceWorldFinalizationDecision.status)
+  return _internal_status();
+}
+inline void SpaceWorldFinalizationDecision::set_status(::sobject::world::engine::SpaceWorldFinalizationStatus value) {
+  _internal_set_status(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:sobject.world.engine.SpaceWorldFinalizationDecision.status)
+}
+inline ::sobject::world::engine::SpaceWorldFinalizationStatus SpaceWorldFinalizationDecision::_internal_status() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::sobject::world::engine::SpaceWorldFinalizationStatus>(_impl_.status_);
+}
+inline void SpaceWorldFinalizationDecision::_internal_set_status(::sobject::world::engine::SpaceWorldFinalizationStatus value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = value;
+}
+
+// .sobject.SORoot accepted_shared_object_root = 2;
+inline bool SpaceWorldFinalizationDecision::has_accepted_shared_object_root() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  PROTOBUF_ASSUME(!value || _impl_.accepted_shared_object_root_ != nullptr);
+  return value;
+}
+inline const ::sobject::SORoot& SpaceWorldFinalizationDecision::_internal_accepted_shared_object_root() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SORoot* p = _impl_.accepted_shared_object_root_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SORoot&>(::sobject::_SORoot_default_instance_);
+}
+inline const ::sobject::SORoot& SpaceWorldFinalizationDecision::accepted_shared_object_root() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.world.engine.SpaceWorldFinalizationDecision.accepted_shared_object_root)
+  return _internal_accepted_shared_object_root();
+}
+inline void SpaceWorldFinalizationDecision::unsafe_arena_set_allocated_accepted_shared_object_root(
+    ::sobject::SORoot* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.accepted_shared_object_root_);
+  }
+  _impl_.accepted_shared_object_root_ = reinterpret_cast<::sobject::SORoot*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.world.engine.SpaceWorldFinalizationDecision.accepted_shared_object_root)
+}
+inline ::sobject::SORoot* PROTOBUF_NULLABLE SpaceWorldFinalizationDecision::release_accepted_shared_object_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::sobject::SORoot* released = _impl_.accepted_shared_object_root_;
+  _impl_.accepted_shared_object_root_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SORoot* PROTOBUF_NULLABLE SpaceWorldFinalizationDecision::unsafe_arena_release_accepted_shared_object_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.world.engine.SpaceWorldFinalizationDecision.accepted_shared_object_root)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::sobject::SORoot* temp = _impl_.accepted_shared_object_root_;
+  _impl_.accepted_shared_object_root_ = nullptr;
+  return temp;
+}
+inline ::sobject::SORoot* PROTOBUF_NONNULL SpaceWorldFinalizationDecision::_internal_mutable_accepted_shared_object_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.accepted_shared_object_root_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SORoot>(GetArena());
+    _impl_.accepted_shared_object_root_ = reinterpret_cast<::sobject::SORoot*>(p);
+  }
+  return _impl_.accepted_shared_object_root_;
+}
+inline ::sobject::SORoot* PROTOBUF_NONNULL SpaceWorldFinalizationDecision::mutable_accepted_shared_object_root()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::sobject::SORoot* _msg = _internal_mutable_accepted_shared_object_root();
+  // @@protoc_insertion_point(field_mutable:sobject.world.engine.SpaceWorldFinalizationDecision.accepted_shared_object_root)
+  return _msg;
+}
+inline void SpaceWorldFinalizationDecision::set_allocated_accepted_shared_object_root(::sobject::SORoot* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.accepted_shared_object_root_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+
+  _impl_.accepted_shared_object_root_ = reinterpret_cast<::sobject::SORoot*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.world.engine.SpaceWorldFinalizationDecision.accepted_shared_object_root)
+}
+
+// .bucket.ObjectRef accepted_world_root = 3;
+inline bool SpaceWorldFinalizationDecision::has_accepted_world_root() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  PROTOBUF_ASSUME(!value || _impl_.accepted_world_root_ != nullptr);
+  return value;
+}
+inline const ::bucket::ObjectRef& SpaceWorldFinalizationDecision::_internal_accepted_world_root() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::bucket::ObjectRef* p = _impl_.accepted_world_root_;
+  return p != nullptr ? *p : reinterpret_cast<const ::bucket::ObjectRef&>(::bucket::_ObjectRef_default_instance_);
+}
+inline const ::bucket::ObjectRef& SpaceWorldFinalizationDecision::accepted_world_root() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.world.engine.SpaceWorldFinalizationDecision.accepted_world_root)
+  return _internal_accepted_world_root();
+}
+inline void SpaceWorldFinalizationDecision::unsafe_arena_set_allocated_accepted_world_root(
+    ::bucket::ObjectRef* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.accepted_world_root_);
+  }
+  _impl_.accepted_world_root_ = reinterpret_cast<::bucket::ObjectRef*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.world.engine.SpaceWorldFinalizationDecision.accepted_world_root)
+}
+inline ::bucket::ObjectRef* PROTOBUF_NULLABLE SpaceWorldFinalizationDecision::release_accepted_world_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::bucket::ObjectRef* released = _impl_.accepted_world_root_;
+  _impl_.accepted_world_root_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::bucket::ObjectRef* PROTOBUF_NULLABLE SpaceWorldFinalizationDecision::unsafe_arena_release_accepted_world_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.world.engine.SpaceWorldFinalizationDecision.accepted_world_root)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::bucket::ObjectRef* temp = _impl_.accepted_world_root_;
+  _impl_.accepted_world_root_ = nullptr;
+  return temp;
+}
+inline ::bucket::ObjectRef* PROTOBUF_NONNULL SpaceWorldFinalizationDecision::_internal_mutable_accepted_world_root() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.accepted_world_root_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::bucket::ObjectRef>(GetArena());
+    _impl_.accepted_world_root_ = reinterpret_cast<::bucket::ObjectRef*>(p);
+  }
+  return _impl_.accepted_world_root_;
+}
+inline ::bucket::ObjectRef* PROTOBUF_NONNULL SpaceWorldFinalizationDecision::mutable_accepted_world_root()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::bucket::ObjectRef* _msg = _internal_mutable_accepted_world_root();
+  // @@protoc_insertion_point(field_mutable:sobject.world.engine.SpaceWorldFinalizationDecision.accepted_world_root)
+  return _msg;
+}
+inline void SpaceWorldFinalizationDecision::set_allocated_accepted_world_root(::bucket::ObjectRef* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.accepted_world_root_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+
+  _impl_.accepted_world_root_ = reinterpret_cast<::bucket::ObjectRef*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.world.engine.SpaceWorldFinalizationDecision.accepted_world_root)
+}
+
+// string error = 4;
+inline void SpaceWorldFinalizationDecision::clear_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& SpaceWorldFinalizationDecision::error() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.world.engine.SpaceWorldFinalizationDecision.error)
+  return _internal_error();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SpaceWorldFinalizationDecision::set_error(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.error_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.world.engine.SpaceWorldFinalizationDecision.error)
+}
+inline ::std::string* PROTOBUF_NONNULL SpaceWorldFinalizationDecision::mutable_error()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_error();
+  // @@protoc_insertion_point(field_mutable:sobject.world.engine.SpaceWorldFinalizationDecision.error)
+  return _s;
+}
+inline const ::std::string& SpaceWorldFinalizationDecision::_internal_error() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.error_.Get();
+}
+inline void SpaceWorldFinalizationDecision::_internal_set_error(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SpaceWorldFinalizationDecision::_internal_mutable_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.error_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SpaceWorldFinalizationDecision::release_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.world.engine.SpaceWorldFinalizationDecision.error)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.error_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.error_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SpaceWorldFinalizationDecision::set_allocated_error(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.error_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.error_.IsDefault()) {
+    _impl_.error_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.world.engine.SpaceWorldFinalizationDecision.error)
+}
+
+// bool retryable = 5;
+inline void SpaceWorldFinalizationDecision::clear_retryable() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.retryable_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline bool SpaceWorldFinalizationDecision::retryable() const {
+  // @@protoc_insertion_point(field_get:sobject.world.engine.SpaceWorldFinalizationDecision.retryable)
+  return _internal_retryable();
+}
+inline void SpaceWorldFinalizationDecision::set_retryable(bool value) {
+  _internal_set_retryable(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:sobject.world.engine.SpaceWorldFinalizationDecision.retryable)
+}
+inline bool SpaceWorldFinalizationDecision::_internal_retryable() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.retryable_;
+}
+inline void SpaceWorldFinalizationDecision::_internal_set_retryable(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.retryable_ = value;
+}
+
+// string local_operation_id = 6;
+inline void SpaceWorldFinalizationDecision::clear_local_operation_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.local_operation_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& SpaceWorldFinalizationDecision::local_operation_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.world.engine.SpaceWorldFinalizationDecision.local_operation_id)
+  return _internal_local_operation_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SpaceWorldFinalizationDecision::set_local_operation_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.local_operation_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.world.engine.SpaceWorldFinalizationDecision.local_operation_id)
+}
+inline ::std::string* PROTOBUF_NONNULL SpaceWorldFinalizationDecision::mutable_local_operation_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_local_operation_id();
+  // @@protoc_insertion_point(field_mutable:sobject.world.engine.SpaceWorldFinalizationDecision.local_operation_id)
+  return _s;
+}
+inline const ::std::string& SpaceWorldFinalizationDecision::_internal_local_operation_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.local_operation_id_.Get();
+}
+inline void SpaceWorldFinalizationDecision::_internal_set_local_operation_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.local_operation_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SpaceWorldFinalizationDecision::_internal_mutable_local_operation_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.local_operation_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SpaceWorldFinalizationDecision::release_local_operation_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.world.engine.SpaceWorldFinalizationDecision.local_operation_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.local_operation_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.local_operation_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SpaceWorldFinalizationDecision::set_allocated_local_operation_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.local_operation_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.local_operation_id_.IsDefault()) {
+    _impl_.local_operation_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.world.engine.SpaceWorldFinalizationDecision.local_operation_id)
+}
+
+// -------------------------------------------------------------------
+
+// SpaceWorldRejectedCandidate
+
+// .sobject.world.engine.SpaceWorldFinalizationPacket packet = 1;
+inline bool SpaceWorldRejectedCandidate::has_packet() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.packet_ != nullptr);
+  return value;
+}
+inline void SpaceWorldRejectedCandidate::clear_packet() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.packet_ != nullptr) _impl_.packet_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::sobject::world::engine::SpaceWorldFinalizationPacket& SpaceWorldRejectedCandidate::_internal_packet() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::world::engine::SpaceWorldFinalizationPacket* p = _impl_.packet_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::world::engine::SpaceWorldFinalizationPacket&>(::sobject::world::engine::_SpaceWorldFinalizationPacket_default_instance_);
+}
+inline const ::sobject::world::engine::SpaceWorldFinalizationPacket& SpaceWorldRejectedCandidate::packet() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.world.engine.SpaceWorldRejectedCandidate.packet)
+  return _internal_packet();
+}
+inline void SpaceWorldRejectedCandidate::unsafe_arena_set_allocated_packet(
+    ::sobject::world::engine::SpaceWorldFinalizationPacket* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.packet_);
+  }
+  _impl_.packet_ = reinterpret_cast<::sobject::world::engine::SpaceWorldFinalizationPacket*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.world.engine.SpaceWorldRejectedCandidate.packet)
+}
+inline ::sobject::world::engine::SpaceWorldFinalizationPacket* PROTOBUF_NULLABLE SpaceWorldRejectedCandidate::release_packet() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::sobject::world::engine::SpaceWorldFinalizationPacket* released = _impl_.packet_;
+  _impl_.packet_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::world::engine::SpaceWorldFinalizationPacket* PROTOBUF_NULLABLE SpaceWorldRejectedCandidate::unsafe_arena_release_packet() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.world.engine.SpaceWorldRejectedCandidate.packet)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::sobject::world::engine::SpaceWorldFinalizationPacket* temp = _impl_.packet_;
+  _impl_.packet_ = nullptr;
+  return temp;
+}
+inline ::sobject::world::engine::SpaceWorldFinalizationPacket* PROTOBUF_NONNULL SpaceWorldRejectedCandidate::_internal_mutable_packet() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.packet_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::world::engine::SpaceWorldFinalizationPacket>(GetArena());
+    _impl_.packet_ = reinterpret_cast<::sobject::world::engine::SpaceWorldFinalizationPacket*>(p);
+  }
+  return _impl_.packet_;
+}
+inline ::sobject::world::engine::SpaceWorldFinalizationPacket* PROTOBUF_NONNULL SpaceWorldRejectedCandidate::mutable_packet()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::sobject::world::engine::SpaceWorldFinalizationPacket* _msg = _internal_mutable_packet();
+  // @@protoc_insertion_point(field_mutable:sobject.world.engine.SpaceWorldRejectedCandidate.packet)
+  return _msg;
+}
+inline void SpaceWorldRejectedCandidate::set_allocated_packet(::sobject::world::engine::SpaceWorldFinalizationPacket* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.packet_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.packet_ = reinterpret_cast<::sobject::world::engine::SpaceWorldFinalizationPacket*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.world.engine.SpaceWorldRejectedCandidate.packet)
+}
+
+// .sobject.world.engine.SpaceWorldFinalizationDecision decision = 2;
+inline bool SpaceWorldRejectedCandidate::has_decision() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  PROTOBUF_ASSUME(!value || _impl_.decision_ != nullptr);
+  return value;
+}
+inline void SpaceWorldRejectedCandidate::clear_decision() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.decision_ != nullptr) _impl_.decision_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::sobject::world::engine::SpaceWorldFinalizationDecision& SpaceWorldRejectedCandidate::_internal_decision() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::world::engine::SpaceWorldFinalizationDecision* p = _impl_.decision_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::world::engine::SpaceWorldFinalizationDecision&>(::sobject::world::engine::_SpaceWorldFinalizationDecision_default_instance_);
+}
+inline const ::sobject::world::engine::SpaceWorldFinalizationDecision& SpaceWorldRejectedCandidate::decision() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.world.engine.SpaceWorldRejectedCandidate.decision)
+  return _internal_decision();
+}
+inline void SpaceWorldRejectedCandidate::unsafe_arena_set_allocated_decision(
+    ::sobject::world::engine::SpaceWorldFinalizationDecision* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.decision_);
+  }
+  _impl_.decision_ = reinterpret_cast<::sobject::world::engine::SpaceWorldFinalizationDecision*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.world.engine.SpaceWorldRejectedCandidate.decision)
+}
+inline ::sobject::world::engine::SpaceWorldFinalizationDecision* PROTOBUF_NULLABLE SpaceWorldRejectedCandidate::release_decision() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::world::engine::SpaceWorldFinalizationDecision* released = _impl_.decision_;
+  _impl_.decision_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::world::engine::SpaceWorldFinalizationDecision* PROTOBUF_NULLABLE SpaceWorldRejectedCandidate::unsafe_arena_release_decision() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.world.engine.SpaceWorldRejectedCandidate.decision)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::world::engine::SpaceWorldFinalizationDecision* temp = _impl_.decision_;
+  _impl_.decision_ = nullptr;
+  return temp;
+}
+inline ::sobject::world::engine::SpaceWorldFinalizationDecision* PROTOBUF_NONNULL SpaceWorldRejectedCandidate::_internal_mutable_decision() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.decision_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::world::engine::SpaceWorldFinalizationDecision>(GetArena());
+    _impl_.decision_ = reinterpret_cast<::sobject::world::engine::SpaceWorldFinalizationDecision*>(p);
+  }
+  return _impl_.decision_;
+}
+inline ::sobject::world::engine::SpaceWorldFinalizationDecision* PROTOBUF_NONNULL SpaceWorldRejectedCandidate::mutable_decision()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::world::engine::SpaceWorldFinalizationDecision* _msg = _internal_mutable_decision();
+  // @@protoc_insertion_point(field_mutable:sobject.world.engine.SpaceWorldRejectedCandidate.decision)
+  return _msg;
+}
+inline void SpaceWorldRejectedCandidate::set_allocated_decision(::sobject::world::engine::SpaceWorldFinalizationDecision* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.decision_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+
+  _impl_.decision_ = reinterpret_cast<::sobject::world::engine::SpaceWorldFinalizationDecision*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.world.engine.SpaceWorldRejectedCandidate.decision)
+}
+
+// uint64 retained_unix_nano = 3;
+inline void SpaceWorldRejectedCandidate::clear_retained_unix_nano() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.retained_unix_nano_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint64_t SpaceWorldRejectedCandidate::retained_unix_nano() const {
+  // @@protoc_insertion_point(field_get:sobject.world.engine.SpaceWorldRejectedCandidate.retained_unix_nano)
+  return _internal_retained_unix_nano();
+}
+inline void SpaceWorldRejectedCandidate::set_retained_unix_nano(::uint64_t value) {
+  _internal_set_retained_unix_nano(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:sobject.world.engine.SpaceWorldRejectedCandidate.retained_unix_nano)
+}
+inline ::uint64_t SpaceWorldRejectedCandidate::_internal_retained_unix_nano() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.retained_unix_nano_;
+}
+inline void SpaceWorldRejectedCandidate::_internal_set_retained_unix_nano(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.retained_unix_nano_ = value;
+}
+
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif  // __GNUC__
@@ -2266,6 +4400,19 @@ inline void ApplyTxOp::set_allocated_tx(::world::block::tx::Tx* PROTOBUF_NULLABL
 }  // namespace world
 }  // namespace sobject
 
+
+namespace google {
+namespace protobuf {
+
+template <>
+struct is_proto_enum<::sobject::world::engine::SpaceWorldFinalizationStatus> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::sobject::world::engine::SpaceWorldFinalizationStatus>() {
+  return ::sobject::world::engine::SpaceWorldFinalizationStatus_descriptor();
+}
+
+}  // namespace protobuf
+}  // namespace google
 
 // @@protoc_insertion_point(global_scope)
 
