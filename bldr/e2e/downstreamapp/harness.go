@@ -173,7 +173,7 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 	}
 	h.projConfig = projConfig
 
-	projCtrlConf := bldr_project_controller.NewConfig(repoRoot, stateRoot, projConfig, false, true)
+	projCtrlConf := bldr_project_controller.NewConfig(repoRoot, stateRoot, projConfig, false, false)
 	projCtrlConf.FetchManifestRemote = "devtool"
 	_, _, ref, err := loader.WaitExecControllerRunning(
 		hctx,

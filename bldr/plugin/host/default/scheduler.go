@@ -61,6 +61,5 @@ func NewSchedulerConfig(
 		disableStoreManifest,
 		disableCopyManifest,
 	)
-	schedConf.PlatformSelectionPolicies = plugin_host_scheduler.SpacewaveDefaultPlatformSelectionPolicies()
 	return schedConf
 }

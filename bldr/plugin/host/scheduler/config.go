@@ -15,32 +15,6 @@ import (
 // ConfigID is the config identifier.
 const ConfigID = ControllerID
 
-// WebJSWASMPlatformID is the browser-native plugin host platform.
-const WebJSWASMPlatformID = "web/js/wasm"
-
-// SpacewaveBrowserNativePluginIDs returns bundled plugin IDs allowed to select
-// the browser-native plugin host platform.
-func SpacewaveBrowserNativePluginIDs() []string {
-	return []string{
-		"web",
-		"spacewave-core",
-		"spacewave-launcher",
-		"spacewave-debug",
-		"spacewave-v86",
-	}
-}
-
-// SpacewaveDefaultPlatformSelectionPolicies returns the production platform
-// policy for bundled Spacewave plugin scheduling.
-func SpacewaveDefaultPlatformSelectionPolicies() []*PlatformSelectionPolicy {
-	return []*PlatformSelectionPolicy{
-		{
-			PlatformId:       WebJSWASMPlatformID,
-			AllowedPluginIds: SpacewaveBrowserNativePluginIDs(),
-		},
-	}
-}
-
 // NewConfig constructs a new controller config.
 // Sets the most important fields only.
 func NewConfig(

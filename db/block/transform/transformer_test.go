@@ -11,6 +11,7 @@ import (
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
 )
 
@@ -25,6 +26,23 @@ func TestTransformerDecodedBlockCacheTransformKeyStable(t *testing.T) {
 	}
 	if second.DecodedBlockCacheTransformKey() != key {
 		t.Fatalf("stable transform key mismatch: %q != %q", second.DecodedBlockCacheTransformKey(), key)
+	}
+}
+
+func TestGzipEncodeDecode(t *testing.T) {
+	xfrm := newTestTransformer(t, &transform_gzip.Config{})
+	input := []byte("gzip block transform round trip")
+
+	encoded, err := xfrm.EncodeBlock(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoded, err := xfrm.DecodeBlock(encoded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(decoded, input) {
+		t.Fatalf("decoded gzip block = %q, want %q", decoded, input)
 	}
 }
 
@@ -262,6 +280,7 @@ func newTestTransformer(t *testing.T, steps ...config.Config) *block_transform.T
 	}
 	sfs := block_transform.NewStepFactorySet()
 	sfs.AddStepFactory(transform_chksum.NewStepFactory())
+	sfs.AddStepFactory(transform_gzip.NewStepFactory())
 	sfs.AddStepFactory(transform_s2.NewStepFactory())
 	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{}, sfs, conf)
 	if err != nil {

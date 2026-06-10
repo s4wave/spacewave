@@ -10,7 +10,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/util/blockenc"
 )
@@ -44,7 +44,7 @@ func TestManifestPackMetadataValidateRejectsWrongPackDigestLength(t *testing.T) 
 
 func TestManifestPackMetadataValidateAcceptsInlineCompressionTransformConfig(t *testing.T) {
 	meta := testManifestPackMetadata(t)
-	conf, err := block_transform.NewConfig([]config.Config{&transform_s2.Config{}})
+	conf, err := block_transform.NewConfig([]config.Config{&transform_gzip.Config{}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestManifestPackMetadataValidateRejectsTransformConfigRef(t *testing.T) {
 func TestNewMetadataPreservesSafeManifestBundleTransformConfig(t *testing.T) {
 	meta := testManifestPackMetadata(t)
 	ref := meta.GetManifestBundleRef().Clone()
-	conf, err := block_transform.NewConfig([]config.Config{&transform_s2.Config{}})
+	conf, err := block_transform.NewConfig([]config.Config{&transform_gzip.Config{}})
 	if err != nil {
 		t.Fatal(err)
 	}

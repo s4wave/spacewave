@@ -62,7 +62,7 @@ publish:
       # if empty: uses transform config from remote world
       transformConf:
         steps:
-          - id: hydra/transform/s2
+          - id: hydra/transform/gzip
           - id: hydra/transform/blockenc
             config:
               blockEnc: BlockEnc_XCHACHA20_POLY1305

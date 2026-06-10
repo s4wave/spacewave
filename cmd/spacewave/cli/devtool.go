@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/volume"
@@ -46,10 +46,10 @@ func openDevtoolVolume(ctx context.Context, le *logrus.Entry, bldrPath string) (
 	return volume_bolt.NewBolt(ctx, le, conf)
 }
 
-// buildStepFactorySet builds the block transform step factory set with s2 support.
+// buildStepFactorySet builds the block transform step factory set with gzip support.
 func buildStepFactorySet() *block_transform.StepFactorySet {
 	sfs := block_transform.NewStepFactorySet()
-	sfs.AddStepFactory(transform_s2.NewStepFactory())
+	sfs.AddStepFactory(transform_gzip.NewStepFactory())
 	return sfs
 }
 
@@ -102,7 +102,7 @@ func openDevtoolWorldEngine(
 	sfs := buildStepFactorySet()
 
 	transformConf, err := block_transform.NewConfig([]config.Config{
-		&transform_s2.Config{},
+		&transform_gzip.Config{},
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "build transform config")

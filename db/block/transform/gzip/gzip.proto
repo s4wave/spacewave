@@ -1,0 +1,9 @@
+syntax = "proto3";
+package transform.gzip;
+
+// Config configures the gzip compression transform.
+message Config {
+  // CompressionLevel sets the gzip level from -2 to 9.
+  // Defaults to gzip.DefaultCompression.
+  int32 compression_level = 1;
+}

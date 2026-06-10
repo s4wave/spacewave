@@ -10,7 +10,7 @@ import (
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/net/hash"
@@ -160,7 +160,7 @@ func (b *cursorDefaultPutOptsBucket) GetBucketConfig() *bucket.Config {
 func TestCursorUnmarshalBorrowsTransformAwareLifecycleDecodedCache(t *testing.T) {
 	ctx := context.Background()
 	store := block_mock.NewMockStore(0)
-	transformConf, xfrm := newProductionTransform(t, &transform_s2.Config{})
+	transformConf, xfrm := newProductionTransform(t, &transform_gzip.Config{})
 
 	tx, writeCursor := block.NewTransaction(store, xfrm, nil, nil)
 	writeCursor.SetBlock(&block_mock.Example{Msg: "transformed-resource-cache"}, true)

@@ -12,7 +12,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/blocktype"
 	blocktype_controller "github.com/s4wave/spacewave/db/blocktype/controller"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -217,7 +217,7 @@ func TestBuildTransactionResourceCursorBorrowsTransformedDecodedCache(t *testing
 	t.Cleanup(tb.Release)
 	addExampleBlockTypeController(t, ctx, tb)
 
-	transformConf := newResourceTransformConfig(t, &transform_s2.Config{})
+	transformConf := newResourceTransformConfig(t, &transform_gzip.Config{})
 	cursor, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx,
 		tb.Bus,
@@ -308,7 +308,7 @@ func TestGetRefReturnsCursorOpArgs(t *testing.T) {
 	}
 	t.Cleanup(tb.Release)
 
-	transformConf := newResourceTransformConfig(t, &transform_s2.Config{})
+	transformConf := newResourceTransformConfig(t, &transform_gzip.Config{})
 	cursor, err := bucket_lookup.BuildCursor(
 		ctx,
 		tb.Bus,
@@ -342,7 +342,7 @@ func TestGetRefReturnsCursorOpArgs(t *testing.T) {
 
 func TestGetRefPreservesEmptyCursorOpArgs(t *testing.T) {
 	ctx := context.Background()
-	transformConf := newResourceTransformConfig(t, &transform_s2.Config{})
+	transformConf := newResourceTransformConfig(t, &transform_gzip.Config{})
 	cursor := bucket_lookup.NewCursorWithRelease(
 		ctx,
 		nil,

@@ -13,7 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/kvtx"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -115,7 +115,7 @@ func TestBuildBlkEngineBorrowsTransformAwareBlockStoreDecodedCache(t *testing.T)
 	}
 	defer tb.Release()
 
-	transformConf := newStateTestTransformConfig(t, &transform_s2.Config{})
+	transformConf := newStateTestTransformConfig(t, &transform_gzip.Config{})
 	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{}, tb.StepFactorySet, transformConf)
 	if err != nil {
 		t.Fatal(err.Error())

@@ -18,7 +18,7 @@ import (
 	"github.com/pkg/errors"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/volume"
@@ -165,10 +165,10 @@ func openBoltVolume(ctx context.Context, le *logrus.Entry, path string, existing
 
 func mountDevtoolWorld(ctx context.Context, le *logrus.Entry, vol volume.Volume, create bool) (*mountedWorld, error) {
 	sfs := block_transform.NewStepFactorySet()
-	sfs.AddStepFactory(transform_s2.NewStepFactory())
+	sfs.AddStepFactory(transform_gzip.NewStepFactory())
 
 	transformConf, err := block_transform.NewConfig([]config.Config{
-		&transform_s2.Config{},
+		&transform_gzip.Config{},
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "build transform config")

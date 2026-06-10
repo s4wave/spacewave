@@ -10,7 +10,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
@@ -287,7 +287,7 @@ func TestProcessOpCandidateRequiresSharedObjectRootUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	transformConf := newStateTestTransformConfig(t, &transform_s2.Config{})
+	transformConf := newStateTestTransformConfig(t, &transform_gzip.Config{})
 	grant, err := sobject.EncryptSOGrant(
 		priv,
 		pub,
@@ -298,7 +298,7 @@ func TestProcessOpCandidateRequiresSharedObjectRootUpdate(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	sfs := block_transform.NewStepFactorySet()
-	sfs.AddStepFactory(transform_s2.NewStepFactory())
+	sfs.AddStepFactory(transform_gzip.NewStepFactory())
 	sfs.AddStepFactory(transform_blockenc.NewStepFactory())
 	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{
 		Logger: logrus.NewEntry(logrus.New()),
@@ -445,7 +445,7 @@ func TestProcessOpDisabledMaintenanceDurablyRejectsGCSweep(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	transformConf := newStateTestTransformConfig(t, &transform_s2.Config{})
+	transformConf := newStateTestTransformConfig(t, &transform_gzip.Config{})
 	grant, err := sobject.EncryptSOGrant(
 		priv,
 		pub,
@@ -456,7 +456,7 @@ func TestProcessOpDisabledMaintenanceDurablyRejectsGCSweep(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	sfs := block_transform.NewStepFactorySet()
-	sfs.AddStepFactory(transform_s2.NewStepFactory())
+	sfs.AddStepFactory(transform_gzip.NewStepFactory())
 	sfs.AddStepFactory(transform_blockenc.NewStepFactory())
 	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{
 		Logger: logrus.NewEntry(logrus.New()),
@@ -610,7 +610,7 @@ func newProcessTestWorld(t *testing.T, ctx context.Context) (*Controller, *testS
 	}
 	t.Cleanup(tb.Release)
 
-	transformConf := newStateTestTransformConfig(t, &transform_s2.Config{})
+	transformConf := newStateTestTransformConfig(t, &transform_gzip.Config{})
 	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{}, tb.StepFactorySet, transformConf)
 	if err != nil {
 		t.Fatal(err.Error())

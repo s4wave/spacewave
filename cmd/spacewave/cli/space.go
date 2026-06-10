@@ -15,7 +15,7 @@ import (
 	s4wave_git_core "github.com/s4wave/spacewave/core/git"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	git_block "github.com/s4wave/spacewave/db/git/block"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
@@ -613,7 +613,7 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 
 			// Build the full ObjectRef with transform config so the server can decode blocks.
 			transformConf, err := block_transform.NewConfig([]config.Config{
-				&transform_s2.Config{},
+				&transform_gzip.Config{},
 			})
 			if err != nil {
 				return errors.Wrap(err, "build transform config")

@@ -17,7 +17,7 @@ import (
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
 	bucket_setup "github.com/s4wave/spacewave/db/bucket/setup"
@@ -31,7 +31,7 @@ import (
 
 // cliTransformConf is the block transform conf to use.
 var cliTransformConf = []config.Config{
-	&transform_s2.Config{},
+	&transform_gzip.Config{},
 }
 
 // CliBusImpl implements the CliBus interface for CLI binaries.

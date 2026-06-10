@@ -1919,6 +1919,17 @@
       ],
       "protoFiles": ["db/block/transform/chksum/chksum.proto"]
     },
+    "github.com/s4wave/spacewave/db/block/transform/gzip": {
+      "hash": "74d8692b642d83f9b0a4f13bacb7e7a431e01f519f82e76b20eb172d252e44d6",
+      "generatedFiles": [
+        "db/block/transform/gzip/gzip.pb.cc",
+        "db/block/transform/gzip/gzip.pb.go",
+        "db/block/transform/gzip/gzip.pb.h",
+        "db/block/transform/gzip/gzip.pb.rs",
+        "db/block/transform/gzip/gzip.pb.ts"
+      ],
+      "protoFiles": ["db/block/transform/gzip/gzip.proto"]
+    },
     "github.com/s4wave/spacewave/db/block/transform/lz4": {
       "hash": "9a9fa00f78ba013a50e306e38714e5160cf24de8ce432b5994cb9c8f57e52f79",
       "generatedFiles": [

@@ -64,8 +64,8 @@ github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6 h
 github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6/go.mod h1:9KnSGuqxSXbdB/Oi0I6vvfPLkclfJwMGAQaDDGVgGow=
 github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d h1:UcBuYL2R88/b0AQRdXEisWTyZLrj4Z+GMEv7Mi4k/0A=
 github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d/go.mod h1:EkJEy0eZ9hdcUbSxh6kBf2YC3V97ziyr9EWY7kCnB5A=
-github.com/aperturerobotics/goscript v0.2.4-0.20260609061914-d5022bd33d4c h1:eEV8blN+T25qX+n+/I6Ff9ACwhWjV2aEm/yK9uKjA20=
-github.com/aperturerobotics/goscript v0.2.4-0.20260609061914-d5022bd33d4c/go.mod h1:5JsS3BLep/h1zMb+QGWHTdyYuImzFgUYCF0EWi4eqTI=
+github.com/aperturerobotics/goscript v0.2.4-0.20260610174303-f56fd18f5a0a h1:XXKqW9LuER/s+qwawMNKjYHy6FIGC3IXz9HLuxxhhDQ=
+github.com/aperturerobotics/goscript v0.2.4-0.20260610174303-f56fd18f5a0a/go.mod h1:5JsS3BLep/h1zMb+QGWHTdyYuImzFgUYCF0EWi4eqTI=
 github.com/aperturerobotics/json-iterator-lite v1.1.0 h1:ZLLqHhHTKYlmCAP873ras2e/yVU/THtwC+ji3tXLMMg=
 github.com/aperturerobotics/json-iterator-lite v1.1.0/go.mod h1:SvGGBv3OVxUyqO0ZxA/nvs6z3cg7NIbZ64TnbV2OISo=
 github.com/aperturerobotics/logrus v1.9.5-0.20260430110313-9c892333814d h1:OCeEdD6ku6SBaRvSksJH7NgaqB0dtL8z3AQCLpFa9Dg=
@@ -80,8 +80,8 @@ github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c h1:32+9phq
 github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c/go.mod h1:L9/rUdjzzI9mMWKJcbh7T8LSQ43JKwrxYv4I2i2YsY4=
 github.com/aperturerobotics/starpc v0.49.17 h1:jTTS4Om/S3Uppy0Nz4vDVhHEQKCJx55GXb7GGdd8imU=
 github.com/aperturerobotics/starpc v0.49.17/go.mod h1:5SIPOGIoUG7dLpb1NzZG2qK9l1T5oZ2454yzyMukviw=
-github.com/aperturerobotics/util v1.34.9 h1:Eyhu1Citt+od7jKIb+Q92h/CEujWCFsvdvJavQeoRjM=
-github.com/aperturerobotics/util v1.34.9/go.mod h1:GxjGkYQNEj8xvLFz+T8ifqANtK5cMesOlCxh50htvBI=
+github.com/aperturerobotics/util v1.34.10-0.20260610174257-740fe32c1ea1 h1:JxDcPcpvTuavzPDtLNYF52a24i+E0gvtzH90C8RsJOU=
+github.com/aperturerobotics/util v1.34.10-0.20260610174257-740fe32c1ea1/go.mod h1:GxjGkYQNEj8xvLFz+T8ifqANtK5cMesOlCxh50htvBI=
 github.com/aperturerobotics/vitess v0.0.0-20260430160346-12753f562010 h1:gOEsFiQyF2xvAp+V57qc998Y1F+LNwFuzgXjwMo8+0o=
 github.com/aperturerobotics/vitess v0.0.0-20260430160346-12753f562010/go.mod h1:PkKy4Pu/qDPCMrZMngTiXuRFxyqBHkYI28I3uqqXnAk=
 github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 h1:ZbKfJ4Qftk6XS8L05XgS6thW6hGadgeGN4KVmxwazvc=

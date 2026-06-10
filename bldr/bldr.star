@@ -139,7 +139,7 @@ publish("demo-dist",
         "timestamp": "2023-10-18T18:38:40Z",
         "transformConf": {
             "steps": [
-                {"id": "hydra/transform/s2"},
+                {"id": "hydra/transform/gzip"},
                 {
                     "id": "hydra/transform/blockenc",
                     "config": {

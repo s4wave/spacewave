@@ -10,7 +10,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/net/hash"
 	s4wave_deploy "github.com/s4wave/spacewave/sdk/deploy"
@@ -47,11 +47,11 @@ func (r *SpaceResource) DeployManifest(strm s4wave_space.SRPCSpaceResourceServic
 	}
 
 	// Build a block transformer from the ObjectRef's transform config.
-	// This allows decoding s2-compressed blocks for DAG traversal.
+	// This allows decoding gzip-compressed blocks for DAG traversal.
 	var xfrm block.Transformer
 	if tc := manifestRef.GetTransformConf(); tc != nil && len(tc.GetSteps()) > 0 {
 		sfs := block_transform.NewStepFactorySet()
-		sfs.AddStepFactory(transform_s2.NewStepFactory())
+		sfs.AddStepFactory(transform_gzip.NewStepFactory())
 		xfrm, err = block_transform.NewTransformer(
 			controller.ConstructOpts{Logger: r.le},
 			sfs,

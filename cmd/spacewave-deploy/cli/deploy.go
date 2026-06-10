@@ -17,7 +17,7 @@ import (
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	debug_cli "github.com/s4wave/spacewave/cmd/spacewave-debug/cli"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/volume"
@@ -116,7 +116,7 @@ func (a *DeployArgs) RunDeploy(c *cli.Context) error {
 
 	// Build the transform config used by the devtool world.
 	transformConf, err := block_transform.NewConfig([]config.Config{
-		&transform_s2.Config{},
+		&transform_gzip.Config{},
 	})
 	if err != nil {
 		return errors.Wrap(err, "build transform config")
@@ -336,7 +336,7 @@ func lookupManifest(
 	}
 
 	transformConf, err := block_transform.NewConfig([]config.Config{
-		&transform_s2.Config{},
+		&transform_gzip.Config{},
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "build transform config")

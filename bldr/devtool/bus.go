@@ -27,7 +27,7 @@ import (
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
 	"github.com/s4wave/spacewave/db/volume"
@@ -40,7 +40,7 @@ import (
 
 // devtoolTransformConf is the block transform conf to use.
 var devtoolTransformConf = []config.Config{
-	&transform_s2.Config{},
+	&transform_gzip.Config{},
 }
 
 // DevtoolBus contains a built devtool bus.

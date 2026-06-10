@@ -9,7 +9,7 @@ import (
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	blockenc_conf "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/sirupsen/logrus"
 )
@@ -46,7 +46,7 @@ func TestSOStateParticipantHandleProcessOperationsBlankRoot(t *testing.T) {
 	}
 
 	sfs := block_transform.NewStepFactorySet()
-	sfs.AddStepFactory(transform_s2.NewStepFactory())
+	sfs.AddStepFactory(transform_gzip.NewStepFactory())
 	sfs.AddStepFactory(transform_blockenc.NewStepFactory())
 
 	le := logrus.New().WithField("test", t.Name())

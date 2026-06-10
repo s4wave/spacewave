@@ -11,7 +11,7 @@ import (
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	hydra_blockenc "github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/hash"
@@ -137,7 +137,7 @@ func (c *SessionClient) loadStandaloneInitState(
 
 func buildStandaloneSpaceInitStepFactorySet() *block_transform.StepFactorySet {
 	sfs := block_transform.NewStepFactorySet()
-	sfs.AddStepFactory(transform_s2.NewStepFactory())
+	sfs.AddStepFactory(transform_gzip.NewStepFactory())
 	sfs.AddStepFactory(transform_blockenc.NewStepFactory())
 	return sfs
 }

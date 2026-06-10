@@ -12,7 +12,7 @@ import (
 	"github.com/go-git/go-git/v6/plumbing/object"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	bucket "github.com/s4wave/spacewave/db/bucket"
 	git_block "github.com/s4wave/spacewave/db/git/block"
 	"github.com/s4wave/spacewave/db/testbed"
@@ -46,7 +46,7 @@ func TestGitCloneOp(t *testing.T) {
 
 	xfrmConf, err := block_transform.NewConfig([]config.Config{
 		&transform_chksum.Config{},
-		&transform_s2.Config{},
+		&transform_gzip.Config{},
 	})
 	if err != nil {
 		t.Fatal(err.Error())

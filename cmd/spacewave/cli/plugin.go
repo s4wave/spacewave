@@ -16,7 +16,7 @@ import (
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
@@ -103,8 +103,8 @@ func runPluginImportManifest(
 		return errors.Wrap(err, "lookup manifest")
 	}
 	sfs := block_transform.NewStepFactorySet()
-	sfs.AddStepFactory(transform_s2.NewStepFactory())
-	transformConf, err := block_transform.NewConfig([]config.Config{&transform_s2.Config{}})
+	sfs.AddStepFactory(transform_gzip.NewStepFactory())
+	transformConf, err := block_transform.NewConfig([]config.Config{&transform_gzip.Config{}})
 	if err != nil {
 		return errors.Wrap(err, "build transform config")
 	}

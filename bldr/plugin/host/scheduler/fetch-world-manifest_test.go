@@ -26,7 +26,7 @@ import (
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
 	block_store_kvtx "github.com/s4wave/spacewave/db/block/store/kvtx"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
@@ -2020,7 +2020,7 @@ func TestDownloadManifestCopiesTransformedRemoteDAGAndStoresLocalWorldRef(t *tes
 	}); err != nil {
 		t.Fatal(err.Error())
 	}
-	transformConf, err := block_transform.NewConfig([]config.Config{&transform_s2.Config{}})
+	transformConf, err := block_transform.NewConfig([]config.Config{&transform_gzip.Config{}})
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -9,7 +9,7 @@ import (
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
@@ -47,7 +47,7 @@ func TestInitUnixFSDemo(t *testing.T) {
 
 	xfrmConf, err := block_transform.NewConfig([]config.Config{
 		&transform_chksum.Config{},
-		&transform_s2.Config{},
+		&transform_gzip.Config{},
 		&transform_blockenc.Config{
 			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
 			Key:      encKey,

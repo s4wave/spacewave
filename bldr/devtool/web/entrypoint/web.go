@@ -139,7 +139,11 @@ func main() {
 			linkUrl,
 		)
 		defer b.RemoveController(ctrl)
-		return b.ExecuteController(ctx, ctrl)
+		if err := b.ExecuteController(ctx, ctrl); err != nil {
+			le.WithError(err).Warn("devtool controller attempt failed")
+			return err
+		}
+		return nil
 	}, retry.NewBackOff(devtoolBackoff))
 	if err != nil {
 		le.WithError(err).Fatal("failed to execute devtool controller")

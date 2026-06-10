@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
@@ -32,10 +32,10 @@ func openDevtoolVolume(ctx context.Context, le *logrus.Entry, sourcePath string)
 	return volume_bolt.NewBolt(ctx, le, conf)
 }
 
-// buildStepFactorySet builds the block transform step factory set with s2 support.
+// buildStepFactorySet builds the block transform step factory set with gzip support.
 func buildStepFactorySet() *block_transform.StepFactorySet {
 	sfs := block_transform.NewStepFactorySet()
-	sfs.AddStepFactory(transform_s2.NewStepFactory())
+	sfs.AddStepFactory(transform_gzip.NewStepFactory())
 	return sfs
 }
 

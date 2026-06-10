@@ -14,7 +14,7 @@ import {
   Config as LZ4Cfg,
   BlockSize,
 } from '@go/github.com/s4wave/spacewave/db/block/transform/lz4/lz4.pb.js'
-import { Config as S2Cfg } from '@go/github.com/s4wave/spacewave/db/block/transform/s2/s2.pb.js'
+import { Config as GzipCfg } from '@go/github.com/s4wave/spacewave/db/block/transform/gzip/gzip.pb.js'
 import {
   Config as ChksumCfg,
   ChksumType,
@@ -46,7 +46,7 @@ export function formatBytes(bytes: bigint | number): string {
 
 const STEP_BLOCKENC = 'hydra/transform/blockenc'
 const STEP_LZ4 = 'hydra/transform/lz4'
-const STEP_S2 = 'hydra/transform/s2'
+const STEP_GZIP = 'hydra/transform/gzip'
 const STEP_CHKSUM = 'hydra/transform/chksum'
 
 interface StepInfo {
@@ -119,21 +119,24 @@ function decodeLZ4(config?: Uint8Array): { detail: string; tooltip: string } {
   }
 }
 
-function decodeS2(config?: Uint8Array): { detail: string; tooltip: string } {
-  let mode = 'Fast'
+function decodeGzip(config?: Uint8Array): { detail: string; tooltip: string } {
+  let mode = 'Default'
   if (config && config.length > 0) {
     try {
-      const decoded = S2Cfg.fromBinary(config)
-      mode = decoded.best ? 'Best' : decoded.better ? 'Better' : 'Fast'
+      const decoded = GzipCfg.fromBinary(config)
+      mode =
+        decoded.compressionLevel === undefined || decoded.compressionLevel === 0
+          ? 'Default'
+          : `Level ${decoded.compressionLevel}`
     } catch {
       // fall back to defaults
     }
   }
   return {
-    detail: `S2 ${mode}`,
+    detail: `Gzip ${mode}`,
     tooltip:
-      `Data is compressed with S2 (${mode} mode) before storage to reduce size and transfer time. ` +
-      'S2 is optimized for speed with good compression ratios.',
+      `Data is compressed with Gzip (${mode} mode) before storage to reduce size and transfer time. ` +
+      'Gzip is optimized for speed with good compression ratios.',
   }
 }
 
@@ -178,8 +181,8 @@ function parseStep(step: StepConfig): StepInfo {
         isEncryption: false,
       }
     }
-    case STEP_S2: {
-      const { detail, tooltip } = decodeS2(step.config)
+    case STEP_GZIP: {
+      const { detail, tooltip } = decodeGzip(step.config)
       return {
         icon: LuArchive,
         label: 'Compression',

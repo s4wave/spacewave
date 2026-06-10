@@ -67,7 +67,7 @@ func TestProjectOwnedStartupManifestPreflightsSelectBuilderPlatforms(t *testing.
 		{PluginID: "spacewave-web", PlatformIDs: []string{"js"}},
 		{PluginID: "spacewave-app", PlatformIDs: []string{"js"}},
 		{PluginID: "spacewave-core", PlatformIDs: []string{"web/js/wasm"}},
-		{PluginID: "spacewave-v86", PlatformIDs: []string{"js", "web/js/wasm"}},
+		{PluginID: "spacewave-v86", PlatformIDs: []string{"js"}},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("ProjectOwnedStartupManifestPreflights() = %#v, want %#v", got, want)

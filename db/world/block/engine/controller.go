@@ -209,8 +209,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return nil
 	}
 
-	var engineOpts []world_block.EngineOption
+	useStateCoordinator := false
 	if stateCoordinator != nil && stateStore != nil {
+		useStateCoordinator = c.coordinatorSupported(ctx, stateCoordinator, stateCoordScope)
+	}
+
+	var engineOpts []world_block.EngineOption
+	if useStateCoordinator {
 		engineOpts = append(engineOpts, world_block.WithWriteCoordinator(
 			stateCoordinator,
 			stateCoordScope,
@@ -232,7 +237,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 	var headWatchDone <-chan struct{}
-	if stateCoordinator != nil && stateStore != nil {
+	if useStateCoordinator {
 		headWatchDone = c.startCoordinatorHeadWatch(rctx, stateCoordinator, stateCoordScope, stateStore, engine)
 		defer func() {
 			<-headWatchDone
@@ -256,6 +261,21 @@ func (c *Controller) Execute(ctx context.Context) error {
 	c.engineCtr.SetValue(nil)
 
 	return nil
+}
+
+func (c *Controller) coordinatorSupported(
+	ctx context.Context,
+	coordinator coord.Coordinator,
+	scope coord.Scope,
+) bool {
+	capability, err := coordinator.Capability(ctx, scope)
+	if err != nil {
+		if ctx.Err() == nil {
+			c.le.WithError(err).Warn("world coordinator capability lookup failed")
+		}
+		return false
+	}
+	return capability != nil && capability.Supported
 }
 
 // HandleDirective asks if the handler can resolve the directive.

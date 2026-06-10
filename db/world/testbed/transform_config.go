@@ -7,7 +7,7 @@ import (
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
-	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/zeebo/blake3"
 )
@@ -18,7 +18,7 @@ func newEngineTransformConfig(engineBucketID string) (*block_transform.Config, e
 
 	return block_transform.NewConfig([]config.Config{
 		&transform_chksum.Config{},
-		&transform_s2.Config{},
+		&transform_gzip.Config{},
 		&transform_blockenc.Config{
 			BlockEnc: blockenc.DefaultBlockEnc,
 			Key:      key,

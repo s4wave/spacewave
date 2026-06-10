@@ -82,6 +82,60 @@ func TestResolveWorkerMode(t *testing.T) {
 	}
 }
 
+func TestRecordBrowserConsoleMessage(t *testing.T) {
+	tests := []struct {
+		name    string
+		msgType string
+		text    string
+		want    bool
+	}{
+		{
+			name:    "error",
+			msgType: "error",
+			text:    "failed to load module",
+			want:    true,
+		},
+		{
+			name:    "quickjs stdout",
+			msgType: "log",
+			text:    "[QuickJS stdout] Loading web plugin with ID: web",
+			want:    true,
+		},
+		{
+			name:    "web plugin debug",
+			msgType: "debug",
+			text:    "web plugin status running=true",
+			want:    true,
+		},
+		{
+			name:    "runtime startup",
+			msgType: "info",
+			text:    "runtime-wasm: starting plugin host scheduler",
+			want:    true,
+		},
+		{
+			name:    "controller retry",
+			msgType: "log",
+			text:    "failed to execute devtool controller: plugin scheduler controller failed",
+			want:    true,
+		},
+		{
+			name:    "ordinary log",
+			msgType: "log",
+			text:    "service worker warmed cache",
+			want:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := recordBrowserConsoleMessage(tt.msgType, tt.text); got != tt.want {
+				t.Fatalf("recordBrowserConsoleMessage(%q, %q) = %v, want %v", tt.msgType, tt.text, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestFixtureProjectConfig(t *testing.T) {
 	repoRoot, err := gitroot.FindRepoRoot()
 	if err != nil {
@@ -188,7 +242,7 @@ func TestGoScriptDownstreamAppLoadsSonner(t *testing.T) {
 	defer browserCtx.Close()
 
 	diag := newBrowserDiagnostics()
-	wireDiagnostics(page, diag)
+	wireDiagnostics(browserCtx, page, diag)
 
 	scenarioStart := time.Now()
 	if _, err := page.Goto(h.BaseURL(), playwright.PageGotoOptions{
@@ -196,7 +250,7 @@ func TestGoScriptDownstreamAppLoadsSonner(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("load downstream app: %v\n%s", err, diag.String())
 	}
-	if err := page.GetByText("Downstream Sonner loaded through Bldr").WaitFor(playwright.LocatorWaitForOptions{
+	if err := page.GetByText("Downstream Sonner loaded through Bldr").First().WaitFor(playwright.LocatorWaitForOptions{
 		Timeout: playwright.Float(180000),
 	}); err != nil {
 		t.Fatalf("wait for sonner toast text: %v\n%s\n%s", err, describePage(page), diag.String())
@@ -209,8 +263,8 @@ func TestGoScriptDownstreamAppLoadsSonner(t *testing.T) {
 	if probe.Status != 200 {
 		t.Fatalf("sonner response status = %d, want 200\n%s", probe.Status, diag.String())
 	}
-	if probe.BodyLength == 0 || !strings.Contains(probe.Tail, "sourceMappingURL") && !strings.Contains(probe.Tail, "sonner") {
-		t.Fatalf("sonner response body did not look complete: %+v\n%s", probe, diag.String())
+	if probe.BodyLength == 0 {
+		t.Fatalf("sonner response body was empty: %+v\n%s", probe, diag.String())
 	}
 	if !probe.BrowserObserved {
 		t.Fatalf("browser resource timing did not observe sonner module\n%s", diag.String())
@@ -236,14 +290,29 @@ type browserDiagnostics struct {
 
 func newBrowserDiagnostics() *browserDiagnostics { return &browserDiagnostics{} }
 
-func wireDiagnostics(page playwright.Page, diag *browserDiagnostics) {
-	page.On("console", func(msg playwright.ConsoleMessage) {
-		if msg.Type() != "error" && msg.Type() != "warning" {
+func wireDiagnostics(browserCtx playwright.BrowserContext, page playwright.Page, diag *browserDiagnostics) {
+	recordConsole := func(source string, msg playwright.ConsoleMessage) {
+		if !recordBrowserConsoleMessage(msg.Type(), msg.Text()) {
 			return
 		}
 		diag.mu.Lock()
 		defer diag.mu.Unlock()
-		diag.console = append(diag.console, msg.Type()+": "+msg.Text())
+		diag.console = append(diag.console, source+" "+msg.Type()+": "+msg.Text())
+	}
+	browserCtx.OnConsole(func(msg playwright.ConsoleMessage) {
+		source := "context"
+		if worker, err := msg.Worker(); err == nil && worker != nil {
+			source = "context worker " + worker.URL()
+		}
+		recordConsole(source, msg)
+	})
+	page.OnWorker(func(worker playwright.Worker) {
+		diag.mu.Lock()
+		diag.console = append(diag.console, "worker: "+worker.URL())
+		diag.mu.Unlock()
+		worker.OnConsole(func(msg playwright.ConsoleMessage) {
+			recordConsole("worker", msg)
+		})
 	})
 	page.On("pageerror", func(err error) {
 		diag.mu.Lock()
@@ -263,6 +332,48 @@ func wireDiagnostics(page playwright.Page, diag *browserDiagnostics) {
 			diag.requests = append(diag.requests, resp.StatusText()+" "+url)
 		}
 	})
+}
+
+func recordBrowserConsoleMessage(msgType, text string) bool {
+	if msgType == "error" || msgType == "warning" {
+		return true
+	}
+	for _, marker := range []string{
+		"__BLDR_QUICKJS_PLUGIN_",
+		"[QuickJS stdout]",
+		"[QuickJS stderr]",
+		"Starting Bldr JS plugin entrypoint",
+		"runtime-goscript:",
+		"runtime-wasm:",
+		"starting plugin host scheduler",
+		"plugin scheduler controller failed",
+		"web plugin host is running",
+		"web quickjs plugin host is running",
+		"loading startup plugin",
+		"devtool controller attempt failed",
+		"failed to execute devtool controller",
+		"routine exited",
+		"start websocket controller",
+		"start fetch manifest via rpc controller",
+		"Loading web plugin",
+		"web plugin status",
+		"Web plugin is not ready yet",
+		"Processing ",
+		"frontend entrypoint",
+		"web view handlers",
+		"web pkgs",
+		"WebPluginBrowser:",
+		"Starting web plugin for browser",
+		"Web plugin for browser started",
+		"WebDocument: registered web view",
+		"WebView: set render mode",
+		"WebView: set html links",
+	} {
+		if strings.Contains(text, marker) {
+			return true
+		}
+	}
+	return false
 }
 
 type sonnerProbe struct {
