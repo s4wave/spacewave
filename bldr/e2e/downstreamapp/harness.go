@@ -4,6 +4,7 @@ package downstreamapp
 
 import (
 	"context"
+	"encoding/json"
 	"net"
 	"net/http"
 	"os"
@@ -211,8 +212,8 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 	if err := h.waitForReady(hctx); err != nil {
 		return nil, errors.Wrap(err, "wait for wasm readiness")
 	}
-	if err := h.writeBrowserReleaseDescriptor(); err != nil {
-		return nil, errors.Wrap(err, "write browser release descriptor")
+	if err := h.enableBrowserReleaseAutoStart(); err != nil {
+		return nil, errors.Wrap(err, "enable browser release auto-start")
 	}
 	if err := h.preflightStartupManifests(hctx); err != nil {
 		return nil, errors.Wrap(err, "preflight startup manifests")
@@ -290,35 +291,28 @@ func (h *Harness) waitForReady(ctx context.Context) error {
 	}
 }
 
-func (h *Harness) writeBrowserReleaseDescriptor() error {
+func (h *Harness) enableBrowserReleaseAutoStart() error {
 	entryDir := filepath.Join(h.devtool.GetStateRoot(), "entry", "web", "wasm")
-	assets := []string{
-		"/entrypoint/entrypoint.mjs",
-		"/entrypoint/runtime.wasm",
-		"/sw.mjs",
-		"/shw.mjs",
-	}
-	for _, asset := range assets {
-		if _, err := os.Stat(filepath.Join(entryDir, strings.TrimPrefix(asset, "/"))); err != nil {
-			return errors.Wrap(err, "stat "+asset)
-		}
-	}
-	descriptor := `{
-  "schemaVersion": 1,
-  "generationId": "downstream-e2e-dev",
-  "shellAssets": {
-    "entrypoint": "/entrypoint/entrypoint.mjs",
-    "serviceWorker": "/sw.mjs",
-    "sharedWorker": "/shw.mjs",
-    "wasm": "/entrypoint/runtime.wasm",
-    "css": []
-  },
-  "autoStart": true,
-  "prerenderedRoutes": [],
-  "requiredStaticAssets": []
+	return enableBrowserReleaseAutoStart(entryDir)
 }
-`
-	return os.WriteFile(filepath.Join(entryDir, "browser-release.json"), []byte(descriptor), 0o644)
+
+func enableBrowserReleaseAutoStart(entryDir string) error {
+	descriptorPath := filepath.Join(entryDir, "browser-release.json")
+	data, err := os.ReadFile(descriptorPath)
+	if err != nil {
+		return err
+	}
+	var descriptor map[string]json.RawMessage
+	if err := json.Unmarshal(data, &descriptor); err != nil {
+		return err
+	}
+	descriptor["autoStart"] = json.RawMessage("true")
+	data, err = json.MarshalIndent(descriptor, "", "  ")
+	if err != nil {
+		return err
+	}
+	data = append(data, '\n')
+	return os.WriteFile(descriptorPath, data, 0o644)
 }
 
 type manifestFetchRequest struct {

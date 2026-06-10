@@ -160,6 +160,93 @@ func TestVmV86TypedObject(t *testing.T) {
 		streamCancel()
 	})
 
+	t.Run("V86ConfigMountsBecomeGuestMounts", func(t *testing.T) {
+		resClient, engine, cleanup := setupVmV86WorldEngineWithClient(ctx, t, tb)
+		defer cleanup()
+
+		vmKey := "vm-v86-test-config-mount/vm"
+		rootfsKey := "vm-v86-test-config-mount/rootfs"
+
+		createVmV86WithRootfs(ctx, t, engine, vmKey, rootfsKey)
+		setV86Config(ctx, t, engine, vmKey, &s4wave_vm.V86Config{
+			Mounts: []*s4wave_vm.VmMount{
+				{Path: "/workspace", ObjectKey: rootfsKey, Writable: true},
+			},
+		})
+
+		readTx, err := engine.NewTransaction(ctx, false)
+		if err != nil {
+			t.Fatalf("NewTransaction failed: %v", err)
+		}
+		defer readTx.Release()
+
+		srpcClient, err := readTx.GetResourceRef().GetClient()
+		if err != nil {
+			t.Fatalf("GetClient failed: %v", err)
+		}
+		typedSvc := s4wave_world.NewSRPCTypedObjectResourceServiceClient(srpcClient)
+		resp, err := typedSvc.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{
+			ObjectKey: vmKey,
+		})
+		if err != nil {
+			t.Fatalf("AccessTypedObject failed: %v", err)
+		}
+
+		vmRef := resClient.CreateResourceReference(resp.ResourceId)
+		defer vmRef.Release()
+
+		vmClient, err := vmRef.GetClient()
+		if err != nil {
+			t.Fatalf("GetClient for vm resource failed: %v", err)
+		}
+		v86fsSvc := unixfs_v86fs.NewSRPCV86FsServiceClient(vmClient)
+
+		streamCtx, streamCancel := context.WithTimeout(ctx, 5*time.Second)
+		defer streamCancel()
+
+		stream, err := v86fsSvc.RelayV86Fs(streamCtx)
+		if err != nil {
+			t.Fatalf("RelayV86Fs failed: %v", err)
+		}
+
+		notify, err := stream.Recv()
+		if err != nil {
+			t.Fatalf("Recv seeded MOUNT_NOTIFY failed: %v", err)
+		}
+		mountNotify := notify.GetMountNotify()
+		if mountNotify == nil {
+			t.Fatalf("expected seeded MOUNT_NOTIFY, got %T", notify.GetBody())
+		}
+		if mountNotify.GetName() != "workspace" || mountNotify.GetMountPath() != "/workspace" {
+			t.Fatalf("seeded MOUNT_NOTIFY = name %q path %q, want workspace /workspace",
+				mountNotify.GetName(), mountNotify.GetMountPath())
+		}
+
+		err = stream.Send(&unixfs_v86fs.V86FsMessage{
+			Tag: 1,
+			Body: &unixfs_v86fs.V86FsMessage_MountRequest{
+				MountRequest: &unixfs_v86fs.V86FsMountRequest{Name: "workspace"},
+			},
+		})
+		if err != nil {
+			t.Fatalf("Send MOUNT workspace failed: %v", err)
+		}
+		reply, err := stream.Recv()
+		if err != nil {
+			t.Fatalf("Recv MOUNT workspace reply failed: %v", err)
+		}
+		mountReply := reply.GetMountReply()
+		if mountReply == nil {
+			t.Fatalf("expected MOUNT workspace reply, got %T", reply.GetBody())
+		}
+		if mountReply.GetStatus() != 0 {
+			t.Fatalf("MOUNT workspace failed with status %d", mountReply.GetStatus())
+		}
+		if mountReply.GetRootInodeId() == 0 {
+			t.Fatal("expected non-zero workspace root inode ID")
+		}
+	})
+
 	t.Run("SetV86ConfigOpApplies", func(t *testing.T) {
 		engine, cleanup := setupVmV86WorldEngine(ctx, t, tb)
 		defer cleanup()
@@ -813,6 +900,29 @@ func createVmV86WithoutRootfs(ctx context.Context, t *testing.T, engine *s4wave_
 	tx.Release()
 
 	t.Logf("Created VmV86 %s via image %s without rootfs edge", vmKey, imageKey)
+}
+
+func setV86Config(ctx context.Context, t *testing.T, engine *s4wave_world.Engine, vmKey string, cfg *s4wave_vm.V86Config) {
+	t.Helper()
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatalf("NewTransaction failed: %v", err)
+	}
+	op := s4wave_vm.NewSetV86ConfigOp(vmKey, cfg)
+	data, err := op.MarshalVT()
+	if err != nil {
+		tx.Release()
+		t.Fatalf("MarshalVT (setconfig) failed: %v", err)
+	}
+	if _, _, err := tx.ApplyWorldOp(ctx, s4wave_vm.SetV86ConfigOpId, data, ""); err != nil {
+		tx.Release()
+		t.Fatalf("ApplyWorldOp (setconfig) failed: %v", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		tx.Release()
+		t.Fatalf("Commit failed: %v", err)
+	}
+	tx.Release()
 }
 
 type testV86PluginLoadRequest struct {

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -103,6 +104,60 @@ func TestFixtureProjectConfig(t *testing.T) {
 		if conf.GetManifests()[forbidden] != nil {
 			t.Fatalf("fixture unexpectedly includes product manifest %q", forbidden)
 		}
+	}
+}
+
+func TestEnableBrowserReleaseAutoStartPreservesGeneratedDescriptor(t *testing.T) {
+	entryDir := t.TempDir()
+	descriptorPath := filepath.Join(entryDir, "browser-release.json")
+	const generated = `{
+  "schemaVersion": 1,
+  "generationId": "/sw-generated.mjs",
+  "shellAssets": {
+    "entrypoint": "/entrypoint/entrypoint.mjs",
+    "serviceWorker": "/sw-generated.mjs",
+    "sharedWorker": "/shw-generated.mjs",
+    "wasm": "/entrypoint/runtime.wasm",
+    "css": ["/entrypoint/app.css"]
+  },
+  "prerenderedRoutes": ["/"],
+  "requiredStaticAssets": []
+}`
+	if err := os.WriteFile(descriptorPath, []byte(generated), 0o644); err != nil {
+		t.Fatalf("write descriptor: %v", err)
+	}
+
+	if err := enableBrowserReleaseAutoStart(entryDir); err != nil {
+		t.Fatalf("enable auto-start: %v", err)
+	}
+
+	data, err := os.ReadFile(descriptorPath)
+	if err != nil {
+		t.Fatalf("read descriptor: %v", err)
+	}
+	var got struct {
+		GenerationID string `json:"generationId"`
+		AutoStart    bool   `json:"autoStart"`
+		ShellAssets  struct {
+			ServiceWorker string   `json:"serviceWorker"`
+			SharedWorker  string   `json:"sharedWorker"`
+			CSS           []string `json:"css"`
+		} `json:"shellAssets"`
+	}
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatalf("unmarshal descriptor: %v", err)
+	}
+	if !got.AutoStart {
+		t.Fatal("autoStart = false, want true")
+	}
+	if got.GenerationID != "/sw-generated.mjs" {
+		t.Fatalf("generationId = %q, want generated service worker", got.GenerationID)
+	}
+	if got.ShellAssets.ServiceWorker != "/sw-generated.mjs" || got.ShellAssets.SharedWorker != "/shw-generated.mjs" {
+		t.Fatalf("shell assets changed: %+v", got.ShellAssets)
+	}
+	if len(got.ShellAssets.CSS) != 1 || got.ShellAssets.CSS[0] != "/entrypoint/app.css" {
+		t.Fatalf("css assets changed: %+v", got.ShellAssets.CSS)
 	}
 }
 
