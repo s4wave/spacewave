@@ -40,9 +40,15 @@ func (c *Coordinator) Capability(ctx context.Context, scope coord.Scope) (*coord
 	return capability, nil
 }
 
-// Snapshot returns ErrUnsupported until remote coordination snapshots are exposed.
+// Snapshot returns the remote coordination snapshot.
 func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.Snapshot, error) {
-	return c.unsupported.Snapshot(ctx, scope)
+	resp, err := c.client.GetCoordinatorSnapshot(ctx, &volume_rpc.GetCoordinatorSnapshotRequest{
+		Scope: volume_rpc.NewCoordinatorScope(scope),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetSnapshot().ToCoordSnapshot(), nil
 }
 
 // Watch streams remote coordination events through the ProxyVolume service.
@@ -68,14 +74,52 @@ func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGenerat
 	return watch, nil
 }
 
-// TryAcquireWriteLease returns ErrUnsupported until remote write leases are exposed.
+// TryAcquireWriteLease attempts to acquire the remote write lease.
 func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scope) (coord.WriteLease, bool, error) {
-	return c.unsupported.TryAcquireWriteLease(ctx, scope)
+	leaseCtx, cancel := context.WithCancel(context.Background())
+	stream, err := c.client.TryAcquireCoordinatorWriteLease(leaseCtx, &volume_rpc.TryAcquireCoordinatorWriteLeaseRequest{
+		Scope: volume_rpc.NewCoordinatorScope(scope),
+	})
+	if err != nil {
+		cancel()
+		return nil, false, err
+	}
+	resp, err := stream.Recv()
+	if err != nil {
+		cancel()
+		return nil, false, err
+	}
+	if !resp.GetAcquired() {
+		cancel()
+		return nil, false, nil
+	}
+	return &lease{
+		client:  c.client,
+		cancel:  cancel,
+		leaseID: resp.GetLeaseId(),
+	}, true, nil
 }
 
-// WaitAcquireWriteLease returns ErrUnsupported until remote write leases are exposed.
+// WaitAcquireWriteLease waits to acquire the remote write lease.
 func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Scope) (coord.WriteLease, error) {
-	return c.unsupported.WaitAcquireWriteLease(ctx, scope)
+	leaseCtx, cancel := context.WithCancel(ctx)
+	stream, err := c.client.WaitAcquireCoordinatorWriteLease(leaseCtx, &volume_rpc.WaitAcquireCoordinatorWriteLeaseRequest{
+		Scope: volume_rpc.NewCoordinatorScope(scope),
+	})
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+	resp, err := stream.Recv()
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+	return &lease{
+		client:  c.client,
+		cancel:  cancel,
+		leaseID: resp.GetLeaseId(),
+	}, nil
 }
 
 var _ coord.Coordinator = (*Coordinator)(nil)
@@ -123,3 +167,40 @@ func (w *watch) receive() {
 }
 
 var _ coord.Watch = (*watch)(nil)
+
+type lease struct {
+	client  volume_rpc.SRPCProxyVolumeClient
+	cancel  context.CancelFunc
+	leaseID string
+}
+
+func (l *lease) Refresh(ctx context.Context) (*coord.Snapshot, error) {
+	resp, err := l.client.RefreshCoordinatorWriteLease(ctx, &volume_rpc.CoordinatorWriteLeaseRequest{
+		LeaseId: l.leaseID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetSnapshot().ToCoordSnapshot(), nil
+}
+
+func (l *lease) Publish(ctx context.Context, event coord.Event) (*coord.Snapshot, error) {
+	resp, err := l.client.PublishCoordinatorWriteLease(ctx, &volume_rpc.PublishCoordinatorWriteLeaseRequest{
+		LeaseId: l.leaseID,
+		Event:   volume_rpc.NewCoordinatorEvent(event),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetSnapshot().ToCoordSnapshot(), nil
+}
+
+func (l *lease) Release(ctx context.Context) error {
+	defer l.cancel()
+	_, err := l.client.ReleaseCoordinatorWriteLease(ctx, &volume_rpc.CoordinatorWriteLeaseRequest{
+		LeaseId: l.leaseID,
+	})
+	return err
+}
+
+var _ coord.WriteLease = (*lease)(nil)

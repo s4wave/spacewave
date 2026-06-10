@@ -294,6 +294,53 @@ func (x *CoordinatorEvent) GetFallbackReason() string {
 	return ""
 }
 
+// CoordinatorSnapshot captures the current durable coordination state.
+type CoordinatorSnapshot struct {
+	unknownFields []byte
+	// VolumeId is the owning Volume id.
+	VolumeId string `protobuf:"bytes,1,opt,name=volume_id,json=volumeId,proto3" json:"volumeId,omitempty"`
+	// ObjectStoreId is the ObjectStore id inside the Volume.
+	ObjectStoreId string `protobuf:"bytes,2,opt,name=object_store_id,json=objectStoreId,proto3" json:"objectStoreId,omitempty"`
+	// Generation is the latest durable generation.
+	Generation uint64 `protobuf:"varint,3,opt,name=generation,proto3" json:"generation,omitempty"`
+	// Root is the latest durable ObjectStore root.
+	Root *bucket.ObjectRef `protobuf:"bytes,4,opt,name=root,proto3" json:"root,omitempty"`
+}
+
+func (x *CoordinatorSnapshot) Reset() {
+	*x = CoordinatorSnapshot{}
+}
+
+func (*CoordinatorSnapshot) ProtoMessage() {}
+
+func (x *CoordinatorSnapshot) GetVolumeId() string {
+	if x != nil {
+		return x.VolumeId
+	}
+	return ""
+}
+
+func (x *CoordinatorSnapshot) GetObjectStoreId() string {
+	if x != nil {
+		return x.ObjectStoreId
+	}
+	return ""
+}
+
+func (x *CoordinatorSnapshot) GetGeneration() uint64 {
+	if x != nil {
+		return x.Generation
+	}
+	return 0
+}
+
+func (x *CoordinatorSnapshot) GetRoot() *bucket.ObjectRef {
+	if x != nil {
+		return x.Root
+	}
+	return nil
+}
+
 // GetCoordinatorCapabilityRequest is a request to get direct coordination support.
 type GetCoordinatorCapabilityRequest struct {
 	unknownFields []byte
@@ -382,6 +429,195 @@ func (x *WatchCoordinatorEventsResponse) GetEvent() *CoordinatorEvent {
 	}
 	return nil
 }
+
+// GetCoordinatorSnapshotRequest is a request to get a coordinator snapshot.
+type GetCoordinatorSnapshotRequest struct {
+	unknownFields []byte
+	// Scope identifies the coordinated ObjectStore.
+	Scope *CoordinatorScope `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
+}
+
+func (x *GetCoordinatorSnapshotRequest) Reset() {
+	*x = GetCoordinatorSnapshotRequest{}
+}
+
+func (*GetCoordinatorSnapshotRequest) ProtoMessage() {}
+
+func (x *GetCoordinatorSnapshotRequest) GetScope() *CoordinatorScope {
+	if x != nil {
+		return x.Scope
+	}
+	return nil
+}
+
+// GetCoordinatorSnapshotResponse is a coordinator snapshot response.
+type GetCoordinatorSnapshotResponse struct {
+	unknownFields []byte
+	// Snapshot is the current durable coordinator state.
+	Snapshot *CoordinatorSnapshot `protobuf:"bytes,1,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
+}
+
+func (x *GetCoordinatorSnapshotResponse) Reset() {
+	*x = GetCoordinatorSnapshotResponse{}
+}
+
+func (*GetCoordinatorSnapshotResponse) ProtoMessage() {}
+
+func (x *GetCoordinatorSnapshotResponse) GetSnapshot() *CoordinatorSnapshot {
+	if x != nil {
+		return x.Snapshot
+	}
+	return nil
+}
+
+// TryAcquireCoordinatorWriteLeaseRequest is a non-blocking lease request.
+type TryAcquireCoordinatorWriteLeaseRequest struct {
+	unknownFields []byte
+	// Scope identifies the coordinated ObjectStore.
+	Scope *CoordinatorScope `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
+}
+
+func (x *TryAcquireCoordinatorWriteLeaseRequest) Reset() {
+	*x = TryAcquireCoordinatorWriteLeaseRequest{}
+}
+
+func (*TryAcquireCoordinatorWriteLeaseRequest) ProtoMessage() {}
+
+func (x *TryAcquireCoordinatorWriteLeaseRequest) GetScope() *CoordinatorScope {
+	if x != nil {
+		return x.Scope
+	}
+	return nil
+}
+
+// WaitAcquireCoordinatorWriteLeaseRequest is a blocking lease request.
+type WaitAcquireCoordinatorWriteLeaseRequest struct {
+	unknownFields []byte
+	// Scope identifies the coordinated ObjectStore.
+	Scope *CoordinatorScope `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
+}
+
+func (x *WaitAcquireCoordinatorWriteLeaseRequest) Reset() {
+	*x = WaitAcquireCoordinatorWriteLeaseRequest{}
+}
+
+func (*WaitAcquireCoordinatorWriteLeaseRequest) ProtoMessage() {}
+
+func (x *WaitAcquireCoordinatorWriteLeaseRequest) GetScope() *CoordinatorScope {
+	if x != nil {
+		return x.Scope
+	}
+	return nil
+}
+
+// AcquireCoordinatorWriteLeaseResponse is returned by lease acquisition.
+type AcquireCoordinatorWriteLeaseResponse struct {
+	unknownFields []byte
+	// LeaseId identifies the remote lease for later lease operations.
+	LeaseId string `protobuf:"bytes,1,opt,name=lease_id,json=leaseId,proto3" json:"leaseId,omitempty"`
+	// Acquired is false when a try-acquire request found the lease busy.
+	Acquired bool `protobuf:"varint,2,opt,name=acquired,proto3" json:"acquired,omitempty"`
+}
+
+func (x *AcquireCoordinatorWriteLeaseResponse) Reset() {
+	*x = AcquireCoordinatorWriteLeaseResponse{}
+}
+
+func (*AcquireCoordinatorWriteLeaseResponse) ProtoMessage() {}
+
+func (x *AcquireCoordinatorWriteLeaseResponse) GetLeaseId() string {
+	if x != nil {
+		return x.LeaseId
+	}
+	return ""
+}
+
+func (x *AcquireCoordinatorWriteLeaseResponse) GetAcquired() bool {
+	if x != nil {
+		return x.Acquired
+	}
+	return false
+}
+
+// CoordinatorWriteLeaseRequest identifies a held remote write lease.
+type CoordinatorWriteLeaseRequest struct {
+	unknownFields []byte
+	// LeaseId identifies the remote lease.
+	LeaseId string `protobuf:"bytes,1,opt,name=lease_id,json=leaseId,proto3" json:"leaseId,omitempty"`
+}
+
+func (x *CoordinatorWriteLeaseRequest) Reset() {
+	*x = CoordinatorWriteLeaseRequest{}
+}
+
+func (*CoordinatorWriteLeaseRequest) ProtoMessage() {}
+
+func (x *CoordinatorWriteLeaseRequest) GetLeaseId() string {
+	if x != nil {
+		return x.LeaseId
+	}
+	return ""
+}
+
+// CoordinatorWriteLeaseSnapshotResponse returns a lease operation snapshot.
+type CoordinatorWriteLeaseSnapshotResponse struct {
+	unknownFields []byte
+	// Snapshot is the current durable coordinator state.
+	Snapshot *CoordinatorSnapshot `protobuf:"bytes,1,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
+}
+
+func (x *CoordinatorWriteLeaseSnapshotResponse) Reset() {
+	*x = CoordinatorWriteLeaseSnapshotResponse{}
+}
+
+func (*CoordinatorWriteLeaseSnapshotResponse) ProtoMessage() {}
+
+func (x *CoordinatorWriteLeaseSnapshotResponse) GetSnapshot() *CoordinatorSnapshot {
+	if x != nil {
+		return x.Snapshot
+	}
+	return nil
+}
+
+// PublishCoordinatorWriteLeaseRequest publishes through a held remote lease.
+type PublishCoordinatorWriteLeaseRequest struct {
+	unknownFields []byte
+	// LeaseId identifies the remote lease.
+	LeaseId string `protobuf:"bytes,1,opt,name=lease_id,json=leaseId,proto3" json:"leaseId,omitempty"`
+	// Event is the accepted coordination event.
+	Event *CoordinatorEvent `protobuf:"bytes,2,opt,name=event,proto3" json:"event,omitempty"`
+}
+
+func (x *PublishCoordinatorWriteLeaseRequest) Reset() {
+	*x = PublishCoordinatorWriteLeaseRequest{}
+}
+
+func (*PublishCoordinatorWriteLeaseRequest) ProtoMessage() {}
+
+func (x *PublishCoordinatorWriteLeaseRequest) GetLeaseId() string {
+	if x != nil {
+		return x.LeaseId
+	}
+	return ""
+}
+
+func (x *PublishCoordinatorWriteLeaseRequest) GetEvent() *CoordinatorEvent {
+	if x != nil {
+		return x.Event
+	}
+	return nil
+}
+
+// ReleaseCoordinatorWriteLeaseResponse is returned after releasing a lease.
+type ReleaseCoordinatorWriteLeaseResponse struct {
+	unknownFields []byte
+}
+
+func (x *ReleaseCoordinatorWriteLeaseResponse) Reset() {
+	*x = ReleaseCoordinatorWriteLeaseResponse{}
+}
+
+func (*ReleaseCoordinatorWriteLeaseResponse) ProtoMessage() {}
 
 // GetPeerPrivRequest is a request to get the volume peer privkey.
 type GetPeerPrivRequest struct {
@@ -580,6 +816,27 @@ func (m *CoordinatorEvent) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *CoordinatorSnapshot) CloneVT() *CoordinatorSnapshot {
+	if m == nil {
+		return (*CoordinatorSnapshot)(nil)
+	}
+	r := new(CoordinatorSnapshot)
+	r.VolumeId = m.VolumeId
+	r.ObjectStoreId = m.ObjectStoreId
+	r.Generation = m.Generation
+	if rhs := m.Root; rhs != nil {
+		r.Root = rhs.CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CoordinatorSnapshot) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *GetCoordinatorCapabilityRequest) CloneVT() *GetCoordinatorCapabilityRequest {
 	if m == nil {
 		return (*GetCoordinatorCapabilityRequest)(nil)
@@ -642,6 +899,151 @@ func (m *WatchCoordinatorEventsResponse) CloneVT() *WatchCoordinatorEventsRespon
 }
 
 func (m *WatchCoordinatorEventsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetCoordinatorSnapshotRequest) CloneVT() *GetCoordinatorSnapshotRequest {
+	if m == nil {
+		return (*GetCoordinatorSnapshotRequest)(nil)
+	}
+	r := new(GetCoordinatorSnapshotRequest)
+	r.Scope = m.Scope.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetCoordinatorSnapshotRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetCoordinatorSnapshotResponse) CloneVT() *GetCoordinatorSnapshotResponse {
+	if m == nil {
+		return (*GetCoordinatorSnapshotResponse)(nil)
+	}
+	r := new(GetCoordinatorSnapshotResponse)
+	r.Snapshot = m.Snapshot.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetCoordinatorSnapshotResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *TryAcquireCoordinatorWriteLeaseRequest) CloneVT() *TryAcquireCoordinatorWriteLeaseRequest {
+	if m == nil {
+		return (*TryAcquireCoordinatorWriteLeaseRequest)(nil)
+	}
+	r := new(TryAcquireCoordinatorWriteLeaseRequest)
+	r.Scope = m.Scope.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *TryAcquireCoordinatorWriteLeaseRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WaitAcquireCoordinatorWriteLeaseRequest) CloneVT() *WaitAcquireCoordinatorWriteLeaseRequest {
+	if m == nil {
+		return (*WaitAcquireCoordinatorWriteLeaseRequest)(nil)
+	}
+	r := new(WaitAcquireCoordinatorWriteLeaseRequest)
+	r.Scope = m.Scope.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WaitAcquireCoordinatorWriteLeaseRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AcquireCoordinatorWriteLeaseResponse) CloneVT() *AcquireCoordinatorWriteLeaseResponse {
+	if m == nil {
+		return (*AcquireCoordinatorWriteLeaseResponse)(nil)
+	}
+	r := new(AcquireCoordinatorWriteLeaseResponse)
+	r.LeaseId = m.LeaseId
+	r.Acquired = m.Acquired
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AcquireCoordinatorWriteLeaseResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CoordinatorWriteLeaseRequest) CloneVT() *CoordinatorWriteLeaseRequest {
+	if m == nil {
+		return (*CoordinatorWriteLeaseRequest)(nil)
+	}
+	r := new(CoordinatorWriteLeaseRequest)
+	r.LeaseId = m.LeaseId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CoordinatorWriteLeaseRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CoordinatorWriteLeaseSnapshotResponse) CloneVT() *CoordinatorWriteLeaseSnapshotResponse {
+	if m == nil {
+		return (*CoordinatorWriteLeaseSnapshotResponse)(nil)
+	}
+	r := new(CoordinatorWriteLeaseSnapshotResponse)
+	r.Snapshot = m.Snapshot.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CoordinatorWriteLeaseSnapshotResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PublishCoordinatorWriteLeaseRequest) CloneVT() *PublishCoordinatorWriteLeaseRequest {
+	if m == nil {
+		return (*PublishCoordinatorWriteLeaseRequest)(nil)
+	}
+	r := new(PublishCoordinatorWriteLeaseRequest)
+	r.LeaseId = m.LeaseId
+	r.Event = m.Event.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PublishCoordinatorWriteLeaseRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReleaseCoordinatorWriteLeaseResponse) CloneVT() *ReleaseCoordinatorWriteLeaseResponse {
+	if m == nil {
+		return (*ReleaseCoordinatorWriteLeaseResponse)(nil)
+	}
+	r := new(ReleaseCoordinatorWriteLeaseResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReleaseCoordinatorWriteLeaseResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -894,6 +1296,35 @@ func (this *CoordinatorEvent) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *CoordinatorSnapshot) EqualVT(that *CoordinatorSnapshot) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.VolumeId != that.VolumeId {
+		return false
+	}
+	if this.ObjectStoreId != that.ObjectStoreId {
+		return false
+	}
+	if this.Generation != that.Generation {
+		return false
+	}
+	if !this.Root.EqualVT(that.Root) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CoordinatorSnapshot) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CoordinatorSnapshot)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *GetCoordinatorCapabilityRequest) EqualVT(that *GetCoordinatorCapabilityRequest) bool {
 	if this == that {
 		return true
@@ -971,6 +1402,189 @@ func (this *WatchCoordinatorEventsResponse) EqualVT(that *WatchCoordinatorEvents
 
 func (this *WatchCoordinatorEventsResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*WatchCoordinatorEventsResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetCoordinatorSnapshotRequest) EqualVT(that *GetCoordinatorSnapshotRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Scope.EqualVT(that.Scope) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetCoordinatorSnapshotRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetCoordinatorSnapshotRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetCoordinatorSnapshotResponse) EqualVT(that *GetCoordinatorSnapshotResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Snapshot.EqualVT(that.Snapshot) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetCoordinatorSnapshotResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetCoordinatorSnapshotResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *TryAcquireCoordinatorWriteLeaseRequest) EqualVT(that *TryAcquireCoordinatorWriteLeaseRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Scope.EqualVT(that.Scope) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *TryAcquireCoordinatorWriteLeaseRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*TryAcquireCoordinatorWriteLeaseRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WaitAcquireCoordinatorWriteLeaseRequest) EqualVT(that *WaitAcquireCoordinatorWriteLeaseRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Scope.EqualVT(that.Scope) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WaitAcquireCoordinatorWriteLeaseRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WaitAcquireCoordinatorWriteLeaseRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AcquireCoordinatorWriteLeaseResponse) EqualVT(that *AcquireCoordinatorWriteLeaseResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.LeaseId != that.LeaseId {
+		return false
+	}
+	if this.Acquired != that.Acquired {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AcquireCoordinatorWriteLeaseResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AcquireCoordinatorWriteLeaseResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CoordinatorWriteLeaseRequest) EqualVT(that *CoordinatorWriteLeaseRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.LeaseId != that.LeaseId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CoordinatorWriteLeaseRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CoordinatorWriteLeaseRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CoordinatorWriteLeaseSnapshotResponse) EqualVT(that *CoordinatorWriteLeaseSnapshotResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Snapshot.EqualVT(that.Snapshot) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CoordinatorWriteLeaseSnapshotResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CoordinatorWriteLeaseSnapshotResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PublishCoordinatorWriteLeaseRequest) EqualVT(that *PublishCoordinatorWriteLeaseRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.LeaseId != that.LeaseId {
+		return false
+	}
+	if !this.Event.EqualVT(that.Event) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PublishCoordinatorWriteLeaseRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PublishCoordinatorWriteLeaseRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReleaseCoordinatorWriteLeaseResponse) EqualVT(that *ReleaseCoordinatorWriteLeaseResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReleaseCoordinatorWriteLeaseResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReleaseCoordinatorWriteLeaseResponse)
 	if !ok {
 		return false
 	}
@@ -1473,6 +2087,76 @@ func (x *CoordinatorEvent) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the CoordinatorSnapshot message to JSON.
+func (x *CoordinatorSnapshot) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.VolumeId != "" || s.HasField("volumeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("volumeId")
+		s.WriteString(x.VolumeId)
+	}
+	if x.ObjectStoreId != "" || s.HasField("objectStoreId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectStoreId")
+		s.WriteString(x.ObjectStoreId)
+	}
+	if x.Generation != 0 || s.HasField("generation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("generation")
+		s.WriteUint64(x.Generation)
+	}
+	if x.Root != nil || s.HasField("root") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("root")
+		x.Root.MarshalProtoJSON(s.WithField("root"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CoordinatorSnapshot to JSON.
+func (x *CoordinatorSnapshot) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CoordinatorSnapshot message from JSON.
+func (x *CoordinatorSnapshot) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "volume_id", "volumeId":
+			s.AddField("volume_id")
+			x.VolumeId = s.ReadString()
+		case "object_store_id", "objectStoreId":
+			s.AddField("object_store_id")
+			x.ObjectStoreId = s.ReadString()
+		case "generation":
+			s.AddField("generation")
+			x.Generation = s.ReadUint64()
+		case "root":
+			if s.ReadNil() {
+				x.Root = nil
+				return
+			}
+			x.Root = &bucket.ObjectRef{}
+			x.Root.UnmarshalProtoJSON(s.WithField("root", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CoordinatorSnapshot from JSON.
+func (x *CoordinatorSnapshot) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the GetCoordinatorCapabilityRequest message to JSON.
 func (x *GetCoordinatorCapabilityRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1662,6 +2346,412 @@ func (x *WatchCoordinatorEventsResponse) UnmarshalProtoJSON(s *json.UnmarshalSta
 
 // UnmarshalJSON unmarshals the WatchCoordinatorEventsResponse from JSON.
 func (x *WatchCoordinatorEventsResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetCoordinatorSnapshotRequest message to JSON.
+func (x *GetCoordinatorSnapshotRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Scope != nil || s.HasField("scope") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("scope")
+		x.Scope.MarshalProtoJSON(s.WithField("scope"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetCoordinatorSnapshotRequest to JSON.
+func (x *GetCoordinatorSnapshotRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetCoordinatorSnapshotRequest message from JSON.
+func (x *GetCoordinatorSnapshotRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "scope":
+			if s.ReadNil() {
+				x.Scope = nil
+				return
+			}
+			x.Scope = &CoordinatorScope{}
+			x.Scope.UnmarshalProtoJSON(s.WithField("scope", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetCoordinatorSnapshotRequest from JSON.
+func (x *GetCoordinatorSnapshotRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetCoordinatorSnapshotResponse message to JSON.
+func (x *GetCoordinatorSnapshotResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Snapshot != nil || s.HasField("snapshot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("snapshot")
+		x.Snapshot.MarshalProtoJSON(s.WithField("snapshot"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetCoordinatorSnapshotResponse to JSON.
+func (x *GetCoordinatorSnapshotResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetCoordinatorSnapshotResponse message from JSON.
+func (x *GetCoordinatorSnapshotResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "snapshot":
+			if s.ReadNil() {
+				x.Snapshot = nil
+				return
+			}
+			x.Snapshot = &CoordinatorSnapshot{}
+			x.Snapshot.UnmarshalProtoJSON(s.WithField("snapshot", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetCoordinatorSnapshotResponse from JSON.
+func (x *GetCoordinatorSnapshotResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the TryAcquireCoordinatorWriteLeaseRequest message to JSON.
+func (x *TryAcquireCoordinatorWriteLeaseRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Scope != nil || s.HasField("scope") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("scope")
+		x.Scope.MarshalProtoJSON(s.WithField("scope"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the TryAcquireCoordinatorWriteLeaseRequest to JSON.
+func (x *TryAcquireCoordinatorWriteLeaseRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TryAcquireCoordinatorWriteLeaseRequest message from JSON.
+func (x *TryAcquireCoordinatorWriteLeaseRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "scope":
+			if s.ReadNil() {
+				x.Scope = nil
+				return
+			}
+			x.Scope = &CoordinatorScope{}
+			x.Scope.UnmarshalProtoJSON(s.WithField("scope", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the TryAcquireCoordinatorWriteLeaseRequest from JSON.
+func (x *TryAcquireCoordinatorWriteLeaseRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WaitAcquireCoordinatorWriteLeaseRequest message to JSON.
+func (x *WaitAcquireCoordinatorWriteLeaseRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Scope != nil || s.HasField("scope") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("scope")
+		x.Scope.MarshalProtoJSON(s.WithField("scope"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WaitAcquireCoordinatorWriteLeaseRequest to JSON.
+func (x *WaitAcquireCoordinatorWriteLeaseRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WaitAcquireCoordinatorWriteLeaseRequest message from JSON.
+func (x *WaitAcquireCoordinatorWriteLeaseRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "scope":
+			if s.ReadNil() {
+				x.Scope = nil
+				return
+			}
+			x.Scope = &CoordinatorScope{}
+			x.Scope.UnmarshalProtoJSON(s.WithField("scope", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WaitAcquireCoordinatorWriteLeaseRequest from JSON.
+func (x *WaitAcquireCoordinatorWriteLeaseRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AcquireCoordinatorWriteLeaseResponse message to JSON.
+func (x *AcquireCoordinatorWriteLeaseResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.LeaseId != "" || s.HasField("leaseId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("leaseId")
+		s.WriteString(x.LeaseId)
+	}
+	if x.Acquired || s.HasField("acquired") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("acquired")
+		s.WriteBool(x.Acquired)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AcquireCoordinatorWriteLeaseResponse to JSON.
+func (x *AcquireCoordinatorWriteLeaseResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AcquireCoordinatorWriteLeaseResponse message from JSON.
+func (x *AcquireCoordinatorWriteLeaseResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "lease_id", "leaseId":
+			s.AddField("lease_id")
+			x.LeaseId = s.ReadString()
+		case "acquired":
+			s.AddField("acquired")
+			x.Acquired = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AcquireCoordinatorWriteLeaseResponse from JSON.
+func (x *AcquireCoordinatorWriteLeaseResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CoordinatorWriteLeaseRequest message to JSON.
+func (x *CoordinatorWriteLeaseRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.LeaseId != "" || s.HasField("leaseId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("leaseId")
+		s.WriteString(x.LeaseId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CoordinatorWriteLeaseRequest to JSON.
+func (x *CoordinatorWriteLeaseRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CoordinatorWriteLeaseRequest message from JSON.
+func (x *CoordinatorWriteLeaseRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "lease_id", "leaseId":
+			s.AddField("lease_id")
+			x.LeaseId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CoordinatorWriteLeaseRequest from JSON.
+func (x *CoordinatorWriteLeaseRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CoordinatorWriteLeaseSnapshotResponse message to JSON.
+func (x *CoordinatorWriteLeaseSnapshotResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Snapshot != nil || s.HasField("snapshot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("snapshot")
+		x.Snapshot.MarshalProtoJSON(s.WithField("snapshot"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CoordinatorWriteLeaseSnapshotResponse to JSON.
+func (x *CoordinatorWriteLeaseSnapshotResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CoordinatorWriteLeaseSnapshotResponse message from JSON.
+func (x *CoordinatorWriteLeaseSnapshotResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "snapshot":
+			if s.ReadNil() {
+				x.Snapshot = nil
+				return
+			}
+			x.Snapshot = &CoordinatorSnapshot{}
+			x.Snapshot.UnmarshalProtoJSON(s.WithField("snapshot", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CoordinatorWriteLeaseSnapshotResponse from JSON.
+func (x *CoordinatorWriteLeaseSnapshotResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PublishCoordinatorWriteLeaseRequest message to JSON.
+func (x *PublishCoordinatorWriteLeaseRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.LeaseId != "" || s.HasField("leaseId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("leaseId")
+		s.WriteString(x.LeaseId)
+	}
+	if x.Event != nil || s.HasField("event") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("event")
+		x.Event.MarshalProtoJSON(s.WithField("event"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PublishCoordinatorWriteLeaseRequest to JSON.
+func (x *PublishCoordinatorWriteLeaseRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PublishCoordinatorWriteLeaseRequest message from JSON.
+func (x *PublishCoordinatorWriteLeaseRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "lease_id", "leaseId":
+			s.AddField("lease_id")
+			x.LeaseId = s.ReadString()
+		case "event":
+			if s.ReadNil() {
+				x.Event = nil
+				return
+			}
+			x.Event = &CoordinatorEvent{}
+			x.Event.UnmarshalProtoJSON(s.WithField("event", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PublishCoordinatorWriteLeaseRequest from JSON.
+func (x *PublishCoordinatorWriteLeaseRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReleaseCoordinatorWriteLeaseResponse message to JSON.
+func (x *ReleaseCoordinatorWriteLeaseResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReleaseCoordinatorWriteLeaseResponse to JSON.
+func (x *ReleaseCoordinatorWriteLeaseResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReleaseCoordinatorWriteLeaseResponse message from JSON.
+func (x *ReleaseCoordinatorWriteLeaseResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the ReleaseCoordinatorWriteLeaseResponse from JSON.
+func (x *ReleaseCoordinatorWriteLeaseResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2215,6 +3305,68 @@ func (m *CoordinatorEvent) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *CoordinatorSnapshot) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CoordinatorSnapshot) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CoordinatorSnapshot) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Root != nil {
+		size, err := m.Root.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.Generation != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Generation))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.ObjectStoreId) > 0 {
+		i -= len(m.ObjectStoreId)
+		copy(dAtA[i:], m.ObjectStoreId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ObjectStoreId)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.VolumeId) > 0 {
+		i -= len(m.VolumeId)
+		copy(dAtA[i:], m.VolumeId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.VolumeId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *GetCoordinatorCapabilityRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2388,6 +3540,394 @@ func (m *WatchCoordinatorEventsResponse) MarshalToSizedBufferVT(dAtA []byte) (in
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetCoordinatorSnapshotRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetCoordinatorSnapshotRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetCoordinatorSnapshotRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Scope != nil {
+		size, err := m.Scope.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetCoordinatorSnapshotResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetCoordinatorSnapshotResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetCoordinatorSnapshotResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Snapshot != nil {
+		size, err := m.Snapshot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *TryAcquireCoordinatorWriteLeaseRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TryAcquireCoordinatorWriteLeaseRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *TryAcquireCoordinatorWriteLeaseRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Scope != nil {
+		size, err := m.Scope.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WaitAcquireCoordinatorWriteLeaseRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WaitAcquireCoordinatorWriteLeaseRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WaitAcquireCoordinatorWriteLeaseRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Scope != nil {
+		size, err := m.Scope.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AcquireCoordinatorWriteLeaseResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AcquireCoordinatorWriteLeaseResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AcquireCoordinatorWriteLeaseResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Acquired {
+		i--
+		if m.Acquired {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.LeaseId) > 0 {
+		i -= len(m.LeaseId)
+		copy(dAtA[i:], m.LeaseId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.LeaseId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CoordinatorWriteLeaseRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CoordinatorWriteLeaseRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CoordinatorWriteLeaseRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.LeaseId) > 0 {
+		i -= len(m.LeaseId)
+		copy(dAtA[i:], m.LeaseId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.LeaseId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CoordinatorWriteLeaseSnapshotResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CoordinatorWriteLeaseSnapshotResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CoordinatorWriteLeaseSnapshotResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Snapshot != nil {
+		size, err := m.Snapshot.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PublishCoordinatorWriteLeaseRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PublishCoordinatorWriteLeaseRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PublishCoordinatorWriteLeaseRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Event != nil {
+		size, err := m.Event.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.LeaseId) > 0 {
+		i -= len(m.LeaseId)
+		copy(dAtA[i:], m.LeaseId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.LeaseId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReleaseCoordinatorWriteLeaseResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReleaseCoordinatorWriteLeaseResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReleaseCoordinatorWriteLeaseResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
 	}
 	return len(dAtA) - i, nil
 }
@@ -2693,6 +4233,31 @@ func (m *CoordinatorEvent) SizeVT() (n int) {
 	return n
 }
 
+func (m *CoordinatorSnapshot) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.VolumeId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ObjectStoreId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Generation != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Generation))
+	}
+	if m.Root != nil {
+		l = m.Root.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *GetCoordinatorCapabilityRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2748,6 +4313,135 @@ func (m *WatchCoordinatorEventsResponse) SizeVT() (n int) {
 		l = m.Event.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetCoordinatorSnapshotRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Scope != nil {
+		l = m.Scope.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetCoordinatorSnapshotResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Snapshot != nil {
+		l = m.Snapshot.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *TryAcquireCoordinatorWriteLeaseRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Scope != nil {
+		l = m.Scope.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WaitAcquireCoordinatorWriteLeaseRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Scope != nil {
+		l = m.Scope.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AcquireCoordinatorWriteLeaseResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.LeaseId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Acquired {
+		n += 2
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CoordinatorWriteLeaseRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.LeaseId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CoordinatorWriteLeaseSnapshotResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Snapshot != nil {
+		l = m.Snapshot.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PublishCoordinatorWriteLeaseRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.LeaseId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Event != nil {
+		l = m.Event.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReleaseCoordinatorWriteLeaseResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	n += len(m.unknownFields)
 	return n
 }
@@ -3033,6 +4727,45 @@ func (x *CoordinatorEvent) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *CoordinatorSnapshot) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CoordinatorSnapshot {")
+	if x.VolumeId != "" {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("volume_id: ")
+		sb.WriteString(strconv.Quote(x.VolumeId))
+	}
+	if x.ObjectStoreId != "" {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("object_store_id: ")
+		sb.WriteString(strconv.Quote(x.ObjectStoreId))
+	}
+	if x.Generation != 0 {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("generation: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.Generation), 10))
+	}
+	if x.Root != nil {
+		if sb.Len() > 21 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("root: ")
+		sb.WriteString(x.Root.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CoordinatorSnapshot) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *GetCoordinatorCapabilityRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("GetCoordinatorCapabilityRequest {")
@@ -3109,6 +4842,175 @@ func (x *WatchCoordinatorEventsResponse) MarshalProtoText() string {
 }
 
 func (x *WatchCoordinatorEventsResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetCoordinatorSnapshotRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("GetCoordinatorSnapshotRequest {")
+	if x.Scope != nil {
+		if sb.Len() > 31 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("scope: ")
+		sb.WriteString(x.Scope.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *GetCoordinatorSnapshotRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetCoordinatorSnapshotResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("GetCoordinatorSnapshotResponse {")
+	if x.Snapshot != nil {
+		if sb.Len() > 32 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("snapshot: ")
+		sb.WriteString(x.Snapshot.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *GetCoordinatorSnapshotResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *TryAcquireCoordinatorWriteLeaseRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("TryAcquireCoordinatorWriteLeaseRequest {")
+	if x.Scope != nil {
+		if sb.Len() > 40 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("scope: ")
+		sb.WriteString(x.Scope.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *TryAcquireCoordinatorWriteLeaseRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WaitAcquireCoordinatorWriteLeaseRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("WaitAcquireCoordinatorWriteLeaseRequest {")
+	if x.Scope != nil {
+		if sb.Len() > 41 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("scope: ")
+		sb.WriteString(x.Scope.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *WaitAcquireCoordinatorWriteLeaseRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AcquireCoordinatorWriteLeaseResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("AcquireCoordinatorWriteLeaseResponse {")
+	if x.LeaseId != "" {
+		if sb.Len() > 38 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("lease_id: ")
+		sb.WriteString(strconv.Quote(x.LeaseId))
+	}
+	if x.Acquired != false {
+		if sb.Len() > 38 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("acquired: ")
+		sb.WriteString(strconv.FormatBool(x.Acquired))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *AcquireCoordinatorWriteLeaseResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CoordinatorWriteLeaseRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CoordinatorWriteLeaseRequest {")
+	if x.LeaseId != "" {
+		if sb.Len() > 30 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("lease_id: ")
+		sb.WriteString(strconv.Quote(x.LeaseId))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CoordinatorWriteLeaseRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CoordinatorWriteLeaseSnapshotResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CoordinatorWriteLeaseSnapshotResponse {")
+	if x.Snapshot != nil {
+		if sb.Len() > 39 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("snapshot: ")
+		sb.WriteString(x.Snapshot.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CoordinatorWriteLeaseSnapshotResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PublishCoordinatorWriteLeaseRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("PublishCoordinatorWriteLeaseRequest {")
+	if x.LeaseId != "" {
+		if sb.Len() > 37 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("lease_id: ")
+		sb.WriteString(strconv.Quote(x.LeaseId))
+	}
+	if x.Event != nil {
+		if sb.Len() > 37 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("event: ")
+		sb.WriteString(x.Event.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *PublishCoordinatorWriteLeaseRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReleaseCoordinatorWriteLeaseResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("ReleaseCoordinatorWriteLeaseResponse {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *ReleaseCoordinatorWriteLeaseResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3911,6 +5813,130 @@ func (m *CoordinatorEvent) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
+func (m *CoordinatorSnapshot) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CoordinatorSnapshot: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CoordinatorSnapshot: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VolumeId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.VolumeId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectStoreId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ObjectStoreId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Generation", wireType)
+			}
+			m.Generation = 0
+			m.Generation, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Root", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Root == nil {
+				m.Root = &bucket.ObjectRef{}
+			}
+			if err := m.Root.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 func (m *GetCoordinatorCapabilityRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4181,6 +6207,639 @@ func (m *WatchCoordinatorEventsResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetCoordinatorSnapshotRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetCoordinatorSnapshotRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetCoordinatorSnapshotRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Scope", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Scope == nil {
+				m.Scope = &CoordinatorScope{}
+			}
+			if err := m.Scope.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetCoordinatorSnapshotResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetCoordinatorSnapshotResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetCoordinatorSnapshotResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Snapshot", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Snapshot == nil {
+				m.Snapshot = &CoordinatorSnapshot{}
+			}
+			if err := m.Snapshot.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *TryAcquireCoordinatorWriteLeaseRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TryAcquireCoordinatorWriteLeaseRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TryAcquireCoordinatorWriteLeaseRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Scope", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Scope == nil {
+				m.Scope = &CoordinatorScope{}
+			}
+			if err := m.Scope.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WaitAcquireCoordinatorWriteLeaseRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WaitAcquireCoordinatorWriteLeaseRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WaitAcquireCoordinatorWriteLeaseRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Scope", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Scope == nil {
+				m.Scope = &CoordinatorScope{}
+			}
+			if err := m.Scope.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AcquireCoordinatorWriteLeaseResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AcquireCoordinatorWriteLeaseResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AcquireCoordinatorWriteLeaseResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LeaseId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LeaseId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Acquired", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Acquired = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CoordinatorWriteLeaseRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CoordinatorWriteLeaseRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CoordinatorWriteLeaseRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LeaseId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LeaseId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CoordinatorWriteLeaseSnapshotResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CoordinatorWriteLeaseSnapshotResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CoordinatorWriteLeaseSnapshotResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Snapshot", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Snapshot == nil {
+				m.Snapshot = &CoordinatorSnapshot{}
+			}
+			if err := m.Snapshot.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PublishCoordinatorWriteLeaseRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PublishCoordinatorWriteLeaseRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PublishCoordinatorWriteLeaseRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LeaseId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LeaseId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Event", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Event == nil {
+				m.Event = &CoordinatorEvent{}
+			}
+			if err := m.Event.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReleaseCoordinatorWriteLeaseResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReleaseCoordinatorWriteLeaseResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReleaseCoordinatorWriteLeaseResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -77,6 +77,46 @@ std::pair<std::unique_ptr<SRPCProxyVolume_WatchCoordinatorEventsClient>, starpc:
   return {std::make_unique<SRPCProxyVolume_WatchCoordinatorEventsClient>(std::move(strm)), starpc::Error::OK};
 }
 
+starpc::Error SRPCProxyVolumeClientImpl::GetCoordinatorSnapshot(const volume::rpc::GetCoordinatorSnapshotRequest& in, volume::rpc::GetCoordinatorSnapshotResponse* out) {
+  return cc_->ExecCall(service_id_, "GetCoordinatorSnapshot", in, out);
+}
+
+std::pair<std::unique_ptr<SRPCProxyVolume_TryAcquireCoordinatorWriteLeaseClient>, starpc::Error> SRPCProxyVolumeClientImpl::TryAcquireCoordinatorWriteLease(const volume::rpc::TryAcquireCoordinatorWriteLeaseRequest& in) {
+  auto [strm, err] = cc_->NewStream(service_id_, "TryAcquireCoordinatorWriteLease", &in);
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  err = strm->CloseSend();
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::make_unique<SRPCProxyVolume_TryAcquireCoordinatorWriteLeaseClient>(std::move(strm)), starpc::Error::OK};
+}
+
+std::pair<std::unique_ptr<SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseClient>, starpc::Error> SRPCProxyVolumeClientImpl::WaitAcquireCoordinatorWriteLease(const volume::rpc::WaitAcquireCoordinatorWriteLeaseRequest& in) {
+  auto [strm, err] = cc_->NewStream(service_id_, "WaitAcquireCoordinatorWriteLease", &in);
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  err = strm->CloseSend();
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::make_unique<SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseClient>(std::move(strm)), starpc::Error::OK};
+}
+
+starpc::Error SRPCProxyVolumeClientImpl::RefreshCoordinatorWriteLease(const volume::rpc::CoordinatorWriteLeaseRequest& in, volume::rpc::CoordinatorWriteLeaseSnapshotResponse* out) {
+  return cc_->ExecCall(service_id_, "RefreshCoordinatorWriteLease", in, out);
+}
+
+starpc::Error SRPCProxyVolumeClientImpl::PublishCoordinatorWriteLease(const volume::rpc::PublishCoordinatorWriteLeaseRequest& in, volume::rpc::CoordinatorWriteLeaseSnapshotResponse* out) {
+  return cc_->ExecCall(service_id_, "PublishCoordinatorWriteLease", in, out);
+}
+
+starpc::Error SRPCProxyVolumeClientImpl::ReleaseCoordinatorWriteLease(const volume::rpc::CoordinatorWriteLeaseRequest& in, volume::rpc::ReleaseCoordinatorWriteLeaseResponse* out) {
+  return cc_->ExecCall(service_id_, "ReleaseCoordinatorWriteLease", in, out);
+}
+
 starpc::Error SRPCProxyVolumeClientImpl::GetPeerPriv(const volume::rpc::GetPeerPrivRequest& in, volume::rpc::GetPeerPrivResponse* out) {
   return cc_->ExecCall(service_id_, "GetPeerPriv", in, out);
 }
@@ -90,6 +130,12 @@ std::vector<std::string> SRPCProxyVolumeHandler::GetMethodIDs() const {
     "GetVolumeInfo",
     "GetCoordinatorCapability",
     "WatchCoordinatorEvents",
+    "GetCoordinatorSnapshot",
+    "TryAcquireCoordinatorWriteLease",
+    "WaitAcquireCoordinatorWriteLease",
+    "RefreshCoordinatorWriteLease",
+    "PublishCoordinatorWriteLease",
+    "ReleaseCoordinatorWriteLease",
     "GetPeerPriv",
     "GetStorageStats",
   };
@@ -125,6 +171,50 @@ std::pair<bool, starpc::Error> SRPCProxyVolumeHandler::InvokeMethod(
     if (err != starpc::Error::OK) return {true, err};
     SRPCProxyVolume_WatchCoordinatorEventsStream serverStrm(strm);
     return {true, impl_->WatchCoordinatorEvents(req, &serverStrm)};
+  } else if (method_id == "GetCoordinatorSnapshot") {
+    volume::rpc::GetCoordinatorSnapshotRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    volume::rpc::GetCoordinatorSnapshotResponse resp;
+    err = impl_->GetCoordinatorSnapshot(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "TryAcquireCoordinatorWriteLease") {
+    volume::rpc::TryAcquireCoordinatorWriteLeaseRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    SRPCProxyVolume_TryAcquireCoordinatorWriteLeaseStream serverStrm(strm);
+    return {true, impl_->TryAcquireCoordinatorWriteLease(req, &serverStrm)};
+  } else if (method_id == "WaitAcquireCoordinatorWriteLease") {
+    volume::rpc::WaitAcquireCoordinatorWriteLeaseRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseStream serverStrm(strm);
+    return {true, impl_->WaitAcquireCoordinatorWriteLease(req, &serverStrm)};
+  } else if (method_id == "RefreshCoordinatorWriteLease") {
+    volume::rpc::CoordinatorWriteLeaseRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    volume::rpc::CoordinatorWriteLeaseSnapshotResponse resp;
+    err = impl_->RefreshCoordinatorWriteLease(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "PublishCoordinatorWriteLease") {
+    volume::rpc::PublishCoordinatorWriteLeaseRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    volume::rpc::CoordinatorWriteLeaseSnapshotResponse resp;
+    err = impl_->PublishCoordinatorWriteLease(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "ReleaseCoordinatorWriteLease") {
+    volume::rpc::CoordinatorWriteLeaseRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    volume::rpc::ReleaseCoordinatorWriteLeaseResponse resp;
+    err = impl_->ReleaseCoordinatorWriteLease(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
   } else if (method_id == "GetPeerPriv") {
     volume::rpc::GetPeerPrivRequest req;
     starpc::Error err = strm->MsgRecv(&req);

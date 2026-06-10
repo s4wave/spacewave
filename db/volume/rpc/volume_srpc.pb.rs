@@ -184,6 +184,28 @@ pub trait ProxyVolumeWatchCoordinatorEventsStream: Send + Sync {
     async fn close(&self) -> starpc::Result<()>;
 }
 
+/// Stream trait for ProxyVolume.TryAcquireCoordinatorWriteLease.
+#[starpc::async_trait]
+pub trait ProxyVolumeTryAcquireCoordinatorWriteLeaseStream: Send + Sync {
+    /// Returns the context for this stream.
+    fn context(&self) -> &starpc::Context;
+    /// Receives a message from the stream.
+    async fn recv(&self) -> starpc::Result<AcquireCoordinatorWriteLeaseResponse>;
+    /// Closes the stream.
+    async fn close(&self) -> starpc::Result<()>;
+}
+
+/// Stream trait for ProxyVolume.WaitAcquireCoordinatorWriteLease.
+#[starpc::async_trait]
+pub trait ProxyVolumeWaitAcquireCoordinatorWriteLeaseStream: Send + Sync {
+    /// Returns the context for this stream.
+    fn context(&self) -> &starpc::Context;
+    /// Receives a message from the stream.
+    async fn recv(&self) -> starpc::Result<AcquireCoordinatorWriteLeaseResponse>;
+    /// Closes the stream.
+    async fn close(&self) -> starpc::Result<()>;
+}
+
 /// Client trait for ProxyVolume.
 #[starpc::async_trait]
 pub trait ProxyVolumeClient: Send + Sync {
@@ -193,6 +215,18 @@ pub trait ProxyVolumeClient: Send + Sync {
     async fn get_coordinator_capability(&self, request: &GetCoordinatorCapabilityRequest) -> starpc::Result<GetCoordinatorCapabilityResponse>;
     /// WatchCoordinatorEvents.
     async fn watch_coordinator_events(&self, request: &WatchCoordinatorEventsRequest) -> starpc::Result<Box<dyn ProxyVolumeWatchCoordinatorEventsStream>>;
+    /// GetCoordinatorSnapshot.
+    async fn get_coordinator_snapshot(&self, request: &GetCoordinatorSnapshotRequest) -> starpc::Result<GetCoordinatorSnapshotResponse>;
+    /// TryAcquireCoordinatorWriteLease.
+    async fn try_acquire_coordinator_write_lease(&self, request: &TryAcquireCoordinatorWriteLeaseRequest) -> starpc::Result<Box<dyn ProxyVolumeTryAcquireCoordinatorWriteLeaseStream>>;
+    /// WaitAcquireCoordinatorWriteLease.
+    async fn wait_acquire_coordinator_write_lease(&self, request: &WaitAcquireCoordinatorWriteLeaseRequest) -> starpc::Result<Box<dyn ProxyVolumeWaitAcquireCoordinatorWriteLeaseStream>>;
+    /// RefreshCoordinatorWriteLease.
+    async fn refresh_coordinator_write_lease(&self, request: &CoordinatorWriteLeaseRequest) -> starpc::Result<CoordinatorWriteLeaseSnapshotResponse>;
+    /// PublishCoordinatorWriteLease.
+    async fn publish_coordinator_write_lease(&self, request: &PublishCoordinatorWriteLeaseRequest) -> starpc::Result<CoordinatorWriteLeaseSnapshotResponse>;
+    /// ReleaseCoordinatorWriteLease.
+    async fn release_coordinator_write_lease(&self, request: &CoordinatorWriteLeaseRequest) -> starpc::Result<ReleaseCoordinatorWriteLeaseResponse>;
     /// GetPeerPriv.
     async fn get_peer_priv(&self, request: &GetPeerPrivRequest) -> starpc::Result<GetPeerPrivResponse>;
     /// GetStorageStats.
@@ -226,6 +260,32 @@ impl<C: starpc::Client + 'static> ProxyVolumeClient for ProxyVolumeClientImpl<C>
         stream.close_send().await?;
         Ok(Box::new(ProxyVolumeWatchCoordinatorEventsStreamImpl { stream }))
     }
+    async fn get_coordinator_snapshot(&self, request: &GetCoordinatorSnapshotRequest) -> starpc::Result<GetCoordinatorSnapshotResponse> {
+        self.client.exec_call("volume.rpc.ProxyVolume", "GetCoordinatorSnapshot", request).await
+    }
+    async fn try_acquire_coordinator_write_lease(&self, request: &TryAcquireCoordinatorWriteLeaseRequest) -> starpc::Result<Box<dyn ProxyVolumeTryAcquireCoordinatorWriteLeaseStream>> {
+        use starpc::ProstMessage;
+        let data = request.encode_to_vec();
+        let stream = self.client.new_stream("volume.rpc.ProxyVolume", "TryAcquireCoordinatorWriteLease", Some(&data)).await?;
+        stream.close_send().await?;
+        Ok(Box::new(ProxyVolumeTryAcquireCoordinatorWriteLeaseStreamImpl { stream }))
+    }
+    async fn wait_acquire_coordinator_write_lease(&self, request: &WaitAcquireCoordinatorWriteLeaseRequest) -> starpc::Result<Box<dyn ProxyVolumeWaitAcquireCoordinatorWriteLeaseStream>> {
+        use starpc::ProstMessage;
+        let data = request.encode_to_vec();
+        let stream = self.client.new_stream("volume.rpc.ProxyVolume", "WaitAcquireCoordinatorWriteLease", Some(&data)).await?;
+        stream.close_send().await?;
+        Ok(Box::new(ProxyVolumeWaitAcquireCoordinatorWriteLeaseStreamImpl { stream }))
+    }
+    async fn refresh_coordinator_write_lease(&self, request: &CoordinatorWriteLeaseRequest) -> starpc::Result<CoordinatorWriteLeaseSnapshotResponse> {
+        self.client.exec_call("volume.rpc.ProxyVolume", "RefreshCoordinatorWriteLease", request).await
+    }
+    async fn publish_coordinator_write_lease(&self, request: &PublishCoordinatorWriteLeaseRequest) -> starpc::Result<CoordinatorWriteLeaseSnapshotResponse> {
+        self.client.exec_call("volume.rpc.ProxyVolume", "PublishCoordinatorWriteLease", request).await
+    }
+    async fn release_coordinator_write_lease(&self, request: &CoordinatorWriteLeaseRequest) -> starpc::Result<ReleaseCoordinatorWriteLeaseResponse> {
+        self.client.exec_call("volume.rpc.ProxyVolume", "ReleaseCoordinatorWriteLease", request).await
+    }
     async fn get_peer_priv(&self, request: &GetPeerPrivRequest) -> starpc::Result<GetPeerPrivResponse> {
         self.client.exec_call("volume.rpc.ProxyVolume", "GetPeerPriv", request).await
     }
@@ -251,6 +311,40 @@ impl ProxyVolumeWatchCoordinatorEventsStream for ProxyVolumeWatchCoordinatorEven
     }
 }
 
+struct ProxyVolumeTryAcquireCoordinatorWriteLeaseStreamImpl {
+    stream: Box<dyn starpc::Stream>,
+}
+
+#[starpc::async_trait]
+impl ProxyVolumeTryAcquireCoordinatorWriteLeaseStream for ProxyVolumeTryAcquireCoordinatorWriteLeaseStreamImpl {
+    fn context(&self) -> &starpc::Context {
+        self.stream.context()
+    }
+    async fn recv(&self) -> starpc::Result<AcquireCoordinatorWriteLeaseResponse> {
+        self.stream.msg_recv().await
+    }
+    async fn close(&self) -> starpc::Result<()> {
+        self.stream.close().await
+    }
+}
+
+struct ProxyVolumeWaitAcquireCoordinatorWriteLeaseStreamImpl {
+    stream: Box<dyn starpc::Stream>,
+}
+
+#[starpc::async_trait]
+impl ProxyVolumeWaitAcquireCoordinatorWriteLeaseStream for ProxyVolumeWaitAcquireCoordinatorWriteLeaseStreamImpl {
+    fn context(&self) -> &starpc::Context {
+        self.stream.context()
+    }
+    async fn recv(&self) -> starpc::Result<AcquireCoordinatorWriteLeaseResponse> {
+        self.stream.msg_recv().await
+    }
+    async fn close(&self) -> starpc::Result<()> {
+        self.stream.close().await
+    }
+}
+
 /// Server trait for ProxyVolume.
 #[starpc::async_trait]
 pub trait ProxyVolumeServer: Send + Sync {
@@ -260,6 +354,18 @@ pub trait ProxyVolumeServer: Send + Sync {
     async fn get_coordinator_capability(&self, request: GetCoordinatorCapabilityRequest) -> starpc::Result<GetCoordinatorCapabilityResponse>;
     /// WatchCoordinatorEvents.
     async fn watch_coordinator_events(&self, request: WatchCoordinatorEventsRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
+    /// GetCoordinatorSnapshot.
+    async fn get_coordinator_snapshot(&self, request: GetCoordinatorSnapshotRequest) -> starpc::Result<GetCoordinatorSnapshotResponse>;
+    /// TryAcquireCoordinatorWriteLease.
+    async fn try_acquire_coordinator_write_lease(&self, request: TryAcquireCoordinatorWriteLeaseRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
+    /// WaitAcquireCoordinatorWriteLease.
+    async fn wait_acquire_coordinator_write_lease(&self, request: WaitAcquireCoordinatorWriteLeaseRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
+    /// RefreshCoordinatorWriteLease.
+    async fn refresh_coordinator_write_lease(&self, request: CoordinatorWriteLeaseRequest) -> starpc::Result<CoordinatorWriteLeaseSnapshotResponse>;
+    /// PublishCoordinatorWriteLease.
+    async fn publish_coordinator_write_lease(&self, request: PublishCoordinatorWriteLeaseRequest) -> starpc::Result<CoordinatorWriteLeaseSnapshotResponse>;
+    /// ReleaseCoordinatorWriteLease.
+    async fn release_coordinator_write_lease(&self, request: CoordinatorWriteLeaseRequest) -> starpc::Result<ReleaseCoordinatorWriteLeaseResponse>;
     /// GetPeerPriv.
     async fn get_peer_priv(&self, request: GetPeerPrivRequest) -> starpc::Result<GetPeerPrivResponse>;
     /// GetStorageStats.
@@ -270,6 +376,12 @@ const PROXY_VOLUME_METHOD_IDS: &[&str] = &[
     "GetVolumeInfo",
     "GetCoordinatorCapability",
     "WatchCoordinatorEvents",
+    "GetCoordinatorSnapshot",
+    "TryAcquireCoordinatorWriteLease",
+    "WaitAcquireCoordinatorWriteLease",
+    "RefreshCoordinatorWriteLease",
+    "PublishCoordinatorWriteLease",
+    "ReleaseCoordinatorWriteLease",
     "GetPeerPriv",
     "GetStorageStats",
 ];
@@ -336,6 +448,80 @@ impl<S: ProxyVolumeServer + 'static> starpc::Invoker for ProxyVolumeHandler<S> {
                     Err(e) => return (true, Err(e)),
                 };
                 (true, self.server.watch_coordinator_events(request, stream).await)
+            }
+            "GetCoordinatorSnapshot" => {
+                let request: GetCoordinatorSnapshotRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.get_coordinator_snapshot(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "TryAcquireCoordinatorWriteLease" => {
+                let request: TryAcquireCoordinatorWriteLeaseRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                (true, self.server.try_acquire_coordinator_write_lease(request, stream).await)
+            }
+            "WaitAcquireCoordinatorWriteLease" => {
+                let request: WaitAcquireCoordinatorWriteLeaseRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                (true, self.server.wait_acquire_coordinator_write_lease(request, stream).await)
+            }
+            "RefreshCoordinatorWriteLease" => {
+                let request: CoordinatorWriteLeaseRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.refresh_coordinator_write_lease(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "PublishCoordinatorWriteLease" => {
+                let request: PublishCoordinatorWriteLeaseRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.publish_coordinator_write_lease(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "ReleaseCoordinatorWriteLease" => {
+                let request: CoordinatorWriteLeaseRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.release_coordinator_write_lease(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
             }
             "GetPeerPriv" => {
                 let request: GetPeerPrivRequest = match stream.msg_recv().await {

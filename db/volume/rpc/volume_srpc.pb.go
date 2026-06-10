@@ -260,6 +260,18 @@ type SRPCProxyVolumeClient interface {
 	GetCoordinatorCapability(ctx context.Context, in *GetCoordinatorCapabilityRequest) (*GetCoordinatorCapabilityResponse, error)
 	// WatchCoordinatorEvents streams coordination events for a scoped ObjectStore.
 	WatchCoordinatorEvents(ctx context.Context, in *WatchCoordinatorEventsRequest) (SRPCProxyVolume_WatchCoordinatorEventsClient, error)
+	// GetCoordinatorSnapshot returns the current remote coordinator snapshot.
+	GetCoordinatorSnapshot(ctx context.Context, in *GetCoordinatorSnapshotRequest) (*GetCoordinatorSnapshotResponse, error)
+	// TryAcquireCoordinatorWriteLease attempts to acquire the remote write lease.
+	TryAcquireCoordinatorWriteLease(ctx context.Context, in *TryAcquireCoordinatorWriteLeaseRequest) (SRPCProxyVolume_TryAcquireCoordinatorWriteLeaseClient, error)
+	// WaitAcquireCoordinatorWriteLease waits for the remote write lease.
+	WaitAcquireCoordinatorWriteLease(ctx context.Context, in *WaitAcquireCoordinatorWriteLeaseRequest) (SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseClient, error)
+	// RefreshCoordinatorWriteLease refreshes a remote write lease.
+	RefreshCoordinatorWriteLease(ctx context.Context, in *CoordinatorWriteLeaseRequest) (*CoordinatorWriteLeaseSnapshotResponse, error)
+	// PublishCoordinatorWriteLease publishes a remote write lease event.
+	PublishCoordinatorWriteLease(ctx context.Context, in *PublishCoordinatorWriteLeaseRequest) (*CoordinatorWriteLeaseSnapshotResponse, error)
+	// ReleaseCoordinatorWriteLease releases a remote write lease.
+	ReleaseCoordinatorWriteLease(ctx context.Context, in *CoordinatorWriteLeaseRequest) (*ReleaseCoordinatorWriteLeaseResponse, error)
 	// GetPeerPriv returns the volume peer private key.
 	// Returns ErrPrivKeyUnavailable if the private key is unavailable.
 	GetPeerPriv(ctx context.Context, in *GetPeerPrivRequest) (*GetPeerPrivResponse, error)
@@ -337,6 +349,110 @@ func (x *srpcProxyVolume_WatchCoordinatorEventsClient) RecvTo(m *WatchCoordinato
 	return x.MsgRecv(m)
 }
 
+func (c *srpcProxyVolumeClient) GetCoordinatorSnapshot(ctx context.Context, in *GetCoordinatorSnapshotRequest) (*GetCoordinatorSnapshotResponse, error) {
+	out := new(GetCoordinatorSnapshotResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "GetCoordinatorSnapshot", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcProxyVolumeClient) TryAcquireCoordinatorWriteLease(ctx context.Context, in *TryAcquireCoordinatorWriteLeaseRequest) (SRPCProxyVolume_TryAcquireCoordinatorWriteLeaseClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "TryAcquireCoordinatorWriteLease", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcProxyVolume_TryAcquireCoordinatorWriteLeaseClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCProxyVolume_TryAcquireCoordinatorWriteLeaseClient interface {
+	srpc.Stream
+	Recv() (*AcquireCoordinatorWriteLeaseResponse, error)
+	RecvTo(*AcquireCoordinatorWriteLeaseResponse) error
+}
+
+type srpcProxyVolume_TryAcquireCoordinatorWriteLeaseClient struct {
+	srpc.Stream
+}
+
+func (x *srpcProxyVolume_TryAcquireCoordinatorWriteLeaseClient) Recv() (*AcquireCoordinatorWriteLeaseResponse, error) {
+	m := new(AcquireCoordinatorWriteLeaseResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcProxyVolume_TryAcquireCoordinatorWriteLeaseClient) RecvTo(m *AcquireCoordinatorWriteLeaseResponse) error {
+	return x.MsgRecv(m)
+}
+
+func (c *srpcProxyVolumeClient) WaitAcquireCoordinatorWriteLease(ctx context.Context, in *WaitAcquireCoordinatorWriteLeaseRequest) (SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WaitAcquireCoordinatorWriteLease", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcProxyVolume_WaitAcquireCoordinatorWriteLeaseClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseClient interface {
+	srpc.Stream
+	Recv() (*AcquireCoordinatorWriteLeaseResponse, error)
+	RecvTo(*AcquireCoordinatorWriteLeaseResponse) error
+}
+
+type srpcProxyVolume_WaitAcquireCoordinatorWriteLeaseClient struct {
+	srpc.Stream
+}
+
+func (x *srpcProxyVolume_WaitAcquireCoordinatorWriteLeaseClient) Recv() (*AcquireCoordinatorWriteLeaseResponse, error) {
+	m := new(AcquireCoordinatorWriteLeaseResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcProxyVolume_WaitAcquireCoordinatorWriteLeaseClient) RecvTo(m *AcquireCoordinatorWriteLeaseResponse) error {
+	return x.MsgRecv(m)
+}
+
+func (c *srpcProxyVolumeClient) RefreshCoordinatorWriteLease(ctx context.Context, in *CoordinatorWriteLeaseRequest) (*CoordinatorWriteLeaseSnapshotResponse, error) {
+	out := new(CoordinatorWriteLeaseSnapshotResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "RefreshCoordinatorWriteLease", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcProxyVolumeClient) PublishCoordinatorWriteLease(ctx context.Context, in *PublishCoordinatorWriteLeaseRequest) (*CoordinatorWriteLeaseSnapshotResponse, error) {
+	out := new(CoordinatorWriteLeaseSnapshotResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "PublishCoordinatorWriteLease", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcProxyVolumeClient) ReleaseCoordinatorWriteLease(ctx context.Context, in *CoordinatorWriteLeaseRequest) (*ReleaseCoordinatorWriteLeaseResponse, error) {
+	out := new(ReleaseCoordinatorWriteLeaseResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ReleaseCoordinatorWriteLease", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcProxyVolumeClient) GetPeerPriv(ctx context.Context, in *GetPeerPrivRequest) (*GetPeerPrivResponse, error) {
 	out := new(GetPeerPrivResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "GetPeerPriv", in, out)
@@ -362,6 +478,18 @@ type SRPCProxyVolumeServer interface {
 	GetCoordinatorCapability(context.Context, *GetCoordinatorCapabilityRequest) (*GetCoordinatorCapabilityResponse, error)
 	// WatchCoordinatorEvents streams coordination events for a scoped ObjectStore.
 	WatchCoordinatorEvents(*WatchCoordinatorEventsRequest, SRPCProxyVolume_WatchCoordinatorEventsStream) error
+	// GetCoordinatorSnapshot returns the current remote coordinator snapshot.
+	GetCoordinatorSnapshot(context.Context, *GetCoordinatorSnapshotRequest) (*GetCoordinatorSnapshotResponse, error)
+	// TryAcquireCoordinatorWriteLease attempts to acquire the remote write lease.
+	TryAcquireCoordinatorWriteLease(*TryAcquireCoordinatorWriteLeaseRequest, SRPCProxyVolume_TryAcquireCoordinatorWriteLeaseStream) error
+	// WaitAcquireCoordinatorWriteLease waits for the remote write lease.
+	WaitAcquireCoordinatorWriteLease(*WaitAcquireCoordinatorWriteLeaseRequest, SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseStream) error
+	// RefreshCoordinatorWriteLease refreshes a remote write lease.
+	RefreshCoordinatorWriteLease(context.Context, *CoordinatorWriteLeaseRequest) (*CoordinatorWriteLeaseSnapshotResponse, error)
+	// PublishCoordinatorWriteLease publishes a remote write lease event.
+	PublishCoordinatorWriteLease(context.Context, *PublishCoordinatorWriteLeaseRequest) (*CoordinatorWriteLeaseSnapshotResponse, error)
+	// ReleaseCoordinatorWriteLease releases a remote write lease.
+	ReleaseCoordinatorWriteLease(context.Context, *CoordinatorWriteLeaseRequest) (*ReleaseCoordinatorWriteLeaseResponse, error)
 	// GetPeerPriv returns the volume peer private key.
 	// Returns ErrPrivKeyUnavailable if the private key is unavailable.
 	GetPeerPriv(context.Context, *GetPeerPrivRequest) (*GetPeerPrivResponse, error)
@@ -398,6 +526,12 @@ func (SRPCProxyVolumeHandler) GetMethodIDs() []string {
 		"GetVolumeInfo",
 		"GetCoordinatorCapability",
 		"WatchCoordinatorEvents",
+		"GetCoordinatorSnapshot",
+		"TryAcquireCoordinatorWriteLease",
+		"WaitAcquireCoordinatorWriteLease",
+		"RefreshCoordinatorWriteLease",
+		"PublishCoordinatorWriteLease",
+		"ReleaseCoordinatorWriteLease",
 		"GetPeerPriv",
 		"GetStorageStats",
 	}
@@ -418,6 +552,18 @@ func (d *SRPCProxyVolumeHandler) InvokeMethod(
 		return true, d.InvokeMethod_GetCoordinatorCapability(d.impl, strm)
 	case "WatchCoordinatorEvents":
 		return true, d.InvokeMethod_WatchCoordinatorEvents(d.impl, strm)
+	case "GetCoordinatorSnapshot":
+		return true, d.InvokeMethod_GetCoordinatorSnapshot(d.impl, strm)
+	case "TryAcquireCoordinatorWriteLease":
+		return true, d.InvokeMethod_TryAcquireCoordinatorWriteLease(d.impl, strm)
+	case "WaitAcquireCoordinatorWriteLease":
+		return true, d.InvokeMethod_WaitAcquireCoordinatorWriteLease(d.impl, strm)
+	case "RefreshCoordinatorWriteLease":
+		return true, d.InvokeMethod_RefreshCoordinatorWriteLease(d.impl, strm)
+	case "PublishCoordinatorWriteLease":
+		return true, d.InvokeMethod_PublishCoordinatorWriteLease(d.impl, strm)
+	case "ReleaseCoordinatorWriteLease":
+		return true, d.InvokeMethod_ReleaseCoordinatorWriteLease(d.impl, strm)
 	case "GetPeerPriv":
 		return true, d.InvokeMethod_GetPeerPriv(d.impl, strm)
 	case "GetStorageStats":
@@ -458,6 +604,72 @@ func (SRPCProxyVolumeHandler) InvokeMethod_WatchCoordinatorEvents(impl SRPCProxy
 	}
 	serverStrm := &srpcProxyVolume_WatchCoordinatorEventsStream{strm}
 	return impl.WatchCoordinatorEvents(req, serverStrm)
+}
+
+func (SRPCProxyVolumeHandler) InvokeMethod_GetCoordinatorSnapshot(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(GetCoordinatorSnapshotRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.GetCoordinatorSnapshot(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCProxyVolumeHandler) InvokeMethod_TryAcquireCoordinatorWriteLease(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(TryAcquireCoordinatorWriteLeaseRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcProxyVolume_TryAcquireCoordinatorWriteLeaseStream{strm}
+	return impl.TryAcquireCoordinatorWriteLease(req, serverStrm)
+}
+
+func (SRPCProxyVolumeHandler) InvokeMethod_WaitAcquireCoordinatorWriteLease(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(WaitAcquireCoordinatorWriteLeaseRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcProxyVolume_WaitAcquireCoordinatorWriteLeaseStream{strm}
+	return impl.WaitAcquireCoordinatorWriteLease(req, serverStrm)
+}
+
+func (SRPCProxyVolumeHandler) InvokeMethod_RefreshCoordinatorWriteLease(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(CoordinatorWriteLeaseRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.RefreshCoordinatorWriteLease(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCProxyVolumeHandler) InvokeMethod_PublishCoordinatorWriteLease(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(PublishCoordinatorWriteLeaseRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.PublishCoordinatorWriteLease(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCProxyVolumeHandler) InvokeMethod_ReleaseCoordinatorWriteLease(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(CoordinatorWriteLeaseRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ReleaseCoordinatorWriteLease(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
 }
 
 func (SRPCProxyVolumeHandler) InvokeMethod_GetPeerPriv(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
@@ -521,6 +733,84 @@ func (x *srpcProxyVolume_WatchCoordinatorEventsStream) SendAndClose(m *WatchCoor
 		}
 	}
 	return x.CloseSend()
+}
+
+type SRPCProxyVolume_GetCoordinatorSnapshotStream interface {
+	srpc.Stream
+}
+
+type srpcProxyVolume_GetCoordinatorSnapshotStream struct {
+	srpc.Stream
+}
+
+type SRPCProxyVolume_TryAcquireCoordinatorWriteLeaseStream interface {
+	srpc.Stream
+	Send(*AcquireCoordinatorWriteLeaseResponse) error
+	SendAndClose(*AcquireCoordinatorWriteLeaseResponse) error
+}
+
+type srpcProxyVolume_TryAcquireCoordinatorWriteLeaseStream struct {
+	srpc.Stream
+}
+
+func (x *srpcProxyVolume_TryAcquireCoordinatorWriteLeaseStream) Send(m *AcquireCoordinatorWriteLeaseResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcProxyVolume_TryAcquireCoordinatorWriteLeaseStream) SendAndClose(m *AcquireCoordinatorWriteLeaseResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseStream interface {
+	srpc.Stream
+	Send(*AcquireCoordinatorWriteLeaseResponse) error
+	SendAndClose(*AcquireCoordinatorWriteLeaseResponse) error
+}
+
+type srpcProxyVolume_WaitAcquireCoordinatorWriteLeaseStream struct {
+	srpc.Stream
+}
+
+func (x *srpcProxyVolume_WaitAcquireCoordinatorWriteLeaseStream) Send(m *AcquireCoordinatorWriteLeaseResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcProxyVolume_WaitAcquireCoordinatorWriteLeaseStream) SendAndClose(m *AcquireCoordinatorWriteLeaseResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCProxyVolume_RefreshCoordinatorWriteLeaseStream interface {
+	srpc.Stream
+}
+
+type srpcProxyVolume_RefreshCoordinatorWriteLeaseStream struct {
+	srpc.Stream
+}
+
+type SRPCProxyVolume_PublishCoordinatorWriteLeaseStream interface {
+	srpc.Stream
+}
+
+type srpcProxyVolume_PublishCoordinatorWriteLeaseStream struct {
+	srpc.Stream
+}
+
+type SRPCProxyVolume_ReleaseCoordinatorWriteLeaseStream interface {
+	srpc.Stream
+}
+
+type srpcProxyVolume_ReleaseCoordinatorWriteLeaseStream struct {
+	srpc.Stream
 }
 
 type SRPCProxyVolume_GetPeerPrivStream interface {

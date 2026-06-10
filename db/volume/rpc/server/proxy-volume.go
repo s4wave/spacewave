@@ -27,6 +27,8 @@ type ProxyVolume struct {
 
 	// vol is the volume
 	vol volume.Volume
+	// coordinatorLeases owns remote write leases acquired through this service.
+	coordinatorLeases *coordinatorLeases
 	// exposePrivKey controls if we allow exposing the private key
 	exposePrivKey bool
 }
@@ -39,8 +41,9 @@ func NewProxyVolume(ctx context.Context, vol volume.Volume, exposePrivKey bool) 
 		ObjectStore: rpc_object_server.NewObjectStore(ctx, vol),
 		RefGraph:    rpc_gc_server.NewRefGraph(vol.GetRefGraph()),
 
-		vol:           vol,
-		exposePrivKey: exposePrivKey,
+		vol:               vol,
+		coordinatorLeases: newCoordinatorLeases(),
+		exposePrivKey:     exposePrivKey,
 	}
 }
 
@@ -122,14 +125,26 @@ func (v *ProxyVolume) GetCoordinatorCapability(
 		scope.VolumeID = v.vol.GetID()
 	}
 
-	return &volume_rpc.GetCoordinatorCapabilityResponse{
-		Capability: volume_rpc.NewCoordinatorCapability(&coord.Capability{
+	capability, err := v.vol.Capability(ctx, scope)
+	if err != nil {
+		return nil, err
+	}
+	if capability == nil {
+		capability = &coord.Capability{
 			Supported:      false,
-			Backend:        coord.BackendKindRPC,
-			VolumeID:       scope.VolumeID,
-			ObjectStoreID:  scope.ObjectStoreID,
 			FallbackReason: coord.FallbackReasonUnsupported,
-		}),
+		}
+	}
+	capability.VolumeID = scope.VolumeID
+	capability.ObjectStoreID = scope.ObjectStoreID
+	if capability.Supported {
+		capability.Backend = coord.BackendKindRPC
+	} else if capability.Backend == "" {
+		capability.Backend = coord.BackendKindRPC
+	}
+
+	return &volume_rpc.GetCoordinatorCapabilityResponse{
+		Capability: volume_rpc.NewCoordinatorCapability(capability),
 	}, nil
 }
 
@@ -165,6 +180,133 @@ func (v *ProxyVolume) WatchCoordinatorEvents(
 			}
 		}
 	}
+}
+
+// GetCoordinatorSnapshot returns the current remote coordinator snapshot.
+func (v *ProxyVolume) GetCoordinatorSnapshot(
+	ctx context.Context,
+	req *volume_rpc.GetCoordinatorSnapshotRequest,
+) (*volume_rpc.GetCoordinatorSnapshotResponse, error) {
+	scope := req.GetScope().ToCoordScope()
+	if scope.VolumeID == "" {
+		scope.VolumeID = v.vol.GetID()
+	}
+
+	snapshot, err := v.vol.Snapshot(ctx, scope)
+	if err != nil {
+		return nil, err
+	}
+	return &volume_rpc.GetCoordinatorSnapshotResponse{
+		Snapshot: volume_rpc.NewCoordinatorSnapshot(snapshot),
+	}, nil
+}
+
+// TryAcquireCoordinatorWriteLease attempts to acquire the remote write lease.
+func (v *ProxyVolume) TryAcquireCoordinatorWriteLease(
+	req *volume_rpc.TryAcquireCoordinatorWriteLeaseRequest,
+	strm volume_rpc.SRPCProxyVolume_TryAcquireCoordinatorWriteLeaseStream,
+) error {
+	ctx := strm.Context()
+	scope := req.GetScope().ToCoordScope()
+	if scope.VolumeID == "" {
+		scope.VolumeID = v.vol.GetID()
+	}
+
+	lease, acquired, err := v.vol.TryAcquireWriteLease(ctx, scope)
+	if err != nil {
+		return err
+	}
+	if !acquired {
+		return strm.SendAndClose(&volume_rpc.AcquireCoordinatorWriteLeaseResponse{
+			Acquired: false,
+		})
+	}
+	leaseID := v.coordinatorLeases.add(lease)
+	defer v.coordinatorLeases.release(context.Background(), leaseID)
+
+	if err := strm.Send(&volume_rpc.AcquireCoordinatorWriteLeaseResponse{
+		LeaseId:  leaseID,
+		Acquired: true,
+	}); err != nil {
+		return err
+	}
+	<-ctx.Done()
+	return ctx.Err()
+}
+
+// WaitAcquireCoordinatorWriteLease waits to acquire the remote write lease.
+func (v *ProxyVolume) WaitAcquireCoordinatorWriteLease(
+	req *volume_rpc.WaitAcquireCoordinatorWriteLeaseRequest,
+	strm volume_rpc.SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseStream,
+) error {
+	ctx := strm.Context()
+	scope := req.GetScope().ToCoordScope()
+	if scope.VolumeID == "" {
+		scope.VolumeID = v.vol.GetID()
+	}
+
+	lease, err := v.vol.WaitAcquireWriteLease(ctx, scope)
+	if err != nil {
+		return err
+	}
+	leaseID := v.coordinatorLeases.add(lease)
+	defer v.coordinatorLeases.release(context.Background(), leaseID)
+
+	if err := strm.Send(&volume_rpc.AcquireCoordinatorWriteLeaseResponse{
+		LeaseId:  leaseID,
+		Acquired: true,
+	}); err != nil {
+		return err
+	}
+	<-ctx.Done()
+	return ctx.Err()
+}
+
+// RefreshCoordinatorWriteLease refreshes a remote write lease.
+func (v *ProxyVolume) RefreshCoordinatorWriteLease(
+	ctx context.Context,
+	req *volume_rpc.CoordinatorWriteLeaseRequest,
+) (*volume_rpc.CoordinatorWriteLeaseSnapshotResponse, error) {
+	lease, err := v.coordinatorLeases.get(req.GetLeaseId())
+	if err != nil {
+		return nil, err
+	}
+	snapshot, err := lease.Refresh(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &volume_rpc.CoordinatorWriteLeaseSnapshotResponse{
+		Snapshot: volume_rpc.NewCoordinatorSnapshot(snapshot),
+	}, nil
+}
+
+// PublishCoordinatorWriteLease publishes a remote write lease event.
+func (v *ProxyVolume) PublishCoordinatorWriteLease(
+	ctx context.Context,
+	req *volume_rpc.PublishCoordinatorWriteLeaseRequest,
+) (*volume_rpc.CoordinatorWriteLeaseSnapshotResponse, error) {
+	lease, err := v.coordinatorLeases.get(req.GetLeaseId())
+	if err != nil {
+		return nil, err
+	}
+	snapshot, err := lease.Publish(ctx, req.GetEvent().ToCoordEvent())
+	if err != nil {
+		return nil, err
+	}
+	return &volume_rpc.CoordinatorWriteLeaseSnapshotResponse{
+		Snapshot: volume_rpc.NewCoordinatorSnapshot(snapshot),
+	}, nil
+}
+
+// ReleaseCoordinatorWriteLease releases a remote write lease.
+func (v *ProxyVolume) ReleaseCoordinatorWriteLease(
+	ctx context.Context,
+	req *volume_rpc.CoordinatorWriteLeaseRequest,
+) (*volume_rpc.ReleaseCoordinatorWriteLeaseResponse, error) {
+	if err := v.coordinatorLeases.release(context.Background(), req.GetLeaseId()); err != nil {
+		return nil, err
+	}
+	return &volume_rpc.ReleaseCoordinatorWriteLeaseResponse{}, nil
 }
 
 // GetPeerPriv returns the private key for the volume (if enabled).

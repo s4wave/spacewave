@@ -129,8 +129,8 @@ func TestRPCVolume(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if capability.Supported {
-		t.Fatal("expected RPC proxy coordinator to report unsupported direct coordination")
+	if !capability.Supported {
+		t.Fatal("expected RPC proxy coordinator to report supported remote coordination")
 	}
 	if capability.Backend != coord.BackendKindRPC {
 		t.Fatalf("expected RPC backend kind, got %q", capability.Backend)
@@ -141,8 +141,8 @@ func TestRPCVolume(t *testing.T) {
 	if capability.ObjectStoreID != "rpc-volume-test" {
 		t.Fatalf("expected capability object store id %q, got %q", "rpc-volume-test", capability.ObjectStoreID)
 	}
-	if capability.FallbackReason != coord.FallbackReasonUnsupported {
-		t.Fatalf("expected unsupported fallback reason, got %q", capability.FallbackReason)
+	if capability.FallbackReason != coord.FallbackReasonNone {
+		t.Fatalf("expected no fallback reason, got %q", capability.FallbackReason)
 	}
 
 	scope := coord.Scope{
@@ -211,22 +211,40 @@ func TestRPCVolume(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	if _, err := vol.Snapshot(ctx, scope); !errors.Is(err, coord.ErrUnsupported) {
-		t.Fatalf("expected RPC coordinator snapshot to preserve unsupported fallback, got %v", err)
+	snapshot, err := vol.Snapshot(ctx, scope)
+	if err != nil {
+		t.Fatalf("expected RPC coordinator snapshot, got %v", err)
+	}
+	if snapshot.VolumeID != proxyVolumeID {
+		t.Fatalf("expected snapshot volume id %q, got %q", proxyVolumeID, snapshot.VolumeID)
 	}
 	lease, ok, err := vol.TryAcquireWriteLease(ctx, scope)
-	if err == nil && lease != nil {
+	if err != nil {
+		t.Fatalf("expected RPC coordinator try-lease, got %v", err)
+	}
+	if !ok {
+		t.Fatal("expected RPC coordinator try-lease to acquire")
+	}
+	if _, err := lease.Refresh(ctx); err != nil {
 		_ = lease.Release(ctx)
+		t.Fatalf("expected RPC coordinator lease refresh, got %v", err)
 	}
-	if ok || !errors.Is(err, coord.ErrUnsupported) {
-		t.Fatalf("expected RPC coordinator try-lease to preserve unsupported fallback, ok=%v err=%v", ok, err)
+	if _, err := lease.Publish(ctx, coord.Event{
+		KeyPrefixChanged: []byte("rpc-lease-prefix"),
+	}); err != nil {
+		_ = lease.Release(ctx)
+		t.Fatalf("expected RPC coordinator lease publish, got %v", err)
 	}
+	if err := lease.Release(ctx); err != nil {
+		t.Fatalf("expected RPC coordinator lease release, got %v", err)
+	}
+
 	lease, err = vol.WaitAcquireWriteLease(ctx, scope)
-	if err == nil && lease != nil {
-		_ = lease.Release(ctx)
+	if err != nil {
+		t.Fatalf("expected RPC coordinator wait-lease, got %v", err)
 	}
-	if !errors.Is(err, coord.ErrUnsupported) {
-		t.Fatalf("expected RPC coordinator wait-lease to preserve unsupported fallback, got %v", err)
+	if err := lease.Release(ctx); err != nil {
+		t.Fatalf("expected RPC coordinator wait-lease release, got %v", err)
 	}
 
 	t.Log("testing object store api")

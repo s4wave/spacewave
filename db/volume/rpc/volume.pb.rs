@@ -94,6 +94,22 @@ pub struct CoordinatorEvent {
     #[prost(string, tag="9")]
     pub fallback_reason: ::prost::alloc::string::String,
 }
+/// CoordinatorSnapshot captures the current durable coordination state.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CoordinatorSnapshot {
+    /// VolumeId is the owning Volume id.
+    #[prost(string, tag="1")]
+    pub volume_id: ::prost::alloc::string::String,
+    /// ObjectStoreId is the ObjectStore id inside the Volume.
+    #[prost(string, tag="2")]
+    pub object_store_id: ::prost::alloc::string::String,
+    /// Generation is the latest durable generation.
+    #[prost(uint64, tag="3")]
+    pub generation: u64,
+    /// Root is the latest durable ObjectStore root.
+    #[prost(message, optional, tag="4")]
+    pub root: ::core::option::Option<super::super::bucket::ObjectRef>,
+}
 /// GetCoordinatorCapabilityRequest is a request to get direct coordination support.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetCoordinatorCapabilityRequest {
@@ -124,6 +140,72 @@ pub struct WatchCoordinatorEventsResponse {
     /// Event contains the coordination event.
     #[prost(message, optional, tag="1")]
     pub event: ::core::option::Option<CoordinatorEvent>,
+}
+/// GetCoordinatorSnapshotRequest is a request to get a coordinator snapshot.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetCoordinatorSnapshotRequest {
+    /// Scope identifies the coordinated ObjectStore.
+    #[prost(message, optional, tag="1")]
+    pub scope: ::core::option::Option<CoordinatorScope>,
+}
+/// GetCoordinatorSnapshotResponse is a coordinator snapshot response.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetCoordinatorSnapshotResponse {
+    /// Snapshot is the current durable coordinator state.
+    #[prost(message, optional, tag="1")]
+    pub snapshot: ::core::option::Option<CoordinatorSnapshot>,
+}
+/// TryAcquireCoordinatorWriteLeaseRequest is a non-blocking lease request.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TryAcquireCoordinatorWriteLeaseRequest {
+    /// Scope identifies the coordinated ObjectStore.
+    #[prost(message, optional, tag="1")]
+    pub scope: ::core::option::Option<CoordinatorScope>,
+}
+/// WaitAcquireCoordinatorWriteLeaseRequest is a blocking lease request.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WaitAcquireCoordinatorWriteLeaseRequest {
+    /// Scope identifies the coordinated ObjectStore.
+    #[prost(message, optional, tag="1")]
+    pub scope: ::core::option::Option<CoordinatorScope>,
+}
+/// AcquireCoordinatorWriteLeaseResponse is returned by lease acquisition.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AcquireCoordinatorWriteLeaseResponse {
+    /// LeaseId identifies the remote lease for later lease operations.
+    #[prost(string, tag="1")]
+    pub lease_id: ::prost::alloc::string::String,
+    /// Acquired is false when a try-acquire request found the lease busy.
+    #[prost(bool, tag="2")]
+    pub acquired: bool,
+}
+/// CoordinatorWriteLeaseRequest identifies a held remote write lease.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CoordinatorWriteLeaseRequest {
+    /// LeaseId identifies the remote lease.
+    #[prost(string, tag="1")]
+    pub lease_id: ::prost::alloc::string::String,
+}
+/// CoordinatorWriteLeaseSnapshotResponse returns a lease operation snapshot.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CoordinatorWriteLeaseSnapshotResponse {
+    /// Snapshot is the current durable coordinator state.
+    #[prost(message, optional, tag="1")]
+    pub snapshot: ::core::option::Option<CoordinatorSnapshot>,
+}
+/// PublishCoordinatorWriteLeaseRequest publishes through a held remote lease.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PublishCoordinatorWriteLeaseRequest {
+    /// LeaseId identifies the remote lease.
+    #[prost(string, tag="1")]
+    pub lease_id: ::prost::alloc::string::String,
+    /// Event is the accepted coordination event.
+    #[prost(message, optional, tag="2")]
+    pub event: ::core::option::Option<CoordinatorEvent>,
+}
+/// ReleaseCoordinatorWriteLeaseResponse is returned after releasing a lease.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReleaseCoordinatorWriteLeaseResponse {
 }
 /// GetPeerPrivRequest is a request to get the volume peer privkey.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]

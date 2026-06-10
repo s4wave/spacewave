@@ -283,6 +283,50 @@ export const CoordinatorEvent: MessageType<CoordinatorEvent> =
   })
 
 /**
+ * CoordinatorSnapshot captures the current durable coordination state.
+ *
+ * @generated from message volume.rpc.CoordinatorSnapshot
+ */
+export interface CoordinatorSnapshot {
+  /**
+   * VolumeId is the owning Volume id.
+   *
+   * @generated from field: string volume_id = 1;
+   */
+  volumeId?: string
+  /**
+   * ObjectStoreId is the ObjectStore id inside the Volume.
+   *
+   * @generated from field: string object_store_id = 2;
+   */
+  objectStoreId?: string
+  /**
+   * Generation is the latest durable generation.
+   *
+   * @generated from field: uint64 generation = 3;
+   */
+  generation?: bigint
+  /**
+   * Root is the latest durable ObjectStore root.
+   *
+   * @generated from field: bucket.ObjectRef root = 4;
+   */
+  root?: ObjectRef
+}
+
+export const CoordinatorSnapshot: MessageType<CoordinatorSnapshot> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.rpc.CoordinatorSnapshot',
+    fields: [
+      { no: 1, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'object_store_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'generation', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 4, name: 'root', kind: 'message', T: () => ObjectRef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * GetCoordinatorCapabilityRequest is a request to get direct coordination support.
  *
  * @generated from message volume.rpc.GetCoordinatorCapabilityRequest
@@ -385,6 +429,227 @@ export const WatchCoordinatorEventsResponse: MessageType<WatchCoordinatorEventsR
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
+
+/**
+ * GetCoordinatorSnapshotRequest is a request to get a coordinator snapshot.
+ *
+ * @generated from message volume.rpc.GetCoordinatorSnapshotRequest
+ */
+export interface GetCoordinatorSnapshotRequest {
+  /**
+   * Scope identifies the coordinated ObjectStore.
+   *
+   * @generated from field: volume.rpc.CoordinatorScope scope = 1;
+   */
+  scope?: CoordinatorScope
+}
+
+export const GetCoordinatorSnapshotRequest: MessageType<GetCoordinatorSnapshotRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.rpc.GetCoordinatorSnapshotRequest',
+    fields: [
+      { no: 1, name: 'scope', kind: 'message', T: () => CoordinatorScope },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GetCoordinatorSnapshotResponse is a coordinator snapshot response.
+ *
+ * @generated from message volume.rpc.GetCoordinatorSnapshotResponse
+ */
+export interface GetCoordinatorSnapshotResponse {
+  /**
+   * Snapshot is the current durable coordinator state.
+   *
+   * @generated from field: volume.rpc.CoordinatorSnapshot snapshot = 1;
+   */
+  snapshot?: CoordinatorSnapshot
+}
+
+export const GetCoordinatorSnapshotResponse: MessageType<GetCoordinatorSnapshotResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.rpc.GetCoordinatorSnapshotResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'snapshot',
+        kind: 'message',
+        T: () => CoordinatorSnapshot,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * TryAcquireCoordinatorWriteLeaseRequest is a non-blocking lease request.
+ *
+ * @generated from message volume.rpc.TryAcquireCoordinatorWriteLeaseRequest
+ */
+export interface TryAcquireCoordinatorWriteLeaseRequest {
+  /**
+   * Scope identifies the coordinated ObjectStore.
+   *
+   * @generated from field: volume.rpc.CoordinatorScope scope = 1;
+   */
+  scope?: CoordinatorScope
+}
+
+export const TryAcquireCoordinatorWriteLeaseRequest: MessageType<TryAcquireCoordinatorWriteLeaseRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.rpc.TryAcquireCoordinatorWriteLeaseRequest',
+    fields: [
+      { no: 1, name: 'scope', kind: 'message', T: () => CoordinatorScope },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WaitAcquireCoordinatorWriteLeaseRequest is a blocking lease request.
+ *
+ * @generated from message volume.rpc.WaitAcquireCoordinatorWriteLeaseRequest
+ */
+export interface WaitAcquireCoordinatorWriteLeaseRequest {
+  /**
+   * Scope identifies the coordinated ObjectStore.
+   *
+   * @generated from field: volume.rpc.CoordinatorScope scope = 1;
+   */
+  scope?: CoordinatorScope
+}
+
+export const WaitAcquireCoordinatorWriteLeaseRequest: MessageType<WaitAcquireCoordinatorWriteLeaseRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.rpc.WaitAcquireCoordinatorWriteLeaseRequest',
+    fields: [
+      { no: 1, name: 'scope', kind: 'message', T: () => CoordinatorScope },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * AcquireCoordinatorWriteLeaseResponse is returned by lease acquisition.
+ *
+ * @generated from message volume.rpc.AcquireCoordinatorWriteLeaseResponse
+ */
+export interface AcquireCoordinatorWriteLeaseResponse {
+  /**
+   * LeaseId identifies the remote lease for later lease operations.
+   *
+   * @generated from field: string lease_id = 1;
+   */
+  leaseId?: string
+  /**
+   * Acquired is false when a try-acquire request found the lease busy.
+   *
+   * @generated from field: bool acquired = 2;
+   */
+  acquired?: boolean
+}
+
+export const AcquireCoordinatorWriteLeaseResponse: MessageType<AcquireCoordinatorWriteLeaseResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.rpc.AcquireCoordinatorWriteLeaseResponse',
+    fields: [
+      { no: 1, name: 'lease_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'acquired', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CoordinatorWriteLeaseRequest identifies a held remote write lease.
+ *
+ * @generated from message volume.rpc.CoordinatorWriteLeaseRequest
+ */
+export interface CoordinatorWriteLeaseRequest {
+  /**
+   * LeaseId identifies the remote lease.
+   *
+   * @generated from field: string lease_id = 1;
+   */
+  leaseId?: string
+}
+
+export const CoordinatorWriteLeaseRequest: MessageType<CoordinatorWriteLeaseRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.rpc.CoordinatorWriteLeaseRequest',
+    fields: [
+      { no: 1, name: 'lease_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CoordinatorWriteLeaseSnapshotResponse returns a lease operation snapshot.
+ *
+ * @generated from message volume.rpc.CoordinatorWriteLeaseSnapshotResponse
+ */
+export interface CoordinatorWriteLeaseSnapshotResponse {
+  /**
+   * Snapshot is the current durable coordinator state.
+   *
+   * @generated from field: volume.rpc.CoordinatorSnapshot snapshot = 1;
+   */
+  snapshot?: CoordinatorSnapshot
+}
+
+export const CoordinatorWriteLeaseSnapshotResponse: MessageType<CoordinatorWriteLeaseSnapshotResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.rpc.CoordinatorWriteLeaseSnapshotResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'snapshot',
+        kind: 'message',
+        T: () => CoordinatorSnapshot,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * PublishCoordinatorWriteLeaseRequest publishes through a held remote lease.
+ *
+ * @generated from message volume.rpc.PublishCoordinatorWriteLeaseRequest
+ */
+export interface PublishCoordinatorWriteLeaseRequest {
+  /**
+   * LeaseId identifies the remote lease.
+   *
+   * @generated from field: string lease_id = 1;
+   */
+  leaseId?: string
+  /**
+   * Event is the accepted coordination event.
+   *
+   * @generated from field: volume.rpc.CoordinatorEvent event = 2;
+   */
+  event?: CoordinatorEvent
+}
+
+export const PublishCoordinatorWriteLeaseRequest: MessageType<PublishCoordinatorWriteLeaseRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.rpc.PublishCoordinatorWriteLeaseRequest',
+    fields: [
+      { no: 1, name: 'lease_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'event', kind: 'message', T: () => CoordinatorEvent },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ReleaseCoordinatorWriteLeaseResponse is returned after releasing a lease.
+ *
+ * @generated from message volume.rpc.ReleaseCoordinatorWriteLeaseResponse
+ */
+export interface ReleaseCoordinatorWriteLeaseResponse {}
+
+export const ReleaseCoordinatorWriteLeaseResponse: MessageType<ReleaseCoordinatorWriteLeaseResponse> =
+  /* @__PURE__ */ createEmptyMessageType<ReleaseCoordinatorWriteLeaseResponse>(
+    'volume.rpc.ReleaseCoordinatorWriteLeaseResponse',
+    true,
+  )
 
 /**
  * GetPeerPrivRequest is a request to get the volume peer privkey.

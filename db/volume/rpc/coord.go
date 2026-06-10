@@ -89,6 +89,32 @@ func (x *CoordinatorEvent) ToCoordEvent() coord.Event {
 	}
 }
 
+// NewCoordinatorSnapshot converts a coordination snapshot to its RPC form.
+func NewCoordinatorSnapshot(snapshot *coord.Snapshot) *CoordinatorSnapshot {
+	if snapshot == nil {
+		return nil
+	}
+	return &CoordinatorSnapshot{
+		VolumeId:      snapshot.VolumeID,
+		ObjectStoreId: snapshot.ObjectStoreID,
+		Generation:    snapshot.Generation,
+		Root:          cloneObjectRef(snapshot.Root),
+	}
+}
+
+// ToCoordSnapshot converts the RPC coordination snapshot to its local form.
+func (x *CoordinatorSnapshot) ToCoordSnapshot() *coord.Snapshot {
+	if x == nil {
+		return nil
+	}
+	return &coord.Snapshot{
+		VolumeID:      x.GetVolumeId(),
+		ObjectStoreID: x.GetObjectStoreId(),
+		Generation:    x.GetGeneration(),
+		Root:          cloneObjectRef(x.GetRoot()),
+	}
+}
+
 func cloneObjectRef(ref *bucket.ObjectRef) *bucket.ObjectRef {
 	if ref == nil {
 		return nil

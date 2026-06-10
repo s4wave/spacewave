@@ -3,14 +3,23 @@
 /* eslint-disable */
 
 import {
+  AcquireCoordinatorWriteLeaseResponse,
+  CoordinatorWriteLeaseRequest,
+  CoordinatorWriteLeaseSnapshotResponse,
   GetCoordinatorCapabilityRequest,
   GetCoordinatorCapabilityResponse,
+  GetCoordinatorSnapshotRequest,
+  GetCoordinatorSnapshotResponse,
   GetPeerPrivRequest,
   GetPeerPrivResponse,
   GetStorageStatsRequest,
   GetStorageStatsResponse,
   GetVolumeInfoRequest,
   GetVolumeInfoResponse,
+  PublishCoordinatorWriteLeaseRequest,
+  ReleaseCoordinatorWriteLeaseResponse,
+  TryAcquireCoordinatorWriteLeaseRequest,
+  WaitAcquireCoordinatorWriteLeaseRequest,
   WatchCoordinatorEventsRequest,
   WatchCoordinatorEventsResponse,
   WatchVolumeInfoRequest,
@@ -192,6 +201,72 @@ export const ProxyVolumeDefinition = {
       kind: MethodKind.ServerStreaming,
     },
     /**
+     * GetCoordinatorSnapshot returns the current remote coordinator snapshot.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.GetCoordinatorSnapshot
+     */
+    GetCoordinatorSnapshot: {
+      name: 'GetCoordinatorSnapshot',
+      I: GetCoordinatorSnapshotRequest,
+      O: GetCoordinatorSnapshotResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * TryAcquireCoordinatorWriteLease attempts to acquire the remote write lease.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.TryAcquireCoordinatorWriteLease
+     */
+    TryAcquireCoordinatorWriteLease: {
+      name: 'TryAcquireCoordinatorWriteLease',
+      I: TryAcquireCoordinatorWriteLeaseRequest,
+      O: AcquireCoordinatorWriteLeaseResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * WaitAcquireCoordinatorWriteLease waits for the remote write lease.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.WaitAcquireCoordinatorWriteLease
+     */
+    WaitAcquireCoordinatorWriteLease: {
+      name: 'WaitAcquireCoordinatorWriteLease',
+      I: WaitAcquireCoordinatorWriteLeaseRequest,
+      O: AcquireCoordinatorWriteLeaseResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * RefreshCoordinatorWriteLease refreshes a remote write lease.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.RefreshCoordinatorWriteLease
+     */
+    RefreshCoordinatorWriteLease: {
+      name: 'RefreshCoordinatorWriteLease',
+      I: CoordinatorWriteLeaseRequest,
+      O: CoordinatorWriteLeaseSnapshotResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * PublishCoordinatorWriteLease publishes a remote write lease event.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.PublishCoordinatorWriteLease
+     */
+    PublishCoordinatorWriteLease: {
+      name: 'PublishCoordinatorWriteLease',
+      I: PublishCoordinatorWriteLeaseRequest,
+      O: CoordinatorWriteLeaseSnapshotResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ReleaseCoordinatorWriteLease releases a remote write lease.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.ReleaseCoordinatorWriteLease
+     */
+    ReleaseCoordinatorWriteLease: {
+      name: 'ReleaseCoordinatorWriteLease',
+      I: CoordinatorWriteLeaseRequest,
+      O: ReleaseCoordinatorWriteLeaseResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * GetPeerPriv returns the volume peer private key.
      * Returns ErrPrivKeyUnavailable if the private key is unavailable.
      *
@@ -259,6 +334,66 @@ export interface ProxyVolume {
   ): MessageStream<WatchCoordinatorEventsResponse>
 
   /**
+   * GetCoordinatorSnapshot returns the current remote coordinator snapshot.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.GetCoordinatorSnapshot
+   */
+  GetCoordinatorSnapshot(
+    request: GetCoordinatorSnapshotRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetCoordinatorSnapshotResponse>
+
+  /**
+   * TryAcquireCoordinatorWriteLease attempts to acquire the remote write lease.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.TryAcquireCoordinatorWriteLease
+   */
+  TryAcquireCoordinatorWriteLease(
+    request: TryAcquireCoordinatorWriteLeaseRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<AcquireCoordinatorWriteLeaseResponse>
+
+  /**
+   * WaitAcquireCoordinatorWriteLease waits for the remote write lease.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.WaitAcquireCoordinatorWriteLease
+   */
+  WaitAcquireCoordinatorWriteLease(
+    request: WaitAcquireCoordinatorWriteLeaseRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<AcquireCoordinatorWriteLeaseResponse>
+
+  /**
+   * RefreshCoordinatorWriteLease refreshes a remote write lease.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.RefreshCoordinatorWriteLease
+   */
+  RefreshCoordinatorWriteLease(
+    request: CoordinatorWriteLeaseRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CoordinatorWriteLeaseSnapshotResponse>
+
+  /**
+   * PublishCoordinatorWriteLease publishes a remote write lease event.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.PublishCoordinatorWriteLease
+   */
+  PublishCoordinatorWriteLease(
+    request: PublishCoordinatorWriteLeaseRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CoordinatorWriteLeaseSnapshotResponse>
+
+  /**
+   * ReleaseCoordinatorWriteLease releases a remote write lease.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.ReleaseCoordinatorWriteLease
+   */
+  ReleaseCoordinatorWriteLease(
+    request: CoordinatorWriteLeaseRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReleaseCoordinatorWriteLeaseResponse>
+
+  /**
    * GetPeerPriv returns the volume peer private key.
    * Returns ErrPrivKeyUnavailable if the private key is unavailable.
    *
@@ -291,6 +426,17 @@ export class ProxyVolumeClient implements ProxyVolume {
     this.GetVolumeInfo = this.GetVolumeInfo.bind(this)
     this.GetCoordinatorCapability = this.GetCoordinatorCapability.bind(this)
     this.WatchCoordinatorEvents = this.WatchCoordinatorEvents.bind(this)
+    this.GetCoordinatorSnapshot = this.GetCoordinatorSnapshot.bind(this)
+    this.TryAcquireCoordinatorWriteLease =
+      this.TryAcquireCoordinatorWriteLease.bind(this)
+    this.WaitAcquireCoordinatorWriteLease =
+      this.WaitAcquireCoordinatorWriteLease.bind(this)
+    this.RefreshCoordinatorWriteLease =
+      this.RefreshCoordinatorWriteLease.bind(this)
+    this.PublishCoordinatorWriteLease =
+      this.PublishCoordinatorWriteLease.bind(this)
+    this.ReleaseCoordinatorWriteLease =
+      this.ReleaseCoordinatorWriteLease.bind(this)
     this.GetPeerPriv = this.GetPeerPriv.bind(this)
     this.GetStorageStats = this.GetStorageStats.bind(this)
   }
@@ -349,6 +495,124 @@ export class ProxyVolumeClient implements ProxyVolume {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WatchCoordinatorEventsResponse)(result)
+  }
+
+  /**
+   * GetCoordinatorSnapshot returns the current remote coordinator snapshot.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.GetCoordinatorSnapshot
+   */
+  async GetCoordinatorSnapshot(
+    request: GetCoordinatorSnapshotRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetCoordinatorSnapshotResponse> {
+    const requestMsg = GetCoordinatorSnapshotRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ProxyVolumeDefinition.methods.GetCoordinatorSnapshot.name,
+      GetCoordinatorSnapshotRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return GetCoordinatorSnapshotResponse.fromBinary(result)
+  }
+
+  /**
+   * TryAcquireCoordinatorWriteLease attempts to acquire the remote write lease.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.TryAcquireCoordinatorWriteLease
+   */
+  TryAcquireCoordinatorWriteLease(
+    request: TryAcquireCoordinatorWriteLeaseRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<AcquireCoordinatorWriteLeaseResponse> {
+    const requestMsg = TryAcquireCoordinatorWriteLeaseRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      ProxyVolumeDefinition.methods.TryAcquireCoordinatorWriteLease.name,
+      TryAcquireCoordinatorWriteLeaseRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(AcquireCoordinatorWriteLeaseResponse)(
+      result,
+    )
+  }
+
+  /**
+   * WaitAcquireCoordinatorWriteLease waits for the remote write lease.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.WaitAcquireCoordinatorWriteLease
+   */
+  WaitAcquireCoordinatorWriteLease(
+    request: WaitAcquireCoordinatorWriteLeaseRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<AcquireCoordinatorWriteLeaseResponse> {
+    const requestMsg = WaitAcquireCoordinatorWriteLeaseRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      ProxyVolumeDefinition.methods.WaitAcquireCoordinatorWriteLease.name,
+      WaitAcquireCoordinatorWriteLeaseRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(AcquireCoordinatorWriteLeaseResponse)(
+      result,
+    )
+  }
+
+  /**
+   * RefreshCoordinatorWriteLease refreshes a remote write lease.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.RefreshCoordinatorWriteLease
+   */
+  async RefreshCoordinatorWriteLease(
+    request: CoordinatorWriteLeaseRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CoordinatorWriteLeaseSnapshotResponse> {
+    const requestMsg = CoordinatorWriteLeaseRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ProxyVolumeDefinition.methods.RefreshCoordinatorWriteLease.name,
+      CoordinatorWriteLeaseRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return CoordinatorWriteLeaseSnapshotResponse.fromBinary(result)
+  }
+
+  /**
+   * PublishCoordinatorWriteLease publishes a remote write lease event.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.PublishCoordinatorWriteLease
+   */
+  async PublishCoordinatorWriteLease(
+    request: PublishCoordinatorWriteLeaseRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CoordinatorWriteLeaseSnapshotResponse> {
+    const requestMsg = PublishCoordinatorWriteLeaseRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ProxyVolumeDefinition.methods.PublishCoordinatorWriteLease.name,
+      PublishCoordinatorWriteLeaseRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return CoordinatorWriteLeaseSnapshotResponse.fromBinary(result)
+  }
+
+  /**
+   * ReleaseCoordinatorWriteLease releases a remote write lease.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.ReleaseCoordinatorWriteLease
+   */
+  async ReleaseCoordinatorWriteLease(
+    request: CoordinatorWriteLeaseRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReleaseCoordinatorWriteLeaseResponse> {
+    const requestMsg = CoordinatorWriteLeaseRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ProxyVolumeDefinition.methods.ReleaseCoordinatorWriteLease.name,
+      CoordinatorWriteLeaseRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ReleaseCoordinatorWriteLeaseResponse.fromBinary(result)
   }
 
   /**

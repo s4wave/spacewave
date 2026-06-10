@@ -47,6 +47,24 @@ service ProxyVolume {
   // WatchCoordinatorEvents streams coordination events for a scoped ObjectStore.
   rpc WatchCoordinatorEvents(WatchCoordinatorEventsRequest) returns (stream WatchCoordinatorEventsResponse);
 
+  // GetCoordinatorSnapshot returns the current remote coordinator snapshot.
+  rpc GetCoordinatorSnapshot(GetCoordinatorSnapshotRequest) returns (GetCoordinatorSnapshotResponse);
+
+  // TryAcquireCoordinatorWriteLease attempts to acquire the remote write lease.
+  rpc TryAcquireCoordinatorWriteLease(TryAcquireCoordinatorWriteLeaseRequest) returns (stream AcquireCoordinatorWriteLeaseResponse);
+
+  // WaitAcquireCoordinatorWriteLease waits for the remote write lease.
+  rpc WaitAcquireCoordinatorWriteLease(WaitAcquireCoordinatorWriteLeaseRequest) returns (stream AcquireCoordinatorWriteLeaseResponse);
+
+  // RefreshCoordinatorWriteLease refreshes a remote write lease.
+  rpc RefreshCoordinatorWriteLease(CoordinatorWriteLeaseRequest) returns (CoordinatorWriteLeaseSnapshotResponse);
+
+  // PublishCoordinatorWriteLease publishes a remote write lease event.
+  rpc PublishCoordinatorWriteLease(PublishCoordinatorWriteLeaseRequest) returns (CoordinatorWriteLeaseSnapshotResponse);
+
+  // ReleaseCoordinatorWriteLease releases a remote write lease.
+  rpc ReleaseCoordinatorWriteLease(CoordinatorWriteLeaseRequest) returns (ReleaseCoordinatorWriteLeaseResponse);
+
   // GetPeerPriv returns the volume peer private key.
   // Returns ErrPrivKeyUnavailable if the private key is unavailable.
   rpc GetPeerPriv(GetPeerPrivRequest) returns (GetPeerPrivResponse);
@@ -112,6 +130,18 @@ message CoordinatorEvent {
   string fallback_reason = 9;
 }
 
+// CoordinatorSnapshot captures the current durable coordination state.
+message CoordinatorSnapshot {
+  // VolumeId is the owning Volume id.
+  string volume_id = 1;
+  // ObjectStoreId is the ObjectStore id inside the Volume.
+  string object_store_id = 2;
+  // Generation is the latest durable generation.
+  uint64 generation = 3;
+  // Root is the latest durable ObjectStore root.
+  .bucket.ObjectRef root = 4;
+}
+
 // GetCoordinatorCapabilityRequest is a request to get direct coordination support.
 message GetCoordinatorCapabilityRequest {
   // Scope identifies the coordinated ObjectStore.
@@ -137,6 +167,61 @@ message WatchCoordinatorEventsResponse {
   // Event contains the coordination event.
   CoordinatorEvent event = 1;
 }
+
+// GetCoordinatorSnapshotRequest is a request to get a coordinator snapshot.
+message GetCoordinatorSnapshotRequest {
+  // Scope identifies the coordinated ObjectStore.
+  CoordinatorScope scope = 1;
+}
+
+// GetCoordinatorSnapshotResponse is a coordinator snapshot response.
+message GetCoordinatorSnapshotResponse {
+  // Snapshot is the current durable coordinator state.
+  CoordinatorSnapshot snapshot = 1;
+}
+
+// TryAcquireCoordinatorWriteLeaseRequest is a non-blocking lease request.
+message TryAcquireCoordinatorWriteLeaseRequest {
+  // Scope identifies the coordinated ObjectStore.
+  CoordinatorScope scope = 1;
+}
+
+// WaitAcquireCoordinatorWriteLeaseRequest is a blocking lease request.
+message WaitAcquireCoordinatorWriteLeaseRequest {
+  // Scope identifies the coordinated ObjectStore.
+  CoordinatorScope scope = 1;
+}
+
+// AcquireCoordinatorWriteLeaseResponse is returned by lease acquisition.
+message AcquireCoordinatorWriteLeaseResponse {
+  // LeaseId identifies the remote lease for later lease operations.
+  string lease_id = 1;
+  // Acquired is false when a try-acquire request found the lease busy.
+  bool acquired = 2;
+}
+
+// CoordinatorWriteLeaseRequest identifies a held remote write lease.
+message CoordinatorWriteLeaseRequest {
+  // LeaseId identifies the remote lease.
+  string lease_id = 1;
+}
+
+// CoordinatorWriteLeaseSnapshotResponse returns a lease operation snapshot.
+message CoordinatorWriteLeaseSnapshotResponse {
+  // Snapshot is the current durable coordinator state.
+  CoordinatorSnapshot snapshot = 1;
+}
+
+// PublishCoordinatorWriteLeaseRequest publishes through a held remote lease.
+message PublishCoordinatorWriteLeaseRequest {
+  // LeaseId identifies the remote lease.
+  string lease_id = 1;
+  // Event is the accepted coordination event.
+  CoordinatorEvent event = 2;
+}
+
+// ReleaseCoordinatorWriteLeaseResponse is returned after releasing a lease.
+message ReleaseCoordinatorWriteLeaseResponse {}
 
 // GetPeerPrivRequest is a request to get the volume peer privkey.
 message GetPeerPrivRequest {}
