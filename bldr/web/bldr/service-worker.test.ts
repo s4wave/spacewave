@@ -524,6 +524,13 @@ describe('service worker fetch release cache routing', () => {
     ).toBe('plugin-dist')
     expect(
       classifyBrowserFetchSource(
+        new Request(
+          new URL('/b/pkg/sonner/dist/index.mjs', self.location.href),
+        ),
+      ).kind,
+    ).toBe('plugin-assets')
+    expect(
+      classifyBrowserFetchSource(
         new Request(new URL('/b/pa/plugin/style.css', self.location.href)),
       ).kind,
     ).toBe('plugin-assets')
@@ -700,6 +707,35 @@ describe('service worker fetch release cache routing', () => {
       'live',
     )
     expect(await response.text()).toBe('export const ok = true')
+  })
+
+  it('preserves successful web package module bodies through runtime fetch', async () => {
+    const body = `${'x'.repeat(32 * 1024)}export const toast = "sonner"\n`
+    vi.mocked(proxyFetch).mockResolvedValue(
+      new Response(body, {
+        status: 200,
+        headers: {
+          'Content-Length': String(body.length),
+          'Content-Type': 'application/javascript',
+        },
+      }),
+    )
+
+    const response = await swFetch(
+      buildFetchOnlyEvent(
+        '/b/pkg/sonner/dist/index.mjs',
+        undefined,
+        'client-a',
+      ),
+    )
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('X-Bldr-Fetch-Source')).toBe('plugin-assets')
+    expect(response.headers.get('X-Bldr-Plugin-Asset-Fetch-Result')).toBe(
+      'live',
+    )
+    expect(response.headers.get('Content-Length')).toBe(String(body.length))
+    expect(await response.text()).toBe(body)
   })
 
   it('returns a typed plugin asset missing response for missing plugin assets', async () => {

@@ -6,9 +6,11 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -76,6 +78,124 @@ func TestFetch(t *testing.T) {
 	}
 	if contentEnc := res.Header.Get("content-encoding"); contentEnc != "br" {
 		t.Fatalf("incorrect content encoding: %s", contentEnc)
+	}
+}
+
+// newFetchTestClient builds a SRPC pipe client over the given fetch server.
+func newFetchTestClient(server SRPCFetchServiceServer) SRPCFetchServiceClient {
+	serverMux := srpc.NewMux()
+	_ = SRPCRegisterFetchService(serverMux, server)
+	srpcServer := srpc.NewServer(serverMux)
+	openStream := srpc.NewServerPipe(srpcServer)
+	return NewSRPCFetchServiceClient(srpc.NewClient(openStream))
+}
+
+// truncatingFetchServer sends response headers and a partial body packet,
+// then ends the stream without the final done packet.
+type truncatingFetchServer struct{}
+
+func (s *truncatingFetchServer) Fetch(strm SRPCFetchService_FetchStream) error {
+	if _, err := strm.Recv(); err != nil {
+		return err
+	}
+	hdr := http.Header{}
+	hdr.Set("Content-Type", "text/javascript")
+	if err := strm.Send(BuildFetchResponse_Info(hdr, 200)); err != nil {
+		return err
+	}
+	return strm.Send(BuildFetchResponse_Data([]byte("partial"), false))
+}
+
+func TestFetchStreamEOFBeforeDoneIsError(t *testing.T) {
+	ctx := context.Background()
+	fetchClient := newFetchTestClient(&truncatingFetchServer{})
+
+	req, err := http.NewRequest("GET", "/module.mjs", nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	rw := httptest.NewRecorder()
+	err = Fetch(ctx, fetchClient.Fetch, req, rw)
+	if err == nil {
+		t.Fatal("expected error for stream EOF before the final done packet")
+	}
+	if !errors.Is(err, io.ErrUnexpectedEOF) {
+		t.Fatalf("expected unexpected EOF, got: %v", err)
+	}
+}
+
+func TestHandleFetchContentLengthMismatchIsError(t *testing.T) {
+	ctx := context.Background()
+	fetchClient := newFetchTestClient(NewFetchServer(func(rw http.ResponseWriter, req *http.Request) {
+		rw.Header().Set("Content-Length", "100")
+		rw.WriteHeader(200)
+		_, _ = rw.Write([]byte("short body"))
+	}))
+
+	req, err := http.NewRequest("GET", "/module.mjs", nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	rw := httptest.NewRecorder()
+	err = Fetch(ctx, fetchClient.Fetch, req, rw)
+	if err == nil {
+		t.Fatal("expected error for body shorter than declared Content-Length")
+	}
+}
+
+func TestHandleFetchHeadIgnoresContentLength(t *testing.T) {
+	ctx := context.Background()
+	fetchClient := newFetchTestClient(NewFetchServer(func(rw http.ResponseWriter, req *http.Request) {
+		rw.Header().Set("Content-Length", "100")
+		rw.WriteHeader(200)
+	}))
+
+	req, err := http.NewRequest("HEAD", "/module.mjs", nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	rw := httptest.NewRecorder()
+	if err := Fetch(ctx, fetchClient.Fetch, req, rw); err != nil {
+		t.Fatalf("expected HEAD with Content-Length to succeed: %v", err)
+	}
+}
+
+func TestHandleFetchAbortedBodyIsError(t *testing.T) {
+	ctx := context.Background()
+	fetchClient := newFetchTestClient(NewFetchServer(func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(200)
+		_, _ = rw.Write([]byte("partial"))
+		rw.(BodyAborter).Abort(errors.New("upstream body failed"))
+	}))
+
+	req, err := http.NewRequest("GET", "/module.mjs", nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	rw := httptest.NewRecorder()
+	err = Fetch(ctx, fetchClient.Fetch, req, rw)
+	if err == nil {
+		t.Fatal("expected error for aborted response body")
+	}
+}
+
+func TestHandleFetchHandlerPanicIsError(t *testing.T) {
+	ctx := context.Background()
+	fetchClient := newFetchTestClient(NewFetchServer(func(rw http.ResponseWriter, req *http.Request) {
+		panic("handler exploded")
+	}))
+
+	req, err := http.NewRequest("GET", "/module.mjs", nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	rw := httptest.NewRecorder()
+	err = Fetch(ctx, fetchClient.Fetch, req, rw)
+	if err == nil {
+		t.Fatal("expected error for handler panic")
+	}
+	if !strings.Contains(err.Error(), "handler exploded") {
+		t.Fatalf("expected panic message in error, got: %v", err)
 	}
 }
 

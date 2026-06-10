@@ -13,7 +13,11 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/go-git/go-billy/v6/memfs"
 	billy_util "github.com/go-git/go-billy/v6/util"
+	"github.com/s4wave/spacewave/bldr/core"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	web_pkg_controller "github.com/s4wave/spacewave/bldr/web/pkg/controller"
+	web_pkg_http "github.com/s4wave/spacewave/bldr/web/pkg/http"
+	web_pkg_mock "github.com/s4wave/spacewave/bldr/web/pkg/mock"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
@@ -50,6 +54,59 @@ func TestServeServiceWorkerHTTPServesBrowserIndexSeed(t *testing.T) {
 	}
 	if !strings.Contains(text, `id="bldr-root"`) {
 		t.Fatalf("index HTML missing bldr root: %s", text)
+	}
+}
+
+func TestServeServiceWorkerHTTPServesWebPackageModule(t *testing.T) {
+	ctx := t.Context()
+
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	b, _, err := core.NewCoreBus(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	mockWebPkg := web_pkg_mock.NewMockWebPkg()
+	ctrl := web_pkg_controller.NewControllerWithWebPkg(
+		le,
+		controller.NewInfo("web/pkg/runtime-test", controller.MustParseVersion("0.0.1"), "test web pkg"),
+		mockWebPkg,
+	)
+	rel, err := b.AddController(ctx, ctrl, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer rel()
+
+	rtCtrl := &Controller{
+		le:        le,
+		bus:       b,
+		pkgServer: web_pkg_http.NewServer(le, b, true),
+	}
+	rw := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/b/pkg/"+mockWebPkg.GetId()+"/testdir/testing.txt", nil)
+
+	rtCtrl.ServeServiceWorkerHTTP(rw, req)
+
+	res := rw.Result()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("status code = %d, want 200", res.StatusCode)
+	}
+	if got := res.Header.Get("Cross-Origin-Embedder-Policy"); got != "require-corp" {
+		t.Fatalf("unexpected COEP header: %q", got)
+	}
+	if got := res.Header.Get("Cross-Origin-Resource-Policy"); got != "same-origin" {
+		t.Fatalf("unexpected CORP header: %q", got)
+	}
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if string(body) != "file within a directory" {
+		t.Fatalf("unexpected web package body: %q", string(body))
 	}
 }
 

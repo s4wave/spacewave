@@ -76,16 +76,16 @@ func NewMessagePort(chObj js.Value) *MessagePort {
 // ReadMessage reads a single incoming packet from the stream.
 func (s *MessagePort) ReadMessage(ctx context.Context) ([]byte, error) {
 	for {
-		if s.closed {
-			return nil, io.EOF
-		}
-
 		if len(s.msgs) != 0 {
 			nextMsg := s.msgs[0]
 			copy(s.msgs, s.msgs[1:])
 			s.msgs[len(s.msgs)-1] = nil
 			s.msgs = s.msgs[:len(s.msgs)-1]
 			return nextMsg, nil
+		}
+
+		if s.closed {
+			return nil, io.EOF
 		}
 
 		trig := s.trig

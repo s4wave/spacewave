@@ -33,6 +33,7 @@ import {
 
 import { BackendAPI } from "@aptre/bldr-sdk";
 import { PluginStartInfo } from "../../../plugin/plugin.pb.js";
+import { isNormalRuntimeClientClose } from "../../bldr/web-runtime-client.js";
 
 type ViteManifestEntry = {
   file?: string;
@@ -405,6 +406,15 @@ function logQuickJSBridgePipeError(
   err: unknown,
 ): void {
   const detail = describeQuickJSBridgePipeError(err);
+  // Normal-close generation teardown ends bridge pipes by design; it is
+  // lifecycle cleanup, not a plugin failure, so keep it out of console.error.
+  if (isNormalRuntimeClientClose(err)) {
+    console.debug(
+      `quickjs-runner: stream pipe closed (${label.direction}#${label.id} ${stage})${detail}:`,
+      err,
+    );
+    return;
+  }
   console.error(
     `quickjs-runner: stream pipe error (${label.direction}#${label.id} ${stage})${detail}:`,
     err,

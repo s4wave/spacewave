@@ -102,6 +102,46 @@ describe('proxyFetch', () => {
     }
   })
 
+  it('errors the response body when the stream ends before the done packet', async () => {
+    const svc: FetchService = {
+      Fetch() {
+        return (async function* () {
+          yield {
+            body: {
+              case: 'responseInfo',
+              value: {
+                status: 200,
+                statusText: 'OK',
+                headers: { 'content-type': 'text/javascript' },
+              },
+            },
+          }
+          yield {
+            body: {
+              case: 'responseData',
+              value: {
+                data: new TextEncoder().encode('partial module body'),
+                done: false,
+              },
+            },
+          }
+          // iterator ends without a final done packet: truncated body
+        })()
+      },
+    }
+
+    const resp = await proxyFetch(
+      svc,
+      new Request('https://example.test/b/pa/app/module.mjs'),
+      'client-1',
+    )
+
+    expect(resp.status).toBe(200)
+    await expect(resp.text()).rejects.toThrow(
+      'fetch response stream ended before the final done packet',
+    )
+  })
+
   it('returns the proxied response when a header value contains unicode', async () => {
     const svc: FetchService = {
       Fetch() {

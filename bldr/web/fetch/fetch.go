@@ -2,10 +2,11 @@ package web_fetch
 
 import (
 	context "context"
-	"errors"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // FetchCaller is a function which starts the Fetch call.
@@ -44,9 +45,8 @@ func Fetch(
 			}
 			isEOF := err == io.EOF
 			if n != 0 || isEOF {
-				werr := strm.Send(NewFetchRequestWithData(buf[:n], isEOF))
-				if werr != nil {
-					return err
+				if werr := strm.Send(NewFetchRequestWithData(buf[:n], isEOF)); werr != nil {
+					return werr
 				}
 			}
 			if isEOF {
@@ -69,13 +69,27 @@ func Fetch(
 	SetHeaders(info.GetHeaders(), rw.Header())
 	rw.WriteHeader(int(statusCode))
 
+	// Headers are forwarded; the response can no longer be repaired with an
+	// error status. Any failure below poisons the response body via Abort so
+	// the remote observes an error instead of a truncated body that ends
+	// cleanly with a done packet.
+	abortBody := func(err error) error {
+		err = errors.Wrap(err, "fetch response body")
+		if aborter, ok := rw.(BodyAborter); ok {
+			aborter.Abort(err)
+		}
+		return err
+	}
 	for {
 		fetchResp, err := strm.Recv()
 		if err != nil {
+			// The remote always sends a final ResponseData packet with done=true
+			// after the last body bytes. Stream EOF before that packet means the
+			// response body is incomplete.
 			if err == io.EOF {
-				err = nil
+				err = io.ErrUnexpectedEOF
 			}
-			return err
+			return abortBody(err)
 		}
 		switch body := fetchResp.GetBody().(type) {
 		case *FetchResponse_ResponseData:
@@ -85,14 +99,14 @@ func Fetch(
 				nw, err := rw.Write(data[written:])
 				written += nw
 				if err != nil {
-					return err
+					return abortBody(err)
 				}
 			}
 			if body.ResponseData.GetDone() {
 				return nil
 			}
 		default:
-			return errors.New("unexpected non-data packet after info packet")
+			return abortBody(errors.New("unexpected non-data packet after info packet"))
 		}
 	}
 }
@@ -126,7 +140,20 @@ func HandleFetch(
 	rw := NewFetchResponseWriter(strm)
 
 	// serve http
-	handler.ServeHTTP(rw, httpRequest)
+	if err := serveFetchHTTP(rw, httpRequest, handler); err != nil {
+		return err
+	}
+
+	// flush implicit 200 headers when the handler wrote nothing.
+	rw.WriteHeader(http.StatusOK)
+
+	// The final done packet asserts the body is complete. A poisoned body
+	// (failed packet send, handler Abort, or Content-Length mismatch) must
+	// instead close the stream with an error so remotes cannot accept a
+	// truncated body.
+	if err := rw.BodyError(httpRequest.Method); err != nil {
+		return err
+	}
 
 	// send done packet
 	err = strm.Send(&FetchResponse{
@@ -137,6 +164,19 @@ func HandleFetch(
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// serveFetchHTTP runs the handler, recovering panics into an error. Under
+// GoScript a JavaScript throw can surface as a Go panic from the handler;
+// the stream must then close with an error instead of a clean done packet.
+func serveFetchHTTP(rw http.ResponseWriter, req *http.Request, handler http.HandlerFunc) (err error) {
+	defer func() {
+		if rerr := recover(); rerr != nil {
+			err = errors.Errorf("fetch handler panic: %v", rerr)
+		}
+	}()
+	handler.ServeHTTP(rw, req)
 	return nil
 }
 

@@ -200,7 +200,15 @@ export function buildResponseStream(
     while (it) {
       const next = await it.next()
       if (next.done) {
-        controller.close()
+        // The server always sends a final ResponseData packet with done=true
+        // after the last body bytes. Iterator EOF before that packet means the
+        // transport or remote ended early: the body is incomplete and must
+        // error instead of closing as a clean (truncated) response.
+        controller.error(
+          new Error(
+            'fetch response stream ended before the final done packet',
+          ),
+        )
         return
       }
       const value = next.value

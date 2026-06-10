@@ -76,6 +76,35 @@ export class RuntimeClientGenerationGateError extends Error {
   }
 }
 
+// RuntimeClientClosedError is the close error applied to a runtime client
+// generation and its active streams when the generation tears down.
+export class RuntimeClientClosedError extends Error {
+  constructor(
+    public readonly reason: RuntimeClientGenerationCloseReason,
+    clientId: string,
+    generationId: number,
+  ) {
+    super(
+      `WebRuntimeClient: ${clientId}: runtime client generation ${generationId} closed: ${reason}`,
+    )
+    this.name = 'RuntimeClientClosedError'
+  }
+}
+
+// isNormalRuntimeClientClose reports whether the error is a normal-close
+// runtime client generation teardown rather than an unexpected failure.
+// It also matches the message because the error can cross postMessage
+// boundaries, which strip the class prototype.
+export function isNormalRuntimeClientClose(err: unknown): boolean {
+  if (err instanceof RuntimeClientClosedError) {
+    return err.reason === 'normal-close'
+  }
+  return (
+    err instanceof Error &&
+    /runtime client generation \d+ closed: normal-close$/.test(err.message)
+  )
+}
+
 // OpenChannelFn opens the MessagePort to the WebRuntime.
 export type OpenChannelFn = (init: WebRuntimeClientInit) => Promise<MessagePort>
 
@@ -451,10 +480,7 @@ export class WebRuntimeClient {
       return
     }
     const closeErr =
-      err ??
-      new Error(
-        `WebRuntimeClient: ${this.clientId}: runtime client generation ${generationId} closed: ${reason}`,
-      )
+      err ?? new RuntimeClientClosedError(reason, this.clientId, generationId)
     this.generationAbortController?.abort(closeErr)
     this.generationAbortController = undefined
     this.generation = {
@@ -483,10 +509,7 @@ export class WebRuntimeClient {
     }
     const generationId = this.generation.id
     const closeErr =
-      err ??
-      new Error(
-        `WebRuntimeClient: ${this.clientId}: runtime client generation ${generationId} closed: ${reason}`,
-      )
+      err ?? new RuntimeClientClosedError(reason, this.clientId, generationId)
     this.closeRuntimeStreams(closeErr)
     if (this.clientChannel) {
       try {
