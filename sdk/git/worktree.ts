@@ -90,7 +90,9 @@ export class GitWorktreeHandle extends Resource {
         message: args.message,
         authorName: args.authorName,
         authorEmail: args.authorEmail,
-        authorTimestamp: args.authorTimestamp ?? Math.floor(Date.now() / 1000),
+        authorTimestamp: BigInt(
+          args.authorTimestamp ?? Math.floor(Date.now() / 1000),
+        ),
       },
       signal,
     )
