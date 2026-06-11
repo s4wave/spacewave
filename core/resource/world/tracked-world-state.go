@@ -15,7 +15,8 @@ import (
 // TrackedWorldState wraps a WorldState and records all access patterns.
 // Immediately starts change detection as accesses are recorded.
 type TrackedWorldState struct {
-	ws world.WorldState
+	ws      world.WorldState
+	watchWs world.WorldState
 
 	// stateRoutine manages change detection with current snapshot
 	stateRoutine *routine.StateRoutineContainer[*s4wave_world.TrackedWorldStateSnapshot]
@@ -28,9 +29,10 @@ type TrackedWorldState struct {
 }
 
 // NewTrackedWorldState creates a new TrackedWorldState.
-func NewTrackedWorldState(ws world.WorldState, initialSeqno uint64, ctx context.Context) *TrackedWorldState {
+func NewTrackedWorldState(ws world.WorldState, watchWs world.WorldState, initialSeqno uint64, ctx context.Context) *TrackedWorldState {
 	t := &TrackedWorldState{
-		ws: ws,
+		ws:      ws,
+		watchWs: watchWs,
 		currentSnapshot: &s4wave_world.TrackedWorldStateSnapshot{
 			ObjectAccesses: make([]*s4wave_world.TrackedWorldStateSnapshot_ObjectAccess, 0),
 			HasQuadAccess:  false,
@@ -44,7 +46,7 @@ func NewTrackedWorldState(ws world.WorldState, initialSeqno uint64, ctx context.
 
 	// Set the state routine function that watches for changes
 	t.stateRoutine.SetStateRoutine(func(ctx context.Context, snapshot *s4wave_world.TrackedWorldStateSnapshot) error {
-		err := watchTrackedChanges(ctx, snapshot, ws)
+		err := watchTrackedChanges(ctx, snapshot, watchWs)
 		if errors.Is(err, context.Canceled) {
 			return err
 		}

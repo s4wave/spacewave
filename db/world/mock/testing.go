@@ -149,7 +149,8 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		}
 		objState3, rerr := world.MustGetObject(ctx, ws3, objKey)
 		if rerr == nil {
-			oref3, _, rerr := objState3.GetRootRef(ctx)
+			var oref3 *bucket.ObjectRef
+			oref3, _, rerr = objState3.GetRootRef(ctx)
 			if rerr == nil {
 				rerr = assertEqual(oref3, oref2)
 			}

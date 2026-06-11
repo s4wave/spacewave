@@ -354,7 +354,7 @@ func openTestDB(t *testing.T) *bdb.DB {
 func leaseRoleCommand(t *testing.T, role, dbPath, heldPath, releasePath string) *exec.Cmd {
 	t.Helper()
 
-	cmd := exec.Command(os.Args[0], "-test.run=^TestCoordinatorMultiprocessWriteLeaseExcludesContenders$", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestCoordinatorMultiprocessWriteLeaseExcludesContenders$", "-test.v") //nolint:gosec
 	cmd.Env = append(os.Environ(),
 		multiprocessLeaseRoleEnv+"="+role,
 		multiprocessLeaseDBPathEnv+"="+dbPath,

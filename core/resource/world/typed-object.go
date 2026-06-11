@@ -58,8 +58,13 @@ func (r *TypedObjectResource) AccessTypedObject(ctx context.Context, req *s4wave
 		return r.accessPluginUnixFS(ctx, resourceCtx, objectKey)
 	}
 
+	ws := r.ws
+	if r.engine != nil && r.ws.GetReadOnly() {
+		ws = world.NewEngineWorldState(r.engine, true)
+	}
+
 	// Look up the object to verify it exists
-	_, found, err := r.ws.GetObject(ctx, objectKey)
+	_, found, err := ws.GetObject(ctx, objectKey)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +73,7 @@ func (r *TypedObjectResource) AccessTypedObject(ctx context.Context, req *s4wave
 	}
 
 	// Get the object type from graph quads
-	typeID, err := world_types.GetObjectType(ctx, r.ws, objectKey)
+	typeID, err := world_types.GetObjectType(ctx, ws, objectKey)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +93,7 @@ func (r *TypedObjectResource) AccessTypedObject(ctx context.Context, req *s4wave
 
 	// Call the factory to create the typed invoker
 	factory := objType.GetFactory()
-	invoker, cleanup, err := factory(ctx, r.le, r.b, r.engine, r.ws, objectKey)
+	invoker, cleanup, err := factory(ctx, r.le, r.b, r.engine, ws, objectKey)
 	if err != nil {
 		return nil, err
 	}

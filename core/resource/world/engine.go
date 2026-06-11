@@ -248,9 +248,10 @@ func (r *EngineResource) WatchWorldState(
 			return err
 		}
 
-		// Create new tracked WorldState (empty - no tracking yet)
-		// StateRoutineContainer starts immediately with empty snapshot
-		trackedWs := NewTrackedWorldState(wtx, seqno, ctx)
+		// Create new tracked WorldState (empty - no tracking yet).
+		// Client reads use the initial snapshot, while the watcher checks the
+		// current engine state so committed updates can invalidate the snapshot.
+		trackedWs := NewTrackedWorldState(wtx, world.NewEngineWorldState(r.engine, false), seqno, ctx)
 
 		// Register as a resource
 		trackedResource := NewEngineWorldStateResource(r.le, r.b, trackedWs, r.lookupOp, r.engine, r.worldStateOptions...)

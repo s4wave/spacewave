@@ -5,6 +5,8 @@ import (
 	"compress/gzip"
 	"io"
 
+	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 )
 
@@ -51,8 +53,12 @@ func (g *Gzip) DecodeBlock(data []byte) ([]byte, error) {
 
 	var buf bytes.Buffer
 	buf.Grow(len(data))
-	if _, err := io.Copy(&buf, rd); err != nil {
+	lrd := &io.LimitedReader{R: rd, N: block.MaxBlockSize + 1}
+	if _, err := io.Copy(&buf, lrd); err != nil {
 		return nil, err
+	}
+	if lrd.N == 0 {
+		return nil, errors.Errorf("gzip decoded block exceeds max block size: %d", block.MaxBlockSize)
 	}
 	return buf.Bytes(), nil
 }

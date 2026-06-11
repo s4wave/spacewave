@@ -287,7 +287,7 @@ func boltBlockVisibilityCommand(
 ) *exec.Cmd {
 	t.Helper()
 
-	cmd := exec.Command(os.Args[0], "-test.run=^TestBoltVolumeMultiprocessBlockVisibility$", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestBoltVolumeMultiprocessBlockVisibility$", "-test.v") //nolint:gosec
 	cmd.Env = append(os.Environ(),
 		boltBlockVisibilityRoleEnv+"="+role,
 		boltBlockVisibilityPathEnv+"="+boltPath,
@@ -375,7 +375,7 @@ func boltGraphCommand(
 ) *exec.Cmd {
 	t.Helper()
 
-	cmd := exec.Command(os.Args[0], "-test.run=^TestBoltVolumeMultiprocessScopedGraphVisibility$", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestBoltVolumeMultiprocessScopedGraphVisibility$", "-test.v") //nolint:gosec
 	cmd.Env = append(os.Environ(),
 		boltGraphRoleEnv+"="+role,
 		boltGraphPathEnv+"="+boltPath,

@@ -191,7 +191,9 @@ func initObjectStoreCASVolume(t *testing.T, boltPath string) {
 
 func objectStoreCASCommand(t *testing.T, boltPath, role string, id, iterations int) *exec.Cmd {
 	t.Helper()
-	cmd := exec.Command(
+	// Re-exec the current test binary with a fixed selector; role data is passed
+	// through test-owned environment variables.
+	cmd := exec.Command( //nolint:gosec
 		os.Args[0],
 		"-test.run=^TestBboltObjectStoreMultiProcessCoordinationCAS$",
 		"-test.v",
@@ -210,7 +212,9 @@ func objectStoreCASCommand(t *testing.T, boltPath, role string, id, iterations i
 
 func worldEngineStressCommand(t *testing.T, boltPath, role string, id, iterations int) *exec.Cmd {
 	t.Helper()
-	cmd := exec.Command(
+	// Re-exec the current test binary with a fixed selector; role data is passed
+	// through test-owned environment variables.
+	cmd := exec.Command( //nolint:gosec
 		os.Args[0],
 		"-test.run=^TestWorldEngineBboltMultiProcessStress$",
 		"-test.v",

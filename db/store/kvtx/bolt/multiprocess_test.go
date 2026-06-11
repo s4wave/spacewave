@@ -64,7 +64,7 @@ func TestBoltStoreMultiprocessWriterChurn(t *testing.T) {
 
 func boltStoreChurnCommand(t *testing.T, dbPath string, id int) *exec.Cmd {
 	t.Helper()
-	cmd := exec.Command(os.Args[0], "-test.run=^TestBoltStoreMultiprocessWriterChurn$", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestBoltStoreMultiprocessWriterChurn$", "-test.v") //nolint:gosec
 	cmd.Env = append(os.Environ(),
 		boltStoreChurnRoleEnv+"=writer",
 		boltStoreChurnPathEnv+"="+dbPath,
