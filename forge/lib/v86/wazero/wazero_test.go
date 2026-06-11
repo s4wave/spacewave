@@ -157,6 +157,37 @@ func TestLinuxBootROMChecksum(t *testing.T) {
 	}
 }
 
+func TestUARTSerialInputQueue(t *testing.T) {
+	ctx := context.Background()
+	host := &HostRuntime{
+		ioPorts:      newIOPorts(),
+		ioReads:      make(map[uint16]uint64),
+		ioWrites:     make(map[uint16]uint64),
+		ioLastReads:  make(map[uint16]uint32),
+		ioLastWrites: make(map[uint16]uint32),
+	}
+	host.registerUART(0x3f8)
+
+	if err := host.WriteSerialInput(ctx, []byte("hi")); err != nil {
+		t.Fatalf("write serial input: %v", err)
+	}
+	if got := host.readIO(ctx, 0x3fd, 8); got&uartLsrDataReady == 0 {
+		t.Fatalf("COM1 line status %#x missing data-ready bit", got)
+	}
+	if got := host.readIO(ctx, 0x3f8, 8); got != 'h' {
+		t.Fatalf("first COM1 byte = %#x, want 'h'", got)
+	}
+	if got := host.readIO(ctx, 0x3fd, 8); got&uartLsrDataReady == 0 {
+		t.Fatalf("COM1 line status %#x dropped data-ready before queue drained", got)
+	}
+	if got := host.readIO(ctx, 0x3f8, 8); got != 'i' {
+		t.Fatalf("second COM1 byte = %#x, want 'i'", got)
+	}
+	if got := host.readIO(ctx, 0x3fd, 8); got&uartLsrDataReady != 0 {
+		t.Fatalf("COM1 line status %#x kept data-ready after queue drained", got)
+	}
+}
+
 func readUint32Le(t *testing.T, h *HostRuntime, offset uint32) uint32 {
 	t.Helper()
 	value, ok := h.Module.Memory().ReadUint32Le(offset)

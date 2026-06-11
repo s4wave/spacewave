@@ -1,6 +1,10 @@
 package v86_wazero
 
-import "context"
+import (
+	"context"
+
+	"github.com/pkg/errors"
+)
 
 const (
 	uartDLAB                = 0x80
@@ -47,6 +51,9 @@ func (h *HostRuntime) registerUART(port uint16) {
 		ints: 1 << uartIirTHRI,
 		lsr:  uartLsrTransmitterEmpty | uartLsrTXEmpty,
 		iir:  uartIirNoInt,
+	}
+	if port == 0x3f8 {
+		h.serial = u
 	}
 	u.register()
 }
@@ -184,11 +191,28 @@ func (u *uartDevice) setModemStatus(status uint32) {
 }
 
 func (h *HostRuntime) raiseIRQ(ctx context.Context, irq uint32) error {
+	if h.Module == nil {
+		return nil
+	}
 	return h.callVoid(ctx, "device_raise_irq", uint64(irq))
 }
 
 func (h *HostRuntime) lowerIRQ(ctx context.Context, irq uint32) error {
+	if h.Module == nil {
+		return nil
+	}
 	return h.callVoid(ctx, "device_lower_irq", uint64(irq))
+}
+
+// WriteSerialInput queues bytes received by the COM1 UART.
+func (h *HostRuntime) WriteSerialInput(ctx context.Context, data []byte) error {
+	if h.serial == nil {
+		return errors.New("v86 COM1 UART is not initialized")
+	}
+	for _, value := range data {
+		h.serial.receive(ctx, value)
+	}
+	return nil
 }
 
 // SerialOutput returns bytes transmitted by the COM1 UART.

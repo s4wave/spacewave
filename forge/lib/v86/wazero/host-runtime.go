@@ -51,6 +51,7 @@ type HostRuntime struct {
 	fwValue           []byte
 	fwPointer         int
 	optionROMs        []optionROM
+	serial            *uartDevice
 	serialOutput      []byte
 	haltEvents        atomic.Uint64
 	exceptions        atomic.Uint64
