@@ -9,8 +9,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
-	"github.com/tetratelabs/wazero/imports/emscripten"
-	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 )
 
 // ImportReport records the host surface required by the v86 wasm artifact.
@@ -39,40 +37,12 @@ func CompileImportReport(ctx context.Context, wasmPath string) (*ImportReport, e
 }
 
 func TryInstantiateEmscriptenV86(ctx context.Context, wasmPath string) (*ImportReport, error) {
-	wasmBytes, err := os.ReadFile(wasmPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "read v86 wasm")
-	}
-	r := wazero.NewRuntime(ctx)
-	defer r.Close(ctx)
-
-	compiled, err := r.CompileModule(ctx, wasmBytes)
-	if err != nil {
-		return nil, errors.Wrap(err, "compile v86 wasm with wazero")
-	}
-	defer compiled.Close(ctx)
-
-	report, err := importReport(compiled, wasmBytes)
+	host, err := InstantiateHostRuntime(ctx, wasmPath, HostRuntimeOptions{})
 	if err != nil {
 		return nil, err
 	}
-	if len(report.Memories) != 0 || len(report.Tables) != 0 {
-		return report, errors.Errorf(
-			"v86 wasm needs a Go env module before it can instantiate in wazero: memories=[%s] tables=[%s]",
-			strings.Join(report.Memories, ", "),
-			strings.Join(report.Tables, ", "),
-		)
-	}
-	wasi_snapshot_preview1.MustInstantiate(ctx, r)
-	if _, err := emscripten.InstantiateForModule(ctx, r, compiled); err != nil {
-		return report, errors.Wrap(err, "instantiate emscripten imports")
-	}
-	mod, err := r.InstantiateModule(ctx, compiled, wazero.NewModuleConfig().WithName("v86"))
-	if err != nil {
-		return report, errors.Wrap(err, "instantiate v86 wasm module")
-	}
-	_ = mod
-	return report, nil
+	defer host.Close(ctx)
+	return host.Report, nil
 }
 
 func importReport(compiled wazero.CompiledModule, wasmBytes []byte) (*ImportReport, error) {
@@ -90,11 +60,13 @@ func importReport(compiled wazero.CompiledModule, wasmBytes []byte) (*ImportRepo
 		}
 		report.Memories = append(report.Memories, fmt.Sprintf("%s.%s min=%d max=%s", moduleName, name, mem.Min(), maxText))
 	}
-	tables, err := importedTablesFromWasm(wasmBytes)
+	imports, err := parseWasmExternImports(wasmBytes)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse v86 wasm table imports")
 	}
-	report.Tables = tables
+	for _, table := range imports.Tables {
+		report.Tables = append(report.Tables, table.String())
+	}
 	for name := range compiled.ExportedFunctions() {
 		report.Exports = append(report.Exports, name)
 	}
@@ -116,7 +88,45 @@ func valueTypes(types []api.ValueType) string {
 	return "(" + strings.Join(parts, ",") + ")"
 }
 
-func importedTablesFromWasm(wasmBytes []byte) ([]string, error) {
+type wasmExternImports struct {
+	Memories []wasmMemoryImport
+	Tables   []wasmTableImport
+}
+
+type wasmMemoryImport struct {
+	Module string
+	Name   string
+	Limits wasmLimits
+}
+
+func (i wasmMemoryImport) String() string {
+	return fmt.Sprintf("%s.%s %s", i.Module, i.Name, i.Limits.String())
+}
+
+type wasmTableImport struct {
+	Module string
+	Name   string
+	Limits wasmLimits
+}
+
+func (i wasmTableImport) String() string {
+	return fmt.Sprintf("%s.%s %s", i.Module, i.Name, i.Limits.String())
+}
+
+type wasmLimits struct {
+	Min uint32
+	Max *uint32
+}
+
+func (l wasmLimits) String() string {
+	maxText := "unbounded"
+	if l.Max != nil {
+		maxText = fmt.Sprint(*l.Max)
+	}
+	return fmt.Sprintf("min=%d max=%s", l.Min, maxText)
+}
+
+func parseWasmExternImports(wasmBytes []byte) (*wasmExternImports, error) {
 	r := wasmReader{data: wasmBytes}
 	if len(wasmBytes) < 8 || string(wasmBytes[:4]) != "\x00asm" {
 		return nil, errors.New("invalid wasm magic")
@@ -138,18 +148,18 @@ func importedTablesFromWasm(wasmBytes []byte) ([]string, error) {
 		if sectionID != 2 {
 			continue
 		}
-		return parseImportedTables(section)
+		return parseImportedExterns(section)
 	}
-	return nil, nil
+	return &wasmExternImports{}, nil
 }
 
-func parseImportedTables(section []byte) ([]string, error) {
+func parseImportedExterns(section []byte) (*wasmExternImports, error) {
 	r := wasmReader{data: section}
 	count, err := r.u32()
 	if err != nil {
 		return nil, err
 	}
-	var tables []string
+	imports := &wasmExternImports{}
 	for range count {
 		moduleName, err := r.name()
 		if err != nil {
@@ -172,15 +182,25 @@ func parseImportedTables(section []byte) ([]string, error) {
 			if _, err := r.byte(); err != nil {
 				return nil, err
 			}
-			min, maxText, err := r.limits()
+			limits, err := r.limits()
 			if err != nil {
 				return nil, err
 			}
-			tables = append(tables, fmt.Sprintf("%s.%s min=%d max=%s", moduleName, importName, min, maxText))
+			imports.Tables = append(imports.Tables, wasmTableImport{
+				Module: moduleName,
+				Name:   importName,
+				Limits: limits,
+			})
 		case 2:
-			if _, _, err := r.limits(); err != nil {
+			limits, err := r.limits()
+			if err != nil {
 				return nil, err
 			}
+			imports.Memories = append(imports.Memories, wasmMemoryImport{
+				Module: moduleName,
+				Name:   importName,
+				Limits: limits,
+			})
 		case 3:
 			if _, err := r.byte(); err != nil {
 				return nil, err
@@ -192,7 +212,7 @@ func parseImportedTables(section []byte) ([]string, error) {
 			return nil, errors.Errorf("unknown wasm import kind %d", kind)
 		}
 	}
-	return tables, nil
+	return imports, nil
 }
 
 type wasmReader struct {
@@ -234,23 +254,23 @@ func (r *wasmReader) name() (string, error) {
 	return string(b), nil
 }
 
-func (r *wasmReader) limits() (uint32, string, error) {
+func (r *wasmReader) limits() (wasmLimits, error) {
 	flags, err := r.u32()
 	if err != nil {
-		return 0, "", err
+		return wasmLimits{}, err
 	}
 	min, err := r.u32()
 	if err != nil {
-		return 0, "", err
+		return wasmLimits{}, err
 	}
 	if flags&1 == 0 {
-		return min, "unbounded", nil
+		return wasmLimits{Min: min}, nil
 	}
 	max, err := r.u32()
 	if err != nil {
-		return 0, "", err
+		return wasmLimits{}, err
 	}
-	return min, fmt.Sprint(max), nil
+	return wasmLimits{Min: min, Max: &max}, nil
 }
 
 func (r *wasmReader) u32() (uint32, error) {

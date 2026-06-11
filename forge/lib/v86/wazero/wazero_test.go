@@ -49,9 +49,9 @@ func TestV86WazeroCompileFromRealImage(t *testing.T) {
 	}
 }
 
-func TestV86WazeroInstantiateEmscriptenHost(t *testing.T) {
+func TestV86WazeroInstantiateHostRuntime(t *testing.T) {
 	if !runV86WazeroBootTests() {
-		t.Skip("set RUN_V86_WAZERO_BOOT=true to instantiate v86 wasm with wazero's Emscripten host imports")
+		t.Skip("set RUN_V86_WAZERO_BOOT=true to instantiate v86 wasm with the Go wazero host runtime")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
@@ -60,20 +60,27 @@ func TestV86WazeroInstantiateEmscriptenHost(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve v86 assets: %v", err)
 	}
-	report, err := TryInstantiateEmscriptenV86(ctx, assets.Wasm)
+	instance, err := InstantiateHostRuntime(ctx, assets.Wasm, HostRuntimeOptions{})
 	if err != nil {
-		if report != nil {
-			t.Logf(
-				"v86 wasm imports before instantiate failure: functions=%d memories=%d tables=%d exports=%d",
-				len(report.Functions),
-				len(report.Memories),
-				len(report.Tables),
-				len(report.Exports),
-			)
-		}
-		t.Fatalf("instantiate v86 wasm with wazero: %v", err)
+		t.Fatalf("instantiate v86 wasm with wazero host runtime: %v", err)
 	}
-	t.Logf("instantiated v86 wasm image %s with wazero; exports=%d", assets.ImageKey, len(report.Exports))
+	defer instance.Close(ctx)
+
+	rustInit := instance.Module.ExportedFunction("rust_init")
+	if rustInit == nil {
+		t.Fatal("instantiated v86 wasm does not export rust_init")
+	}
+	if _, err := rustInit.Call(ctx); err != nil {
+		t.Fatalf("call v86 rust_init: %v", err)
+	}
+	t.Logf(
+		"instantiated v86 wasm image %s with wazero host runtime; functions=%d memories=%d tables=%d exports=%d",
+		assets.ImageKey,
+		len(instance.Report.Functions),
+		len(instance.Report.Memories),
+		len(instance.Report.Tables),
+		len(instance.Report.Exports),
+	)
 }
 
 func runV86WazeroTests() bool {
