@@ -126,6 +126,7 @@ func (s *Server) resolveMountName(ctx context.Context, name string) (*unixfs.FSH
 func (s *Server) RelayV86Fs(strm SRPCV86FsService_RelayV86FsStream) error {
 	sess := &session{
 		server:  s,
+		ctx:     strm.Context(),
 		strm:    strm,
 		inodes:  make(map[uint64]*inodeEntry),
 		handles: make(map[uint64]*handleEntry),
@@ -164,6 +165,7 @@ func (s *Server) RelayV86Fs(strm SRPCV86FsService_RelayV86FsStream) error {
 // session tracks state for one RelayV86Fs stream.
 type session struct {
 	server *Server
+	ctx    context.Context
 	strm   SRPCV86FsService_RelayV86FsStream
 
 	mtx       sync.Mutex
@@ -208,7 +210,7 @@ func (ss *session) allocInodeID(h *unixfs.FSHandle) uint64 {
 
 	// Register change callback in background to avoid blocking the session.
 	go func() {
-		ctx := ss.strm.Context()
+		ctx := ss.context()
 		_ = h.AccessOps(ctx, func(cursor unixfs.FSCursor, _ unixfs.FSCursorOps) error {
 			cursor.AddChangeCb(func(ch *unixfs.FSCursorChange) bool {
 				if ch == nil {
@@ -281,6 +283,13 @@ func (ss *session) cleanup() {
 		e.handle.Release()
 	}
 	ss.inodes = nil
+}
+
+func (ss *session) context() context.Context {
+	if ss.ctx != nil {
+		return ss.ctx
+	}
+	return ss.strm.Context()
 }
 
 // recvMsg is a received message or error from the stream.
