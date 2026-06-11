@@ -49,6 +49,9 @@ func (h *HostRuntime) InitCPU(ctx context.Context, opts HostBootOptions) error {
 	h.registerA20Port()
 	h.registerCMOS()
 	h.registerPCI()
+	if opts.V86FSServer != nil {
+		h.registerV86FS(ctx, opts.V86FSServer)
+	}
 	h.registerPIT()
 	h.registerPS2()
 	h.registerEmptyATA()

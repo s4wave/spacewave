@@ -47,6 +47,7 @@ type HostRuntime struct {
 	mmapBlocks        map[uint32]mmapBlock
 	guestMemoryOffset uint32
 	guestMemorySize   uint32
+	pci               *pciDevice
 	pit               *pitDevice
 	fwValue           []byte
 	fwPointer         int
@@ -426,16 +427,33 @@ type ioPort struct {
 func newIOPorts() []ioPort {
 	ports := make([]ioPort, 0x10000)
 	for i := range ports {
-		ports[i] = ioPort{
-			read8:   func(context.Context, uint16) uint32 { return 0xff },
-			read16:  func(context.Context, uint16) uint32 { return 0xffff },
-			read32:  func(context.Context, uint16) uint32 { return 0xffffffff },
-			write8:  func(context.Context, uint16, uint32) {},
-			write16: func(context.Context, uint16, uint32) {},
-			write32: func(context.Context, uint16, uint32) {},
-		}
+		ports[i] = emptyIOPort()
 	}
 	return ports
+}
+
+func emptyIOPort() ioPort {
+	return ioPort{
+		read8:   func(context.Context, uint16) uint32 { return 0xff },
+		read16:  func(context.Context, uint16) uint32 { return 0xffff },
+		read32:  func(context.Context, uint16) uint32 { return 0xffffffff },
+		write8:  func(context.Context, uint16, uint32) {},
+		write16: func(context.Context, uint16, uint32) {},
+		write32: func(context.Context, uint16, uint32) {},
+	}
+}
+
+func (h *HostRuntime) moveIOPorts(from, to uint32, size uint32) {
+	if from == to || size == 0 {
+		return
+	}
+	if uint64(from)+uint64(size) > uint64(len(h.ioPorts)) || uint64(to)+uint64(size) > uint64(len(h.ioPorts)) {
+		return
+	}
+	for i := uint32(0); i < size; i++ {
+		h.ioPorts[to+i] = h.ioPorts[from+i]
+		h.ioPorts[from+i] = emptyIOPort()
+	}
 }
 
 type mmapBlock struct {

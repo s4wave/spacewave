@@ -8,6 +8,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/s4wave/spacewave/db/unixfs"
+	unixfs_tar "github.com/s4wave/spacewave/db/unixfs/tar"
+	unixfs_v86fs "github.com/s4wave/spacewave/db/unixfs/v86fs"
 )
 
 func TestV86WazeroCompileFromRealImage(t *testing.T) {
@@ -144,6 +148,85 @@ func TestV86WazeroCPUSetupAndMainLoop(t *testing.T) {
 		)
 	}
 	t.Logf("ran %d v86 main loop ticks; requested delay=%f halt_events=%d exceptions=%d serial=%q", ticks, delay, instance.HaltEvents(), instance.ExceptionCount(), string(serial))
+}
+
+func TestV86WazeroV86FSDeviceProbe(t *testing.T) {
+	if !runV86WazeroBootTests() {
+		t.Skip("set RUN_V86_WAZERO_BOOT=true to boot Linux with the Go v86fs host device")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	assets, err := ResolveAssets(ctx, OptionsFromEnv())
+	if err != nil {
+		t.Fatalf("resolve v86 assets: %v", err)
+	}
+	rootfs, err := os.Open(assets.RootfsTar)
+	if err != nil {
+		t.Fatalf("open rootfs tar: %v", err)
+	}
+	defer rootfs.Close()
+	rootCursor, err := unixfs_tar.NewTarFSCursorFromReader(rootfs)
+	if err != nil {
+		t.Fatalf("parse rootfs tar: %v", err)
+	}
+	rootHandle, err := unixfs.NewFSHandle(rootCursor)
+	if err != nil {
+		t.Fatalf("build rootfs handle: %v", err)
+	}
+	defer rootHandle.Release()
+
+	v86fsServer := unixfs_v86fs.NewServer(nil)
+	v86fsServer.AddMount("", "/", rootHandle)
+
+	instance, err := InstantiateHostRuntime(ctx, assets.Wasm, HostRuntimeOptions{})
+	if err != nil {
+		t.Fatalf("instantiate v86 wasm with wazero host runtime: %v", err)
+	}
+	defer instance.Close(ctx)
+
+	bios, err := os.ReadFile(assets.SeaBIOS)
+	if err != nil {
+		t.Fatalf("read SeaBIOS: %v", err)
+	}
+	vgaBIOS, err := os.ReadFile(assets.VGABIOS)
+	if err != nil {
+		t.Fatalf("read VGABIOS: %v", err)
+	}
+	kernel, err := os.ReadFile(assets.Kernel)
+	if err != nil {
+		t.Fatalf("read kernel: %v", err)
+	}
+	if err := instance.InitCPU(ctx, HostBootOptions{
+		BIOS:        bios,
+		VGABIOS:     vgaBIOS,
+		Kernel:      kernel,
+		Cmdline:     "console=ttyS0",
+		V86FSServer: v86fsServer,
+	}); err != nil {
+		t.Fatalf("initialize v86 CPU with v86fs: %v", err)
+	}
+
+	const ticks = 50000
+	for range ticks {
+		if _, err := instance.MainLoop(ctx); err != nil {
+			t.Fatalf("run v86 main loop: %v", err)
+		}
+		serial := string(instance.SerialOutput())
+		if strings.Contains(serial, "v86fs: probed, 3 virtqueues ready") {
+			t.Logf("v86fs device probe reached proof marker after serial=%q", serial)
+			return
+		}
+	}
+	t.Fatalf("v86fs device probe did not reach proof marker after %d ticks; serial=%q io reads=%s writes=%s last_reads=%s last_writes=%s logs=%q",
+		ticks,
+		string(instance.SerialOutput()),
+		topPorts(instance.ioReads),
+		topPorts(instance.ioWrites),
+		portValues(instance.ioLastReads, virtioV86FSCommonPort, virtioV86FSNotifyPort, virtioV86FSISRPort, pciConfigData),
+		portValues(instance.ioLastWrites, virtioV86FSCommonPort, virtioV86FSNotifyPort, virtioV86FSISRPort, pciConfigData),
+		tailStrings(instance.Logs, 5),
+	)
 }
 
 func TestLinuxBootROMChecksum(t *testing.T) {
