@@ -1,6 +1,9 @@
 package v86_wazero
 
-import "encoding/binary"
+import (
+	"context"
+	"encoding/binary"
+)
 
 const (
 	fwCfgSignature     = 0x00
@@ -16,7 +19,7 @@ const (
 )
 
 func (h *HostRuntime) registerFWCfgPorts() {
-	h.RegisterIORead(0x511, 8, func(uint16) uint32 {
+	h.RegisterIORead(0x511, 8, func(context.Context, uint16) uint32 {
 		if h.fwPointer >= len(h.fwValue) {
 			return 0
 		}
@@ -24,7 +27,7 @@ func (h *HostRuntime) registerFWCfgPorts() {
 		h.fwPointer++
 		return uint32(value)
 	})
-	h.RegisterIOWrite(0x510, 16, func(_ uint16, value uint32) {
+	h.RegisterIOWrite(0x510, 16, func(_ context.Context, _ uint16, value uint32) {
 		h.fwPointer = 0
 		switch {
 		case value == fwCfgSignature:

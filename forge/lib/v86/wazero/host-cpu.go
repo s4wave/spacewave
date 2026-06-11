@@ -52,7 +52,7 @@ func (h *HostRuntime) InitCPU(ctx context.Context, opts HostBootOptions) error {
 	h.registerPIT()
 	h.registerPS2()
 	h.registerEmptyATA()
-	h.registerUART(ctx, 0x3f8)
+	h.registerUART(0x3f8)
 	return nil
 }
 
@@ -74,7 +74,7 @@ func (h *HostRuntime) MainLoop(ctx context.Context) (float64, error) {
 
 // RunMainLoop executes a bounded number of v86 CPU loop ticks.
 func (h *HostRuntime) RunMainLoop(ctx context.Context, ticks int) error {
-	for i := 0; i < ticks; i++ {
+	for range ticks {
 		if _, err := h.MainLoop(ctx); err != nil {
 			return err
 		}

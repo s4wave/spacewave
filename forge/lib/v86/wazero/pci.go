@@ -1,6 +1,9 @@
 package v86_wazero
 
-import "encoding/binary"
+import (
+	"context"
+	"encoding/binary"
+)
 
 const (
 	pciConfigAddress = 0xcf8
@@ -21,28 +24,28 @@ func (h *HostRuntime) registerPCI() {
 		},
 	}
 
-	h.RegisterIOWrite(pciConfigAddress, 32, func(_ uint16, value uint32) {
+	h.RegisterIOWrite(pciConfigAddress, 32, func(_ context.Context, _ uint16, value uint32) {
 		pci.addr = value &^ 3
 		pci.query()
 	})
-	h.RegisterIORead(pciConfigAddress, 32, func(uint16) uint32 {
+	h.RegisterIORead(pciConfigAddress, 32, func(context.Context, uint16) uint32 {
 		return pci.addr
 	})
-	h.RegisterIORead(pciConfigData, 32, func(uint16) uint32 {
+	h.RegisterIORead(pciConfigData, 32, func(context.Context, uint16) uint32 {
 		return binary.LittleEndian.Uint32(pci.response[:])
 	})
-	h.RegisterIOWrite(pciConfigData, 32, func(uint16, uint32) {})
+	h.RegisterIOWrite(pciConfigData, 32, func(context.Context, uint16, uint32) {})
 
-	for offset := uint16(0); offset < 4; offset++ {
+	for offset := range uint16(4) {
 		i := offset
-		h.RegisterIORead(pciConfigData+i, 8, func(uint16) uint32 {
+		h.RegisterIORead(pciConfigData+i, 8, func(context.Context, uint16) uint32 {
 			return uint32(pci.response[i])
 		})
-		h.RegisterIOWrite(pciConfigData+i, 8, func(uint16, uint32) {})
-		h.RegisterIORead(pciConfigAddress+i, 8, func(uint16) uint32 {
+		h.RegisterIOWrite(pciConfigData+i, 8, func(context.Context, uint16, uint32) {})
+		h.RegisterIORead(pciConfigAddress+i, 8, func(context.Context, uint16) uint32 {
 			return uint32(byte(pci.addr >> (8 * i)))
 		})
-		h.RegisterIOWrite(pciConfigAddress+i, 8, func(_ uint16, value uint32) {
+		h.RegisterIOWrite(pciConfigAddress+i, 8, func(_ context.Context, _ uint16, value uint32) {
 			mask := uint32(0xff) << (8 * i)
 			pci.addr = (pci.addr &^ mask) | ((value & 0xff) << (8 * i))
 			if i == 0 {

@@ -25,7 +25,7 @@ func (h *HostRuntime) registerPIT() {
 	pit := &pitDevice{host: h}
 	h.pit = pit
 
-	h.RegisterIORead(0x61, 8, func(uint16) uint32 {
+	h.RegisterIORead(0x61, 8, func(context.Context, uint16) uint32 {
 		now := h.microtick()
 		pit.speakerToggle ^= 1
 		refToggle := uint32(pit.speakerToggle)
@@ -35,19 +35,19 @@ func (h *HostRuntime) registerPIT() {
 		}
 		return (refToggle << 4) | (counter2Out << 5)
 	})
-	h.RegisterIOWrite(0x61, 8, func(uint16, uint32) {})
+	h.RegisterIOWrite(0x61, 8, func(context.Context, uint16, uint32) {})
 
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		counter := i
-		h.RegisterIORead(uint16(0x40+counter), 8, func(uint16) uint32 {
+		h.RegisterIORead(uint16(0x40+counter), 8, func(context.Context, uint16) uint32 {
 			return uint32(pit.counterRead(counter))
 		})
-		h.RegisterIOWrite(uint16(0x40+counter), 8, func(_ uint16, value uint32) {
+		h.RegisterIOWrite(uint16(0x40+counter), 8, func(_ context.Context, _ uint16, value uint32) {
 			pit.counterWrite(counter, uint8(value))
 		})
 	}
-	h.RegisterIOWrite(0x43, 8, func(_ uint16, value uint32) {
-		pit.writeControl(uint8(value))
+	h.RegisterIOWrite(0x43, 8, func(ctx context.Context, _ uint16, value uint32) {
+		pit.writeControl(ctx, uint8(value))
 	})
 }
 
@@ -116,7 +116,7 @@ func (p *pitDevice) counterWrite(i int, value uint8) {
 	}
 }
 
-func (p *pitDevice) writeControl(value uint8) {
+func (p *pitDevice) writeControl(ctx context.Context, value uint8) {
 	mode := (value >> 1) & 7
 	i := int((value >> 6) & 3)
 	readMode := (value >> 4) & 3
@@ -143,7 +143,7 @@ func (p *pitDevice) writeControl(value uint8) {
 		p.counterNextLow[i] = 1
 	}
 	if i == 0 {
-		_ = p.host.callVoid(context.Background(), "device_lower_irq", 0)
+		_ = p.host.callVoid(ctx, "device_lower_irq", 0)
 	}
 	p.counterMode[i] = mode
 	p.counterReadMode[i] = readMode

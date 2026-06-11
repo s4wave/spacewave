@@ -1,5 +1,7 @@
 package v86_wazero
 
+import "context"
+
 type ps2Device struct {
 	commandRegister      uint8
 	controllerOutputPort uint8
@@ -12,16 +14,16 @@ type ps2Device struct {
 
 func (h *HostRuntime) registerPS2() {
 	ps2 := &ps2Device{commandRegister: 1 | 4}
-	h.RegisterIORead(0x60, 8, func(uint16) uint32 {
+	h.RegisterIORead(0x60, 8, func(context.Context, uint16) uint32 {
 		return uint32(ps2.readData())
 	})
-	h.RegisterIORead(0x64, 8, func(uint16) uint32 {
+	h.RegisterIORead(0x64, 8, func(context.Context, uint16) uint32 {
 		return uint32(ps2.readStatus())
 	})
-	h.RegisterIOWrite(0x60, 8, func(_ uint16, value uint32) {
+	h.RegisterIOWrite(0x60, 8, func(_ context.Context, _ uint16, value uint32) {
 		ps2.writeData(uint8(value))
 	})
-	h.RegisterIOWrite(0x64, 8, func(_ uint16, value uint32) {
+	h.RegisterIOWrite(0x64, 8, func(_ context.Context, _ uint16, value uint32) {
 		ps2.writeCommand(uint8(value))
 	})
 }

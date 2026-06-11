@@ -1,5 +1,7 @@
 package v86_wazero
 
+import "context"
+
 const (
 	ataPrimaryCommandBase     = 0x1f0
 	ataPrimaryControlBase     = 0x3f6
@@ -17,35 +19,35 @@ func (h *HostRuntime) registerEmptyATA() {
 }
 
 func (h *HostRuntime) registerEmptyATAChannel(commandBase, controlBase, busMasterBase uint16) {
-	for offset := uint16(0); offset < 8; offset++ {
+	for offset := range uint16(8) {
 		port := commandBase + offset
 		value := uint32(0)
 		if offset == ataRegStatus {
 			value = 0
 		}
-		h.RegisterIORead(port, 8, func(uint16) uint32 {
+		h.RegisterIORead(port, 8, func(context.Context, uint16) uint32 {
 			return value
 		})
-		h.RegisterIOWrite(port, 8, func(uint16, uint32) {})
+		h.RegisterIOWrite(port, 8, func(context.Context, uint16, uint32) {})
 	}
-	h.RegisterIORead(controlBase+ataRegAltStatus, 8, func(uint16) uint32 {
+	h.RegisterIORead(controlBase+ataRegAltStatus, 8, func(context.Context, uint16) uint32 {
 		return 0
 	})
-	h.RegisterIOWrite(controlBase+ataRegAltStatus, 8, func(uint16, uint32) {})
+	h.RegisterIOWrite(controlBase+ataRegAltStatus, 8, func(context.Context, uint16, uint32) {})
 
-	for offset := uint16(0); offset < 8; offset++ {
+	for offset := range uint16(8) {
 		port := busMasterBase + offset
-		h.RegisterIORead(port, 8, func(uint16) uint32 {
+		h.RegisterIORead(port, 8, func(context.Context, uint16) uint32 {
 			return 0
 		})
-		h.RegisterIOWrite(port, 8, func(uint16, uint32) {})
+		h.RegisterIOWrite(port, 8, func(context.Context, uint16, uint32) {})
 	}
-	h.RegisterIORead(busMasterBase, 32, func(uint16) uint32 {
+	h.RegisterIORead(busMasterBase, 32, func(context.Context, uint16) uint32 {
 		return 0
 	})
-	h.RegisterIOWrite(busMasterBase, 32, func(uint16, uint32) {})
-	h.RegisterIORead(busMasterBase+4, 32, func(uint16) uint32 {
+	h.RegisterIOWrite(busMasterBase, 32, func(context.Context, uint16, uint32) {})
+	h.RegisterIORead(busMasterBase+4, 32, func(context.Context, uint16) uint32 {
 		return 0
 	})
-	h.RegisterIOWrite(busMasterBase+4, 32, func(uint16, uint32) {})
+	h.RegisterIOWrite(busMasterBase+4, 32, func(context.Context, uint16, uint32) {})
 }

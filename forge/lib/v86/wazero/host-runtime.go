@@ -20,10 +20,10 @@ const (
 )
 
 // IOReadFunc handles a v86 IO-port read for a registered width.
-type IOReadFunc func(port uint16) uint32
+type IOReadFunc func(ctx context.Context, port uint16) uint32
 
 // IOWriteFunc handles a v86 IO-port write for a registered width.
-type IOWriteFunc func(port uint16, value uint32)
+type IOWriteFunc func(ctx context.Context, port uint16, value uint32)
 
 // MmapReadFunc handles a v86 memory-mapped read for a registered range.
 type MmapReadFunc func(addr uint32) uint32
@@ -245,19 +245,19 @@ func (h *HostRuntime) callback(name string, results []api.ValueType) api.GoModul
 			h.haltEvents.Add(1)
 			setZeroResults(stack, results)
 		case "io_port_read8":
-			stack[0] = api.EncodeU32(h.readIO(api.DecodeU32(stack[0]), 8))
+			stack[0] = api.EncodeU32(h.readIO(ctx, api.DecodeU32(stack[0]), 8))
 		case "io_port_read16":
-			stack[0] = api.EncodeU32(h.readIO(api.DecodeU32(stack[0]), 16))
+			stack[0] = api.EncodeU32(h.readIO(ctx, api.DecodeU32(stack[0]), 16))
 		case "io_port_read32":
-			stack[0] = api.EncodeU32(h.readIO(api.DecodeU32(stack[0]), 32))
+			stack[0] = api.EncodeU32(h.readIO(ctx, api.DecodeU32(stack[0]), 32))
 		case "io_port_write8":
-			h.writeIO(api.DecodeU32(stack[0]), api.DecodeU32(stack[1]), 8)
+			h.writeIO(ctx, api.DecodeU32(stack[0]), api.DecodeU32(stack[1]), 8)
 			setZeroResults(stack, results)
 		case "io_port_write16":
-			h.writeIO(api.DecodeU32(stack[0]), api.DecodeU32(stack[1]), 16)
+			h.writeIO(ctx, api.DecodeU32(stack[0]), api.DecodeU32(stack[1]), 16)
 			setZeroResults(stack, results)
 		case "io_port_write32":
-			h.writeIO(api.DecodeU32(stack[0]), api.DecodeU32(stack[1]), 32)
+			h.writeIO(ctx, api.DecodeU32(stack[0]), api.DecodeU32(stack[1]), 32)
 			setZeroResults(stack, results)
 		case "mmap_read8":
 			stack[0] = api.EncodeU32(h.readMmap(api.DecodeU32(stack[0]), 8))
@@ -297,7 +297,7 @@ func (h *HostRuntime) callback(name string, results []api.ValueType) api.GoModul
 	})
 }
 
-func (h *HostRuntime) readIO(port uint32, width int) uint32 {
+func (h *HostRuntime) readIO(ctx context.Context, port uint32, width int) uint32 {
 	if h.ioReads != nil {
 		h.ioReads[uint16(port)]++
 	}
@@ -305,11 +305,11 @@ func (h *HostRuntime) readIO(port uint32, width int) uint32 {
 	var value uint32
 	switch width {
 	case 8:
-		value = slot.read8(uint16(port)) & 0xff
+		value = slot.read8(ctx, uint16(port)) & 0xff
 	case 16:
-		value = slot.read16(uint16(port)) & 0xffff
+		value = slot.read16(ctx, uint16(port)) & 0xffff
 	case 32:
-		value = slot.read32(uint16(port))
+		value = slot.read32(ctx, uint16(port))
 	default:
 		value = 0
 	}
@@ -319,7 +319,7 @@ func (h *HostRuntime) readIO(port uint32, width int) uint32 {
 	return value
 }
 
-func (h *HostRuntime) writeIO(port, value uint32, width int) {
+func (h *HostRuntime) writeIO(ctx context.Context, port, value uint32, width int) {
 	if h.ioWrites != nil {
 		h.ioWrites[uint16(port)]++
 	}
@@ -329,11 +329,11 @@ func (h *HostRuntime) writeIO(port, value uint32, width int) {
 	slot := h.ioPorts[uint16(port)]
 	switch width {
 	case 8:
-		slot.write8(uint16(port), value&0xff)
+		slot.write8(ctx, uint16(port), value&0xff)
 	case 16:
-		slot.write16(uint16(port), value&0xffff)
+		slot.write16(ctx, uint16(port), value&0xffff)
 	case 32:
-		slot.write32(uint16(port), value)
+		slot.write32(ctx, uint16(port), value)
 	}
 }
 
@@ -426,12 +426,12 @@ func newIOPorts() []ioPort {
 	ports := make([]ioPort, 0x10000)
 	for i := range ports {
 		ports[i] = ioPort{
-			read8:   func(uint16) uint32 { return 0xff },
-			read16:  func(uint16) uint32 { return 0xffff },
-			read32:  func(uint16) uint32 { return 0xffffffff },
-			write8:  func(uint16, uint32) {},
-			write16: func(uint16, uint32) {},
-			write32: func(uint16, uint32) {},
+			read8:   func(context.Context, uint16) uint32 { return 0xff },
+			read16:  func(context.Context, uint16) uint32 { return 0xffff },
+			read32:  func(context.Context, uint16) uint32 { return 0xffffffff },
+			write8:  func(context.Context, uint16, uint32) {},
+			write16: func(context.Context, uint16, uint32) {},
+			write32: func(context.Context, uint16, uint32) {},
 		}
 	}
 	return ports

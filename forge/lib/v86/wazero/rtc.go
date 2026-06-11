@@ -1,6 +1,9 @@
 package v86_wazero
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 const (
 	cmosRTCSeconds     = 0x00
@@ -53,14 +56,14 @@ func (h *HostRuntime) registerCMOS() {
 		statusB: 2,
 	}
 	cmos.fill(h.guestMemorySize)
-	h.RegisterIOWrite(0x70, 8, func(_ uint16, value uint32) {
+	h.RegisterIOWrite(0x70, 8, func(_ context.Context, _ uint16, value uint32) {
 		cmos.index = byte(value & 0x7f)
 		cmos.nmiDisabled = byte(value >> 7)
 	})
-	h.RegisterIORead(0x71, 8, func(uint16) uint32 {
+	h.RegisterIORead(0x71, 8, func(context.Context, uint16) uint32 {
 		return uint32(cmos.read())
 	})
-	h.RegisterIOWrite(0x71, 8, func(_ uint16, value uint32) {
+	h.RegisterIOWrite(0x71, 8, func(_ context.Context, _ uint16, value uint32) {
 		cmos.write(byte(value))
 	})
 }

@@ -1,36 +1,40 @@
 package v86_wazero
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func TestHostRuntimeIODispatch(t *testing.T) {
 	host := &HostRuntime{ioPorts: newIOPorts()}
-	if got := host.readIO(0x60, 8); got != 0xff {
+	ctx := context.Background()
+	if got := host.readIO(ctx, 0x60, 8); got != 0xff {
 		t.Fatalf("default 8-bit io read = %#x, want 0xff", got)
 	}
-	if got := host.readIO(0x60, 16); got != 0xffff {
+	if got := host.readIO(ctx, 0x60, 16); got != 0xffff {
 		t.Fatalf("default 16-bit io read = %#x, want 0xffff", got)
 	}
-	if got := host.readIO(0x60, 32); got != 0xffffffff {
+	if got := host.readIO(ctx, 0x60, 32); got != 0xffffffff {
 		t.Fatalf("default 32-bit io read = %#x, want 0xffffffff", got)
 	}
 
-	host.RegisterIORead(0x60, 8, func(port uint16) uint32 {
+	host.RegisterIORead(0x60, 8, func(_ context.Context, port uint16) uint32 {
 		if port != 0x60 {
 			t.Fatalf("read port = %#x, want 0x60", port)
 		}
 		return 0x1234
 	})
-	if got := host.readIO(0x60, 8); got != 0x34 {
+	if got := host.readIO(ctx, 0x60, 8); got != 0x34 {
 		t.Fatalf("registered 8-bit io read = %#x, want 0x34", got)
 	}
 
 	var wrotePort uint16
 	var wroteValue uint32
-	host.RegisterIOWrite(0x61, 16, func(port uint16, value uint32) {
+	host.RegisterIOWrite(0x61, 16, func(_ context.Context, port uint16, value uint32) {
 		wrotePort = port
 		wroteValue = value
 	})
-	host.writeIO(0x61, 0x12345678, 16)
+	host.writeIO(ctx, 0x61, 0x12345678, 16)
 	if wrotePort != 0x61 || wroteValue != 0x5678 {
 		t.Fatalf("registered 16-bit io write = (%#x, %#x), want (0x61, 0x5678)", wrotePort, wroteValue)
 	}

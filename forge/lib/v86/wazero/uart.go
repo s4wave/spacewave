@@ -1,8 +1,6 @@
 package v86_wazero
 
-import (
-	"context"
-)
+import "context"
 
 const (
 	uartDLAB                = 0x80
@@ -37,7 +35,7 @@ type uartDevice struct {
 	input           []byte
 }
 
-func (h *HostRuntime) registerUART(ctx context.Context, port uint16) {
+func (h *HostRuntime) registerUART(port uint16) {
 	irq := uint32(4)
 	if port == 0x2f8 || port == 0x2e8 {
 		irq = 3
@@ -50,18 +48,18 @@ func (h *HostRuntime) registerUART(ctx context.Context, port uint16) {
 		lsr:  uartLsrTransmitterEmpty | uartLsrTXEmpty,
 		iir:  uartIirNoInt,
 	}
-	u.register(ctx)
+	u.register()
 }
 
-func (u *uartDevice) register(ctx context.Context) {
-	u.host.RegisterIOWrite(u.port, 8, func(_ uint16, value uint32) {
+func (u *uartDevice) register() {
+	u.host.RegisterIOWrite(u.port, 8, func(ctx context.Context, _ uint16, value uint32) {
 		u.writeData(ctx, value)
 	})
-	u.host.RegisterIOWrite(u.port, 16, func(_ uint16, value uint32) {
+	u.host.RegisterIOWrite(u.port, 16, func(ctx context.Context, _ uint16, value uint32) {
 		u.writeData(ctx, value&0xff)
 		u.writeData(ctx, value>>8)
 	})
-	u.host.RegisterIORead(u.port, 8, func(uint16) uint32 {
+	u.host.RegisterIORead(u.port, 8, func(ctx context.Context, _ uint16) uint32 {
 		if u.lineControl&uartDLAB != 0 {
 			return u.baudRate & 0xff
 		}
@@ -78,7 +76,7 @@ func (u *uartDevice) register(ctx context.Context) {
 		return uint32(data)
 	})
 
-	u.host.RegisterIOWrite(u.port|1, 8, func(_ uint16, value uint32) {
+	u.host.RegisterIOWrite(u.port|1, 8, func(ctx context.Context, _ uint16, value uint32) {
 		if u.lineControl&uartDLAB != 0 {
 			u.baudRate = (u.baudRate & 0xff) | (value << 8)
 			return
@@ -89,14 +87,14 @@ func (u *uartDevice) register(ctx context.Context) {
 		u.ier = value & 0xf
 		u.checkInterrupt(ctx)
 	})
-	u.host.RegisterIORead(u.port|1, 8, func(uint16) uint32 {
+	u.host.RegisterIORead(u.port|1, 8, func(context.Context, uint16) uint32 {
 		if u.lineControl&uartDLAB != 0 {
 			return u.baudRate >> 8
 		}
 		return u.ier & 0xf
 	})
 
-	u.host.RegisterIORead(u.port|2, 8, func(uint16) uint32 {
+	u.host.RegisterIORead(u.port|2, 8, func(ctx context.Context, _ uint16) uint32 {
 		ret := u.iir & 0xf
 		if u.iir == uartIirTHRI {
 			u.clearInterrupt(ctx, uartIirTHRI)
@@ -106,24 +104,24 @@ func (u *uartDevice) register(ctx context.Context) {
 		}
 		return ret
 	})
-	u.host.RegisterIOWrite(u.port|2, 8, func(_ uint16, value uint32) {
+	u.host.RegisterIOWrite(u.port|2, 8, func(_ context.Context, _ uint16, value uint32) {
 		u.fifoControl = value
 	})
 
-	u.host.RegisterIORead(u.port|3, 8, func(uint16) uint32 { return u.lineControl })
-	u.host.RegisterIOWrite(u.port|3, 8, func(_ uint16, value uint32) { u.lineControl = value })
-	u.host.RegisterIORead(u.port|4, 8, func(uint16) uint32 { return u.modemControl })
-	u.host.RegisterIOWrite(u.port|4, 8, func(_ uint16, value uint32) { u.modemControl = value })
-	u.host.RegisterIORead(u.port|5, 8, func(uint16) uint32 { return u.lsr })
-	u.host.RegisterIOWrite(u.port|5, 8, func(uint16, uint32) {})
-	u.host.RegisterIORead(u.port|6, 8, func(uint16) uint32 {
+	u.host.RegisterIORead(u.port|3, 8, func(context.Context, uint16) uint32 { return u.lineControl })
+	u.host.RegisterIOWrite(u.port|3, 8, func(_ context.Context, _ uint16, value uint32) { u.lineControl = value })
+	u.host.RegisterIORead(u.port|4, 8, func(context.Context, uint16) uint32 { return u.modemControl })
+	u.host.RegisterIOWrite(u.port|4, 8, func(_ context.Context, _ uint16, value uint32) { u.modemControl = value })
+	u.host.RegisterIORead(u.port|5, 8, func(context.Context, uint16) uint32 { return u.lsr })
+	u.host.RegisterIOWrite(u.port|5, 8, func(context.Context, uint16, uint32) {})
+	u.host.RegisterIORead(u.port|6, 8, func(context.Context, uint16) uint32 {
 		value := u.modemStatus
 		u.modemStatus &= 0xf0
 		return value
 	})
-	u.host.RegisterIOWrite(u.port|6, 8, func(_ uint16, value uint32) { u.setModemStatus(value) })
-	u.host.RegisterIORead(u.port|7, 8, func(uint16) uint32 { return u.scratchRegister })
-	u.host.RegisterIOWrite(u.port|7, 8, func(_ uint16, value uint32) { u.scratchRegister = value })
+	u.host.RegisterIOWrite(u.port|6, 8, func(_ context.Context, _ uint16, value uint32) { u.setModemStatus(value) })
+	u.host.RegisterIORead(u.port|7, 8, func(context.Context, uint16) uint32 { return u.scratchRegister })
+	u.host.RegisterIOWrite(u.port|7, 8, func(_ context.Context, _ uint16, value uint32) { u.scratchRegister = value })
 }
 
 func (u *uartDevice) writeData(ctx context.Context, value uint32) {
