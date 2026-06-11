@@ -2,6 +2,11 @@ package v86_wazero
 
 import unixfs_v86fs "github.com/s4wave/spacewave/db/unixfs/v86fs"
 
+const (
+	DefaultV86FSRootCmdline  = "rw init=/usr/bin/bash root=v86fs rootfstype=v86fs rootflags= console=ttyS0"
+	DefaultHost9PRootCmdline = "rw init=/usr/bin/bash root=host9p rootfstype=9p rootflags=trans=virtio,cache=loose console=ttyS0"
+)
+
 // HostBootOptions configures the minimal CPU bootstrap before the run loop.
 type HostBootOptions struct {
 	EnableJIT         bool
@@ -13,4 +18,14 @@ type HostBootOptions struct {
 	Initrd            []byte
 	Cmdline           string
 	V86FSServer       *unixfs_v86fs.Server
+}
+
+func (o HostBootOptions) kernelCmdline() string {
+	if o.Cmdline != "" {
+		return o.Cmdline
+	}
+	if o.V86FSServer != nil {
+		return DefaultV86FSRootCmdline
+	}
+	return DefaultHost9PRootCmdline
 }

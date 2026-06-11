@@ -201,7 +201,6 @@ func TestV86WazeroV86FSDeviceProbe(t *testing.T) {
 		BIOS:        bios,
 		VGABIOS:     vgaBIOS,
 		Kernel:      kernel,
-		Cmdline:     "console=ttyS0",
 		V86FSServer: v86fsServer,
 	}); err != nil {
 		t.Fatalf("initialize v86 CPU with v86fs: %v", err)
@@ -237,6 +236,21 @@ func TestLinuxBootROMChecksum(t *testing.T) {
 	}
 	if checksum != 0 {
 		t.Fatalf("linux boot option ROM checksum = %#x, want 0", checksum)
+	}
+}
+
+func TestHostBootOptionsKernelCmdlineDefault(t *testing.T) {
+	if got := (HostBootOptions{}).kernelCmdline(); got != DefaultHost9PRootCmdline {
+		t.Fatalf("empty boot options cmdline = %q, want %q", got, DefaultHost9PRootCmdline)
+	}
+	if got := (HostBootOptions{V86FSServer: unixfs_v86fs.NewServer(nil)}).kernelCmdline(); got != DefaultV86FSRootCmdline {
+		t.Fatalf("v86fs boot options cmdline = %q, want %q", got, DefaultV86FSRootCmdline)
+	}
+	if got := (HostBootOptions{
+		Cmdline:     "console=ttyS0",
+		V86FSServer: unixfs_v86fs.NewServer(nil),
+	}).kernelCmdline(); got != "console=ttyS0" {
+		t.Fatalf("explicit cmdline = %q, want caller override", got)
 	}
 }
 

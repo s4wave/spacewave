@@ -41,7 +41,7 @@ func (h *HostRuntime) InitCPU(ctx context.Context, opts HostBootOptions) error {
 		}
 	}
 	if len(opts.Kernel) != 0 {
-		if err := h.loadLinuxKernel(ctx, opts.Kernel, opts.Initrd, opts.Cmdline); err != nil {
+		if err := h.loadLinuxKernel(ctx, opts.Kernel, opts.Initrd, opts.kernelCmdline()); err != nil {
 			return err
 		}
 	}
