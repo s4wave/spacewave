@@ -66,12 +66,8 @@ func TestV86WazeroInstantiateHostRuntime(t *testing.T) {
 	}
 	defer instance.Close(ctx)
 
-	rustInit := instance.Module.ExportedFunction("rust_init")
-	if rustInit == nil {
-		t.Fatal("instantiated v86 wasm does not export rust_init")
-	}
-	if _, err := rustInit.Call(ctx); err != nil {
-		t.Fatalf("call v86 rust_init: %v", err)
+	if err := instance.RustInit(ctx); err != nil {
+		t.Fatalf("initialize v86 wasm: %v", err)
 	}
 	t.Logf(
 		"instantiated v86 wasm image %s with wazero host runtime; functions=%d memories=%d tables=%d exports=%d",
