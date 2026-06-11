@@ -37,14 +37,25 @@ type HostRuntime struct {
 	Module  api.Module
 	Report  *ImportReport
 
-	started       time.Time
-	random        atomic.Uint32
-	ioPorts       []ioPort
-	mmapBlocks    map[uint32]mmapBlock
-	haltEvents    atomic.Uint64
-	exceptions    atomic.Uint64
-	lastException atomic.Uint32
-	Logs          []string
+	started           time.Time
+	random            atomic.Uint32
+	ioPorts           []ioPort
+	ioReads           map[uint16]uint64
+	ioWrites          map[uint16]uint64
+	ioLastReads       map[uint16]uint32
+	ioLastWrites      map[uint16]uint32
+	mmapBlocks        map[uint32]mmapBlock
+	guestMemoryOffset uint32
+	guestMemorySize   uint32
+	pit               *pitDevice
+	fwValue           []byte
+	fwPointer         int
+	optionROMs        []optionROM
+	serialOutput      []byte
+	haltEvents        atomic.Uint64
+	exceptions        atomic.Uint64
+	lastException     atomic.Uint32
+	Logs              []string
 }
 
 func InstantiateHostRuntime(ctx context.Context, wasmPath string, opts HostRuntimeOptions) (*HostRuntime, error) {
@@ -75,11 +86,15 @@ func InstantiateHostRuntime(ctx context.Context, wasmPath string, opts HostRunti
 		return nil, errors.Wrap(err, "parse v86 wasm imports")
 	}
 	host := &HostRuntime{
-		Runtime:    r,
-		Report:     report,
-		started:    time.Now(),
-		ioPorts:    newIOPorts(),
-		mmapBlocks: make(map[uint32]mmapBlock),
+		Runtime:      r,
+		Report:       report,
+		started:      time.Now(),
+		ioPorts:      newIOPorts(),
+		ioReads:      make(map[uint16]uint64),
+		ioWrites:     make(map[uint16]uint64),
+		ioLastReads:  make(map[uint16]uint32),
+		ioLastWrites: make(map[uint16]uint32),
+		mmapBlocks:   make(map[uint32]mmapBlock),
 	}
 
 	shared, err := buildSharedModule(externs, opts)
@@ -218,7 +233,10 @@ func (h *HostRuntime) callback(name string, results []api.ValueType) api.GoModul
 			}
 			setZeroResults(stack, results)
 		case "run_hardware_timers":
-			if len(stack) > 1 {
+			if len(stack) > 1 && h.pit != nil {
+				now := api.DecodeF64(stack[1])
+				stack[0] = api.EncodeF64(h.pit.timer(ctx, now, false))
+			} else if len(stack) > 1 {
 				stack[0] = stack[1]
 			} else {
 				setZeroResults(stack, results)
@@ -280,20 +298,34 @@ func (h *HostRuntime) callback(name string, results []api.ValueType) api.GoModul
 }
 
 func (h *HostRuntime) readIO(port uint32, width int) uint32 {
+	if h.ioReads != nil {
+		h.ioReads[uint16(port)]++
+	}
 	slot := h.ioPorts[uint16(port)]
+	var value uint32
 	switch width {
 	case 8:
-		return slot.read8(uint16(port)) & 0xff
+		value = slot.read8(uint16(port)) & 0xff
 	case 16:
-		return slot.read16(uint16(port)) & 0xffff
+		value = slot.read16(uint16(port)) & 0xffff
 	case 32:
-		return slot.read32(uint16(port))
+		value = slot.read32(uint16(port))
 	default:
-		return 0
+		value = 0
 	}
+	if h.ioLastReads != nil {
+		h.ioLastReads[uint16(port)] = value
+	}
+	return value
 }
 
 func (h *HostRuntime) writeIO(port, value uint32, width int) {
+	if h.ioWrites != nil {
+		h.ioWrites[uint16(port)]++
+	}
+	if h.ioLastWrites != nil {
+		h.ioLastWrites[uint16(port)] = value
+	}
 	slot := h.ioPorts[uint16(port)]
 	switch width {
 	case 8:
@@ -362,6 +394,10 @@ func (h *HostRuntime) appendLog(mod api.Module, stack []uint64) {
 		return
 	}
 	h.Logs = append(h.Logs, string(data))
+}
+
+func (h *HostRuntime) microtick() float64 {
+	return float64(time.Since(h.started).Microseconds()) / 1000
 }
 
 func setZeroResults(stack []uint64, results []api.ValueType) {
