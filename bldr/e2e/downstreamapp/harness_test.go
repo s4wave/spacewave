@@ -269,6 +269,8 @@ func TestGoScriptDownstreamAppLoadsSonner(t *testing.T) {
 	if !probe.BrowserObserved {
 		t.Fatalf("browser resource timing did not observe sonner module\n%s", diag.String())
 	}
+	diag.LogHTTP(t)
+	diag.AssertNoHTTPFailures(t)
 
 	t.Logf(
 		"downstream harness timings: package_wall=%s boot_ready=%s scenario_ready=%s sonner_bytes=%d sonner_url=%s",
@@ -285,6 +287,7 @@ type browserDiagnostics struct {
 	console  []string
 	errors   []string
 	requests []string
+	failed   []string
 	sonner   []playwright.Response
 }
 
@@ -319,6 +322,29 @@ func wireDiagnostics(browserCtx playwright.BrowserContext, page playwright.Page,
 		defer diag.mu.Unlock()
 		diag.errors = append(diag.errors, err.Error())
 	})
+	page.OnRequest(func(req playwright.Request) {
+		url := req.URL()
+		if !isHTTPURL(url) {
+			return
+		}
+		diag.mu.Lock()
+		defer diag.mu.Unlock()
+		diag.requests = append(diag.requests, "request "+req.Method()+" "+url)
+	})
+	page.OnRequestFailed(func(req playwright.Request) {
+		url := req.URL()
+		if !isHTTPURL(url) {
+			return
+		}
+		failure := req.Failure().Error()
+		msg := "request failed " + req.Method() + " " + url + ": " + failure
+		diag.mu.Lock()
+		defer diag.mu.Unlock()
+		diag.requests = append(diag.requests, msg)
+		if !isBrowserAbortedRequest(failure) {
+			diag.failed = append(diag.failed, msg)
+		}
+	})
 	page.On("response", func(resp playwright.Response) {
 		url := resp.URL()
 		if strings.Contains(url, "sonner") {
@@ -326,12 +352,25 @@ func wireDiagnostics(browserCtx playwright.BrowserContext, page playwright.Page,
 			diag.sonner = append(diag.sonner, resp)
 			diag.mu.Unlock()
 		}
-		if resp.Status() >= 400 || strings.Contains(url, "sonner") {
-			diag.mu.Lock()
-			defer diag.mu.Unlock()
-			diag.requests = append(diag.requests, resp.StatusText()+" "+url)
+		if !isHTTPURL(url) {
+			return
+		}
+		line := "response " + strconv.Itoa(resp.Status()) + " " + resp.StatusText() + " " + url
+		diag.mu.Lock()
+		defer diag.mu.Unlock()
+		diag.requests = append(diag.requests, line)
+		if resp.Status() >= 400 {
+			diag.failed = append(diag.failed, line)
 		}
 	})
+}
+
+func isHTTPURL(url string) bool {
+	return strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://")
+}
+
+func isBrowserAbortedRequest(failure string) bool {
+	return strings.Contains(failure, "net::ERR_ABORTED")
 }
 
 func recordBrowserConsoleMessage(msgType, text string) bool {
@@ -431,8 +470,29 @@ func (d *browserDiagnostics) String() string {
 	return strings.Join([]string{
 		"console:\n" + strings.Join(d.console, "\n"),
 		"errors:\n" + strings.Join(d.errors, "\n"),
-		"requests:\n" + strings.Join(d.requests, "\n"),
+		"http:\n" + strings.Join(d.requests, "\n"),
+		"failed http:\n" + strings.Join(d.failed, "\n"),
 	}, "\n\n")
+}
+
+func (d *browserDiagnostics) AssertNoHTTPFailures(t *testing.T) {
+	t.Helper()
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if len(d.failed) != 0 {
+		t.Fatalf("browser HTTP failures:\n%s", strings.Join(d.failed, "\n"))
+	}
+}
+
+func (d *browserDiagnostics) LogHTTP(t *testing.T) {
+	t.Helper()
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	for _, line := range d.requests {
+		t.Log("browser http: " + line)
+	}
 }
 
 func describePage(page playwright.Page) string {

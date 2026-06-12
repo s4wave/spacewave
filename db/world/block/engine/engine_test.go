@@ -23,6 +23,7 @@ import (
 	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
+	common_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
@@ -167,6 +168,69 @@ func TestWorldEngineController(t *testing.T) {
 	engTx.Discard()
 
 	// success
+}
+
+func TestWorldEngineControllerFallsBackWhenCoordinatorUnsupported(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+	tb.StaticResolver.AddFactory(world_block_engine.NewFactory(tb.Bus))
+
+	kvtxVolume, ok := tb.Volume.(*common_kvtx.Volume)
+	if !ok {
+		t.Fatalf("testbed volume type = %T, want *common_kvtx.Volume", tb.Volume)
+	}
+	kvtxVolume.Coordinator = coord.NewUnsupportedCoordinator(
+		coord.BackendKindRPC,
+		coord.FallbackReasonUnsupported,
+	)
+
+	transformConf, err := block_transform.NewConfig(nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	engineConf := world_block_engine.NewConfig(
+		"test-world-engine-unsupported-coordinator",
+		tb.Volume.GetID(),
+		tb.BucketId,
+		"test-world-engine-unsupported-coordinator-store",
+		&bucket.ObjectRef{
+			BucketId:      tb.BucketId,
+			TransformConf: transformConf,
+		},
+		nil,
+		false,
+	)
+	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(ctx, tb.Bus, engineConf)
+	if err != nil {
+		t.Fatalf("start world engine with unsupported coordinator: %v", err)
+	}
+	defer worldCtrlRef.Release()
+
+	engine, err := worldCtrl.GetWorldEngine(ctx)
+	if err != nil {
+		t.Fatalf("get world engine: %v", err)
+	}
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatalf("new write transaction with unsupported coordinator: %v", err)
+	}
+	if _, err := tx.CreateObject(ctx, "unsupported-coordinator-fallback", nil); err != nil {
+		tx.Discard()
+		t.Fatalf("create object with unsupported coordinator: %v", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatalf("commit with unsupported coordinator: %v", err)
+	}
 }
 
 func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {

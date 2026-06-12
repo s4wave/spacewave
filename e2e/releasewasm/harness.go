@@ -341,7 +341,13 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) {
 		if !isRelevantReleaseWasmRequest(url) {
 			return
 		}
-		t.Logf("browser request failed: %s %s: %s", req.Method(), url, req.Failure())
+		failure := req.Failure().Error()
+		msg := "browser request failed: " + req.Method() + " " + url + ": " + failure
+		if isBrowserAbortedRequest(failure) {
+			t.Log(msg)
+			return
+		}
+		recordBrowserError(msg)
 	})
 	page.OnWorker(func(worker playwright.Worker) {
 		if consoleTrace {
@@ -426,10 +432,15 @@ func isRelevantReleaseWasmRequest(url string) bool {
 		strings.Contains(url, "/sw-") ||
 		strings.Contains(url, "/b/pd/") ||
 		strings.Contains(url, "/b/pa/") ||
+		strings.Contains(url, "/quickstart/drive") ||
 		strings.Contains(url, "/entrypoint/") {
 		return true
 	}
 	return false
+}
+
+func isBrowserAbortedRequest(failure string) bool {
+	return strings.Contains(failure, "net::ERR_ABORTED")
 }
 
 func (h *harness) newContextOptions(t testing.TB) playwright.BrowserNewContextOptions {

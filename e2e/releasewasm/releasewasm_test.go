@@ -135,6 +135,7 @@ func TestGoScriptServiceWorkerPluginDistModuleIntegrity(t *testing.T) {
 		t.Skipf("set %s=true to run GoScript ServiceWorker plugin dist module probe", E2EReleaseWasmGoScriptEnv)
 	}
 
+	t.Setenv("E2E_RELEASE_WASM_HTTP_TRACE", "1")
 	page := testHarness.newPage(t)
 	if _, err := page.Goto(testHarness.getBaseURL() + "/"); err != nil {
 		t.Fatalf("goto root: %v", err)
@@ -143,7 +144,7 @@ func TestGoScriptServiceWorkerPluginDistModuleIntegrity(t *testing.T) {
 	waitForPrerenderRoot(t, page)
 	waitForBootFunction(t, page)
 	_, err = page.Evaluate(`() => {
-		globalThis.__swBoot('#/')
+		globalThis.__swBoot('#/quickstart/drive')
 	}`)
 	if err != nil {
 		t.Fatalf("start root production goscript bundle: %v", err)
@@ -153,6 +154,26 @@ func TestGoScriptServiceWorkerPluginDistModuleIntegrity(t *testing.T) {
 		"plugin/spacewave-core",
 		"plugin/spacewave-launcher",
 	})
+	t.Log("drive gate: wait for quickstart route")
+	waitForQuickstartAppRoute(t, page)
+	t.Log("drive gate: complete intro if present")
+	completeQuickstartDriveIntroIfPresent(t, page)
+	t.Log("drive gate: wait for unixfs browser frame")
+	err = page.Locator("[data-testid='unixfs-browser']:visible").First().WaitFor(
+		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
+	)
+	if err != nil {
+		dumpPageState(t, page)
+		t.Fatalf("wait for quickstart drive frame: %v", err)
+	}
+	t.Log("drive gate: wait for content ready")
+	if _, quickstartErr := waitForQuickstartDriveContentReady(t, page); quickstartErr != "" {
+		t.Fatalf("wait for quickstart drive content ready: %s", quickstartErr)
+	}
+	t.Log("drive gate: exercise golden path")
+	if _, quickstartErr := exerciseQuickstartDriveGoldenPath(t, page); quickstartErr != "" {
+		t.Fatalf("exercise quickstart drive golden path: %s", quickstartErr)
+	}
 
 	raw, err := page.Evaluate(`async (args) => {
 		await navigator.serviceWorker.ready
@@ -796,7 +817,35 @@ func dumpPageState(t *testing.T, page playwright.Page) {
 		t.Logf("dump page state: %v", err)
 		return
 	}
-	t.Logf("page state: %s", state)
+	stateStr, ok := state.(string)
+	if !ok {
+		t.Logf("page state: unexpected payload type %T", state)
+		return
+	}
+	writePageStateArtifact(t, stateStr)
+	t.Logf("page state: %s", stateStr)
+}
+
+func writePageStateArtifact(t *testing.T, state string) {
+	t.Helper()
+
+	if testHarness == nil || testHarness.artifactDir == "" {
+		return
+	}
+	replacer := strings.NewReplacer("/", "-", "\\", "-", " ", "-", ":", "-")
+	path := filepath.Join(
+		testHarness.artifactDir,
+		replacer.Replace(strings.ToLower(t.Name()))+"-page-state.json",
+	)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Logf("write page state artifact mkdir %s: %v", path, err)
+		return
+	}
+	if err := os.WriteFile(path, []byte(state), 0o644); err != nil {
+		t.Logf("write page state artifact %s: %v", path, err)
+		return
+	}
+	t.Logf("page state artifact: %s", path)
 }
 
 func enableQuickstartTimingLogs(t *testing.T, page playwright.Page) {
