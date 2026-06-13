@@ -3,7 +3,8 @@ package bldr_manifest_pack
 import (
 	"context"
 	"io"
-	"sort"
+	"slices"
+	"strings"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
@@ -82,8 +83,8 @@ func PackManifestBundle(
 			return nil, nil, errors.Wrapf(err, "manifest_refs[%d]", i)
 		}
 	}
-	sort.Slice(blocks, func(i, j int) bool {
-		return blocks[i].key < blocks[j].key
+	slices.SortFunc(blocks, func(a, b packBlock) int {
+		return strings.Compare(a.key, b.key)
 	})
 	idx := 0
 	res, err := writer.PackBlocks(w, func() (*hash.Hash, []byte, error) {

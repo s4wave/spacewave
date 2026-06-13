@@ -1,10 +1,10 @@
 package bldr_manifest_world
 
 import (
+	"cmp"
 	"context"
 	stderrors "errors"
 	"slices"
-	"sort"
 	"strings"
 
 	"github.com/aperturerobotics/cayley"
@@ -300,7 +300,7 @@ func listManifestCandidateEdgesWithLabel(
 		}
 		linkedKeys = append(linkedKeys, linkedKey)
 	}
-	sort.Strings(linkedKeys)
+	slices.Sort(linkedKeys)
 	return linkedKeys, nil
 }
 
@@ -435,8 +435,8 @@ func CollectManifests(
 			ManifestKey: objKey,
 		})
 		// sort by rev descending
-		sort.SliceStable(manifestList, func(i, j int) bool {
-			return manifestList[i].GetRev() > manifestList[j].GetRev()
+		slices.SortStableFunc(manifestList, func(a, b *CollectedManifest) int {
+			return cmp.Compare(b.GetRev(), a.GetRev())
 		})
 		manifestMap[manifestID] = manifestList
 	}
@@ -520,8 +520,8 @@ func collectStartupManifestsFromCandidates(
 			ManifestRef: manifestRef,
 			ManifestKey: objKey,
 		})
-		sort.SliceStable(manifestList, func(i, j int) bool {
-			return manifestList[i].GetRev() > manifestList[j].GetRev()
+		slices.SortStableFunc(manifestList, func(a, b *CollectedManifest) int {
+			return cmp.Compare(b.GetRev(), a.GetRev())
 		})
 		manifestMap[manifestID] = manifestList
 	}
