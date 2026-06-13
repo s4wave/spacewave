@@ -48,6 +48,7 @@ type HostRuntime struct {
 	guestMemoryOffset uint32
 	guestMemorySize   uint32
 	pci               *pciDevice
+	v86fs             *virtioV86FSDevice
 	pit               *pitDevice
 	cmos              *cmosDevice
 	fwValue           []byte

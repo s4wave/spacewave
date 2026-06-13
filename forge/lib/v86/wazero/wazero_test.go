@@ -229,6 +229,96 @@ func TestV86WazeroV86FSDeviceProbe(t *testing.T) {
 	)
 }
 
+func TestV86WazeroV86FSRootShell(t *testing.T) {
+	if !runV86WazeroBootTests() {
+		t.Skip("set RUN_V86_WAZERO_BOOT=true to boot Linux with the Go v86fs root device")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	assets, err := ResolveAssets(ctx, OptionsFromEnv())
+	if err != nil {
+		t.Fatalf("resolve v86 assets: %v", err)
+	}
+	rootfs, err := os.Open(assets.RootfsTar)
+	if err != nil {
+		t.Fatalf("open rootfs tar: %v", err)
+	}
+	defer rootfs.Close()
+	rootCursor, err := unixfs_tar.NewTarFSCursorFromReader(rootfs)
+	if err != nil {
+		t.Fatalf("parse rootfs tar: %v", err)
+	}
+	rootHandle, err := unixfs.NewFSHandle(rootCursor)
+	if err != nil {
+		t.Fatalf("build rootfs handle: %v", err)
+	}
+	defer rootHandle.Release()
+
+	v86fsServer := unixfs_v86fs.NewServer(nil)
+	v86fsServer.AddMount("", "/", rootHandle)
+
+	instance, err := InstantiateHostRuntime(ctx, assets.Wasm, HostRuntimeOptions{})
+	if err != nil {
+		t.Fatalf("instantiate v86 wasm with wazero host runtime: %v", err)
+	}
+	defer instance.Close(ctx)
+
+	bios, err := os.ReadFile(assets.SeaBIOS)
+	if err != nil {
+		t.Fatalf("read SeaBIOS: %v", err)
+	}
+	vgaBIOS, err := os.ReadFile(assets.VGABIOS)
+	if err != nil {
+		t.Fatalf("read VGABIOS: %v", err)
+	}
+	kernel, err := os.ReadFile(assets.Kernel)
+	if err != nil {
+		t.Fatalf("read kernel: %v", err)
+	}
+	if err := instance.InitCPU(ctx, HostBootOptions{
+		BIOS:        bios,
+		VGABIOS:     vgaBIOS,
+		Kernel:      kernel,
+		V86FSServer: v86fsServer,
+	}); err != nil {
+		t.Fatalf("initialize v86 CPU with v86fs: %v", err)
+	}
+
+	waitCtx, waitCancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer waitCancel()
+	if _, err := waitSerial(waitCtx, instance, ":/#"); err != nil {
+		stats := instance.v86fs.stats()
+		t.Fatalf("v86fs root shell prompt not reached: %v; device{driver_ok=%t last_status=%#x kicks=%v requests=%d replies=%d notifications=%d} serial_tail=%q top_writes=%s logs=%q",
+			err,
+			stats.driverOK,
+			stats.lastStatus,
+			stats.kicks,
+			stats.requests,
+			stats.replies,
+			stats.notifications,
+			tailString(string(instance.SerialOutput()), 8192),
+			topPorts(instance.ioWrites),
+			tailStrings(instance.Logs, 8),
+		)
+	}
+	serial, err := runShellCommand(ctx, instance, "echo wazero-v86fs")
+	if err != nil {
+		t.Fatalf("run echo command: %v; serial=%q", err, serial)
+	}
+	if !strings.Contains(serial, "wazero-v86fs") {
+		t.Fatalf("echo command output missing from serial=%q", serial)
+	}
+	serial, err = runShellCommand(ctx, instance, "echo $?")
+	if err != nil {
+		t.Fatalf("run exit status command: %v; serial=%q", err, serial)
+	}
+	if !strings.Contains(serial, "\n0\r\n") && !strings.Contains(serial, "\r\n0\r\n") && !strings.Contains(serial, "\r0\r\n") {
+		t.Fatalf("exit status command did not print 0; serial=%q", serial)
+	}
+	t.Logf("v86fs root shell proof reached prompt and command exit status; serial tail=%q", tailString(string(instance.SerialOutput()), 4096))
+}
+
 func TestV86WazeroHost9PRootShell(t *testing.T) {
 	if !runV86WazeroBootTests() {
 		t.Skip("set RUN_V86_WAZERO_BOOT=true to boot Linux with the Go host9p root device")

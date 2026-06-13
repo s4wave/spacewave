@@ -3,6 +3,7 @@ package v86_wazero
 import (
 	"context"
 	"encoding/binary"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 	unixfs_v86fs "github.com/s4wave/spacewave/db/unixfs/v86fs"
@@ -42,6 +43,40 @@ type virtioV86FSDevice struct {
 	queueSelect         uint32
 	queues              [3]*virtioQueue
 	isrStatus           uint32
+
+	driverOK      atomic.Bool
+	lastStatus    atomic.Uint32
+	kicks         [3]atomic.Uint64
+	requests      atomic.Uint64
+	replies       atomic.Uint64
+	notifications atomic.Uint64
+}
+
+// v86fsStats is a device-side readback of the v86fs virtio handshake. It exists
+// so a boot proof can tell whether the guest reached DRIVER_OK, kicked each
+// queue, issued any request, and received any MOUNT_NOTIFY independent of where
+// Linux relocated the device BARs.
+type v86fsStats struct {
+	driverOK      bool
+	lastStatus    uint32
+	kicks         [3]uint64
+	requests      uint64
+	replies       uint64
+	notifications uint64
+}
+
+func (d *virtioV86FSDevice) stats() v86fsStats {
+	if d == nil {
+		return v86fsStats{}
+	}
+	return v86fsStats{
+		driverOK:      d.driverOK.Load(),
+		lastStatus:    d.lastStatus.Load(),
+		kicks:         [3]uint64{d.kicks[0].Load(), d.kicks[1].Load(), d.kicks[2].Load()},
+		requests:      d.requests.Load(),
+		replies:       d.replies.Load(),
+		notifications: d.notifications.Load(),
+	}
 }
 
 type virtioQueueDevice interface {
@@ -98,6 +133,7 @@ func (h *HostRuntime) registerV86FS(ctx context.Context, server *unixfs_v86fs.Se
 			notifyOffset:  uint32(i),
 		}
 	}
+	h.v86fs = dev
 	h.pci.spaces[virtioV86FSPCIID] = newVirtioV86FSPCISpace()
 	h.pci.setBARSize(virtioV86FSPCIID, 0, 64, true)
 	h.pci.setBARSize(virtioV86FSPCIID, 1, 16, true)
@@ -182,6 +218,7 @@ func (d *virtioV86FSDevice) registerNotifyPorts() {
 		port := virtioV86FSNotifyPort + uint16(queueID*2)
 		d.host.RegisterIORead(port, 16, func(context.Context, uint16) uint32 { return 0xffff })
 		d.host.RegisterIOWrite(port, 16, func(ctx context.Context, _ uint16, _ uint32) {
+			d.kicks[queueID].Add(1)
 			if queueID == 2 {
 				d.flushNotifications(ctx)
 				return
@@ -216,10 +253,12 @@ func (d *virtioV86FSDevice) writeStatus(ctx context.Context, value uint32) {
 		value &^= 8
 	}
 	d.status = value
+	d.lastStatus.Store(value)
 	if value&virtioStatusFailed != 0 {
 		d.raiseIRQ(ctx, virtioISRQueue)
 	}
 	if value&virtioStatusDriverOK != 0 {
+		d.driverOK.Store(true)
 		d.flushNotifications(ctx)
 	}
 }
@@ -255,6 +294,7 @@ func (d *virtioV86FSDevice) handleQueue(ctx context.Context, queueID int) {
 			d.raiseIRQ(ctx, virtioISRQueue)
 			return
 		}
+		d.requests.Add(1)
 		reply, err := d.session.HandleMessage(ctx, msg)
 		if err != nil {
 			d.raiseIRQ(ctx, virtioISRQueue)
@@ -267,6 +307,7 @@ func (d *virtioV86FSDevice) handleQueue(ctx context.Context, queueID int) {
 				return
 			}
 			_ = chain.write(resp)
+			d.replies.Add(1)
 		}
 		queue.pushReply(chain)
 	}
@@ -279,20 +320,32 @@ func (d *virtioV86FSDevice) flushNotifications(ctx context.Context) {
 	if !queue.configured() {
 		return
 	}
-	for _, msg := range d.session.DrainNotifications() {
+	// A notification leaves the session pending queue only once it lands in a
+	// guest receive buffer. flushNotifications runs at DRIVER_OK before the guest
+	// has posted any buffer, so undelivered frames are requeued for the next
+	// queue-2 kick instead of being dropped, otherwise the seed MOUNT_NOTIFY is
+	// lost and root never mounts.
+	pending := d.session.DrainNotifications()
+	delivered := 0
+	for _, msg := range pending {
 		if !queue.hasRequest() {
-			return
+			break
 		}
 		frame, err := unixfs_v86fs.EncodeBinaryFrame(msg)
 		if err != nil {
-			return
+			break
 		}
 		chain, err := queue.popRequest()
 		if err != nil {
-			return
+			break
 		}
 		_ = chain.write(frame)
 		queue.pushReply(chain)
+		d.notifications.Add(1)
+		delivered++
+	}
+	if delivered < len(pending) {
+		d.session.RequeueNotifications(pending[delivered:])
 	}
 	queue.flushReplies(ctx)
 }

@@ -89,3 +89,16 @@ func (s *LocalSession) DrainNotifications() []*V86FsMessage {
 	})
 	return pending
 }
+
+// RequeueNotifications restores drained notifications the guest could not yet
+// accept to the front of the pending queue, preserving delivery order so a
+// notification leaves the session only once it lands in a guest receive buffer.
+func (s *LocalSession) RequeueNotifications(msgs []*V86FsMessage) {
+	if s == nil || s.sess == nil || len(msgs) == 0 {
+		return
+	}
+	s.sess.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		s.sess.pending = append(msgs, s.sess.pending...)
+		broadcast()
+	})
+}
