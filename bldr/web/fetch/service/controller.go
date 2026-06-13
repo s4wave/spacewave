@@ -66,8 +66,12 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 }
 
 // Execute executes the controller.
-// Returning nil ends execution.
-func (c *Controller) Execute(rctx context.Context) (rerr error) {
+//
+// The controller is directive-driven: all work happens in HandleDirective and
+// InvokeMethod, so Execute has no loop. Returning nil ends the Execute
+// goroutine while leaving the controller attached with its lifecycle context
+// live.
+func (c *Controller) Execute(ctx context.Context) error {
 	return nil
 }
 

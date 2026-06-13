@@ -43,7 +43,7 @@ func (sl WebPkgRefSlice) AppendWebPkgRoot(webPkgID, webPkgRoot string) (WebPkgRe
 			WebPkgId:   webPkgID,
 			WebPkgRoot: webPkgRoot,
 		})
-		slices.SortFunc(sl, func(a *WebPkgRef, b *WebPkgRef) int {
+		slices.SortFunc(sl, func(a, b *WebPkgRef) int {
 			return strings.Compare(a.WebPkgId, b.WebPkgId)
 		})
 		return sl, true

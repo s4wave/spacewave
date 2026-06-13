@@ -42,7 +42,7 @@ var protobufEsLiteDistImports = []string{
 	"google/protobuf/wrappers.pb.js",
 }
 
-// GetBldrExternalWebPkgRefs returns the web pkg refs for BldrExternal.
+// GetBldrDistWebPkgRefs returns the web pkg refs for BldrExternal.
 func GetBldrDistWebPkgRefs(buildPkgsDir, bldrDistRoot string) []*web_pkg.WebPkgRef {
 	return []*web_pkg.WebPkgRef{{
 		WebPkgId:   "react",
