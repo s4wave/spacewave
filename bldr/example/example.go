@@ -78,7 +78,7 @@ func (d *Demo) Execute(ctx context.Context) error {
 	return nil
 }
 
-// DemoExecute is a full demo routine.
+// RunDemo runs the full demo routine.
 func (d *Demo) RunDemo(ctx context.Context) error {
 	b := d.GetBus()
 	le := d.GetLogger()
