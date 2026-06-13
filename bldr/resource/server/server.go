@@ -469,4 +469,4 @@ func (s *ResourceServer) ResourceAttach(
 }
 
 // _ is a type assertion
-var _ resource.SRPCResourceServiceServer
+var _ resource.SRPCResourceServiceServer = (*ResourceServer)(nil)
