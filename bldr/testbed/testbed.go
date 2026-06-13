@@ -26,7 +26,6 @@ import (
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
-	"github.com/s4wave/spacewave/net/peer"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
@@ -53,8 +52,6 @@ type Testbed struct {
 	volInfo *volume.VolumeInfo
 	// volCtrl is the volume controller used for state
 	volCtrl volume.Controller
-	// peerID is the peerID to use for operations.
-	peerID peer.ID
 	// pluginHostID is the plugin host ID.
 	pluginHostID string
 	// pluginHostObjKey is the plugin host object key.
@@ -75,7 +72,6 @@ type Testbed struct {
 
 // BuildTestbed builds the testbed constructing an in-memory volume and plugin host.
 // Returns a set of functions to call to release the controllers.
-// If stateRoot is empty, uses a temporary directory.
 func BuildTestbed(rctx context.Context, le *logrus.Entry) (*Testbed, error) {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	var rels []func()
@@ -266,7 +262,6 @@ func BuildTestbed(rctx context.Context, le *logrus.Entry) (*Testbed, error) {
 		vol:                 vol,
 		volInfo:             volInfo,
 		volCtrl:             volCtrl,
-		peerID:              vol.GetPeerID(),
 		pluginHostID:        pluginHostID,
 		pluginHostObjKey:    pluginHostObjKey,
 		worldEngine:         eng,
@@ -288,7 +283,7 @@ func (d *Testbed) GetBus() bus.Bus {
 	return d.b
 }
 
-// GetLogger returns the root logger
+// GetLogger returns the root logger.
 func (d *Testbed) GetLogger() *logrus.Entry {
 	return d.le
 }
