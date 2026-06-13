@@ -12,8 +12,6 @@ const (
 	BldrDevtoolPluginStateRunning
 	// BldrDevtoolPluginStateErrored means the plugin failed.
 	BldrDevtoolPluginStateErrored
-	// BldrDevtoolPluginStateError is kept as an alias for older call sites.
-	BldrDevtoolPluginStateError = BldrDevtoolPluginStateErrored
 )
 
 // String returns the stable display value.

@@ -46,7 +46,7 @@ func TestBldrDevtoolStatusClonesRows(t *testing.T) {
 	)
 
 	fetchRows[0].State = BldrDevtoolManifestStateError
-	pluginRows[0].State = BldrDevtoolPluginStateError
+	pluginRows[0].State = BldrDevtoolPluginStateErrored
 
 	gotFetchRows := snapshot.GetManifestFetchRows()
 	if gotFetchRows[0].State != BldrDevtoolManifestStateRunning {
@@ -116,7 +116,7 @@ func TestBldrDevtoolStatusProducerPublishesSnapshots(t *testing.T) {
 	}})
 	producer.SetStatus(source)
 	sourceRows := source.GetPluginRows()
-	sourceRows[0].State = BldrDevtoolPluginStateError
+	sourceRows[0].State = BldrDevtoolPluginStateErrored
 
 	publishedRows := producer.GetStatus().GetPluginRows()
 	if publishedRows[0].State != BldrDevtoolPluginStateRunning {
