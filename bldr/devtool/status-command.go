@@ -8,10 +8,6 @@ import (
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
 )
 
-func (d *DevtoolBus) setCommandStarting(name, summary string) {
-	d.setCommandStartingWithLogFile(name, summary, "")
-}
-
 func (d *DevtoolBus) setCommandStartingWithLogFile(name, summary, logFile string) {
 	d.SetCommandStatus(devtool_status.BldrDevtoolCommandStatus{
 		Name:    name,
@@ -21,10 +17,6 @@ func (d *DevtoolBus) setCommandStartingWithLogFile(name, summary, logFile string
 	})
 }
 
-func (d *DevtoolBus) setCommandRunning(name, summary string) {
-	d.setCommandRunningWithLogFile(name, summary, "")
-}
-
 func (d *DevtoolBus) setCommandRunningWithLogFile(name, summary, logFile string) {
 	d.SetCommandStatus(devtool_status.BldrDevtoolCommandStatus{
 		Name:    name,
@@ -32,10 +24,6 @@ func (d *DevtoolBus) setCommandRunningWithLogFile(name, summary, logFile string)
 		Summary: summary,
 		LogFile: logFile,
 	})
-}
-
-func (d *DevtoolBus) finishCommand(ctx context.Context, name string, err error) {
-	d.finishCommandWithLogFile(ctx, name, "", err)
 }
 
 func (d *DevtoolBus) finishCommandWithLogFile(ctx context.Context, name, logFile string, err error) {

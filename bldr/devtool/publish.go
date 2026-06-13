@@ -22,7 +22,6 @@ func (a *DevtoolArgs) PublishProject(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	_ = repoRoot
 	le.Infof("starting with state dir: %s", stateDir)
 
 	// initialize the storage + bus

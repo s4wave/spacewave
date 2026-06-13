@@ -108,9 +108,11 @@ func (s *cliSubprocessSupervisor) closeStderr() {
 	}
 }
 
-// exitError extracts the exit code from an exec error.
-// Returns nil for success, the original error otherwise.
-func exitError(err error) error {
+// exitWithChildCode propagates a CLI subprocess exit to the devtool process.
+// It returns nil for success and a non-ExitError unchanged, but for an
+// *exec.ExitError it terminates the process via os.Exit with the child's exit
+// code and does not return, so the devtool exit status mirrors the child.
+func exitWithChildCode(err error) error {
 	if err == nil {
 		return nil
 	}

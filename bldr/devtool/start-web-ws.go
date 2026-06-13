@@ -4,6 +4,7 @@ package devtool
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -43,7 +44,6 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	_ = repoRoot
 	le.Infof("starting with state dir: %s", stateDir)
 
 	// initialize the storage + bus
@@ -273,7 +273,7 @@ func (d *DevtoolBus) ExecuteWebWs(
 			}
 			ctrl := buildWsWebRuntime(le, d.GetBus(), runtimeID, wc)
 			err = d.GetBus().ExecuteController(req.Context(), ctrl)
-			if err != nil && err != context.Canceled && err != io.EOF {
+			if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, io.EOF) {
 				le.WithError(err).Warn("websocket disconnected with error")
 			} else {
 				le.Debug("websocket disconnected normally")

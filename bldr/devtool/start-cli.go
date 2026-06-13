@@ -169,7 +169,7 @@ func (a *DevtoolArgs) runCliSubprocess(
 			// subprocess exited on its own (not killed by us)
 			// propagate exit code to parent
 			cancelRun()
-			return exitError(err)
+			return exitWithChildCode(err)
 
 		case watchErr := <-rebuildCh:
 			if watchErr != nil {
@@ -184,7 +184,7 @@ func (a *DevtoolArgs) runCliSubprocess(
 
 		case <-ctx.Done():
 			cancelRun()
-			return exitError(proc.terminate())
+			return exitWithChildCode(proc.terminate())
 		}
 
 		// collect the updated manifest ref from the world
