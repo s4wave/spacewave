@@ -408,7 +408,7 @@ function logQuickJSBridgePipeError(
   const detail = describeQuickJSBridgePipeError(err);
   // Normal-close generation teardown ends bridge pipes by design; it is
   // lifecycle cleanup, not a plugin failure, so keep it out of console.error.
-  if (isNormalRuntimeClientClose(err)) {
+  if (isExpectedQuickJSBridgeClose(err)) {
     console.debug(
       `quickjs-runner: stream pipe closed (${label.direction}#${label.id} ${stage})${detail}:`,
       err,
@@ -418,6 +418,18 @@ function logQuickJSBridgePipeError(
   console.error(
     `quickjs-runner: stream pipe error (${label.direction}#${label.id} ${stage})${detail}:`,
     err,
+  );
+}
+
+function isExpectedQuickJSBridgeClose(err: unknown): boolean {
+  if (isNormalRuntimeClientClose(err)) {
+    return true;
+  }
+  return (
+    err instanceof Error &&
+    /^WebDocumentTracker: .+: closed while waiting for WebDocument$/.test(
+      err.message,
+    )
   );
 }
 

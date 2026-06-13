@@ -48,6 +48,10 @@ import {
 } from "../../bundler/vite/go-ts-resolver.js";
 
 describe("plugin-host-quickjs bridge handlers", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("keeps QuickJS and WebRuntime stream directions separate", async () => {
     const quickJSStream = buildPacketStream();
     const webRuntimeStream = buildPacketStream();
@@ -467,6 +471,39 @@ describe("plugin-host-quickjs bridge handlers", () => {
       "web.runtime.WebRuntimeHost/WebWorkerRpc error=context canceled",
     );
     expect(consoleError.mock.calls[0]?.[1]).toBe(remoteError);
+  });
+
+  it("treats WebDocument exhaustion shutdown as bridge lifecycle close", async () => {
+    const consoleDebug = vi
+      .spyOn(console, "debug")
+      .mockImplementation(() => {});
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const closeError = new Error(
+      "WebDocumentTracker: plugin/spacewave-web: closed while waiting for WebDocument",
+    );
+    const targetStream: PacketStream = {
+      source: failingSource(closeError),
+      sink: vi.fn(async () => {}),
+    };
+
+    await pipeQuickJSBridgeStreams(
+      buildPacketStream(),
+      Promise.resolve(targetStream),
+      { id: 18, direction: "quickjs-to-web-runtime" },
+    );
+    await waitFor(
+      () => consoleDebug.mock.calls.length > 0,
+      "WebDocument exhaustion bridge close was not logged as debug",
+    );
+
+    expect(consoleDebug.mock.calls[0]?.[0]).toContain(
+      "quickjs-to-web-runtime#18 target-receive",
+    );
+    expect(consoleDebug.mock.calls[0]?.[0]).toContain("stream pipe closed");
+    expect(consoleDebug.mock.calls[0]?.[1]).toBe(closeError);
+    expect(consoleError).not.toHaveBeenCalled();
   });
 
   it("treats root QuickJS host connection pipe errors as fatal", async () => {
