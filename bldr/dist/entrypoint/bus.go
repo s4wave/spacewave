@@ -467,7 +467,7 @@ func (d *DistBus) GetBus() bus.Bus {
 	return d.b
 }
 
-// GetLogger returns the root logger
+// GetLogger returns the root logger.
 func (d *DistBus) GetLogger() *logrus.Entry {
 	return d.le
 }
@@ -477,7 +477,7 @@ func (d *DistBus) GetStaticResolver() *static.Resolver {
 	return d.sr
 }
 
-// GetStorageID returns the storag eid.
+// GetStorageID returns the storage id.
 func (d *DistBus) GetStorageID() string {
 	return d.storageID
 }

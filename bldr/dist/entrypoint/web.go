@@ -28,7 +28,7 @@ import (
 // on hundreds of small partial responses.
 const httpRangeMinSize = 4 * 1024 * 1024
 
-// Main runs the default main entrypoint the web.
+// Main runs the default main entrypoint for the web.
 func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
 	log := logrus.New()
 	log.SetFormatter(&logrus.TextFormatter{
@@ -109,7 +109,7 @@ func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
 	}
 }
 
-// newStaticBlockStoreReaderBuilder creates the builder for the assets.kvfile block store reader
+// newStaticBlockStoreReaderBuilder creates the builder for the assets.kvfile block store reader.
 func newStaticBlockStoreReaderBuilder(le *logrus.Entry, assetsFS fs.FS, verbose bool) refcount.RefCountResolver[*kvfile.Reader] {
 	return func(ctx context.Context, released func()) (*kvfile.Reader, func(), error) {
 		// read the URL to fetch from the assets fs

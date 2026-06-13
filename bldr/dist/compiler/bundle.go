@@ -197,7 +197,6 @@ func BuildDistBundle(
 		return err
 	}
 	defer workingVolRef.Release()
-	_ = workingVolCtrli
 	workingVolCtrl, ok := workingVolCtrli.(*volume_controller.Controller)
 	if !ok {
 		return errors.New("unexpected type for volume controller")
@@ -559,9 +558,6 @@ func resolveDistGoCompiler(
 	)
 	if err != nil {
 		return "", err
-	}
-	if goCompiler.IsGoScript() {
-		return goCompiler, nil
 	}
 	return goCompiler, nil
 }
