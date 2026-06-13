@@ -23,12 +23,14 @@ func LogRetentionDaysEnvVar(projectID string) string {
 	return projectIDPrefix(projectID) + "_LOG_RETENTION_DAYS"
 }
 
+// projectIDAllowedChars matches the run of characters retained when
+// sanitizing a projectID into an environment-variable prefix.
+var projectIDAllowedChars = regexp.MustCompile(`[a-zA-Z0-9_-]+`)
+
 // projectIDPrefix sanitizes projectID into the upper-cased prefix used by
 // project-scoped environment variables (e.g. "spacewave" -> "SPACEWAVE").
 func projectIDPrefix(projectID string) string {
-	pattern := `[a-zA-Z0-9_-]+`
-	re := regexp.MustCompile(pattern)
-	matches := re.FindAllString(projectID, -1)
+	matches := projectIDAllowedChars.FindAllString(projectID, -1)
 	projectName := strings.Join(matches, "")
 	projectName = strings.ReplaceAll(projectName, "-", "_")
 	projectName = strings.TrimSpace(projectName)
