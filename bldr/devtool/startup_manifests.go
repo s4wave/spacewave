@@ -54,6 +54,9 @@ func ProjectOwnedStartupManifestPreflights(projectConfig *bldr_project.ProjectCo
 func startupManifestPlatformIDs(pluginID string, manifest *bldr_project.ManifestConfig, wasmPlatformID string) []string {
 	switch manifest.GetBuilder().GetId() {
 	case bldr_plugin_compiler_js.ConfigID:
+		if wasmPlatformID != "" {
+			return []string{wasmPlatformID}
+		}
 		return []string{"js"}
 	case bldr_plugin_compiler_go.ConfigID, web_plugin_compiler.ConfigID:
 		return []string{wasmPlatformID}
