@@ -32,10 +32,6 @@ type Constructor func(
 // Controller implements a common bldr web runtime controller.
 // Tracks attached WebRuntime state and manages RPC calls in/out.
 type Controller struct {
-	// ctx is the controller context
-	// set in the execute() function
-	// ensure not used before execute sets it.
-	ctx context.Context
 	// le is the logger
 	le *logrus.Entry
 	// bus is the controller bus
@@ -101,7 +97,6 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(rctx context.Context) error {
 	ctx, ctxCancel := context.WithCancel(rctx)
-	c.ctx = ctx
 	defer ctxCancel()
 	// Construct the web runtime.
 	rt, err := c.ctor(

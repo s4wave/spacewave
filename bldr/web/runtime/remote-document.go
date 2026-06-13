@@ -91,17 +91,6 @@ func (w *RemoteWebDocument) Execute() {
 		}
 		return err
 	}, bo)
-	/*
-		_, _ = w.r.cstate.Apply(context.Background(), func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
-			idx, val := w.r.lookupRemoteWebDocument(w.id)
-			dirty = val == w
-			if dirty {
-				_ = w.r.removeRemoteWebDocumentAtIdx(idx)
-			}
-			return dirty, nil
-		})
-		w.Close()
-	*/
 }
 
 // GetWebDocumentUuid returns the web document identifier.

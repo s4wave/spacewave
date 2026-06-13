@@ -245,28 +245,6 @@ func (r *Remote) Execute(rctx context.Context) error {
 	return r.cstate.Execute(ctx, errCh)
 }
 
-// GetWebDocumentHost returns the Mux serving requests for the given WebDocument.
-//
-// Waits for the given web document ID to be available, or ctx to be canceled.
-/*
-func (r *Remote) GetWebDocumentHost(ctx context.Context, webDocumentID string) (srpc.Mux, error) {
-	var mux srpc.Mux
-	err := r.waitState(ctx, func(s *rState) (bool, error) {
-		// look for the web document
-		_, webDocument := r.lookupRemoteWebDocument(webDocumentID)
-		if webDocument != nil {
-			mux = webDocument.ctrl.GetWebDocument().(*web_document.Remote).GetMux()
-		}
-		// keep waiting until mux != nil
-		return mux == nil, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return mux, nil
-}
-*/
-
 // GetWebDocumentOpenStream returns a OpenStreamFunc for the given WebDocument ID.
 //
 // note: when opening the stream, waits for the given web document to exist.
@@ -532,21 +510,6 @@ func (r *Remote) GetWebDocumentHost(ctx context.Context, webDocumentID string, _
 func (r *Remote) GetWebWorkerHost(ctx context.Context, webWorkerID string, _ func()) (srpc.Invoker, func(), error) {
 	// TODO: Separate mux for each WebWorker?
 	// TODO server ID should be plugin/[plugin-id]
-	/*
-		var mux srpc.Mux
-		err := r.cstate.Wait(ctx, func(ctx context.Context, val *Remote) (bool, error) {
-			if !r.ready {
-				return false, nil
-			}
-			_, doc := r.lookupRemoteWebDocument(webDocumentID)
-			if doc == nil {
-				return false, nil
-			}
-			mux = doc.remote.GetMux()
-			return mux != nil, nil
-		})
-		return mux, nil, err
-	*/
 	return &webWorkerHostInvoker{
 		webWorkerID: webWorkerID,
 		invoker:     bifrost_rpc.NewInvoker(r.bus, "web-worker/"+webWorkerID, true),
@@ -630,16 +593,6 @@ func (r *Remote) updateStatusSnapshot() {
 	}
 	r.snapshotCtr.SetValue(status)
 }
-
-// sortRemoteWebDocuments sorts the remoteWebDocuments field.
-// expects mtx to be locked
-/*
-func (r *Remote) sortRemoteWebDocuments() {
-	sort.Slice(r.remoteWebDocuments, func(i, j int) bool {
-		return r.remoteWebDocuments[i].id < r.remoteWebDocuments[j].id
-	})
-}
-*/
 
 // _ is a type assertion
 var (

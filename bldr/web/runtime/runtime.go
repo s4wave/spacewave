@@ -68,7 +68,7 @@ type WebRuntimeHandler interface {
 	HandleWebDocument(web_document.WebDocument)
 }
 
-// RuntimeConfig is a configuration for the runtime controller.
+// WebRuntimeConfig is a configuration for the runtime controller.
 type WebRuntimeConfig interface {
 	// Config indicates this is a controllerbus config object.
 	config.Config

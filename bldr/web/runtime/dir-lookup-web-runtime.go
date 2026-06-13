@@ -56,7 +56,7 @@ func (d *lookupWebRuntime) Validate() error {
 	return nil
 }
 
-// GetValueLookupWebRuntimeOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *lookupWebRuntime) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		UnrefDisposeDur:            time.Millisecond * 100,
@@ -64,7 +64,7 @@ func (d *lookupWebRuntime) GetValueOptions() directive.ValueOptions {
 	}
 }
 
-// LookupWebRuntime is the web view ID to lookup.
+// LookupWebRuntimeID is the web runtime ID to lookup.
 func (d *lookupWebRuntime) LookupWebRuntimeID() string {
 	return d.webRuntimeID
 }
@@ -97,7 +97,7 @@ func (d *lookupWebRuntime) GetName() string {
 	return "LookupWebRuntime"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 func (d *lookupWebRuntime) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	vals["web-runtime-id"] = []string{d.LookupWebRuntimeID()}

@@ -18,7 +18,6 @@ import (
 
 // Saucer is a running instance of the Saucer webview.
 type Saucer struct {
-	ctx context.Context
 	cmd *oexec.Cmd
 
 	runtimeUuid string
@@ -105,7 +104,6 @@ func RunSaucer(
 	}()
 
 	return &Saucer{
-		ctx: ctx,
 		cmd: cmd,
 
 		runtimeUuid: runtimeUuid,

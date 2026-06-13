@@ -16,7 +16,6 @@ import (
 
 // Electron is a running instance of Electron.
 type Electron struct {
-	ctx context.Context
 	cmd *oexec.Cmd
 
 	runtimeUuid  string
@@ -85,7 +84,6 @@ func RunElectron(
 	}
 
 	e := &Electron{
-		ctx: ctx,
 		cmd: cmd,
 
 		runtimeUuid:  runtimeUuid,
