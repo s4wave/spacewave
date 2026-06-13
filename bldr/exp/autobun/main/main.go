@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,6 +12,7 @@ import (
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/util/autobun"
 	"github.com/aperturerobotics/util/gitroot"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -75,7 +75,7 @@ func main() {
 			} else {
 				cwd, err := os.Getwd()
 				if err != nil {
-					return fmt.Errorf("failed to get working directory: %w", err)
+					return errors.Wrap(err, "failed to get working directory")
 				}
 				resolvedStateDir = filepath.Join(cwd, stateDir)
 			}
