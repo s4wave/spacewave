@@ -738,6 +738,35 @@ describe('service worker fetch release cache routing', () => {
     expect(await response.text()).toBe(body)
   })
 
+  it('preserves successful frontend asset module bodies through runtime fetch', async () => {
+    const body = `${'x'.repeat(32 * 1024)}const App = () => null\nexport { App as default }\n`
+    vi.mocked(proxyFetch).mockResolvedValue(
+      new Response(body, {
+        status: 200,
+        headers: {
+          'Content-Length': String(body.length),
+          'Content-Type': 'application/javascript',
+        },
+      }),
+    )
+
+    const response = await swFetch(
+      buildFetchOnlyEvent(
+        '/b/pa/spacewave-app/v/b/fe/app/App-livehash.mjs',
+        undefined,
+        'client-a',
+      ),
+    )
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('X-Bldr-Fetch-Source')).toBe('plugin-assets')
+    expect(response.headers.get('X-Bldr-Plugin-Asset-Fetch-Result')).toBe(
+      'live',
+    )
+    expect(response.headers.get('Content-Length')).toBe(String(body.length))
+    expect(await response.text()).toBe(body)
+  })
+
   it('returns a typed plugin asset missing response for missing plugin assets', async () => {
     vi.mocked(proxyFetch).mockResolvedValue(
       new Response('plugin asset missing', { status: 404 }),

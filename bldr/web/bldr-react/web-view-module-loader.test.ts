@@ -5,6 +5,7 @@ import {
   isWebViewRootPluginAssetPath,
   loadWebViewScriptModule,
   WebViewRootAssetLoadError,
+  webViewModuleImportErrorEvent,
   webViewRootAssetStatusEvent,
 } from './web-view-module-loader.js'
 
@@ -74,6 +75,13 @@ describe('WebView root module loader', () => {
   })
 
   it('preserves nested import and module evaluation failures after a live root asset', async () => {
+    const events: unknown[] = []
+    const listener = (event: Event) => {
+      if (event instanceof CustomEvent) {
+        events.push(event.detail)
+      }
+    }
+    globalThis.addEventListener(webViewModuleImportErrorEvent, listener)
     const fetchRootAsset = vi.fn(async () =>
       pluginAssetResponse(200, 'export default function App() {}', {
         'content-type': 'text/javascript',
@@ -84,21 +92,44 @@ describe('WebView root module loader', () => {
     const nestedFailure = new Error(
       'Failed to fetch dynamically imported module: /b/pa/spacewave-app/v/chunk-missing.mjs',
     )
+    nestedFailure.name = 'TypeError'
     const importModule = vi.fn(async () => {
       throw nestedFailure
     })
 
-    await expect(
-      loadWebViewScriptModule('/b/pa/spacewave-app/v/app/App-live.mjs', {
-        fetchRootAsset,
-        importModule,
-      }),
-    ).rejects.toBe(nestedFailure)
+    try {
+      await expect(
+        loadWebViewScriptModule('/b/pa/spacewave-app/v/app/App-live.mjs', {
+          fetchRootAsset,
+          importModule,
+        }),
+      ).rejects.toBe(nestedFailure)
 
-    expect(fetchRootAsset).toHaveBeenCalledOnce()
-    expect(importModule).toHaveBeenCalledWith(
-      '/b/pa/spacewave-app/v/app/App-live.mjs',
-    )
+      expect(fetchRootAsset).toHaveBeenCalledOnce()
+      expect(importModule).toHaveBeenCalledWith(
+        '/b/pa/spacewave-app/v/app/App-live.mjs',
+      )
+      expect(globalThis.__bldrWebViewModuleImportError).toMatchObject({
+        scriptPath: '/b/pa/spacewave-app/v/app/App-live.mjs',
+        name: 'TypeError',
+        message:
+          'Failed to fetch dynamically imported module: /b/pa/spacewave-app/v/chunk-missing.mjs',
+        rootAsset: {
+          scriptPath: '/b/pa/spacewave-app/v/app/App-live.mjs',
+          status: 200,
+          ok: true,
+          classification: 'live',
+        },
+      })
+      expect(events).toHaveLength(1)
+      expect(events[0]).toMatchObject(
+        globalThis.__bldrWebViewModuleImportError ?? {},
+      )
+    } finally {
+      globalThis.removeEventListener(webViewModuleImportErrorEvent, listener)
+      globalThis.__bldrWebViewModuleImportError = undefined
+      globalThis.__bldrWebViewRootAssetStatus = undefined
+    }
   })
 
   it('imports the module after a live root plugin asset result', async () => {

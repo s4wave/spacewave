@@ -4,6 +4,11 @@ package releasewasm
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -262,6 +267,40 @@ func TestGoScriptServiceWorkerPluginDistModuleIntegrity(t *testing.T) {
 	t.Logf("ServiceWorker plugin dist module integrity probe: %#v", raw)
 }
 
+func TestGoScriptQuickstartDriveLoadsAppModule(t *testing.T) {
+	compiler, err := resolveReleaseWasmCompiler()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if compiler != releaseWasmCompilerGoScript {
+		t.Skipf("set %s=true to run GoScript quickstart Drive app module probe", E2EReleaseWasmGoScriptEnv)
+	}
+
+	t.Setenv("E2E_RELEASE_WASM_HTTP_TRACE", "1")
+	page := testHarness.newPage(t)
+	if _, err := page.Goto(testHarness.getBaseURL() + "/"); err != nil {
+		t.Fatalf("goto root: %v", err)
+	}
+
+	waitForPrerenderRoot(t, page)
+	waitForBootFunction(t, page)
+	_, err = page.Evaluate(`() => {
+		globalThis.__swBoot('#/quickstart/drive')
+	}`)
+	if err != nil {
+		t.Fatalf("start root production goscript bundle: %v", err)
+	}
+	waitForLiveApp(t, page)
+	waitForPluginWorkersRunning(t, page, []string{
+		"plugin/spacewave-core",
+		"plugin/spacewave-launcher",
+	})
+	waitForQuickstartAppRoute(t, page)
+	waitForQuickstartDriveAppModule(t, page)
+}
+
+const sonnerModulePath = "/b/pkg/sonner/dist/index.mjs"
+
 func waitForPluginWorkersRunning(t *testing.T, page playwright.Page, workerIDs []string) {
 	t.Helper()
 
@@ -280,6 +319,305 @@ func waitForPluginWorkersRunning(t *testing.T, page playwright.Page, workerIDs [
 		dumpPageState(t, page)
 		t.Fatalf("wait for plugin workers running %v: %v", workerIDs, err)
 	}
+}
+
+func waitForQuickstartDriveAppModule(t *testing.T, page playwright.Page) {
+	t.Helper()
+
+	raw, err := page.WaitForFunction(`() => {
+		const text = document.body?.innerText || ''
+		const failed = text.match(/Failed to load module\s+(\S+)/)
+		if (failed) {
+			return {
+				state: 'failed',
+				modulePath: failed[1],
+				text,
+			}
+		}
+		if (
+			document.querySelector("[data-testid='unixfs-browser']") ||
+			text.includes('Create a Drive') ||
+			text.includes('Drive Quickstart')
+		) {
+			return {
+				state: 'loaded',
+				href: location.href,
+				text,
+			}
+		}
+		return false
+	}`, nil, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(browserWaitMS),
+	})
+	if err != nil {
+		dumpPageState(t, page)
+		t.Fatalf("wait for quickstart Drive app module: %v", err)
+	}
+	value, err := raw.JSONValue()
+	if err != nil {
+		dumpPageState(t, page)
+		t.Fatalf("read quickstart Drive app module probe payload: %v", err)
+	}
+	state, ok := value.(map[string]any)
+	if !ok {
+		dumpPageState(t, page)
+		t.Fatalf("unexpected quickstart Drive app module probe payload %T", value)
+	}
+	if state["state"] == "failed" {
+		modulePath, _ := state["modulePath"].(string)
+		if modulePath != "" {
+			collectQuickstartModuleLoadDifferential(t, page, modulePath)
+		}
+		dumpPageState(t, page)
+		t.Fatalf("quickstart Drive app module failed to load: %v", state["modulePath"])
+	}
+	t.Logf("quickstart Drive app module loaded: %#v", state)
+}
+
+func collectQuickstartModuleLoadDifferential(t *testing.T, page playwright.Page, modulePath string) {
+	t.Helper()
+
+	browserProbe := collectBrowserModuleLoadDifferential(t, page, modulePath)
+	rootDirect := directServerModuleProbe(t, modulePath)
+	sonnerDirect := directServerModuleProbe(t, sonnerModulePath)
+	report := map[string]any{
+		"modulePath":   modulePath,
+		"browserProbe": browserProbe,
+		"directServer": map[string]any{
+			"root":   rootDirect,
+			"sonner": sonnerDirect,
+		},
+	}
+	reportJSON, err := json.MarshalIndent(report, "", "  ")
+	if err != nil {
+		t.Fatalf("marshal module load differential: %v", err)
+	}
+	t.Logf("quickstart module load differential: %s", string(reportJSON))
+	writeModuleLoadDifferentialArtifact(t, string(reportJSON))
+
+	rootBrowser, _ := browserProbe["rootFetch"].(map[string]any)
+	sonnerBrowser, _ := browserProbe["sonnerFetch"].(map[string]any)
+	assertBrowserModuleFetchComplete(t, "root App module", rootBrowser)
+	assertBrowserModuleFetchComplete(t, "Sonner module", sonnerBrowser)
+}
+
+func collectBrowserModuleLoadDifferential(t *testing.T, page playwright.Page, modulePath string) map[string]any {
+	t.Helper()
+
+	raw, err := page.Evaluate(`async (args) => {
+		const textEncoder = new TextEncoder()
+		const toHex = (bytes) =>
+			Array.from(new Uint8Array(bytes))
+				.map((byte) => byte.toString(16).padStart(2, '0'))
+				.join('')
+		const sha256 = async (text) =>
+			toHex(await crypto.subtle.digest('SHA-256', textEncoder.encode(text)))
+		const headerObject = (headers) => {
+			const out = {}
+			for (const [key, value] of headers.entries()) {
+				if (
+					key === 'content-length' ||
+					key === 'content-type' ||
+					key.startsWith('x-bldr-')
+				) {
+					out[key] = value
+				}
+			}
+			return out
+		}
+		const cacheBust = (path, label) =>
+			path + (path.includes('?') ? '&' : '?') + label + '=' + Date.now()
+		const fetchProbe = async (path, label) => {
+			const requestURL = cacheBust(path, label)
+			try {
+				const response = await fetch(requestURL, { cache: 'reload' })
+				try {
+					const text = await response.text()
+					return {
+						path,
+						requestURL,
+						status: response.status,
+						ok: response.ok,
+						headers: headerObject(response.headers),
+						bodyLength: text.length,
+						bodyByteLength: textEncoder.encode(text).length,
+						sha256: await sha256(text),
+						head: text.slice(0, 160),
+						tail: text.slice(-240),
+					}
+				} catch (error) {
+					return {
+						path,
+						requestURL,
+						ok: false,
+						phase: 'body',
+						status: response.status,
+						headers: headerObject(response.headers),
+						name: error?.name ?? '',
+						message: error?.message ?? String(error),
+						stack: error?.stack ?? '',
+					}
+				}
+			} catch (error) {
+				return {
+					path,
+					requestURL,
+					ok: false,
+					phase: 'fetch',
+					name: error?.name ?? '',
+					message: error?.message ?? String(error),
+					stack: error?.stack ?? '',
+				}
+			}
+		}
+		const importProbe = async (path, label) => {
+			const requestURL = cacheBust(path, label)
+			try {
+				const mod = await import(/* @vite-ignore */ requestURL)
+				return {
+					path,
+					requestURL,
+					ok: true,
+					exportKeys: Object.keys(mod).sort(),
+					hasDefault: Object.prototype.hasOwnProperty.call(mod, 'default'),
+				}
+			} catch (error) {
+				return {
+					path,
+					requestURL,
+					ok: false,
+					name: error?.name ?? '',
+					message: error?.message ?? String(error),
+					stack: error?.stack ?? '',
+				}
+			}
+		}
+		const performanceEntries = performance
+			.getEntriesByType('resource')
+			.map((entry) => ({
+				name: entry.name,
+				initiatorType: entry.initiatorType,
+				transferSize: entry.transferSize,
+				encodedBodySize: entry.encodedBodySize,
+				decodedBodySize: entry.decodedBodySize,
+			}))
+			.filter((entry) =>
+				entry.name.includes('/b/pa/') ||
+				entry.name.includes('/b/pkg/sonner'),
+			)
+		return {
+			location: location.href,
+			controllerURL: navigator.serviceWorker.controller?.scriptURL ?? '',
+			rootAssetStatus: globalThis.__bldrWebViewRootAssetStatus ?? null,
+			moduleImportError: globalThis.__bldrWebViewModuleImportError ?? null,
+			rootFetch: await fetchProbe(args.modulePath, 'root_module_probe'),
+			sonnerFetch: await fetchProbe(args.sonnerPath, 'sonner_module_probe'),
+			rootImport: await importProbe(args.modulePath, 'root_import_probe'),
+			sonnerImport: await importProbe(args.sonnerPath, 'sonner_import_probe'),
+			performanceEntries,
+		}
+	}`, map[string]any{
+		"modulePath": modulePath,
+		"sonnerPath": sonnerModulePath,
+	})
+	if err != nil {
+		t.Fatalf("collect browser module load differential: %v", err)
+	}
+	probe, ok := raw.(map[string]any)
+	if !ok {
+		t.Fatalf("unexpected browser module load differential payload %T", raw)
+	}
+	return probe
+}
+
+func directServerModuleProbe(t *testing.T, modulePath string) map[string]any {
+	t.Helper()
+
+	if !strings.HasPrefix(modulePath, "/") {
+		t.Fatalf("module path must be absolute: %q", modulePath)
+	}
+	req, err := http.NewRequest(http.MethodGet, testHarness.getBaseURL()+modulePath, nil)
+	if err != nil {
+		t.Fatalf("build direct module request %q: %v", modulePath, err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("direct module request %q: %v", modulePath, err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read direct module response %q: %v", modulePath, err)
+	}
+	sum := sha256.Sum256(body)
+	bodyText := string(body)
+	head := bodyText
+	if len(head) > 160 {
+		head = head[:160]
+	}
+	tail := bodyText
+	if len(tail) > 240 {
+		tail = tail[len(tail)-240:]
+	}
+	return map[string]any{
+		"path":           modulePath,
+		"status":         resp.StatusCode,
+		"contentType":    resp.Header.Get("Content-Type"),
+		"contentLength":  resp.Header.Get("Content-Length"),
+		"bodyByteLength": len(body),
+		"sha256":         hex.EncodeToString(sum[:]),
+		"head":           head,
+		"tail":           tail,
+	}
+}
+
+func assertBrowserModuleFetchComplete(t *testing.T, label string, browser map[string]any) {
+	t.Helper()
+
+	if browser == nil {
+		t.Fatalf("%s browser probe missing", label)
+	}
+	if moduleProbeStatus(browser["status"]) != 200 {
+		t.Fatalf("%s browser probe did not return 200: %#v", label, browser)
+	}
+	if browser["ok"] != true {
+		t.Fatalf("%s browser body failed after headers: %#v", label, browser)
+	}
+}
+
+func moduleProbeStatus(value any) int {
+	switch typed := value.(type) {
+	case int:
+		return typed
+	case int64:
+		return int(typed)
+	case float64:
+		return int(typed)
+	default:
+		return 0
+	}
+}
+
+func writeModuleLoadDifferentialArtifact(t *testing.T, state string) {
+	t.Helper()
+
+	if testHarness == nil || testHarness.artifactDir == "" {
+		return
+	}
+	replacer := strings.NewReplacer("/", "-", "\\", "-", " ", "-", ":", "-")
+	path := filepath.Join(
+		testHarness.artifactDir,
+		replacer.Replace(strings.ToLower(t.Name()))+"-module-load-differential.json",
+	)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Logf("write module load differential artifact mkdir %s: %v", path, err)
+		return
+	}
+	if err := os.WriteFile(path, []byte(state), 0o644); err != nil {
+		t.Logf("write module load differential artifact %s: %v", path, err)
+		return
+	}
+	t.Logf("module load differential artifact: %s", path)
 }
 
 func TestProductionRuntimeMatchesReleaseDescriptor(t *testing.T) {

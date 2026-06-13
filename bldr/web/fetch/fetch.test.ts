@@ -142,6 +142,126 @@ describe('proxyFetch', () => {
     )
   })
 
+  it('reads a complete Sonner-sized module response through the proxy stream', async () => {
+    const moduleTail = 'export const toast = "sonner";\n'
+      .repeat(3)
+      .padEnd(105, '/')
+    const body = `${'x'.repeat(32 * 1024)}${moduleTail}`
+    expect(new TextEncoder().encode(body)).toHaveLength(32873)
+    const svc: FetchService = {
+      Fetch() {
+        return (async function* () {
+          yield {
+            body: {
+              case: 'responseInfo',
+              value: {
+                status: 200,
+                statusText: 'OK',
+                headers: {
+                  'content-length': String(body.length),
+                  'content-type': 'text/javascript; charset=utf-8',
+                },
+              },
+            },
+          }
+          yield {
+            body: {
+              case: 'responseData',
+              value: {
+                data: new TextEncoder().encode(body.slice(0, 32 * 1024)),
+                done: false,
+              },
+            },
+          }
+          yield {
+            body: {
+              case: 'responseData',
+              value: {
+                data: new TextEncoder().encode(body.slice(32 * 1024)),
+                done: false,
+              },
+            },
+          }
+          yield {
+            body: {
+              case: 'responseData',
+              value: {
+                data: new Uint8Array(),
+                done: true,
+              },
+            },
+          }
+        })()
+      },
+    }
+
+    const resp = await proxyFetch(
+      svc,
+      new Request('https://example.test/b/pkg/sonner/dist/index.mjs'),
+      'client-1',
+    )
+
+    expect(resp.status).toBe(200)
+    expect(resp.headers.get('content-length')).toBe(String(body.length))
+    await expect(resp.text()).resolves.toBe(body)
+  })
+
+  it('errors a Sonner-sized module response when the transport closes after headers and body bytes', async () => {
+    const moduleTail = 'export const toast = "sonner";\n'
+      .repeat(3)
+      .padEnd(105, '/')
+    const body = `${'x'.repeat(32 * 1024)}${moduleTail}`
+    expect(new TextEncoder().encode(body)).toHaveLength(32873)
+    const svc: FetchService = {
+      Fetch() {
+        return (async function* () {
+          yield {
+            body: {
+              case: 'responseInfo',
+              value: {
+                status: 200,
+                statusText: 'OK',
+                headers: {
+                  'content-length': String(body.length),
+                  'content-type': 'text/javascript; charset=utf-8',
+                },
+              },
+            },
+          }
+          yield {
+            body: {
+              case: 'responseData',
+              value: {
+                data: new TextEncoder().encode(body.slice(0, 32 * 1024)),
+                done: false,
+              },
+            },
+          }
+          yield {
+            body: {
+              case: 'responseData',
+              value: {
+                data: new TextEncoder().encode(body.slice(32 * 1024)),
+                done: false,
+              },
+            },
+          }
+        })()
+      },
+    }
+
+    const resp = await proxyFetch(
+      svc,
+      new Request('https://example.test/b/pkg/sonner/dist/index.mjs'),
+      'client-1',
+    )
+
+    expect(resp.status).toBe(200)
+    await expect(resp.text()).rejects.toThrow(
+      'fetch response stream ended before the final done packet',
+    )
+  })
+
   it('returns the proxied response when a header value contains unicode', async () => {
     const svc: FetchService = {
       Fetch() {

@@ -432,6 +432,7 @@ func isRelevantReleaseWasmRequest(url string) bool {
 		strings.Contains(url, "/sw-") ||
 		strings.Contains(url, "/b/pd/") ||
 		strings.Contains(url, "/b/pa/") ||
+		strings.Contains(url, "/b/pkg/") ||
 		strings.Contains(url, "/quickstart/drive") ||
 		strings.Contains(url, "/entrypoint/") {
 		return true
