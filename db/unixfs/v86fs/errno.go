@@ -36,6 +36,7 @@ const (
 	eexist  = 17
 	enotdir = 20
 	einval  = 22
+	erofs   = 30
 	enosys  = 38
 )
 
@@ -52,6 +53,9 @@ func errnoFromError(err error) uint32 {
 	}
 	if errors.Is(err, unixfs_errors.ErrNotDirectory) {
 		return enotdir
+	}
+	if errors.Is(err, unixfs_errors.ErrReadOnly) {
+		return erofs
 	}
 	if errors.Is(err, fs.ErrInvalid) {
 		return einval
@@ -107,5 +111,9 @@ func getNodeMode(ctx context.Context, h *unixfs.FSHandle) (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
-	return mode | uint32(perm), nil
+	// The S_IF* type comes from GetNodeType; mask the FSHandle FileMode to its
+	// permission bits so Go's high type flags (fs.ModeDir = 1<<31, ModeSymlink,
+	// ...) never leak into the wire mode. A polluted root mode wedges the guest
+	// v86fs mount before it issues the first LOOKUP.
+	return mode | uint32(perm.Perm()), nil
 }

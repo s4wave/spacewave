@@ -47,23 +47,39 @@ func NewServer(resolver MountResolver) *Server {
 	}
 }
 
+// mountNotifyMsg builds the MOUNT_NOTIFY frame instructing the guest to
+// auto-mount a runtime mount, or nil for the root mount. The root mount
+// (guest path "/") is mounted by the kernel via root=v86fs during boot, not by
+// a host push; pushing MOUNT_NOTIFY for "/" during early boot races
+// prepare_namespace and wedges the root mount, so the root is never notified.
+func mountNotifyMsg(entry *MountEntry) *V86FsMessage {
+	if entry == nil || entry.Path == "/" {
+		return nil
+	}
+	return &V86FsMessage{
+		Body: &V86FsMessage_MountNotify{
+			MountNotify: &V86FsMountNotify{
+				Name:      entry.Name,
+				MountPath: entry.Path,
+			},
+		},
+	}
+}
+
 // AddMount registers a dynamic mount and sends MOUNT_NOTIFY to active sessions.
 func (s *Server) AddMount(name, path string, handle *unixfs.FSHandle) {
+	entry := &MountEntry{Name: name, Path: path, Handle: handle}
 	s.mtx.Lock()
-	s.mounts[name] = &MountEntry{Name: name, Path: path, Handle: handle}
+	s.mounts[name] = entry
 	sessions := make([]*session, 0, len(s.sessions))
 	for sess := range s.sessions {
 		sessions = append(sessions, sess)
 	}
 	s.mtx.Unlock()
 
-	msg := &V86FsMessage{
-		Body: &V86FsMessage_MountNotify{
-			MountNotify: &V86FsMountNotify{
-				Name:      name,
-				MountPath: path,
-			},
-		},
+	msg := mountNotifyMsg(entry)
+	if msg == nil {
+		return
 	}
 	for _, sess := range sessions {
 		sess.queueNotification(msg)
@@ -138,14 +154,9 @@ func (s *Server) RelayV86Fs(strm SRPCV86FsService_RelayV86FsStream) error {
 	s.sessions[sess] = struct{}{}
 	seed := make([]*V86FsMessage, 0, len(s.mounts))
 	for _, entry := range s.mounts {
-		seed = append(seed, &V86FsMessage{
-			Body: &V86FsMessage_MountNotify{
-				MountNotify: &V86FsMountNotify{
-					Name:      entry.Name,
-					MountPath: entry.Path,
-				},
-			},
-		})
+		if msg := mountNotifyMsg(entry); msg != nil {
+			seed = append(seed, msg)
+		}
 	}
 	s.mtx.Unlock()
 	for _, msg := range seed {
@@ -433,6 +444,18 @@ func (ss *session) handleLookup(ctx context.Context, tag uint32, req *V86FsLooku
 	}
 	child, err := parent.Lookup(ctx, req.GetName())
 	if err != nil {
+		// A missing child is a normal negative lookup, not a transport error.
+		// The guest only reads the ENOENT status from a typed LOOKUP_R reply and
+		// maps any ERROR_REPLY to EIO, so absence must be reported as a typed
+		// reply with status set, matching every other v86fs reply.
+		if errors.Is(err, unixfs_errors.ErrNotExist) || errors.Is(err, fs.ErrNotExist) {
+			return &V86FsMessage{
+				Tag: tag,
+				Body: &V86FsMessage_LookupReply{
+					LookupReply: &V86FsLookupReply{Status: enoent},
+				},
+			}, nil
+		}
 		return nil, err
 	}
 	mode, err := getNodeMode(ctx, child)

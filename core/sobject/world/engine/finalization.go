@@ -83,10 +83,7 @@ func (e *soEngine) waitFinalizationAcceptedRoot(
 	packet *SpaceWorldFinalizationPacket,
 	acceptedSeqno uint64,
 ) (*sobject.SORoot, *bucket.ObjectRef, error) {
-	minSeqno := packet.GetBaseSharedObjectRoot().GetInnerSeqno() + 1
-	if acceptedSeqno > minSeqno {
-		minSeqno = acceptedSeqno
-	}
+	minSeqno := max(acceptedSeqno, packet.GetBaseSharedObjectRoot().GetInnerSeqno()+1)
 	snap, err := e.so.GetSharedObjectState(ctx)
 	if err != nil {
 		return nil, nil, err

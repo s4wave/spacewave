@@ -49,6 +49,7 @@ func newVmCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 			newVmStopCommand(&statePath, &sessionIdx, &spaceID),
 			newVmWatchCommand(&statePath, &sessionIdx, &spaceID),
 			newVmImageCommand(&statePath, &sessionIdx, &spaceID),
+			newVmRunCommand(),
 		},
 	}
 }

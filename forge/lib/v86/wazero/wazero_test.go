@@ -10,8 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/s4wave/spacewave/db/unixfs"
-	unixfs_tar "github.com/s4wave/spacewave/db/unixfs/tar"
 	unixfs_v86fs "github.com/s4wave/spacewave/db/unixfs/v86fs"
 )
 
@@ -162,23 +160,11 @@ func TestV86WazeroV86FSDeviceProbe(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve v86 assets: %v", err)
 	}
-	rootfs, err := os.Open(assets.RootfsTar)
+	v86fsServer, releaseRoot, err := OpenV86FSRoot(assets.RootfsTar)
 	if err != nil {
-		t.Fatalf("open rootfs tar: %v", err)
+		t.Fatalf("open v86fs root: %v", err)
 	}
-	defer rootfs.Close()
-	rootCursor, err := unixfs_tar.NewTarFSCursorFromReader(rootfs)
-	if err != nil {
-		t.Fatalf("parse rootfs tar: %v", err)
-	}
-	rootHandle, err := unixfs.NewFSHandle(rootCursor)
-	if err != nil {
-		t.Fatalf("build rootfs handle: %v", err)
-	}
-	defer rootHandle.Release()
-
-	v86fsServer := unixfs_v86fs.NewServer(nil)
-	v86fsServer.AddMount("", "/", rootHandle)
+	defer releaseRoot()
 
 	instance, err := InstantiateHostRuntime(ctx, assets.Wasm, HostRuntimeOptions{})
 	if err != nil {
@@ -240,23 +226,11 @@ func TestV86WazeroV86FSRootShell(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve v86 assets: %v", err)
 	}
-	rootfs, err := os.Open(assets.RootfsTar)
+	v86fsServer, releaseRoot, err := OpenV86FSRoot(assets.RootfsTar)
 	if err != nil {
-		t.Fatalf("open rootfs tar: %v", err)
+		t.Fatalf("open v86fs root: %v", err)
 	}
-	defer rootfs.Close()
-	rootCursor, err := unixfs_tar.NewTarFSCursorFromReader(rootfs)
-	if err != nil {
-		t.Fatalf("parse rootfs tar: %v", err)
-	}
-	rootHandle, err := unixfs.NewFSHandle(rootCursor)
-	if err != nil {
-		t.Fatalf("build rootfs handle: %v", err)
-	}
-	defer rootHandle.Release()
-
-	v86fsServer := unixfs_v86fs.NewServer(nil)
-	v86fsServer.AddMount("", "/", rootHandle)
+	defer releaseRoot()
 
 	instance, err := InstantiateHostRuntime(ctx, assets.Wasm, HostRuntimeOptions{})
 	if err != nil {
@@ -284,19 +258,22 @@ func TestV86WazeroV86FSRootShell(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("initialize v86 CPU with v86fs: %v", err)
 	}
+	instance.SetSerialSink(os.Stderr)
 
 	waitCtx, waitCancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer waitCancel()
 	if _, err := waitSerial(waitCtx, instance, ":/#"); err != nil {
 		stats := instance.v86fs.stats()
-		t.Fatalf("v86fs root shell prompt not reached: %v; device{driver_ok=%t last_status=%#x kicks=%v requests=%d replies=%d notifications=%d} serial_tail=%q top_writes=%s logs=%q",
+		t.Fatalf("v86fs root shell prompt not reached: %v; device{driver_ok=%t last_status=%#x irq_line=%d kicks=%v requests=%d replies=%d notifications=%d trace=%v} serial_tail=%q top_writes=%s logs=%q",
 			err,
 			stats.driverOK,
 			stats.lastStatus,
+			stats.irqLine,
 			stats.kicks,
 			stats.requests,
 			stats.replies,
 			stats.notifications,
+			stats.trace,
 			tailString(string(instance.SerialOutput()), 8192),
 			topPorts(instance.ioWrites),
 			tailStrings(instance.Logs, 8),
@@ -368,6 +345,7 @@ func TestV86WazeroHost9PRootShell(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("initialize v86 CPU with host9p: %v", err)
 	}
+	instance.SetSerialSink(os.Stderr)
 
 	waitCtx, waitCancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer waitCancel()

@@ -76,8 +76,7 @@ func TestWorldEngineStaleHeadPublicationRejectsOpenWriter(t *testing.T) {
 }
 
 func BenchmarkWorldEngineOneWriterBaseline(b *testing.B) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := b.Context()
 
 	eng, cleanup := setupWorldEngineCoordBaseline(b, ctx)
 	defer cleanup()

@@ -20,8 +20,7 @@ import (
 )
 
 func BenchmarkSharedObjectWorldEngineFinalizationBaseline(b *testing.B) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := b.Context()
 
 	tb, err := testbed.Default(ctx)
 	if err != nil {

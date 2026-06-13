@@ -49,20 +49,23 @@ import {
 import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import { CreateComputersDashboardOp } from '@s4wave/sdk/device/device.pb.js'
 import { CREATE_COMPUTERS_DASHBOARD_OP_ID } from '@s4wave/sdk/device/computers/create-computers-dashboard.js'
-import { V86WizardConfig } from '@s4wave/sdk/vm/v86-wizard.pb.js'
+import { CreateVmV86Op, SetV86StateOp, VmState } from '@s4wave/sdk/vm/v86.pb.js'
+import { CREATE_VM_V86_OP_ID } from '@s4wave/sdk/vm/create-vm-v86.js'
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
 import { InitForgeQuickstartOp } from '@s4wave/core/forge/dashboard/dashboard.pb.js'
 import { INIT_FORGE_QUICKSTART_OP_ID } from '@s4wave/sdk/forge/dashboard/init-forge-quickstart.js'
 import { markInteracted } from '@s4wave/web/state/interaction.js'
 import { mountSpace } from '@s4wave/app/space/space.js'
-import { buildWizardObjectKey } from '@s4wave/app/space/create-op-builders.js'
 import {
-  buildV86QuickstartWizardConfig,
-  buildV86QuickstartWizardKey,
-  V86_WIZARD_TARGET_KEY_PREFIX,
-  V86_WIZARD_TARGET_TYPE_ID,
-  V86_WIZARD_TYPE_ID,
+  buildObjectKey,
+  buildWizardObjectKey,
+} from '@s4wave/app/space/create-op-builders.js'
+import {
+  DEFAULT_V86_MEMORY_MB,
+  DEFAULT_V86_VGA_MEMORY_MB,
+  V86_DEFAULT_CDN_IMAGE_OBJECT_KEY,
+  V86_USER_IMAGE_OBJECT_KEY,
 } from '@s4wave/app/vm/v86-wizard-config.js'
 import {
   AddDeviceDefaultName,
@@ -75,6 +78,7 @@ import { markQuickstartStartupBoundary } from './startup-boundary.js'
 
 const NOTES_PLUGIN_ID = 'spacewave-notes'
 const V86_PLUGIN_ID = 'spacewave-v86'
+const SET_V86_STATE_OP_ID = 'vm/v86/set-state'
 const QUICKSTART_REGISTRATION_TIMEOUT_MS = import.meta.env?.DEV ? 240000 : 30000
 const QUICKSTART_LOCAL_PROVIDER_READY_TIMEOUT_MS = 120000
 const QUICKSTART_CREATE_LOCAL_ACCOUNT_TIMEOUT_MS = import.meta.env?.DEV
@@ -1242,34 +1246,78 @@ async function initChatQuickstart(
   )
 }
 
-// initV86Quickstart seeds a persistent v86 wizard and indexes the Space to it.
+// initV86Quickstart creates a VM from the default CDN image and requests boot.
 async function initV86Quickstart(
   setup: QuickstartSetup,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  const now = new Date()
-  const wizardKey = buildV86QuickstartWizardKey(now)
-  const cfg = buildV86QuickstartWizardConfig()
-  const op: CreateWizardObjectOp = {
-    objectKey: wizardKey,
-    wizardTypeId: V86_WIZARD_TYPE_ID,
-    targetTypeId: V86_WIZARD_TARGET_TYPE_ID,
-    targetKeyPrefix: V86_WIZARD_TARGET_KEY_PREFIX,
-    name: '',
-    timestamp: now,
-    initialStep: 1,
-    initialConfigData: V86WizardConfig.toBinary(cfg),
+  if (!setup.root) {
+    throw new Error('Root resource is required for V86 quickstart seeding')
   }
-  const opData = CreateWizardObjectOp.toBinary(op)
+  const spaceId = setup.spaceResp.sharedObjectRef?.providerResourceRef?.id ?? ''
+  if (!spaceId) {
+    throw new Error('Space id is required for V86 CDN image copy')
+  }
+  const sessionIndex = setup.sessionIndex ?? 0
+  if (sessionIndex === 0) {
+    throw new Error('Session index is required for V86 CDN image copy')
+  }
+  const now = new Date()
+  const vmKey = buildObjectKey(
+    'vm/v86/',
+    'V86 VM ' + now.getTime().toString(36),
+  )
+  const { cdn } = await setup.root.getCdn('', abortSignal)
+  using cdnHandle = cdn
+  await cdnHandle.copyV86ImageToSpace(
+    sessionIndex,
+    spaceId,
+    V86_DEFAULT_CDN_IMAGE_OBJECT_KEY,
+    V86_USER_IMAGE_OBJECT_KEY,
+    abortSignal,
+  )
+
+  const createOp: CreateVmV86Op = {
+    objectKey: vmKey,
+    name: 'V86 VM',
+    timestamp: now,
+    imageObjectKey: V86_USER_IMAGE_OBJECT_KEY,
+    config: {
+      memoryMb: DEFAULT_V86_MEMORY_MB,
+      vgaMemoryMb: DEFAULT_V86_VGA_MEMORY_MB,
+      networking: false,
+      serialEnabled: true,
+      bootArgs: '',
+      mounts: [],
+    },
+  }
   await setup.spaceWorld.applyWorldOp(
-    CREATE_WIZARD_OBJECT_OP_ID,
-    opData,
+    CREATE_VM_V86_OP_ID,
+    CreateVmV86Op.toBinary(createOp),
     '',
     abortSignal,
   )
-  await createSpaceSettingsObject(setup.spaceWorld, abortSignal, wizardKey, [
+  await createSpaceSettingsObject(setup.spaceWorld, abortSignal, vmKey, [
     V86_PLUGIN_ID,
   ])
+  if (setup.spaceContents) {
+    await setup.spaceContents.setProcessBinding(
+      vmKey,
+      'vm/v86',
+      true,
+      abortSignal,
+    )
+  }
+  await setup.spaceWorld.applyWorldOp(
+    SET_V86_STATE_OP_ID,
+    SetV86StateOp.toBinary({
+      objectKey: vmKey,
+      state: VmState.VmState_STARTING,
+      errorMessage: '',
+    }),
+    '',
+    abortSignal,
+  )
 }
 
 async function initDeviceQuickstart(

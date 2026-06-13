@@ -546,7 +546,7 @@ func openBoltVisibilityVolume(t *testing.T, boltPath string) *volume_bolt.Bolt {
 }
 
 func boltVisibilityData(writerID int, iteration int) []byte {
-	return []byte(fmt.Sprintf("writer/%d/%03d", writerID, iteration))
+	return fmt.Appendf(nil, "writer/%d/%03d", writerID, iteration)
 }
 
 func boltVisibilityRefPath(writerID int, iteration int) string {

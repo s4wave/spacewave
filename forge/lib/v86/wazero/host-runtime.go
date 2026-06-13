@@ -2,6 +2,7 @@ package v86_wazero
 
 import (
 	"context"
+	"io"
 	"os"
 	"sync/atomic"
 	"time"
@@ -56,6 +57,7 @@ type HostRuntime struct {
 	optionROMs        []optionROM
 	serial            *uartDevice
 	serialOutput      []byte
+	serialSink        io.Writer
 	haltEvents        atomic.Uint64
 	exceptions        atomic.Uint64
 	lastException     atomic.Uint32

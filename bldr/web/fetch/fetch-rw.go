@@ -63,10 +63,7 @@ func (w *FetchResponseWriter) Write(p []byte) (int, error) {
 
 	written := 0
 	for written < len(p) {
-		end := written + maxFetchResponseDataPacketBytes
-		if end > len(p) {
-			end = len(p)
-		}
+		end := min(written+maxFetchResponseDataPacketBytes, len(p))
 		if err := w.strm.Send(BuildFetchResponse_Data(p[written:end], false)); err != nil {
 			w.err = err
 			w.written += int64(written)

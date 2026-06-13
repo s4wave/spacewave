@@ -52,6 +52,8 @@ type BlockStore struct {
 	decodedBlocks *block.DecodedBlockCache
 	// forceSync flushes pending dirty blocks to the cloud immediately.
 	forceSync func(ctx context.Context) error
+	// refreshRemote pulls remote packfile metadata into the local lower store.
+	refreshRemote func(ctx context.Context) error
 }
 
 // GetID returns the inner store id.
@@ -89,7 +91,12 @@ func (b *BlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, fu
 	if !ok {
 		scopedStore = block_store.NewStore(b.store.GetID(), store)
 	}
-	return &BlockStore{store: scopedStore, decodedBlocks: b.decodedBlocks, forceSync: b.forceSync}, release, nil
+	return &BlockStore{
+		store:         scopedStore,
+		decodedBlocks: b.decodedBlocks,
+		forceSync:     b.forceSync,
+		refreshRemote: b.refreshRemote,
+	}, release, nil
 }
 
 // PutBlock forwards to the inner store.
@@ -179,6 +186,16 @@ func (b *BlockStore) ForceSync(ctx context.Context) error {
 	flushCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), forceSyncTimeout)
 	defer cancel()
 	return b.forceSync(flushCtx)
+}
+
+// RefreshRemote pulls remote packfile metadata into the local read manifest.
+func (b *BlockStore) RefreshRemote(ctx context.Context) error {
+	if b.refreshRemote == nil {
+		return nil
+	}
+	refreshCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), forceSyncTimeout)
+	defer cancel()
+	return b.refreshRemote(refreshCtx)
 }
 
 // NewBlockStoreRef builds a new BlockStoreRef for the cloud provider.
@@ -355,6 +372,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// Wire dirty tracking from PutBlock to syncController.
 	dirtyUpper.markDirty = sc.MarkDirty
 	bstoreHandle.forceSync = sc.FlushNowUnordered
+	bstoreHandle.refreshRemote = sc.PullNow
 
 	// Run the initial pull. If access is gated, signal the error to mount
 	// callers and block to prevent keyed retry.

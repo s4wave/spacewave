@@ -31,14 +31,9 @@ func NewLocalSession(ctx context.Context, server *Server) *LocalSession {
 	server.mtx.Lock()
 	server.sessions[sess] = struct{}{}
 	for _, entry := range server.mounts {
-		sess.pending = append(sess.pending, &V86FsMessage{
-			Body: &V86FsMessage_MountNotify{
-				MountNotify: &V86FsMountNotify{
-					Name:      entry.Name,
-					MountPath: entry.Path,
-				},
-			},
-		})
+		if msg := mountNotifyMsg(entry); msg != nil {
+			sess.pending = append(sess.pending, msg)
+		}
 	}
 	server.mtx.Unlock()
 

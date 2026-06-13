@@ -35,7 +35,7 @@ func TestBoltStoreMultiprocessWriterChurn(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := range 128 {
-		if err := tx.Set(context.Background(), []byte(fmt.Sprintf("seed-%03d", i)), boltStoreChurnValue(0, i)); err != nil {
+		if err := tx.Set(context.Background(), fmt.Appendf(nil, "seed-%03d", i), boltStoreChurnValue(0, i)); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -103,13 +103,13 @@ func runBoltStoreChurnRole(t *testing.T, role string) {
 			t.Fatal(err)
 		}
 		for i := range 64 {
-			key := []byte(fmt.Sprintf("writer-%d-%03d-%03d", id, iter, i))
+			key := fmt.Appendf(nil, "writer-%d-%03d-%03d", id, iter, i)
 			if err := tx.Set(ctx, key, boltStoreChurnValue(iter, i)); err != nil {
 				tx.Discard()
 				t.Fatal(err)
 			}
 			if iter > 2 {
-				if err := tx.Delete(ctx, []byte(fmt.Sprintf("writer-%d-%03d-%03d", id, iter-3, i))); err != nil {
+				if err := tx.Delete(ctx, fmt.Appendf(nil, "writer-%d-%03d-%03d", id, iter-3, i)); err != nil {
 					tx.Discard()
 					t.Fatal(err)
 				}

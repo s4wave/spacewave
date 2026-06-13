@@ -93,6 +93,9 @@ type cloudSOHost struct {
 	onPeerRevoked func(peerIDStr string)
 	// forceBlockSync flushes pending block-store writes before publishing roots.
 	forceBlockSync func(ctx context.Context) error
+	// refreshBlockManifest pulls remote packfile metadata before publishing
+	// remote SO state that may reference newly-pushed blocks.
+	refreshBlockManifest func(ctx context.Context) error
 	// initialStateErr stores the last verification rejection seen while no
 	// accepted state snapshot had been cached yet.
 	initialStateErr error
@@ -473,6 +476,16 @@ func (h *cloudSOHost) handleSONotify(payload *api.SONotifyEventPayload) {
 	}
 
 	if msg := payload.GetStateMessage(); msg != nil {
+		if h.refreshBlockManifest != nil {
+			if err := h.refreshBlockManifest(context.Background()); err != nil {
+				h.le.WithError(err).
+					WithField("change-type", payload.GetChangeType()).
+					WithField("seqno", payload.GetSeqno()).
+					Warn("failed to refresh block manifest before inline state apply")
+				h.triggerPull()
+				return
+			}
+		}
 		if err := h.handleStateDelta(msg); err != nil {
 			// Config chain mismatch: verifyPulledState already signaled the
 			// config chain verifier, which fetches /config-chain and refreshes

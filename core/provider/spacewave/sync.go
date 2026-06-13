@@ -296,6 +296,17 @@ func (s *syncController) FlushNowUnordered(ctx context.Context) error {
 	return s.flush(ctx, false)
 }
 
+// PullNow serializes an immediate remote packfile manifest pull.
+func (s *syncController) PullNow(ctx context.Context) error {
+	s.flushMtx.Lock()
+	defer s.flushMtx.Unlock()
+	if s.skipPull {
+		s.lower.UpdateManifest(s.mergedManifestEntries())
+		return nil
+	}
+	return s.pull(ctx)
+}
+
 // pushPackfile pushes a packfile and retries the same pack ID once when the
 // request was canceled after the worker accepted it.
 func (s *syncController) pushPackfile(

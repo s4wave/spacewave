@@ -374,6 +374,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		},
 		cloudBlkStore.ForceSync,
 	)
+	host.refreshBlockManifest = cloudBlkStore.RefreshRemote
 	host.soHost.SetContext(ctx)
 
 	so := &SharedObject{

@@ -2,6 +2,7 @@ package v86_wazero
 
 import (
 	"context"
+	"io"
 
 	"github.com/pkg/errors"
 )
@@ -142,6 +143,9 @@ func (u *uartDevice) writeData(ctx context.Context, value uint32) {
 		return
 	}
 	u.host.serialOutput = append(u.host.serialOutput, byte(value))
+	if u.host.serialSink != nil {
+		_, _ = u.host.serialSink.Write([]byte{byte(value)})
+	}
 }
 
 func (u *uartDevice) receive(ctx context.Context, value byte) {
@@ -218,4 +222,12 @@ func (h *HostRuntime) WriteSerialInput(ctx context.Context, data []byte) error {
 // SerialOutput returns bytes transmitted by the COM1 UART.
 func (h *HostRuntime) SerialOutput() []byte {
 	return append([]byte(nil), h.serialOutput...)
+}
+
+// SetSerialSink installs a writer that receives each COM1 byte as the guest
+// transmits it, in addition to the buffered SerialOutput. Writes happen on the
+// goroutine that drives MainLoop, so the sink must not call back into the
+// runtime. Pass nil to detach.
+func (h *HostRuntime) SetSerialSink(w io.Writer) {
+	h.serialSink = w
 }

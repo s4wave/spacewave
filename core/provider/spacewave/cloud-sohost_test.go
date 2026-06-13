@@ -2,6 +2,7 @@ package provider_spacewave
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -159,6 +160,71 @@ func TestAsyncCallbackJobsDoesNotReplayTriggerAfterCancel(t *testing.T) {
 	case <-started:
 		t.Fatal("trigger after canceled context replayed on the next context")
 	case <-time.After(100 * time.Millisecond):
+	}
+}
+
+func TestCloudSOHostRefreshesBlockManifestBeforeInlineState(t *testing.T) {
+	host := &cloudSOHost{
+		le:       logrus.New().WithField("test", t.Name()),
+		soID:     testSharedObjectID,
+		stateCtr: ccontainer.NewCContainer[*sobject.SOState](nil),
+	}
+	var refreshed bool
+	host.refreshBlockManifest = func(context.Context) error {
+		if host.stateCtr.GetValue() != nil {
+			t.Fatal("inline SO state was published before block manifest refresh")
+		}
+		refreshed = true
+		return nil
+	}
+
+	host.handleSONotify(&api.SONotifyEventPayload{
+		Seqno:      1,
+		ChangeType: "op",
+		StateMessage: &api.SOStateMessage{
+			Seqno: 1,
+			Content: &api.SOStateMessage_Snapshot{
+				Snapshot: &sobject.SOState{},
+			},
+		},
+	})
+
+	if !refreshed {
+		t.Fatal("block manifest refresh was not called")
+	}
+	if host.stateCtr.GetValue() == nil {
+		t.Fatal("inline SO state was not published after refresh")
+	}
+}
+
+func TestCloudSOHostTriggersPullWhenBlockManifestRefreshFails(t *testing.T) {
+	host := &cloudSOHost{
+		le:          logrus.New().WithField("test", t.Name()),
+		soID:        testSharedObjectID,
+		stateCtr:    ccontainer.NewCContainer[*sobject.SOState](nil),
+		pullRoutine: newCoalescedTriggerRoutine(nil, t.Name(), nil),
+	}
+	refreshErr := errors.New("refresh failed")
+	host.refreshBlockManifest = func(context.Context) error {
+		return refreshErr
+	}
+
+	host.handleSONotify(&api.SONotifyEventPayload{
+		Seqno:      1,
+		ChangeType: "op",
+		StateMessage: &api.SOStateMessage{
+			Seqno: 1,
+			Content: &api.SOStateMessage_Snapshot{
+				Snapshot: &sobject.SOState{},
+			},
+		},
+	})
+
+	if host.stateCtr.GetValue() != nil {
+		t.Fatal("inline SO state was published after block manifest refresh failed")
+	}
+	if !host.pullRoutine.Pending() {
+		t.Fatal("pull recovery was not triggered after block manifest refresh failed")
 	}
 }
 
