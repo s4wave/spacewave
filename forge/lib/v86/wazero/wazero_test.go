@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
@@ -228,6 +229,92 @@ func TestV86WazeroV86FSDeviceProbe(t *testing.T) {
 	)
 }
 
+func TestV86WazeroHost9PRootShell(t *testing.T) {
+	if !runV86WazeroBootTests() {
+		t.Skip("set RUN_V86_WAZERO_BOOT=true to boot Linux with the Go host9p root device")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	assets, err := ResolveAssets(ctx, OptionsFromEnv())
+	if err != nil {
+		t.Fatalf("resolve v86 assets: %v", err)
+	}
+	if !filesExist(assets.RootfsJSON) {
+		t.Fatalf("host9p root proof requires fs.json at %s", assets.RootfsJSON)
+	}
+	if info, err := os.Stat(assets.RootfsFlatDir); err != nil || !info.IsDir() {
+		t.Fatalf("host9p root proof requires flat dir at %s", assets.RootfsFlatDir)
+	}
+	host9p, err := OpenHost9PFS(filepath.Dir(assets.RootfsJSON))
+	if err != nil {
+		t.Fatalf("open host9p rootfs: %v", err)
+	}
+
+	instance, err := InstantiateHostRuntime(ctx, assets.Wasm, HostRuntimeOptions{})
+	if err != nil {
+		t.Fatalf("instantiate v86 wasm with wazero host runtime: %v", err)
+	}
+	defer instance.Close(ctx)
+
+	bios, err := os.ReadFile(assets.SeaBIOS)
+	if err != nil {
+		t.Fatalf("read SeaBIOS: %v", err)
+	}
+	vgaBIOS, err := os.ReadFile(assets.VGABIOS)
+	if err != nil {
+		t.Fatalf("read VGABIOS: %v", err)
+	}
+	kernel, err := os.ReadFile(assets.Kernel)
+	if err != nil {
+		t.Fatalf("read kernel: %v", err)
+	}
+	if err := instance.InitCPU(ctx, HostBootOptions{
+		BIOS:     bios,
+		VGABIOS:  vgaBIOS,
+		Kernel:   kernel,
+		Host9PFS: host9p,
+		Cmdline:  DefaultHost9PRootCmdline,
+	}); err != nil {
+		t.Fatalf("initialize v86 CPU with host9p: %v", err)
+	}
+
+	waitCtx, waitCancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer waitCancel()
+	if _, err := waitSerial(waitCtx, instance, ":/#"); err != nil {
+		reqCount, lastType, notifies, availIdx, availLastIdx, configured := host9p.stats()
+		t.Fatalf("host9p root shell prompt not reached: %v; host9p_requests=%d last_9p_type=%d notifies=%d queue_configured=%t avail_idx=%d avail_last_idx=%d serial_tail=%q io_counts=%s last_reads=%s last_writes=%s logs=%q",
+			err,
+			reqCount,
+			lastType,
+			notifies,
+			configured,
+			availIdx,
+			availLastIdx,
+			tailString(string(instance.SerialOutput()), 8192),
+			portCounts(instance, virtioHost9PCommonPort, virtioHost9PNotifyPort, virtioHost9PISRPort, virtioHost9PConfigPort, 0xc100, 0xc104, 0xc108, 0xc10c, 0xc114, 0xc116, 0xc118, 0xc11c, 0xc120, 0xc128, 0xc130, 0xc140, 0xc150, 0xc000, pciConfigData),
+			portValues(instance.ioLastReads, virtioHost9PCommonPort, virtioHost9PNotifyPort, virtioHost9PISRPort, virtioHost9PConfigPort, 0xc100, 0xc104, 0xc108, 0xc10c, 0xc114, 0xc116, 0xc118, 0xc11c, 0xc120, 0xc128, 0xc130, 0xc140, 0xc150, 0xc000, pciConfigData),
+			portValues(instance.ioLastWrites, virtioHost9PCommonPort, virtioHost9PNotifyPort, virtioHost9PISRPort, virtioHost9PConfigPort, 0xc100, 0xc104, 0xc108, 0xc10c, 0xc114, 0xc116, 0xc118, 0xc11c, 0xc120, 0xc128, 0xc130, 0xc140, 0xc150, 0xc000, pciConfigData),
+			tailStrings(instance.Logs, 5),
+		)
+	}
+	serial, err := runShellCommand(ctx, instance, "echo wazero-host9p")
+	if err != nil {
+		t.Fatalf("run echo command: %v; serial=%q", err, serial)
+	}
+	if !strings.Contains(serial, "wazero-host9p") {
+		t.Fatalf("echo command output missing from serial=%q", serial)
+	}
+	serial, err = runShellCommand(ctx, instance, "echo $?")
+	if err != nil {
+		t.Fatalf("run exit status command: %v; serial=%q", err, serial)
+	}
+	if !strings.Contains(serial, "\n0\r\n") && !strings.Contains(serial, "\r\n0\r\n") && !strings.Contains(serial, "\r0\r\n") {
+		t.Fatalf("exit status command did not print 0; serial=%q", serial)
+	}
+	t.Logf("host9p root shell proof reached prompt and command exit status; serial tail=%q", tailString(string(instance.SerialOutput()), 4096))
+}
+
 func TestLinuxBootROMChecksum(t *testing.T) {
 	rom := makeLinuxBootROM(0x8000, 0xe000)
 	var checksum byte
@@ -341,6 +428,68 @@ func portValues(values map[uint16]uint32, ports ...uint16) string {
 		parts = append(parts, fmt.Sprintf("%#x:%#x", port, values[port]))
 	}
 	return strings.Join(parts, ",")
+}
+
+func portCounts(h *HostRuntime, ports ...uint16) string {
+	var parts []string
+	for _, port := range ports {
+		parts = append(parts, fmt.Sprintf("%#x:r%d/w%d", port, h.ioReads[port], h.ioWrites[port]))
+	}
+	return strings.Join(parts, ",")
+}
+
+func waitSerial(ctx context.Context, h *HostRuntime, marker string) (string, error) {
+	return waitSerialFrom(ctx, h, marker, 0)
+}
+
+func runShellCommand(ctx context.Context, h *HostRuntime, command string) (string, error) {
+	before := len(h.SerialOutput())
+	if err := h.WriteSerialInput(ctx, []byte(command+"\n")); err != nil {
+		return string(h.SerialOutput()), err
+	}
+	serial, err := waitSerialFrom(ctx, h, ":/#", before)
+	if before < len(serial) {
+		return serial[before:], err
+	}
+	return serial, err
+}
+
+func waitSerialFrom(ctx context.Context, h *HostRuntime, marker string, start int) (string, error) {
+	type result struct {
+		serial string
+		err    error
+	}
+	done := make(chan result, 1)
+	go func() {
+		for {
+			if _, err := h.MainLoop(ctx); err != nil {
+				done <- result{serial: string(h.SerialOutput()), err: err}
+				return
+			}
+			serial := string(h.SerialOutput())
+			if start < len(serial) && strings.Contains(serial[start:], marker) {
+				done <- result{serial: serial}
+				return
+			}
+			if err := ctx.Err(); err != nil {
+				done <- result{serial: serial, err: err}
+				return
+			}
+		}
+	}()
+	select {
+	case res := <-done:
+		return res.serial, res.err
+	case <-ctx.Done():
+		return string(h.SerialOutput()), ctx.Err()
+	}
+}
+
+func tailString(value string, count int) string {
+	if len(value) <= count {
+		return value
+	}
+	return value[len(value)-count:]
 }
 
 func runV86WazeroTests() bool {

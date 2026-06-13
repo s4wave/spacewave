@@ -23,6 +23,9 @@ const (
 	virtqDescWrite    = 2
 	virtqDescIndirect = 4
 	virtqAvailNoIRQ   = 1
+
+	virtqDescIndirectFeature = 1 << 28
+	virtqEventIdxFeature     = 1 << 29
 )
 
 type virtioV86FSDevice struct {
@@ -41,8 +44,14 @@ type virtioV86FSDevice struct {
 	isrStatus           uint32
 }
 
+type virtioQueueDevice interface {
+	virtioHost() *HostRuntime
+	virtioRaiseIRQ(context.Context, uint32)
+	virtioFeatureNegotiated(uint32) bool
+}
+
 type virtioQueue struct {
-	device        *virtioV86FSDevice
+	device        virtioQueueDevice
 	size          uint32
 	sizeSupported uint32
 	enabled       bool
@@ -127,7 +136,7 @@ func (d *virtioV86FSDevice) registerCommonPorts() {
 			}
 			return 0
 		}, func(_ context.Context, value uint32) {
-			if value == 1 && d.selectedQueue().configured() {
+			if value == 1 && d.selectedQueue().canEnable() {
 				d.selectedQueue().enabled = true
 			}
 		}},
@@ -298,6 +307,22 @@ func (d *virtioV86FSDevice) lowerIRQ(ctx context.Context) {
 	_ = d.host.lowerIRQ(ctx, virtioV86FSIRQ)
 }
 
+func (d *virtioV86FSDevice) virtioHost() *HostRuntime {
+	return d.host
+}
+
+func (d *virtioV86FSDevice) virtioRaiseIRQ(ctx context.Context, typ uint32) {
+	d.raiseIRQ(ctx, typ)
+}
+
+func (d *virtioV86FSDevice) virtioFeatureNegotiated(bit uint32) bool {
+	idx := bit >> 5
+	if idx >= uint32(len(d.driverFeatures)) {
+		return false
+	}
+	return d.driverFeatures[idx]&(1<<(bit&31)) != 0
+}
+
 func (q *virtioQueue) reset() {
 	q.enabled = false
 	q.descAddr = 0
@@ -317,6 +342,10 @@ func (q *virtioQueue) setSize(size uint32) {
 
 func (q *virtioQueue) configured() bool {
 	return q.enabled && q.descAddr != 0 && q.availAddr != 0 && q.usedAddr != 0 && q.size != 0
+}
+
+func (q *virtioQueue) canEnable() bool {
+	return q.descAddr != 0 && q.availAddr != 0 && q.usedAddr != 0 && q.size != 0
 }
 
 func (q *virtioQueue) mask() uint32 {
@@ -342,8 +371,9 @@ func (q *virtioQueue) popRequest() (*virtioBufferChain, error) {
 
 func (q *virtioQueue) pushReply(chain *virtioBufferChain) {
 	usedIdx := (q.usedIdx() + uint16(q.stagedReplies)) & uint16(q.mask())
-	q.device.host.guestWriteUint32(q.usedAddr+4+uint32(usedIdx)*8, uint32(chain.headIdx))
-	q.device.host.guestWriteUint32(q.usedAddr+8+uint32(usedIdx)*8, chain.lengthWritten)
+	host := q.device.virtioHost()
+	host.guestWriteUint32(q.usedAddr+4+uint32(usedIdx)*8, uint32(chain.headIdx))
+	host.guestWriteUint32(q.usedAddr+8+uint32(usedIdx)*8, chain.lengthWritten)
 	q.stagedReplies++
 }
 
@@ -351,27 +381,35 @@ func (q *virtioQueue) flushReplies(ctx context.Context) {
 	if q.stagedReplies == 0 {
 		return
 	}
-	q.device.host.guestWriteUint16(q.usedAddr+2, uint16(uint32(q.usedIdx())+q.stagedReplies))
+	q.device.virtioHost().guestWriteUint16(q.usedAddr+2, uint16(uint32(q.usedIdx())+q.stagedReplies))
 	q.stagedReplies = 0
-	if q.availFlags()&virtqAvailNoIRQ == 0 {
-		q.device.raiseIRQ(ctx, virtioISRQueue)
+	if q.device.virtioFeatureNegotiated(29) || q.availFlags()&virtqAvailNoIRQ == 0 {
+		q.device.virtioRaiseIRQ(ctx, virtioISRQueue)
 	}
 }
 
+func (q *virtioQueue) notifyMeAfter(skipped uint32) {
+	if q.usedAddr == 0 || q.size == 0 {
+		return
+	}
+	availEvent := uint16(uint32(q.availIdx()) + skipped)
+	q.device.virtioHost().guestWriteUint16(q.usedAddr+4+q.size*8, availEvent)
+}
+
 func (q *virtioQueue) availFlags() uint16 {
-	return q.device.host.guestReadUint16(q.availAddr)
+	return q.device.virtioHost().guestReadUint16(q.availAddr)
 }
 
 func (q *virtioQueue) availIdx() uint16 {
-	return q.device.host.guestReadUint16(q.availAddr + 2)
+	return q.device.virtioHost().guestReadUint16(q.availAddr + 2)
 }
 
 func (q *virtioQueue) availEntry(idx uint32) uint16 {
-	return q.device.host.guestReadUint16(q.availAddr + 4 + 2*(idx&q.mask()))
+	return q.device.virtioHost().guestReadUint16(q.availAddr + 4 + 2*(idx&q.mask()))
 }
 
 func (q *virtioQueue) usedIdx() uint16 {
-	return q.device.host.guestReadUint16(q.usedAddr + 2)
+	return q.device.virtioHost().guestReadUint16(q.usedAddr + 2)
 }
 
 func newVirtioBufferChain(q *virtioQueue, head uint16) (*virtioBufferChain, error) {
@@ -404,18 +442,20 @@ func newVirtioBufferChain(q *virtioQueue, head uint16) (*virtioBufferChain, erro
 
 func (q *virtioQueue) descriptor(tableAddr uint32, idx uint16) virtioDesc {
 	base := tableAddr + uint32(idx)*16
+	host := q.device.virtioHost()
 	return virtioDesc{
-		addr:  q.device.host.guestReadUint32(base),
-		len:   q.device.host.guestReadUint32(base + 8),
-		flags: q.device.host.guestReadUint16(base + 12),
-		next:  q.device.host.guestReadUint16(base + 14),
+		addr:  host.guestReadUint32(base),
+		len:   host.guestReadUint32(base + 8),
+		flags: host.guestReadUint16(base + 12),
+		next:  host.guestReadUint16(base + 14),
 	}
 }
 
 func (c *virtioBufferChain) readAll() ([]byte, error) {
 	out := make([]byte, 0, c.lengthReadable)
+	host := c.queue.device.virtioHost()
 	for _, buf := range c.readBuffers {
-		data, ok := c.queue.device.host.guestRead(buf.addr, buf.len)
+		data, ok := host.guestRead(buf.addr, buf.len)
 		if !ok {
 			return nil, errors.Errorf("read guest buffer at %#x", buf.addr)
 		}
@@ -426,12 +466,13 @@ func (c *virtioBufferChain) readAll() ([]byte, error) {
 
 func (c *virtioBufferChain) write(data []byte) uint32 {
 	var written uint32
+	host := c.queue.device.virtioHost()
 	for _, buf := range c.writeBuffers {
 		if len(data) == 0 {
 			break
 		}
 		n := min(len(data), int(buf.len))
-		if c.queue.device.host.guestWrite(buf.addr, data[:n]) {
+		if host.guestWrite(buf.addr, data[:n]) {
 			written += uint32(n)
 		}
 		data = data[n:]

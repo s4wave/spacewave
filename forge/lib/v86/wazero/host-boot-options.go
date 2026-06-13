@@ -17,6 +17,7 @@ type HostBootOptions struct {
 	Kernel            []byte
 	Initrd            []byte
 	Cmdline           string
+	Host9PFS          *Host9PFS
 	V86FSServer       *unixfs_v86fs.Server
 }
 

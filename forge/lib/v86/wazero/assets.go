@@ -38,6 +38,8 @@ type AssetSet struct {
 	VGABIOS         string
 	Kernel          string
 	RootfsTar       string
+	RootfsJSON      string
+	RootfsFlatDir   string
 	RootfsObjectKey string
 }
 
@@ -124,13 +126,15 @@ func repoRootOrCwd() string {
 
 func assetSetFromDir(dir, imageKey string) (*AssetSet, bool) {
 	assets := &AssetSet{
-		Dir:       dir,
-		ImageKey:  imageKey,
-		Wasm:      filepath.Join(dir, "v86.wasm"),
-		SeaBIOS:   filepath.Join(dir, "seabios.bin"),
-		VGABIOS:   filepath.Join(dir, "vgabios.bin"),
-		Kernel:    filepath.Join(dir, "bzImage"),
-		RootfsTar: filepath.Join(dir, "rootfs.tar"),
+		Dir:           dir,
+		ImageKey:      imageKey,
+		Wasm:          filepath.Join(dir, "v86.wasm"),
+		SeaBIOS:       filepath.Join(dir, "seabios.bin"),
+		VGABIOS:       filepath.Join(dir, "vgabios.bin"),
+		Kernel:        filepath.Join(dir, "bzImage"),
+		RootfsTar:     filepath.Join(dir, "rootfs.tar"),
+		RootfsJSON:    filepath.Join(dir, "fs.json"),
+		RootfsFlatDir: filepath.Join(dir, "flat"),
 	}
 	if rootfsKey, err := os.ReadFile(filepath.Join(dir, "rootfs.object-key")); err == nil {
 		assets.RootfsObjectKey = strings.TrimSpace(string(rootfsKey))
@@ -148,13 +152,15 @@ func assetSetFromV86Dirs(v86Dir, v86fsDir, imageKey string) (*AssetSet, bool) {
 		wasm = filepath.Join(v86Dir, "build", "v86-debug.wasm")
 	}
 	assets := &AssetSet{
-		Dir:       filepath.Dir(filepath.Dir(wasm)),
-		ImageKey:  imageKey,
-		Wasm:      wasm,
-		SeaBIOS:   filepath.Join(v86Dir, "bios", "seabios.bin"),
-		VGABIOS:   filepath.Join(v86Dir, "bios", "vgabios.bin"),
-		Kernel:    filepath.Join(v86fsDir, "bzImage"),
-		RootfsTar: filepath.Join(v86fsDir, "rootfs.tar"),
+		Dir:           filepath.Dir(filepath.Dir(wasm)),
+		ImageKey:      imageKey,
+		Wasm:          wasm,
+		SeaBIOS:       filepath.Join(v86Dir, "bios", "seabios.bin"),
+		VGABIOS:       filepath.Join(v86Dir, "bios", "vgabios.bin"),
+		Kernel:        filepath.Join(v86fsDir, "bzImage"),
+		RootfsTar:     filepath.Join(v86fsDir, "rootfs.tar"),
+		RootfsJSON:    filepath.Join(v86fsDir, "fs.json"),
+		RootfsFlatDir: filepath.Join(v86fsDir, "flat"),
 	}
 	if filesExist(assets.Wasm, assets.SeaBIOS, assets.VGABIOS, assets.Kernel, assets.RootfsTar) {
 		return assets, true
