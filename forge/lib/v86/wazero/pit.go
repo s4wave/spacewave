@@ -135,11 +135,12 @@ func (p *pitDevice) writeControl(ctx context.Context, value uint8) {
 	if mode >= 6 {
 		mode &^= 4
 	}
-	if readMode == 1 {
+	switch readMode {
+	case 1:
 		p.counterNextLow[i] = 1
-	} else if readMode == 2 {
+	case 2:
 		p.counterNextLow[i] = 0
-	} else {
+	default:
 		p.counterNextLow[i] = 1
 	}
 	if i == 0 {

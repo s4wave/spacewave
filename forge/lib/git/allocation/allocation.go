@@ -4,10 +4,10 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"strings"
 
 	"github.com/aperturerobotics/cayley/quad"
+	"github.com/aperturerobotics/fastjson"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -369,12 +369,100 @@ func (a *Allocation) Reset() {
 
 // MarshalBlock marshals the block to binary.
 func (a *Allocation) MarshalBlock() ([]byte, error) {
-	return json.Marshal(a)
+	return a.MarshalJSON()
 }
 
 // UnmarshalBlock unmarshals the block from binary.
 func (a *Allocation) UnmarshalBlock(data []byte) error {
-	return json.Unmarshal(data, a)
+	return a.UnmarshalJSON(data)
+}
+
+// MarshalJSON marshals the Allocation to JSON without reflection.
+func (a *Allocation) MarshalJSON() ([]byte, error) {
+	if a == nil {
+		return []byte("null"), nil
+	}
+
+	var arena fastjson.Arena
+	obj := arena.NewObject()
+	setStringJSONField(&arena, obj, "executionObjectKey", a.ExecutionObjectKey)
+	setStringJSONField(&arena, obj, "passObjectKey", a.PassObjectKey)
+	setStringJSONField(&arena, obj, "repoObjectKey", a.RepoObjectKey)
+	setStringJSONField(&arena, obj, "worktreeObjectKey", a.WorktreeObjectKey)
+	setStringJSONField(&arena, obj, "baseCommitHash", a.BaseCommitHash)
+	setStringJSONField(&arena, obj, "branchRef", a.BranchRef)
+	setStringJSONField(&arena, obj, "pathFamily", a.PathFamily)
+	setStringJSONField(&arena, obj, "evidenceObjectKey", a.EvidenceObjectKey)
+	setStringJSONField(&arena, obj, "status", a.Status)
+	setStringJSONField(&arena, obj, "collisionState", a.CollisionState)
+	setStringJSONField(&arena, obj, "staleBaseState", a.StaleBaseState)
+	setStringJSONField(&arena, obj, "cleanupState", a.CleanupState)
+	if a.Timestamp != nil {
+		timestampJSON, err := a.Timestamp.MarshalJSON()
+		if err != nil {
+			return nil, errors.Wrap(err, "marshal timestamp")
+		}
+		timestampValue, err := parseJSONValue(&arena, timestampJSON)
+		if err != nil {
+			return nil, errors.Wrap(err, "parse timestamp")
+		}
+		obj.Set("timestamp", timestampValue)
+	}
+	return obj.MarshalTo(nil), nil
+}
+
+func setStringJSONField(arena *fastjson.Arena, obj *fastjson.Value, key, value string) {
+	if value != "" {
+		obj.Set(key, arena.NewString(value))
+	}
+}
+
+func parseJSONValue(arena *fastjson.Arena, data []byte) (*fastjson.Value, error) {
+	var parser fastjson.Parser
+	value, err := parser.ParseBytes(data)
+	if err != nil {
+		return nil, err
+	}
+	return arena.DeepCopyValue(value), nil
+}
+
+// UnmarshalJSON unmarshals the Allocation from JSON without reflection.
+func (a *Allocation) UnmarshalJSON(data []byte) error {
+	var parser fastjson.Parser
+	value, err := parser.ParseBytes(data)
+	if err != nil {
+		return err
+	}
+	if value.Type() == fastjson.TypeNull {
+		*a = Allocation{}
+		return nil
+	}
+	if value.Type() != fastjson.TypeObject {
+		return errors.New("allocation must be object")
+	}
+
+	a.ExecutionObjectKey = string(value.GetStringBytes("executionObjectKey"))
+	a.PassObjectKey = string(value.GetStringBytes("passObjectKey"))
+	a.RepoObjectKey = string(value.GetStringBytes("repoObjectKey"))
+	a.WorktreeObjectKey = string(value.GetStringBytes("worktreeObjectKey"))
+	a.BaseCommitHash = string(value.GetStringBytes("baseCommitHash"))
+	a.BranchRef = string(value.GetStringBytes("branchRef"))
+	a.PathFamily = string(value.GetStringBytes("pathFamily"))
+	a.EvidenceObjectKey = string(value.GetStringBytes("evidenceObjectKey"))
+	a.Status = string(value.GetStringBytes("status"))
+	a.CollisionState = string(value.GetStringBytes("collisionState"))
+	a.StaleBaseState = string(value.GetStringBytes("staleBaseState"))
+	a.CleanupState = string(value.GetStringBytes("cleanupState"))
+	if timestampValue := value.Get("timestamp"); timestampValue != nil && timestampValue.Type() != fastjson.TypeNull {
+		ts := &timestamp.Timestamp{}
+		if err := ts.UnmarshalJSON(timestampValue.MarshalTo(nil)); err != nil {
+			return errors.Wrap(err, "unmarshal timestamp")
+		}
+		a.Timestamp = ts
+	} else {
+		a.Timestamp = nil
+	}
+	return nil
 }
 
 func (a *Allocation) sameAllocation(other *Allocation) bool {

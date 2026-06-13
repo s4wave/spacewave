@@ -206,7 +206,7 @@ func (d *virtioHost9PDevice) handleQueue(ctx context.Context) {
 		d.fs.queueConfigured.Store(0)
 	}
 	d.fs.availIdx.Store(uint32(queue.availIdx()))
-	d.fs.availLastIdx.Store(queue.availLastIdx)
+	d.fs.availLastIdx.Store(uint32(queue.availLastIdx))
 	for queue.configured() && queue.hasRequest() {
 		chain, err := queue.popRequest()
 		if err != nil {

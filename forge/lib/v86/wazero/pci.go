@@ -108,7 +108,7 @@ func (p *pciDevice) query() {
 		if isIO {
 			mask = 0xfffffffc
 		}
-		value := ^uint32(size-1) & mask
+		value := ^(size - 1) & mask
 		if isIO {
 			value |= 1
 		}

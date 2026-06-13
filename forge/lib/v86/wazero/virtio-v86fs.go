@@ -3,6 +3,8 @@ package v86_wazero
 import (
 	"context"
 	"encoding/binary"
+	"strconv"
+	"sync"
 	"sync/atomic"
 
 	"github.com/pkg/errors"
@@ -50,6 +52,81 @@ type virtioV86FSDevice struct {
 	requests      atomic.Uint64
 	replies       atomic.Uint64
 	notifications atomic.Uint64
+
+	traceMu sync.Mutex
+	trace   []string
+}
+
+// recordTrace appends a wire-type label to the bounded device message trace. The
+// guest CPU goroutine records here while a boot proof reads it on failure, so a
+// stalled v86fs root mount shows exactly which request/reply/notify frames
+// crossed the ring rather than only aggregate counts.
+func (d *virtioV86FSDevice) recordTrace(dir string, typeByte byte) {
+	d.traceMu.Lock()
+	d.trace = append(d.trace, dir+":"+v86fsWireTypeName(typeByte))
+	if len(d.trace) > 64 {
+		d.trace = d.trace[len(d.trace)-64:]
+	}
+	d.traceMu.Unlock()
+}
+
+func v86fsWireTypeName(typeByte byte) string {
+	switch typeByte {
+	case 0x00:
+		return "mount"
+	case 0x01:
+		return "lookup"
+	case 0x02:
+		return "getattr"
+	case 0x03:
+		return "readdir"
+	case 0x04:
+		return "open"
+	case 0x05:
+		return "close"
+	case 0x06:
+		return "read"
+	case 0x07:
+		return "create"
+	case 0x08:
+		return "write"
+	case 0x09:
+		return "mkdir"
+	case 0x0a:
+		return "setattr"
+	case 0x0b:
+		return "fsync"
+	case 0x0c:
+		return "unlink"
+	case 0x0d:
+		return "rename"
+	case 0x0e:
+		return "symlink"
+	case 0x0f:
+		return "readlink"
+	case 0x10:
+		return "statfs"
+	case 0x22:
+		return "mount_notify"
+	case 0x23:
+		return "umount_notify"
+	case 0x80:
+		return "mount_reply"
+	case 0x81:
+		return "lookup_reply"
+	case 0x82:
+		return "getattr_reply"
+	case 0x83:
+		return "readdir_reply"
+	case 0x84:
+		return "open_reply"
+	case 0x86:
+		return "read_reply"
+	case 0xff:
+		return "error_reply"
+	default:
+		return "0x" + strconv.FormatUint(uint64(typeByte), 16)
+	}
 }
 
 // v86fsStats is a device-side readback of the v86fs virtio handshake. It exists
@@ -59,23 +136,30 @@ type virtioV86FSDevice struct {
 type v86fsStats struct {
 	driverOK      bool
 	lastStatus    uint32
+	irqLine       uint32
 	kicks         [3]uint64
 	requests      uint64
 	replies       uint64
 	notifications uint64
+	trace         []string
 }
 
 func (d *virtioV86FSDevice) stats() v86fsStats {
 	if d == nil {
 		return v86fsStats{}
 	}
+	d.traceMu.Lock()
+	trace := append([]string(nil), d.trace...)
+	d.traceMu.Unlock()
 	return v86fsStats{
 		driverOK:      d.driverOK.Load(),
 		lastStatus:    d.lastStatus.Load(),
+		irqLine:       d.assignedIRQ(),
 		kicks:         [3]uint64{d.kicks[0].Load(), d.kicks[1].Load(), d.kicks[2].Load()},
 		requests:      d.requests.Load(),
 		replies:       d.replies.Load(),
 		notifications: d.notifications.Load(),
+		trace:         trace,
 	}
 }
 
@@ -93,7 +177,7 @@ type virtioQueue struct {
 	notifyOffset  uint32
 	descAddr      uint32
 	availAddr     uint32
-	availLastIdx  uint32
+	availLastIdx  uint16
 	usedAddr      uint32
 	stagedReplies uint32
 }
@@ -294,6 +378,9 @@ func (d *virtioV86FSDevice) handleQueue(ctx context.Context, queueID int) {
 			d.raiseIRQ(ctx, virtioISRQueue)
 			return
 		}
+		if len(req) > 4 {
+			d.recordTrace("rq", req[4])
+		}
 		d.requests.Add(1)
 		reply, err := d.session.HandleMessage(ctx, msg)
 		if err != nil {
@@ -307,6 +394,9 @@ func (d *virtioV86FSDevice) handleQueue(ctx context.Context, queueID int) {
 				return
 			}
 			_ = chain.write(resp)
+			if len(resp) > 4 {
+				d.recordTrace("rp", resp[4])
+			}
 			d.replies.Add(1)
 		}
 		queue.pushReply(chain)
@@ -341,6 +431,9 @@ func (d *virtioV86FSDevice) flushNotifications(ctx context.Context) {
 		}
 		_ = chain.write(frame)
 		queue.pushReply(chain)
+		if len(frame) > 4 {
+			d.recordTrace("nt", frame[4])
+		}
 		d.notifications.Add(1)
 		delivered++
 	}
@@ -350,14 +443,29 @@ func (d *virtioV86FSDevice) flushNotifications(ctx context.Context) {
 	queue.flushReplies(ctx)
 }
 
+// assignedIRQ returns the IRQ the guest actually bound to this device. SeaBIOS
+// and Linux route the PCI INTx pin through the PIIX3 PIRQ router by slot and
+// write the resulting line into config register 0x3c; the device must signal
+// that line, not its power-on default, or the guest's handler never sees the
+// completion interrupt and wait_for_completion in v86fs_request hangs the mount.
+func (d *virtioV86FSDevice) assignedIRQ() uint32 {
+	space := d.host.pci.spaces[virtioV86FSPCIID]
+	if len(space) > 0x3c {
+		if line := space[0x3c]; line != 0 && line != 0xff {
+			return uint32(line)
+		}
+	}
+	return virtioV86FSIRQ
+}
+
 func (d *virtioV86FSDevice) raiseIRQ(ctx context.Context, typ uint32) {
 	d.isrStatus |= typ
-	_ = d.host.raiseIRQ(ctx, virtioV86FSIRQ)
+	_ = d.host.raiseIRQ(ctx, d.assignedIRQ())
 }
 
 func (d *virtioV86FSDevice) lowerIRQ(ctx context.Context) {
 	d.isrStatus = 0
-	_ = d.host.lowerIRQ(ctx, virtioV86FSIRQ)
+	_ = d.host.lowerIRQ(ctx, d.assignedIRQ())
 }
 
 func (d *virtioV86FSDevice) virtioHost() *HostRuntime {
@@ -410,7 +518,7 @@ func (q *virtioQueue) hasRequest() bool {
 }
 
 func (q *virtioQueue) requestCount() uint32 {
-	return uint32(uint16(q.availIdx() - uint16(q.availLastIdx)))
+	return uint32(q.availIdx() - q.availLastIdx)
 }
 
 func (q *virtioQueue) popRequest() (*virtioBufferChain, error) {
@@ -418,7 +526,7 @@ func (q *virtioQueue) popRequest() (*virtioBufferChain, error) {
 		return nil, errors.New("virtio queue has no request")
 	}
 	head := q.availEntry(q.availLastIdx)
-	q.availLastIdx = uint32(uint16(q.availLastIdx + 1))
+	q.availLastIdx++
 	return newVirtioBufferChain(q, head)
 }
 
@@ -457,8 +565,8 @@ func (q *virtioQueue) availIdx() uint16 {
 	return q.device.virtioHost().guestReadUint16(q.availAddr + 2)
 }
 
-func (q *virtioQueue) availEntry(idx uint32) uint16 {
-	return q.device.virtioHost().guestReadUint16(q.availAddr + 4 + 2*(idx&q.mask()))
+func (q *virtioQueue) availEntry(idx uint16) uint16 {
+	return q.device.virtioHost().guestReadUint16(q.availAddr + 4 + 2*(uint32(idx)&q.mask()))
 }
 
 func (q *virtioQueue) usedIdx() uint16 {

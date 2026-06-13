@@ -1,8 +1,7 @@
 package forge_lib_git_commit
 
 import (
-	"encoding/json"
-
+	"github.com/aperturerobotics/protobuf-go-lite/json"
 	s4wave_git "github.com/s4wave/spacewave/sdk/git"
 )
 
@@ -69,12 +68,12 @@ func (c *Config) EqualVT(other *Config) bool {
 
 // MarshalVT marshals the config.
 func (c *Config) MarshalVT() ([]byte, error) {
-	return json.Marshal(c)
+	return c.MarshalJSON()
 }
 
 // UnmarshalVT unmarshals the config.
 func (c *Config) UnmarshalVT(data []byte) error {
-	return json.Unmarshal(data, c)
+	return c.UnmarshalJSON(data)
 }
 
 // SizeVT returns the marshaled size.
@@ -97,12 +96,68 @@ func (c *Config) MarshalToSizedBufferVT(dst []byte) (int, error) {
 
 // MarshalJSON marshals the config to JSON.
 func (c *Config) MarshalJSON() ([]byte, error) {
-	type configJSON Config
-	return json.Marshal((*configJSON)(c))
+	return json.DefaultMarshalerConfig.Marshal(c)
 }
 
 // UnmarshalJSON unmarshals the config from JSON.
 func (c *Config) UnmarshalJSON(data []byte) error {
-	type configJSON Config
-	return json.Unmarshal(data, (*configJSON)(c))
+	return json.DefaultUnmarshalerConfig.Unmarshal(data, c)
 }
+
+// MarshalProtoJSON marshals the Config message to JSON.
+func (c *Config) MarshalProtoJSON(s *json.MarshalState) {
+	if c == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if c.WorktreeObjectKey != "" || s.HasField("worktreeObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("worktreeObjectKey")
+		s.WriteString(c.WorktreeObjectKey)
+	}
+	if c.RepoObjectKey != "" || s.HasField("repoObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("repoObjectKey")
+		s.WriteString(c.RepoObjectKey)
+	}
+	if c.CommitRequest != nil || s.HasField("commitRequest") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("commitRequest")
+		c.CommitRequest.MarshalProtoJSON(s.WithField("commitRequest"))
+	}
+	s.WriteObjectEnd()
+}
+
+// UnmarshalProtoJSON unmarshals the Config message from JSON.
+func (c *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip()
+		case "worktree_object_key", "worktreeObjectKey":
+			s.AddField("worktree_object_key")
+			c.WorktreeObjectKey = s.ReadString()
+		case "repo_object_key", "repoObjectKey":
+			s.AddField("repo_object_key")
+			c.RepoObjectKey = s.ReadString()
+		case "commit_request", "commitRequest":
+			s.AddField("commit_request")
+			if s.ReadNil() {
+				c.CommitRequest = nil
+				return
+			}
+			c.CommitRequest = &s4wave_git.CommitFilesRequest{}
+			c.CommitRequest.UnmarshalProtoJSON(s.WithField("commit_request", true))
+		}
+	})
+}
+
+var (
+	_ json.Marshaler   = ((*Config)(nil))
+	_ json.Unmarshaler = ((*Config)(nil))
+)

@@ -140,11 +140,11 @@ func buildEnvModule(compiled wazero.CompiledModule, imports *wasmExternImports) 
 func signatureKey(params, results []api.ValueType) string {
 	var b strings.Builder
 	for _, typ := range params {
-		b.WriteByte(byte(typ))
+		b.WriteByte(typ)
 	}
 	b.WriteByte(':')
 	for _, typ := range results {
-		b.WriteByte(byte(typ))
+		b.WriteByte(typ)
 	}
 	return b.String()
 }
