@@ -12,6 +12,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// GoScriptStartupCacheEnvKeys returns env keys that affect GoScript artifact
+// identity. GoScript has none, so this returns nil.
 func GoScriptStartupCacheEnvKeys() []string {
 	return nil
 }

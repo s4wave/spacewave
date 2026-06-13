@@ -64,6 +64,7 @@ func GetDefaultEnv() []string {
 	}
 }
 
+// NewGoCompilerCmd builds an exec.Cmd for the Go compiler with the default env.
 func NewGoCompilerCmd(ctx context.Context, cmd string, args ...string) *exec.Cmd {
 	ecmd := uexec.NewCmd(ctx, cmd, args...)
 	ecmd.Env = os.Environ()
