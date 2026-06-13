@@ -42,11 +42,11 @@ func (p *ps2Device) readData(ctx context.Context) uint8 {
 	copy(p.queue, p.queue[1:])
 	p.queue = p.queue[:len(p.queue)-1]
 	p.lastData = entry.value
+	irq := uint32(1)
 	if entry.aux {
-		_ = p.host.lowerIRQ(ctx, 12)
-	} else {
-		_ = p.host.lowerIRQ(ctx, 1)
+		irq = 12
 	}
+	_ = p.host.lowerIRQ(ctx, irq)
 	p.raiseIRQ(ctx)
 	return entry.value
 }

@@ -456,7 +456,7 @@ func (h *HostRuntime) moveIOPorts(from, to uint32, size uint32) {
 	if uint64(from)+uint64(size) > uint64(len(h.ioPorts)) || uint64(to)+uint64(size) > uint64(len(h.ioPorts)) {
 		return
 	}
-	for i := uint32(0); i < size; i++ {
+	for i := range size {
 		h.ioPorts[to+i] = h.ioPorts[from+i]
 		h.ioPorts[from+i] = emptyIOPort()
 	}

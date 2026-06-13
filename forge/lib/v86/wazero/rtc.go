@@ -135,7 +135,8 @@ func (c *cmosDevice) read(ctx context.Context) byte {
 	case cmosRTCYear:
 		return c.encodeTime(now.Year() % 100)
 	case cmosStatusA:
-		if c.host.microtick()-float64(int64(c.host.microtick()/1000)*1000) >= 999 {
+		tick := c.host.microtick()
+		if tick-float64(int64(tick/1000)*1000) >= 999 {
 			return c.statusA | 0x80
 		}
 		return c.statusA
@@ -224,11 +225,13 @@ func (c *cmosDevice) timer(ctx context.Context) float64 {
 		c.statusC |= (1 << 6) | (1 << 7)
 		missed := float64(now-c.nextPeriodicInterrupt) / c.periodicInterruptTime
 		c.nextPeriodicInterrupt += int64(c.periodicInterruptTime * math.Ceil(missed))
-	} else if c.nextAlarmInterrupt != 0 && c.nextAlarmInterrupt < now {
+	}
+	if c.nextAlarmInterrupt != 0 && c.nextAlarmInterrupt < now {
 		_ = c.host.raiseIRQ(ctx, 8)
 		c.statusC |= (1 << 5) | (1 << 7)
 		c.nextAlarmInterrupt = 0
-	} else if c.updateInterrupt && c.updateInterruptTime < now {
+	}
+	if c.updateInterrupt && c.updateInterruptTime < now {
 		_ = c.host.raiseIRQ(ctx, 8)
 		c.statusC |= (1 << 4) | (1 << 7)
 		c.updateInterruptTime = now + 1000
