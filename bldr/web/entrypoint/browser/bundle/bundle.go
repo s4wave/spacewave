@@ -532,7 +532,7 @@ func BrowserEntrypointBuildOpts(bldrDistRoot string, minify, sourcemaps bool) es
 
 const quickJSWASIReactorModule = "quickjs-wasi-reactor"
 
-func RuntimeDistDepsResolverPlugin(buildPkgsDir string) esbuild.Plugin {
+func RuntimeDistDepsResolverPlugin(buildPkgsDir, bldrDistRoot string) esbuild.Plugin {
 	return esbuild.Plugin{
 		Name: "bldr-runtime-dist-deps-resolver",
 		Setup: func(build esbuild.PluginBuild) {
@@ -545,6 +545,18 @@ func RuntimeDistDepsResolverPlugin(buildPkgsDir string) esbuild.Plugin {
 				}
 				return esbuild.OnResolveResult{Path: modulePath}, nil
 			})
+			build.OnResolve(esbuild.OnResolveOptions{
+				Filter: `^@aptre/bldr(?:-react)?(?:/.*)?$`,
+			}, func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
+				modulePath, ok := resolveBldrRuntimePackagePath(bldrDistRoot, args.Path)
+				if !ok {
+					return esbuild.OnResolveResult{}, nil
+				}
+				if _, err := os.Stat(modulePath); err != nil {
+					return esbuild.OnResolveResult{}, errors.Wrapf(err, "resolve %s from bldr dist source", args.Path)
+				}
+				return esbuild.OnResolveResult{Path: modulePath}, nil
+			})
 		},
 	}
 }
@@ -553,7 +565,25 @@ func ApplyRuntimeDistDepsResolver(opts *esbuild.BuildOptions, buildPkgsDir strin
 	if buildPkgsDir == "" {
 		return
 	}
-	opts.Plugins = append(opts.Plugins, RuntimeDistDepsResolverPlugin(buildPkgsDir))
+	opts.Plugins = append(opts.Plugins, RuntimeDistDepsResolverPlugin(buildPkgsDir, opts.AbsWorkingDir))
+}
+
+func resolveBldrRuntimePackagePath(bldrDistRoot, importPath string) (string, bool) {
+	for _, pkg := range []struct {
+		id  string
+		dir string
+	}{
+		{id: "@aptre/bldr", dir: filepath.Join("web", "bldr")},
+		{id: "@aptre/bldr-react", dir: filepath.Join("web", "bldr-react")},
+	} {
+		if importPath == pkg.id {
+			return filepath.Join(bldrDistRoot, pkg.dir, "index.ts"), true
+		}
+		if strings.HasPrefix(importPath, pkg.id+"/") {
+			return filepath.Join(bldrDistRoot, pkg.dir, strings.TrimPrefix(importPath, pkg.id+"/")), true
+		}
+	}
+	return "", false
 }
 
 // ServiceWorkerBuildOpts creates the BuildOpts for the service worker

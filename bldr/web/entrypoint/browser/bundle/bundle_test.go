@@ -164,6 +164,63 @@ func TestRuntimeDistDepsResolverPinsQuickJSWASIReactor(t *testing.T) {
 	}
 }
 
+func TestRuntimeDistDepsResolverPinsBldrRuntimePackages(t *testing.T) {
+	projectRoot := t.TempDir()
+	for _, pkg := range []struct {
+		dir    string
+		symbol string
+		value  string
+	}{
+		{dir: filepath.Join("web", "bldr"), symbol: "runtimeMarker", value: "bldr-runtime"},
+		{dir: filepath.Join("web", "bldr-react"), symbol: "reactMarker", value: "bldr-react-runtime"},
+	} {
+		pkgDir := filepath.Join(projectRoot, pkg.dir)
+		if err := os.MkdirAll(pkgDir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		src := `export const ` + pkg.symbol + ` = "` + pkg.value + `";`
+		if err := os.WriteFile(filepath.Join(pkgDir, "index.ts"), []byte(src), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.MkdirAll(filepath.Join(projectRoot, "state", "build-web-pkgs"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(projectRoot, "entry.ts"),
+		[]byte(`import { runtimeMarker } from "@aptre/bldr";
+import { reactMarker } from "@aptre/bldr-react";
+console.log(runtimeMarker, reactMarker);`),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	opts := BrowserBuildOpts(projectRoot, false, false)
+	ApplyRuntimeDistDepsResolver(&opts, filepath.Join(projectRoot, "state", "build-web-pkgs"))
+	opts.EntryPoints = []string{"entry.ts"}
+	opts.Outfile = filepath.Join(projectRoot, "out.js")
+	opts.Write = true
+
+	result := esbuild.Build(opts)
+	if len(result.Errors) != 0 {
+		for _, e := range result.Errors {
+			t.Errorf("esbuild error: %s", e.Text)
+		}
+		t.Fatal("esbuild build failed")
+	}
+
+	out, err := os.ReadFile(opts.Outfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, marker := range []string{"bldr-runtime", "bldr-react-runtime"} {
+		if !strings.Contains(string(out), marker) {
+			t.Fatalf("output does not contain %s marker: %s", marker, out)
+		}
+	}
+}
+
 func TestBrowserBuildOptsAppliesReadableJavaScriptPolicy(t *testing.T) {
 	readable := BrowserBuildOpts(t.TempDir(), false, false)
 	if readable.MinifyWhitespace || readable.MinifyIdentifiers || readable.MinifySyntax {
