@@ -65,7 +65,7 @@ func (d *lookupWebDocument) Validate() error {
 	return nil
 }
 
-// GetValueLookupWebDocumentOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *lookupWebDocument) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		UnrefDisposeDur:            time.Millisecond * 100,
@@ -117,7 +117,7 @@ func (d *lookupWebDocument) GetName() string {
 	return "LookupWebDocument"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 func (d *lookupWebDocument) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	vals["document-id"] = []string{d.LookupWebDocumentID()}

@@ -67,7 +67,7 @@ type WebDocumentHandler interface {
 	HandleWebView(ctx context.Context, view web_view.WebView)
 }
 
-// RuntimeConfig is a configuration for the runtime controller.
+// WebDocumentConfig is a configuration for the runtime controller.
 type WebDocumentConfig interface {
 	// Config indicates this is a controllerbus config object.
 	config.Config

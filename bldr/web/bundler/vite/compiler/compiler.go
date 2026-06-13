@@ -474,8 +474,7 @@ func (c *Controller) buildInputManifest(
 			return nil, err
 		}
 
-		srcPathsCopy := make([]string, len(srcPaths))
-		copy(srcPathsCopy, srcPaths)
+		srcPathsCopy := slices.Clone(srcPaths)
 		srcPathsCopy, err = filterSourceRelativePaths(sourcePath, srcPathsCopy)
 		if err != nil {
 			return nil, err
@@ -615,8 +614,7 @@ func (c *Controller) tryFastRebuild(
 	})
 
 	// Add the updated vite files to the list
-	viteSrcFilesCopy := make([]string, len(viteBuildResult.viteSrcFiles))
-	copy(viteSrcFilesCopy, viteBuildResult.viteSrcFiles)
+	viteSrcFilesCopy := slices.Clone(viteBuildResult.viteSrcFiles)
 	viteSrcFilesCopy, err = filterSourceRelativePaths(sourcePath, viteSrcFilesCopy)
 	if err != nil {
 		return nil, err

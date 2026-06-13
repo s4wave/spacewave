@@ -197,7 +197,7 @@ func WriteElectronStableBootFiles(buildDir, serviceWorkerFilename, sharedWorkerF
 }
 
 // FixEsbuildIssue1921 fixes dynamic esbuild imports failing under node.js.
-
+//
 // https://github.com/evanw/esbuild/issues/1921
 func FixEsbuildIssue1921(opts *esbuild.BuildOptions) {
 	if opts.Banner == nil {
