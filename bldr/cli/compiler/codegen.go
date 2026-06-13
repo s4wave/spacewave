@@ -11,6 +11,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // FactoryImport describes a discovered NewFactory in a Go package.
@@ -317,7 +319,7 @@ func formatFileWithSpacing(decls []gast.Decl) ([]byte, error) {
 		offsets[i] = i * lineWidth
 	}
 	if !tokFile.SetLines(offsets) {
-		panic("failed to set lines")
+		return nil, errors.New("set line offsets for generated entrypoint")
 	}
 
 	base := tokFile.Base()

@@ -54,11 +54,6 @@ func NewFactory(b bus.Bus) controller.Factory {
 	)
 }
 
-// Execute executes the controller.
-func (c *Controller) Execute(ctx context.Context) error {
-	return nil
-}
-
 // SupportsStartupManifestCache returns true if startup cache reuse is safe.
 func (c *Controller) SupportsStartupManifestCache() bool {
 	return false
