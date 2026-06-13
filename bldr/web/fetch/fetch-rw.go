@@ -8,6 +8,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+const maxFetchResponseDataPacketBytes = 16 * 1024
+
 // FetchResponseWriter implements ResponseWriter with a Fetch stream.
 type FetchResponseWriter struct {
 	strm            SRPCFetchService_FetchStream
@@ -58,13 +60,22 @@ func (w *FetchResponseWriter) Write(p []byte) (int, error) {
 	if w.err != nil {
 		return 0, w.err
 	}
-	// write data
-	if err := w.strm.Send(BuildFetchResponse_Data(p, false)); err != nil {
-		w.err = err
-		return 0, err
+
+	written := 0
+	for written < len(p) {
+		end := written + maxFetchResponseDataPacketBytes
+		if end > len(p) {
+			end = len(p)
+		}
+		if err := w.strm.Send(BuildFetchResponse_Data(p[written:end], false)); err != nil {
+			w.err = err
+			w.written += int64(written)
+			return written, err
+		}
+		written = end
 	}
-	w.written += int64(len(p))
-	return len(p), nil
+	w.written += int64(written)
+	return written, nil
 }
 
 // BodyAborter is a ResponseWriter that can mark an in-flight response body as

@@ -104,7 +104,12 @@ func (f *FSFile) Read(data []byte) (int, error) {
 	idx := f.idx.Load()
 	rn, err := f.handle.ReadAt(f.ctx, idx, data)
 	if rn != 0 {
-		f.idx.Add(rn)
+		if err == io.EOF {
+			err = nil
+		}
+		if err == nil {
+			f.idx.Add(rn)
+		}
 	}
 	return int(rn), err
 }

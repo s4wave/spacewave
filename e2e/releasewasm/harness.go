@@ -50,6 +50,7 @@ type harness struct {
 	artifactDir string
 	baseURL     string
 	browserName string
+	repoRoot    string
 	server      *http.Server
 	pw          *playwright.Playwright
 	browser     playwright.Browser
@@ -109,6 +110,7 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 		artifactDir: artifactDir,
 		baseURL:     baseURL,
 		browserName: browserName,
+		repoRoot:    repoRoot,
 	}
 	defer func() {
 		if retErr != nil {

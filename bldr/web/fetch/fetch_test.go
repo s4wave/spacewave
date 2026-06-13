@@ -199,6 +199,44 @@ func TestHandleFetchHandlerPanicIsError(t *testing.T) {
 	}
 }
 
+func TestFetchResponseWriterSplitsLargeDataPackets(t *testing.T) {
+	strm := &recordingFetchStream{ctx: context.Background()}
+	rw := NewFetchResponseWriter(strm)
+
+	body := append(bytes.Repeat([]byte{'x'}, 32*1024), bytes.Repeat([]byte{'/'}, 105)...)
+	rw.Header().Set("Content-Length", "32873")
+	n, err := rw.Write(body)
+	if err != nil {
+		t.Fatalf("write large response body: %v", err)
+	}
+	if n != len(body) {
+		t.Fatalf("wrote %d bytes, want %d", n, len(body))
+	}
+	if err := rw.BodyError(http.MethodGet); err != nil {
+		t.Fatalf("body error after complete write: %v", err)
+	}
+
+	var got []byte
+	var dataPacketCount int
+	for _, pkt := range strm.sent {
+		data := pkt.GetResponseData()
+		if data == nil || len(data.GetData()) == 0 {
+			continue
+		}
+		dataPacketCount++
+		if len(data.GetData()) > maxFetchResponseDataPacketBytes {
+			t.Fatalf("response data packet length %d exceeds max %d", len(data.GetData()), maxFetchResponseDataPacketBytes)
+		}
+		got = append(got, data.GetData()...)
+	}
+	if dataPacketCount < 2 {
+		t.Fatalf("expected response body to be split across packets, got %d data packets", dataPacketCount)
+	}
+	if !bytes.Equal(got, body) {
+		t.Fatalf("response packet data mismatch: got %d bytes, want %d", len(got), len(body))
+	}
+}
+
 func TestFetchDataPacketsOwnPayloadBytes(t *testing.T) {
 	reqData := []byte("request-payload")
 	reqPkt := NewFetchRequestWithData(reqData, false)
@@ -213,4 +251,57 @@ func TestFetchDataPacketsOwnPayloadBytes(t *testing.T) {
 	if got, want := respPkt.GetResponseData().GetData(), []byte("response-payload"); !bytes.Equal(got, want) {
 		t.Fatalf("response packet data mutated: got %q, want %q", got, want)
 	}
+}
+
+type recordingFetchStream struct {
+	ctx  context.Context
+	sent []*FetchResponse
+}
+
+func (s *recordingFetchStream) Context() context.Context {
+	if s.ctx != nil {
+		return s.ctx
+	}
+	return context.Background()
+}
+
+func (s *recordingFetchStream) MsgSend(msg srpc.Message) error {
+	if resp, ok := msg.(*FetchResponse); ok {
+		return s.Send(resp)
+	}
+	return nil
+}
+
+func (s *recordingFetchStream) MsgRecv(srpc.Message) error {
+	return io.EOF
+}
+
+func (s *recordingFetchStream) CloseSend() error {
+	return nil
+}
+
+func (s *recordingFetchStream) Close() error {
+	return nil
+}
+
+func (s *recordingFetchStream) Send(resp *FetchResponse) error {
+	s.sent = append(s.sent, resp)
+	return nil
+}
+
+func (s *recordingFetchStream) SendAndClose(resp *FetchResponse) error {
+	if resp != nil {
+		if err := s.Send(resp); err != nil {
+			return err
+		}
+	}
+	return s.CloseSend()
+}
+
+func (s *recordingFetchStream) Recv() (*FetchRequest, error) {
+	return nil, io.EOF
+}
+
+func (s *recordingFetchStream) RecvTo(*FetchRequest) error {
+	return io.EOF
 }

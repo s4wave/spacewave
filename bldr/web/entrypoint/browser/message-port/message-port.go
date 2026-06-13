@@ -28,6 +28,7 @@ type MessagePort struct {
 	trig         chan struct{}
 	msgs         [][]byte
 	closed       bool
+	writeClosed  bool
 	onMessageSet bool
 }
 
@@ -104,6 +105,10 @@ func (s *MessagePort) ReadMessage(ctx context.Context) ([]byte, error) {
 
 // WriteMessage writes a message to the stream.
 func (s *MessagePort) WriteMessage(p []byte) error {
+	if s.writeClosed {
+		return errors.New("message port write side closed")
+	}
+
 	if runtime.Compiler == "tinygo" {
 		postBytes := js.Global().Get(tinyGoPostBytes)
 		if postBytes.IsUndefined() || postBytes.IsNull() || postBytes.Type() != js.TypeFunction {
@@ -133,7 +138,26 @@ func (s *MessagePort) WriteMessage(p []byte) error {
 	return nil
 }
 
-// Close closes the channels.
+// CloseWrite closes the outbound side while preserving inbound reads.
+func (s *MessagePort) CloseWrite() error {
+	if s.writeClosed {
+		return nil
+	}
+
+	s.writeClosed = true
+	if s.chPost.IsUndefined() || s.chPost.IsNull() || s.chPost.Type() != js.TypeFunction {
+		panic("message port postMessage unavailable during close")
+	}
+	defer func() {
+		if e := recover(); e != nil {
+			panic("message port close invoke failed")
+		}
+	}()
+	s.chPost.Invoke(js.Null())
+	return nil
+}
+
+// Close closes both sides of the channel.
 func (s *MessagePort) Close() error {
 	if s.closed {
 		s.releaseOnMessage()
@@ -144,15 +168,9 @@ func (s *MessagePort) Close() error {
 	s.closed = true
 	s.releaseOnMessage()
 	s.wakeReader()
-	if s.chPost.IsUndefined() || s.chPost.IsNull() || s.chPost.Type() != js.TypeFunction {
-		panic("message port postMessage unavailable during close")
+	if err := s.CloseWrite(); err != nil {
+		return err
 	}
-	defer func() {
-		if e := recover(); e != nil {
-			panic("message port close invoke failed")
-		}
-	}()
-	s.chPost.Invoke(js.Null())
 	s.chObj.Call("close")
 	return nil
 }

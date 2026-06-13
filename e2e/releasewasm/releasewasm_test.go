@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -299,7 +300,10 @@ func TestGoScriptQuickstartDriveLoadsAppModule(t *testing.T) {
 	waitForQuickstartDriveAppModule(t, page)
 }
 
-const sonnerModulePath = "/b/pkg/sonner/dist/index.mjs"
+const (
+	sonnerModulePath     = "/b/pkg/sonner/dist/index.mjs"
+	webPkgArtifactRelDir = ".bldr-dist/build/js/spacewave-web/assets/bldr-web-pkgs"
+)
 
 func waitForPluginWorkersRunning(t *testing.T, page playwright.Page, workerIDs []string) {
 	t.Helper()
@@ -380,12 +384,16 @@ func collectQuickstartModuleLoadDifferential(t *testing.T, page playwright.Page,
 	browserProbe := collectBrowserModuleLoadDifferential(t, page, modulePath)
 	rootDirect := directServerModuleProbe(t, modulePath)
 	sonnerDirect := directServerModuleProbe(t, sonnerModulePath)
+	sonnerArtifact := releaseWebPkgArtifactProbe(t, sonnerModulePath)
 	report := map[string]any{
 		"modulePath":   modulePath,
 		"browserProbe": browserProbe,
 		"directServer": map[string]any{
 			"root":   rootDirect,
 			"sonner": sonnerDirect,
+		},
+		"releaseArtifact": map[string]any{
+			"sonner": sonnerArtifact,
 		},
 	}
 	reportJSON, err := json.MarshalIndent(report, "", "  ")
@@ -398,7 +406,7 @@ func collectQuickstartModuleLoadDifferential(t *testing.T, page playwright.Page,
 	rootBrowser, _ := browserProbe["rootFetch"].(map[string]any)
 	sonnerBrowser, _ := browserProbe["sonnerFetch"].(map[string]any)
 	assertBrowserModuleFetchComplete(t, "root App module", rootBrowser)
-	assertBrowserModuleFetchComplete(t, "Sonner module", sonnerBrowser)
+	assertBrowserModuleFetchMatchesArtifact(t, "Sonner module", sonnerBrowser, sonnerArtifact)
 }
 
 func collectBrowserModuleLoadDifferential(t *testing.T, page playwright.Page, modulePath string) map[string]any {
@@ -406,12 +414,83 @@ func collectBrowserModuleLoadDifferential(t *testing.T, page playwright.Page, mo
 
 	raw, err := page.Evaluate(`async (args) => {
 		const textEncoder = new TextEncoder()
+		const textDecoder = new TextDecoder()
 		const toHex = (bytes) =>
 			Array.from(new Uint8Array(bytes))
 				.map((byte) => byte.toString(16).padStart(2, '0'))
 				.join('')
-		const sha256 = async (text) =>
-			toHex(await crypto.subtle.digest('SHA-256', textEncoder.encode(text)))
+		const sha256Bytes = async (bytes) =>
+			toHex(await crypto.subtle.digest('SHA-256', bytes))
+		const summarizeBody = async (bytes) => {
+			const text = textDecoder.decode(bytes)
+			return {
+				bodyComplete: true,
+				bodyLength: text.length,
+				bodyByteLength: bytes.byteLength,
+				sha256: await sha256Bytes(bytes),
+				head: text.slice(0, 160),
+				tail: text.slice(-240),
+			}
+		}
+		const collectChunks = (chunks, byteLength) => {
+			const body = new Uint8Array(byteLength)
+			chunks.reduce((offset, chunk) => {
+				body.set(chunk, offset)
+				return offset + chunk.byteLength
+			}, 0)
+			return body
+		}
+		const chunkByteLength = (chunks) =>
+			chunks.reduce((total, chunk) => total + chunk.byteLength, 0)
+		const readBody = async (response) => {
+			const stream = response.body
+			if (!stream) {
+				const text = await response.text()
+				const body = textEncoder.encode(text)
+				return {
+					...(await summarizeBody(body)),
+					bodyReader: 'text',
+					bodyChunks: body.byteLength > 0 ? 1 : 0,
+				}
+			}
+			const reader = stream.getReader()
+			const chunks = []
+			try {
+				for (;;) {
+					const read = await reader.read()
+					if (read.done) {
+						break
+					}
+					if (read.value) {
+						const chunk = read.value
+						chunks.push(chunk)
+					}
+				}
+			} catch (error) {
+				const bodyByteLength = chunkByteLength(chunks)
+				const partialBody = collectChunks(chunks, bodyByteLength)
+				const partialText = textDecoder.decode(partialBody)
+				return {
+					ok: false,
+					bodyComplete: false,
+					bodyReader: 'stream',
+					bodyChunks: chunks.length,
+					bodyByteLength,
+					partialSha256: await sha256Bytes(partialBody),
+					partialHead: partialText.slice(0, 160),
+					partialTail: partialText.slice(-240),
+					name: error?.name ?? '',
+					message: error?.message ?? String(error),
+					stack: error?.stack ?? '',
+				}
+			}
+			const bodyByteLength = chunkByteLength(chunks)
+			return {
+				...(await summarizeBody(collectChunks(chunks, bodyByteLength))),
+				bodyReader: 'stream',
+				bodyChunks: chunks.length,
+			}
+		}
 		const headerObject = (headers) => {
 			const out = {}
 			for (const [key, value] of headers.entries()) {
@@ -432,18 +511,14 @@ func collectBrowserModuleLoadDifferential(t *testing.T, page playwright.Page, mo
 			try {
 				const response = await fetch(requestURL, { cache: 'reload' })
 				try {
-					const text = await response.text()
+					const body = await readBody(response)
 					return {
 						path,
 						requestURL,
 						status: response.status,
-						ok: response.ok,
+						ok: response.ok && body.bodyComplete,
 						headers: headerObject(response.headers),
-						bodyLength: text.length,
-						bodyByteLength: textEncoder.encode(text).length,
-						sha256: await sha256(text),
-						head: text.slice(0, 160),
-						tail: text.slice(-240),
+						...body,
 					}
 				} catch (error) {
 					return {
@@ -549,6 +624,45 @@ func directServerModuleProbe(t *testing.T, modulePath string) map[string]any {
 	if err != nil {
 		t.Fatalf("read direct module response %q: %v", modulePath, err)
 	}
+	probe := moduleBodySummary(body)
+	probe["path"] = modulePath
+	probe["status"] = resp.StatusCode
+	probe["contentType"] = resp.Header.Get("Content-Type")
+	probe["contentLength"] = resp.Header.Get("Content-Length")
+	return probe
+}
+
+func releaseWebPkgArtifactProbe(t *testing.T, modulePath string) map[string]any {
+	t.Helper()
+
+	artifactRelPath := releaseWebPkgArtifactRelPath(t, modulePath)
+	body, err := os.ReadFile(filepath.Join(testHarness.repoRoot, artifactRelPath))
+	if err != nil {
+		t.Fatalf("read release web package artifact %s for %s: %v", artifactRelPath, modulePath, err)
+	}
+	probe := moduleBodySummary(body)
+	probe["path"] = modulePath
+	probe["artifactRelPath"] = artifactRelPath
+	probe["ok"] = true
+	return probe
+}
+
+func releaseWebPkgArtifactRelPath(t *testing.T, modulePath string) string {
+	t.Helper()
+
+	const prefix = "/b/pkg/"
+	if !strings.HasPrefix(modulePath, prefix) {
+		t.Fatalf("release web package artifact path must begin with %s: %q", prefix, modulePath)
+	}
+	pkgPath := strings.TrimPrefix(modulePath, prefix)
+	cleanPkgPath := path.Clean(pkgPath)
+	if cleanPkgPath == "." || cleanPkgPath == ".." || strings.HasPrefix(cleanPkgPath, "../") || path.IsAbs(cleanPkgPath) {
+		t.Fatalf("release web package artifact path escapes package root: %q", modulePath)
+	}
+	return filepath.ToSlash(filepath.Join(webPkgArtifactRelDir, filepath.FromSlash(cleanPkgPath)))
+}
+
+func moduleBodySummary(body []byte) map[string]any {
 	sum := sha256.Sum256(body)
 	bodyText := string(body)
 	head := bodyText
@@ -560,10 +674,6 @@ func directServerModuleProbe(t *testing.T, modulePath string) map[string]any {
 		tail = tail[len(tail)-240:]
 	}
 	return map[string]any{
-		"path":           modulePath,
-		"status":         resp.StatusCode,
-		"contentType":    resp.Header.Get("Content-Type"),
-		"contentLength":  resp.Header.Get("Content-Length"),
 		"bodyByteLength": len(body),
 		"sha256":         hex.EncodeToString(sum[:]),
 		"head":           head,
@@ -585,7 +695,31 @@ func assertBrowserModuleFetchComplete(t *testing.T, label string, browser map[st
 	}
 }
 
+func assertBrowserModuleFetchMatchesArtifact(t *testing.T, label string, browser, artifact map[string]any) {
+	t.Helper()
+
+	assertBrowserModuleFetchComplete(t, label, browser)
+	if artifact == nil {
+		t.Fatalf("%s release artifact probe missing", label)
+	}
+	if artifact["ok"] != true {
+		t.Fatalf("%s release artifact probe failed: %#v", label, artifact)
+	}
+	browserLength := moduleProbeInt(browser["bodyByteLength"])
+	artifactLength := moduleProbeInt(artifact["bodyByteLength"])
+	if browserLength != artifactLength {
+		t.Fatalf("%s browser body length %d != release artifact length %d: browser=%#v artifact=%#v", label, browserLength, artifactLength, browser, artifact)
+	}
+	if browser["sha256"] != artifact["sha256"] {
+		t.Fatalf("%s browser body hash %v != release artifact hash %v: browser=%#v artifact=%#v", label, browser["sha256"], artifact["sha256"], browser, artifact)
+	}
+}
+
 func moduleProbeStatus(value any) int {
+	return moduleProbeInt(value)
+}
+
+func moduleProbeInt(value any) int {
 	switch typed := value.(type) {
 	case int:
 		return typed

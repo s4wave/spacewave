@@ -54,7 +54,7 @@ func (w *MessagePortPacketStream) ReadToHandler(ctx context.Context, cb srpc.Pac
 
 // Close closes the writer.
 func (w *MessagePortPacketStream) Close() error {
-	return w.port.Close()
+	return w.port.CloseWrite()
 }
 
 var _ srpc.PacketWriter = ((*MessagePortPacketStream)(nil))

@@ -142,9 +142,13 @@ func (f *FSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) (in
 			}
 		}
 	default:
-		// refuse if offset != 0
-		if offset != 0 {
-			return 0, errors.New("fs.FS: FSCursorOps: fs file must implement ReaderAt or Seeker")
+		if offset < 0 {
+			return 0, errors.New("fs.FS: FSCursorOps: negative offset")
+		}
+		if offset > 0 {
+			if _, err := io.CopyN(io.Discard, ff, offset); err != nil {
+				return 0, err
+			}
 		}
 	}
 

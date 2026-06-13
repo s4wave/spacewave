@@ -143,6 +143,52 @@ func TestMessagePortReadDrainsBodyChunkAndTailBeforeClose(t *testing.T) {
 	}
 }
 
+func TestMessagePortPacketStreamClosePreservesInboundRead(t *testing.T) {
+	chObj := newTestMessagePort(t)
+	port := NewMessagePort(chObj)
+	stream := NewMessagePortPacketStream(port)
+
+	if err := stream.Close(); err != nil {
+		t.Fatalf("packet stream close failed: %v", err)
+	}
+	if msgCount := chObj.Get("messages").Length(); msgCount != 1 {
+		t.Fatalf("expected one outbound close message, got %d", msgCount)
+	}
+	if !chObj.Get("messages").Index(0).IsNull() {
+		t.Fatal("expected outbound close message to be null")
+	}
+	if calls := chObj.Get("closeCalls").Int(); calls != 0 {
+		t.Fatalf("packet stream close should not close JS port, got %d calls", calls)
+	}
+	if typ := chObj.Get("onmessage").Type(); typ != js.TypeFunction {
+		t.Fatalf("packet stream close should preserve inbound handler, got %s", typ.String())
+	}
+
+	deliverTestMessage(t, chObj, []byte("response-info"))
+	deliverTestMessage(t, chObj, []byte("response-body"))
+	deliverTestClose(t, chObj)
+
+	for _, want := range []string{"response-info", "response-body"} {
+		got, err := port.ReadMessage(context.Background())
+		if err != nil {
+			t.Fatalf("read message: %v", err)
+		}
+		if string(got) != want {
+			t.Fatalf("message order mismatch: got %q want %q", string(got), want)
+		}
+	}
+
+	if _, err := port.ReadMessage(context.Background()); err != io.EOF {
+		t.Fatalf("expected EOF after remote close, got %v", err)
+	}
+	if err := port.Close(); err != nil {
+		t.Fatalf("full close failed: %v", err)
+	}
+	if msgCount := chObj.Get("messages").Length(); msgCount != 1 {
+		t.Fatalf("expected full close not to post a second outbound close, got %d messages", msgCount)
+	}
+}
+
 func waitReadError(readDone <-chan error) error {
 	for range 100 {
 		select {
