@@ -46,7 +46,9 @@ func (d *Dirent) FollowNodeRef(ctx context.Context, bcs *block.Cursor) (*FSNode,
 func (d *Dirent) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 	switch id {
 	case 2:
-		d.NodeRef = ptr
+		// Block transaction workers own ptr; Dirent owns the protobuf ref it
+		// marshals, so never retain the transaction-owned object.
+		d.NodeRef = ptr.Clone()
 	}
 	return nil
 }
