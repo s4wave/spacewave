@@ -237,6 +237,7 @@ func (h *HostRuntime) callback(name string, results []api.ValueType) api.GoModul
 			setZeroResults(stack, results)
 		case "run_hardware_timers":
 			if len(stack) > 1 {
+				acpiEnabled := api.DecodeU32(stack[0]) != 0
 				now := api.DecodeF64(stack[1])
 				next := 100.0
 				if h.pit != nil {
@@ -244,6 +245,9 @@ func (h *HostRuntime) callback(name string, results []api.ValueType) api.GoModul
 				}
 				if h.cmos != nil {
 					next = min(next, h.cmos.timer(ctx))
+				}
+				if acpiEnabled {
+					next = min(next, h.apicTimer(ctx, now))
 				}
 				stack[0] = api.EncodeF64(next)
 			} else {
@@ -303,6 +307,21 @@ func (h *HostRuntime) callback(name string, results []api.ValueType) api.GoModul
 			setZeroResults(stack, results)
 		}
 	})
+}
+
+func (h *HostRuntime) apicTimer(ctx context.Context, now float64) float64 {
+	fn := h.Module.ExportedFunction("apic_timer")
+	if fn == nil {
+		return 100
+	}
+	result, err := fn.Call(ctx, api.EncodeF64(now))
+	if err != nil {
+		return 100
+	}
+	if len(result) == 0 {
+		return 100
+	}
+	return api.DecodeF64(result[0])
 }
 
 func (h *HostRuntime) readIO(ctx context.Context, port uint32, width int) uint32 {
