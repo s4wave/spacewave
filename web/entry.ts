@@ -63,12 +63,17 @@ import '@s4wave/web/layout/layout.js'
 
 // object/
 import '@s4wave/web/object/ComponentSelector.js'
+import '@s4wave/web/object/DebugObjectViewer.js'
 import '@s4wave/web/object/LayoutObjectViewer.js'
 import '@s4wave/web/object/object.js'
 import '@s4wave/web/object/object.pb.js'
 import '@s4wave/web/object/ObjectViewer.js'
+import '@s4wave/web/object/ObjectViewerContent.js'
 import '@s4wave/web/object/ObjectViewerContext.js'
 import '@s4wave/web/object/TabContext.js'
+
+// sdk/
+import '@s4wave/web/sdk/app/index.js'
 
 // router/
 import '@s4wave/web/router/app-path.js'

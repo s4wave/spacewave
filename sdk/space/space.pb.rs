@@ -173,12 +173,25 @@ pub struct SpacePluginStatus {
     /// PluginId is the manifest ID of the plugin.
     #[prost(string, tag="1")]
     pub plugin_id: ::prost::alloc::string::String,
-    /// Loaded indicates whether the plugin is currently running.
+    /// Loaded indicates whether the plugin is currently running. Kept for older
+    /// consumers; State is the app-facing lifecycle owner.
     #[prost(bool, tag="3")]
     pub loaded: bool,
     /// Description is a short description from the plugin manifest metadata.
     #[prost(string, tag="4")]
     pub description: ::prost::alloc::string::String,
+    /// State is the app-facing lifecycle projection.
+    #[prost(enumeration="SpacePluginLifecycleState", tag="5")]
+    pub state: i32,
+    /// Detail is a short scheduler-owned lifecycle explanation.
+    #[prost(string, tag="6")]
+    pub detail: ::prost::alloc::string::String,
+    /// RetryCount is reserved for future scheduler retry projection.
+    #[prost(uint32, tag="7")]
+    pub retry_count: u32,
+    /// Revision is reserved for future manifest-version projection.
+    #[prost(string, tag="8")]
+    pub revision: ::prost::alloc::string::String,
 }
 /// AddSpacePluginRequest is a request to add a plugin to the space settings.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -234,5 +247,58 @@ pub struct ProcessBindingInfo {
     /// DecidedAt is the time the binding state was last changed.
     #[prost(message, optional, tag="4")]
     pub decided_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// SpacePluginLifecycleState is the app-facing lifecycle projection for a plugin.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SpacePluginLifecycleState {
+    /// SpacePluginLifecycleState_UNKNOWN leaves lifecycle state unset.
+    Unknown = 0,
+    /// SpacePluginLifecycleState_CONFIGURED means the plugin is configured in Space settings.
+    Configured = 1,
+    /// SpacePluginLifecycleState_LOADING means the plugin runtime has been requested.
+    Loading = 2,
+    /// SpacePluginLifecycleState_LOADED means the plugin runtime is running.
+    Loaded = 3,
+    /// SpacePluginLifecycleState_FAILED means the latest runtime attempt failed.
+    Failed = 4,
+    /// SpacePluginLifecycleState_RETRYING means a failed plugin is being requested again.
+    Retrying = 5,
+    /// SpacePluginLifecycleState_REMOVED is used by app-side transition views after removal.
+    Removed = 6,
+    /// SpacePluginLifecycleState_UPGRADED is used by app-side transition views after upgrade.
+    Upgraded = 7,
+}
+impl SpacePluginLifecycleState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unknown => "SpacePluginLifecycleState_UNKNOWN",
+            Self::Configured => "SpacePluginLifecycleState_CONFIGURED",
+            Self::Loading => "SpacePluginLifecycleState_LOADING",
+            Self::Loaded => "SpacePluginLifecycleState_LOADED",
+            Self::Failed => "SpacePluginLifecycleState_FAILED",
+            Self::Retrying => "SpacePluginLifecycleState_RETRYING",
+            Self::Removed => "SpacePluginLifecycleState_REMOVED",
+            Self::Upgraded => "SpacePluginLifecycleState_UPGRADED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SpacePluginLifecycleState_UNKNOWN" => Some(Self::Unknown),
+            "SpacePluginLifecycleState_CONFIGURED" => Some(Self::Configured),
+            "SpacePluginLifecycleState_LOADING" => Some(Self::Loading),
+            "SpacePluginLifecycleState_LOADED" => Some(Self::Loaded),
+            "SpacePluginLifecycleState_FAILED" => Some(Self::Failed),
+            "SpacePluginLifecycleState_RETRYING" => Some(Self::Retrying),
+            "SpacePluginLifecycleState_REMOVED" => Some(Self::Removed),
+            "SpacePluginLifecycleState_UPGRADED" => Some(Self::Upgraded),
+            _ => None,
+        }
+    }
 }
 // @@protoc_insertion_point(module)

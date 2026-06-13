@@ -48,6 +48,7 @@ manifest("downstream-web",
                       webViewParentId={"empty": True}),
         ],
         webPkgs=[
+            web_pkg("@s4wave/web", entrypoints=["./sdk/app", "./object", "./style", "./ui"]),
             web_pkg("sonner"),
         ],
     ),

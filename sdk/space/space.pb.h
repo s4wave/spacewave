@@ -31,6 +31,7 @@
 #include "google/protobuf/message_lite.h"
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
+#include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
 #include "../../core/sobject/sobject.pb.h"
 #include "../../core/space/world/world.pb.h"
@@ -64,6 +65,8 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace s4wave {
 namespace space {
+enum SpacePluginLifecycleState : int;
+extern const uint32_t SpacePluginLifecycleState_internal_data_[];
 class AccessWorldRequest;
 struct AccessWorldRequestDefaultTypeInternal;
 extern AccessWorldRequestDefaultTypeInternal _AccessWorldRequest_default_instance_;
@@ -164,11 +167,56 @@ extern const ::google::protobuf::internal::ClassDataFull WatchSpaceStateRequest_
 }  // namespace s4wave
 namespace google {
 namespace protobuf {
+template <>
+internal::EnumTraitsT<::s4wave::space::SpacePluginLifecycleState_internal_data_>
+    internal::EnumTraitsImpl::value<::s4wave::space::SpacePluginLifecycleState>;
 }  // namespace protobuf
 }  // namespace google
 
 namespace s4wave {
 namespace space {
+enum SpacePluginLifecycleState : int {
+  SpacePluginLifecycleState_UNKNOWN = 0,
+  SpacePluginLifecycleState_CONFIGURED = 1,
+  SpacePluginLifecycleState_LOADING = 2,
+  SpacePluginLifecycleState_LOADED = 3,
+  SpacePluginLifecycleState_FAILED = 4,
+  SpacePluginLifecycleState_RETRYING = 5,
+  SpacePluginLifecycleState_REMOVED = 6,
+  SpacePluginLifecycleState_UPGRADED = 7,
+  SpacePluginLifecycleState_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  SpacePluginLifecycleState_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t SpacePluginLifecycleState_internal_data_[];
+inline constexpr SpacePluginLifecycleState SpacePluginLifecycleState_MIN =
+    static_cast<SpacePluginLifecycleState>(0);
+inline constexpr SpacePluginLifecycleState SpacePluginLifecycleState_MAX =
+    static_cast<SpacePluginLifecycleState>(7);
+inline bool SpacePluginLifecycleState_IsValid(int value) {
+  return 0 <= value && value <= 7;
+}
+inline constexpr int SpacePluginLifecycleState_ARRAYSIZE = 7 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SpacePluginLifecycleState_descriptor();
+template <typename T>
+const ::std::string& SpacePluginLifecycleState_Name(T value) {
+  static_assert(::std::is_same<T, SpacePluginLifecycleState>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to SpacePluginLifecycleState_Name().");
+  return SpacePluginLifecycleState_Name(static_cast<SpacePluginLifecycleState>(value));
+}
+template <>
+inline const ::std::string& SpacePluginLifecycleState_Name(SpacePluginLifecycleState value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<SpacePluginLifecycleState_descriptor, 0, 7>(
+      static_cast<int>(value));
+}
+inline bool SpacePluginLifecycleState_Parse(
+    ::absl::string_view name, SpacePluginLifecycleState* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<SpacePluginLifecycleState>(SpacePluginLifecycleState_descriptor(), name,
+                                           value);
+}
 
 // ===================================================================
 
@@ -721,7 +769,11 @@ class SpacePluginStatus final : public ::google::protobuf::Message
   enum : int {
     kPluginIdFieldNumber = 1,
     kDescriptionFieldNumber = 4,
+    kDetailFieldNumber = 6,
+    kRevisionFieldNumber = 8,
     kLoadedFieldNumber = 3,
+    kStateFieldNumber = 5,
+    kRetryCountFieldNumber = 7,
   };
   // string plugin_id = 1;
   void clear_plugin_id() ;
@@ -753,6 +805,36 @@ class SpacePluginStatus final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_description();
 
   public:
+  // string detail = 6;
+  void clear_detail() ;
+  const ::std::string& detail() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_detail(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_detail();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_detail();
+  void set_allocated_detail(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_detail() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_detail(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_detail();
+
+  public:
+  // string revision = 8;
+  void clear_revision() ;
+  const ::std::string& revision() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_revision(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_revision();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_revision();
+  void set_allocated_revision(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_revision() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_revision(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_revision();
+
+  public:
   // bool loaded = 3;
   void clear_loaded() ;
   bool loaded() const;
@@ -763,12 +845,32 @@ class SpacePluginStatus final : public ::google::protobuf::Message
   void _internal_set_loaded(bool value);
 
   public:
+  // .s4wave.space.SpacePluginLifecycleState state = 5;
+  void clear_state() ;
+  ::s4wave::space::SpacePluginLifecycleState state() const;
+  void set_state(::s4wave::space::SpacePluginLifecycleState value);
+
+  private:
+  ::s4wave::space::SpacePluginLifecycleState _internal_state() const;
+  void _internal_set_state(::s4wave::space::SpacePluginLifecycleState value);
+
+  public:
+  // uint32 retry_count = 7;
+  void clear_retry_count() ;
+  ::uint32_t retry_count() const;
+  void set_retry_count(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_retry_count() const;
+  void _internal_set_retry_count(::uint32_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.space.SpacePluginStatus)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 3,
-                                   0, 59,
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   0, 73,
                                    2>
       _table_;
 
@@ -791,7 +893,11 @@ class SpacePluginStatus final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr plugin_id_;
     ::google::protobuf::internal::ArenaStringPtr description_;
+    ::google::protobuf::internal::ArenaStringPtr detail_;
+    ::google::protobuf::internal::ArenaStringPtr revision_;
     bool loaded_;
+    int state_;
+    ::uint32_t retry_count_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -6886,7 +6992,7 @@ inline void SpacePluginStatus::clear_loaded() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.loaded_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000010U);
 }
 inline bool SpacePluginStatus::loaded() const {
   // @@protoc_insertion_point(field_get:s4wave.space.SpacePluginStatus.loaded)
@@ -6894,7 +7000,7 @@ inline bool SpacePluginStatus::loaded() const {
 }
 inline void SpacePluginStatus::set_loaded(bool value) {
   _internal_set_loaded(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   // @@protoc_insertion_point(field_set:s4wave.space.SpacePluginStatus.loaded)
 }
 inline bool SpacePluginStatus::_internal_loaded() const {
@@ -6969,6 +7075,186 @@ inline void SpacePluginStatus::set_allocated_description(::std::string* PROTOBUF
     _impl_.description_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:s4wave.space.SpacePluginStatus.description)
+}
+
+// .s4wave.space.SpacePluginLifecycleState state = 5;
+inline void SpacePluginStatus::clear_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.state_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline ::s4wave::space::SpacePluginLifecycleState SpacePluginStatus::state() const {
+  // @@protoc_insertion_point(field_get:s4wave.space.SpacePluginStatus.state)
+  return _internal_state();
+}
+inline void SpacePluginStatus::set_state(::s4wave::space::SpacePluginLifecycleState value) {
+  _internal_set_state(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:s4wave.space.SpacePluginStatus.state)
+}
+inline ::s4wave::space::SpacePluginLifecycleState SpacePluginStatus::_internal_state() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::space::SpacePluginLifecycleState>(_impl_.state_);
+}
+inline void SpacePluginStatus::_internal_set_state(::s4wave::space::SpacePluginLifecycleState value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.state_ = value;
+}
+
+// string detail = 6;
+inline void SpacePluginStatus::clear_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& SpacePluginStatus::detail() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.space.SpacePluginStatus.detail)
+  return _internal_detail();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SpacePluginStatus::set_detail(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.detail_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.space.SpacePluginStatus.detail)
+}
+inline ::std::string* PROTOBUF_NONNULL SpacePluginStatus::mutable_detail()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_detail();
+  // @@protoc_insertion_point(field_mutable:s4wave.space.SpacePluginStatus.detail)
+  return _s;
+}
+inline const ::std::string& SpacePluginStatus::_internal_detail() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.detail_.Get();
+}
+inline void SpacePluginStatus::_internal_set_detail(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SpacePluginStatus::_internal_mutable_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.detail_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SpacePluginStatus::release_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.space.SpacePluginStatus.detail)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.detail_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SpacePluginStatus::set_allocated_detail(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.detail_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.detail_.IsDefault()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.space.SpacePluginStatus.detail)
+}
+
+// uint32 retry_count = 7;
+inline void SpacePluginStatus::clear_retry_count() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.retry_count_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline ::uint32_t SpacePluginStatus::retry_count() const {
+  // @@protoc_insertion_point(field_get:s4wave.space.SpacePluginStatus.retry_count)
+  return _internal_retry_count();
+}
+inline void SpacePluginStatus::set_retry_count(::uint32_t value) {
+  _internal_set_retry_count(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:s4wave.space.SpacePluginStatus.retry_count)
+}
+inline ::uint32_t SpacePluginStatus::_internal_retry_count() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.retry_count_;
+}
+inline void SpacePluginStatus::_internal_set_retry_count(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.retry_count_ = value;
+}
+
+// string revision = 8;
+inline void SpacePluginStatus::clear_revision() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.revision_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& SpacePluginStatus::revision() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.space.SpacePluginStatus.revision)
+  return _internal_revision();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SpacePluginStatus::set_revision(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.revision_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.space.SpacePluginStatus.revision)
+}
+inline ::std::string* PROTOBUF_NONNULL SpacePluginStatus::mutable_revision()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_revision();
+  // @@protoc_insertion_point(field_mutable:s4wave.space.SpacePluginStatus.revision)
+  return _s;
+}
+inline const ::std::string& SpacePluginStatus::_internal_revision() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.revision_.Get();
+}
+inline void SpacePluginStatus::_internal_set_revision(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.revision_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SpacePluginStatus::_internal_mutable_revision() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.revision_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SpacePluginStatus::release_revision() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.space.SpacePluginStatus.revision)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.revision_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.revision_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SpacePluginStatus::set_allocated_revision(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.revision_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.revision_.IsDefault()) {
+    _impl_.revision_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.space.SpacePluginStatus.revision)
 }
 
 // -------------------------------------------------------------------
@@ -7540,6 +7826,19 @@ inline void ProcessBindingInfo::set_allocated_decided_at(::google::protobuf::Tim
 }  // namespace space
 }  // namespace s4wave
 
+
+namespace google {
+namespace protobuf {
+
+template <>
+struct is_proto_enum<::s4wave::space::SpacePluginLifecycleState> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::space::SpacePluginLifecycleState>() {
+  return ::s4wave::space::SpacePluginLifecycleState_descriptor();
+}
+
+}  // namespace protobuf
+}  // namespace google
 
 // @@protoc_insertion_point(global_scope)
 

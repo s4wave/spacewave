@@ -9,6 +9,7 @@ import (
 
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	forge_dashboard "github.com/s4wave/spacewave/core/forge/dashboard"
 	forge_job_ops "github.com/s4wave/spacewave/core/forge/job"
 	forge_task_ops "github.com/s4wave/spacewave/core/forge/task"
@@ -150,6 +151,90 @@ func TestWaitSpaceContentsSeqnoWorldWake(t *testing.T) {
 		return nil
 	}); err != nil {
 		t.Fatalf("expected nil error, got %v", err)
+	}
+}
+
+func TestBuildSpacePluginStatusProjectsLifecycle(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name              string
+		loaded            bool
+		controllerStarted bool
+		schedulerStatus   *bldr_plugin.PluginStatus
+		wantLoaded        bool
+		wantState         s4wave_space.SpacePluginLifecycleState
+		wantDetail        string
+	}{
+		{
+			name:      "configured",
+			wantState: s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_CONFIGURED,
+		},
+		{
+			name:              "controller requested",
+			controllerStarted: true,
+			wantState:         s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_LOADING,
+			wantDetail:        "Plugin runtime requested",
+		},
+		{
+			name:   "legacy loaded",
+			loaded: true,
+			schedulerStatus: &bldr_plugin.PluginStatus{
+				State: bldr_plugin.PluginState_PluginState_REQUESTED,
+			},
+			wantLoaded: true,
+			wantState:  s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_LOADED,
+		},
+		{
+			name: "scheduler running",
+			schedulerStatus: &bldr_plugin.PluginStatus{
+				State:   bldr_plugin.PluginState_PluginState_RUNNING,
+				Running: true,
+			},
+			wantLoaded: true,
+			wantState:  s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_LOADED,
+		},
+		{
+			name: "scheduler failed",
+			schedulerStatus: &bldr_plugin.PluginStatus{
+				LastErrorMessage: "execute plugin: boom",
+			},
+			wantState:  s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_FAILED,
+			wantDetail: "execute plugin: boom",
+		},
+		{
+			name: "scheduler retrying",
+			schedulerStatus: &bldr_plugin.PluginStatus{
+				State:            bldr_plugin.PluginState_PluginState_REQUESTED,
+				LastErrorMessage: "fetch plugin manifest: missing",
+			},
+			wantState:  s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_RETRYING,
+			wantDetail: "fetch plugin manifest: missing",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := buildSpacePluginStatus(
+				"plugin-"+tt.name,
+				"description",
+				tt.loaded,
+				tt.controllerStarted,
+				tt.schedulerStatus,
+			)
+			if got.GetLoaded() != tt.wantLoaded {
+				t.Fatalf("loaded = %v, want %v", got.GetLoaded(), tt.wantLoaded)
+			}
+			if got.GetState() != tt.wantState {
+				t.Fatalf("state = %v, want %v", got.GetState(), tt.wantState)
+			}
+			if got.GetDetail() != tt.wantDetail {
+				t.Fatalf("detail = %q, want %q", got.GetDetail(), tt.wantDetail)
+			}
+			if got.GetDescription() != "description" {
+				t.Fatalf("description = %q, want description", got.GetDescription())
+			}
+		})
 	}
 }
 

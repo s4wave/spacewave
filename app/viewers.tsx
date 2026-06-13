@@ -1,9 +1,8 @@
 import type { ObjectViewerComponent } from '@s4wave/web/object/object.js'
-import { DebugObjectViewer } from '@s4wave/web/object/DebugObjectViewer.js'
 import {
-  LayoutObjectViewer,
-  ObjectLayoutTypeID,
-} from '@s4wave/web/object/LayoutObjectViewer.js'
+  createViewerCatalog,
+  getBaseObjectViewers,
+} from '@s4wave/web/sdk/app/index.js'
 import { DriveViewer } from '@s4wave/app/unixfs/DriveViewer.js'
 import { UnixFSGalleryViewer } from '@s4wave/app/unixfs/UnixFSGalleryViewer.js'
 import { UnixFSTypeID } from '@s4wave/sdk/unixfs/type.js'
@@ -98,14 +97,7 @@ import {
 } from '@s4wave/app/wizard/VmV86WizardViewer.js'
 import { getViewersForType } from '@s4wave/web/hooks/useViewerRegistry.js'
 
-const staticViewers: ObjectViewerComponent[] = [
-  {
-    componentID: 'spacewave.object-layout.viewer',
-    typeID: ObjectLayoutTypeID,
-    name: 'Layout Viewer',
-    category: 'Layout',
-    component: LayoutObjectViewer,
-  },
+const productObjectViewers: ObjectViewerComponent[] = [
   {
     componentID: 'spacewave.unixfs.viewer',
     typeID: UnixFSTypeID,
@@ -305,29 +297,26 @@ const staticViewers: ObjectViewerComponent[] = [
     requiresObjectState: false,
     component: WizardViewer,
   },
-  {
-    componentID: 'spacewave.debug.viewer',
-    typeID: '*',
-    name: 'Debug Viewer',
-    category: 'Developer',
-    component: DebugObjectViewer,
-  },
 ]
+
+export function getProductObjectViewers(): ObjectViewerComponent[] {
+  return [...productObjectViewers]
+}
 
 export function getObjectViewersForType(
   typeID: string,
   dynamicViewers?: ObjectViewerComponent[],
 ): ObjectViewerComponent[] {
-  const all = dynamicViewers
-    ? [...staticViewers, ...dynamicViewers]
-    : staticViewers
+  const all = getAllObjectViewers(dynamicViewers)
   return getViewersForType(typeID, all)
 }
 
 export function getAllObjectViewers(
   dynamicViewers?: ObjectViewerComponent[],
 ): ObjectViewerComponent[] {
-  return dynamicViewers
-    ? [...staticViewers, ...dynamicViewers]
-    : [...staticViewers]
+  return createViewerCatalog({
+    base: getBaseObjectViewers(),
+    product: getProductObjectViewers(),
+    downstream: dynamicViewers ?? [],
+  })
 }

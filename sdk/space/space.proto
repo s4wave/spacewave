@@ -164,15 +164,44 @@ message SpaceContentsState {
   repeated ProcessBindingInfo process_bindings = 3;
 }
 
+// SpacePluginLifecycleState is the app-facing lifecycle projection for a plugin.
+enum SpacePluginLifecycleState {
+  // SpacePluginLifecycleState_UNKNOWN leaves lifecycle state unset.
+  SpacePluginLifecycleState_UNKNOWN = 0;
+  // SpacePluginLifecycleState_CONFIGURED means the plugin is configured in Space settings.
+  SpacePluginLifecycleState_CONFIGURED = 1;
+  // SpacePluginLifecycleState_LOADING means the plugin runtime has been requested.
+  SpacePluginLifecycleState_LOADING = 2;
+  // SpacePluginLifecycleState_LOADED means the plugin runtime is running.
+  SpacePluginLifecycleState_LOADED = 3;
+  // SpacePluginLifecycleState_FAILED means the latest runtime attempt failed.
+  SpacePluginLifecycleState_FAILED = 4;
+  // SpacePluginLifecycleState_RETRYING means a failed plugin is being requested again.
+  SpacePluginLifecycleState_RETRYING = 5;
+  // SpacePluginLifecycleState_REMOVED is used by app-side transition views after removal.
+  SpacePluginLifecycleState_REMOVED = 6;
+  // SpacePluginLifecycleState_UPGRADED is used by app-side transition views after upgrade.
+  SpacePluginLifecycleState_UPGRADED = 7;
+}
+
 // SpacePluginStatus contains runtime state for a single plugin.
 message SpacePluginStatus {
   // PluginId is the manifest ID of the plugin.
   string plugin_id = 1;
   reserved 2;
-  // Loaded indicates whether the plugin is currently running.
+  // Loaded indicates whether the plugin is currently running. Kept for older
+  // consumers; State is the app-facing lifecycle owner.
   bool loaded = 3;
   // Description is a short description from the plugin manifest metadata.
   string description = 4;
+  // State is the app-facing lifecycle projection.
+  SpacePluginLifecycleState state = 5;
+  // Detail is a short scheduler-owned lifecycle explanation.
+  string detail = 6;
+  // RetryCount is reserved for future scheduler retry projection.
+  uint32 retry_count = 7;
+  // Revision is reserved for future manifest-version projection.
+  string revision = 8;
 }
 
 // AddSpacePluginRequest is a request to add a plugin to the space settings.

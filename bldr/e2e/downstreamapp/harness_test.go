@@ -8,6 +8,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -255,6 +256,11 @@ func TestGoScriptDownstreamAppLoadsSonner(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("wait for sonner toast text: %v\n%s\n%s", err, describePage(page), diag.String())
 	}
+	if err := page.GetByText("Can't open this object yet").First().WaitFor(playwright.LocatorWaitForOptions{
+		Timeout: playwright.Float(180000),
+	}); err != nil {
+		t.Fatalf("wait for SDK fallback text: %v\n%s\n%s", err, describePage(page), diag.String())
+	}
 
 	probe, err := collectSonnerProbe(page, diag)
 	if err != nil {
@@ -269,6 +275,29 @@ func TestGoScriptDownstreamAppLoadsSonner(t *testing.T) {
 	if !probe.BrowserObserved {
 		t.Fatalf("browser resource timing did not observe sonner module\n%s", diag.String())
 	}
+	sdkProbe, err := collectSDKAppProbe(page)
+	if err != nil {
+		t.Fatalf("collect SDK app probe: %v\n%s\n%s", err, describePage(page), diag.String())
+	}
+	if !sdkProbe.SDKAppImport {
+		t.Fatalf("SDK app import probe was false: %+v\n%s", sdkProbe, diag.String())
+	}
+	if sdkProbe.ProductViewerImplicit {
+		t.Fatalf("downstream catalog unexpectedly included product viewer: %+v\n%s", sdkProbe, diag.String())
+	}
+	if !slices.Contains(sdkProbe.CatalogComponentIDs, "spacewave.object-layout.viewer") ||
+		!slices.Contains(sdkProbe.CatalogComponentIDs, "spacewave.debug.viewer") ||
+		!slices.Contains(sdkProbe.CatalogComponentIDs, "mercury.note.viewer") {
+		t.Fatalf("downstream catalog missing expected viewers: %+v\n%s", sdkProbe, diag.String())
+	}
+	for _, label := range []string{"Configured", "Loading", "Loaded", "Failed", "Retrying", "Removed", "Upgraded"} {
+		if !slices.Contains(sdkProbe.LifecycleLabels, label) {
+			t.Fatalf("downstream lifecycle labels missing %q: %+v\n%s", label, sdkProbe, diag.String())
+		}
+	}
+	if !sdkProbe.FallbackRendered {
+		t.Fatalf("missing-viewer fallback did not render: %+v\n%s", sdkProbe, diag.String())
+	}
 	diag.LogHTTP(t)
 	diag.AssertNoHTTPFailures(t)
 
@@ -280,6 +309,33 @@ func TestGoScriptDownstreamAppLoadsSonner(t *testing.T) {
 		probe.BodyLength,
 		probe.URL,
 	)
+}
+
+type sdkAppProbe struct {
+	SDKAppImport          bool     `json:"sdkAppImport"`
+	CatalogComponentIDs   []string `json:"catalogComponentIDs"`
+	ProductViewerImplicit bool     `json:"productViewerImplicit"`
+	LifecycleLabels       []string `json:"lifecycleLabels"`
+	FallbackRendered      bool     `json:"fallbackRendered"`
+}
+
+func collectSDKAppProbe(page playwright.Page) (sdkAppProbe, error) {
+	for _, frame := range page.Frames() {
+		value, err := frame.Evaluate(`() => window.__downstreamE2E || null`)
+		if err != nil || value == nil {
+			continue
+		}
+		body, err := json.Marshal(value)
+		if err != nil {
+			return sdkAppProbe{}, err
+		}
+		var probe sdkAppProbe
+		if err := json.Unmarshal(body, &probe); err != nil {
+			return sdkAppProbe{}, err
+		}
+		return probe, nil
+	}
+	return sdkAppProbe{}, errors.New("downstream SDK app probe was not published")
 }
 
 type browserDiagnostics struct {

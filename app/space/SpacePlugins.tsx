@@ -4,6 +4,7 @@ import { LuPuzzle } from 'react-icons/lu'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SpaceContentsContext } from '@s4wave/web/contexts/contexts.js'
+import { PluginLifecycleBadge } from '@s4wave/web/sdk/app/lifecycle.js'
 import {
   SpaceContentsState,
   WatchSpaceContentsStateRequest,
@@ -55,6 +56,7 @@ export function SpacePlugins() {
       {plugins.map((plugin) => {
         const id = plugin.pluginId ?? ''
         const desc = plugin.description ?? ''
+        const detail = plugin.detail ?? ''
 
         return (
           <div
@@ -67,29 +69,19 @@ export function SpacePlugins() {
                 {desc && (
                   <span className="text-foreground-alt text-xs">{desc}</span>
                 )}
+                {detail && (
+                  <span className="text-foreground-alt/70 text-xs">
+                    {detail}
+                  </span>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <LoadBadge loaded={plugin.loaded ?? false} />
+              <PluginLifecycleBadge plugin={plugin} />
             </div>
           </div>
         )
       })}
     </div>
-  )
-}
-
-function LoadBadge({ loaded }: { loaded: boolean }) {
-  if (loaded) {
-    return (
-      <span className="rounded-full bg-blue-900/50 px-2 py-0.5 text-xs text-blue-300">
-        Loaded
-      </span>
-    )
-  }
-  return (
-    <span className="rounded-full bg-zinc-800/70 px-2 py-0.5 text-xs text-zinc-300">
-      Loading
-    </span>
   )
 }

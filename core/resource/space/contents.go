@@ -14,6 +14,7 @@ import (
 	"github.com/aperturerobotics/util/routine"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	process_binding "github.com/s4wave/spacewave/core/plugin/process"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
@@ -270,6 +271,7 @@ func (r *SpaceContentsResource) WatchState(
 		plugins := make([]*s4wave_space.SpacePluginStatus, 0, len(pluginIDs))
 		loadedIDs := map[string]struct{}{}
 		var loadedCh <-chan struct{}
+		var waitStatusChange func(context.Context) error
 		var ctrl *plugin_space.Controller
 		r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			ctrl = r.ctrl
@@ -281,13 +283,28 @@ func (r *SpaceContentsResource) WatchState(
 				loadedIDs[pid] = struct{}{}
 			}
 		}
+		schedulerStatuses := map[string]*bldr_plugin.PluginStatus{}
+		if scheduler := plugin_host_scheduler.FindControllerOnBus(r.b); scheduler != nil {
+			statusCtr := scheduler.GetPluginStatusCtr()
+			statusSnapshot := statusCtr.GetValue()
+			schedulerStatuses = spacePluginStatusesByID(statusSnapshot)
+			waitStatusChange = func(waitCtx context.Context) error {
+				_, err := statusCtr.WaitValueChange(waitCtx, statusSnapshot, nil)
+				return err
+			}
+		}
 		for _, pid := range pluginIDs {
 			_, loaded := loadedIDs[pid]
-			plugins = append(plugins, &s4wave_space.SpacePluginStatus{
-				PluginId:    pid,
-				Loaded:      loaded,
-				Description: descriptions[pid],
-			})
+			plugins = append(
+				plugins,
+				buildSpacePluginStatus(
+					pid,
+					descriptions[pid],
+					loaded,
+					ctrl != nil,
+					schedulerStatuses[pid],
+				),
+			)
 		}
 		processBindings, err := r.listProcessBindingInfos(ctx)
 		if err != nil {
@@ -307,10 +324,10 @@ func (r *SpaceContentsResource) WatchState(
 		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			ch = getWaitCh()
 		})
-		err = waitSpaceContentsSeqno(ctx, func(waitCtx context.Context) error {
+		err = waitSpaceContentsSources(ctx, func(waitCtx context.Context) error {
 			_, err := r.engine.WaitSeqno(waitCtx, prevSeqno+1)
 			return err
-		}, ch, loadedCh)
+		}, []<-chan struct{}{ch, loadedCh}, waitStatusChange)
 		if err != nil {
 			return err
 		}
@@ -322,24 +339,117 @@ func waitSpaceContentsSeqno(
 	waitSeqno func(context.Context) error,
 	waitChs ...<-chan struct{},
 ) error {
+	return waitSpaceContentsSources(ctx, waitSeqno, waitChs, nil)
+}
+
+func waitSpaceContentsSources(
+	ctx context.Context,
+	waitSeqno func(context.Context) error,
+	waitChs []<-chan struct{},
+	waitFns ...func(context.Context) error,
+) error {
 	waitCtx, waitCancel := context.WithCancel(ctx)
 	defer waitCancel()
 
-	waitAnyDone := make(chan struct{})
+	waitCount := 1
+	for _, waitFn := range waitFns {
+		if waitFn != nil {
+			waitCount++
+		}
+	}
+	waitAnyDone := make(chan struct{}, waitCount)
 	go func() {
-		defer close(waitAnyDone)
 		if err := broadcast.WaitAny(waitCtx, waitChs...); err == nil {
 			waitCancel()
 		}
+		waitAnyDone <- struct{}{}
 	}()
+	for _, waitFn := range waitFns {
+		if waitFn == nil {
+			continue
+		}
+		go func() {
+			if err := waitFn(waitCtx); err == nil {
+				waitCancel()
+			}
+			waitAnyDone <- struct{}{}
+		}()
+	}
 
 	err := waitSeqno(waitCtx)
 	waitCancel()
-	<-waitAnyDone
+	for range waitCount {
+		<-waitAnyDone
+	}
 	if err != nil && ctx.Err() != nil {
 		return ctx.Err()
 	}
 	return nil
+}
+
+func spacePluginStatusesByID(
+	snapshot *plugin_host_scheduler.PluginStatusSnapshot,
+) map[string]*bldr_plugin.PluginStatus {
+	statuses := map[string]*bldr_plugin.PluginStatus{}
+	if snapshot == nil {
+		return statuses
+	}
+	for _, plugin := range snapshot.Plugins {
+		if plugin == nil || plugin.GetInstanceKey() != "" {
+			continue
+		}
+		statuses[plugin.GetPluginId()] = plugin
+	}
+	return statuses
+}
+
+func buildSpacePluginStatus(
+	pluginID string,
+	description string,
+	loaded bool,
+	controllerStarted bool,
+	schedulerStatus *bldr_plugin.PluginStatus,
+) *s4wave_space.SpacePluginStatus {
+	state := s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_CONFIGURED
+	detail := ""
+	if controllerStarted {
+		state = s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_LOADING
+		detail = "Plugin runtime requested"
+	}
+	if schedulerStatus != nil {
+		state, detail = projectSpacePluginLifecycle(schedulerStatus)
+	}
+	if loaded || (schedulerStatus != nil && schedulerStatus.GetRunning()) {
+		loaded = true
+		state = s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_LOADED
+		detail = ""
+	}
+	return &s4wave_space.SpacePluginStatus{
+		PluginId:    pluginID,
+		Loaded:      loaded,
+		Description: description,
+		State:       state,
+		Detail:      detail,
+	}
+}
+
+func projectSpacePluginLifecycle(
+	status *bldr_plugin.PluginStatus,
+) (s4wave_space.SpacePluginLifecycleState, string) {
+	if msg := status.GetLastErrorMessage(); msg != "" {
+		if status.GetState() == bldr_plugin.PluginState_PluginState_REQUESTED {
+			return s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_RETRYING, msg
+		}
+		return s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_FAILED, msg
+	}
+	switch status.GetState() {
+	case bldr_plugin.PluginState_PluginState_RUNNING:
+		return s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_LOADED, ""
+	case bldr_plugin.PluginState_PluginState_REQUESTED:
+		return s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_LOADING, "Plugin runtime requested"
+	default:
+		return s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_CONFIGURED, ""
+	}
 }
 
 // getPluginDescriptions returns cached plugin descriptions for the current plugin set.

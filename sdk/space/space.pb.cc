@@ -92,7 +92,15 @@ inline constexpr SpacePluginStatus::Impl_::Impl_(
         description_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        loaded_{false} {}
+        detail_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        revision_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        loaded_{false},
+        state_{static_cast< ::s4wave::space::SpacePluginLifecycleState >(0)},
+        retry_count_{0u} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR SpacePluginStatus::SpacePluginStatus(::_pbi::ConstantInitialized)
@@ -640,8 +648,8 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateSecretResponseDefaultTypeInternal _CreateSecretResponse_default_instance_;
 }  // namespace space
 }  // namespace s4wave
-static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto = nullptr;
+static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto = nullptr;
 const ::uint32_t
@@ -755,13 +763,21 @@ const ::uint32_t
         1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::space::SpacePluginStatus, _impl_._has_bits_),
-        6, // hasbit index offset
+        10, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::space::SpacePluginStatus, _impl_.plugin_id_),
         PROTOBUF_FIELD_OFFSET(::s4wave::space::SpacePluginStatus, _impl_.loaded_),
         PROTOBUF_FIELD_OFFSET(::s4wave::space::SpacePluginStatus, _impl_.description_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::space::SpacePluginStatus, _impl_.state_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::space::SpacePluginStatus, _impl_.detail_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::space::SpacePluginStatus, _impl_.retry_count_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::space::SpacePluginStatus, _impl_.revision_),
         0,
-        2,
+        4,
         1,
+        5,
+        2,
+        6,
+        3,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::space::AddSpacePluginRequest, _impl_._has_bits_),
         4, // hasbit index offset
@@ -816,13 +832,13 @@ static const ::_pbi::MigrationSchema
         {96, sizeof(::s4wave::space::WatchSpaceContentsStateRequest)},
         {97, sizeof(::s4wave::space::SpaceContentsState)},
         {106, sizeof(::s4wave::space::SpacePluginStatus)},
-        {115, sizeof(::s4wave::space::AddSpacePluginRequest)},
-        {120, sizeof(::s4wave::space::AddSpacePluginResponse)},
-        {121, sizeof(::s4wave::space::RemoveSpacePluginRequest)},
-        {126, sizeof(::s4wave::space::RemoveSpacePluginResponse)},
-        {127, sizeof(::s4wave::space::SetProcessBindingRequest)},
-        {136, sizeof(::s4wave::space::SetProcessBindingResponse)},
-        {137, sizeof(::s4wave::space::ProcessBindingInfo)},
+        {123, sizeof(::s4wave::space::AddSpacePluginRequest)},
+        {128, sizeof(::s4wave::space::AddSpacePluginResponse)},
+        {129, sizeof(::s4wave::space::RemoveSpacePluginRequest)},
+        {134, sizeof(::s4wave::space::RemoveSpacePluginResponse)},
+        {135, sizeof(::s4wave::space::SetProcessBindingRequest)},
+        {144, sizeof(::s4wave::space::SetProcessBindingResponse)},
+        {145, sizeof(::s4wave::space::ProcessBindingInfo)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::space::_WatchSpaceStateRequest_default_instance_._instance,
@@ -901,47 +917,59 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fs
     "tsState\022\r\n\005ready\030\001 \001(\010\0220\n\007plugins\030\002 \003(\0132"
     "\037.s4wave.space.SpacePluginStatus\022:\n\020proc"
     "ess_bindings\030\003 \003(\0132 .s4wave.space.Proces"
-    "sBindingInfo\"Q\n\021SpacePluginStatus\022\021\n\tplu"
-    "gin_id\030\001 \001(\t\022\016\n\006loaded\030\003 \001(\010\022\023\n\013descript"
-    "ion\030\004 \001(\tJ\004\010\002\020\003\"*\n\025AddSpacePluginRequest"
-    "\022\021\n\tplugin_id\030\001 \001(\t\"\030\n\026AddSpacePluginRes"
-    "ponse\"-\n\030RemoveSpacePluginRequest\022\021\n\tplu"
-    "gin_id\030\001 \001(\t\"\033\n\031RemoveSpacePluginRespons"
-    "e\"Q\n\030SetProcessBindingRequest\022\022\n\nobject_"
-    "key\030\001 \001(\t\022\017\n\007type_id\030\002 \001(\t\022\020\n\010approved\030\003"
-    " \001(\010\"\033\n\031SetProcessBindingResponse\"{\n\022Pro"
-    "cessBindingInfo\022\022\n\nobject_key\030\001 \001(\t\022\017\n\007t"
-    "ype_id\030\002 \001(\t\022\020\n\010approved\030\003 \001(\010\022.\n\ndecide"
-    "d_at\030\004 \001(\0132\032.google.protobuf.Timestamp2\206"
-    "\007\n\024SpaceResourceService\022U\n\017WatchSpaceSta"
-    "te\022$.s4wave.space.WatchSpaceStateRequest"
-    "\032\030.s4wave.space.SpaceState\"\0000\001\022j\n\026WatchS"
-    "paceSharingState\022+.s4wave.space.WatchSpa"
-    "ceSharingStateRequest\032\037.s4wave.space.Spa"
-    "ceSharingState\"\0000\001\022T\n\013AccessWorld\022 .s4wa"
-    "ve.space.AccessWorldRequest\032!.s4wave.spa"
-    "ce.AccessWorldResponse\"\000\022i\n\022MountSpaceCo"
-    "ntents\022\'.s4wave.space.MountSpaceContents"
-    "Request\032(.s4wave.space.MountSpaceContent"
-    "sResponse\"\000\022W\n\014CreateSecret\022!.s4wave.spa"
-    "ce.CreateSecretRequest\032\".s4wave.space.Cr"
-    "eateSecretResponse\"\000\022f\n\021ReadSecretPayloa"
-    "d\022&.s4wave.space.ReadSecretPayloadReques"
-    "t\032\'.s4wave.space.ReadSecretPayloadRespon"
-    "se\"\000\022b\n\016DeployManifest\022$.s4wave.deploy.D"
-    "eployManifestMessage\032$.s4wave.deploy.Dep"
-    "loyManifestMessage\"\000(\0010\001\022]\n\016AddSpacePlug"
-    "in\022#.s4wave.space.AddSpacePluginRequest\032"
-    "$.s4wave.space.AddSpacePluginResponse\"\000\022"
-    "f\n\021RemoveSpacePlugin\022&.s4wave.space.Remo"
-    "veSpacePluginRequest\032\'.s4wave.space.Remo"
-    "veSpacePluginResponse\"\0002\350\001\n\034SpaceContent"
-    "sResourceService\022`\n\nWatchState\022,.s4wave."
-    "space.WatchSpaceContentsStateRequest\032 .s"
-    "4wave.space.SpaceContentsState\"\0000\001\022f\n\021Se"
-    "tProcessBinding\022&.s4wave.space.SetProces"
-    "sBindingRequest\032\'.s4wave.space.SetProces"
-    "sBindingResponse\"\000b\006proto3"
+    "sBindingInfo\"\300\001\n\021SpacePluginStatus\022\021\n\tpl"
+    "ugin_id\030\001 \001(\t\022\016\n\006loaded\030\003 \001(\010\022\023\n\013descrip"
+    "tion\030\004 \001(\t\0226\n\005state\030\005 \001(\0162\'.s4wave.space"
+    ".SpacePluginLifecycleState\022\016\n\006detail\030\006 \001"
+    "(\t\022\023\n\013retry_count\030\007 \001(\r\022\020\n\010revision\030\010 \001("
+    "\tJ\004\010\002\020\003\"*\n\025AddSpacePluginRequest\022\021\n\tplug"
+    "in_id\030\001 \001(\t\"\030\n\026AddSpacePluginResponse\"-\n"
+    "\030RemoveSpacePluginRequest\022\021\n\tplugin_id\030\001"
+    " \001(\t\"\033\n\031RemoveSpacePluginResponse\"Q\n\030Set"
+    "ProcessBindingRequest\022\022\n\nobject_key\030\001 \001("
+    "\t\022\017\n\007type_id\030\002 \001(\t\022\020\n\010approved\030\003 \001(\010\"\033\n\031"
+    "SetProcessBindingResponse\"{\n\022ProcessBind"
+    "ingInfo\022\022\n\nobject_key\030\001 \001(\t\022\017\n\007type_id\030\002"
+    " \001(\t\022\020\n\010approved\030\003 \001(\010\022.\n\ndecided_at\030\004 \001"
+    "(\0132\032.google.protobuf.Timestamp*\326\002\n\031Space"
+    "PluginLifecycleState\022%\n!SpacePluginLifec"
+    "ycleState_UNKNOWN\020\000\022(\n$SpacePluginLifecy"
+    "cleState_CONFIGURED\020\001\022%\n!SpacePluginLife"
+    "cycleState_LOADING\020\002\022$\n SpacePluginLifec"
+    "ycleState_LOADED\020\003\022$\n SpacePluginLifecyc"
+    "leState_FAILED\020\004\022&\n\"SpacePluginLifecycle"
+    "State_RETRYING\020\005\022%\n!SpacePluginLifecycle"
+    "State_REMOVED\020\006\022&\n\"SpacePluginLifecycleS"
+    "tate_UPGRADED\020\0072\206\007\n\024SpaceResourceService"
+    "\022U\n\017WatchSpaceState\022$.s4wave.space.Watch"
+    "SpaceStateRequest\032\030.s4wave.space.SpaceSt"
+    "ate\"\0000\001\022j\n\026WatchSpaceSharingState\022+.s4wa"
+    "ve.space.WatchSpaceSharingStateRequest\032\037"
+    ".s4wave.space.SpaceSharingState\"\0000\001\022T\n\013A"
+    "ccessWorld\022 .s4wave.space.AccessWorldReq"
+    "uest\032!.s4wave.space.AccessWorldResponse\""
+    "\000\022i\n\022MountSpaceContents\022\'.s4wave.space.M"
+    "ountSpaceContentsRequest\032(.s4wave.space."
+    "MountSpaceContentsResponse\"\000\022W\n\014CreateSe"
+    "cret\022!.s4wave.space.CreateSecretRequest\032"
+    "\".s4wave.space.CreateSecretResponse\"\000\022f\n"
+    "\021ReadSecretPayload\022&.s4wave.space.ReadSe"
+    "cretPayloadRequest\032\'.s4wave.space.ReadSe"
+    "cretPayloadResponse\"\000\022b\n\016DeployManifest\022"
+    "$.s4wave.deploy.DeployManifestMessage\032$."
+    "s4wave.deploy.DeployManifestMessage\"\000(\0010"
+    "\001\022]\n\016AddSpacePlugin\022#.s4wave.space.AddSp"
+    "acePluginRequest\032$.s4wave.space.AddSpace"
+    "PluginResponse\"\000\022f\n\021RemoveSpacePlugin\022&."
+    "s4wave.space.RemoveSpacePluginRequest\032\'."
+    "s4wave.space.RemoveSpacePluginResponse\"\000"
+    "2\350\001\n\034SpaceContentsResourceService\022`\n\nWat"
+    "chState\022,.s4wave.space.WatchSpaceContent"
+    "sStateRequest\032 .s4wave.space.SpaceConten"
+    "tsState\"\0000\001\022f\n\021SetProcessBinding\022&.s4wav"
+    "e.space.SetProcessBindingRequest\032\'.s4wav"
+    "e.space.SetProcessBindingResponse\"\000b\006pro"
+    "to3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto_deps[7] = {
@@ -957,7 +985,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto = {
     false,
     false,
-    3586,
+    4043,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto,
     "github.com/s4wave/spacewave/sdk/space/space.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto_once,
@@ -972,6 +1000,12 @@ PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2
 };
 namespace s4wave {
 namespace space {
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SpacePluginLifecycleState_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fspace_2fspace_2eproto[0];
+}
+PROTOBUF_CONSTINIT const uint32_t SpacePluginLifecycleState_internal_data_[] = {
+    524288u, 0u, };
 // ===================================================================
 
 class WatchSpaceStateRequest::_Internal {
@@ -5534,7 +5568,9 @@ PROTOBUF_NDEBUG_INLINE SpacePluginStatus::Impl_::Impl_(
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
         plugin_id_(arena, from.plugin_id_),
-        description_(arena, from.description_) {}
+        description_(arena, from.description_),
+        detail_(arena, from.detail_),
+        revision_(arena, from.revision_) {}
 
 SpacePluginStatus::SpacePluginStatus(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -5549,7 +5585,13 @@ SpacePluginStatus::SpacePluginStatus(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
-  _impl_.loaded_ = from._impl_.loaded_;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, loaded_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, loaded_),
+           offsetof(Impl_, retry_count_) -
+               offsetof(Impl_, loaded_) +
+               sizeof(Impl_::retry_count_));
 
   // @@protoc_insertion_point(copy_constructor:s4wave.space.SpacePluginStatus)
 }
@@ -5558,11 +5600,18 @@ PROTOBUF_NDEBUG_INLINE SpacePluginStatus::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
         plugin_id_(arena),
-        description_(arena) {}
+        description_(arena),
+        detail_(arena),
+        revision_(arena) {}
 
 inline void SpacePluginStatus::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.loaded_ = {};
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, loaded_),
+           0,
+           offsetof(Impl_, retry_count_) -
+               offsetof(Impl_, loaded_) +
+               sizeof(Impl_::retry_count_));
 }
 SpacePluginStatus::~SpacePluginStatus() {
   // @@protoc_insertion_point(destructor:s4wave.space.SpacePluginStatus)
@@ -5577,6 +5626,8 @@ inline void SpacePluginStatus::SharedDtor(MessageLite& self) {
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.plugin_id_.Destroy();
   this_._impl_.description_.Destroy();
+  this_._impl_.detail_.Destroy();
+  this_._impl_.revision_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -5623,16 +5674,16 @@ SpacePluginStatus::GetClassData() const {
   return SpacePluginStatus_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 3, 0, 59, 2>
+const ::_pbi::TcParseTable<3, 7, 0, 73, 2>
 SpacePluginStatus::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_._has_bits_),
     0, // no _extensions_
-    4, 24,  // max_field_number, fast_idx_mask
+    8, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967282,  // skipmap
+    4294967042,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    3,  // num_field_entries
+    7,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     SpacePluginStatus_class_data_.base(),
@@ -5642,35 +5693,61 @@ SpacePluginStatus::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::space::SpacePluginStatus>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // string description = 4;
+    // string revision = 8;
     {::_pbi::TcParser::FastUS1,
-     {34, 1, 0,
-      PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.description_)}},
+     {66, 3, 0,
+      PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.revision_)}},
     // string plugin_id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
       PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.plugin_id_)}},
     {::_pbi::TcParser::MiniParse, {}},
     // bool loaded = 3;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(SpacePluginStatus, _impl_.loaded_), 2>(),
-     {24, 2, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(SpacePluginStatus, _impl_.loaded_), 4>(),
+     {24, 4, 0,
       PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.loaded_)}},
+    // string description = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.description_)}},
+    // .s4wave.space.SpacePluginLifecycleState state = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SpacePluginStatus, _impl_.state_), 5>(),
+     {40, 5, 0,
+      PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.state_)}},
+    // string detail = 6;
+    {::_pbi::TcParser::FastUS1,
+     {50, 2, 0,
+      PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.detail_)}},
+    // uint32 retry_count = 7;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SpacePluginStatus, _impl_.retry_count_), 6>(),
+     {56, 6, 0,
+      PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.retry_count_)}},
   }}, {{
     65535, 65535
   }}, {{
     // string plugin_id = 1;
     {PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.plugin_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // bool loaded = 3;
-    {PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.loaded_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.loaded_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string description = 4;
     {PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.description_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .s4wave.space.SpacePluginLifecycleState state = 5;
+    {PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.state_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string detail = 6;
+    {PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.detail_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint32 retry_count = 7;
+    {PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.retry_count_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // string revision = 8;
+    {PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.revision_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\36\11\0\13\0\0\0\0"
+    "\36\11\0\13\0\6\0\10"
     "s4wave.space.SpacePluginStatus"
     "plugin_id"
     "description"
+    "detail"
+    "revision"
   }},
 };
 PROTOBUF_NOINLINE void SpacePluginStatus::Clear() {
@@ -5681,15 +5758,25 @@ PROTOBUF_NOINLINE void SpacePluginStatus::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.plugin_id_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       _impl_.description_.ClearNonDefaultToEmpty();
     }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.detail_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.revision_.ClearNonDefaultToEmpty();
+    }
   }
-  _impl_.loaded_ = false;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000070U)) {
+    ::memset(&_impl_.loaded_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.retry_count_) -
+        reinterpret_cast<char*>(&_impl_.loaded_)) + sizeof(_impl_.retry_count_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -5724,7 +5811,7 @@ PROTOBUF_NOINLINE void SpacePluginStatus::Clear() {
   }
 
   // bool loaded = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (this_._internal_loaded() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -5739,6 +5826,44 @@ PROTOBUF_NOINLINE void SpacePluginStatus::Clear() {
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
           _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.space.SpacePluginStatus.description");
       target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  // .s4wave.space.SpacePluginLifecycleState state = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_state() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          5, this_._internal_state(), target);
+    }
+  }
+
+  // string detail = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_detail().empty()) {
+      const ::std::string& _s = this_._internal_detail();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.space.SpacePluginStatus.detail");
+      target = stream->WriteStringMaybeAliased(6, _s, target);
+    }
+  }
+
+  // uint32 retry_count = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (this_._internal_retry_count() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          7, this_._internal_retry_count(), target);
+    }
+  }
+
+  // string revision = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_revision().empty()) {
+      const ::std::string& _s = this_._internal_revision();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.space.SpacePluginStatus.revision");
+      target = stream->WriteStringMaybeAliased(8, _s, target);
     }
   }
 
@@ -5767,7 +5892,7 @@ PROTOBUF_NOINLINE void SpacePluginStatus::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     // string plugin_id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_plugin_id().empty()) {
@@ -5782,10 +5907,38 @@ PROTOBUF_NOINLINE void SpacePluginStatus::Clear() {
                                         this_._internal_description());
       }
     }
-    // bool loaded = 3;
+    // string detail = 6;
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_detail().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_detail());
+      }
+    }
+    // string revision = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_revision().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_revision());
+      }
+    }
+    // bool loaded = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (this_._internal_loaded() != 0) {
         total_size += 2;
+      }
+    }
+    // .s4wave.space.SpacePluginLifecycleState state = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_state() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_state());
+      }
+    }
+    // uint32 retry_count = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (this_._internal_retry_count() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_retry_count());
       }
     }
   }
@@ -5807,7 +5960,7 @@ void SpacePluginStatus::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_plugin_id().empty()) {
         _this->_internal_set_plugin_id(from._internal_plugin_id());
@@ -5827,8 +5980,36 @@ void SpacePluginStatus::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_detail().empty()) {
+        _this->_internal_set_detail(from._internal_detail());
+      } else {
+        if (_this->_impl_.detail_.IsDefault()) {
+          _this->_internal_set_detail("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_revision().empty()) {
+        _this->_internal_set_revision(from._internal_revision());
+      } else {
+        if (_this->_impl_.revision_.IsDefault()) {
+          _this->_internal_set_revision("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (from._internal_loaded() != 0) {
         _this->_impl_.loaded_ = from._impl_.loaded_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_state() != 0) {
+        _this->_impl_.state_ = from._impl_.state_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (from._internal_retry_count() != 0) {
+        _this->_impl_.retry_count_ = from._impl_.retry_count_;
       }
     }
   }
@@ -5853,7 +6034,14 @@ void SpacePluginStatus::InternalSwap(SpacePluginStatus* PROTOBUF_RESTRICT PROTOB
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.plugin_id_, &other->_impl_.plugin_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.description_, &other->_impl_.description_, arena);
-  swap(_impl_.loaded_, other->_impl_.loaded_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.detail_, &other->_impl_.detail_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.revision_, &other->_impl_.revision_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.retry_count_)
+      + sizeof(SpacePluginStatus::_impl_.retry_count_)
+      - PROTOBUF_FIELD_OFFSET(SpacePluginStatus, _impl_.loaded_)>(
+          reinterpret_cast<char*>(&_impl_.loaded_),
+          reinterpret_cast<char*>(&other->_impl_.loaded_));
 }
 
 ::google::protobuf::Metadata SpacePluginStatus::GetMetadata() const {

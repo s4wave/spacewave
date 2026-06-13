@@ -23,6 +23,66 @@ import (
 	secret "github.com/s4wave/spacewave/sdk/secret"
 )
 
+// SpacePluginLifecycleState is the app-facing lifecycle projection for a plugin.
+type SpacePluginLifecycleState int32
+
+const (
+	// SpacePluginLifecycleState_UNKNOWN leaves lifecycle state unset.
+	SpacePluginLifecycleState_SpacePluginLifecycleState_UNKNOWN SpacePluginLifecycleState = 0
+	// SpacePluginLifecycleState_CONFIGURED means the plugin is configured in Space settings.
+	SpacePluginLifecycleState_SpacePluginLifecycleState_CONFIGURED SpacePluginLifecycleState = 1
+	// SpacePluginLifecycleState_LOADING means the plugin runtime has been requested.
+	SpacePluginLifecycleState_SpacePluginLifecycleState_LOADING SpacePluginLifecycleState = 2
+	// SpacePluginLifecycleState_LOADED means the plugin runtime is running.
+	SpacePluginLifecycleState_SpacePluginLifecycleState_LOADED SpacePluginLifecycleState = 3
+	// SpacePluginLifecycleState_FAILED means the latest runtime attempt failed.
+	SpacePluginLifecycleState_SpacePluginLifecycleState_FAILED SpacePluginLifecycleState = 4
+	// SpacePluginLifecycleState_RETRYING means a failed plugin is being requested again.
+	SpacePluginLifecycleState_SpacePluginLifecycleState_RETRYING SpacePluginLifecycleState = 5
+	// SpacePluginLifecycleState_REMOVED is used by app-side transition views after removal.
+	SpacePluginLifecycleState_SpacePluginLifecycleState_REMOVED SpacePluginLifecycleState = 6
+	// SpacePluginLifecycleState_UPGRADED is used by app-side transition views after upgrade.
+	SpacePluginLifecycleState_SpacePluginLifecycleState_UPGRADED SpacePluginLifecycleState = 7
+)
+
+// Enum value maps for SpacePluginLifecycleState.
+var (
+	SpacePluginLifecycleState_name = map[int32]string{
+		0: "SpacePluginLifecycleState_UNKNOWN",
+		1: "SpacePluginLifecycleState_CONFIGURED",
+		2: "SpacePluginLifecycleState_LOADING",
+		3: "SpacePluginLifecycleState_LOADED",
+		4: "SpacePluginLifecycleState_FAILED",
+		5: "SpacePluginLifecycleState_RETRYING",
+		6: "SpacePluginLifecycleState_REMOVED",
+		7: "SpacePluginLifecycleState_UPGRADED",
+	}
+	SpacePluginLifecycleState_value = map[string]int32{
+		"SpacePluginLifecycleState_UNKNOWN":    0,
+		"SpacePluginLifecycleState_CONFIGURED": 1,
+		"SpacePluginLifecycleState_LOADING":    2,
+		"SpacePluginLifecycleState_LOADED":     3,
+		"SpacePluginLifecycleState_FAILED":     4,
+		"SpacePluginLifecycleState_RETRYING":   5,
+		"SpacePluginLifecycleState_REMOVED":    6,
+		"SpacePluginLifecycleState_UPGRADED":   7,
+	}
+)
+
+func (x SpacePluginLifecycleState) Enum() *SpacePluginLifecycleState {
+	p := new(SpacePluginLifecycleState)
+	*p = x
+	return p
+}
+
+func (x SpacePluginLifecycleState) String() string {
+	name, valid := SpacePluginLifecycleState_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // WatchSpaceStateRequest is a request to watch the Workspace state.
 type WatchSpaceStateRequest struct {
 	unknownFields []byte
@@ -511,10 +571,19 @@ type SpacePluginStatus struct {
 	unknownFields []byte
 	// PluginId is the manifest ID of the plugin.
 	PluginId string `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
-	// Loaded indicates whether the plugin is currently running.
+	// Loaded indicates whether the plugin is currently running. Kept for older
+	// consumers; State is the app-facing lifecycle owner.
 	Loaded bool `protobuf:"varint,3,opt,name=loaded,proto3" json:"loaded,omitempty"`
 	// Description is a short description from the plugin manifest metadata.
 	Description string `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	// State is the app-facing lifecycle projection.
+	State SpacePluginLifecycleState `protobuf:"varint,5,opt,name=state,proto3" json:"state,omitempty"`
+	// Detail is a short scheduler-owned lifecycle explanation.
+	Detail string `protobuf:"bytes,6,opt,name=detail,proto3" json:"detail,omitempty"`
+	// RetryCount is reserved for future scheduler retry projection.
+	RetryCount uint32 `protobuf:"varint,7,opt,name=retry_count,json=retryCount,proto3" json:"retryCount,omitempty"`
+	// Revision is reserved for future manifest-version projection.
+	Revision string `protobuf:"bytes,8,opt,name=revision,proto3" json:"revision,omitempty"`
 }
 
 func (x *SpacePluginStatus) Reset() {
@@ -540,6 +609,34 @@ func (x *SpacePluginStatus) GetLoaded() bool {
 func (x *SpacePluginStatus) GetDescription() string {
 	if x != nil {
 		return x.Description
+	}
+	return ""
+}
+
+func (x *SpacePluginStatus) GetState() SpacePluginLifecycleState {
+	if x != nil {
+		return x.State
+	}
+	return SpacePluginLifecycleState_SpacePluginLifecycleState_UNKNOWN
+}
+
+func (x *SpacePluginStatus) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+func (x *SpacePluginStatus) GetRetryCount() uint32 {
+	if x != nil {
+		return x.RetryCount
+	}
+	return 0
+}
+
+func (x *SpacePluginStatus) GetRevision() string {
+	if x != nil {
+		return x.Revision
 	}
 	return ""
 }
@@ -723,9 +820,13 @@ func (m *SpaceState) CloneVT() *SpaceState {
 	}
 	r := new(SpaceState)
 	r.Ready = m.Ready
-	r.WorldContents = m.WorldContents.CloneVT()
-	r.Settings = m.Settings.CloneVT()
 	r.TransformInfo = m.TransformInfo.CloneVT()
+	if rhs := m.WorldContents; rhs != nil {
+		r.WorldContents = rhs.CloneVT()
+	}
+	if rhs := m.Settings; rhs != nil {
+		r.Settings = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -929,7 +1030,9 @@ func (m *CreateSecretResponse) CloneVT() *CreateSecretResponse {
 		return (*CreateSecretResponse)(nil)
 	}
 	r := new(CreateSecretResponse)
-	r.Secret = m.Secret.CloneVT()
+	if rhs := m.Secret; rhs != nil {
+		r.Secret = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -962,8 +1065,12 @@ func (m *ReadSecretPayloadResponse) CloneVT() *ReadSecretPayloadResponse {
 		return (*ReadSecretPayloadResponse)(nil)
 	}
 	r := new(ReadSecretPayloadResponse)
-	r.Secret = m.Secret.CloneVT()
-	r.Payload = m.Payload.CloneVT()
+	if rhs := m.Secret; rhs != nil {
+		r.Secret = rhs.CloneVT()
+	}
+	if rhs := m.Payload; rhs != nil {
+		r.Payload = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1025,6 +1132,10 @@ func (m *SpacePluginStatus) CloneVT() *SpacePluginStatus {
 	r.PluginId = m.PluginId
 	r.Loaded = m.Loaded
 	r.Description = m.Description
+	r.State = m.State
+	r.Detail = m.Detail
+	r.RetryCount = m.RetryCount
+	r.Revision = m.Revision
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1644,6 +1755,18 @@ func (this *SpacePluginStatus) EqualVT(that *SpacePluginStatus) bool {
 	if this.Description != that.Description {
 		return false
 	}
+	if this.State != that.State {
+		return false
+	}
+	if this.Detail != that.Detail {
+		return false
+	}
+	if this.RetryCount != that.RetryCount {
+		return false
+	}
+	if this.Revision != that.Revision {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1799,6 +1922,46 @@ func (this *ProcessBindingInfo) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the SpacePluginLifecycleState to JSON.
+func (x SpacePluginLifecycleState) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SpacePluginLifecycleState_name)
+}
+
+// MarshalText marshals the SpacePluginLifecycleState to text.
+func (x SpacePluginLifecycleState) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SpacePluginLifecycleState_name)), nil
+}
+
+// MarshalJSON marshals the SpacePluginLifecycleState to JSON.
+func (x SpacePluginLifecycleState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpacePluginLifecycleState from JSON.
+func (x *SpacePluginLifecycleState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SpacePluginLifecycleState_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SpacePluginLifecycleState enum: %v", err)
+		return
+	}
+	*x = SpacePluginLifecycleState(v)
+}
+
+// UnmarshalText unmarshals the SpacePluginLifecycleState from text.
+func (x *SpacePluginLifecycleState) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SpacePluginLifecycleState_value)
+	if err != nil {
+		return err
+	}
+	*x = SpacePluginLifecycleState(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SpacePluginLifecycleState from JSON.
+func (x *SpacePluginLifecycleState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the WatchSpaceStateRequest message to JSON.
@@ -2795,6 +2958,26 @@ func (x *SpacePluginStatus) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("description")
 		s.WriteString(x.Description)
 	}
+	if x.State != 0 || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s)
+	}
+	if x.Detail != "" || s.HasField("detail") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("detail")
+		s.WriteString(x.Detail)
+	}
+	if x.RetryCount != 0 || s.HasField("retryCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("retryCount")
+		s.WriteUint32(x.RetryCount)
+	}
+	if x.Revision != "" || s.HasField("revision") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("revision")
+		s.WriteString(x.Revision)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2821,6 +3004,18 @@ func (x *SpacePluginStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "description":
 			s.AddField("description")
 			x.Description = s.ReadString()
+		case "state":
+			s.AddField("state")
+			x.State.UnmarshalProtoJSON(s)
+		case "detail":
+			s.AddField("detail")
+			x.Detail = s.ReadString()
+		case "retry_count", "retryCount":
+			s.AddField("retry_count")
+			x.RetryCount = s.ReadUint32()
+		case "revision":
+			s.AddField("revision")
+			x.Revision = s.ReadString()
 		}
 	})
 }
@@ -3983,6 +4178,30 @@ func (m *SpacePluginStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.Revision) > 0 {
+		i -= len(m.Revision)
+		copy(dAtA[i:], m.Revision)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Revision)))
+		i--
+		dAtA[i] = 0x42
+	}
+	if m.RetryCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RetryCount))
+		i--
+		dAtA[i] = 0x38
+	}
+	if len(m.Detail) > 0 {
+		i -= len(m.Detail)
+		copy(dAtA[i:], m.Detail)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Detail)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.State != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x28
+	}
 	if len(m.Description) > 0 {
 		i -= len(m.Description)
 		copy(dAtA[i:], m.Description)
@@ -4632,6 +4851,20 @@ func (m *SpacePluginStatus) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.State != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.State))
+	}
+	l = len(m.Detail)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.RetryCount != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.RetryCount))
+	}
+	l = len(m.Revision)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -4738,6 +4971,10 @@ func (m *ProcessBindingInfo) SizeVT() (n int) {
 	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x SpacePluginLifecycleState) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x *WatchSpaceStateRequest) MarshalProtoText() string {
@@ -5261,6 +5498,36 @@ func (x *SpacePluginStatus) MarshalProtoText() string {
 		}
 		sb.WriteString("description: ")
 		sb.WriteString(strconv.Quote(x.Description))
+	}
+	if x.State != 0 {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("state: ")
+		sb.WriteString("\"")
+		sb.WriteString(SpacePluginLifecycleState(x.State).String())
+		sb.WriteString("\"")
+	}
+	if x.Detail != "" {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("detail: ")
+		sb.WriteString(strconv.Quote(x.Detail))
+	}
+	if x.RetryCount != 0 {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("retry_count: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.RetryCount), 10))
+	}
+	if x.Revision != "" {
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("revision: ")
+		sb.WriteString(strconv.Quote(x.Revision))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -6879,6 +7146,70 @@ func (m *SpacePluginStatus) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Description = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			m.State = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.State = SpacePluginLifecycleState(_v)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Detail", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Detail = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RetryCount", wireType)
+			}
+			m.RetryCount = 0
+			m.RetryCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Revision", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Revision = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

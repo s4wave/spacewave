@@ -2,6 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/sdk/space/space.proto (package s4wave.space, syntax proto3)
 /* eslint-disable */
 
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
   createEmptyMessageType,
@@ -25,6 +26,83 @@ import { Secret, SecretPayload } from '../secret/secret.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 export const protobufPackage = 's4wave.space'
+
+/**
+ * SpacePluginLifecycleState is the app-facing lifecycle projection for a plugin.
+ *
+ * @generated from enum s4wave.space.SpacePluginLifecycleState
+ */
+export enum SpacePluginLifecycleState {
+  /**
+   * SpacePluginLifecycleState_UNKNOWN leaves lifecycle state unset.
+   *
+   * @generated from enum value: SpacePluginLifecycleState_UNKNOWN = 0;
+   */
+  SpacePluginLifecycleState_UNKNOWN = 0,
+
+  /**
+   * SpacePluginLifecycleState_CONFIGURED means the plugin is configured in Space settings.
+   *
+   * @generated from enum value: SpacePluginLifecycleState_CONFIGURED = 1;
+   */
+  SpacePluginLifecycleState_CONFIGURED = 1,
+
+  /**
+   * SpacePluginLifecycleState_LOADING means the plugin runtime has been requested.
+   *
+   * @generated from enum value: SpacePluginLifecycleState_LOADING = 2;
+   */
+  SpacePluginLifecycleState_LOADING = 2,
+
+  /**
+   * SpacePluginLifecycleState_LOADED means the plugin runtime is running.
+   *
+   * @generated from enum value: SpacePluginLifecycleState_LOADED = 3;
+   */
+  SpacePluginLifecycleState_LOADED = 3,
+
+  /**
+   * SpacePluginLifecycleState_FAILED means the latest runtime attempt failed.
+   *
+   * @generated from enum value: SpacePluginLifecycleState_FAILED = 4;
+   */
+  SpacePluginLifecycleState_FAILED = 4,
+
+  /**
+   * SpacePluginLifecycleState_RETRYING means a failed plugin is being requested again.
+   *
+   * @generated from enum value: SpacePluginLifecycleState_RETRYING = 5;
+   */
+  SpacePluginLifecycleState_RETRYING = 5,
+
+  /**
+   * SpacePluginLifecycleState_REMOVED is used by app-side transition views after removal.
+   *
+   * @generated from enum value: SpacePluginLifecycleState_REMOVED = 6;
+   */
+  SpacePluginLifecycleState_REMOVED = 6,
+
+  /**
+   * SpacePluginLifecycleState_UPGRADED is used by app-side transition views after upgrade.
+   *
+   * @generated from enum value: SpacePluginLifecycleState_UPGRADED = 7;
+   */
+  SpacePluginLifecycleState_UPGRADED = 7,
+}
+
+export const SpacePluginLifecycleState_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.space.SpacePluginLifecycleState',
+  [
+    [0, 'SpacePluginLifecycleState_UNKNOWN'],
+    [1, 'SpacePluginLifecycleState_CONFIGURED'],
+    [2, 'SpacePluginLifecycleState_LOADING'],
+    [3, 'SpacePluginLifecycleState_LOADED'],
+    [4, 'SpacePluginLifecycleState_FAILED'],
+    [5, 'SpacePluginLifecycleState_RETRYING'],
+    [6, 'SpacePluginLifecycleState_REMOVED'],
+    [7, 'SpacePluginLifecycleState_UPGRADED'],
+  ],
+)
 
 /**
  * WatchSpaceStateRequest is a request to watch the Workspace state.
@@ -533,7 +611,8 @@ export interface SpacePluginStatus {
    */
   pluginId?: string
   /**
-   * Loaded indicates whether the plugin is currently running.
+   * Loaded indicates whether the plugin is currently running. Kept for older
+   * consumers; State is the app-facing lifecycle owner.
    *
    * @generated from field: bool loaded = 3;
    */
@@ -544,6 +623,30 @@ export interface SpacePluginStatus {
    * @generated from field: string description = 4;
    */
   description?: string
+  /**
+   * State is the app-facing lifecycle projection.
+   *
+   * @generated from field: s4wave.space.SpacePluginLifecycleState state = 5;
+   */
+  state?: SpacePluginLifecycleState
+  /**
+   * Detail is a short scheduler-owned lifecycle explanation.
+   *
+   * @generated from field: string detail = 6;
+   */
+  detail?: string
+  /**
+   * RetryCount is reserved for future scheduler retry projection.
+   *
+   * @generated from field: uint32 retry_count = 7;
+   */
+  retryCount?: number
+  /**
+   * Revision is reserved for future manifest-version projection.
+   *
+   * @generated from field: string revision = 8;
+   */
+  revision?: string
 }
 
 export const SpacePluginStatus: MessageType<SpacePluginStatus> =
@@ -553,6 +656,10 @@ export const SpacePluginStatus: MessageType<SpacePluginStatus> =
       { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'loaded', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'description', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'state', kind: 'enum', T: SpacePluginLifecycleState_Enum },
+      { no: 6, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
+      { no: 7, name: 'retry_count', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 8, name: 'revision', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
