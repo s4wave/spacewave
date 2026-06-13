@@ -831,7 +831,7 @@ func (c *Controller) BuildPlugin(
 	// compile Go modules
 	le.Debug("generating go packages")
 	moduleID := strings.Join([]string{pluginMeta.GetProjectId(), pluginMeta.GetPluginId()}, "-")
-	mc, err := NewModuleCompiler(ctx, le, workingPath, moduleID)
+	mc, err := NewModuleCompiler(le, workingPath, moduleID)
 	if err != nil {
 		return nil, nil, err
 	}

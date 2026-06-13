@@ -71,12 +71,11 @@ func ResolveAccessUnixfs(ctx context.Context, dir unixfs_access.AccessUnixFS, h 
 	}
 
 	// check if the unixfs ID matches one of the known prefixes.
-	pluginID, matchedPrefix := ParsePluginUnixfsID(unixfsID)
+	_, matchedPrefix := ParsePluginUnixfsID(unixfsID)
 	if matchedPrefix == "" {
 		// ignore
 		return nil, nil
 	}
-	_ = pluginID
 
 	// AccessUnixFSFunc is a function to access a UnixFS.
 	// Optionally pass a released function that may be called when the handle was released.

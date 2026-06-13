@@ -5,12 +5,10 @@ package bldr_plugin_compiler_go
 import (
 	"context"
 	"go/ast"
-	"os"
-	"path/filepath"
-
-	// "go/parser"
 	"go/token"
 	"go/types"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 

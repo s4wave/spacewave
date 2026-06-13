@@ -23,8 +23,7 @@ import (
 // "go build" commands and produce a plugin with unique import paths for the
 // changed packages.
 type ModuleCompiler struct {
-	ctx context.Context
-	le  *logrus.Entry
+	le *logrus.Entry
 
 	pluginCodegenPath string
 	pluginGoModule    string
@@ -32,7 +31,6 @@ type ModuleCompiler struct {
 
 // NewModuleCompiler constructs a new module compiler.
 func NewModuleCompiler(
-	ctx context.Context,
 	le *logrus.Entry,
 	pluginCodegenPath string,
 	pluginGoModule string,
@@ -45,8 +43,7 @@ func NewModuleCompiler(
 		return nil, err
 	}
 	return &ModuleCompiler{
-		ctx: ctx,
-		le:  le,
+		le: le,
 
 		pluginCodegenPath: pluginCodegenPath,
 		pluginGoModule:    pluginGoModule,
