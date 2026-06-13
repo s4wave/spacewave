@@ -154,7 +154,7 @@ func TestV86WazeroV86FSDeviceProbe(t *testing.T) {
 	if !runV86WazeroBootTests() {
 		t.Skip("set RUN_V86_WAZERO_BOOT=true to boot Linux with the Go v86fs host device")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
 	assets, err := ResolveAssets(ctx, OptionsFromEnv())

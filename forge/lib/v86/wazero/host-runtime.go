@@ -49,6 +49,7 @@ type HostRuntime struct {
 	guestMemorySize   uint32
 	pci               *pciDevice
 	pit               *pitDevice
+	cmos              *cmosDevice
 	fwValue           []byte
 	fwPointer         int
 	optionROMs        []optionROM
@@ -235,11 +236,16 @@ func (h *HostRuntime) callback(name string, results []api.ValueType) api.GoModul
 			}
 			setZeroResults(stack, results)
 		case "run_hardware_timers":
-			if len(stack) > 1 && h.pit != nil {
+			if len(stack) > 1 {
 				now := api.DecodeF64(stack[1])
-				stack[0] = api.EncodeF64(h.pit.timer(ctx, now, false))
-			} else if len(stack) > 1 {
-				stack[0] = stack[1]
+				next := 100.0
+				if h.pit != nil {
+					next = min(next, h.pit.timer(ctx, now, false))
+				}
+				if h.cmos != nil {
+					next = min(next, h.cmos.timer(ctx))
+				}
+				stack[0] = api.EncodeF64(next)
 			} else {
 				setZeroResults(stack, results)
 			}
