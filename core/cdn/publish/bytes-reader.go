@@ -1,8 +1,9 @@
 package publish
 
 import (
-	"errors"
 	"io"
+
+	"github.com/pkg/errors"
 )
 
 type bytesReaderAt []byte
