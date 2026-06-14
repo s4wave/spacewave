@@ -201,6 +201,34 @@ func TestOverlayFSCursor(t *testing.T) {
 	}
 }
 
+func TestOverlayFSCursorReaddirAllCallbackCanReenterLookup(t *testing.T) {
+	ctx := context.Background()
+	lower := mustLower(t)
+	upper := mustUpper(t)
+	root := NewOverlayFSCursor(lower, upper)
+	defer root.Release()
+
+	ops := mustOps(t, root)
+	var names []string
+	err := ops.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
+		child, err := ops.Lookup(ctx, ent.GetName())
+		if err != nil {
+			return err
+		}
+		child.Release()
+		names = append(names, ent.GetName())
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{"base.txt", "dir", "lower-only.txt"}
+	if !slices.Equal(names, want) {
+		t.Fatalf("names: got %v want %v", names, want)
+	}
+}
+
 func mustLower(t *testing.T) unixfs.FSCursor {
 	t.Helper()
 

@@ -241,6 +241,25 @@ func (o *OverlayFSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb fun
 		return nil
 	}
 
+	ents, err := o.readdirSnapshotLocked(ctx)
+	if err != nil {
+		return err
+	}
+
+	// The overlay mutex must not be held while invoking the caller callback:
+	// v86fs readdir re-enters Lookup/GetCursorOps, which re-locks it.
+	for idx, ent := range ents {
+		if uint64(idx) < skip {
+			continue
+		}
+		if err := cb(ent); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (o *OverlayFSCursorOps) readdirSnapshotLocked(ctx context.Context) ([]unixfs.FSCursorDirent, error) {
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
 
@@ -263,7 +282,7 @@ func (o *OverlayFSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb fun
 			return nil
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -280,7 +299,7 @@ func (o *OverlayFSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb fun
 			return nil
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -290,15 +309,11 @@ func (o *OverlayFSCursorOps) ReaddirAll(ctx context.Context, skip uint64, cb fun
 	}
 	slices.Sort(names)
 
-	for idx, name := range names {
-		if uint64(idx) < skip {
-			continue
-		}
-		if err := cb(entries[name]); err != nil {
-			return err
-		}
+	ents := make([]unixfs.FSCursorDirent, 0, len(names))
+	for _, name := range names {
+		ents = append(ents, entries[name])
 	}
-	return nil
+	return ents, nil
 }
 
 // Mknod implements FSCursorOps.
