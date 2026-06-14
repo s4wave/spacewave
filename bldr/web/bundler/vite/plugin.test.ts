@@ -5,9 +5,18 @@ import type { ResolvedConfig } from 'vite'
 import { createWebPkgRemapPlugin } from './plugin.js'
 
 describe('createWebPkgRemapPlugin', () => {
-  it('rewrites bldr runtime externals in rendered chunks', () => {
+  it('preserves runtime externals and rewrites downstream web packages in rendered chunks', () => {
     const plugin = createWebPkgRemapPlugin({
       webPkgIDs: [
+        '@aptre/bldr',
+        '@aptre/bldr-react',
+        '@aptre/protobuf-es-lite',
+        '@s4wave/web',
+        'react',
+        'react-dom',
+        'sonner',
+      ],
+      preserveWebPkgIDs: [
         '@aptre/bldr',
         '@aptre/bldr-react',
         '@aptre/protobuf-es-lite',
@@ -30,17 +39,25 @@ describe('createWebPkgRemapPlugin', () => {
         'import { createPortal } from "react-dom";',
         'import { jsxDEV } from "react/jsx-dev-runtime";',
         'import { Message } from "@aptre/protobuf-es-lite/message";',
+        'import { SpacewaveRuntimeProviders } from "@s4wave/web/sdk/app";',
+        'import { toast } from "sonner";',
       ].join('\n'),
+      {} as never,
       {} as never,
       {} as never,
     )
 
-    expect(result).toContain('"/b/pkg/@aptre/bldr/index.mjs"')
-    expect(result).toContain('"/b/pkg/@aptre/bldr-react/index.mjs"')
-    expect(result).toContain('"/b/pkg/react/index.mjs"')
-    expect(result).toContain('"/b/pkg/react-dom/index.mjs"')
-    expect(result).toContain('"/b/pkg/react/jsx-dev-runtime.mjs"')
-    expect(result).toContain('"/b/pkg/@aptre/protobuf-es-lite/message.mjs"')
+    expect(result).toContain('"@aptre/bldr"')
+    expect(result).toContain('"@aptre/bldr-react"')
+    expect(result).toContain('"react"')
+    expect(result).toContain('"react-dom"')
+    expect(result).toContain('"react/jsx-dev-runtime"')
+    expect(result).toContain('"@aptre/protobuf-es-lite/message"')
+    expect(result).toContain('"/b/pkg/@s4wave/web/sdk/app.mjs"')
+    expect(result).toContain('"/b/pkg/sonner/index.mjs"')
+    expect(result).not.toContain('"/b/pkg/react/')
+    expect(result).not.toContain('"/b/pkg/react-dom/')
+    expect(result).not.toContain('"/b/pkg/@aptre/bldr/')
   })
 
   it('falls back to the import specifier when a resolved file only shares the package root prefix', async () => {

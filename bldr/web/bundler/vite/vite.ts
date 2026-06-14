@@ -244,8 +244,9 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
       }
     }
 
-    // Rewrite web pkg import specifiers to /b/pkg/ URLs in the output.
-    // The plugin also reports discovered package roots back to the Go side.
+    // Rewrite app-owned web pkg import specifiers to /b/pkg/ URLs in the
+    // output. External runtime packages stay bare so the entrypoint import map
+    // provides one React/Bldr singleton instance for the whole document.
     // Entry point discovery is handled by the Go side from config, not here.
     if (!mergedConfig.plugins) {
       mergedConfig.plugins = []
@@ -254,6 +255,7 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
       createWorkerSafeModulePreloadPlugin(),
       createWebPkgRemapPlugin({
         webPkgIDs,
+        preserveWebPkgIDs: externalPkgs,
         addWebPkgRoot: (webPkgID, webPkgRoot) => {
           if (!webPkgRefs.has(webPkgID)) {
             webPkgRefs.set(webPkgID, {

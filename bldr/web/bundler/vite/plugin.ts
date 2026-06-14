@@ -9,6 +9,8 @@ const JS_EXTENSION_SET = new Set(JS_EXTENSIONS)
 export interface WebPkgRemapPluginConfig {
   // List of packages that can be bundled as web pkgs
   webPkgIDs: string[]
+  // Package IDs kept as bare imports so the document import map owns them.
+  preserveWebPkgIDs?: string[]
   // Optional callback to report the resolved root directory for a web package.
   // Called once per package when the root is first discovered.
   addWebPkgRoot?: (webPkgID: string, webPkgRoot: string) => void
@@ -61,8 +63,12 @@ export function createWebPkgRemapPlugin(
   config: WebPkgRemapPluginConfig,
 ): Plugin {
   const debug = config.debug || false
-  const webPkgIDSet = new Set(config.webPkgIDs)
-  const webPkgPatterns = config.webPkgIDs.map((pkg) => ({
+  const preservedWebPkgIDSet = new Set(config.preserveWebPkgIDs ?? [])
+  const remappedWebPkgIDs = config.webPkgIDs.filter(
+    (pkg) => !preservedWebPkgIDSet.has(pkg),
+  )
+  const webPkgIDSet = new Set(remappedWebPkgIDs)
+  const webPkgPatterns = remappedWebPkgIDs.map((pkg) => ({
     pkg,
     pattern: new RegExp(
       `((?:from|import)\\s*\\(?\\s*["'])${escapeRegExp(pkg)}(/[^"']*)?(?=["'])`,
@@ -100,7 +106,7 @@ export function createWebPkgRemapPlugin(
         }
       }
       // Fall back to trying node_modules resolution for any unresolved pkgs
-      for (const pkgID of config.webPkgIDs) {
+      for (const pkgID of remappedWebPkgIDs) {
         if (!webPkgRoots[pkgID]) {
           try {
             const pkgJsonPath = require.resolve(pkgID + '/package.json', {
@@ -152,7 +158,7 @@ export function createWebPkgRemapPlugin(
 
       const pkgNameRegex =
         /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/
-      if (!pkgNameRegex.test(pkgID) || !config.webPkgIDs.includes(pkgID)) {
+      if (!pkgNameRegex.test(pkgID) || !remappedWebPkgIDs.includes(pkgID)) {
         return null
       }
 
@@ -163,7 +169,7 @@ export function createWebPkgRemapPlugin(
       })
       if (!resolved || !resolved.id) {
         // Fall back to simple remap without resolution.
-        const result = remapWebPkgSpecifier(importId, config.webPkgIDs)
+        const result = remapWebPkgSpecifier(importId, remappedWebPkgIDs)
         if (!result) return null
         if (debug)
           console.log(
@@ -179,7 +185,7 @@ export function createWebPkgRemapPlugin(
         : null
       if (!resolvedRelPath) {
         // Could not determine relative path, use the specifier subpath.
-        const result = remapWebPkgSpecifier(importId, config.webPkgIDs)
+        const result = remapWebPkgSpecifier(importId, remappedWebPkgIDs)
         if (!result) return null
         if (debug)
           console.log(
@@ -218,7 +224,7 @@ export function createWebPkgRemapPlugin(
     // via WebPkgRefConfig.entrypoints (project-local packages) or read
     // from package.json exports (node_modules packages).
     renderChunk(code) {
-      if (config.webPkgIDs.length === 0) return null
+      if (remappedWebPkgIDs.length === 0) return null
 
       let modified = false
       let result = code
@@ -226,7 +232,7 @@ export function createWebPkgRemapPlugin(
       for (const { pattern, pkg } of webPkgPatterns) {
         result = result.replace(pattern, (_match, prefix, subPathMatch) => {
           const fullId = pkg + (subPathMatch ?? '')
-          const remap = remapWebPkgSpecifier(fullId, config.webPkgIDs)
+          const remap = remapWebPkgSpecifier(fullId, remappedWebPkgIDs)
           if (!remap) return _match
           modified = true
           if (debug)
