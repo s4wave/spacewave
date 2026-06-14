@@ -62,10 +62,7 @@ func NewMountBlockStore(ref *BlockStoreRef) MountBlockStore {
 // Validate validates the directive.
 // This is a cursory validation to see if the values "look correct."
 func (d *mountBlockStore) Validate() error {
-	if err := d.ref.Validate(); err != nil {
-		return err
-	}
-	return nil
+	return d.ref.Validate()
 }
 
 // GetValueOptions returns options relating to value handling.

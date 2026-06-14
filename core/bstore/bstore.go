@@ -16,10 +16,7 @@ type BlockStore interface {
 
 // Validate validates the block store ref.
 func (r *BlockStoreRef) Validate() error {
-	if err := r.GetProviderResourceRef().Validate(); err != nil {
-		return err
-	}
-	return nil
+	return r.GetProviderResourceRef().Validate()
 }
 
 // GetLogger adds debug values to the logger.
