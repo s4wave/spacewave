@@ -579,8 +579,8 @@ func resolveBldrRuntimePackagePath(bldrDistRoot, importPath string) (string, boo
 		if importPath == pkg.id {
 			return filepath.Join(bldrDistRoot, pkg.dir, "index.ts"), true
 		}
-		if strings.HasPrefix(importPath, pkg.id+"/") {
-			return filepath.Join(bldrDistRoot, pkg.dir, strings.TrimPrefix(importPath, pkg.id+"/")), true
+		if after, ok := strings.CutPrefix(importPath, pkg.id+"/"); ok {
+			return filepath.Join(bldrDistRoot, pkg.dir, after), true
 		}
 	}
 	return "", false

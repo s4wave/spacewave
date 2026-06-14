@@ -27,14 +27,17 @@ function remapWebPkgSpecifier(
       let subPath = id === pkg ? '' : id.substring(pkg.length + 1)
       if (subPath) {
         const ext = path.extname(subPath)
-        if (JS_EXTENSION_SET.has(ext)) {
+        if (ext === '') {
+          subPath += '.mjs'
+        } else if (JS_EXTENSION_SET.has(ext)) {
           subPath = subPath.substring(0, subPath.length - ext.length) + '.mjs'
         }
       }
+      const remappedSubPath = subPath || 'index.mjs'
       return {
         pkg,
-        subPath,
-        remapped: `/b/pkg/${pkg}${subPath ? '/' + subPath : ''}`,
+        subPath: remappedSubPath,
+        remapped: `/b/pkg/${pkg}/${remappedSubPath}`,
       }
     }
   }

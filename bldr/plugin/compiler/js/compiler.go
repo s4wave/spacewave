@@ -232,6 +232,7 @@ func (c *Controller) BuildManifest(
 	// although buildCtrlConf itself is already a clone.
 	backendEntrypoints := slices.Clone(buildCtrlConf.GetBackendEntrypoints())
 	frontendEntrypoints := slices.Clone(buildCtrlConf.GetFrontendEntrypoints())
+	hasFrontendEntrypoints := len(frontendEntrypoints) != 0
 
 	// Configure bundles and potentially add default entrypoints based on jsModules.
 	// This adds default Vite bundles for modules defined with the shortcut syntax.
@@ -251,6 +252,7 @@ func (c *Controller) BuildManifest(
 		case JsModuleKind_JS_MODULE_KIND_FRONTEND:
 			// vite bundle id
 			bundleID = "fe"
+			hasFrontendEntrypoints = true
 
 			// external pkgs
 			externalPkgs = web_pkg_external.BldrExternal
@@ -274,6 +276,11 @@ func (c *Controller) BuildManifest(
 
 			ExternalPkgs: externalPkgs,
 		})
+	}
+	if hasFrontendEntrypoints {
+		webPkgs = bldr_web_bundler.CompactWebPkgRefConfigs(
+			append(webPkgs, bldr_web_bundler.GetBldrDistWebPkgRefConfigs()...),
+		)
 	}
 
 	// Vite configuration
@@ -361,7 +368,6 @@ func (c *Controller) BuildManifest(
 			frontendEntrypoints,
 		)
 	}
-
 	if err := ValidateFrontendEntrypointAssetClosure(outAssetsPath, frontendEntrypoints); err != nil {
 		return nil, err
 	}

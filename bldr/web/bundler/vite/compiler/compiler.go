@@ -17,13 +17,16 @@ import (
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
+	bldr "github.com/s4wave/spacewave/bldr"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	"github.com/s4wave/spacewave/bldr/util/npm"
 	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
 	bldr_web_bundler_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
+	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
 	web_pkg_vite "github.com/s4wave/spacewave/bldr/web/pkg/vite"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
@@ -758,6 +761,28 @@ func (c *Controller) performFullRebuild(
 	if err != nil {
 		return nil, err
 	}
+	bldrDistRefs, err := resolveBldrDistWebPkgRefs(
+		ctx,
+		le,
+		distSourcePath,
+		workingPath,
+		buildCtrlConf.GetWebPkgs(),
+		excludedIDs,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if len(bldrDistRefs) != 0 {
+		bldrDistIDs := make(map[string]struct{}, len(bldrDistRefs))
+		for _, ref := range bldrDistRefs {
+			bldrDistIDs[ref.GetWebPkgId()] = struct{}{}
+		}
+		buildableWebPkgRefs = web_pkg.WebPkgRefSlice(buildableWebPkgRefs).FilterExcluded(bldrDistIDs)
+	}
+	for _, ref := range bldrDistRefs {
+		buildableWebPkgRefs, _ = web_pkg.WebPkgRefSlice(buildableWebPkgRefs).AppendWebPkgRefValue(ref)
+	}
+
 	var webPkgSrcFiles []string
 	if len(buildableWebPkgRefs) != 0 {
 		outWebPkgsPath := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir)
@@ -856,6 +881,59 @@ func webPkgConfigsToResolveConfigs(configs []*bldr_web_bundler.WebPkgRefConfig) 
 			ID:          c.GetId(),
 			Exclude:     c.GetExclude(),
 			Entrypoints: eps,
+		}
+	}
+	return out
+}
+
+func resolveBldrDistWebPkgRefs(
+	ctx context.Context,
+	le *logrus.Entry,
+	distSourcePath string,
+	workingPath string,
+	configs []*bldr_web_bundler.WebPkgRefConfig,
+	excludedIDs map[string]struct{},
+) ([]*web_pkg.WebPkgRef, error) {
+	configuredIDs := configuredBldrDistWebPkgIDs(configs, excludedIDs)
+	if len(configuredIDs) == 0 {
+		return nil, nil
+	}
+
+	buildPkgsDir := filepath.Join(workingPath, "build", "web-pkgs")
+	if err := npm.EnsureBunInstall(ctx, le, workingPath, bldr.ResolveDistSourcePath(distSourcePath, "dist", "deps", "package.json"), buildPkgsDir); err != nil {
+		return nil, errors.Wrap(err, "install bldr dist web package deps")
+	}
+
+	refs := web_pkg_external.GetBldrDistWebPkgRefs(buildPkgsDir, distSourcePath)
+	filtered := refs[:0]
+	for _, ref := range refs {
+		if _, ok := configuredIDs[ref.GetWebPkgId()]; ok {
+			filtered = append(filtered, ref)
+		}
+	}
+	return filtered, nil
+}
+
+func configuredBldrDistWebPkgIDs(
+	configs []*bldr_web_bundler.WebPkgRefConfig,
+	excludedIDs map[string]struct{},
+) map[string]struct{} {
+	externalIDs := make(map[string]struct{}, len(web_pkg_external.BldrExternal))
+	for _, id := range web_pkg_external.BldrExternal {
+		externalIDs[id] = struct{}{}
+	}
+
+	out := make(map[string]struct{})
+	for _, conf := range configs {
+		id := conf.GetId()
+		if conf.GetExclude() || id == "" {
+			continue
+		}
+		if _, excluded := excludedIDs[id]; excluded {
+			continue
+		}
+		if _, ok := externalIDs[id]; ok {
+			out[id] = struct{}{}
 		}
 	}
 	return out

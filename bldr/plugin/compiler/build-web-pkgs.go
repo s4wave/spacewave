@@ -4,6 +4,7 @@ package bldr_plugin_compiler
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 
 	bldr "github.com/s4wave/spacewave/bldr"
@@ -33,6 +34,16 @@ func BuildDirectWebPkgs(
 	jsMinification bool,
 	jsSourcemaps bool,
 ) (web_pkg.WebPkgRefSlice, []string, []web_pkg_vite.ImportMapEntry, error) {
+	var err error
+	workingPath, err = filepath.Abs(workingPath)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	outAssetsPath, err = filepath.Abs(outAssetsPath)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	// Install dist deps (cached: skips if package.json unchanged).
 	buildPkgsDir := filepath.Join(workingPath, "build", "web-pkgs")
 	if err := npm.EnsureBunInstall(ctx, le, workingPath, bldr.ResolveDistSourcePath(distSourcePath, "dist", "deps", "package.json"), buildPkgsDir); err != nil {
@@ -45,11 +56,15 @@ func BuildDirectWebPkgs(
 	// Build web packages with Vite via a one-shot process.
 	le.Debug("building web packages with vite")
 	outWebPkgsPath := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir)
-	viteWorkingPath := filepath.Join(workingPath, "vite-web-pkgs")
+	viteWorkingPath, err := os.MkdirTemp("", "bldr-vite-web-pkgs-")
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	defer os.RemoveAll(viteWorkingPath)
 
 	var importMapEntries []web_pkg_vite.ImportMapEntry
 	var srcFiles []string
-	err := web_pkg_vite.RunOneShot(ctx, le, distSourcePath, sourcePath, viteWorkingPath, func(ctx context.Context, client bldr_vite.SRPCViteBundlerClient) error {
+	err = web_pkg_vite.RunOneShot(ctx, le, distSourcePath, sourcePath, viteWorkingPath, func(ctx context.Context, client bldr_vite.SRPCViteBundlerClient) error {
 		_, builtSrcFiles, entries, buildErr := web_pkg_vite.BuildWebPkgsVite(
 			ctx,
 			le,
