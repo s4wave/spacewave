@@ -1049,7 +1049,7 @@ func generateHostIcons(ctx context.Context, repoDir, iconPath string) error {
 	}
 	for _, size := range []int{16, 32, 48, 64, 128, 256, 512} {
 		dst := resizeImage(src, size)
-		outPath := filepath.Join(iconsDir, "icon-"+itoa(size)+".png")
+		outPath := filepath.Join(iconsDir, "icon-"+strconv.Itoa(size)+".png")
 		outFile, err := os.Create(outPath)
 		if err != nil {
 			return errors.Wrap(err, "create "+outPath)
@@ -1523,8 +1523,6 @@ func logCommandFinish(kind string, args []string, start time.Time, err error) {
 	}
 	ent.Info("entrypoint handoff command completed")
 }
-
-func itoa(v int) string { return strconv.Itoa(v) }
 
 func copyFile(src, dst string) error {
 	in, err := os.Open(src)

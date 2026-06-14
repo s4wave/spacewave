@@ -7,7 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -262,8 +262,8 @@ func stageCLIHandoffArtifacts(rootDir, artifactsDir string) ([]*entrypointHandof
 	if len(out) == 0 {
 		return nil, errors.New("cli artifacts are required")
 	}
-	sort.Slice(out, func(i, j int) bool {
-		return out[i].Path < out[j].Path
+	slices.SortFunc(out, func(a, b *entrypointHandoffEntry) int {
+		return strings.Compare(a.Path, b.Path)
 	})
 	return out, nil
 }
