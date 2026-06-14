@@ -95,7 +95,9 @@ func (s *BrowserTestServer) Start(ctx context.Context) (int, error) {
 	return s.server.Start(ctx)
 }
 
-// navigateTab updates the path field of a tab in the layout.
+// navigateTab handles a tab navigation request against the standalone layout.
+// It confirms the target tab exists; the standalone test host does not persist
+// per-tab path data.
 func (s *BrowserTestServer) navigateTab(ctx context.Context, req *s4wave_layout.NavigateTabRequest) (*s4wave_layout.NavigateTabResponse, error) {
 	tabID := req.GetTabId()
 	if tabID == "" {
@@ -111,7 +113,8 @@ func (s *BrowserTestServer) navigateTab(ctx context.Context, req *s4wave_layout.
 	// Clone the model for modification
 	updatedModel := currentModel.CloneVT()
 
-	// Find the tab by ID and update its path
+	// Locate the tab by ID. This stub confirms the tab exists without rewriting
+	// its path data, which is sufficient for the layout navigation tests.
 	var tabFound bool
 	resource_layout.WalkLayoutModel(updatedModel, func(node any) bool {
 		tabDef, ok := node.(*s4wave_layout.TabDef)
@@ -121,16 +124,6 @@ func (s *BrowserTestServer) navigateTab(ctx context.Context, req *s4wave_layout.
 		if tabDef.GetId() != tabID {
 			return true
 		}
-
-		// Found the tab - unmarshal its data if it exists
-		// For simple test tabs that don't have ObjectLayoutTab data, just skip
-		if len(tabDef.GetData()) == 0 {
-			tabFound = true
-			return false
-		}
-
-		// Unmarshal the data - assume it could be various formats
-		// For now, just mark as found without modifying
 		tabFound = true
 		return false
 	})
