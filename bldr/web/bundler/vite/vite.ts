@@ -31,6 +31,7 @@ import {
 } from 'vite'
 import { buildGoAliases, goTsResolver } from './go-ts-resolver.js'
 import { createWorkerSafeModulePreloadPlugin } from './module-preload.js'
+import { buildStableEntryFileName } from './output-naming.js'
 
 // verboseDebug is the verbose debugging flag
 const verboseDebug = process.env.BLDR_VITE_VERBOSE === 'true'
@@ -298,14 +299,11 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
           ...(mergedConfig.build.rolldownOptions.output ?? {}),
           format: 'es',
           entryFileNames: (chunkInfo) => {
-            // Preserve source directory structure for entry files
-            const facadeModuleId = chunkInfo.facadeModuleId
-            if (facadeModuleId) {
-              const relativePath = path.relative(rootDir, facadeModuleId)
-              const parsed = path.parse(relativePath)
-              return `${parsed.dir}/${parsed.name}-[hash].mjs`
-            }
-            return '[name]-[hash].mjs'
+            return buildStableEntryFileName(
+              rootDir,
+              chunkInfo.facadeModuleId,
+              chunkInfo.name,
+            )
           },
           chunkFileNames: '[name]-[hash].mjs',
           assetFileNames: '[name]-[hash][extname]',
