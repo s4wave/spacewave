@@ -7,7 +7,7 @@ import (
 	"io"
 	"math"
 	"os"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -510,7 +510,7 @@ func sortedNodeIDs(nodes map[string]*s4wave_canvas.CanvasNode) []string {
 	for id := range nodes {
 		ids = append(ids, id)
 	}
-	sort.Strings(ids)
+	slices.Sort(ids)
 	return ids
 }
 

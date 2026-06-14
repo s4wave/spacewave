@@ -6,7 +6,7 @@ import (
 	"context"
 	"io/fs"
 	"os"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -388,7 +388,7 @@ func readV86Images(c *cli.Context, statePath string, sessionIdx uint32, spaceID 
 		if err != nil {
 			return errors.Wrap(err, "list v86 images")
 		}
-		sort.Strings(keys)
+		slices.Sort(keys)
 		out = make([]*v86ImageCLIEntry, 0, len(keys))
 		for _, key := range keys {
 			img, err := readV86ImageFromTx(c, tx, key)
@@ -409,7 +409,7 @@ func readV86VMs(c *cli.Context, statePath string, sessionIdx uint32, spaceID str
 		if err != nil {
 			return errors.Wrap(err, "list VMs")
 		}
-		sort.Strings(keys)
+		slices.Sort(keys)
 		out = make([]*v86VMCLIEntry, 0, len(keys))
 		for _, key := range keys {
 			vm, err := readV86VMFromTx(c, tx, key)

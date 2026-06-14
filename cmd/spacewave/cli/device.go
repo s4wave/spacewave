@@ -10,10 +10,10 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -1072,7 +1072,7 @@ func writeDeviceStatusOutput(out deviceStatusOutput, outputFormat string) error 
 			fields = append(fields, [2]string{"Session", out.SessionID})
 		}
 		if out.SessionIndex != 0 {
-			fields = append(fields, [2]string{"Session Index", fmt.Sprintf("%d", out.SessionIndex)})
+			fields = append(fields, [2]string{"Session Index", strconv.FormatUint(uint64(out.SessionIndex), 10)})
 		}
 		if out.SessionPeerID != "" {
 			fields = append(fields, [2]string{"Session Peer", out.SessionPeerID})
