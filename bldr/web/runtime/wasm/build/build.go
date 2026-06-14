@@ -22,7 +22,7 @@ import (
 // webRuntimeWasmDir is the repo sub-dir for the web runtime wasm entrypoint.
 const webRuntimeWasmDir = "web/runtime/wasm"
 
-// nodeStubsPath is the repo sub-dir for the node stubs
+// nodeStubsPath is the repo sub-dir for the node stubs.
 const nodeStubsPath = "web/runtime/wasm/node-stubs.js"
 
 // validWasmSuffixes are the set of allowed .wasm suffixes.
