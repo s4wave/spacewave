@@ -174,6 +174,34 @@ describe('WebView root module loader', () => {
     })
   })
 
+  it('rejects bypassed root plugin asset responses before module import', async () => {
+    const fetchRootAsset = vi.fn(async () =>
+      pluginAssetResponse(200, '<!doctype html><title>loading</title>', {
+        'content-type': 'text/html',
+      }),
+    )
+    const importModule = vi.fn(async () => ({ default: 'module' }))
+
+    await expect(
+      loadWebViewScriptModule('/b/pa/spacewave-app/v/app/App-bypass.mjs', {
+        fetchRootAsset,
+        importModule,
+      }),
+    ).rejects.toMatchObject({
+      name: 'WebViewRootAssetLoadError',
+      rootAsset: {
+        scriptPath: '/b/pa/spacewave-app/v/app/App-bypass.mjs',
+        status: 200,
+        ok: true,
+        classification: 'bypass',
+        contentType: 'text/html',
+      },
+    })
+
+    expect(fetchRootAsset).toHaveBeenCalledOnce()
+    expect(importModule).not.toHaveBeenCalled()
+  })
+
   it('records the latest typed root asset result for status readers', async () => {
     const events: unknown[] = []
     const listener = (event: Event) => {

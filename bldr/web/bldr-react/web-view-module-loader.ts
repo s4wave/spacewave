@@ -212,7 +212,7 @@ export async function loadWebViewScriptModule<T>(
   const rootAsset = isWebViewRootPluginAssetPath(scriptPath)
     ? await fetchWebViewRootAssetResult(scriptPath, options.fetchRootAsset)
     : undefined
-  if (rootAsset && !rootAsset.ok) {
+  if (rootAsset && (!rootAsset.ok || rootAsset.classification !== 'live')) {
     throw new WebViewRootAssetLoadError(rootAsset)
   }
 
