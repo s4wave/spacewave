@@ -1022,14 +1022,14 @@ func (s *SpacewaveProviderResource) resolveActiveSpacewaveAccountWithRef(ctx con
 // ReauthenticateSession re-authenticates a session whose key became stale.
 // Derives an entity key from the credential, verifies with the cloud,
 // generates a new session key, and clears the UNAUTHENTICATED status.
-func (r *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, req *s4wave_provider_spacewave.ReauthenticateSessionRequest) (*s4wave_provider_spacewave.ReauthenticateSessionResponse, error) {
+func (s *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, req *s4wave_provider_spacewave.ReauthenticateSessionRequest) (*s4wave_provider_spacewave.ReauthenticateSessionResponse, error) {
 	sessionIdx := req.GetSessionIndex()
 	if sessionIdx == 0 {
 		return nil, errors.New("session_index is required")
 	}
 
 	// Look up the session to get its provider account ID and session ref.
-	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, r.b, "", false, nil)
+	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1091,9 +1091,9 @@ func (r *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 
 	// Verify credentials with cloud by registering a probe session.
 	entityCli := provider_spacewave.NewEntityClientDirect(
-		r.provider.GetHTTPClient(),
-		r.provider.GetEndpoint(),
-		r.provider.GetSigningEnvPrefix(),
+		s.provider.GetHTTPClient(),
+		s.provider.GetEndpoint(),
+		s.provider.GetSigningEnvPrefix(),
 		entityPriv,
 		entityPeerID,
 	)
@@ -1103,12 +1103,12 @@ func (r *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 	}
 
 	// Store the entity key on the provider for the account tracker.
-	bootstrapRef := r.provider.RetainEntityKeyBootstrap(accountID, entityPriv, entityPeerID)
+	bootstrapRef := s.provider.RetainEntityKeyBootstrap(accountID, entityPriv, entityPeerID)
 	defer bootstrapRef.Release()
 
 	// Access the provider account to perform key rotation.
 	provAcc, provAccRef, err := provider.ExAccessProviderAccount(
-		ctx, r.b,
+		ctx, s.b,
 		provRef.GetProviderId(),
 		accountID,
 		false, nil,
@@ -1143,7 +1143,7 @@ func (r *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 	sessionID := provRef.GetId()
 	volID := swAcc.GetVolume().GetID()
 	objectStoreID := provider_spacewave.SessionObjectStoreID(accountID)
-	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(ctx, r.b, false, objectStoreID, volID, nil)
+	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(ctx, s.b, false, objectStoreID, volID, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "mount session object store")
 	}
@@ -1197,9 +1197,9 @@ func (r *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 
 	// Replace SessionClient on the ProviderAccount with the new key.
 	swAcc.ReplaceSessionClient(provider_spacewave.NewSessionClient(
-		r.provider.GetHTTPClient(),
-		r.provider.GetEndpoint(),
-		r.provider.GetSigningEnvPrefix(),
+		s.provider.GetHTTPClient(),
+		s.provider.GetEndpoint(),
+		s.provider.GetSigningEnvPrefix(),
 		sessionPriv,
 		sessionPeerID.String(),
 	))

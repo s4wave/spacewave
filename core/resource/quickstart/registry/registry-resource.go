@@ -1,8 +1,9 @@
 package resource_quickstart_registry
 
 import (
+	"cmp"
 	"context"
-	"sort"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -198,11 +199,11 @@ func (r *QuickstartRegistryResource) getRegistrationsLocked() []*s4wave_quicksta
 	for _, reg := range r.registrations {
 		regs = append(regs, reg.CloneVT())
 	}
-	sort.Slice(regs, func(i, j int) bool {
-		if regs[i].GetQuickstartId() == regs[j].GetQuickstartId() {
-			return regs[i].GetRegistrationId() < regs[j].GetRegistrationId()
+	slices.SortFunc(regs, func(a, b *s4wave_quickstart_registry.QuickstartRegistration) int {
+		if c := cmp.Compare(a.GetQuickstartId(), b.GetQuickstartId()); c != 0 {
+			return c
 		}
-		return regs[i].GetQuickstartId() < regs[j].GetQuickstartId()
+		return cmp.Compare(a.GetRegistrationId(), b.GetRegistrationId())
 	})
 	return regs
 }

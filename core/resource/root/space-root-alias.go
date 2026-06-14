@@ -21,7 +21,7 @@ const spaceRootAliasObjectStoreID = "space-root-aliases"
 
 var spaceRootAliasKeyPrefix = []byte("alias/")
 
-// WatchSpaceRootAliases streams configured local state-root records.
+// ListSpaceRootAliases lists configured local state-root records.
 func (s *CoreRootServer) ListSpaceRootAliases(
 	ctx context.Context,
 	_ *s4wave_root.ListSpaceRootAliasesRequest,
