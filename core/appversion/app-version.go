@@ -1,9 +1,8 @@
 package appversion
 
 import (
-	"strings"
-
 	_ "embed"
+	"strings"
 )
 
 //go:embed version.txt
