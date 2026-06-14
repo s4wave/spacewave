@@ -828,7 +828,7 @@
     },
     {
       "name": "github.com/aperturerobotics/cayley",
-      "version": "v0.14.1-0.20260514195440-32d3c8730ab2",
+      "version": "v0.14.1-0.20260604043655-9ed25e8f78ac",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/cayley",
@@ -915,7 +915,7 @@
     },
     {
       "name": "github.com/aperturerobotics/go-quickjs-wasi-reactor",
-      "version": "v0.15.0",
+      "version": "v0.15.1",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/go-quickjs-wasi-reactor",
@@ -923,7 +923,7 @@
     },
     {
       "name": "github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs",
-      "version": "v0.0.0-20260530012506-6bf78593427c",
+      "version": "v0.0.0-20260605073731-428dc1505f4a",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/go-quickjs-wasi-reactor",
@@ -947,7 +947,7 @@
     },
     {
       "name": "github.com/aperturerobotics/goscript",
-      "version": "v0.2.4-0.20260610174303-f56fd18f5a0a",
+      "version": "v0.2.4",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/goscript",
@@ -971,7 +971,7 @@
     },
     {
       "name": "github.com/aperturerobotics/starpc",
-      "version": "v0.49.17",
+      "version": "v0.49.18",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/starpc",
@@ -1340,15 +1340,15 @@
     },
     {
       "name": "github.com/ncruces/go-sqlite3",
-      "version": "v0.34.3",
+      "version": "v0.35.0",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/ncruces/go-sqlite3",
       "copyrightNotice": "Copyright (c) 2023 Nuno Cruces"
     },
     {
-      "name": "github.com/ncruces/go-sqlite3-wasm/v2",
-      "version": "v2.5.35301",
+      "name": "github.com/ncruces/go-sqlite3-wasm/v3",
+      "version": "v3.1.35302",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/ncruces/go-sqlite3-wasm",
@@ -1396,7 +1396,7 @@
     },
     {
       "name": "github.com/pion/dtls/v3",
-      "version": "v3.1.2",
+      "version": "v3.1.4",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/dtls",
@@ -1404,7 +1404,7 @@
     },
     {
       "name": "github.com/pion/ice/v4",
-      "version": "v4.2.5",
+      "version": "v4.2.7",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/ice",
@@ -1476,15 +1476,15 @@
     },
     {
       "name": "github.com/pion/srtp/v3",
-      "version": "v3.0.10",
+      "version": "v3.0.11",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/srtp",
-      "copyrightNotice": "Copyright (c) 2023 The Pion community <https://pion.ly>"
+      "copyrightNotice": "Copyright (c) 2026 The Pion community <https://pion.ly>"
     },
     {
       "name": "github.com/pion/stun/v3",
-      "version": "v3.1.2",
+      "version": "v3.1.5",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/stun",
@@ -1492,15 +1492,15 @@
     },
     {
       "name": "github.com/pion/transport/v4",
-      "version": "v4.0.1",
+      "version": "v4.0.2",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/transport",
-      "copyrightNotice": "Copyright (c) 2023 The Pion community <https://pion.ly>"
+      "copyrightNotice": "Copyright (c) 2026 The Pion community <https://pion.ly>"
     },
     {
       "name": "github.com/pion/turn/v5",
-      "version": "v5.0.4",
+      "version": "v5.0.9",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/turn",
@@ -1508,7 +1508,7 @@
     },
     {
       "name": "github.com/pion/webrtc/v4",
-      "version": "v4.2.13",
+      "version": "v4.2.15",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/webrtc",
@@ -1548,7 +1548,7 @@
     },
     {
       "name": "github.com/quic-go/quic-go",
-      "version": "v0.59.1",
+      "version": "v0.60.0",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/quic-go/quic-go",
@@ -1715,14 +1715,14 @@
     },
     {
       "name": "go.starlark.net",
-      "version": "v0.0.0-20260522144826-ec58d4b459e2",
+      "version": "v0.0.0-20260613233743-8ba36ccb83fb",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "fullText": "Copyright (c) 2017 The Bazel Authors.  All rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are\nmet:\n\n1. Redistributions of source code must retain the above copyright\n   notice, this list of conditions and the following disclaimer.\n\n2. Redistributions in binary form must reproduce the above copyright\n   notice, this list of conditions and the following disclaimer in the\n   documentation and/or other materials provided with the\n   distribution.\n\n3. Neither the name of the copyright holder nor the names of its\n   contributors may be used to endorse or promote products derived\n   from this software without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS\n\"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT\nLIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR\nA PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT\nHOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,\nSPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT\nLIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,\nDATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY\nTHEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT\n(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\nOF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n"
     },
     {
       "name": "golang.org/x/crypto",
-      "version": "v0.52.0",
+      "version": "v0.53.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/crypto",
@@ -1738,7 +1738,7 @@
     },
     {
       "name": "golang.org/x/mod",
-      "version": "v0.36.0",
+      "version": "v0.37.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/mod",
@@ -1746,7 +1746,7 @@
     },
     {
       "name": "golang.org/x/net",
-      "version": "v0.54.0",
+      "version": "v0.56.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/net",
@@ -1754,7 +1754,7 @@
     },
     {
       "name": "golang.org/x/sync",
-      "version": "v0.20.0",
+      "version": "v0.21.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/sync",
@@ -1762,7 +1762,7 @@
     },
     {
       "name": "golang.org/x/sys",
-      "version": "v0.45.0",
+      "version": "v0.46.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/sys",
@@ -1770,7 +1770,7 @@
     },
     {
       "name": "golang.org/x/term",
-      "version": "v0.43.0",
+      "version": "v0.44.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/term",
@@ -1778,7 +1778,7 @@
     },
     {
       "name": "golang.org/x/text",
-      "version": "v0.37.0",
+      "version": "v0.38.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/text",
@@ -1794,7 +1794,7 @@
     },
     {
       "name": "golang.org/x/tools",
-      "version": "v0.45.0",
+      "version": "v0.46.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/tools",
@@ -2136,7 +2136,7 @@
     },
     {
       "name": "starpc",
-      "version": "0.49.17",
+      "version": "0.49.18",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2022-2025 Aperture Robotics, LLC.\nCopyright (c) 2022-2025 Christian Stewart <christian@cjs.zip>"
