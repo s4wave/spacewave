@@ -160,7 +160,7 @@ func TestV86WazeroV86FSDeviceProbe(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve v86 assets: %v", err)
 	}
-	v86fsServer, releaseRoot, err := OpenV86FSRoot(assets.RootfsTar)
+	v86fsServer, releaseRoot, err := OpenV86Root(RootMode{Mode: rootModeReadonly}, assets.RootfsTar)
 	if err != nil {
 		t.Fatalf("open v86fs root: %v", err)
 	}
@@ -226,7 +226,7 @@ func TestV86WazeroV86FSRootShell(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve v86 assets: %v", err)
 	}
-	v86fsServer, releaseRoot, err := OpenV86FSRoot(assets.RootfsTar)
+	v86fsServer, releaseRoot, err := OpenV86Root(RootMode{Mode: rootModeReadonly}, assets.RootfsTar)
 	if err != nil {
 		t.Fatalf("open v86fs root: %v", err)
 	}

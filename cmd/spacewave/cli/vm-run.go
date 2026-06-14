@@ -24,6 +24,7 @@ const serialEscapePrefix = 0x01
 
 type v86RunArgs struct {
 	root      string
+	rootMode  string
 	assetDir  string
 	v86Dir    string
 	fsDir     string
@@ -35,7 +36,7 @@ type v86RunArgs struct {
 }
 
 func newVmRunCommand() *cli.Command {
-	args := &v86RunArgs{root: "v86fs", memoryMb: 128}
+	args := &v86RunArgs{root: "v86fs", rootMode: "ram", memoryMb: 128}
 	return &cli.Command{
 		Name:  "run",
 		Usage: "boot a v86 VM locally and attach an interactive serial console",
@@ -47,6 +48,7 @@ func newVmRunCommand() *cli.Command {
 			"are honored as defaults). Press Ctrl-A x to quit.",
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "root", Usage: "guest root device: v86fs or host9p", Value: "v86fs", Destination: &args.root},
+			&cli.StringFlag{Name: "root-mode", Usage: "guest root backing: readonly|ram|disk=<path>|volume=<file>|daemon=<space>", Value: "ram", Destination: &args.rootMode},
 			&cli.StringFlag{Name: "asset-dir", Usage: "directory holding v86.wasm, seabios.bin, vgabios.bin, bzImage, rootfs.tar/fs.json", Destination: &args.assetDir},
 			&cli.StringFlag{Name: "v86-dir", Usage: "v86 source tree (build/v86.wasm, bios/)", Destination: &args.v86Dir},
 			&cli.StringFlag{Name: "fs-dir", Usage: "v86fs artifact dir (bzImage, rootfs.tar, fs.json, flat/)", Destination: &args.fsDir},
@@ -83,7 +85,16 @@ func runV86Interactive(c *cli.Context, args *v86RunArgs) error {
 		return errors.Wrap(err, "initialize v86 CPU")
 	}
 
-	os.Stderr.WriteString("v86: booting " + args.root + " root from " + assets.Dir + "; press Ctrl-A x to quit\n")
+	rootDesc := args.root
+	if rootDesc == "" {
+		rootDesc = "v86fs"
+	}
+	if rootDesc == "v86fs" {
+		rootDesc += " root (" + args.rootMode + ")"
+	} else {
+		rootDesc += " root"
+	}
+	os.Stderr.WriteString("v86: booting " + rootDesc + " from " + assets.Dir + "; press Ctrl-A x to quit\n")
 
 	fd := int(os.Stdin.Fd())
 	if term.IsTerminal(fd) {
@@ -153,7 +164,11 @@ func buildV86RunBoot(ctx context.Context, args *v86RunArgs) (v86_wazero.HostBoot
 	}
 	switch args.root {
 	case "v86fs", "":
-		server, release, err := v86_wazero.OpenV86FSRoot(assets.RootfsTar)
+		rootMode, err := v86_wazero.ParseRootMode(args.rootMode)
+		if err != nil {
+			return v86_wazero.HostBootOptions{}, nil, nil, err
+		}
+		server, release, err := v86_wazero.OpenV86Root(rootMode, assets.RootfsTar)
 		if err != nil {
 			return v86_wazero.HostBootOptions{}, nil, nil, err
 		}

@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aperturerobotics/cli"
+
 	s4wave_vm "github.com/s4wave/spacewave/sdk/vm"
 )
 
@@ -72,6 +74,32 @@ func TestVmCommandShape(t *testing.T) {
 	}
 	if image.Subcommands[0].Subcommands[3].Name != "import" {
 		t.Fatalf("v86 subcommand[3] = %q, want import", image.Subcommands[0].Subcommands[3].Name)
+	}
+}
+
+func TestVmRunCommandRootModeFlag(t *testing.T) {
+	cmd := newVmRunCommand()
+	var rootMode *cli.StringFlag
+	for _, flag := range cmd.Flags {
+		sf, ok := flag.(*cli.StringFlag)
+		if ok && sf.Name == "root-mode" {
+			rootMode = sf
+			break
+		}
+	}
+	if rootMode == nil {
+		t.Fatal("root-mode flag missing")
+	}
+	if rootMode.Value != "ram" {
+		t.Fatalf("root-mode default = %q, want ram", rootMode.Value)
+	}
+	if rootMode.Destination == nil || *rootMode.Destination != "ram" {
+		t.Fatalf("root-mode destination default = %v, want ram", rootMode.Destination)
+	}
+	for _, want := range []string{"readonly", "ram", "disk=<path>", "volume=<file>", "daemon=<space>"} {
+		if !strings.Contains(rootMode.Usage, want) {
+			t.Fatalf("root-mode usage %q missing %q", rootMode.Usage, want)
+		}
 	}
 }
 
