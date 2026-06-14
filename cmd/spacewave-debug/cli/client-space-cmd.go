@@ -23,6 +23,11 @@ import (
 type SpaceArgs struct {
 	client *ClientArgs
 
+	// resClient is the resource client opened by mountSpaceResource and reused
+	// by getResourceClient for the duration of one mounted space; cleared when
+	// the mount cleanup runs.
+	resClient *resource_client.Client
+
 	// SpaceID is the target space ID.
 	SpaceID string
 	// PluginID is the target plugin manifest ID.
@@ -221,9 +226,6 @@ func (sa *SpaceArgs) RunPlugins(c *appcli.Context) error {
 	return nil
 }
 
-// resClient is cached by mountSpaceResource for use by getResourceClient.
-var cachedResClient *resource_client.Client
-
 // mountSpaceResource navigates the Resource SDK to the SpaceResourceService.
 func (sa *SpaceArgs) mountSpaceResource(ctx context.Context) (s4wave_space.SRPCSpaceResourceServiceClient, func(), error) {
 	coreClient, err := sa.client.BuildCoreClient()
@@ -236,7 +238,7 @@ func (sa *SpaceArgs) mountSpaceResource(ctx context.Context) (s4wave_space.SRPCS
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "resource client")
 	}
-	cachedResClient = resClient
+	sa.resClient = resClient
 
 	rootRef := resClient.AccessRootResource()
 	root, err := s4wave_root.NewRoot(resClient, rootRef)
@@ -313,16 +315,17 @@ func (sa *SpaceArgs) mountSpaceResource(ctx context.Context) (s4wave_space.SRPCS
 		sess.Release()
 		root.Release()
 		resClient.Release()
-		cachedResClient = nil
+		sa.resClient = nil
 	}
 	return spaceSvc, cleanup, nil
 }
 
-// getResourceClient gets an SRPC client for a resource ID using the cached resource client.
+// getResourceClient gets an SRPC client for a resource ID using the resource
+// client opened by mountSpaceResource.
 func (sa *SpaceArgs) getResourceClient(ctx context.Context, resourceID uint32) (srpc.Client, error) {
-	if cachedResClient == nil {
+	if sa.resClient == nil {
 		return nil, errors.New("resource client not initialized")
 	}
-	ref := cachedResClient.CreateResourceReference(resourceID)
+	ref := sa.resClient.CreateResourceReference(resourceID)
 	return ref.GetClient()
 }
