@@ -1,8 +1,10 @@
 package resource_command
 
 import (
+	"cmp"
 	"context"
-	"sort"
+	"slices"
+	"strings"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
@@ -279,13 +281,11 @@ func (r *CommandsManager) getCommandStatesLocked() []*s4wave_command_registry.Co
 		}
 		regs = append(regs, reg)
 	}
-	sort.Slice(regs, func(i, j int) bool {
-		leftID := regs[i].command.GetCommandId()
-		rightID := regs[j].command.GetCommandId()
-		if leftID != rightID {
-			return leftID < rightID
+	slices.SortFunc(regs, func(a, b *commandRegistration) int {
+		if c := strings.Compare(a.command.GetCommandId(), b.command.GetCommandId()); c != 0 {
+			return c
 		}
-		return regs[i].resourceID < regs[j].resourceID
+		return cmp.Compare(a.resourceID, b.resourceID)
 	})
 
 	states := make([]*s4wave_command_registry.CommandState, 0, len(regs))

@@ -2,10 +2,10 @@ package resource_block_cursor
 
 import (
 	"context"
-	"errors"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/blocktype"
