@@ -20,10 +20,10 @@
   },
   "dependencies": {
     "@aptre/protobuf-es-lite": "1.1.0",
-    "quickjs-wasi-reactor": "0.15.0",
+    "quickjs-wasi-reactor": "0.15.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
-    "rolldown": "1.0.0-rc.17",
+    "rolldown": "1.1.1",
     "ulid": "^3.0.2",
     "workbox-window": "^7.4.1"
   },
