@@ -167,10 +167,7 @@ func validateBlockRef(ref *block.BlockRef) error {
 	if ref.GetEmpty() {
 		return errors.New("empty block ref")
 	}
-	if err := ref.Validate(false); err != nil {
-		return err
-	}
-	return nil
+	return ref.Validate(false)
 }
 
 func blockRefPresent(ref *block.BlockRef) bool {
