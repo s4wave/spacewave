@@ -1,9 +1,11 @@
 package identity
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"sort"
+	"io"
+	"slices"
 	"strconv"
 
 	b58 "github.com/mr-tron/base58/base58"
@@ -64,9 +66,7 @@ func DigestSortedKeys(keys [][]byte) []byte {
 	for i, key := range keys {
 		sorted[i] = append([]byte(nil), key...)
 	}
-	sort.Slice(sorted, func(i, j int) bool {
-		return string(sorted[i]) < string(sorted[j])
-	})
+	slices.SortFunc(sorted, bytes.Compare)
 	h := sha256.New()
 	writePart(h, []byte("spacewave-packfile-key-digest-v1"))
 	for _, key := range sorted {
@@ -101,7 +101,7 @@ func ValidatePackID(id string) error {
 	return nil
 }
 
-func writePart(h interface{ Write([]byte) (int, error) }, part []byte) {
+func writePart(h io.Writer, part []byte) {
 	var lenBuf [4]byte
 	binary.BigEndian.PutUint32(lenBuf[:], uint32(len(part)))
 	_, _ = h.Write(lenBuf[:])
