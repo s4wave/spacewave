@@ -111,10 +111,6 @@ func (o *bridgeOperation) GetOperationTypeId() string {
 	return o.opTypeID
 }
 
-func worldOpRegistryBridgeEnabled() bool {
-	return true
-}
-
 func bridgeOperationEngineID(op world.Operation) (string, bool) {
 	bridgeOp, ok := op.(*bridgeOperation)
 	if !ok {
