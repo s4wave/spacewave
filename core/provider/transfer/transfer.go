@@ -63,7 +63,7 @@ func NewTransfer(
 // GetState returns a snapshot of the current transfer state.
 func (t *Transfer) GetState() *TransferState {
 	var state *TransferState
-	t.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+	t.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		state = t.state.CloneVT()
 	})
 	return state
