@@ -99,23 +99,26 @@ describe('WebView root module loader', () => {
 
     try {
       await expect(
-        loadWebViewScriptModule('/b/pa/spacewave-app/v/app/App-live.mjs', {
-          fetchRootAsset,
-          importModule,
-        }),
+        loadWebViewScriptModule(
+          '/b/pa/spacewave-app/v/app/App-nested-failure.mjs',
+          {
+            fetchRootAsset,
+            importModule,
+          },
+        ),
       ).rejects.toBe(nestedFailure)
 
       expect(fetchRootAsset).toHaveBeenCalledOnce()
       expect(importModule).toHaveBeenCalledWith(
-        '/b/pa/spacewave-app/v/app/App-live.mjs',
+        '/b/pa/spacewave-app/v/app/App-nested-failure.mjs',
       )
       expect(globalThis.__bldrWebViewModuleImportError).toMatchObject({
-        scriptPath: '/b/pa/spacewave-app/v/app/App-live.mjs',
+        scriptPath: '/b/pa/spacewave-app/v/app/App-nested-failure.mjs',
         name: 'TypeError',
         message:
           'Failed to fetch dynamically imported module: /b/pa/spacewave-app/v/chunk-missing.mjs',
         rootAsset: {
-          scriptPath: '/b/pa/spacewave-app/v/app/App-live.mjs',
+          scriptPath: '/b/pa/spacewave-app/v/app/App-nested-failure.mjs',
           status: 200,
           ok: true,
           classification: 'live',
@@ -130,6 +133,58 @@ describe('WebView root module loader', () => {
       globalThis.__bldrWebViewModuleImportError = undefined
       globalThis.__bldrWebViewRootAssetStatus = undefined
     }
+  })
+
+  it('adds a retry nonce after module import failure and clears it after success', async () => {
+    const fetchRootAsset = vi.fn(async () =>
+      pluginAssetResponse(200, 'export default function App() {}', {
+        'content-type': 'text/javascript',
+        'X-Bldr-Fetch-Source': 'plugin-assets',
+        'X-Bldr-Plugin-Asset-Fetch-Result': 'live',
+      }),
+    )
+    const importFailure = new TypeError(
+      'Failed to fetch dynamically imported module: /b/pa/spacewave-app/v/app/App-retry.mjs',
+    )
+    const importModule = vi
+      .fn()
+      .mockRejectedValueOnce(importFailure)
+      .mockResolvedValueOnce({ default: 'component' })
+      .mockResolvedValueOnce({ default: 'component' })
+
+    await expect(
+      loadWebViewScriptModule('/b/pa/spacewave-app/v/app/App-retry.mjs', {
+        fetchRootAsset,
+        importModule,
+      }),
+    ).rejects.toBe(importFailure)
+
+    await expect(
+      loadWebViewScriptModule('/b/pa/spacewave-app/v/app/App-retry.mjs', {
+        fetchRootAsset,
+        importModule,
+      }),
+    ).resolves.toEqual({ default: 'component' })
+
+    await expect(
+      loadWebViewScriptModule('/b/pa/spacewave-app/v/app/App-retry.mjs', {
+        fetchRootAsset,
+        importModule,
+      }),
+    ).resolves.toEqual({ default: 'component' })
+
+    expect(importModule).toHaveBeenNthCalledWith(
+      1,
+      '/b/pa/spacewave-app/v/app/App-retry.mjs',
+    )
+    expect(importModule).toHaveBeenNthCalledWith(
+      2,
+      '/b/pa/spacewave-app/v/app/App-retry.mjs?bldr_retry=1',
+    )
+    expect(importModule).toHaveBeenNthCalledWith(
+      3,
+      '/b/pa/spacewave-app/v/app/App-retry.mjs',
+    )
   })
 
   it('imports the module after a live root plugin asset result', async () => {

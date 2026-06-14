@@ -194,7 +194,11 @@ export class WebViewErrorBoundary extends React.Component<
   public render() {
     const { caughtError, countdown } = this.state
     if (!caughtError) {
-      return <>{this.props.children}</>
+      return (
+        <React.Fragment key={this.state.retryAttempt}>
+          {this.props.children}
+        </React.Fragment>
+      )
     }
 
     const recoverable = isRecoverableError(caughtError)

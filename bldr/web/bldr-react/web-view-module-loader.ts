@@ -33,6 +33,7 @@ export interface LoadWebViewScriptModuleOptions<T> {
 const rootPluginAssetPrefix = '/b/pa/'
 export const webViewRootAssetStatusEvent = 'bldr:webview-root-asset-status'
 export const webViewModuleImportErrorEvent = 'bldr:webview-module-import-error'
+const moduleImportRetryNonceByScriptPath = new Map<string, number>()
 
 function headerValue(headers: Headers, name: string): string | undefined {
   return headers.get(name) ?? undefined
@@ -205,6 +206,25 @@ async function importWebViewScriptModule<T>(scriptPath: string): Promise<T> {
   return import(/* @vite-ignore */ scriptPath) as Promise<T>
 }
 
+function buildModuleImportPath(scriptPath: string): string {
+  const retryNonce = moduleImportRetryNonceByScriptPath.get(scriptPath) ?? 0
+  if (retryNonce === 0) {
+    return scriptPath
+  }
+
+  const separator = scriptPath.includes('?') ? '&' : '?'
+  return `${scriptPath}${separator}bldr_retry=${retryNonce}`
+}
+
+function recordModuleImportFailure(scriptPath: string) {
+  const retryNonce = moduleImportRetryNonceByScriptPath.get(scriptPath) ?? 0
+  moduleImportRetryNonceByScriptPath.set(scriptPath, retryNonce + 1)
+}
+
+function recordModuleImportSuccess(scriptPath: string) {
+  moduleImportRetryNonceByScriptPath.delete(scriptPath)
+}
+
 export async function loadWebViewScriptModule<T>(
   scriptPath: string,
   options: LoadWebViewScriptModuleOptions<T> = {},
@@ -217,9 +237,13 @@ export async function loadWebViewScriptModule<T>(
   }
 
   const importModule = options.importModule ?? importWebViewScriptModule<T>
+  const moduleImportPath = buildModuleImportPath(scriptPath)
   try {
-    return await importModule(scriptPath)
+    const module = await importModule(moduleImportPath)
+    recordModuleImportSuccess(scriptPath)
+    return module
   } catch (error) {
+    recordModuleImportFailure(scriptPath)
     recordWebViewModuleImportError({
       scriptPath,
       ...serializeImportError(error),
