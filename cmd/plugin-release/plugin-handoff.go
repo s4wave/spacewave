@@ -11,7 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -155,8 +155,8 @@ func collectPluginHandoffArtifacts(nativeDir string) ([]*pluginHandoffEntry, err
 	}); err != nil {
 		return nil, err
 	}
-	sort.Slice(out, func(i, j int) bool {
-		return out[i].Path < out[j].Path
+	slices.SortFunc(out, func(a, b *pluginHandoffEntry) int {
+		return strings.Compare(a.Path, b.Path)
 	})
 	return out, nil
 }

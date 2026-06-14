@@ -3,12 +3,13 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"flag"
 	"io"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -398,14 +399,14 @@ func collectManifestInventory(ctx context.Context, ws world.WorldState) ([]manif
 			})
 		}
 	}
-	sort.Slice(out, func(i, j int) bool {
-		if out[i].manifestID != out[j].manifestID {
-			return out[i].manifestID < out[j].manifestID
+	slices.SortFunc(out, func(a, b manifestInventoryEntry) int {
+		if c := strings.Compare(a.manifestID, b.manifestID); c != 0 {
+			return c
 		}
-		if out[i].platformID != out[j].platformID {
-			return out[i].platformID < out[j].platformID
+		if c := strings.Compare(a.platformID, b.platformID); c != 0 {
+			return c
 		}
-		return out[i].rev < out[j].rev
+		return cmp.Compare(a.rev, b.rev)
 	})
 	return out, nil
 }
