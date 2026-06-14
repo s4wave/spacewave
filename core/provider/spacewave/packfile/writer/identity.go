@@ -1,9 +1,11 @@
 package writer
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"sort"
+	"io"
+	"slices"
 	"strconv"
 )
 
@@ -12,11 +14,9 @@ const valueOrderIterator = "iterator"
 func digestSortedKeys(keys [][]byte) []byte {
 	sorted := make([][]byte, len(keys))
 	for i, key := range keys {
-		sorted[i] = append([]byte(nil), key...)
+		sorted[i] = bytes.Clone(key)
 	}
-	sort.Slice(sorted, func(i, j int) bool {
-		return string(sorted[i]) < string(sorted[j])
-	})
+	slices.SortFunc(sorted, bytes.Compare)
 	h := sha256.New()
 	writePart(h, []byte("spacewave-packfile-key-digest-v1"))
 	for _, key := range sorted {
@@ -35,7 +35,7 @@ func policyTag(policy Policy) string {
 		";require-created-at=" + strconv.FormatBool(policy.RequireCreatedAt)
 }
 
-func writePart(h interface{ Write([]byte) (int, error) }, part []byte) {
+func writePart(h io.Writer, part []byte) {
 	var lenBuf [4]byte
 	binary.BigEndian.PutUint32(lenBuf[:], uint32(len(part)))
 	_, _ = h.Write(lenBuf[:])

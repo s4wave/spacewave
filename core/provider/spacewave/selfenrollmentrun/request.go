@@ -1,5 +1,7 @@
 package selfenrollmentrun
 
+import "slices"
+
 // Summary describes the pending shared objects for a self-enrollment run.
 type Summary interface {
 	GetIDs() []string
@@ -20,7 +22,7 @@ func NewRequest(summary Summary) *Request {
 	}
 	return &Request{
 		GenerationKey: summary.GetGenerationKey(),
-		IDs:           append([]string(nil), summary.GetIDs()...),
+		IDs:           slices.Clone(summary.GetIDs()),
 	}
 }
 

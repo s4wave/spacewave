@@ -1,8 +1,10 @@
 package repair
 
-import "slices"
+import (
+	"slices"
 
-import packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
+	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
+)
 
 // Reason identifies why a packfile entry needs metadata repair.
 type Reason string

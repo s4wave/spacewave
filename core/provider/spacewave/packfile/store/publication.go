@@ -3,6 +3,7 @@ package store
 import (
 	"bytes"
 	"context"
+	"slices"
 	"time"
 
 	"github.com/aperturerobotics/go-kvfile"
@@ -249,7 +250,7 @@ func (e *PackReader) finishVerify(rec *blockRecord, verifyErr, writeErr error) {
 		}
 		rec.queued = false
 		if verifyErr != nil {
-			spans := append([]*span(nil), rec.spans...)
+			spans := slices.Clone(rec.spans)
 			rec.state = blockStateFailed
 			rec.err = verifyErr
 			e.verifyFailures++

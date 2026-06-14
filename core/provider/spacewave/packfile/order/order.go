@@ -2,6 +2,7 @@
 package order
 
 import (
+	"cmp"
 	"context"
 	"slices"
 	"strings"
@@ -95,19 +96,10 @@ func objectRootedRefs(
 		}
 	}
 	slices.SortFunc(roots, func(a, b rootedRef) int {
-		if a.root < b.root {
-			return -1
-		}
-		if a.root > b.root {
-			return 1
-		}
-		if a.key < b.key {
-			return -1
-		}
-		if a.key > b.key {
-			return 1
-		}
-		return 0
+		return cmp.Or(
+			cmp.Compare(a.root, b.root),
+			cmp.Compare(a.key, b.key),
+		)
 	})
 	return roots, nil
 }
