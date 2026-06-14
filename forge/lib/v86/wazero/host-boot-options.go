@@ -3,8 +3,10 @@ package v86_wazero
 import unixfs_v86fs "github.com/s4wave/spacewave/db/unixfs/v86fs"
 
 const (
-	DefaultV86FSRootCmdline  = "rw init=/usr/bin/bash root=v86fs rootfstype=v86fs rootflags= console=ttyS0"
-	DefaultHost9PRootCmdline = "rw init=/usr/bin/bash root=host9p rootfstype=9p rootflags=trans=virtio,cache=loose console=ttyS0"
+	// The guest must boot through /sbin/init so busybox inittab gives ttyS0
+	// a controlling terminal with job control; bash as PID 1 breaks Ctrl-C/SIGINT.
+	DefaultV86FSRootCmdline  = "rw init=/sbin/init root=v86fs rootfstype=v86fs rootflags= console=ttyS0"
+	DefaultHost9PRootCmdline = "rw init=/sbin/init root=host9p rootfstype=9p rootflags=trans=virtio,cache=loose console=ttyS0"
 )
 
 // HostBootOptions configures the minimal CPU bootstrap before the run loop.

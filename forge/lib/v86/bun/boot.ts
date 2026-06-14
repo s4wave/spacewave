@@ -279,14 +279,16 @@ async function main() {
 
   if (useV86fsRoot) {
     // v86fs root: rootfs.tar served through the v86fs SRPC server.
+    // Boot through /sbin/init so busybox gives ttyS0 job control; bash PID 1 breaks Ctrl-C/SIGINT.
     cmdline =
-      'rw init=/usr/bin/bash root=v86fs rootfstype=v86fs rootflags= console=ttyS0'
+      'rw init=/sbin/init root=v86fs rootfstype=v86fs rootflags= console=ttyS0'
     console.error('[forge-v86] booting with v86fs root')
   } else {
     // 9p root: load rootfs from local fs.json + flat/ files.
     handle9p = v86fsDir ? await loadHandle9p(v86Dir, v86fsDir) : undefined
+    // Boot through /sbin/init so busybox gives ttyS0 job control; bash PID 1 breaks Ctrl-C/SIGINT.
     cmdline =
-      'rw init=/usr/bin/bash root=host9p rootfstype=9p rootflags=trans=virtio,cache=loose console=ttyS0'
+      'rw init=/sbin/init root=host9p rootfstype=9p rootflags=trans=virtio,cache=loose console=ttyS0'
     console.error('[forge-v86] booting with 9p root')
   }
 

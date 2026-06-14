@@ -193,7 +193,7 @@ async function createEmulator9p(): Promise<V86Emulator> {
     vga_bios: { url: path.join(V86_DIR, 'bios/vgabios.bin') },
     bzimage: { url: path.join(V86FS_DIR, 'bzImage') },
     cmdline:
-      'rw init=/usr/bin/bash root=host9p rootfstype=9p rootflags=trans=virtio,cache=loose console=ttyS0',
+      'rw init=/sbin/init root=host9p rootfstype=9p rootflags=trans=virtio,cache=loose console=ttyS0',
     filesystem: { handle9p },
     autostart: true,
   })
@@ -522,7 +522,7 @@ async function createEmulatorV86fs(v86fsAdapter: unknown): Promise<V86Emulator> 
     vga_bios: { url: path.join(V86_DIR, 'bios/vgabios.bin') },
     bzimage: { url: path.join(V86FS_DIR, 'bzImage') },
     cmdline:
-      'rw init=/usr/bin/bash root=host9p rootfstype=9p rootflags=trans=virtio,cache=loose console=ttyS0',
+      'rw init=/sbin/init root=host9p rootfstype=9p rootflags=trans=virtio,cache=loose console=ttyS0',
     filesystem: { handle9p },
     virtio_v86fs: true,
     virtio_v86fs_adapter: v86fsAdapter,

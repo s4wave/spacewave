@@ -184,8 +184,9 @@ export async function startBrowserV86Runtime(
       bios: { buffer: viewBuffer(options.assets.bios) },
       vga_bios: { buffer: viewBuffer(options.assets.vgaBios) },
       bzimage: { buffer: viewBuffer(options.assets.kernel) },
+      // Boot through /sbin/init so busybox gives ttyS0 job control; bash PID 1 breaks Ctrl-C/SIGINT.
       cmdline:
-        'rw init=/usr/bin/bash root=v86fs rootfstype=v86fs console=ttyS0',
+        'rw init=/sbin/init root=v86fs rootfstype=v86fs console=ttyS0',
       virtio_v86fs: true,
       virtio_v86fs_adapter: options.v86fsAdapter,
       disable_keyboard: true,
