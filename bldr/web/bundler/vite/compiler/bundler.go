@@ -345,7 +345,7 @@ func BuildViteBundle(
 		}
 
 		// Skip if we already have this entrypoint
-		found := slices.IndexFunc(entrypoints, func(e *bldr_vite.ViteBuildRequestEntrypoint) bool { return e.GetInputPath() == entrypointPath }) != -1
+		found := slices.ContainsFunc(entrypoints, func(e *bldr_vite.ViteBuildRequestEntrypoint) bool { return e.GetInputPath() == entrypointPath })
 		if !found {
 			// Use filename (without extension) as entrypoint name
 			baseName := filepath.Base(entrypointPath)

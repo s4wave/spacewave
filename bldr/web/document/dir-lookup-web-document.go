@@ -73,7 +73,7 @@ func (d *lookupWebDocument) GetValueOptions() directive.ValueOptions {
 	}
 }
 
-// LookupWebDocument is the web view ID to lookup.
+// LookupWebDocumentID is the web view ID to lookup.
 func (d *lookupWebDocument) LookupWebDocumentID() string {
 	return d.webViewID
 }
