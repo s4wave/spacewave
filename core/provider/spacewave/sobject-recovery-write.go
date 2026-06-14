@@ -2,7 +2,7 @@ package provider_spacewave
 
 import (
 	"context"
-	"sort"
+	"slices"
 
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
@@ -74,7 +74,7 @@ func buildSORecoveryEnvelopes(
 	for entityID := range entityRoles {
 		entityIDs = append(entityIDs, entityID)
 	}
-	sort.Strings(entityIDs)
+	slices.Sort(entityIDs)
 
 	envs := make([]*sobject.SOEntityRecoveryEnvelope, 0, len(entityIDs))
 	for _, entityID := range entityIDs {
@@ -204,7 +204,7 @@ func buildSORecoveryEnvelopesFromCache(
 	for entityID := range entityRoles {
 		entityIDs = append(entityIDs, entityID)
 	}
-	sort.Strings(entityIDs)
+	slices.Sort(entityIDs)
 
 	envs := make([]*sobject.SOEntityRecoveryEnvelope, 0, len(entityIDs))
 	for _, entityID := range entityIDs {

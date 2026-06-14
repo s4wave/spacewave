@@ -3,7 +3,8 @@ package provider_local
 import (
 	"crypto/ecdh"
 	"crypto/sha256"
-	"sort"
+	"slices"
+	"strings"
 
 	"github.com/pkg/errors"
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
@@ -130,8 +131,8 @@ func DeriveSASEmoji(
 
 	// Sort peer IDs lexicographically by raw bytes.
 	peerIDs := []peer.ID{localPeerID, remotePeerID}
-	sort.Slice(peerIDs, func(i, j int) bool {
-		return string(peerIDs[i]) < string(peerIDs[j])
+	slices.SortFunc(peerIDs, func(a, b peer.ID) int {
+		return strings.Compare(string(a), string(b))
 	})
 
 	// Hash: SHA-256(sharedSecret || sorted[0] || sorted[1]).

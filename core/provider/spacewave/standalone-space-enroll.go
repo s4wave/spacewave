@@ -39,10 +39,6 @@ func (c *SessionClient) EnrollSpaceMember(
 	if c.peerID == "" {
 		return nil, errors.New("session peer id not available")
 	}
-	if le == nil {
-		le = logrus.New().WithField("component", "standalone-space-enroll")
-	}
-	_ = le
 
 	enrollResp, err := c.EnrollMember(ctx, spaceID, accountID, true)
 	if err != nil {

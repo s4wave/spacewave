@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -132,7 +132,7 @@ func marshalWriteTicketProofPayload(
 	for k := range fields.SignedHeaders {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
+	slices.Sort(keys)
 	var hdrs strings.Builder
 	for i, k := range keys {
 		if i > 0 {
@@ -276,7 +276,7 @@ func (c *SignedHTTPClient) signRequestPrecomputed(req *http.Request, bodyHash []
 			keys = append(keys, name)
 		}
 	}
-	sort.Strings(keys)
+	slices.Sort(keys)
 	var hdrs strings.Builder
 	for i, k := range keys {
 		if i > 0 {
