@@ -84,9 +84,8 @@ func cleanupAuthSession(
 
 // exchangeAuthSessionSignInResult exchanges a sign-in flow auth-session nonce
 // for the stored OAuth result via POST /api/auth/sso/result/exchange.
-// Returns nil if the cloud reports 404 (no result stored yet).
-// Per OQ-8, the desktop SSO-link flow uses exchangeAuthSessionLinkResult
-// against a different endpoint.
+// Returns nil if the cloud reports 404 (no result stored yet). The desktop
+// SSO-link flow uses exchangeAuthSessionLinkResult against a different endpoint.
 func exchangeAuthSessionSignInResult(
 	ctx context.Context,
 	httpCli *http.Client,

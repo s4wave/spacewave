@@ -460,6 +460,8 @@ func marshalManagedCLIReleaseSidecar(
 	binaryPath string,
 ) string {
 	meta := ref.GetMeta()
+	// encoding/json: this sidecar is a non-proto on-disk struct and fastjson has
+	// no struct-tag encoder. The fixed string/uint fields cannot fail to marshal.
 	data, err := json.MarshalIndent(struct {
 		BinaryPath     string `json:"binary_path"`
 		ProjectID      string `json:"project_id"`
