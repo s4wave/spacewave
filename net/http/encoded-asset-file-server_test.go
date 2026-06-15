@@ -82,6 +82,41 @@ func TestEncodedAssetFileServerWasmContentType(t *testing.T) {
 	}
 }
 
+func TestEncodedAssetFileServerModuleContentTypes(t *testing.T) {
+	tests := []struct {
+		path        string
+		contentType string
+	}{
+		{path: "/b/pa/spacewave-app/v/b/fe/app/App2.mjs", contentType: "application/javascript"},
+		{path: "/b/pd/spacewave-app/plugin.js", contentType: "application/javascript"},
+		{path: "/entrypoint/style.css", contentType: "text/css; charset=utf-8"},
+		{path: "/b/__index.html", contentType: "text/html; charset=utf-8"},
+		{path: "/manifest.json", contentType: "application/json; charset=utf-8"},
+	}
+	files := fstest.MapFS{}
+	for _, test := range tests {
+		files[test.path[1:]] = &fstest.MapFile{Data: []byte("body")}
+	}
+	handler := NewEncodedAssetFileServer(http.FS(files))
+
+	for _, test := range tests {
+		rw := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "https://spacewave.local"+test.path, nil)
+		handler.ServeHTTP(rw, req)
+		res := rw.Result()
+		res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("%s status = %d, want 200", test.path, res.StatusCode)
+		}
+		if got := res.Header.Get("Content-Type"); got != test.contentType {
+			t.Fatalf("%s Content-Type = %q, want %q", test.path, got, test.contentType)
+		}
+		if got := res.Header.Get("Content-Encoding"); got != "" {
+			t.Fatalf("%s Content-Encoding = %q, want empty", test.path, got)
+		}
+	}
+}
+
 func TestEncodedAssetFileServerMissingGzipDoesNotSetEncodedHeaders(t *testing.T) {
 	handler := NewEncodedAssetFileServer(http.FS(fstest.MapFS{}))
 

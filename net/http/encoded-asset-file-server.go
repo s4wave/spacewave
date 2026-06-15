@@ -81,8 +81,9 @@ func encodedAssetContentType(name string) (string, string) {
 	case strings.HasSuffix(name, ".br"):
 		return contentTypeForAsset(strings.TrimSuffix(name, ".br")), "br"
 	default:
-		if strings.HasSuffix(name, ".wasm") {
-			return "application/wasm", ""
+		contentType := contentTypeForAsset(name)
+		if contentType != "application/octet-stream" {
+			return contentType, ""
 		}
 		return "", ""
 	}
