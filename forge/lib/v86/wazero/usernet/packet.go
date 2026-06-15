@@ -450,7 +450,7 @@ func parseDNS(dat []byte) (*dnsPacket, error) {
 	}
 	qdcount := int(binary.BigEndian.Uint16(dat[4:6]))
 	offset := 12
-	for i := 0; i < qdcount; i++ {
+	for range qdcount {
 		start := offset
 		labels := make([]string, 0, 4)
 		for {

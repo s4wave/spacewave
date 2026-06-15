@@ -30,8 +30,6 @@ type Stack struct {
 	mtx sync.Mutex
 	// closed indicates Close has been called
 	closed bool
-	// guestMAC is learned from guest frames
-	guestMAC [6]byte
 	// udp maps guest UDP tuples to host sockets
 	udp map[string]*udpConn
 	// tcp maps guest TCP tuples to host sockets
@@ -49,14 +47,13 @@ func New(cfg Config, inbound func(frame []byte), le *logrus.Entry) *Stack {
 	ctx, cancel := context.WithCancel(context.Background())
 	cfg = cfg.withDefaults()
 	s := &Stack{
-		cfg:      cfg,
-		inbound:  inbound,
-		le:       le,
-		ctx:      ctx,
-		cancel:   cancel,
-		guestMAC: cfg.GuestMAC,
-		udp:      make(map[string]*udpConn),
-		tcp:      make(map[string]*tcpConn),
+		cfg:     cfg,
+		inbound: inbound,
+		le:      le,
+		ctx:     ctx,
+		cancel:  cancel,
+		udp:     make(map[string]*udpConn),
+		tcp:     make(map[string]*tcpConn),
 	}
 	return s
 }
@@ -67,7 +64,6 @@ func (s *Stack) HandleOutbound(frame []byte) {
 	if err != nil {
 		return
 	}
-	s.learnGuest(packet.src)
 	if packet.arp != nil {
 		s.handleARP(packet)
 		return
@@ -121,18 +117,6 @@ func (s *Stack) Close() error {
 		}
 	}
 	return ret
-}
-
-func (s *Stack) learnGuest(mac [6]byte) {
-	s.mtx.Lock()
-	s.guestMAC = mac
-	s.mtx.Unlock()
-}
-
-func (s *Stack) currentGuestMAC() [6]byte {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	return s.guestMAC
 }
 
 func (s *Stack) handleARP(packet *ethPacket) {

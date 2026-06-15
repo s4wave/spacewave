@@ -415,7 +415,7 @@ func buildDNSQuery(id uint16, name string, qtype uint16) []byte {
 	binary.BigEndian.PutUint16(msg[0:2], id)
 	binary.BigEndian.PutUint16(msg[2:4], 0x0100)
 	binary.BigEndian.PutUint16(msg[4:6], 1)
-	for _, part := range bytes.Split([]byte(name), []byte{'.'}) {
+	for part := range bytes.SplitSeq([]byte(name), []byte{'.'}) {
 		msg = append(msg, byte(len(part)))
 		msg = append(msg, part...)
 	}
