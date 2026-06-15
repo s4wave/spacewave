@@ -21,6 +21,7 @@ type HostBootOptions struct {
 	Cmdline           string
 	Host9PFS          *Host9PFS
 	V86FSServer       *unixfs_v86fs.Server
+	Networking        *NetworkConfig
 }
 
 func (o HostBootOptions) kernelCmdline() string {

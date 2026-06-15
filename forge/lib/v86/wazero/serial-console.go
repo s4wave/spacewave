@@ -1,6 +1,7 @@
 package v86_wazero
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -11,6 +12,10 @@ import (
 // to the console goroutine.
 const serialConsoleInputBuffer = 256
 
+var guestHaltSerialMarkers = [][]byte{
+	[]byte("System halted"),
+}
+
 // RunSerialConsole drives the v86 CPU and bridges COM1 to in and out until the
 // context is canceled or input ends. It runs every wasm call on this single
 // goroutine: MainLoop and WriteSerialInput (which raises the UART IRQ) must
@@ -20,7 +25,8 @@ const serialConsoleInputBuffer = 256
 // honors the emulator's own clock rather than polling guest state. Returns nil
 // when in reaches EOF or ctx is canceled with no other error.
 func (h *HostRuntime) RunSerialConsole(ctx context.Context, in io.Reader, out io.Writer) error {
-	h.SetSerialSink(out)
+	haltDetector := &guestHaltDetectingWriter{dst: out}
+	h.SetSerialSink(haltDetector)
 	defer h.SetSerialSink(nil)
 
 	inputCh := make(chan []byte)
@@ -55,9 +61,13 @@ func (h *HostRuntime) RunSerialConsole(ctx context.Context, in io.Reader, out io
 	defer timer.Stop()
 
 	for {
+		h.drainNetwork(ctx)
 		delay, err := h.MainLoop(ctx)
 		if err != nil {
 			return err
+		}
+		if haltDetector.Halted() {
+			return nil
 		}
 		wait := max(time.Duration(delay*float64(time.Millisecond)), 0)
 		timer.Reset(wait)
@@ -80,7 +90,53 @@ func (h *HostRuntime) RunSerialConsole(ctx context.Context, in io.Reader, out io
 			if err := h.WriteSerialInput(ctx, data); err != nil {
 				return err
 			}
+		case <-h.netWakeCh():
+			// A host-origin frame arrived; cut the idle wait short so the next
+			// tick drains it instead of stalling on the emulator's clock.
+			if !timer.Stop() {
+				<-timer.C
+			}
 		case <-timer.C:
 		}
 	}
+}
+
+type guestHaltDetectingWriter struct {
+	dst    io.Writer
+	tail   []byte
+	halted bool
+}
+
+func (w *guestHaltDetectingWriter) Write(p []byte) (int, error) {
+	if len(p) != 0 && !w.halted {
+		buf := append(append([]byte(nil), w.tail...), p...)
+		for _, marker := range guestHaltSerialMarkers {
+			if bytes.Contains(buf, marker) {
+				w.halted = true
+				break
+			}
+		}
+		w.tail = serialMarkerTail(buf)
+	}
+	if w.dst == nil {
+		return len(p), nil
+	}
+	return w.dst.Write(p)
+}
+
+func (w *guestHaltDetectingWriter) Halted() bool {
+	return w.halted
+}
+
+func serialMarkerTail(buf []byte) []byte {
+	keep := 0
+	for _, marker := range guestHaltSerialMarkers {
+		if n := len(marker) - 1; n > keep {
+			keep = n
+		}
+	}
+	if keep <= 0 || len(buf) <= keep {
+		return append([]byte(nil), buf...)
+	}
+	return append([]byte(nil), buf[len(buf)-keep:]...)
 }

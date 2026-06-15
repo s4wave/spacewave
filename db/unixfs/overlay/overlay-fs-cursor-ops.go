@@ -415,9 +415,83 @@ func (o *OverlayFSCursorOps) CopyFrom(ctx context.Context, name string, srcCurso
 	return false, nil
 }
 
-// MoveTo implements FSCursorOps.
+// MoveTo implements FSCursorOps. It renames the source entry into the target
+// directory under tgtName within the overlay: it copies the source and the
+// target directory up, removes any target whiteout, performs the move inside
+// the upper layer, then whiteouts the source name if the lower layer still
+// exposes it. It returns done=false when the target is a different overlay so
+// FSHandle.Rename can fall back. apt update relies on this to rename its cache
+// temp file over the read-only lower copy.
+//
+// A directory that exists in the lower layer is copied up as an empty upper
+// node before the move, so renaming such a directory does not carry forward
+// lower children; the v86 consumers (apt) rename files, not lower-backed
+// directories.
 func (o *OverlayFSCursorOps) MoveTo(ctx context.Context, tgtCursorOps unixfs.FSCursorOps, tgtName string, ts time.Time) (done bool, err error) {
-	return false, nil
+	if o.CheckReleased() {
+		return false, unixfs_errors.ErrReleased
+	}
+	tgtOps, ok := tgtCursorOps.(*OverlayFSCursorOps)
+	if !ok || tgtOps.c.state != o.c.state {
+		return false, nil
+	}
+	if !tgtOps.GetIsDirectory() {
+		return false, unixfs_errors.ErrNotDirectory
+	}
+
+	o.c.state.mtx.Lock()
+	defer o.c.state.mtx.Unlock()
+
+	srcUpperOps, err := o.ensureUpperLocked(ctx, ts)
+	if err != nil {
+		return false, err
+	}
+	if err := tgtOps.c.ensureUpperLocked(ctx, ts); err != nil {
+		return false, err
+	}
+	tgtUpperOps, err := cursorOps(ctx, tgtOps.c.upper)
+	if err != nil {
+		return false, err
+	}
+	if err := tgtUpperOps.Remove(ctx, []string{whiteoutName(tgtName)}, ts); err != nil {
+		return false, err
+	}
+	tgtUpperOps, err = cursorOps(ctx, tgtOps.c.upper)
+	if err != nil {
+		return false, err
+	}
+
+	done, err = srcUpperOps.MoveTo(ctx, tgtUpperOps, tgtName, ts)
+	if err != nil {
+		return false, err
+	}
+	if !done {
+		return false, nil
+	}
+
+	if o.c.lower != nil && o.c.parent != nil {
+		if err := o.c.parent.ensureUpperLocked(ctx, ts); err != nil {
+			return false, err
+		}
+		parentUpperOps, err := cursorOps(ctx, o.c.parent.upper)
+		if err != nil {
+			return false, err
+		}
+		if err := parentUpperOps.MknodWithContent(
+			ctx,
+			whiteoutName(o.c.name),
+			unixfs.NewFSCursorNodeType_File(),
+			0,
+			bytes.NewReader(nil),
+			0,
+			ts,
+		); err != nil {
+			return false, err
+		}
+	}
+
+	o.released.Store(true)
+	return true, nil
 }
 
 // MoveFrom implements FSCursorOps.

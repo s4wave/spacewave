@@ -447,6 +447,78 @@ func TestRelayMultiMountIsolation(t *testing.T) {
 	}
 }
 
+// TestRelaySetattrChmod proves the server handles SETATTR with the mode bit
+// against a writable backing: create a file, chmod it, and confirm the new
+// permission bits round-trip through GETATTR. apt's fchmod on cache files
+// exercises this exact path; a guest-side fchmod EPERM is a guest v86fs driver
+// gap, not a server gap, because errnoFromError never produces EPERM (it maps
+// unknown errors to ENOSYS and read-only to EROFS).
+func TestRelaySetattrChmod(t *testing.T) {
+	ctx := context.Background()
+	wsHandle := newBillyHandle(t)
+	homeHandle := newBillyHandle(t)
+	client := buildMultiMountServer(t, ctx, wsHandle, homeHandle)
+
+	strm, err := client.RelayV86Fs(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer strm.Close()
+
+	tag := uint32(0)
+	nextTag := func() uint32 { tag++; return tag }
+
+	reply := sendRecv(t, strm, &V86FsMessage{
+		Tag:  nextTag(),
+		Body: &V86FsMessage_MountRequest{MountRequest: &V86FsMountRequest{Name: "workspace"}},
+	})
+	wsRootID := reply.GetMountReply().GetRootInodeId()
+	if wsRootID == 0 {
+		t.Fatal("expected workspace mount root")
+	}
+
+	reply = sendRecv(t, strm, &V86FsMessage{
+		Tag: nextTag(),
+		Body: &V86FsMessage_CreateRequest{CreateRequest: &V86FsCreateRequest{
+			ParentId: wsRootID,
+			Name:     "cache.bin",
+			Mode:     sIFREG | 0o644,
+		}},
+	})
+	createReply := reply.GetCreateReply()
+	if createReply == nil || createReply.GetStatus() != 0 {
+		t.Fatalf("create failed: %v", reply.GetBody())
+	}
+	fileID := createReply.GetInodeId()
+
+	reply = sendRecv(t, strm, &V86FsMessage{
+		Tag: nextTag(),
+		Body: &V86FsMessage_SetattrRequest{SetattrRequest: &V86FsSetattrRequest{
+			InodeId: fileID,
+			Valid:   attrMode,
+			Mode:    0o600,
+		}},
+	})
+	setattrReply := reply.GetSetattrReply()
+	if setattrReply == nil || setattrReply.GetStatus() != 0 {
+		t.Fatalf("setattr chmod failed: %v", reply.GetBody())
+	}
+
+	reply = sendRecv(t, strm, &V86FsMessage{
+		Tag: nextTag(),
+		Body: &V86FsMessage_GetattrRequest{GetattrRequest: &V86FsGetattrRequest{
+			InodeId: fileID,
+		}},
+	})
+	getattrReply := reply.GetGetattrReply()
+	if getattrReply == nil || getattrReply.GetStatus() != 0 {
+		t.Fatalf("getattr failed: %v", reply.GetBody())
+	}
+	if perm := getattrReply.GetMode() & 0o777; perm != 0o600 {
+		t.Fatalf("chmod did not apply: mode perm = %#o, want %#o", perm, 0o600)
+	}
+}
+
 // TestRelayPushInvalidation tests that change callbacks produce
 // INVALIDATE messages on the stream.
 func TestRelayPushInvalidation(t *testing.T) {

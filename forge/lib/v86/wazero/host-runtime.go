@@ -10,6 +10,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
+
+	"github.com/s4wave/spacewave/forge/lib/v86/wazero/usernet"
 )
 
 const (
@@ -50,6 +52,9 @@ type HostRuntime struct {
 	guestMemorySize   uint32
 	pci               *pciDevice
 	v86fs             *virtioV86FSDevice
+	ne2k              *ne2kDevice
+	network           *usernet.Stack
+	netWake           chan struct{}
 	pit               *pitDevice
 	cmos              *cmosDevice
 	fwValue           []byte
@@ -133,7 +138,16 @@ func (h *HostRuntime) Close(ctx context.Context) error {
 	if h == nil || h.Runtime == nil {
 		return nil
 	}
-	return h.Runtime.Close(ctx)
+	var netErr error
+	if h.network != nil {
+		if err := h.network.Close(); err != nil && !errors.Is(err, usernet.ErrStackClosed) {
+			netErr = err
+		}
+	}
+	if err := h.Runtime.Close(ctx); err != nil {
+		return err
+	}
+	return netErr
 }
 
 // RustInit calls v86's wasm initialization export after imports are wired.

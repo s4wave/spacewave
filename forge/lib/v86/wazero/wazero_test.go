@@ -530,6 +530,9 @@ func waitSerialFrom(ctx context.Context, h *HostRuntime, marker string, start in
 	done := make(chan result, 1)
 	go func() {
 		for {
+			// Deliver any host-origin frames into the NE2K ring on this CPU
+			// goroutine, mirroring RunSerialConsole; no-op when networking is off.
+			h.drainNetwork(ctx)
 			if _, err := h.MainLoop(ctx); err != nil {
 				done <- result{serial: string(h.SerialOutput()), err: err}
 				return

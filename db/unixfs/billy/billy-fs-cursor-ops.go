@@ -181,10 +181,31 @@ func (o *BillyFSCursorOps) MoveFrom(ctx context.Context, name string, srcCursorO
 	return false, nil
 }
 
-// MoveTo implements FSCursorOps.
+// MoveTo implements FSCursorOps. It renames the source entry into tgtCursorOps
+// under tgtName via the backing billy.Basic.Rename when the target lives in the
+// same billy filesystem. It returns done=false for a different filesystem so
+// FSHandle.Rename can fall back; billy.Basic.Rename overwrites a file target.
 func (o *BillyFSCursorOps) MoveTo(ctx context.Context, tgtCursorOps unixfs.FSCursorOps, tgtName string, ts time.Time) (done bool, err error) {
-	// not implemented
-	return false, nil
+	if o.CheckReleased() {
+		return false, unixfs_errors.ErrReleased
+	}
+	tgtOps, ok := tgtCursorOps.(*BillyFSCursorOps)
+	if !ok || tgtOps.c.state != o.c.state {
+		return false, nil
+	}
+
+	newPath, err := tgtOps.c.buildChildPath(tgtName)
+	if err != nil {
+		return false, err
+	}
+
+	o.released.Store(true) // release the cursor just before filesystem modification
+	o.c.state.mtx.Lock()
+	defer o.c.state.mtx.Unlock()
+	if err := o.c.state.bfs.Rename(o.c.path, newPath); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // ReadAt implements FSCursorOps.
@@ -302,13 +323,21 @@ func (o *BillyFSCursorOps) Remove(ctx context.Context, names []string, ts time.T
 	return nil
 }
 
+// chtimesFS is the minimal billy capability SetModTimestamp requires. Asserting
+// it directly, rather than the full billy.Change, lets backings that support
+// only timestamp changes (memfs supports neither, osfs supports all) avoid a
+// false ErrNotSupported that surfaces to the guest as EIO.
+type chtimesFS interface {
+	Chtimes(name string, atime, mtime time.Time) error
+}
+
 // SetModTimestamp implements FSCursorOps.
 func (o *BillyFSCursorOps) SetModTimestamp(ctx context.Context, mtime time.Time) error {
 	if o.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
 
-	changeFs, ok := o.c.state.bfs.(billy.Change)
+	chtimesFs, ok := o.c.state.bfs.(chtimesFS)
 	if !ok {
 		return billy.ErrNotSupported
 	}
@@ -316,7 +345,7 @@ func (o *BillyFSCursorOps) SetModTimestamp(ctx context.Context, mtime time.Time)
 	o.released.Store(true) // release the cursor just before filesystem modification
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
-	return changeFs.Chtimes(o.c.path, mtime, mtime)
+	return chtimesFs.Chtimes(o.c.path, mtime, mtime)
 }
 
 // SetPermissions implements FSCursorOps.
@@ -325,7 +354,11 @@ func (o *BillyFSCursorOps) SetPermissions(ctx context.Context, permissions fs.Fi
 		return unixfs_errors.ErrReleased
 	}
 
-	changeFs, ok := o.c.state.bfs.(billy.Change)
+	// Assert only billy.Chmod, not the full billy.Change: memfs (the RAM
+	// writable-root upper) implements Chmod but not Lchown/Chown/Chtimes, so a
+	// billy.Change assertion would return ErrNotSupported and the guest chmod
+	// would collapse to EIO. apt requires chmod on /var/lib/apt and the cache.
+	chmodFs, ok := o.c.state.bfs.(billy.Chmod)
 	if !ok {
 		return billy.ErrNotSupported
 	}
@@ -334,7 +367,7 @@ func (o *BillyFSCursorOps) SetPermissions(ctx context.Context, permissions fs.Fi
 	o.released.Store(true) // release the cursor just before filesystem modification
 	o.c.state.mtx.Lock()
 	defer o.c.state.mtx.Unlock()
-	return changeFs.Chmod(o.c.path, newMode)
+	return chmodFs.Chmod(o.c.path, newMode)
 }
 
 // Symlink implements FSCursorOps.

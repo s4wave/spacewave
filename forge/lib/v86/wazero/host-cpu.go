@@ -49,6 +49,9 @@ func (h *HostRuntime) InitCPU(ctx context.Context, opts HostBootOptions) error {
 	h.registerA20Port()
 	h.registerCMOS()
 	h.registerPCI()
+	if opts.Networking != nil {
+		h.registerNetworking(ctx, *opts.Networking)
+	}
 	if opts.Host9PFS != nil {
 		h.registerHost9P(opts.Host9PFS)
 	}
@@ -81,6 +84,7 @@ func (h *HostRuntime) MainLoop(ctx context.Context) (float64, error) {
 // RunMainLoop executes a bounded number of v86 CPU loop ticks.
 func (h *HostRuntime) RunMainLoop(ctx context.Context, ticks int) error {
 	for range ticks {
+		h.drainNetwork(ctx)
 		if _, err := h.MainLoop(ctx); err != nil {
 			return err
 		}

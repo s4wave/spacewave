@@ -33,6 +33,7 @@ type v86RunArgs struct {
 	memoryMb  uint
 	enableJIT bool
 	refresh   bool
+	net       bool
 }
 
 func newVmRunCommand() *cli.Command {
@@ -57,6 +58,7 @@ func newVmRunCommand() *cli.Command {
 			&cli.UintFlag{Name: "memory-mb", Usage: "guest memory in MiB (0 uses the runtime default)", Value: 128, Destination: &args.memoryMb},
 			&cli.BoolFlag{Name: "jit", Usage: "enable the v86 JIT", Destination: &args.enableJIT},
 			&cli.BoolFlag{Name: "refresh", Usage: "force CDN re-hydration of cached assets", Destination: &args.refresh},
+			&cli.BoolFlag{Name: "net", Usage: "attach an NE2000 NIC backed by the usermode network stack (guest egress via the host)", Destination: &args.net},
 		},
 		Action: func(c *cli.Context) error {
 			return runV86Interactive(c, args)
@@ -161,6 +163,9 @@ func buildV86RunBoot(ctx context.Context, args *v86RunArgs) (v86_wazero.HostBoot
 	}
 	if args.memoryMb > 0 {
 		boot.MemorySize = uint32(args.memoryMb) * 1024 * 1024
+	}
+	if args.net {
+		boot.Networking = &v86_wazero.NetworkConfig{}
 	}
 	switch args.root {
 	case "v86fs", "":
