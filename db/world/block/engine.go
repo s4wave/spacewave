@@ -3,7 +3,6 @@ package world_block
 import (
 	"context"
 	"sync"
-	"time"
 
 	trace "github.com/s4wave/spacewave/db/traceutil"
 
@@ -542,8 +541,22 @@ func (e *Engine) GetSeqno(ctx context.Context) (uint64, error) {
 // If value == 0, this might return immediately unconditionally.
 func (e *Engine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 	if e.writeCoordinator != nil {
-		ticker := time.NewTicker(10 * time.Millisecond)
-		defer ticker.Stop()
+		// In coordinator mode the local read snapshot does not advance on its
+		// own; new seqnos appear only after other writers commit. Wait on the
+		// coordinator's commit-generation events (BroadcastChannel-backed in the
+		// browser) rather than polling: any seqno advance is a commit that bumps
+		// the generation, so re-checking GetSeqno on each event is miss-free.
+		// Baseline at the current generation so a commit racing watch setup is
+		// still delivered.
+		snapshot, err := e.writeCoordinator.Snapshot(ctx, e.writeCoordScope)
+		if err != nil {
+			return 0, err
+		}
+		watch, err := e.writeCoordinator.Watch(ctx, e.writeCoordScope, snapshot.Generation)
+		if err != nil {
+			return 0, err
+		}
+		defer watch.Close()
 		for {
 			seqno, err := e.GetSeqno(ctx)
 			if err != nil {
@@ -555,7 +568,10 @@ func (e *Engine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 			select {
 			case <-ctx.Done():
 				return 0, ctx.Err()
-			case <-ticker.C:
+			case _, ok := <-watch.Events():
+				if !ok {
+					return 0, errors.New("world write coordinator watch closed")
+				}
 			}
 		}
 	}
