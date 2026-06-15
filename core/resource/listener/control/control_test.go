@@ -100,6 +100,43 @@ func TestShutdownRoundTrip(t *testing.T) {
 	}
 }
 
+// TestShutdownFiresWhenClientClosesBeforeCloseSend asserts the handler
+// still runs its shutdown callback when the post-ack CloseSend fails,
+// which happens when the client closes the control connection the
+// instant it reads the ack (TakeoverSocket defers conn.Close). Gating
+// shutdown on CloseSend stranded the old daemon whenever the client won
+// that race.
+func TestShutdownFiresWhenClientClosesBeforeCloseSend(t *testing.T) {
+	shutdownFired := false
+	h := NewHandler(nil, func() { shutdownFired = true })
+
+	strm := &closeSendErrStream{ctx: t.Context()}
+	handled, err := h.InvokeMethod(ServiceID, ShutdownMethodID, strm)
+	if !handled {
+		t.Fatal("handler did not claim the Shutdown route")
+	}
+	if !errors.Is(err, errCloseSend) {
+		t.Fatalf("expected CloseSend error to surface, got %v", err)
+	}
+	if !shutdownFired {
+		t.Fatal("shutdown callback did not fire after a failed CloseSend")
+	}
+}
+
+var errCloseSend = errors.New("connection closed by peer")
+
+// closeSendErrStream is a srpc.Stream whose CloseSend fails, modeling a
+// client that closed the control connection right after the ack.
+type closeSendErrStream struct {
+	ctx context.Context
+}
+
+func (s *closeSendErrStream) Context() context.Context   { return s.ctx }
+func (s *closeSendErrStream) MsgRecv(srpc.Message) error { return nil }
+func (s *closeSendErrStream) MsgSend(srpc.Message) error { return nil }
+func (s *closeSendErrStream) CloseSend() error           { return errCloseSend }
+func (s *closeSendErrStream) Close() error               { return nil }
+
 // TestShutdownDenyPropagates asserts a deny policy propagates to the
 // caller as a DenyError without firing the shutdown callback.
 func TestShutdownDenyPropagates(t *testing.T) {

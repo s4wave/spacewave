@@ -103,11 +103,13 @@ func (h *Handler) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bo
 	if err := strm.MsgSend(&emptypb.Empty{}); err != nil {
 		return true, err
 	}
-	if err := strm.CloseSend(); err != nil {
-		return true, err
-	}
+	// The delivered ack grants the takeover, and the client closes the
+	// control connection the instant it reads that ack (TakeoverSocket
+	// defers conn.Close). Commit the shutdown here: CloseSend below is
+	// best-effort stream teardown racing that close, and gating shutdown
+	// on it stranded the old daemon whenever the client won the race.
 	h.shutdown()
-	return true, nil
+	return true, strm.CloseSend()
 }
 
 // RequestShutdown issues the Shutdown RPC over conn and waits for the
