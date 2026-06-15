@@ -382,9 +382,29 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 			continue
 		}
 
-		// skip if not dirty
+		// A non-dirty node still anchors block memory that a dirty
+		// descendant mutates during this write: a child's encode applies
+		// its computed ref into the parent block via ApplyBlockRef /
+		// ApplySubBlock, and an FSNode's Dirent entries are the same
+		// *Dirent objects exposed as sub-blocks. The node may be non-dirty
+		// because the sub-block handle was materialized after markDirty ran,
+		// so dirtiness never propagated through it. Its encodeDone must not
+		// close until its subtree finishes, or a parent marshaling this
+		// node's shared block races the descendant's ref application
+		// (concurrent SizeVT / MarshalToSizedBufferVT on one *Dirent). Gate
+		// the close on the subtree off the bounded encode pool so a pure
+		// waiter never starves an encode worker.
 		if !bn.dirty {
-			close(reachableNod.encodeDone)
+			go func() {
+				defer close(reachableNod.encodeDone)
+				for _, childID := range reachableNod.from {
+					select {
+					case <-ctx.Done():
+						return
+					case <-reachable[childID].encodeDone:
+					}
+				}
+			}()
 			continue
 		}
 
