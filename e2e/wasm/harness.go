@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
+	"maps"
 	"net"
 	"net/http"
 	"os"
@@ -286,13 +287,7 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 		return nil, errors.Wrap(err, "write browser release descriptor")
 	}
 
-	if err := h.preflightStartupManifests(hctx); err != nil {
-		return nil, errors.Wrap(err, "preflight startup manifests")
-	}
-	// A slow TinyGo core build can invalidate dependent startup manifests after
-	// the first preflight pass. Re-run the same owner fetches once so the
-	// browser does not hot-rebuild web/app manifests on first load.
-	if err := h.preflightStartupManifests(hctx); err != nil {
+	if err := h.settleStartupManifests(hctx); err != nil {
 		return nil, errors.Wrap(err, "settle startup manifests")
 	}
 
@@ -521,8 +516,8 @@ type manifestFetchRequest struct {
 }
 
 type manifestWait struct {
-	req  manifestFetchRequest
-	done <-chan error
+	req   manifestFetchRequest
+	state *manifestWaitState
 }
 
 // Cold browser startup compiles Go wasm plugins and frontend Vite bundles
@@ -615,20 +610,58 @@ func (h *Harness) assertStartupManifestFetches() error {
 		}
 		di.AddIdleCallback(waitState.handleIdle)
 		h.manifestRefs = append(h.manifestRefs, ref)
-		h.manifestWaits = append(h.manifestWaits, manifestWait{req: req, done: waitState.done})
+		h.manifestWaits = append(h.manifestWaits, manifestWait{req: req, state: waitState})
 	}
 	return nil
 }
 
-func (h *Harness) preflightStartupManifests(ctx context.Context) error {
+// settleStartupManifests re-runs the startup manifest preflight until the web
+// build reaches a fixpoint: two consecutive passes produce identical manifest
+// digests for every plugin. A slow host builds startup manifests in waves (a
+// slow TinyGo core build invalidates dependent web/app manifests after an
+// earlier pass), so a fixed pass count can return while a later invalidation
+// wave is still pending and would hot-rebuild the app after the browser has
+// loaded it, opening a serving outage mid-test. Settling to a fixpoint drains
+// those waves before the harness serves the app.
+func (h *Harness) settleStartupManifests(ctx context.Context) error {
+	le := h.le.WithField("component", "harness")
+	const maxPasses = 8
+	var prev map[string]string
+	for pass := 1; pass <= maxPasses; pass++ {
+		digests, err := h.preflightStartupManifests(ctx)
+		if err != nil {
+			return err
+		}
+		if maps.Equal(prev, digests) {
+			le.WithField("passes", pass).Info("startup manifests settled to build fixpoint")
+			return nil
+		}
+		le.WithField("pass", pass).Info("startup manifests not yet stable, re-settling")
+		prev = digests
+	}
+	return errors.Errorf(
+		"startup manifests did not reach a build fixpoint after %d passes: %s",
+		maxPasses,
+		h.startupManifestSummary(),
+	)
+}
+
+// preflightStartupManifests runs one settle pass: release prior fetches, assert
+// the startup manifest fetches, wait for their builds, and return the settled
+// per-plugin manifest digest so the caller can detect a build fixpoint.
+func (h *Harness) preflightStartupManifests(ctx context.Context) (map[string]string, error) {
 	h.releaseManifestFetches()
 	if err := h.assertStartupManifestFetches(); err != nil {
-		return errors.Wrap(err, "assert startup manifest fetches")
+		return nil, errors.Wrap(err, "assert startup manifest fetches")
 	}
 	if err := h.waitForManifests(ctx); err != nil {
-		return errors.Wrap(err, "wait for manifest builds")
+		return nil, errors.Wrap(err, "wait for manifest builds")
 	}
-	return nil
+	digests := make(map[string]string, len(h.manifestWaits))
+	for _, wait := range h.manifestWaits {
+		digests[wait.req.pluginID] = wait.state.digest()
+	}
+	return digests, nil
 }
 
 func (h *Harness) releaseManifestFetches() {
@@ -652,7 +685,7 @@ func (h *Harness) waitForManifests(ctx context.Context) error {
 		fns = append(fns, func(ctx context.Context) error {
 			le.WithFields(wait.req.logFields()).Info("waiting for manifest build")
 			select {
-			case err := <-wait.done:
+			case err := <-wait.state.done:
 				if err != nil {
 					return err
 				}
@@ -764,6 +797,32 @@ func (s *manifestWaitState) signalLocked(err error) {
 	s.signaled = true
 	s.done <- err
 	close(s.done)
+}
+
+// digest returns a stable content digest over the settled manifest root refs.
+// Two preflight passes that yield the same digest prove the plugin's web build
+// has quiesced; a changed digest means a delayed invalidation wave rebuilt it.
+func (s *manifestWaitState) digest() string {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	refs := make([]string, 0, len(s.values))
+	for _, val := range s.values {
+		for _, mref := range val.GetManifestRefs() {
+			rootRef := mref.GetManifestRef().GetRootRef()
+			if rootRef == nil {
+				continue
+			}
+			b, err := rootRef.MarshalVT()
+			if err != nil {
+				continue
+			}
+			refs = append(refs, hex.EncodeToString(b))
+		}
+	}
+	slices.Sort(refs)
+	sum := sha1.Sum([]byte(strings.Join(refs, ",")))
+	return hex.EncodeToString(sum[:])
 }
 
 func (h *Harness) startupManifestSummary() string {
