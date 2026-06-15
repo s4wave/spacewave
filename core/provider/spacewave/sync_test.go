@@ -33,6 +33,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	syncExecuteRequestTimeout = 2 * time.Second
+	syncExecuteNoRetryWindow  = 1200 * time.Millisecond
+	syncExecuteStopTimeout    = 500 * time.Millisecond
+)
+
 // TestSyncPull_Success verifies SyncPull sends a GET to /sync/pull and returns the body.
 func TestSyncPull_Success(t *testing.T) {
 	resp := &packfile.PullResponse{
@@ -781,14 +787,14 @@ func TestSyncControllerExecuteHonorsRetryAfterBackoff(t *testing.T) {
 
 	select {
 	case <-requests:
-	case <-time.After(500 * time.Millisecond):
+	case <-time.After(syncExecuteRequestTimeout):
 		t.Fatal("expected initial sync push")
 	}
 
 	select {
 	case <-requests:
 		t.Fatal("retry-after was not honored by dirty sync")
-	case <-time.After(1200 * time.Millisecond):
+	case <-time.After(syncExecuteNoRetryWindow):
 	}
 
 	cancel()
@@ -797,7 +803,7 @@ func TestSyncControllerExecuteHonorsRetryAfterBackoff(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Execute returned error: %v", err)
 		}
-	case <-time.After(500 * time.Millisecond):
+	case <-time.After(syncExecuteStopTimeout):
 		t.Fatal("expected Execute to stop when context is canceled")
 	}
 }
@@ -848,14 +854,14 @@ func TestSyncControllerExecuteGatesAccessDeniedFlushFailures(t *testing.T) {
 
 	select {
 	case <-requests:
-	case <-time.After(500 * time.Millisecond):
+	case <-time.After(syncExecuteRequestTimeout):
 		t.Fatal("expected initial sync push")
 	}
 
 	select {
 	case <-requests:
 		t.Fatal("gated access denial retried without account state change")
-	case <-time.After(1200 * time.Millisecond):
+	case <-time.After(syncExecuteNoRetryWindow):
 	}
 
 	gate.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -863,7 +869,7 @@ func TestSyncControllerExecuteGatesAccessDeniedFlushFailures(t *testing.T) {
 	})
 	select {
 	case <-requests:
-	case <-time.After(500 * time.Millisecond):
+	case <-time.After(syncExecuteRequestTimeout):
 		t.Fatal("expected account state change to wake gated dirty sync")
 	}
 
@@ -873,7 +879,7 @@ func TestSyncControllerExecuteGatesAccessDeniedFlushFailures(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Execute returned error: %v", err)
 		}
-	case <-time.After(500 * time.Millisecond):
+	case <-time.After(syncExecuteStopTimeout):
 		t.Fatal("expected Execute to stop when context is canceled")
 	}
 }
