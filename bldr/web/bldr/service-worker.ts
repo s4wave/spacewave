@@ -659,6 +659,82 @@ async function matchPromotedCurrentGenerationResponse(
   return responseForMethod(request, response)
 }
 
+// isStaticPluginAssetSource reports whether the fetch targets an immutable
+// static plugin asset (plugin-assets / plugin-dist / quickjs-runtime-asset),
+// excluding the dynamic plugin HTTP path, which is request-specific and must
+// always reach the runtime.
+function isStaticPluginAssetSource(source: BrowserFetchSource): boolean {
+  return (
+    isPluginRuntimeFetchSourceKind(source.kind) &&
+    !source.path.startsWith(pluginHttpPathPrefix)
+  )
+}
+
+// staticPluginAssetCacheRequest keys a static plugin asset by its path and
+// query within the current generation cache. The asset URL is stable across
+// builds (the plugin id prefix and lazy-chunk name are not content-hashed), so
+// the generation cache scope is what keeps a promoted build from serving an
+// earlier build's chunk.
+function staticPluginAssetCacheRequest(request: Request): Request {
+  const url = new URL(request.url)
+  return buildCacheRequest(url.pathname + url.search)
+}
+
+// cacheStaticPluginAsset stores a successfully fetched static plugin asset in
+// the current generation cache so it can be served across a runtime relay gap,
+// the window where the page client that owned the relay is closing and the
+// next document has not yet registered its relay. Without it, a lazy chunk
+// import issued during that window has no live runtime client and fails.
+async function cacheStaticPluginAsset(
+  request: Request,
+  response: Response,
+): Promise<void> {
+  if (request.method !== 'GET' || !response.ok) {
+    return
+  }
+  if (!canCacheBrowserReleaseRequests()) {
+    return
+  }
+  const state = await loadBrowserReleaseState()
+  const release = state.promotedCurrent
+  if (!release) {
+    return
+  }
+  const cacheRequest = staticPluginAssetCacheRequest(request)
+  if (!canCacheRequest(cacheRequest)) {
+    return
+  }
+  const cache = await caches.open(
+    buildGenerationCacheName(release.generationId),
+  )
+  await cache.put(cacheRequest, response)
+}
+
+// matchStaticPluginAsset returns a static plugin asset cached for the current
+// generation, the relay-gap fallback. Scoped to the promoted-current
+// generation so a stale chunk from an earlier build is never served; the cache
+// for a superseded generation is pruned on promotion.
+async function matchStaticPluginAsset(
+  request: Request,
+): Promise<Response | null> {
+  if (!canCacheBrowserReleaseRequests()) {
+    return null
+  }
+  const state = await loadBrowserReleaseState()
+  const release = state.promotedCurrent
+  if (!release) {
+    return null
+  }
+  const cache = await caches.open(
+    buildGenerationCacheName(release.generationId),
+  )
+  const response = await cache.match(staticPluginAssetCacheRequest(request))
+  if (!response) {
+    return null
+  }
+  return responseForMethod(request, response)
+}
+
 export async function handleBrowserReleaseRequest(
   ev: FetchEvent,
 ): Promise<Response> {
@@ -1394,6 +1470,7 @@ export async function swFetch(
     }
     return response
   }
+  const staticPluginAsset = isStaticPluginAssetSource(source)
   const runtimeFetchClientId = resolveBrowserRuntimeFetchClientId(
     ev.clientId || '',
     source,
@@ -1401,15 +1478,49 @@ export async function swFetch(
     serviceWorkerLogicalId,
   )
   if (!runtimeFetchClientId) {
+    if (staticPluginAsset) {
+      const cached = await matchStaticPluginAsset(request)
+      if (cached) {
+        return cached
+      }
+    }
     return buildNoReadyDocumentResponse(source, request.method)
   }
 
   const trackedFetch =
     serviceWorkerFetchTracker.trackFetch(runtimeFetchClientId)
-  return proxyBrowserRuntimeFetch(source, request, runtimeFetchClientId, {
-    abortSignal: trackedFetch.abortController.signal,
-    headerTimeoutMs: browserRuntimeFetchHeaderTimeoutMs,
-  }).finally(() => trackedFetch.release())
+  let response: Response
+  try {
+    response = await proxyBrowserRuntimeFetch(
+      source,
+      request,
+      runtimeFetchClientId,
+      {
+        abortSignal: trackedFetch.abortController.signal,
+        headerTimeoutMs: browserRuntimeFetchHeaderTimeoutMs,
+      },
+    ).finally(() => trackedFetch.release())
+  } catch (err) {
+    if (staticPluginAsset) {
+      const cached = await matchStaticPluginAsset(request)
+      if (cached) {
+        return cached
+      }
+    }
+    throw err
+  }
+
+  if (staticPluginAsset) {
+    if (response.ok) {
+      ev.waitUntil(cacheStaticPluginAsset(request, response.clone()))
+      return response
+    }
+    const cached = await matchStaticPluginAsset(request)
+    if (cached) {
+      return cached
+    }
+  }
+  return response
 
   /*
   Not working with custom app:// scheme in Electron.

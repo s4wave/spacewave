@@ -157,7 +157,25 @@ function buildFetchOnlyEvent(
   return {
     request: new Request(new URL(path, self.location.href), init),
     clientId,
-  } as FetchEvent
+    waitUntil() {},
+  } as unknown as FetchEvent
+}
+
+function buildClientFetchEvent(
+  path: string,
+  clientId: string,
+): FetchEventHarness {
+  const waitUntilPromises: Promise<unknown>[] = []
+  return {
+    ev: {
+      request: new Request(new URL(path, self.location.href)),
+      clientId,
+      waitUntil(promise: Promise<unknown>) {
+        waitUntilPromises.push(promise)
+      },
+    } as unknown as FetchEvent,
+    waitUntilPromises,
+  }
 }
 
 function buildMalformedFetchEvent(url: string): FetchEvent {
@@ -950,6 +968,76 @@ describe('service worker fetch release cache routing', () => {
       status: 404,
       pluginAssetFetchResult: 'unavailable',
     })
+  })
+
+  it('caches a successful static plugin asset and serves it across a relay gap', async () => {
+    const caches = globalThis.caches as unknown as FakeCacheStorage
+    await writeBrowserReleaseState(caches, {
+      ...createEmptyBrowserReleaseState(),
+      promotedCurrent: buildRelease('gen-a'),
+    })
+    const body = 'export const App2 = () => null\n'
+    vi.mocked(proxyFetch).mockResolvedValue(
+      new Response(body, {
+        status: 200,
+        headers: { 'Content-Type': 'application/javascript' },
+      }),
+    )
+
+    const warm = buildClientFetchEvent(
+      '/b/pa/spacewave-app/v/b/fe/app/App2.mjs',
+      'client-a',
+    )
+    const warmResponse = await swFetch(warm.ev)
+    expect(warmResponse.status).toBe(200)
+    expect(await warmResponse.text()).toBe(body)
+    await Promise.all(warm.waitUntilPromises)
+
+    // Relay gap: no client id and no relay, so no runtime fetch can be issued.
+    // The cached asset must serve instead of failing the lazy chunk import.
+    vi.mocked(proxyFetch).mockClear()
+    const gapResponse = await swFetch(
+      buildFetchOnlyEvent('/b/pa/spacewave-app/v/b/fe/app/App2.mjs'),
+    )
+    expect(gapResponse.status).toBe(200)
+    expect(await gapResponse.text()).toBe(body)
+    expect(proxyFetch).not.toHaveBeenCalled()
+  })
+
+  it('falls back to the cached static plugin asset when a mid-handover runtime fetch fails', async () => {
+    const caches = globalThis.caches as unknown as FakeCacheStorage
+    await writeBrowserReleaseState(caches, {
+      ...createEmptyBrowserReleaseState(),
+      promotedCurrent: buildRelease('gen-a'),
+    })
+    const body = 'export const chunk = 1\n'
+    vi.mocked(proxyFetch).mockResolvedValueOnce(
+      new Response(body, {
+        status: 200,
+        headers: { 'Content-Type': 'application/javascript' },
+      }),
+    )
+    const warm = buildClientFetchEvent('/b/pd/spacewave-app/backend.mjs', 'client-a')
+    expect((await swFetch(warm.ev)).status).toBe(200)
+    await Promise.all(warm.waitUntilPromises)
+
+    // The next page still has a client id, but its runtime relay is tearing
+    // down, so the forwarded fetch fails. The cached asset must still serve.
+    vi.mocked(proxyFetch).mockResolvedValue(
+      new Response(
+        'WebRuntimeClient: client-a: timeout opening stream with host',
+        { status: 500 },
+      ),
+    )
+    const handoverResponse = await swFetch(
+      buildFetchOnlyEvent(
+        '/b/pd/spacewave-app/backend.mjs',
+        undefined,
+        'client-a',
+      ),
+    )
+    expect(handoverResponse.status).toBe(200)
+    expect(await handoverResponse.text()).toBe(body)
   })
 })
 
