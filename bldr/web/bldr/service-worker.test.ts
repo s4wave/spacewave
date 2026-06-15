@@ -618,7 +618,7 @@ describe('service worker fetch release cache routing', () => {
     expect(proxyFetch).not.toHaveBeenCalled()
   })
 
-  it('uses the service worker runtime client for plugin fetches without a browser client when a relay exists', () => {
+  it('uses the service worker runtime client for static plugin assets when a relay exists', () => {
     const source = classifyBrowserFetchSource(
       new Request(
         new URL(
@@ -641,6 +641,32 @@ describe('service worker fetch release cache routing', () => {
         'client-a',
         source,
         { hasRuntimeFetchRelay: () => true },
+        'service-worker-runtime',
+      ),
+    ).toBe('client-a')
+
+    const assetSource = classifyBrowserFetchSource(
+      new Request(
+        new URL(
+          '/b/pa/spacewave-app/v/b/fe/app/App-next.mjs',
+          self.location.href,
+        ),
+      ),
+    )
+
+    expect(
+      resolveBrowserRuntimeFetchClientId(
+        'client-a',
+        assetSource,
+        { hasRuntimeFetchRelay: () => true },
+        'service-worker-runtime',
+      ),
+    ).toBe('service-worker-runtime')
+    expect(
+      resolveBrowserRuntimeFetchClientId(
+        'client-a',
+        assetSource,
+        { hasRuntimeFetchRelay: () => false },
         'service-worker-runtime',
       ),
     ).toBe('client-a')

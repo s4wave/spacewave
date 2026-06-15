@@ -918,6 +918,13 @@ export function resolveBrowserRuntimeFetchClientId(
   tracker: BrowserRuntimeFetchClientTracker,
   serviceWorkerClientId: string,
 ): string {
+  if (
+    isPluginRuntimeFetchSource(source) &&
+    !source.path.startsWith(pluginHttpPathPrefix) &&
+    tracker.hasRuntimeFetchRelay()
+  ) {
+    return serviceWorkerClientId
+  }
   if (clientId) {
     return clientId
   }
