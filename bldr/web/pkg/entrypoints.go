@@ -85,16 +85,26 @@ func resolveNodeModuleEntrypoints(
 	pkgJsonData []byte,
 	entrypoints []WebPkgEntrypointConfig,
 ) ([]string, error) {
-	// If explicit entrypoints are configured, use those.
-	if len(entrypoints) > 0 {
-		return resolveLocalEntrypoints(pkgRoot, entrypoints)
-	}
-
 	// Parse package.json to find exports or main.
 	var p fastjson.Parser
 	v, err := p.ParseBytes(pkgJsonData)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse package.json")
+	}
+
+	rootImport := resolvePackageJSONRootImport(v)
+
+	// Explicit entrypoints add package subpaths, but node module web packages
+	// still need their package root so bare imports can be served.
+	if len(entrypoints) > 0 {
+		imports, err := resolveLocalEntrypoints(pkgRoot, entrypoints)
+		if err != nil {
+			return nil, err
+		}
+		if rootImport != "" && !stringSliceContains(imports, rootImport) {
+			imports = append([]string{rootImport}, imports...)
+		}
+		return imports, nil
 	}
 
 	// Try exports field first.
@@ -120,6 +130,71 @@ func resolveNodeModuleEntrypoints(
 
 	// No JS exports/main/module: treat as local package for entrypoint resolution.
 	return resolveLocalEntrypoints(pkgRoot, nil)
+}
+
+func resolvePackageJSONRootImport(v *fastjson.Value) string {
+	if v == nil {
+		return ""
+	}
+
+	if exports := v.Get("exports"); exports != nil {
+		if root := resolvePackageJSONRootExport(exports); root != "" {
+			return root
+		}
+	}
+
+	for _, entryBytes := range [][]byte{v.GetStringBytes("module"), v.GetStringBytes("main")} {
+		entry := string(entryBytes)
+		if entry == "" {
+			continue
+		}
+		if importPath, ok := normalizeResolvedExport(entry); ok {
+			return importPath
+		}
+	}
+	return ""
+}
+
+func resolvePackageJSONRootExport(exports *fastjson.Value) string {
+	if exports == nil {
+		return ""
+	}
+
+	if s := string(exports.GetStringBytes()); s != "" {
+		importPath, ok := normalizeResolvedExport(s)
+		if !ok {
+			return ""
+		}
+		return importPath
+	}
+
+	root := exports.Get(".")
+	if root == nil {
+		obj := exports.GetObject()
+		if obj != nil {
+			hasSubpath := false
+			obj.Visit(func(k []byte, _ *fastjson.Value) {
+				key := string(k)
+				if strings.HasPrefix(key, ".") || strings.HasPrefix(key, "#") {
+					hasSubpath = true
+				}
+			})
+			if hasSubpath {
+				return ""
+			}
+		}
+		root = exports
+	}
+
+	resolved := resolveExportCondition(root)
+	if resolved == "" {
+		return ""
+	}
+	importPath, ok := normalizeResolvedExport(resolved)
+	if !ok {
+		return ""
+	}
+	return importPath
 }
 
 // resolvePackageJSONExports extracts entry points from a package.json exports value.
@@ -440,4 +515,13 @@ type WebPkgResolveConfig struct {
 func fileExists(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && !info.IsDir()
+}
+
+func stringSliceContains(values []string, value string) bool {
+	for _, existing := range values {
+		if existing == value {
+			return true
+		}
+	}
+	return false
 }

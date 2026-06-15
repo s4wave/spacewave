@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
 import { Toaster, toast } from 'sonner'
+import * as NonIndexRootPkg from 'non-index-root-pkg'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SpacePluginLifecycleState } from '@s4wave/sdk/space/space.pb.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
@@ -22,6 +23,7 @@ declare global {
       sdkAppImport?: boolean
       catalogComponentIDs?: string[]
       productViewerImplicit?: boolean
+      nonIndexRootMarker?: string
       lifecycleLabels?: string[]
       fallbackRendered?: boolean
     }
@@ -78,6 +80,7 @@ function publishProbe(ready: boolean) {
     productViewerImplicit: catalogComponentIDs.includes(
       'spacewave.unixfs.viewer',
     ),
+    nonIndexRootMarker: NonIndexRootPkg.marker,
     lifecycleLabels,
     fallbackRendered: !!document.body?.innerText.includes(
       "Can't open this object yet",

@@ -21,7 +21,7 @@ import {
   isBundleError,
   isRollupError,
 } from './build.js'
-import { createWebPkgRemapPlugin } from './plugin.js'
+import { createWebPkgRemapPlugin, readPackageRootServedName } from './plugin.js'
 import {
   build as viteBuild,
   esmExternalRequirePlugin,
@@ -32,6 +32,7 @@ import {
 import { buildGoAliases, goTsResolver } from './go-ts-resolver.js'
 import { createWorkerSafeModulePreloadPlugin } from './module-preload.js'
 import { buildStableEntryFileName } from './output-naming.js'
+import { buildWebPkgImportSpecifier } from './web-pkg-naming.js'
 
 // verboseDebug is the verbose debugging flag
 const verboseDebug = process.env.BLDR_VITE_VERBOSE === 'true'
@@ -455,6 +456,7 @@ async function buildWebPkg(
       '.css',
     ])
     const input: Record<string, string> = {}
+    const rootServedName = readPackageRootServedName(pkgRoot)
 
     // Detect the CJS wrapper directory from absolute imports.
     // All absolute imports share a common wrapper dir parent.
@@ -617,8 +619,13 @@ async function buildWebPkg(
       // chunk.name is the named input key (e.g. "index", "jsx-runtime", "client").
       const baseName = chunk.name
 
-      // Bare specifier: "react" for "index", "react/jsx-runtime" for subpaths.
-      const specifier = baseName === 'index' ? pkgId : `${pkgId}/${baseName}`
+      // Bare specifier: use package.json's root module when it is not a
+      // literal index file, preserving the actual served chunk name.
+      const specifier = buildWebPkgImportSpecifier(
+        pkgId,
+        baseName,
+        rootServedName,
+      )
 
       importMapEntries.push({
         specifier,

@@ -285,6 +285,9 @@ func TestGoScriptDownstreamAppLoadsSonner(t *testing.T) {
 	if sdkProbe.ProductViewerImplicit {
 		t.Fatalf("downstream catalog unexpectedly included product viewer: %+v\n%s", sdkProbe, diag.String())
 	}
+	if sdkProbe.NonIndexRootMarker != "non-index-root-package" {
+		t.Fatalf("non-index-root package bare import marker = %q, want fixture marker\n%s", sdkProbe.NonIndexRootMarker, diag.String())
+	}
 	if !slices.Contains(sdkProbe.CatalogComponentIDs, "spacewave.object-layout.viewer") ||
 		!slices.Contains(sdkProbe.CatalogComponentIDs, "spacewave.debug.viewer") ||
 		!slices.Contains(sdkProbe.CatalogComponentIDs, "mercury.note.viewer") {
@@ -315,6 +318,7 @@ type sdkAppProbe struct {
 	SDKAppImport          bool     `json:"sdkAppImport"`
 	CatalogComponentIDs   []string `json:"catalogComponentIDs"`
 	ProductViewerImplicit bool     `json:"productViewerImplicit"`
+	NonIndexRootMarker    string   `json:"nonIndexRootMarker"`
 	LifecycleLabels       []string `json:"lifecycleLabels"`
 	FallbackRendered      bool     `json:"fallbackRendered"`
 }

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import path from 'path'
+import os from 'os'
+import fs from 'fs'
 import type { ResolvedConfig } from 'vite'
 
 import { createWebPkgRemapPlugin } from './plugin.js'
@@ -104,7 +106,9 @@ describe('createWebPkgRemapPlugin', () => {
     const resolved = await resolveId.call(
       {
         resolve: async () => {
-          throw new Error('on-disk resolution must not run for declared imports')
+          throw new Error(
+            'on-disk resolution must not run for declared imports',
+          )
         },
       } as never,
       '@aptre/protobuf-es-lite/google/protobuf/timestamp.pb.js',
@@ -115,6 +119,66 @@ describe('createWebPkgRemapPlugin', () => {
       id: '/b/pkg/@aptre/protobuf-es-lite/google/protobuf/timestamp.mjs',
       external: true,
     })
+  })
+
+  it('maps a bare package import to a non-index package root served name', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'web-pkg-root-'))
+    try {
+      const pkgRoot = path.join(root, 'node_modules', 'non-index-root')
+      fs.mkdirSync(path.join(pkgRoot, 'build'), { recursive: true })
+      fs.writeFileSync(
+        path.join(pkgRoot, 'package.json'),
+        JSON.stringify({
+          name: 'non-index-root',
+          type: 'module',
+          exports: {
+            '.': {
+              import: './build/foo.module.js',
+            },
+          },
+          module: './build/foo.module.js',
+        }),
+      )
+      fs.writeFileSync(
+        path.join(pkgRoot, 'build', 'foo.module.js'),
+        'export const root = true\n',
+      )
+
+      const plugin = createWebPkgRemapPlugin({
+        webPkgIDs: ['non-index-root'],
+      })
+
+      const configResolved = plugin.configResolved
+      if (typeof configResolved !== 'function') {
+        throw new Error('missing configResolved hook')
+      }
+      configResolved.call(
+        {} as never,
+        {
+          root,
+          resolve: {
+            alias: [{ find: 'non-index-root', replacement: pkgRoot }],
+          },
+        } as ResolvedConfig,
+      )
+
+      const renderChunk = plugin.renderChunk
+      if (typeof renderChunk !== 'function') {
+        throw new Error('missing renderChunk hook')
+      }
+      const rendered = renderChunk.call(
+        {} as never,
+        'import * as root from "non-index-root";',
+        {} as never,
+        {} as never,
+        {} as never,
+      )
+
+      expect(rendered).toContain('"/b/pkg/non-index-root/build/foo.module.mjs"')
+      expect(rendered).not.toContain('"/b/pkg/non-index-root/index.mjs"')
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
   })
 
   it('falls back to the import specifier when a resolved file only shares the package root prefix', async () => {

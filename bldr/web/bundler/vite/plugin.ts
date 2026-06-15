@@ -1,4 +1,5 @@
 import path from 'path'
+import fs from 'fs'
 import type { Rollup } from 'vite'
 import { Plugin } from 'vite'
 
@@ -49,13 +50,84 @@ function stripKnownExts(name: string): string {
   return name
 }
 
+function normalizePackageImportPath(importPath: string): string {
+  return stripKnownExts(
+    importPath.startsWith('./') ? importPath.substring(2) : importPath,
+  )
+}
+
+function normalizePackageRootExport(raw: unknown): string | null {
+  if (typeof raw === 'string') {
+    return raw
+  }
+  if (!raw || typeof raw !== 'object') {
+    return null
+  }
+
+  const obj = raw as Record<string, unknown>
+  for (const key of ['import', 'default', 'require']) {
+    const resolved = normalizePackageRootExport(obj[key])
+    if (resolved) {
+      return resolved
+    }
+  }
+  for (const value of Object.values(obj)) {
+    const resolved = normalizePackageRootExport(value)
+    if (resolved) {
+      return resolved
+    }
+  }
+  return null
+}
+
+export function readPackageRootServedName(pkgRoot: string): string | null {
+  try {
+    const pkgJSON = JSON.parse(
+      fs.readFileSync(path.join(pkgRoot, 'package.json'), 'utf8'),
+    ) as Record<string, unknown>
+    const exportsValue = pkgJSON['exports']
+    if (exportsValue !== undefined) {
+      let rootExport: unknown
+      if (typeof exportsValue === 'string') {
+        rootExport = exportsValue
+      } else if (exportsValue && typeof exportsValue === 'object') {
+        const exportsObj = exportsValue as Record<string, unknown>
+        rootExport = exportsObj['.']
+        if (rootExport === undefined) {
+          const hasSubpath = Object.keys(exportsObj).some(
+            (key) => key.startsWith('.') || key.startsWith('#'),
+          )
+          if (!hasSubpath) {
+            rootExport = exportsObj
+          }
+        }
+      }
+
+      const resolved = normalizePackageRootExport(rootExport)
+      if (resolved) {
+        return normalizePackageImportPath(resolved)
+      }
+    }
+
+    for (const key of ['module', 'main']) {
+      const resolved = pkgJSON[key]
+      if (typeof resolved === 'string' && resolved) {
+        return normalizePackageImportPath(resolved)
+      }
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
 // buildServedNameMap maps an import subpath (relative to the package root, no
 // extension) to the served "[name].mjs" file for that entry. The empty key maps
 // the bare package specifier to its index entry when one is declared.
 function buildServedNameMap(imports: string[]): Map<string, string> {
   const map = new Map<string, string>()
   for (const imp of imports) {
-    const name = stripKnownExts(imp.startsWith('./') ? imp.substring(2) : imp)
+    const name = normalizePackageImportPath(imp)
     const served = name + '.mjs'
     map.set(name, served)
     if (name === 'index') {
@@ -84,7 +156,7 @@ function lookupDeclaredServedURL(
   } else {
     return null
   }
-  subPath = stripKnownExts(subPath.startsWith('./') ? subPath.substring(2) : subPath)
+  subPath = normalizePackageImportPath(subPath)
   const served = servedMap.get(subPath)
   if (!served) return null
   return `/b/pkg/${pkg}/${served}`
@@ -203,6 +275,23 @@ export function createWebPkgRemapPlugin(
           } catch {
             // Not resolvable from node_modules, will use empty root
           }
+        }
+        const rootServedName = webPkgRoots[pkgID]
+          ? readPackageRootServedName(webPkgRoots[pkgID])
+          : null
+        if (rootServedName) {
+          let map = servedNameMaps[pkgID]
+          if (!map) {
+            map = new Map<string, string>()
+            servedNameMaps[pkgID] = map
+          }
+          const served = rootServedName + '.mjs'
+          map.set('', served)
+          map.set(rootServedName, served)
+          if (debug)
+            console.log(
+              `[bldr-pkg-resolve] root served name for ${pkgID}: ${served}`,
+            )
         }
       }
     },

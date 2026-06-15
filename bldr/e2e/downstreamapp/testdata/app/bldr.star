@@ -41,6 +41,7 @@ manifest("downstream-web",
     rev=1,
     config=js_plugin_config(
         webPluginId="web",
+        viteConfigPaths=["./bldr/e2e/downstreamapp/testdata/app/vite.config.ts"],
         modules=[
             js_module("JS_MODULE_KIND_FRONTEND",
                       "./bldr/e2e/downstreamapp/testdata/app/web/App.tsx",
@@ -49,6 +50,7 @@ manifest("downstream-web",
         ],
         webPkgs=[
             web_pkg("@s4wave/web", entrypoints=["./sdk/app", "./object", "./style", "./ui"]),
+            web_pkg("non-index-root-pkg", entrypoints=["./examples/extra"]),
             web_pkg("sonner"),
         ],
     ),

@@ -1,0 +1,10 @@
+{
+  "name": "non-index-root-pkg",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./build/foo.module.js"
+    }
+  },
+  "module": "./build/foo.module.js"
+}
