@@ -2,6 +2,7 @@ package block
 
 import (
 	"context"
+	"reflect"
 	"runtime"
 	"slices"
 	"sync"
@@ -23,6 +24,14 @@ var maxWriteConcurrency = runtime.GOMAXPROCS(0)
 // maxEncodeConcurrency is the maximum concurrency for hashing & marshaling blocks.
 // NOTE: this may be configurable or dynamic in future.
 var maxEncodeConcurrency = maxWriteConcurrency
+
+type transactionReachableNode struct {
+	// from is the list of nodes that we can reach from this node
+	// (child nodes)
+	from []int64
+	// encodeDone is closed when encoding this node is done.
+	encodeDone chan struct{}
+}
 
 // Transaction tracks refs traversed between blocks, batching writes and
 // propagating changes through the merkle graph.
@@ -272,17 +281,9 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	ctx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
 
-	type reachableNode struct {
-		// from is the list of nodes that we can reach from this node
-		// (child nodes)
-		from []int64
-		// encodeDone is closed when encoding this node is done.
-		encodeDone chan struct{}
-	}
-
 	// mark blocks reachable from the write root.
 	// when writing the full tree, unreachable blocks are dropped (cut).
-	reachable := make(map[int64]reachableNode, 1)
+	reachable := make(map[int64]transactionReachableNode, 1)
 	_, subtask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/mark-reachable")
 	{
 		nodStack := []graph.Node{writeRoot}
@@ -304,13 +305,15 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 					nodStack = append(nodStack, to)
 				}
 			}
-			reachable[nn.ID()] = reachableNode{
+			reachable[nn.ID()] = transactionReachableNode{
 				from:       fromNodes,
 				encodeDone: make(chan struct{}),
 			}
 		}
 	}
 	subtask.End()
+
+	t.addMarshalAliasWaits(reachable)
 
 	// topological sort to determine dependencies (references, etc).
 	_, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/topo-sort")
@@ -611,6 +614,91 @@ func (t *Transaction) clearData() {
 	rn := t.blockGraph.NewNode()
 	t.root.Node = rn
 	t.blockGraph.AddNode(t.root)
+}
+
+func (t *Transaction) addMarshalAliasWaits(reachable map[int64]transactionReachableNode) {
+	if t == nil || t.blockGraph == nil {
+		return
+	}
+	handlesByBlock := make(map[uintptr][]int64, len(reachable))
+	for nodeID := range reachable {
+		h, _ := t.blockGraph.Node(nodeID).(*handle)
+		if h == nil {
+			continue
+		}
+		identity := blockAliasIdentity(h.blk)
+		if identity == 0 {
+			continue
+		}
+		handlesByBlock[identity] = append(handlesByBlock[identity], nodeID)
+	}
+	for nodeID := range reachable {
+		h, _ := t.blockGraph.Node(nodeID).(*handle)
+		if h == nil || h.isSubBlock || h.blk == nil {
+			continue
+		}
+		waitSet := make(map[int64]struct{}, len(reachable[nodeID].from))
+		for _, childID := range reachable[nodeID].from {
+			waitSet[childID] = struct{}{}
+		}
+		walkMarshalAliasSubBlocks(h.blk, make(map[uintptr]struct{}), func(subBlock any) {
+			identity := blockAliasIdentity(subBlock)
+			if identity == 0 {
+				return
+			}
+			for _, aliasID := range handlesByBlock[identity] {
+				if aliasID == nodeID {
+					continue
+				}
+				if _, ok := reachable[aliasID]; !ok {
+					continue
+				}
+				waitSet[aliasID] = struct{}{}
+			}
+		})
+		next := reachable[nodeID]
+		if len(waitSet) == len(next.from) {
+			continue
+		}
+		next.from = next.from[:0]
+		for waitID := range waitSet {
+			next.from = append(next.from, waitID)
+		}
+		slices.Sort(next.from)
+		reachable[nodeID] = next
+	}
+}
+
+func blockAliasIdentity(v any) uintptr {
+	if v == nil {
+		return 0
+	}
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Pointer || rv.IsNil() {
+		return 0
+	}
+	return rv.Pointer()
+}
+
+func walkMarshalAliasSubBlocks(v any, seen map[uintptr]struct{}, visit func(any)) {
+	identity := blockAliasIdentity(v)
+	if identity != 0 {
+		if _, ok := seen[identity]; ok {
+			return
+		}
+		seen[identity] = struct{}{}
+	}
+	withSubBlocks, ok := v.(BlockWithSubBlocks)
+	if !ok {
+		return
+	}
+	for _, subBlock := range withSubBlocks.GetSubBlocks() {
+		if subBlock == nil || subBlock.IsNil() {
+			continue
+		}
+		visit(subBlock)
+		walkMarshalAliasSubBlocks(subBlock, seen, visit)
+	}
 }
 
 // cloneDetached copies the transaction for use as a detached tx.
