@@ -609,3 +609,62 @@ describe('WebDocumentTracker resume-ready gate', () => {
     expect(onWebDocumentsExhausted).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('WebDocumentTracker runtime fetch relay wait', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+    vi.useRealTimers()
+  })
+
+  it('resolves immediately when a relay already exists', async () => {
+    const tracker = buildTracker()
+    const port = attachWebDocument(tracker)
+
+    await expect(tracker.waitForRuntimeFetchRelay(1000)).resolves.toBe(true)
+
+    tracker.close()
+    port.close()
+  })
+
+  it('resolves true when a WebDocument attaches during the wait', async () => {
+    const tracker = buildTracker()
+
+    const waitPromise = tracker.waitForRuntimeFetchRelay(1000)
+    const isSettled = markSettled(waitPromise)
+    await Promise.resolve()
+    expect(isSettled()).toBe(false)
+
+    const port = attachWebDocument(tracker)
+
+    await expect(waitPromise).resolves.toBe(true)
+
+    tracker.close()
+    port.close()
+  })
+
+  it('resolves false when the wait deadline elapses with no relay', async () => {
+    vi.useFakeTimers()
+    const tracker = buildTracker()
+
+    const waitPromise = tracker.waitForRuntimeFetchRelay(5000)
+    const isSettled = markSettled(waitPromise)
+
+    await vi.advanceTimersByTimeAsync(4999)
+    expect(isSettled()).toBe(false)
+
+    await vi.advanceTimersByTimeAsync(1)
+    await expect(waitPromise).resolves.toBe(false)
+
+    tracker.close()
+  })
+
+  it('resolves false when the tracker closes during the wait', async () => {
+    const tracker = buildTracker()
+
+    const waitPromise = tracker.waitForRuntimeFetchRelay(5000)
+    tracker.close()
+
+    await expect(waitPromise).resolves.toBe(false)
+  })
+})

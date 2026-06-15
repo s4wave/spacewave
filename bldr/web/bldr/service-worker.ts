@@ -47,6 +47,9 @@ const pluginWebPkgPathPrefix = '/b/pkg/'
 const quickJSRuntimePathPrefix = '/b/qjs/'
 const pluginHttpPathPrefix = '/p/'
 const browserRuntimeFetchHeaderTimeoutMs = 30000
+// browserRuntimeFetchRelayWaitMs bounds how long a static plugin asset fetch
+// waits for the next runtime relay across a page-client close gap before failing.
+const browserRuntimeFetchRelayWaitMs = 5000
 
 // CACHES is the list of fixed caches.
 const CACHES: Record<string, Cache | undefined> = {
@@ -1471,56 +1474,82 @@ export async function swFetch(
     return response
   }
   const staticPluginAsset = isStaticPluginAssetSource(source)
-  const runtimeFetchClientId = resolveBrowserRuntimeFetchClientId(
-    ev.clientId || '',
-    source,
-    webDocumentTracker,
-    serviceWorkerLogicalId,
-  )
-  if (!runtimeFetchClientId) {
-    if (staticPluginAsset) {
-      const cached = await matchStaticPluginAsset(request)
-      if (cached) {
-        return cached
-      }
-    }
-    return buildNoReadyDocumentResponse(source, request.method)
-  }
-
-  const trackedFetch =
-    serviceWorkerFetchTracker.trackFetch(runtimeFetchClientId)
-  let response: Response
-  try {
-    response = await proxyBrowserRuntimeFetch(
+  // A static plugin asset is a content-hashed plugin frontend chunk served only
+  // by the running plugin runtime; on first load it is in no cache. During the
+  // page-client close / relay-establishment gap the relay is briefly absent or
+  // resolves to a dying client, which fails the chunk fetch and breaks an
+  // in-flight navigation. Wait once for the next relay (event-driven, bounded)
+  // and retry instead of failing.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const runtimeFetchClientId = resolveBrowserRuntimeFetchClientId(
+      ev.clientId || '',
       source,
-      request,
-      runtimeFetchClientId,
-      {
-        abortSignal: trackedFetch.abortController.signal,
-        headerTimeoutMs: browserRuntimeFetchHeaderTimeoutMs,
-      },
-    ).finally(() => trackedFetch.release())
-  } catch (err) {
+      webDocumentTracker,
+      serviceWorkerLogicalId,
+    )
+    if (!runtimeFetchClientId) {
+      if (staticPluginAsset) {
+        const cached = await matchStaticPluginAsset(request)
+        if (cached) {
+          return cached
+        }
+        if (
+          attempt === 0 &&
+          (await webDocumentTracker.waitForRuntimeFetchRelay(
+            browserRuntimeFetchRelayWaitMs,
+          ))
+        ) {
+          continue
+        }
+      }
+      return buildNoReadyDocumentResponse(source, request.method)
+    }
+
+    const trackedFetch =
+      serviceWorkerFetchTracker.trackFetch(runtimeFetchClientId)
+    let response: Response
+    try {
+      response = await proxyBrowserRuntimeFetch(
+        source,
+        request,
+        runtimeFetchClientId,
+        {
+          abortSignal: trackedFetch.abortController.signal,
+          headerTimeoutMs: browserRuntimeFetchHeaderTimeoutMs,
+        },
+      ).finally(() => trackedFetch.release())
+    } catch (err) {
+      if (staticPluginAsset) {
+        const cached = await matchStaticPluginAsset(request)
+        if (cached) {
+          return cached
+        }
+        if (
+          attempt === 0 &&
+          (await webDocumentTracker.waitForRuntimeFetchRelay(
+            browserRuntimeFetchRelayWaitMs,
+          ))
+        ) {
+          continue
+        }
+      }
+      throw err
+    }
+
     if (staticPluginAsset) {
+      if (response.ok) {
+        ev.waitUntil(cacheStaticPluginAsset(request, response.clone()))
+        return response
+      }
       const cached = await matchStaticPluginAsset(request)
       if (cached) {
         return cached
       }
     }
-    throw err
+    return response
   }
-
-  if (staticPluginAsset) {
-    if (response.ok) {
-      ev.waitUntil(cacheStaticPluginAsset(request, response.clone()))
-      return response
-    }
-    const cached = await matchStaticPluginAsset(request)
-    if (cached) {
-      return cached
-    }
-  }
-  return response
+  // The loop returns or throws within two attempts; this satisfies control flow.
+  return buildNoReadyDocumentResponse(source, request.method)
 
   /*
   Not working with custom app:// scheme in Electron.

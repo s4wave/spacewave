@@ -256,6 +256,56 @@ export class WebDocumentTracker {
     return !!(webDocumentId && this.webDocuments[webDocumentId])
   }
 
+  // waitForRuntimeFetchRelay resolves true once a runtime fetch relay becomes
+  // available, or false if timeoutMs elapses, the signal aborts, or the tracker
+  // closes. After a page client closes there is a brief gap before the next
+  // WebDocument establishes its relay; routing a static plugin asset fetch to
+  // the dying client during that gap fails an in-flight navigation. Callers wait
+  // for the next relay (driven by WebDocument attach and resume-ready events, no
+  // polling) and retry instead of failing the fetch.
+  public waitForRuntimeFetchRelay(
+    timeoutMs: number,
+    signal?: AbortSignal,
+  ): Promise<boolean> {
+    if (this.hasRuntimeFetchRelay()) {
+      return Promise.resolve(true)
+    }
+    if (this.closed || signal?.aborted) {
+      return Promise.resolve(false)
+    }
+    return new Promise<boolean>((resolve) => {
+      let settled = false
+      const onAbort = () => settle(false)
+      const waiter: WebDocumentWaiter = {
+        resume: () => {
+          if (settled) {
+            return
+          }
+          if (this.hasRuntimeFetchRelay()) {
+            settle(true)
+            return
+          }
+          // Relay still absent: re-arm for the next attach / resume-ready event.
+          this.webDocumentWaiters.push(waiter)
+        },
+        reject: () => settle(false),
+      }
+      const timer = setTimeout(() => settle(false), timeoutMs)
+      // settle is hoisted so timer can be const-initialized before its body runs.
+      function settle(value: boolean) {
+        if (settled) {
+          return
+        }
+        settled = true
+        clearTimeout(timer)
+        signal?.removeEventListener('abort', onAbort)
+        resolve(value)
+      }
+      signal?.addEventListener('abort', onAbort, { once: true })
+      this.webDocumentWaiters.push(waiter)
+    })
+  }
+
   public async requestSabPair(
     targetWorkerId: string,
   ): Promise<SabPairEndpointDescriptor> {
