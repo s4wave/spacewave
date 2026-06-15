@@ -570,6 +570,12 @@ func (e *Engine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 				return 0, ctx.Err()
 			case _, ok := <-watch.Events():
 				if !ok {
+					// The coordinator closes the events channel only when this
+					// wait's context is canceled, so report cancellation rather
+					// than a spurious watch error.
+					if err := ctx.Err(); err != nil {
+						return 0, err
+					}
 					return 0, errors.New("world write coordinator watch closed")
 				}
 			}
