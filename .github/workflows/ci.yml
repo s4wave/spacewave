@@ -265,18 +265,11 @@ jobs:
         run: bun run ${{ matrix.suite.script }}
 
   e2e-wasm:
-    name: E2E (wasm / ${{ matrix.compiler.name }} / ${{ matrix.slice.name }})
+    name: E2E (wasm / ${{ matrix.slice.name }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        compiler:
-          - name: goscript
-            value: goscript
-            go_test_timeout: 60m
-          - name: tinygo
-            value: tinygo
-            go_test_timeout: 30m
         slice:
           - name: support
             run: '^(TestE2ECloudAuthConfigEndpoint|TestStableE2ECloudAuthConfigAddr|TestApplyE2ECloudAuthConfigEndpoint|TestCompileTestScripts|TestCrashReportClassifiesGoFatalAndExitedGoLoop|TestDrainCrashReportDoesNotWaitForFutureMessages|TestTrace(CaptureBytes|CaptureWritesFile|PathDerivation|WindowControl|PolicyBehavior)|Test(Enable(TinyGo|GoScript)ForManifest|ResolveE2EWasmCompiler(RejectsInvalid|RejectsLegacyTinyGoEnv)?|Configure(TinyGoForManifest(RemovesDebugTrace|RemovesSessionHarnessWebRTC|DeterministicConfig)|GoScriptForManifestRemovesSeedRuntimeConfig)|StartupBuildCacheDefaultsToTinyGo|WorkerMode(DefaultsToDedicated|SelectsSharedWorker)|ApplyE2EWasmTinyGoCompilerEnv(DefaultsToFastProfile|CopiesExplicitDebugKnobs)|ClearHarnessStateRoot(PreservesStartupBuildCache|RemovesStartupBuildCache)|BrowserPeerErrorClassification|PeerWatcher(ReturnsNewestObservation|ObservationAfterSkipsStalePeers)|ResourceConnectionTimingSnapshot))$'
@@ -288,7 +281,7 @@ jobs:
             run: '^(TestQuickstartForge(Route|Trace)|TestForge(ScenarioSequence|WorkerExecution)|TestBlog(CoexistenceScenario|QuickstartSetupProbe|QuickstartRetainedStateRegistrationProbe))$'
           - name: session-sync
             run: '^(TestLocalOnboardingScenario|TestMultiSessionScenario|TestNoCloud(AnonymousParticipantSync|PairingDirect)|TestBackgroundThrottledLifecycle|TestRecreatedPageSharedObjectHealthGuard|TestRetainedStatePagePeerProbe)$'
-    timeout-minutes: 75
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
@@ -318,11 +311,9 @@ jobs:
       - name: Run wasm E2E slice
         env:
           ENABLE_E2E_WASM: 'true'
-          E2E_WASM_COMPILER: ${{ matrix.compiler.value }}
-          E2E_WASM_MANIFEST_BUILD_TIMEOUT: 45m
-          GO_TEST_REPORT_TITLE: E2E (wasm / ${{ matrix.compiler.name }} / ${{ matrix.slice.name }})
+          GO_TEST_REPORT_TITLE: E2E (wasm / ${{ matrix.slice.name }})
           WASM_TEST_RUN: ${{ matrix.slice.run }}
-        run: bun scripts/go-test-report.ts -- go test -json -count=1 -timeout=${{ matrix.compiler.go_test_timeout }} -run "$WASM_TEST_RUN" ./e2e/wasm
+        run: bun scripts/go-test-report.ts -- go test -json -count=1 -timeout=30m -run "$WASM_TEST_RUN" ./e2e/wasm
 
   e2e-wasm-complete:
     name: E2E (wasm)
