@@ -42,31 +42,47 @@ var protobufEsLiteDistImports = []string{
 	"google/protobuf/wrappers.pb.js",
 }
 
+// BldrDistWebPkgImports maps each BldrExternal package id to its entry import
+// sub-paths relative to that package's web pkg root. These paths define the
+// served web pkg entry names: buildWebPkg strips known extensions (including
+// ".pb") from each import to derive the served "[name].mjs", so a consumer that
+// remaps imports to /b/pkg/ URLs must derive the same names from this list,
+// not from the package's on-disk layout (whose dist/ subdir and .pb.js
+// filenames differ from the served names).
+var BldrDistWebPkgImports = map[string][]string{
+	"react":                   {"index.js", "jsx-runtime.js", "jsx-dev-runtime.js"},
+	"react-dom":               {"index.js", "client.js"},
+	"@aptre/bldr":             {"index.ts"},
+	"@aptre/bldr-react":       {"index.ts"},
+	"@aptre/protobuf-es-lite": protobufEsLiteDistImports,
+	"quickjs-wasi-reactor":    {"index.js"},
+}
+
 // GetBldrDistWebPkgRefs returns the web pkg refs for BldrExternal.
 func GetBldrDistWebPkgRefs(buildPkgsDir, bldrDistRoot string) []*web_pkg.WebPkgRef {
 	return []*web_pkg.WebPkgRef{{
 		WebPkgId:   "react",
 		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/react"),
-		Imports:    []string{"index.js", "jsx-runtime.js", "jsx-dev-runtime.js"},
+		Imports:    BldrDistWebPkgImports["react"],
 	}, {
 		WebPkgId:   "react-dom",
 		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/react-dom"),
-		Imports:    []string{"index.js", "client.js"},
+		Imports:    BldrDistWebPkgImports["react-dom"],
 	}, {
 		WebPkgId:   "@aptre/bldr",
 		WebPkgRoot: filepath.Join(bldrDistRoot, "web", "bldr"),
-		Imports:    []string{"index.ts"},
+		Imports:    BldrDistWebPkgImports["@aptre/bldr"],
 	}, {
 		WebPkgId:   "@aptre/bldr-react",
 		WebPkgRoot: filepath.Join(bldrDistRoot, "web", "bldr-react"),
-		Imports:    []string{"index.ts"},
+		Imports:    BldrDistWebPkgImports["@aptre/bldr-react"],
 	}, {
 		WebPkgId:   "@aptre/protobuf-es-lite",
 		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/@aptre/protobuf-es-lite/dist"),
-		Imports:    protobufEsLiteDistImports,
+		Imports:    BldrDistWebPkgImports["@aptre/protobuf-es-lite"],
 	}, {
 		WebPkgId:   "quickjs-wasi-reactor",
 		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/quickjs-wasi-reactor/dist"),
-		Imports:    []string{"index.js"},
+		Imports:    BldrDistWebPkgImports["quickjs-wasi-reactor"],
 	}}
 }

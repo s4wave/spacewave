@@ -207,6 +207,16 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
       pkg.id ? [pkg.id] : [],
     )
 
+    // Per-package declared entry imports (relative to each package's web pkg
+    // root). When present, the remap derives served names from these instead of
+    // the package's on-disk layout, matching buildWebPkg's output naming.
+    const webPkgImports: Record<string, string[]> = {}
+    for (const pkg of request.webPkgs ?? []) {
+      if (pkg.id && pkg.imports && pkg.imports.length > 0) {
+        webPkgImports[pkg.id] = pkg.imports
+      }
+    }
+
     // Asset extensions that must NOT be externalized, they need Vite's
     // CSS/asset pipeline (Tailwind, PostCSS, etc.).
     const assetExts = [
@@ -257,6 +267,7 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
       createWebPkgRemapPlugin({
         webPkgIDs,
         preserveWebPkgIDs: externalPkgs,
+        webPkgImports,
         addWebPkgRoot: (webPkgID, webPkgRoot) => {
           if (!webPkgRefs.has(webPkgID)) {
             webPkgRefs.set(webPkgID, {

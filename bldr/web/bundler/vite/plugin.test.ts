@@ -60,6 +60,63 @@ describe('createWebPkgRemapPlugin', () => {
     expect(result).not.toContain('"/b/pkg/@aptre/bldr/')
   })
 
+  it('derives served names from declared imports, stripping dist subdir and .pb extension', async () => {
+    const plugin = createWebPkgRemapPlugin({
+      webPkgIDs: ['@aptre/protobuf-es-lite'],
+      webPkgImports: {
+        '@aptre/protobuf-es-lite': [
+          'index.js',
+          'message.js',
+          'google/protobuf/timestamp.pb.js',
+        ],
+      },
+    })
+
+    const renderChunk = plugin.renderChunk
+    if (typeof renderChunk !== 'function') {
+      throw new Error('missing renderChunk hook')
+    }
+    const rendered = renderChunk.call(
+      {} as never,
+      [
+        'import { createMessageType } from "@aptre/protobuf-es-lite";',
+        'import { Message } from "@aptre/protobuf-es-lite/message";',
+        'import { Timestamp } from "@aptre/protobuf-es-lite/google/protobuf/timestamp";',
+      ].join('\n'),
+      {} as never,
+      {} as never,
+      {} as never,
+    )
+    expect(rendered).toContain('"/b/pkg/@aptre/protobuf-es-lite/index.mjs"')
+    expect(rendered).toContain('"/b/pkg/@aptre/protobuf-es-lite/message.mjs"')
+    expect(rendered).toContain(
+      '"/b/pkg/@aptre/protobuf-es-lite/google/protobuf/timestamp.mjs"',
+    )
+    expect(rendered).not.toContain('/dist/')
+    expect(rendered).not.toContain('.pb.mjs')
+
+    const resolveId = plugin.resolveId
+    if (typeof resolveId !== 'function') {
+      throw new Error('missing resolveId hook')
+    }
+    // A declared import resolves to the served name without touching on-disk
+    // layout, even if the resolver would have returned a dist/.pb.js path.
+    const resolved = await resolveId.call(
+      {
+        resolve: async () => {
+          throw new Error('on-disk resolution must not run for declared imports')
+        },
+      } as never,
+      '@aptre/protobuf-es-lite/google/protobuf/timestamp.pb.js',
+      '/repo/src/entry.js',
+      { isEntry: false },
+    )
+    expect(resolved).toEqual({
+      id: '/b/pkg/@aptre/protobuf-es-lite/google/protobuf/timestamp.mjs',
+      external: true,
+    })
+  })
+
   it('falls back to the import specifier when a resolved file only shares the package root prefix', async () => {
     const root = path.join(path.sep, 'repo')
     const pkgRoot = path.join(root, 'node_modules', 'pkg')

@@ -6,16 +6,88 @@ import { Plugin } from 'vite'
 const JS_EXTENSIONS = ['.js', '.cjs', '.jsx', '.ts', '.tsx']
 const JS_EXTENSION_SET = new Set(JS_EXTENSIONS)
 
+// Extensions stripped when deriving a served web pkg entry name. Must match the
+// knownExts set in buildWebPkg (vite.ts), including ".pb" for proto modules, so
+// a consumer derives the same served "[name].mjs" the build emits.
+const KNOWN_EXTENSIONS = new Set([
+  '.js',
+  '.cjs',
+  '.mjs',
+  '.ts',
+  '.tsx',
+  '.jsx',
+  '.pb',
+  '.css',
+])
+
 export interface WebPkgRemapPluginConfig {
   // List of packages that can be bundled as web pkgs
   webPkgIDs: string[]
   // Package IDs kept as bare imports so the document import map owns them.
   preserveWebPkgIDs?: string[]
+  // Per-package declared entry imports, relative to each package's web pkg root.
+  // When present for a package, served names are derived from these imports
+  // (matching buildWebPkg) instead of the package's on-disk file layout, whose
+  // dist/ subdir and .pb.js filenames differ from the served names.
+  webPkgImports?: Record<string, string[]>
   // Optional callback to report the resolved root directory for a web package.
   // Called once per package when the root is first discovered.
   addWebPkgRoot?: (webPkgID: string, webPkgRoot: string) => void
   // Enable debug logging
   debug?: boolean
+}
+
+// stripKnownExts removes all trailing known extensions, mirroring buildWebPkg's
+// served-name derivation (e.g. "google/protobuf/timestamp.pb.js" -> "google/
+// protobuf/timestamp").
+function stripKnownExts(name: string): string {
+  while (true) {
+    const ext = path.extname(name)
+    if (!ext || !KNOWN_EXTENSIONS.has(ext)) break
+    name = name.substring(0, name.length - ext.length)
+  }
+  return name
+}
+
+// buildServedNameMap maps an import subpath (relative to the package root, no
+// extension) to the served "[name].mjs" file for that entry. The empty key maps
+// the bare package specifier to its index entry when one is declared.
+function buildServedNameMap(imports: string[]): Map<string, string> {
+  const map = new Map<string, string>()
+  for (const imp of imports) {
+    const name = stripKnownExts(imp.startsWith('./') ? imp.substring(2) : imp)
+    const served = name + '.mjs'
+    map.set(name, served)
+    if (name === 'index') {
+      map.set('', served)
+    }
+  }
+  return map
+}
+
+// lookupDeclaredServedURL returns the /b/pkg/ URL for importId derived from the
+// package's declared served-name map, or null when the package has no declared
+// imports or importId is not a declared entry (callers then fall back to
+// on-disk or specifier-based remapping).
+function lookupDeclaredServedURL(
+  importId: string,
+  pkg: string,
+  servedMap: Map<string, string> | undefined,
+): string | null {
+  if (!servedMap) return null
+  const norm = importId.trim().replace(/^\//, '')
+  let subPath: string
+  if (norm === pkg) {
+    subPath = ''
+  } else if (norm.startsWith(pkg + '/')) {
+    subPath = norm.substring(pkg.length + 1)
+  } else {
+    return null
+  }
+  subPath = stripKnownExts(subPath.startsWith('./') ? subPath.substring(2) : subPath)
+  const served = servedMap.get(subPath)
+  if (!served) return null
+  return `/b/pkg/${pkg}/${served}`
 }
 
 // remapWebPkgSpecifier rewrites a web pkg import specifier to a /b/pkg/ URL.
@@ -78,6 +150,17 @@ export function createWebPkgRemapPlugin(
 
   // Resolved root directories for each web pkg, populated in configResolved.
   const webPkgRoots: Record<string, string> = {}
+
+  // Served-name maps for packages with declared imports. When a package has a
+  // map, its served names are derived from the declared imports (matching
+  // buildWebPkg) instead of the on-disk file layout.
+  const servedNameMaps: Record<string, Map<string, string>> = {}
+  for (const pkg of remappedWebPkgIDs) {
+    const imports = config.webPkgImports?.[pkg]
+    if (imports && imports.length > 0) {
+      servedNameMaps[pkg] = buildServedNameMap(imports)
+    }
+  }
 
   return {
     name: 'bldr-pkg-resolve',
@@ -162,6 +245,25 @@ export function createWebPkgRemapPlugin(
         return null
       }
 
+      // Packages with declared imports define their served names from the
+      // import list, not on-disk layout. Derive the served URL directly so the
+      // dist/ subdir and .pb.js filenames never leak into the baked URL.
+      const declaredURL = lookupDeclaredServedURL(
+        normalizedImportId,
+        pkgID,
+        servedNameMaps[pkgID],
+      )
+      if (declaredURL) {
+        if (config.addWebPkgRoot && webPkgRoots[pkgID]) {
+          config.addWebPkgRoot(pkgID, webPkgRoots[pkgID])
+        }
+        if (debug)
+          console.log(
+            `[bldr-pkg-resolve] resolveId (declared): ${importId} -> ${declaredURL}`,
+          )
+        return { id: declaredURL, external: true }
+      }
+
       // Resolve the import to find the actual file on disk.
       const resolved = await this.resolve(importId, importer, {
         ...options,
@@ -232,6 +334,19 @@ export function createWebPkgRemapPlugin(
       for (const { pattern, pkg } of webPkgPatterns) {
         result = result.replace(pattern, (_match, prefix, subPathMatch) => {
           const fullId = pkg + (subPathMatch ?? '')
+          const declaredURL = lookupDeclaredServedURL(
+            fullId,
+            pkg,
+            servedNameMaps[pkg],
+          )
+          if (declaredURL) {
+            modified = true
+            if (debug)
+              console.log(
+                `[bldr-pkg-resolve] renderChunk (declared): ${fullId} -> ${declaredURL}`,
+              )
+            return prefix + declaredURL
+          }
           const remap = remapWebPkgSpecifier(fullId, remappedWebPkgIDs)
           if (!remap) return _match
           modified = true
