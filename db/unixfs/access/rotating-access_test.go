@@ -104,7 +104,7 @@ func accessRotatingHandleWithRebind(
 
 	for {
 		resolveCtx, resolveCancel := context.WithCancel(ctx)
-		accessCtx := context.Context(resolveCtx)
+		accessCtx := resolveCtx
 		if started != nil {
 			accessCtx = &signalContext{
 				Context: resolveCtx,
