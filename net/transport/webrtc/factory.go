@@ -18,11 +18,15 @@ import (
 type Factory struct {
 	// bus is the controller bus
 	bus bus.Bus
+	// opts are extra transport options applied at construction.
+	opts []Option
 }
 
 // NewFactory builds a transport factory.
-func NewFactory(bus bus.Bus) *Factory {
-	return &Factory{bus: bus}
+//
+// Extra options are an injection seam for tests; production callers pass none.
+func NewFactory(bus bus.Bus, opts ...Option) *Factory {
+	return &Factory{bus: bus, opts: opts}
 }
 
 // GetConfigID returns the configuration ID for the controller.
@@ -75,6 +79,7 @@ func (t *Factory) Construct(
 				cc,
 				pkey,
 				handler,
+				t.opts...,
 			)
 		},
 	), nil

@@ -5,12 +5,14 @@ import (
 	"errors"
 	"net"
 	"slices"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/keyed"
+	pion_transport "github.com/pion/transport/v4"
 	"github.com/pion/webrtc/v4"
 	"github.com/s4wave/spacewave/net/crypto"
 	p2ptls "github.com/s4wave/spacewave/net/crypto/tls"
@@ -23,6 +25,41 @@ import (
 	transport_quic "github.com/s4wave/spacewave/net/transport/common/quic"
 	"github.com/sirupsen/logrus"
 )
+
+// Option configures optional behavior of the WebRTC transport.
+//
+// Options are an injection seam used by tests to drive pion/ice over a virtual
+// network with deterministic ICE timeouts. Production callers pass no options
+// and get the browser/native defaults.
+type Option func(*options)
+
+// options holds the resolved optional configuration.
+type options struct {
+	// iceNet replaces the pion/ice network stack, if set.
+	iceNet pion_transport.Net
+	// iceDisconnectedTimeout overrides the ICE disconnected timeout, if non-zero.
+	iceDisconnectedTimeout time.Duration
+	// iceFailedTimeout overrides the ICE failed timeout, if non-zero.
+	iceFailedTimeout time.Duration
+	// iceKeepaliveInterval overrides the ICE keepalive interval, if non-zero.
+	iceKeepaliveInterval time.Duration
+}
+
+// WithICENet sets the pion/ice network stack, replacing the default OS stack.
+func WithICENet(net pion_transport.Net) Option {
+	return func(o *options) { o.iceNet = net }
+}
+
+// WithICETimeouts overrides the pion/ice consent timeouts.
+//
+// A zero value leaves the corresponding pion default in place.
+func WithICETimeouts(disconnected, failed, keepalive time.Duration) Option {
+	return func(o *options) {
+		o.iceDisconnectedTimeout = disconnected
+		o.iceFailedTimeout = failed
+		o.iceKeepaliveInterval = keepalive
+	}
+}
 
 // TransportType is the transport type identifier for this transport.
 const TransportType = "webrtc"
@@ -90,7 +127,15 @@ func NewWebRTC(
 	conf *Config,
 	pKey crypto.PrivKey,
 	c transport.TransportHandler,
+	opts ...Option,
 ) (*WebRTC, error) {
+	var o options
+	for _, opt := range opts {
+		if opt != nil {
+			opt(&o)
+		}
+	}
+
 	tptType := conf.GetTransportType()
 	if tptType == "" {
 		tptType = TransportType
@@ -121,6 +166,12 @@ func NewWebRTC(
 	// Setup the webrtc API
 	settingEngine := webrtc.SettingEngine{}
 	settingEngine.DetachDataChannels()
+	if o.iceNet != nil {
+		settingEngine.SetNet(o.iceNet)
+	}
+	if o.iceDisconnectedTimeout != 0 || o.iceFailedTimeout != 0 || o.iceKeepaliveInterval != 0 {
+		settingEngine.SetICETimeouts(o.iceDisconnectedTimeout, o.iceFailedTimeout, o.iceKeepaliveInterval)
+	}
 	webrtcApi := webrtc.NewAPI(webrtc.WithSettingEngine(settingEngine))
 	webrtcConf := conf.WebRtc.ToWebRtcConfiguration()
 
