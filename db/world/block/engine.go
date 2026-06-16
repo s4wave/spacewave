@@ -46,6 +46,11 @@ type Engine struct {
 	// commitFn is a function to be called just before a commit is confirmed.
 	// can be nil
 	commitFn CommitFn
+	// durableHeadRef is the head last written to durable storage via commitFn.
+	// Distinct from root, which tracks the current in-memory root. In the
+	// single-writer path the durable head is advanced only by Sync, so root can
+	// run ahead of durableHeadRef between fences. Guarded by rmtx.
+	durableHeadRef *bucket.ObjectRef
 	// writeCoordinator gates standalone ObjectStore-backed writers.
 	writeCoordinator coord.Coordinator
 	// writeCoordScope identifies this engine's durable ObjectStore head.
@@ -99,12 +104,13 @@ func NewEngine(
 	defer task.End()
 
 	e := &Engine{
-		le:       le,
-		baseRoot: root,
-		lookupOp: lookupOp,
-		root:     root.Clone(),
-		commitFn: commitFn,
-		verbose:  verbose,
+		le:             le,
+		baseRoot:       root,
+		lookupOp:       lookupOp,
+		root:           root.Clone(),
+		commitFn:       commitFn,
+		durableHeadRef: root.GetRef().Clone(),
+		verbose:        verbose,
 	}
 	for _, opt := range opts {
 		if opt != nil {
@@ -126,6 +132,47 @@ func (e *Engine) GetRootRef() *bucket.ObjectRef {
 	ref := e.root.GetRef().Clone()
 	e.rmtx.RUnlock()
 	return ref
+}
+
+// Sync fences durable storage and advances the durable world head.
+//
+// The fence is ordered: first the block barrier makes every block written so
+// far durable, then the durable head is advanced to the current in-memory root
+// via commitFn. Ordering matters because a head that names not-yet-durable
+// blocks is the crash window this fence closes.
+//
+// In the single-writer path (no write coordinator) the per-commit path defers
+// the durable head, so this is where it advances. In coordinator mode the head
+// is already published per commit, so the head advance here is a no-op and only
+// the block barrier runs.
+func (e *Engine) Sync(ctx context.Context) (bool, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/sync")
+	defer task.End()
+
+	e.rmtx.Lock()
+	defer e.rmtx.Unlock()
+	if e.closed {
+		return false, errors.New("world block engine is closed")
+	}
+
+	// block barrier: drain and fence every buffered block write durable.
+	fenced, err := e.root.GetBucket().Sync(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	// advance the durable head, ordered after the block barrier. Skipped in
+	// coordinator mode, where each commit already published the head.
+	if e.writeCoordinator == nil && e.commitFn != nil {
+		cur := e.root.GetRef()
+		if e.durableHeadRef == nil || !e.durableHeadRef.EqualsRef(cur) {
+			if err := e.commitFn(ctx, e.durableHeadRef, cur.Clone()); err != nil {
+				return false, err
+			}
+			e.durableHeadRef = cur.Clone()
+		}
+	}
+	return fenced, nil
 }
 
 // GetGCJournalEntries returns the number of pending GC journal entries.

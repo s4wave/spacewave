@@ -106,6 +106,37 @@ func (x GraphPathDirection) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// SyncRequest is the request type for Sync.
+type SyncRequest struct {
+	unknownFields []byte
+}
+
+func (x *SyncRequest) Reset() {
+	*x = SyncRequest{}
+}
+
+func (*SyncRequest) ProtoMessage() {}
+
+// SyncResponse is the response type for Sync.
+type SyncResponse struct {
+	unknownFields []byte
+	// Fenced indicates whether a durability fence was applied.
+	Fenced bool `protobuf:"varint,1,opt,name=fenced,proto3" json:"fenced,omitempty"`
+}
+
+func (x *SyncResponse) Reset() {
+	*x = SyncResponse{}
+}
+
+func (*SyncResponse) ProtoMessage() {}
+
+func (x *SyncResponse) GetFenced() bool {
+	if x != nil {
+		return x.Fenced
+	}
+	return false
+}
+
 // EngineInfo contains metadata about a world engine.
 type EngineInfo struct {
 	unknownFields []byte
@@ -2166,6 +2197,37 @@ func (x *TrackedWorldStateSnapshot_ObjectAccess) GetRev() uint64 {
 	return 0
 }
 
+func (m *SyncRequest) CloneVT() *SyncRequest {
+	if m == nil {
+		return (*SyncRequest)(nil)
+	}
+	r := new(SyncRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SyncRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SyncResponse) CloneVT() *SyncResponse {
+	if m == nil {
+		return (*SyncResponse)(nil)
+	}
+	r := new(SyncResponse)
+	r.Fenced = m.Fenced
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SyncResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *EngineInfo) CloneVT() *EngineInfo {
 	if m == nil {
 		return (*EngineInfo)(nil)
@@ -2219,10 +2281,12 @@ func (m *WorldRootSnapshot) CloneVT() *WorldRootSnapshot {
 		return (*WorldRootSnapshot)(nil)
 	}
 	r := new(WorldRootSnapshot)
-	r.RootRef = m.RootRef.CloneVT()
 	r.Seqno = m.Seqno
 	r.EngineInfo = m.EngineInfo.CloneVT()
 	r.StorageVolumeId = m.StorageVolumeId
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2364,7 +2428,9 @@ func (m *AccessWorldStateRequest) CloneVT() *AccessWorldStateRequest {
 		return (*AccessWorldStateRequest)(nil)
 	}
 	r := new(AccessWorldStateRequest)
-	r.Ref = m.Ref.CloneVT()
+	if rhs := m.Ref; rhs != nil {
+		r.Ref = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2519,7 +2585,9 @@ func (m *CreateObjectRequest) CloneVT() *CreateObjectRequest {
 	}
 	r := new(CreateObjectRequest)
 	r.ObjectKey = m.ObjectKey
-	r.RootRef = m.RootRef.CloneVT()
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2686,7 +2754,9 @@ func (m *SetGraphQuadRequest) CloneVT() *SetGraphQuadRequest {
 		return (*SetGraphQuadRequest)(nil)
 	}
 	r := new(SetGraphQuadRequest)
-	r.Quad = m.Quad.CloneVT()
+	if rhs := m.Quad; rhs != nil {
+		r.Quad = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2717,7 +2787,9 @@ func (m *DeleteGraphQuadRequest) CloneVT() *DeleteGraphQuadRequest {
 		return (*DeleteGraphQuadRequest)(nil)
 	}
 	r := new(DeleteGraphQuadRequest)
-	r.Quad = m.Quad.CloneVT()
+	if rhs := m.Quad; rhs != nil {
+		r.Quad = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2748,8 +2820,10 @@ func (m *LookupGraphQuadsRequest) CloneVT() *LookupGraphQuadsRequest {
 		return (*LookupGraphQuadsRequest)(nil)
 	}
 	r := new(LookupGraphQuadsRequest)
-	r.Filter = m.Filter.CloneVT()
 	r.Limit = m.Limit
+	if rhs := m.Filter; rhs != nil {
+		r.Filter = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2957,9 +3031,11 @@ func (m *ObjectRootRef) CloneVT() *ObjectRootRef {
 	}
 	r := new(ObjectRootRef)
 	r.ObjectKey = m.ObjectKey
-	r.RootRef = m.RootRef.CloneVT()
 	r.Rev = m.Rev
 	r.Exists = m.Exists
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3572,8 +3648,10 @@ func (m *GetRootRefResponse) CloneVT() *GetRootRefResponse {
 		return (*GetRootRefResponse)(nil)
 	}
 	r := new(GetRootRefResponse)
-	r.RootRef = m.RootRef.CloneVT()
 	r.Rev = m.Rev
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3589,7 +3667,9 @@ func (m *SetRootRefRequest) CloneVT() *SetRootRefRequest {
 		return (*SetRootRefRequest)(nil)
 	}
 	r := new(SetRootRefRequest)
-	r.RootRef = m.RootRef.CloneVT()
+	if rhs := m.RootRef; rhs != nil {
+		r.RootRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3748,6 +3828,43 @@ func (m *AccessTypedObjectResponse) CloneVT() *AccessTypedObjectResponse {
 
 func (m *AccessTypedObjectResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
+}
+
+func (this *SyncRequest) EqualVT(that *SyncRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SyncRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SyncRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SyncResponse) EqualVT(that *SyncResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Fenced != that.Fenced {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SyncResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SyncResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
 }
 
 func (this *EngineInfo) EqualVT(that *EngineInfo) bool {
@@ -5951,6 +6068,78 @@ func (x *GraphPathDirection) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the GraphPathDirection from JSON.
 func (x *GraphPathDirection) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SyncRequest message to JSON.
+func (x *SyncRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SyncRequest to JSON.
+func (x *SyncRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SyncRequest message from JSON.
+func (x *SyncRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the SyncRequest from JSON.
+func (x *SyncRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SyncResponse message to JSON.
+func (x *SyncResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Fenced || s.HasField("fenced") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("fenced")
+		s.WriteBool(x.Fenced)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SyncResponse to JSON.
+func (x *SyncResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SyncResponse message from JSON.
+func (x *SyncResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "fenced":
+			s.AddField("fenced")
+			x.Fenced = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SyncResponse from JSON.
+func (x *SyncResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -10232,6 +10421,82 @@ func (x *AccessTypedObjectResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+func (m *SyncRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SyncRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SyncRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SyncResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SyncResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SyncResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Fenced {
+		i--
+		if m.Fenced {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *EngineInfo) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -14187,6 +14452,29 @@ func (m *AccessTypedObjectResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	return len(dAtA) - i, nil
 }
 
+func (m *SyncRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SyncResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Fenced {
+		n += 2
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *EngineInfo) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -15561,6 +15849,35 @@ func (x GraphEdgeBucketDirection) MarshalProtoText() string {
 
 func (x GraphPathDirection) MarshalProtoText() string {
 	return x.String()
+}
+
+func (x *SyncRequest) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("SyncRequest {")
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *SyncRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SyncResponse) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("SyncResponse {")
+	if x.Fenced != false {
+		if sb.Len() > 14 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("fenced: ")
+		sb.WriteString(strconv.FormatBool(x.Fenced))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *SyncResponse) String() string {
+	return x.MarshalProtoText()
 }
 
 func (x *EngineInfo) MarshalProtoText() string {
@@ -17539,6 +17856,104 @@ func (x *AccessTypedObjectResponse) MarshalProtoText() string {
 
 func (x *AccessTypedObjectResponse) String() string {
 	return x.MarshalProtoText()
+}
+
+func (m *SyncRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SyncRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SyncRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SyncResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SyncResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SyncResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Fenced", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Fenced = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 
 func (m *EngineInfo) UnmarshalVT(dAtA []byte) error {

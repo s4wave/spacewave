@@ -117,6 +117,9 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 				// call the commit function if set
 				if commitErr == nil && e.engine.commitFn != nil {
 					commitErr = e.engine.commitFn(ctx, e.baseHeadRef, nextRootRef.Clone())
+					if commitErr == nil {
+						e.engine.durableHeadRef = nextRootRef.Clone()
+					}
 				}
 				if commitErr == nil {
 					commitErr = e.engine.setRootRefLocked(ctx, nextRootRef)
@@ -201,6 +204,11 @@ func (e *EngineTx) discardLocked() {
 // GetReadOnly returns if the state is read-only.
 func (e *EngineTx) GetReadOnly() bool {
 	return e.writeTx == nil
+}
+
+// Sync fences durable storage and advances the durable head via the engine.
+func (e *EngineTx) Sync(ctx context.Context) (bool, error) {
+	return e.engine.Sync(ctx)
 }
 
 // _ is a type assertion

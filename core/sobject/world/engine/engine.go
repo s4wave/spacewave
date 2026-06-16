@@ -275,6 +275,11 @@ func (e *soEngine) GetSeqno(ctx context.Context) (uint64, error) {
 	return e.bengine.GetSeqno(ctx)
 }
 
+// Sync fences durable storage and advances the durable head via the engine.
+func (e *soEngine) Sync(ctx context.Context) (bool, error) {
+	return e.bengine.Sync(ctx)
+}
+
 // WaitSeqno waits for the seqno of the world state to be >= value.
 // Returns the seqno when the condition is reached.
 // If value == 0, this might return immediately unconditionally.

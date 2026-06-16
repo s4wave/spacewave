@@ -64,6 +64,15 @@ func (e *SDKEngine) GetSeqno(ctx context.Context) (uint64, error) {
 	return resp.Seqno, nil
 }
 
+// Sync fences durable storage and advances the durable head via the engine.
+func (e *SDKEngine) Sync(ctx context.Context) (bool, error) {
+	resp, err := e.service.Sync(ctx, &s4wave_world.SyncRequest{})
+	if err != nil {
+		return false, err
+	}
+	return resp.GetFenced(), nil
+}
+
 // WaitSeqno waits for the world state sequence number to reach or exceed the specified value.
 func (e *SDKEngine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 	resp, err := e.service.WaitSeqno(ctx, &s4wave_world.WaitSeqnoRequest{Seqno: value})

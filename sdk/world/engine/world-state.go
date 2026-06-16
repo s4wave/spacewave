@@ -55,6 +55,15 @@ func (ws *SDKWorldState) GetSeqno(ctx context.Context) (uint64, error) {
 	return resp.Seqno, nil
 }
 
+// Sync fences the block writes made through this world state durable.
+func (ws *SDKWorldState) Sync(ctx context.Context) (bool, error) {
+	resp, err := ws.service.Sync(ctx, &s4wave_world.SyncRequest{})
+	if err != nil {
+		return false, err
+	}
+	return resp.GetFenced(), nil
+}
+
 // WaitSeqno waits for the world state sequence number to reach or exceed the specified value.
 func (ws *SDKWorldState) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 	resp, err := ws.service.WaitSeqno(ctx, &s4wave_world.WaitSeqnoRequest{Seqno: value})

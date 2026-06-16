@@ -145,6 +145,17 @@ func (t *WorldState) GetReadOnly() bool {
 	return !t.write
 }
 
+// Sync fences the block writes made through this state durable.
+// A bare world state fences only its block store; the durable head is advanced
+// by the owning Engine (see Engine.Sync). Returns (true, nil) when there is no
+// store to fence (read-only or coordinator-backed states).
+func (t *WorldState) Sync(ctx context.Context) (bool, error) {
+	if t.store == nil {
+		return true, nil
+	}
+	return t.store.Sync(ctx)
+}
+
 // SetBufferedStoreSettings overrides the BufferedStore settings used by the
 // underlying block Transaction during Commit. Pass nil to reset to defaults.
 // No-op if the world state has no write transaction.

@@ -143,6 +143,11 @@ func (t *TrackedWorldState) GetReadOnly() bool {
 	return t.ws.GetReadOnly()
 }
 
+// Sync fences the block writes made through the tracked world state durable.
+func (t *TrackedWorldState) Sync(ctx context.Context) (bool, error) {
+	return t.ws.Sync(ctx)
+}
+
 func (t *TrackedWorldState) GetSeqno(ctx context.Context) (uint64, error) {
 	return t.ws.GetSeqno(ctx)
 }

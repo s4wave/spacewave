@@ -13,6 +13,8 @@ service EngineResourceService {
 
   rpc NewTransaction(NewTransactionRequest) returns (NewTransactionResponse);
 
+  rpc Sync(SyncRequest) returns (SyncResponse);
+
   rpc GetSeqno(GetSeqnoRequest) returns (GetSeqnoResponse);
 
   rpc WaitSeqno(WaitSeqnoRequest) returns (WaitSeqnoResponse);
@@ -20,6 +22,15 @@ service EngineResourceService {
   rpc BuildStorageCursor(BuildStorageCursorRequest) returns (BuildStorageCursorResponse);
 
   rpc AccessWorldState(AccessWorldStateRequest) returns (AccessWorldStateResponse);
+}
+
+// SyncRequest is the request type for Sync.
+message SyncRequest {}
+
+// SyncResponse is the response type for Sync.
+message SyncResponse {
+  // Fenced indicates whether a durability fence was applied.
+  bool fenced = 1;
 }
 
 // EngineInfo contains metadata about a world engine.
@@ -107,6 +118,8 @@ message AccessWorldStateResponse {
 
 service WorldStateResourceService {
   rpc GetReadOnly(GetReadOnlyRequest) returns (GetReadOnlyResponse);
+
+  rpc Sync(SyncRequest) returns (SyncResponse);
 
   rpc GetSeqno(GetSeqnoRequest) returns (GetSeqnoResponse);
 

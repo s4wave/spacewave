@@ -106,6 +106,42 @@ export const GraphPathDirection_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * SyncRequest is the request type for Sync.
+ *
+ * @generated from message s4wave.world.SyncRequest
+ */
+export interface SyncRequest {}
+
+export const SyncRequest: MessageType<SyncRequest> =
+  /* @__PURE__ */ createEmptyMessageType<SyncRequest>(
+    's4wave.world.SyncRequest',
+    true,
+  )
+
+/**
+ * SyncResponse is the response type for Sync.
+ *
+ * @generated from message s4wave.world.SyncResponse
+ */
+export interface SyncResponse {
+  /**
+   * Fenced indicates whether a durability fence was applied.
+   *
+   * @generated from field: bool fenced = 1;
+   */
+  fenced?: boolean
+}
+
+export const SyncResponse: MessageType<SyncResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.SyncResponse',
+    fields: [
+      { no: 1, name: 'fenced', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * EngineInfo contains metadata about a world engine.
  *
  * @generated from message s4wave.world.EngineInfo

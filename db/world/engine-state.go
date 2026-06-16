@@ -26,6 +26,11 @@ func (e *engineWorldState) GetReadOnly() bool {
 	return !e.write
 }
 
+// Sync fences durable storage and advances the durable head via the engine.
+func (e *engineWorldState) Sync(ctx context.Context) (bool, error) {
+	return e.e.Sync(ctx)
+}
+
 // GetSeqno returns the current seqno of the world state.
 // This is also the sequence number of the most recent change.
 // Initializes at 0 for initial world state.

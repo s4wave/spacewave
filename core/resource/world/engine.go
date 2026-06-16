@@ -112,6 +112,15 @@ func (r *EngineResource) GetSeqno(ctx context.Context, req *s4wave_world.GetSeqn
 	return &s4wave_world.GetSeqnoResponse{Seqno: seqno}, nil
 }
 
+// Sync fences durable storage and advances the durable head via the engine.
+func (r *EngineResource) Sync(ctx context.Context, req *s4wave_world.SyncRequest) (*s4wave_world.SyncResponse, error) {
+	fenced, err := r.engine.Sync(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_world.SyncResponse{Fenced: fenced}, nil
+}
+
 // WaitSeqno waits for the seqno of the world state to be >= value.
 func (r *EngineResource) WaitSeqno(ctx context.Context, req *s4wave_world.WaitSeqnoRequest) (*s4wave_world.WaitSeqnoResponse, error) {
 	seqno, err := r.engine.WaitSeqno(ctx, req.GetSeqno())

@@ -30,6 +30,8 @@ pub trait EngineResourceServiceClient: Send + Sync {
     async fn watch_world_root_snapshots(&self, request: &WatchWorldRootSnapshotsRequest) -> starpc::Result<Box<dyn EngineResourceServiceWatchWorldRootSnapshotsStream>>;
     /// NewTransaction.
     async fn new_transaction(&self, request: &NewTransactionRequest) -> starpc::Result<NewTransactionResponse>;
+    /// Sync.
+    async fn sync(&self, request: &SyncRequest) -> starpc::Result<SyncResponse>;
     /// GetSeqno.
     async fn get_seqno(&self, request: &GetSeqnoRequest) -> starpc::Result<GetSeqnoResponse>;
     /// WaitSeqno.
@@ -69,6 +71,9 @@ impl<C: starpc::Client + 'static> EngineResourceServiceClient for EngineResource
     }
     async fn new_transaction(&self, request: &NewTransactionRequest) -> starpc::Result<NewTransactionResponse> {
         self.client.exec_call("s4wave.world.EngineResourceService", "NewTransaction", request).await
+    }
+    async fn sync(&self, request: &SyncRequest) -> starpc::Result<SyncResponse> {
+        self.client.exec_call("s4wave.world.EngineResourceService", "Sync", request).await
     }
     async fn get_seqno(&self, request: &GetSeqnoRequest) -> starpc::Result<GetSeqnoResponse> {
         self.client.exec_call("s4wave.world.EngineResourceService", "GetSeqno", request).await
@@ -112,6 +117,8 @@ pub trait EngineResourceServiceServer: Send + Sync {
     async fn watch_world_root_snapshots(&self, request: WatchWorldRootSnapshotsRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// NewTransaction.
     async fn new_transaction(&self, request: NewTransactionRequest) -> starpc::Result<NewTransactionResponse>;
+    /// Sync.
+    async fn sync(&self, request: SyncRequest) -> starpc::Result<SyncResponse>;
     /// GetSeqno.
     async fn get_seqno(&self, request: GetSeqnoRequest) -> starpc::Result<GetSeqnoResponse>;
     /// WaitSeqno.
@@ -127,6 +134,7 @@ const ENGINE_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "GetWorldRootSnapshot",
     "WatchWorldRootSnapshots",
     "NewTransaction",
+    "Sync",
     "GetSeqno",
     "WaitSeqno",
     "BuildStorageCursor",
@@ -202,6 +210,21 @@ impl<S: EngineResourceServiceServer + 'static> starpc::Invoker for EngineResourc
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.new_transaction(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "Sync" => {
+                let request: SyncRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.sync(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));
@@ -294,6 +317,8 @@ pub const WORLD_STATE_RESOURCE_SERVICE_SERVICE_ID: &str = "s4wave.world.WorldSta
 pub trait WorldStateResourceServiceClient: Send + Sync {
     /// GetReadOnly.
     async fn get_read_only(&self, request: &GetReadOnlyRequest) -> starpc::Result<GetReadOnlyResponse>;
+    /// Sync.
+    async fn sync(&self, request: &SyncRequest) -> starpc::Result<SyncResponse>;
     /// GetSeqno.
     async fn get_seqno(&self, request: &GetSeqnoRequest) -> starpc::Result<GetSeqnoResponse>;
     /// WaitSeqno.
@@ -352,6 +377,9 @@ impl<C: starpc::Client> WorldStateResourceServiceClientImpl<C> {
 impl<C: starpc::Client + 'static> WorldStateResourceServiceClient for WorldStateResourceServiceClientImpl<C> {
     async fn get_read_only(&self, request: &GetReadOnlyRequest) -> starpc::Result<GetReadOnlyResponse> {
         self.client.exec_call("s4wave.world.WorldStateResourceService", "GetReadOnly", request).await
+    }
+    async fn sync(&self, request: &SyncRequest) -> starpc::Result<SyncResponse> {
+        self.client.exec_call("s4wave.world.WorldStateResourceService", "Sync", request).await
     }
     async fn get_seqno(&self, request: &GetSeqnoRequest) -> starpc::Result<GetSeqnoResponse> {
         self.client.exec_call("s4wave.world.WorldStateResourceService", "GetSeqno", request).await
@@ -420,6 +448,8 @@ impl<C: starpc::Client + 'static> WorldStateResourceServiceClient for WorldState
 pub trait WorldStateResourceServiceServer: Send + Sync {
     /// GetReadOnly.
     async fn get_read_only(&self, request: GetReadOnlyRequest) -> starpc::Result<GetReadOnlyResponse>;
+    /// Sync.
+    async fn sync(&self, request: SyncRequest) -> starpc::Result<SyncResponse>;
     /// GetSeqno.
     async fn get_seqno(&self, request: GetSeqnoRequest) -> starpc::Result<GetSeqnoResponse>;
     /// WaitSeqno.
@@ -464,6 +494,7 @@ pub trait WorldStateResourceServiceServer: Send + Sync {
 
 const WORLD_STATE_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "GetReadOnly",
+    "Sync",
     "GetSeqno",
     "WaitSeqno",
     "BuildStorageCursor",
@@ -518,6 +549,21 @@ impl<S: WorldStateResourceServiceServer + 'static> starpc::Invoker for WorldStat
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.get_read_only(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "Sync" => {
+                let request: SyncRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.sync(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

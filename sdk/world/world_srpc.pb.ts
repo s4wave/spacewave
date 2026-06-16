@@ -78,6 +78,8 @@ import {
   SetGraphQuadResponse,
   SetRootRefRequest,
   SetRootRefResponse,
+  SyncRequest,
+  SyncResponse,
   ValidRequest,
   ValidResponse,
   WaitRevRequest,
@@ -132,6 +134,15 @@ export const EngineResourceServiceDefinition = {
       name: 'NewTransaction',
       I: NewTransactionRequest,
       O: NewTransactionResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.world.EngineResourceService.Sync
+     */
+    Sync: {
+      name: 'Sync',
+      I: SyncRequest,
+      O: SyncResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -210,6 +221,11 @@ export interface EngineResourceService {
   ): Promise<NewTransactionResponse>
 
   /**
+   * @generated from rpc s4wave.world.EngineResourceService.Sync
+   */
+  Sync(request: SyncRequest, abortSignal?: AbortSignal): Promise<SyncResponse>
+
+  /**
    * @generated from rpc s4wave.world.EngineResourceService.GetSeqno
    */
   GetSeqno(
@@ -255,6 +271,7 @@ export class EngineResourceServiceClient implements EngineResourceService {
     this.GetWorldRootSnapshot = this.GetWorldRootSnapshot.bind(this)
     this.WatchWorldRootSnapshots = this.WatchWorldRootSnapshots.bind(this)
     this.NewTransaction = this.NewTransaction.bind(this)
+    this.Sync = this.Sync.bind(this)
     this.GetSeqno = this.GetSeqno.bind(this)
     this.WaitSeqno = this.WaitSeqno.bind(this)
     this.BuildStorageCursor = this.BuildStorageCursor.bind(this)
@@ -326,6 +343,23 @@ export class EngineResourceServiceClient implements EngineResourceService {
       abortSignal || undefined,
     )
     return NewTransactionResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.world.EngineResourceService.Sync
+   */
+  async Sync(
+    request: SyncRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SyncResponse> {
+    const requestMsg = SyncRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      EngineResourceServiceDefinition.methods.Sync.name,
+      SyncRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SyncResponse.fromBinary(result)
   }
 
   /**
@@ -409,6 +443,15 @@ export const WorldStateResourceServiceDefinition = {
       name: 'GetReadOnly',
       I: GetReadOnlyRequest,
       O: GetReadOnlyResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.world.WorldStateResourceService.Sync
+     */
+    Sync: {
+      name: 'Sync',
+      I: SyncRequest,
+      O: SyncResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -607,6 +650,11 @@ export interface WorldStateResourceService {
   ): Promise<GetReadOnlyResponse>
 
   /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.Sync
+   */
+  Sync(request: SyncRequest, abortSignal?: AbortSignal): Promise<SyncResponse>
+
+  /**
    * @generated from rpc s4wave.world.WorldStateResourceService.GetSeqno
    */
   GetSeqno(
@@ -777,6 +825,7 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
     this.service = opts?.service || WorldStateResourceServiceServiceName
     this.rpc = rpc
     this.GetReadOnly = this.GetReadOnly.bind(this)
+    this.Sync = this.Sync.bind(this)
     this.GetSeqno = this.GetSeqno.bind(this)
     this.WaitSeqno = this.WaitSeqno.bind(this)
     this.BuildStorageCursor = this.BuildStorageCursor.bind(this)
@@ -813,6 +862,23 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
       abortSignal || undefined,
     )
     return GetReadOnlyResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.Sync
+   */
+  async Sync(
+    request: SyncRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SyncResponse> {
+    const requestMsg = SyncRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WorldStateResourceServiceDefinition.methods.Sync.name,
+      SyncRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SyncResponse.fromBinary(result)
   }
 
   /**

@@ -94,6 +94,15 @@ func (r *WorldStateResource) GetReadOnly(ctx context.Context, req *s4wave_world.
 	return &s4wave_world.GetReadOnlyResponse{ReadOnly: r.ws.GetReadOnly()}, nil
 }
 
+// Sync fences the block writes made through this world state durable.
+func (r *WorldStateResource) Sync(ctx context.Context, req *s4wave_world.SyncRequest) (*s4wave_world.SyncResponse, error) {
+	fenced, err := r.ws.Sync(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_world.SyncResponse{Fenced: fenced}, nil
+}
+
 // GetSeqno returns the current seqno of the world state.
 func (r *WorldStateResource) GetSeqno(ctx context.Context, req *s4wave_world.GetSeqnoRequest) (*s4wave_world.GetSeqnoResponse, error) {
 	seqno, err := r.ws.GetSeqno(ctx)

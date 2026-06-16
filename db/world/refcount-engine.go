@@ -69,6 +69,17 @@ func (e *RefCountEngine) NewTransaction(ctx context.Context, write bool) (Tx, er
 	return NewRefCountTx(tx, ref), nil
 }
 
+// Sync fences durable storage and advances the durable head via the engine.
+func (e *RefCountEngine) Sync(ctx context.Context) (bool, error) {
+	var fenced bool
+	err := e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
+		var err error
+		fenced, err = (*val).Sync(ctx)
+		return err
+	})
+	return fenced, err
+}
+
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.
 // The cursor should be released independently of the WorldState.
 // Be sure to call Release on the cursor when done.

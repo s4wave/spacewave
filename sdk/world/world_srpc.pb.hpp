@@ -39,6 +39,8 @@ class SRPCEngineResourceServiceClient {
   virtual std::pair<std::unique_ptr<SRPCEngineResourceService_WatchWorldRootSnapshotsClient>, starpc::Error> WatchWorldRootSnapshots(const s4wave::world::WatchWorldRootSnapshotsRequest& in) = 0;
   // NewTransaction
   virtual starpc::Error NewTransaction(const s4wave::world::NewTransactionRequest& in, s4wave::world::NewTransactionResponse* out) = 0;
+  // Sync
+  virtual starpc::Error Sync(const s4wave::world::SyncRequest& in, s4wave::world::SyncResponse* out) = 0;
   // GetSeqno
   virtual starpc::Error GetSeqno(const s4wave::world::GetSeqnoRequest& in, s4wave::world::GetSeqnoResponse* out) = 0;
   // WaitSeqno
@@ -65,6 +67,8 @@ class SRPCEngineResourceServiceClientImpl : public SRPCEngineResourceServiceClie
   virtual std::pair<std::unique_ptr<SRPCEngineResourceService_WatchWorldRootSnapshotsClient>, starpc::Error> WatchWorldRootSnapshots(const s4wave::world::WatchWorldRootSnapshotsRequest& in) override;
   // NewTransaction
   virtual starpc::Error NewTransaction(const s4wave::world::NewTransactionRequest& in, s4wave::world::NewTransactionResponse* out) override;
+  // Sync
+  virtual starpc::Error Sync(const s4wave::world::SyncRequest& in, s4wave::world::SyncResponse* out) override;
   // GetSeqno
   virtual starpc::Error GetSeqno(const s4wave::world::GetSeqnoRequest& in, s4wave::world::GetSeqnoResponse* out) override;
   // WaitSeqno
@@ -97,6 +101,8 @@ class SRPCEngineResourceServiceServer {
   virtual starpc::Error WatchWorldRootSnapshots(const s4wave::world::WatchWorldRootSnapshotsRequest& req, SRPCEngineResourceService_WatchWorldRootSnapshotsStream* strm) = 0;
   // NewTransaction
   virtual starpc::Error NewTransaction(const s4wave::world::NewTransactionRequest& req, s4wave::world::NewTransactionResponse* resp) = 0;
+  // Sync
+  virtual starpc::Error Sync(const s4wave::world::SyncRequest& req, s4wave::world::SyncResponse* resp) = 0;
   // GetSeqno
   virtual starpc::Error GetSeqno(const s4wave::world::GetSeqnoRequest& req, s4wave::world::GetSeqnoResponse* resp) = 0;
   // WaitSeqno
@@ -190,6 +196,8 @@ class SRPCWorldStateResourceServiceClient {
 
   // GetReadOnly
   virtual starpc::Error GetReadOnly(const s4wave::world::GetReadOnlyRequest& in, s4wave::world::GetReadOnlyResponse* out) = 0;
+  // Sync
+  virtual starpc::Error Sync(const s4wave::world::SyncRequest& in, s4wave::world::SyncResponse* out) = 0;
   // GetSeqno
   virtual starpc::Error GetSeqno(const s4wave::world::GetSeqnoRequest& in, s4wave::world::GetSeqnoResponse* out) = 0;
   // WaitSeqno
@@ -242,6 +250,8 @@ class SRPCWorldStateResourceServiceClientImpl : public SRPCWorldStateResourceSer
 
   // GetReadOnly
   virtual starpc::Error GetReadOnly(const s4wave::world::GetReadOnlyRequest& in, s4wave::world::GetReadOnlyResponse* out) override;
+  // Sync
+  virtual starpc::Error Sync(const s4wave::world::SyncRequest& in, s4wave::world::SyncResponse* out) override;
   // GetSeqno
   virtual starpc::Error GetSeqno(const s4wave::world::GetSeqnoRequest& in, s4wave::world::GetSeqnoResponse* out) override;
   // WaitSeqno
@@ -300,6 +310,8 @@ class SRPCWorldStateResourceServiceServer {
 
   // GetReadOnly
   virtual starpc::Error GetReadOnly(const s4wave::world::GetReadOnlyRequest& req, s4wave::world::GetReadOnlyResponse* resp) = 0;
+  // Sync
+  virtual starpc::Error Sync(const s4wave::world::SyncRequest& req, s4wave::world::SyncResponse* resp) = 0;
   // GetSeqno
   virtual starpc::Error GetSeqno(const s4wave::world::GetSeqnoRequest& req, s4wave::world::GetSeqnoResponse* resp) = 0;
   // WaitSeqno

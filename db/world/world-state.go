@@ -57,6 +57,12 @@ type WorldState interface {
 	// GetReadOnly returns if the state is read-only.
 	GetReadOnly() bool
 
+	// Sync fences the block writes made through this state durable.
+	// Returns true if a durability fence was applied, false if the underlying
+	// store is always-durable. Advancing the durable head is the Engine's
+	// responsibility (see Engine.Sync); a bare WorldState only fences blocks.
+	Sync(ctx context.Context) (bool, error)
+
 	// WorldStorage accesses the world storage.
 	WorldStorage
 	// WorldStateObject contains the object APIs

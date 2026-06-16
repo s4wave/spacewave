@@ -262,6 +262,49 @@ struct TrackedWorldStateSnapshot_ObjectAccessDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TrackedWorldStateSnapshot_ObjectAccessDefaultTypeInternal _TrackedWorldStateSnapshot_ObjectAccess_default_instance_;
 
+inline constexpr SyncResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        fenced_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SyncResponse::SyncResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SyncResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SyncResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SyncResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SyncResponseDefaultTypeInternal() {}
+  union {
+    SyncResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SyncResponseDefaultTypeInternal _SyncResponse_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR SyncRequest::SyncRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(SyncRequest_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct SyncRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SyncRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SyncRequestDefaultTypeInternal() {}
+  union {
+    SyncRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SyncRequestDefaultTypeInternal _SyncRequest_default_instance_;
+
 inline constexpr SetRootRefResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -2288,6 +2331,12 @@ static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULL
 const ::uint32_t
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
+        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::SyncResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::SyncResponse, _impl_.fenced_),
+        0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::world::EngineInfo, _impl_._has_bits_),
         5, // hasbit index offset
@@ -2743,101 +2792,105 @@ const ::uint32_t
 
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
-        {0, sizeof(::s4wave::world::EngineInfo)},
-        {7, sizeof(::s4wave::world::GetEngineInfoRequest)},
-        {8, sizeof(::s4wave::world::GetEngineInfoResponse)},
-        {13, sizeof(::s4wave::world::WorldRootSnapshot)},
-        {24, sizeof(::s4wave::world::GetWorldRootSnapshotRequest)},
-        {25, sizeof(::s4wave::world::WatchWorldRootSnapshotsRequest)},
-        {26, sizeof(::s4wave::world::NewTransactionRequest)},
-        {31, sizeof(::s4wave::world::NewTransactionResponse)},
-        {38, sizeof(::s4wave::world::GetSeqnoRequest)},
-        {39, sizeof(::s4wave::world::GetSeqnoResponse)},
-        {44, sizeof(::s4wave::world::WaitSeqnoRequest)},
-        {49, sizeof(::s4wave::world::WaitSeqnoResponse)},
-        {54, sizeof(::s4wave::world::AccessWorldStateRequest)},
-        {59, sizeof(::s4wave::world::AccessWorldStateResponse)},
-        {64, sizeof(::s4wave::world::CommitRequest)},
-        {65, sizeof(::s4wave::world::CommitResponse)},
-        {66, sizeof(::s4wave::world::DiscardRequest)},
-        {67, sizeof(::s4wave::world::DiscardResponse)},
-        {68, sizeof(::s4wave::world::GetReadOnlyRequest)},
-        {69, sizeof(::s4wave::world::GetReadOnlyResponse)},
-        {74, sizeof(::s4wave::world::BuildStorageCursorRequest)},
-        {75, sizeof(::s4wave::world::BuildStorageCursorResponse)},
-        {80, sizeof(::s4wave::world::CreateObjectRequest)},
-        {87, sizeof(::s4wave::world::CreateObjectResponse)},
-        {94, sizeof(::s4wave::world::GetObjectRequest)},
-        {99, sizeof(::s4wave::world::GetObjectResponse)},
-        {108, sizeof(::s4wave::world::RenameObjectRequest)},
-        {117, sizeof(::s4wave::world::RenameObjectResponse)},
-        {124, sizeof(::s4wave::world::DeleteObjectRequest)},
-        {129, sizeof(::s4wave::world::DeleteObjectResponse)},
-        {134, sizeof(::s4wave::world::IterateObjectsRequest)},
-        {141, sizeof(::s4wave::world::IterateObjectsResponse)},
-        {146, sizeof(::s4wave::world::SetGraphQuadRequest)},
-        {151, sizeof(::s4wave::world::SetGraphQuadResponse)},
-        {152, sizeof(::s4wave::world::DeleteGraphQuadRequest)},
-        {157, sizeof(::s4wave::world::DeleteGraphQuadResponse)},
-        {158, sizeof(::s4wave::world::LookupGraphQuadsRequest)},
-        {165, sizeof(::s4wave::world::LookupGraphQuadsResponse)},
-        {170, sizeof(::s4wave::world::LookupGraphQuadsBatchRequest)},
-        {177, sizeof(::s4wave::world::LookupGraphQuadsBatchResult)},
-        {182, sizeof(::s4wave::world::LookupGraphQuadsBatchResponse)},
-        {187, sizeof(::s4wave::world::ListGraphEdgeBucketsRequest)},
-        {198, sizeof(::s4wave::world::GraphEdgeBucket)},
-        {211, sizeof(::s4wave::world::ListGraphEdgeBucketsResponse)},
-        {216, sizeof(::s4wave::world::ListObjectsWithTypeRequest)},
-        {221, sizeof(::s4wave::world::ListObjectsWithTypeResponse)},
-        {226, sizeof(::s4wave::world::ObjectRootRef)},
-        {237, sizeof(::s4wave::world::GetObjectRootRefsBatchRequest)},
-        {242, sizeof(::s4wave::world::GetObjectRootRefsBatchResponse)},
-        {247, sizeof(::s4wave::world::ObjectMetadata)},
-        {256, sizeof(::s4wave::world::GetObjectMetadataBatchRequest)},
-        {261, sizeof(::s4wave::world::GetObjectMetadataBatchResponse)},
-        {266, sizeof(::s4wave::world::GraphPathStep)},
-        {275, sizeof(::s4wave::world::QueryGraphPathRequest)},
-        {288, sizeof(::s4wave::world::QueryGraphPathResponse)},
-        {293, sizeof(::s4wave::world::DeleteGraphObjectRequest)},
-        {298, sizeof(::s4wave::world::DeleteGraphObjectResponse)},
-        {299, sizeof(::s4wave::world::ApplyWorldOpRequest)},
-        {308, sizeof(::s4wave::world::ApplyWorldOpResponse)},
-        {315, sizeof(::s4wave::world::WatchWorldStateRequest)},
-        {316, sizeof(::s4wave::world::WatchWorldStateResponse)},
-        {321, sizeof(::s4wave::world::TrackedWorldStateSnapshot_ObjectAccess)},
-        {328, sizeof(::s4wave::world::TrackedWorldStateSnapshot)},
-        {337, sizeof(::s4wave::world::ErrRequest)},
-        {338, sizeof(::s4wave::world::ErrResponse)},
-        {343, sizeof(::s4wave::world::ValidRequest)},
-        {344, sizeof(::s4wave::world::ValidResponse)},
-        {349, sizeof(::s4wave::world::KeyRequest)},
-        {350, sizeof(::s4wave::world::KeyResponse)},
-        {355, sizeof(::s4wave::world::NextRequest)},
-        {356, sizeof(::s4wave::world::NextResponse)},
-        {361, sizeof(::s4wave::world::SeekRequest)},
-        {366, sizeof(::s4wave::world::SeekResponse)},
-        {367, sizeof(::s4wave::world::CloseRequest)},
-        {368, sizeof(::s4wave::world::CloseResponse)},
-        {369, sizeof(::s4wave::world::NextGraphPathQueryRequest)},
-        {370, sizeof(::s4wave::world::NextGraphPathQueryResponse)},
-        {379, sizeof(::s4wave::world::CloseGraphPathQueryRequest)},
-        {380, sizeof(::s4wave::world::CloseGraphPathQueryResponse)},
-        {381, sizeof(::s4wave::world::GetKeyRequest)},
-        {382, sizeof(::s4wave::world::GetKeyResponse)},
-        {387, sizeof(::s4wave::world::GetRootRefRequest)},
-        {388, sizeof(::s4wave::world::GetRootRefResponse)},
-        {395, sizeof(::s4wave::world::SetRootRefRequest)},
-        {400, sizeof(::s4wave::world::SetRootRefResponse)},
-        {405, sizeof(::s4wave::world::ApplyObjectOpRequest)},
-        {414, sizeof(::s4wave::world::ApplyObjectOpResponse)},
-        {421, sizeof(::s4wave::world::IncrementRevRequest)},
-        {422, sizeof(::s4wave::world::IncrementRevResponse)},
-        {427, sizeof(::s4wave::world::WaitRevRequest)},
-        {434, sizeof(::s4wave::world::WaitRevResponse)},
-        {439, sizeof(::s4wave::world::AccessTypedObjectRequest)},
-        {444, sizeof(::s4wave::world::AccessTypedObjectResponse)},
+        {0, sizeof(::s4wave::world::SyncRequest)},
+        {1, sizeof(::s4wave::world::SyncResponse)},
+        {6, sizeof(::s4wave::world::EngineInfo)},
+        {13, sizeof(::s4wave::world::GetEngineInfoRequest)},
+        {14, sizeof(::s4wave::world::GetEngineInfoResponse)},
+        {19, sizeof(::s4wave::world::WorldRootSnapshot)},
+        {30, sizeof(::s4wave::world::GetWorldRootSnapshotRequest)},
+        {31, sizeof(::s4wave::world::WatchWorldRootSnapshotsRequest)},
+        {32, sizeof(::s4wave::world::NewTransactionRequest)},
+        {37, sizeof(::s4wave::world::NewTransactionResponse)},
+        {44, sizeof(::s4wave::world::GetSeqnoRequest)},
+        {45, sizeof(::s4wave::world::GetSeqnoResponse)},
+        {50, sizeof(::s4wave::world::WaitSeqnoRequest)},
+        {55, sizeof(::s4wave::world::WaitSeqnoResponse)},
+        {60, sizeof(::s4wave::world::AccessWorldStateRequest)},
+        {65, sizeof(::s4wave::world::AccessWorldStateResponse)},
+        {70, sizeof(::s4wave::world::CommitRequest)},
+        {71, sizeof(::s4wave::world::CommitResponse)},
+        {72, sizeof(::s4wave::world::DiscardRequest)},
+        {73, sizeof(::s4wave::world::DiscardResponse)},
+        {74, sizeof(::s4wave::world::GetReadOnlyRequest)},
+        {75, sizeof(::s4wave::world::GetReadOnlyResponse)},
+        {80, sizeof(::s4wave::world::BuildStorageCursorRequest)},
+        {81, sizeof(::s4wave::world::BuildStorageCursorResponse)},
+        {86, sizeof(::s4wave::world::CreateObjectRequest)},
+        {93, sizeof(::s4wave::world::CreateObjectResponse)},
+        {100, sizeof(::s4wave::world::GetObjectRequest)},
+        {105, sizeof(::s4wave::world::GetObjectResponse)},
+        {114, sizeof(::s4wave::world::RenameObjectRequest)},
+        {123, sizeof(::s4wave::world::RenameObjectResponse)},
+        {130, sizeof(::s4wave::world::DeleteObjectRequest)},
+        {135, sizeof(::s4wave::world::DeleteObjectResponse)},
+        {140, sizeof(::s4wave::world::IterateObjectsRequest)},
+        {147, sizeof(::s4wave::world::IterateObjectsResponse)},
+        {152, sizeof(::s4wave::world::SetGraphQuadRequest)},
+        {157, sizeof(::s4wave::world::SetGraphQuadResponse)},
+        {158, sizeof(::s4wave::world::DeleteGraphQuadRequest)},
+        {163, sizeof(::s4wave::world::DeleteGraphQuadResponse)},
+        {164, sizeof(::s4wave::world::LookupGraphQuadsRequest)},
+        {171, sizeof(::s4wave::world::LookupGraphQuadsResponse)},
+        {176, sizeof(::s4wave::world::LookupGraphQuadsBatchRequest)},
+        {183, sizeof(::s4wave::world::LookupGraphQuadsBatchResult)},
+        {188, sizeof(::s4wave::world::LookupGraphQuadsBatchResponse)},
+        {193, sizeof(::s4wave::world::ListGraphEdgeBucketsRequest)},
+        {204, sizeof(::s4wave::world::GraphEdgeBucket)},
+        {217, sizeof(::s4wave::world::ListGraphEdgeBucketsResponse)},
+        {222, sizeof(::s4wave::world::ListObjectsWithTypeRequest)},
+        {227, sizeof(::s4wave::world::ListObjectsWithTypeResponse)},
+        {232, sizeof(::s4wave::world::ObjectRootRef)},
+        {243, sizeof(::s4wave::world::GetObjectRootRefsBatchRequest)},
+        {248, sizeof(::s4wave::world::GetObjectRootRefsBatchResponse)},
+        {253, sizeof(::s4wave::world::ObjectMetadata)},
+        {262, sizeof(::s4wave::world::GetObjectMetadataBatchRequest)},
+        {267, sizeof(::s4wave::world::GetObjectMetadataBatchResponse)},
+        {272, sizeof(::s4wave::world::GraphPathStep)},
+        {281, sizeof(::s4wave::world::QueryGraphPathRequest)},
+        {294, sizeof(::s4wave::world::QueryGraphPathResponse)},
+        {299, sizeof(::s4wave::world::DeleteGraphObjectRequest)},
+        {304, sizeof(::s4wave::world::DeleteGraphObjectResponse)},
+        {305, sizeof(::s4wave::world::ApplyWorldOpRequest)},
+        {314, sizeof(::s4wave::world::ApplyWorldOpResponse)},
+        {321, sizeof(::s4wave::world::WatchWorldStateRequest)},
+        {322, sizeof(::s4wave::world::WatchWorldStateResponse)},
+        {327, sizeof(::s4wave::world::TrackedWorldStateSnapshot_ObjectAccess)},
+        {334, sizeof(::s4wave::world::TrackedWorldStateSnapshot)},
+        {343, sizeof(::s4wave::world::ErrRequest)},
+        {344, sizeof(::s4wave::world::ErrResponse)},
+        {349, sizeof(::s4wave::world::ValidRequest)},
+        {350, sizeof(::s4wave::world::ValidResponse)},
+        {355, sizeof(::s4wave::world::KeyRequest)},
+        {356, sizeof(::s4wave::world::KeyResponse)},
+        {361, sizeof(::s4wave::world::NextRequest)},
+        {362, sizeof(::s4wave::world::NextResponse)},
+        {367, sizeof(::s4wave::world::SeekRequest)},
+        {372, sizeof(::s4wave::world::SeekResponse)},
+        {373, sizeof(::s4wave::world::CloseRequest)},
+        {374, sizeof(::s4wave::world::CloseResponse)},
+        {375, sizeof(::s4wave::world::NextGraphPathQueryRequest)},
+        {376, sizeof(::s4wave::world::NextGraphPathQueryResponse)},
+        {385, sizeof(::s4wave::world::CloseGraphPathQueryRequest)},
+        {386, sizeof(::s4wave::world::CloseGraphPathQueryResponse)},
+        {387, sizeof(::s4wave::world::GetKeyRequest)},
+        {388, sizeof(::s4wave::world::GetKeyResponse)},
+        {393, sizeof(::s4wave::world::GetRootRefRequest)},
+        {394, sizeof(::s4wave::world::GetRootRefResponse)},
+        {401, sizeof(::s4wave::world::SetRootRefRequest)},
+        {406, sizeof(::s4wave::world::SetRootRefResponse)},
+        {411, sizeof(::s4wave::world::ApplyObjectOpRequest)},
+        {420, sizeof(::s4wave::world::ApplyObjectOpResponse)},
+        {427, sizeof(::s4wave::world::IncrementRevRequest)},
+        {428, sizeof(::s4wave::world::IncrementRevResponse)},
+        {433, sizeof(::s4wave::world::WaitRevRequest)},
+        {440, sizeof(::s4wave::world::WaitRevResponse)},
+        {445, sizeof(::s4wave::world::AccessTypedObjectRequest)},
+        {450, sizeof(::s4wave::world::AccessTypedObjectResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
+    &::s4wave::world::_SyncRequest_default_instance_._instance,
+    &::s4wave::world::_SyncResponse_default_instance_._instance,
     &::s4wave::world::_EngineInfo_default_instance_._instance,
     &::s4wave::world::_GetEngineInfoRequest_default_instance_._instance,
     &::s4wave::world::_GetEngineInfoResponse_default_instance_._instance,
@@ -2938,249 +2991,254 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fw
     "world.proto\022\014s4wave.world\0322github.com/s4"
     "wave/spacewave/db/bucket/bucket.proto\0324g"
     "ithub.com/s4wave/spacewave/db/block/quad"
-    "/quad.proto\"2\n\nEngineInfo\022\021\n\tengine_id\030\001"
-    " \001(\t\022\021\n\tbucket_id\030\002 \001(\t\"\026\n\024GetEngineInfo"
-    "Request\"F\n\025GetEngineInfoResponse\022-\n\013engi"
-    "ne_info\030\001 \001(\0132\030.s4wave.world.EngineInfo\""
-    "\221\001\n\021WorldRootSnapshot\022#\n\010root_ref\030\001 \001(\0132"
-    "\021.bucket.ObjectRef\022\r\n\005seqno\030\002 \001(\004\022-\n\013eng"
-    "ine_info\030\003 \001(\0132\030.s4wave.world.EngineInfo"
-    "\022\031\n\021storage_volume_id\030\004 \001(\t\"\035\n\033GetWorldR"
-    "ootSnapshotRequest\" \n\036WatchWorldRootSnap"
-    "shotsRequest\"&\n\025NewTransactionRequest\022\r\n"
-    "\005write\030\001 \001(\010\"@\n\026NewTransactionResponse\022\023"
-    "\n\013resource_id\030\001 \001(\r\022\021\n\tread_only\030\002 \001(\010\"\021"
-    "\n\017GetSeqnoRequest\"!\n\020GetSeqnoResponse\022\r\n"
-    "\005seqno\030\001 \001(\004\"!\n\020WaitSeqnoRequest\022\r\n\005seqn"
-    "o\030\001 \001(\004\"\"\n\021WaitSeqnoResponse\022\r\n\005seqno\030\001 "
-    "\001(\004\"9\n\027AccessWorldStateRequest\022\036\n\003ref\030\001 "
-    "\001(\0132\021.bucket.ObjectRef\"/\n\030AccessWorldSta"
-    "teResponse\022\023\n\013resource_id\030\001 \001(\r\"\017\n\rCommi"
-    "tRequest\"\020\n\016CommitResponse\"\020\n\016DiscardReq"
-    "uest\"\021\n\017DiscardResponse\"\024\n\022GetReadOnlyRe"
-    "quest\"(\n\023GetReadOnlyResponse\022\021\n\tread_onl"
-    "y\030\001 \001(\010\"\033\n\031BuildStorageCursorRequest\"1\n\032"
-    "BuildStorageCursorResponse\022\023\n\013resource_i"
-    "d\030\001 \001(\r\"N\n\023CreateObjectRequest\022\022\n\nobject"
-    "_key\030\001 \001(\t\022#\n\010root_ref\030\002 \001(\0132\021.bucket.Ob"
-    "jectRef\"\?\n\024CreateObjectResponse\022\023\n\013resou"
-    "rce_id\030\001 \001(\r\022\022\n\nobject_key\030\002 \001(\t\"&\n\020GetO"
-    "bjectRequest\022\022\n\nobject_key\030\001 \001(\t\"K\n\021GetO"
-    "bjectResponse\022\r\n\005found\030\001 \001(\010\022\023\n\013resource"
-    "_id\030\002 \001(\r\022\022\n\nobject_key\030\003 \001(\t\"Z\n\023RenameO"
-    "bjectRequest\022\026\n\016old_object_key\030\001 \001(\t\022\026\n\016"
-    "new_object_key\030\002 \001(\t\022\023\n\013descendants\030\003 \001("
-    "\010\"\?\n\024RenameObjectResponse\022\023\n\013resource_id"
-    "\030\001 \001(\r\022\022\n\nobject_key\030\002 \001(\t\")\n\023DeleteObje"
-    "ctRequest\022\022\n\nobject_key\030\001 \001(\t\"\'\n\024DeleteO"
-    "bjectResponse\022\017\n\007deleted\030\001 \001(\010\"9\n\025Iterat"
-    "eObjectsRequest\022\016\n\006prefix\030\001 \001(\t\022\020\n\010rever"
-    "sed\030\002 \001(\010\"-\n\026IterateObjectsResponse\022\023\n\013r"
-    "esource_id\030\001 \001(\r\"/\n\023SetGraphQuadRequest\022"
-    "\030\n\004quad\030\001 \001(\0132\n.quad.Quad\"\026\n\024SetGraphQua"
-    "dResponse\"2\n\026DeleteGraphQuadRequest\022\030\n\004q"
-    "uad\030\001 \001(\0132\n.quad.Quad\"\031\n\027DeleteGraphQuad"
-    "Response\"D\n\027LookupGraphQuadsRequest\022\032\n\006f"
-    "ilter\030\001 \001(\0132\n.quad.Quad\022\r\n\005limit\030\002 \001(\r\"5"
-    "\n\030LookupGraphQuadsResponse\022\031\n\005quads\030\001 \003("
-    "\0132\n.quad.Quad\"U\n\034LookupGraphQuadsBatchRe"
-    "quest\022\033\n\007filters\030\001 \003(\0132\n.quad.Quad\022\030\n\020li"
-    "mit_per_filter\030\002 \001(\r\"8\n\033LookupGraphQuads"
-    "BatchResult\022\031\n\005quads\030\001 \003(\0132\n.quad.Quad\"["
-    "\n\035LookupGraphQuadsBatchResponse\022:\n\007resul"
-    "ts\030\001 \003(\0132).s4wave.world.LookupGraphQuads"
-    "BatchResult\"\241\001\n\033ListGraphEdgeBucketsRequ"
-    "est\022\032\n\022origin_object_keys\030\001 \003(\t\022\021\n\tpredi"
-    "cate\030\002 \001(\t\022\030\n\020limit_per_origin\030\003 \001(\r\0229\n\t"
-    "direction\030\004 \001(\0162&.s4wave.world.GraphEdge"
-    "BucketDirection\"\240\001\n\017GraphEdgeBucket\022\031\n\021o"
-    "rigin_object_key\030\001 \001(\t\022\034\n\010outgoing\030\002 \003(\013"
-    "2\n.quad.Quad\022\034\n\010incoming\030\003 \003(\0132\n.quad.Qu"
-    "ad\022\032\n\022outgoing_truncated\030\004 \001(\010\022\032\n\022incomi"
-    "ng_truncated\030\005 \001(\010\"N\n\034ListGraphEdgeBucke"
-    "tsResponse\022.\n\007buckets\030\001 \003(\0132\035.s4wave.wor"
-    "ld.GraphEdgeBucket\"-\n\032ListObjectsWithTyp"
-    "eRequest\022\017\n\007type_id\030\001 \001(\t\"2\n\033ListObjects"
-    "WithTypeResponse\022\023\n\013object_keys\030\001 \003(\t\"e\n"
-    "\rObjectRootRef\022\022\n\nobject_key\030\001 \001(\t\022#\n\010ro"
-    "ot_ref\030\002 \001(\0132\021.bucket.ObjectRef\022\013\n\003rev\030\003"
-    " \001(\004\022\016\n\006exists\030\004 \001(\010\"4\n\035GetObjectRootRef"
-    "sBatchRequest\022\023\n\013object_keys\030\001 \003(\t\"P\n\036Ge"
-    "tObjectRootRefsBatchResponse\022.\n\troot_ref"
-    "s\030\001 \003(\0132\033.s4wave.world.ObjectRootRef\"P\n\016"
-    "ObjectMetadata\022\022\n\nobject_key\030\001 \001(\t\022\017\n\007ty"
-    "pe_id\030\002 \001(\t\022\031\n\021parent_object_key\030\003 \001(\t\"4"
-    "\n\035GetObjectMetadataBatchRequest\022\023\n\013objec"
-    "t_keys\030\001 \003(\t\"P\n\036GetObjectMetadataBatchRe"
-    "sponse\022.\n\010metadata\030\001 \003(\0132\034.s4wave.world."
-    "ObjectMetadata\"f\n\rGraphPathStep\0223\n\tdirec"
-    "tion\030\001 \001(\0162 .s4wave.world.GraphPathDirec"
-    "tion\022\021\n\tpredicate\030\002 \001(\t\022\r\n\005limit\030\003 \001(\r\"\227"
-    "\001\n\025QueryGraphPathRequest\022\022\n\nstart_keys\030\001"
-    " \003(\t\022*\n\005steps\030\002 \003(\0132\033.s4wave.world.Graph"
-    "PathStep\022\024\n\014result_limit\030\003 \001(\r\022\025\n\rinclud"
-    "e_quads\030\004 \001(\010\022\021\n\tpage_size\030\005 \001(\r\"-\n\026Quer"
-    "yGraphPathResponse\022\023\n\013resource_id\030\001 \001(\r\""
-    ".\n\030DeleteGraphObjectRequest\022\022\n\nobject_ke"
-    "y\030\001 \001(\t\"\033\n\031DeleteGraphObjectResponse\"M\n\023"
-    "ApplyWorldOpRequest\022\022\n\nop_type_id\030\001 \001(\t\022"
-    "\017\n\007op_data\030\002 \001(\014\022\021\n\top_sender\030\003 \001(\t\"6\n\024A"
-    "pplyWorldOpResponse\022\r\n\005seqno\030\001 \001(\004\022\017\n\007sy"
-    "s_err\030\002 \001(\010\"\030\n\026WatchWorldStateRequest\".\n"
-    "\027WatchWorldStateResponse\022\023\n\013resource_id\030"
-    "\001 \001(\r\"\304\001\n\031TrackedWorldStateSnapshot\022M\n\017o"
-    "bject_accesses\030\001 \003(\01324.s4wave.world.Trac"
-    "kedWorldStateSnapshot.ObjectAccess\022\027\n\017ha"
-    "s_quad_access\030\002 \001(\010\022\025\n\rinitial_seqno\030\003 \001"
-    "(\004\032(\n\014ObjectAccess\022\013\n\003key\030\001 \001(\t\022\013\n\003rev\030\002"
-    " \001(\004\"\014\n\nErrRequest\"\034\n\013ErrResponse\022\r\n\005err"
-    "or\030\001 \001(\t\"\016\n\014ValidRequest\"\036\n\rValidRespons"
-    "e\022\r\n\005valid\030\001 \001(\010\"\014\n\nKeyRequest\"!\n\013KeyRes"
-    "ponse\022\022\n\nobject_key\030\001 \001(\t\"\r\n\013NextRequest"
-    "\"\035\n\014NextResponse\022\r\n\005valid\030\001 \001(\010\"!\n\013SeekR"
-    "equest\022\022\n\nobject_key\030\001 \001(\t\"\016\n\014SeekRespon"
-    "se\"\016\n\014CloseRequest\"\017\n\rCloseResponse\"\033\n\031N"
-    "extGraphPathQueryRequest\"Z\n\032NextGraphPat"
-    "hQueryResponse\022\023\n\013object_keys\030\001 \003(\t\022\031\n\005q"
-    "uads\030\002 \003(\0132\n.quad.Quad\022\014\n\004done\030\003 \001(\010\"\034\n\032"
-    "CloseGraphPathQueryRequest\"\035\n\033CloseGraph"
-    "PathQueryResponse\"\017\n\rGetKeyRequest\"$\n\016Ge"
-    "tKeyResponse\022\022\n\nobject_key\030\001 \001(\t\"\023\n\021GetR"
-    "ootRefRequest\"F\n\022GetRootRefResponse\022#\n\010r"
-    "oot_ref\030\001 \001(\0132\021.bucket.ObjectRef\022\013\n\003rev\030"
-    "\002 \001(\004\"8\n\021SetRootRefRequest\022#\n\010root_ref\030\001"
-    " \001(\0132\021.bucket.ObjectRef\"!\n\022SetRootRefRes"
-    "ponse\022\013\n\003rev\030\001 \001(\004\"N\n\024ApplyObjectOpReque"
-    "st\022\022\n\nop_type_id\030\001 \001(\t\022\017\n\007op_data\030\002 \001(\014\022"
-    "\021\n\top_sender\030\003 \001(\t\"5\n\025ApplyObjectOpRespo"
-    "nse\022\013\n\003rev\030\001 \001(\004\022\017\n\007sys_err\030\002 \001(\010\"\025\n\023Inc"
-    "rementRevRequest\"#\n\024IncrementRevResponse"
-    "\022\013\n\003rev\030\001 \001(\004\"7\n\016WaitRevRequest\022\013\n\003rev\030\001"
-    " \001(\004\022\030\n\020ignore_not_found\030\002 \001(\010\"\036\n\017WaitRe"
-    "vResponse\022\013\n\003rev\030\001 \001(\004\".\n\030AccessTypedObj"
-    "ectRequest\022\022\n\nobject_key\030\001 \001(\t\"A\n\031Access"
-    "TypedObjectResponse\022\023\n\013resource_id\030\001 \001(\r"
-    "\022\017\n\007type_id\030\002 \001(\t*\266\001\n\030GraphEdgeBucketDir"
-    "ection\022+\n\'GRAPH_EDGE_BUCKET_DIRECTION_UN"
-    "SPECIFIED\020\000\022#\n\037GRAPH_EDGE_BUCKET_DIRECTI"
-    "ON_OUT\020\001\022\"\n\036GRAPH_EDGE_BUCKET_DIRECTION_"
-    "IN\020\002\022$\n GRAPH_EDGE_BUCKET_DIRECTION_BOTH"
-    "\020\003*\224\001\n\022GraphPathDirection\022$\n GRAPH_PATH_"
-    "DIRECTION_UNSPECIFIED\020\000\022\034\n\030GRAPH_PATH_DI"
-    "RECTION_OUT\020\001\022\033\n\027GRAPH_PATH_DIRECTION_IN"
-    "\020\002\022\035\n\031GRAPH_PATH_DIRECTION_BOTH\020\0032\203\006\n\025En"
-    "gineResourceService\022X\n\rGetEngineInfo\022\".s"
-    "4wave.world.GetEngineInfoRequest\032#.s4wav"
-    "e.world.GetEngineInfoResponse\022b\n\024GetWorl"
-    "dRootSnapshot\022).s4wave.world.GetWorldRoo"
-    "tSnapshotRequest\032\037.s4wave.world.WorldRoo"
-    "tSnapshot\022j\n\027WatchWorldRootSnapshots\022,.s"
-    "4wave.world.WatchWorldRootSnapshotsReque"
-    "st\032\037.s4wave.world.WorldRootSnapshot0\001\022[\n"
-    "\016NewTransaction\022#.s4wave.world.NewTransa"
-    "ctionRequest\032$.s4wave.world.NewTransacti"
-    "onResponse\022I\n\010GetSeqno\022\035.s4wave.world.Ge"
-    "tSeqnoRequest\032\036.s4wave.world.GetSeqnoRes"
-    "ponse\022L\n\tWaitSeqno\022\036.s4wave.world.WaitSe"
-    "qnoRequest\032\037.s4wave.world.WaitSeqnoRespo"
-    "nse\022g\n\022BuildStorageCursor\022\'.s4wave.world"
-    ".BuildStorageCursorRequest\032(.s4wave.worl"
-    "d.BuildStorageCursorResponse\022a\n\020AccessWo"
-    "rldState\022%.s4wave.world.AccessWorldState"
-    "Request\032&.s4wave.world.AccessWorldStateR"
-    "esponse2\357\017\n\031WorldStateResourceService\022R\n"
-    "\013GetReadOnly\022 .s4wave.world.GetReadOnlyR"
-    "equest\032!.s4wave.world.GetReadOnlyRespons"
-    "e\022I\n\010GetSeqno\022\035.s4wave.world.GetSeqnoReq"
-    "uest\032\036.s4wave.world.GetSeqnoResponse\022L\n\t"
-    "WaitSeqno\022\036.s4wave.world.WaitSeqnoReques"
-    "t\032\037.s4wave.world.WaitSeqnoResponse\022g\n\022Bu"
-    "ildStorageCursor\022\'.s4wave.world.BuildSto"
-    "rageCursorRequest\032(.s4wave.world.BuildSt"
-    "orageCursorResponse\022a\n\020AccessWorldState\022"
-    "%.s4wave.world.AccessWorldStateRequest\032&"
-    ".s4wave.world.AccessWorldStateResponse\022U"
-    "\n\014CreateObject\022!.s4wave.world.CreateObje"
-    "ctRequest\032\".s4wave.world.CreateObjectRes"
-    "ponse\022L\n\tGetObject\022\036.s4wave.world.GetObj"
-    "ectRequest\032\037.s4wave.world.GetObjectRespo"
-    "nse\022[\n\016IterateObjects\022#.s4wave.world.Ite"
-    "rateObjectsRequest\032$.s4wave.world.Iterat"
-    "eObjectsResponse\022U\n\014RenameObject\022!.s4wav"
-    "e.world.RenameObjectRequest\032\".s4wave.wor"
-    "ld.RenameObjectResponse\022U\n\014DeleteObject\022"
-    "!.s4wave.world.DeleteObjectRequest\032\".s4w"
-    "ave.world.DeleteObjectResponse\022U\n\014SetGra"
-    "phQuad\022!.s4wave.world.SetGraphQuadReques"
-    "t\032\".s4wave.world.SetGraphQuadResponse\022^\n"
-    "\017DeleteGraphQuad\022$.s4wave.world.DeleteGr"
-    "aphQuadRequest\032%.s4wave.world.DeleteGrap"
-    "hQuadResponse\022a\n\020LookupGraphQuads\022%.s4wa"
-    "ve.world.LookupGraphQuadsRequest\032&.s4wav"
-    "e.world.LookupGraphQuadsResponse\022p\n\025Look"
-    "upGraphQuadsBatch\022*.s4wave.world.LookupG"
-    "raphQuadsBatchRequest\032+.s4wave.world.Loo"
-    "kupGraphQuadsBatchResponse\022m\n\024ListGraphE"
-    "dgeBuckets\022).s4wave.world.ListGraphEdgeB"
-    "ucketsRequest\032*.s4wave.world.ListGraphEd"
-    "geBucketsResponse\022j\n\023ListObjectsWithType"
-    "\022(.s4wave.world.ListObjectsWithTypeReque"
-    "st\032).s4wave.world.ListObjectsWithTypeRes"
-    "ponse\022s\n\026GetObjectRootRefsBatch\022+.s4wave"
-    ".world.GetObjectRootRefsBatchRequest\032,.s"
-    "4wave.world.GetObjectRootRefsBatchRespon"
-    "se\022s\n\026GetObjectMetadataBatch\022+.s4wave.wo"
-    "rld.GetObjectMetadataBatchRequest\032,.s4wa"
-    "ve.world.GetObjectMetadataBatchResponse\022"
-    "[\n\016QueryGraphPath\022#.s4wave.world.QueryGr"
-    "aphPathRequest\032$.s4wave.world.QueryGraph"
-    "PathResponse\022d\n\021DeleteGraphObject\022&.s4wa"
-    "ve.world.DeleteGraphObjectRequest\032\'.s4wa"
-    "ve.world.DeleteGraphObjectResponse\022U\n\014Ap"
-    "plyWorldOp\022!.s4wave.world.ApplyWorldOpRe"
-    "quest\032\".s4wave.world.ApplyWorldOpRespons"
-    "e2\202\001\n\036WatchWorldStateResourceService\022`\n\017"
-    "WatchWorldState\022$.s4wave.world.WatchWorl"
-    "dStateRequest\032%.s4wave.world.WatchWorldS"
-    "tateResponse0\0012\240\001\n\021TxResourceService\022C\n\006"
-    "Commit\022\033.s4wave.world.CommitRequest\032\034.s4"
-    "wave.world.CommitResponse\022F\n\007Discard\022\034.s"
-    "4wave.world.DiscardRequest\032\035.s4wave.worl"
-    "d.DiscardResponse2\231\003\n\035ObjectIteratorReso"
-    "urceService\022:\n\003Err\022\030.s4wave.world.ErrReq"
-    "uest\032\031.s4wave.world.ErrResponse\022@\n\005Valid"
-    "\022\032.s4wave.world.ValidRequest\032\033.s4wave.wo"
-    "rld.ValidResponse\022:\n\003Key\022\030.s4wave.world."
-    "KeyRequest\032\031.s4wave.world.KeyResponse\022=\n"
-    "\004Next\022\031.s4wave.world.NextRequest\032\032.s4wav"
-    "e.world.NextResponse\022=\n\004Seek\022\031.s4wave.wo"
-    "rld.SeekRequest\032\032.s4wave.world.SeekRespo"
-    "nse\022@\n\005Close\022\032.s4wave.world.CloseRequest"
-    "\032\033.s4wave.world.CloseResponse2\330\001\n\035GraphP"
-    "athQueryResourceService\022Y\n\004Next\022\'.s4wave"
-    ".world.NextGraphPathQueryRequest\032(.s4wav"
-    "e.world.NextGraphPathQueryResponse\022\\\n\005Cl"
-    "ose\022(.s4wave.world.CloseGraphPathQueryRe"
-    "quest\032).s4wave.world.CloseGraphPathQuery"
-    "Response2\337\004\n\032ObjectStateResourceService\022"
-    "C\n\006GetKey\022\033.s4wave.world.GetKeyRequest\032\034"
-    ".s4wave.world.GetKeyResponse\022O\n\nGetRootR"
-    "ef\022\037.s4wave.world.GetRootRefRequest\032 .s4"
-    "wave.world.GetRootRefResponse\022O\n\nSetRoot"
-    "Ref\022\037.s4wave.world.SetRootRefRequest\032 .s"
-    "4wave.world.SetRootRefResponse\022a\n\020Access"
-    "WorldState\022%.s4wave.world.AccessWorldSta"
-    "teRequest\032&.s4wave.world.AccessWorldStat"
-    "eResponse\022X\n\rApplyObjectOp\022\".s4wave.worl"
-    "d.ApplyObjectOpRequest\032#.s4wave.world.Ap"
-    "plyObjectOpResponse\022U\n\014IncrementRev\022!.s4"
-    "wave.world.IncrementRevRequest\032\".s4wave."
-    "world.IncrementRevResponse\022F\n\007WaitRev\022\034."
-    "s4wave.world.WaitRevRequest\032\035.s4wave.wor"
-    "ld.WaitRevResponse2\202\001\n\032TypedObjectResour"
-    "ceService\022d\n\021AccessTypedObject\022&.s4wave."
-    "world.AccessTypedObjectRequest\032\'.s4wave."
-    "world.AccessTypedObjectResponseb\006proto3"
+    "/quad.proto\"\r\n\013SyncRequest\"\036\n\014SyncRespon"
+    "se\022\016\n\006fenced\030\001 \001(\010\"2\n\nEngineInfo\022\021\n\tengi"
+    "ne_id\030\001 \001(\t\022\021\n\tbucket_id\030\002 \001(\t\"\026\n\024GetEng"
+    "ineInfoRequest\"F\n\025GetEngineInfoResponse\022"
+    "-\n\013engine_info\030\001 \001(\0132\030.s4wave.world.Engi"
+    "neInfo\"\221\001\n\021WorldRootSnapshot\022#\n\010root_ref"
+    "\030\001 \001(\0132\021.bucket.ObjectRef\022\r\n\005seqno\030\002 \001(\004"
+    "\022-\n\013engine_info\030\003 \001(\0132\030.s4wave.world.Eng"
+    "ineInfo\022\031\n\021storage_volume_id\030\004 \001(\t\"\035\n\033Ge"
+    "tWorldRootSnapshotRequest\" \n\036WatchWorldR"
+    "ootSnapshotsRequest\"&\n\025NewTransactionReq"
+    "uest\022\r\n\005write\030\001 \001(\010\"@\n\026NewTransactionRes"
+    "ponse\022\023\n\013resource_id\030\001 \001(\r\022\021\n\tread_only\030"
+    "\002 \001(\010\"\021\n\017GetSeqnoRequest\"!\n\020GetSeqnoResp"
+    "onse\022\r\n\005seqno\030\001 \001(\004\"!\n\020WaitSeqnoRequest\022"
+    "\r\n\005seqno\030\001 \001(\004\"\"\n\021WaitSeqnoResponse\022\r\n\005s"
+    "eqno\030\001 \001(\004\"9\n\027AccessWorldStateRequest\022\036\n"
+    "\003ref\030\001 \001(\0132\021.bucket.ObjectRef\"/\n\030AccessW"
+    "orldStateResponse\022\023\n\013resource_id\030\001 \001(\r\"\017"
+    "\n\rCommitRequest\"\020\n\016CommitResponse\"\020\n\016Dis"
+    "cardRequest\"\021\n\017DiscardResponse\"\024\n\022GetRea"
+    "dOnlyRequest\"(\n\023GetReadOnlyResponse\022\021\n\tr"
+    "ead_only\030\001 \001(\010\"\033\n\031BuildStorageCursorRequ"
+    "est\"1\n\032BuildStorageCursorResponse\022\023\n\013res"
+    "ource_id\030\001 \001(\r\"N\n\023CreateObjectRequest\022\022\n"
+    "\nobject_key\030\001 \001(\t\022#\n\010root_ref\030\002 \001(\0132\021.bu"
+    "cket.ObjectRef\"\?\n\024CreateObjectResponse\022\023"
+    "\n\013resource_id\030\001 \001(\r\022\022\n\nobject_key\030\002 \001(\t\""
+    "&\n\020GetObjectRequest\022\022\n\nobject_key\030\001 \001(\t\""
+    "K\n\021GetObjectResponse\022\r\n\005found\030\001 \001(\010\022\023\n\013r"
+    "esource_id\030\002 \001(\r\022\022\n\nobject_key\030\003 \001(\t\"Z\n\023"
+    "RenameObjectRequest\022\026\n\016old_object_key\030\001 "
+    "\001(\t\022\026\n\016new_object_key\030\002 \001(\t\022\023\n\013descendan"
+    "ts\030\003 \001(\010\"\?\n\024RenameObjectResponse\022\023\n\013reso"
+    "urce_id\030\001 \001(\r\022\022\n\nobject_key\030\002 \001(\t\")\n\023Del"
+    "eteObjectRequest\022\022\n\nobject_key\030\001 \001(\t\"\'\n\024"
+    "DeleteObjectResponse\022\017\n\007deleted\030\001 \001(\010\"9\n"
+    "\025IterateObjectsRequest\022\016\n\006prefix\030\001 \001(\t\022\020"
+    "\n\010reversed\030\002 \001(\010\"-\n\026IterateObjectsRespon"
+    "se\022\023\n\013resource_id\030\001 \001(\r\"/\n\023SetGraphQuadR"
+    "equest\022\030\n\004quad\030\001 \001(\0132\n.quad.Quad\"\026\n\024SetG"
+    "raphQuadResponse\"2\n\026DeleteGraphQuadReque"
+    "st\022\030\n\004quad\030\001 \001(\0132\n.quad.Quad\"\031\n\027DeleteGr"
+    "aphQuadResponse\"D\n\027LookupGraphQuadsReque"
+    "st\022\032\n\006filter\030\001 \001(\0132\n.quad.Quad\022\r\n\005limit\030"
+    "\002 \001(\r\"5\n\030LookupGraphQuadsResponse\022\031\n\005qua"
+    "ds\030\001 \003(\0132\n.quad.Quad\"U\n\034LookupGraphQuads"
+    "BatchRequest\022\033\n\007filters\030\001 \003(\0132\n.quad.Qua"
+    "d\022\030\n\020limit_per_filter\030\002 \001(\r\"8\n\033LookupGra"
+    "phQuadsBatchResult\022\031\n\005quads\030\001 \003(\0132\n.quad"
+    ".Quad\"[\n\035LookupGraphQuadsBatchResponse\022:"
+    "\n\007results\030\001 \003(\0132).s4wave.world.LookupGra"
+    "phQuadsBatchResult\"\241\001\n\033ListGraphEdgeBuck"
+    "etsRequest\022\032\n\022origin_object_keys\030\001 \003(\t\022\021"
+    "\n\tpredicate\030\002 \001(\t\022\030\n\020limit_per_origin\030\003 "
+    "\001(\r\0229\n\tdirection\030\004 \001(\0162&.s4wave.world.Gr"
+    "aphEdgeBucketDirection\"\240\001\n\017GraphEdgeBuck"
+    "et\022\031\n\021origin_object_key\030\001 \001(\t\022\034\n\010outgoin"
+    "g\030\002 \003(\0132\n.quad.Quad\022\034\n\010incoming\030\003 \003(\0132\n."
+    "quad.Quad\022\032\n\022outgoing_truncated\030\004 \001(\010\022\032\n"
+    "\022incoming_truncated\030\005 \001(\010\"N\n\034ListGraphEd"
+    "geBucketsResponse\022.\n\007buckets\030\001 \003(\0132\035.s4w"
+    "ave.world.GraphEdgeBucket\"-\n\032ListObjects"
+    "WithTypeRequest\022\017\n\007type_id\030\001 \001(\t\"2\n\033List"
+    "ObjectsWithTypeResponse\022\023\n\013object_keys\030\001"
+    " \003(\t\"e\n\rObjectRootRef\022\022\n\nobject_key\030\001 \001("
+    "\t\022#\n\010root_ref\030\002 \001(\0132\021.bucket.ObjectRef\022\013"
+    "\n\003rev\030\003 \001(\004\022\016\n\006exists\030\004 \001(\010\"4\n\035GetObject"
+    "RootRefsBatchRequest\022\023\n\013object_keys\030\001 \003("
+    "\t\"P\n\036GetObjectRootRefsBatchResponse\022.\n\tr"
+    "oot_refs\030\001 \003(\0132\033.s4wave.world.ObjectRoot"
+    "Ref\"P\n\016ObjectMetadata\022\022\n\nobject_key\030\001 \001("
+    "\t\022\017\n\007type_id\030\002 \001(\t\022\031\n\021parent_object_key\030"
+    "\003 \001(\t\"4\n\035GetObjectMetadataBatchRequest\022\023"
+    "\n\013object_keys\030\001 \003(\t\"P\n\036GetObjectMetadata"
+    "BatchResponse\022.\n\010metadata\030\001 \003(\0132\034.s4wave"
+    ".world.ObjectMetadata\"f\n\rGraphPathStep\0223"
+    "\n\tdirection\030\001 \001(\0162 .s4wave.world.GraphPa"
+    "thDirection\022\021\n\tpredicate\030\002 \001(\t\022\r\n\005limit\030"
+    "\003 \001(\r\"\227\001\n\025QueryGraphPathRequest\022\022\n\nstart"
+    "_keys\030\001 \003(\t\022*\n\005steps\030\002 \003(\0132\033.s4wave.worl"
+    "d.GraphPathStep\022\024\n\014result_limit\030\003 \001(\r\022\025\n"
+    "\rinclude_quads\030\004 \001(\010\022\021\n\tpage_size\030\005 \001(\r\""
+    "-\n\026QueryGraphPathResponse\022\023\n\013resource_id"
+    "\030\001 \001(\r\".\n\030DeleteGraphObjectRequest\022\022\n\nob"
+    "ject_key\030\001 \001(\t\"\033\n\031DeleteGraphObjectRespo"
+    "nse\"M\n\023ApplyWorldOpRequest\022\022\n\nop_type_id"
+    "\030\001 \001(\t\022\017\n\007op_data\030\002 \001(\014\022\021\n\top_sender\030\003 \001"
+    "(\t\"6\n\024ApplyWorldOpResponse\022\r\n\005seqno\030\001 \001("
+    "\004\022\017\n\007sys_err\030\002 \001(\010\"\030\n\026WatchWorldStateReq"
+    "uest\".\n\027WatchWorldStateResponse\022\023\n\013resou"
+    "rce_id\030\001 \001(\r\"\304\001\n\031TrackedWorldStateSnapsh"
+    "ot\022M\n\017object_accesses\030\001 \003(\01324.s4wave.wor"
+    "ld.TrackedWorldStateSnapshot.ObjectAcces"
+    "s\022\027\n\017has_quad_access\030\002 \001(\010\022\025\n\rinitial_se"
+    "qno\030\003 \001(\004\032(\n\014ObjectAccess\022\013\n\003key\030\001 \001(\t\022\013"
+    "\n\003rev\030\002 \001(\004\"\014\n\nErrRequest\"\034\n\013ErrResponse"
+    "\022\r\n\005error\030\001 \001(\t\"\016\n\014ValidRequest\"\036\n\rValid"
+    "Response\022\r\n\005valid\030\001 \001(\010\"\014\n\nKeyRequest\"!\n"
+    "\013KeyResponse\022\022\n\nobject_key\030\001 \001(\t\"\r\n\013Next"
+    "Request\"\035\n\014NextResponse\022\r\n\005valid\030\001 \001(\010\"!"
+    "\n\013SeekRequest\022\022\n\nobject_key\030\001 \001(\t\"\016\n\014See"
+    "kResponse\"\016\n\014CloseRequest\"\017\n\rCloseRespon"
+    "se\"\033\n\031NextGraphPathQueryRequest\"Z\n\032NextG"
+    "raphPathQueryResponse\022\023\n\013object_keys\030\001 \003"
+    "(\t\022\031\n\005quads\030\002 \003(\0132\n.quad.Quad\022\014\n\004done\030\003 "
+    "\001(\010\"\034\n\032CloseGraphPathQueryRequest\"\035\n\033Clo"
+    "seGraphPathQueryResponse\"\017\n\rGetKeyReques"
+    "t\"$\n\016GetKeyResponse\022\022\n\nobject_key\030\001 \001(\t\""
+    "\023\n\021GetRootRefRequest\"F\n\022GetRootRefRespon"
+    "se\022#\n\010root_ref\030\001 \001(\0132\021.bucket.ObjectRef\022"
+    "\013\n\003rev\030\002 \001(\004\"8\n\021SetRootRefRequest\022#\n\010roo"
+    "t_ref\030\001 \001(\0132\021.bucket.ObjectRef\"!\n\022SetRoo"
+    "tRefResponse\022\013\n\003rev\030\001 \001(\004\"N\n\024ApplyObject"
+    "OpRequest\022\022\n\nop_type_id\030\001 \001(\t\022\017\n\007op_data"
+    "\030\002 \001(\014\022\021\n\top_sender\030\003 \001(\t\"5\n\025ApplyObject"
+    "OpResponse\022\013\n\003rev\030\001 \001(\004\022\017\n\007sys_err\030\002 \001(\010"
+    "\"\025\n\023IncrementRevRequest\"#\n\024IncrementRevR"
+    "esponse\022\013\n\003rev\030\001 \001(\004\"7\n\016WaitRevRequest\022\013"
+    "\n\003rev\030\001 \001(\004\022\030\n\020ignore_not_found\030\002 \001(\010\"\036\n"
+    "\017WaitRevResponse\022\013\n\003rev\030\001 \001(\004\".\n\030AccessT"
+    "ypedObjectRequest\022\022\n\nobject_key\030\001 \001(\t\"A\n"
+    "\031AccessTypedObjectResponse\022\023\n\013resource_i"
+    "d\030\001 \001(\r\022\017\n\007type_id\030\002 \001(\t*\266\001\n\030GraphEdgeBu"
+    "cketDirection\022+\n\'GRAPH_EDGE_BUCKET_DIREC"
+    "TION_UNSPECIFIED\020\000\022#\n\037GRAPH_EDGE_BUCKET_"
+    "DIRECTION_OUT\020\001\022\"\n\036GRAPH_EDGE_BUCKET_DIR"
+    "ECTION_IN\020\002\022$\n GRAPH_EDGE_BUCKET_DIRECTI"
+    "ON_BOTH\020\003*\224\001\n\022GraphPathDirection\022$\n GRAP"
+    "H_PATH_DIRECTION_UNSPECIFIED\020\000\022\034\n\030GRAPH_"
+    "PATH_DIRECTION_OUT\020\001\022\033\n\027GRAPH_PATH_DIREC"
+    "TION_IN\020\002\022\035\n\031GRAPH_PATH_DIRECTION_BOTH\020\003"
+    "2\302\006\n\025EngineResourceService\022X\n\rGetEngineI"
+    "nfo\022\".s4wave.world.GetEngineInfoRequest\032"
+    "#.s4wave.world.GetEngineInfoResponse\022b\n\024"
+    "GetWorldRootSnapshot\022).s4wave.world.GetW"
+    "orldRootSnapshotRequest\032\037.s4wave.world.W"
+    "orldRootSnapshot\022j\n\027WatchWorldRootSnapsh"
+    "ots\022,.s4wave.world.WatchWorldRootSnapsho"
+    "tsRequest\032\037.s4wave.world.WorldRootSnapsh"
+    "ot0\001\022[\n\016NewTransaction\022#.s4wave.world.Ne"
+    "wTransactionRequest\032$.s4wave.world.NewTr"
+    "ansactionResponse\022=\n\004Sync\022\031.s4wave.world"
+    ".SyncRequest\032\032.s4wave.world.SyncResponse"
+    "\022I\n\010GetSeqno\022\035.s4wave.world.GetSeqnoRequ"
+    "est\032\036.s4wave.world.GetSeqnoResponse\022L\n\tW"
+    "aitSeqno\022\036.s4wave.world.WaitSeqnoRequest"
+    "\032\037.s4wave.world.WaitSeqnoResponse\022g\n\022Bui"
+    "ldStorageCursor\022\'.s4wave.world.BuildStor"
+    "ageCursorRequest\032(.s4wave.world.BuildSto"
+    "rageCursorResponse\022a\n\020AccessWorldState\022%"
+    ".s4wave.world.AccessWorldStateRequest\032&."
+    "s4wave.world.AccessWorldStateResponse2\256\020"
+    "\n\031WorldStateResourceService\022R\n\013GetReadOn"
+    "ly\022 .s4wave.world.GetReadOnlyRequest\032!.s"
+    "4wave.world.GetReadOnlyResponse\022=\n\004Sync\022"
+    "\031.s4wave.world.SyncRequest\032\032.s4wave.worl"
+    "d.SyncResponse\022I\n\010GetSeqno\022\035.s4wave.worl"
+    "d.GetSeqnoRequest\032\036.s4wave.world.GetSeqn"
+    "oResponse\022L\n\tWaitSeqno\022\036.s4wave.world.Wa"
+    "itSeqnoRequest\032\037.s4wave.world.WaitSeqnoR"
+    "esponse\022g\n\022BuildStorageCursor\022\'.s4wave.w"
+    "orld.BuildStorageCursorRequest\032(.s4wave."
+    "world.BuildStorageCursorResponse\022a\n\020Acce"
+    "ssWorldState\022%.s4wave.world.AccessWorldS"
+    "tateRequest\032&.s4wave.world.AccessWorldSt"
+    "ateResponse\022U\n\014CreateObject\022!.s4wave.wor"
+    "ld.CreateObjectRequest\032\".s4wave.world.Cr"
+    "eateObjectResponse\022L\n\tGetObject\022\036.s4wave"
+    ".world.GetObjectRequest\032\037.s4wave.world.G"
+    "etObjectResponse\022[\n\016IterateObjects\022#.s4w"
+    "ave.world.IterateObjectsRequest\032$.s4wave"
+    ".world.IterateObjectsResponse\022U\n\014RenameO"
+    "bject\022!.s4wave.world.RenameObjectRequest"
+    "\032\".s4wave.world.RenameObjectResponse\022U\n\014"
+    "DeleteObject\022!.s4wave.world.DeleteObject"
+    "Request\032\".s4wave.world.DeleteObjectRespo"
+    "nse\022U\n\014SetGraphQuad\022!.s4wave.world.SetGr"
+    "aphQuadRequest\032\".s4wave.world.SetGraphQu"
+    "adResponse\022^\n\017DeleteGraphQuad\022$.s4wave.w"
+    "orld.DeleteGraphQuadRequest\032%.s4wave.wor"
+    "ld.DeleteGraphQuadResponse\022a\n\020LookupGrap"
+    "hQuads\022%.s4wave.world.LookupGraphQuadsRe"
+    "quest\032&.s4wave.world.LookupGraphQuadsRes"
+    "ponse\022p\n\025LookupGraphQuadsBatch\022*.s4wave."
+    "world.LookupGraphQuadsBatchRequest\032+.s4w"
+    "ave.world.LookupGraphQuadsBatchResponse\022"
+    "m\n\024ListGraphEdgeBuckets\022).s4wave.world.L"
+    "istGraphEdgeBucketsRequest\032*.s4wave.worl"
+    "d.ListGraphEdgeBucketsResponse\022j\n\023ListOb"
+    "jectsWithType\022(.s4wave.world.ListObjects"
+    "WithTypeRequest\032).s4wave.world.ListObjec"
+    "tsWithTypeResponse\022s\n\026GetObjectRootRefsB"
+    "atch\022+.s4wave.world.GetObjectRootRefsBat"
+    "chRequest\032,.s4wave.world.GetObjectRootRe"
+    "fsBatchResponse\022s\n\026GetObjectMetadataBatc"
+    "h\022+.s4wave.world.GetObjectMetadataBatchR"
+    "equest\032,.s4wave.world.GetObjectMetadataB"
+    "atchResponse\022[\n\016QueryGraphPath\022#.s4wave."
+    "world.QueryGraphPathRequest\032$.s4wave.wor"
+    "ld.QueryGraphPathResponse\022d\n\021DeleteGraph"
+    "Object\022&.s4wave.world.DeleteGraphObjectR"
+    "equest\032\'.s4wave.world.DeleteGraphObjectR"
+    "esponse\022U\n\014ApplyWorldOp\022!.s4wave.world.A"
+    "pplyWorldOpRequest\032\".s4wave.world.ApplyW"
+    "orldOpResponse2\202\001\n\036WatchWorldStateResour"
+    "ceService\022`\n\017WatchWorldState\022$.s4wave.wo"
+    "rld.WatchWorldStateRequest\032%.s4wave.worl"
+    "d.WatchWorldStateResponse0\0012\240\001\n\021TxResour"
+    "ceService\022C\n\006Commit\022\033.s4wave.world.Commi"
+    "tRequest\032\034.s4wave.world.CommitResponse\022F"
+    "\n\007Discard\022\034.s4wave.world.DiscardRequest\032"
+    "\035.s4wave.world.DiscardResponse2\231\003\n\035Objec"
+    "tIteratorResourceService\022:\n\003Err\022\030.s4wave"
+    ".world.ErrRequest\032\031.s4wave.world.ErrResp"
+    "onse\022@\n\005Valid\022\032.s4wave.world.ValidReques"
+    "t\032\033.s4wave.world.ValidResponse\022:\n\003Key\022\030."
+    "s4wave.world.KeyRequest\032\031.s4wave.world.K"
+    "eyResponse\022=\n\004Next\022\031.s4wave.world.NextRe"
+    "quest\032\032.s4wave.world.NextResponse\022=\n\004See"
+    "k\022\031.s4wave.world.SeekRequest\032\032.s4wave.wo"
+    "rld.SeekResponse\022@\n\005Close\022\032.s4wave.world"
+    ".CloseRequest\032\033.s4wave.world.CloseRespon"
+    "se2\330\001\n\035GraphPathQueryResourceService\022Y\n\004"
+    "Next\022\'.s4wave.world.NextGraphPathQueryRe"
+    "quest\032(.s4wave.world.NextGraphPathQueryR"
+    "esponse\022\\\n\005Close\022(.s4wave.world.CloseGra"
+    "phPathQueryRequest\032).s4wave.world.CloseG"
+    "raphPathQueryResponse2\337\004\n\032ObjectStateRes"
+    "ourceService\022C\n\006GetKey\022\033.s4wave.world.Ge"
+    "tKeyRequest\032\034.s4wave.world.GetKeyRespons"
+    "e\022O\n\nGetRootRef\022\037.s4wave.world.GetRootRe"
+    "fRequest\032 .s4wave.world.GetRootRefRespon"
+    "se\022O\n\nSetRootRef\022\037.s4wave.world.SetRootR"
+    "efRequest\032 .s4wave.world.SetRootRefRespo"
+    "nse\022a\n\020AccessWorldState\022%.s4wave.world.A"
+    "ccessWorldStateRequest\032&.s4wave.world.Ac"
+    "cessWorldStateResponse\022X\n\rApplyObjectOp\022"
+    "\".s4wave.world.ApplyObjectOpRequest\032#.s4"
+    "wave.world.ApplyObjectOpResponse\022U\n\014Incr"
+    "ementRev\022!.s4wave.world.IncrementRevRequ"
+    "est\032\".s4wave.world.IncrementRevResponse\022"
+    "F\n\007WaitRev\022\034.s4wave.world.WaitRevRequest"
+    "\032\035.s4wave.world.WaitRevResponse2\202\001\n\032Type"
+    "dObjectResourceService\022d\n\021AccessTypedObj"
+    "ect\022&.s4wave.world.AccessTypedObjectRequ"
+    "est\032\'.s4wave.world.AccessTypedObjectResp"
+    "onseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto_deps[2] = {
@@ -3191,13 +3249,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto = {
     false,
     false,
-    9879,
+    10052,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
     "github.com/s4wave/spacewave/sdk/world/world.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto_deps,
     2,
-    93,
+    95,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto::offsets,
@@ -3218,6 +3276,362 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL GraphPathDirection_de
 }
 PROTOBUF_CONSTINIT const uint32_t GraphPathDirection_internal_data_[] = {
     262144u, 0u, };
+// ===================================================================
+
+class SyncRequest::_Internal {
+ public:
+};
+
+SyncRequest::SyncRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, SyncRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.SyncRequest)
+}
+SyncRequest::SyncRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SyncRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, SyncRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SyncRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.SyncRequest)
+}
+
+inline void* PROTOBUF_NONNULL SyncRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SyncRequest(arena);
+}
+constexpr auto SyncRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(SyncRequest),
+                                            alignof(SyncRequest));
+}
+constexpr auto SyncRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SyncRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SyncRequest::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<SyncRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SyncRequest::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<SyncRequest>(), &SyncRequest::ByteSizeLong,
+              &SyncRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SyncRequest, _impl_._cached_size_),
+          false,
+      },
+      &SyncRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SyncRequest_class_data_ =
+        SyncRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SyncRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SyncRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SyncRequest_class_data_.tc_table);
+  return SyncRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+SyncRequest::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    SyncRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::SyncRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata SyncRequest::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SyncResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SyncResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SyncResponse, _impl_._has_bits_);
+};
+
+SyncResponse::SyncResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SyncResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.SyncResponse)
+}
+SyncResponse::SyncResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SyncResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SyncResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(from._impl_) {
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE SyncResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void SyncResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.fenced_ = {};
+}
+SyncResponse::~SyncResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.world.SyncResponse)
+  SharedDtor(*this);
+}
+inline void SyncResponse::SharedDtor(MessageLite& self) {
+  SyncResponse& this_ = static_cast<SyncResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SyncResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SyncResponse(arena);
+}
+constexpr auto SyncResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(SyncResponse),
+                                            alignof(SyncResponse));
+}
+constexpr auto SyncResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SyncResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SyncResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SyncResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SyncResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SyncResponse>(), &SyncResponse::ByteSizeLong,
+              &SyncResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SyncResponse, _impl_._cached_size_),
+          false,
+      },
+      &SyncResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SyncResponse_class_data_ =
+        SyncResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SyncResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SyncResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SyncResponse_class_data_.tc_table);
+  return SyncResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
+SyncResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SyncResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    SyncResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::SyncResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // bool fenced = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(SyncResponse, _impl_.fenced_), 0>(),
+     {8, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SyncResponse, _impl_.fenced_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // bool fenced = 1;
+    {PROTOBUF_FIELD_OFFSET(SyncResponse, _impl_.fenced_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void SyncResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.world.SyncResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.fenced_ = false;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SyncResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SyncResponse& this_ = static_cast<const SyncResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SyncResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SyncResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.world.SyncResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // bool fenced = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (this_._internal_fenced() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          1, this_._internal_fenced(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.world.SyncResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SyncResponse::ByteSizeLong(const MessageLite& base) {
+  const SyncResponse& this_ = static_cast<const SyncResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SyncResponse::ByteSizeLong() const {
+  const SyncResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.world.SyncResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // bool fenced = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (this_._internal_fenced() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SyncResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SyncResponse*>(&to_msg);
+  auto& from = static_cast<const SyncResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.world.SyncResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (from._internal_fenced() != 0) {
+      _this->_impl_.fenced_ = from._impl_.fenced_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SyncResponse::CopyFrom(const SyncResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.world.SyncResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SyncResponse::InternalSwap(SyncResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.fenced_, other->_impl_.fenced_);
+}
+
+::google::protobuf::Metadata SyncResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
 // ===================================================================
 
 class EngineInfo::_Internal {

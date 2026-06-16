@@ -58,6 +58,11 @@ func (w *WorldState) GetReadOnly() bool {
 	return !w.write
 }
 
+// Sync fences the block writes made through the underlying world state durable.
+func (w *WorldState) Sync(ctx context.Context) (bool, error) {
+	return w.world.Sync(ctx)
+}
+
 // GetSeqno returns the current seqno of the world state.
 // This is also the sequence number of the most recent change.
 // Initializes at 0 for initial world state.

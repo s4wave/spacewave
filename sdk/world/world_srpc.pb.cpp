@@ -32,6 +32,10 @@ starpc::Error SRPCEngineResourceServiceClientImpl::NewTransaction(const s4wave::
   return cc_->ExecCall(service_id_, "NewTransaction", in, out);
 }
 
+starpc::Error SRPCEngineResourceServiceClientImpl::Sync(const s4wave::world::SyncRequest& in, s4wave::world::SyncResponse* out) {
+  return cc_->ExecCall(service_id_, "Sync", in, out);
+}
+
 starpc::Error SRPCEngineResourceServiceClientImpl::GetSeqno(const s4wave::world::GetSeqnoRequest& in, s4wave::world::GetSeqnoResponse* out) {
   return cc_->ExecCall(service_id_, "GetSeqno", in, out);
 }
@@ -54,6 +58,7 @@ std::vector<std::string> SRPCEngineResourceServiceHandler::GetMethodIDs() const 
     "GetWorldRootSnapshot",
     "WatchWorldRootSnapshots",
     "NewTransaction",
+    "Sync",
     "GetSeqno",
     "WaitSeqno",
     "BuildStorageCursor",
@@ -99,6 +104,14 @@ std::pair<bool, starpc::Error> SRPCEngineResourceServiceHandler::InvokeMethod(
     err = impl_->NewTransaction(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
+  } else if (method_id == "Sync") {
+    s4wave::world::SyncRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::world::SyncResponse resp;
+    err = impl_->Sync(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
   } else if (method_id == "GetSeqno") {
     s4wave::world::GetSeqnoRequest req;
     starpc::Error err = strm->MsgRecv(&req);
@@ -138,6 +151,10 @@ std::pair<bool, starpc::Error> SRPCEngineResourceServiceHandler::InvokeMethod(
 
 starpc::Error SRPCWorldStateResourceServiceClientImpl::GetReadOnly(const s4wave::world::GetReadOnlyRequest& in, s4wave::world::GetReadOnlyResponse* out) {
   return cc_->ExecCall(service_id_, "GetReadOnly", in, out);
+}
+
+starpc::Error SRPCWorldStateResourceServiceClientImpl::Sync(const s4wave::world::SyncRequest& in, s4wave::world::SyncResponse* out) {
+  return cc_->ExecCall(service_id_, "Sync", in, out);
 }
 
 starpc::Error SRPCWorldStateResourceServiceClientImpl::GetSeqno(const s4wave::world::GetSeqnoRequest& in, s4wave::world::GetSeqnoResponse* out) {
@@ -223,6 +240,7 @@ starpc::Error SRPCWorldStateResourceServiceClientImpl::ApplyWorldOp(const s4wave
 std::vector<std::string> SRPCWorldStateResourceServiceHandler::GetMethodIDs() const {
   return {
     "GetReadOnly",
+    "Sync",
     "GetSeqno",
     "WaitSeqno",
     "BuildStorageCursor",
@@ -260,6 +278,14 @@ std::pair<bool, starpc::Error> SRPCWorldStateResourceServiceHandler::InvokeMetho
     if (err != starpc::Error::OK) return {true, err};
     s4wave::world::GetReadOnlyResponse resp;
     err = impl_->GetReadOnly(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "Sync") {
+    s4wave::world::SyncRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::world::SyncResponse resp;
+    err = impl_->Sync(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   } else if (method_id == "GetSeqno") {

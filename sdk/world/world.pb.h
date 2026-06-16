@@ -388,6 +388,14 @@ class SetRootRefResponse;
 struct SetRootRefResponseDefaultTypeInternal;
 extern SetRootRefResponseDefaultTypeInternal _SetRootRefResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull SetRootRefResponse_class_data_;
+class SyncRequest;
+struct SyncRequestDefaultTypeInternal;
+extern SyncRequestDefaultTypeInternal _SyncRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SyncRequest_class_data_;
+class SyncResponse;
+struct SyncResponseDefaultTypeInternal;
+extern SyncResponseDefaultTypeInternal _SyncResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SyncResponse_class_data_;
 class TrackedWorldStateSnapshot;
 struct TrackedWorldStateSnapshotDefaultTypeInternal;
 extern TrackedWorldStateSnapshotDefaultTypeInternal _TrackedWorldStateSnapshot_default_instance_;
@@ -588,7 +596,7 @@ class WatchWorldStateResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchWorldStateResponse*>(
         &_WatchWorldStateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 60;
+  static constexpr int kIndexInFileMessages = 62;
   friend void swap(WatchWorldStateResponse& a, WatchWorldStateResponse& b) { a.Swap(&b); }
   inline void Swap(WatchWorldStateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -777,7 +785,7 @@ class WatchWorldStateRequest final : public ::google::protobuf::internal::ZeroFi
     return *reinterpret_cast<const WatchWorldStateRequest*>(
         &_WatchWorldStateRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 59;
+  static constexpr int kIndexInFileMessages = 61;
   friend void swap(WatchWorldStateRequest& a, WatchWorldStateRequest& b) { a.Swap(&b); }
   inline void Swap(WatchWorldStateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -911,7 +919,7 @@ class WatchWorldRootSnapshotsRequest final : public ::google::protobuf::internal
     return *reinterpret_cast<const WatchWorldRootSnapshotsRequest*>(
         &_WatchWorldRootSnapshotsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 7;
   friend void swap(WatchWorldRootSnapshotsRequest& a, WatchWorldRootSnapshotsRequest& b) { a.Swap(&b); }
   inline void Swap(WatchWorldRootSnapshotsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1046,7 +1054,7 @@ class WaitSeqnoResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WaitSeqnoResponse*>(
         &_WaitSeqnoResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 11;
+  static constexpr int kIndexInFileMessages = 13;
   friend void swap(WaitSeqnoResponse& a, WaitSeqnoResponse& b) { a.Swap(&b); }
   inline void Swap(WaitSeqnoResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1236,7 +1244,7 @@ class WaitSeqnoRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const WaitSeqnoRequest*>(
         &_WaitSeqnoRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 10;
+  static constexpr int kIndexInFileMessages = 12;
   friend void swap(WaitSeqnoRequest& a, WaitSeqnoRequest& b) { a.Swap(&b); }
   inline void Swap(WaitSeqnoRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1426,7 +1434,7 @@ class WaitRevResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WaitRevResponse*>(
         &_WaitRevResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 90;
+  static constexpr int kIndexInFileMessages = 92;
   friend void swap(WaitRevResponse& a, WaitRevResponse& b) { a.Swap(&b); }
   inline void Swap(WaitRevResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1616,7 +1624,7 @@ class WaitRevRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const WaitRevRequest*>(
         &_WaitRevRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 89;
+  static constexpr int kIndexInFileMessages = 91;
   friend void swap(WaitRevRequest& a, WaitRevRequest& b) { a.Swap(&b); }
   inline void Swap(WaitRevRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1818,7 +1826,7 @@ class ValidResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ValidResponse*>(
         &_ValidResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 66;
+  static constexpr int kIndexInFileMessages = 68;
   friend void swap(ValidResponse& a, ValidResponse& b) { a.Swap(&b); }
   inline void Swap(ValidResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2007,7 +2015,7 @@ class ValidRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const ValidRequest*>(
         &_ValidRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 65;
+  static constexpr int kIndexInFileMessages = 67;
   friend void swap(ValidRequest& a, ValidRequest& b) { a.Swap(&b); }
   inline void Swap(ValidRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2142,7 +2150,7 @@ class TrackedWorldStateSnapshot_ObjectAccess final : public ::google::protobuf::
     return *reinterpret_cast<const TrackedWorldStateSnapshot_ObjectAccess*>(
         &_TrackedWorldStateSnapshot_ObjectAccess_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 61;
+  static constexpr int kIndexInFileMessages = 63;
   friend void swap(TrackedWorldStateSnapshot_ObjectAccess& a, TrackedWorldStateSnapshot_ObjectAccess& b) { a.Swap(&b); }
   inline void Swap(TrackedWorldStateSnapshot_ObjectAccess* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2294,6 +2302,330 @@ class TrackedWorldStateSnapshot_ObjectAccess final : public ::google::protobuf::
 extern const ::google::protobuf::internal::ClassDataFull TrackedWorldStateSnapshot_ObjectAccess_class_data_;
 // -------------------------------------------------------------------
 
+class SyncResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.world.SyncResponse) */ {
+ public:
+  inline SyncResponse() : SyncResponse(nullptr) {}
+  ~SyncResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SyncResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SyncResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SyncResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline SyncResponse(const SyncResponse& from) : SyncResponse(nullptr, from) {}
+  inline SyncResponse(SyncResponse&& from) noexcept
+      : SyncResponse(nullptr, ::std::move(from)) {}
+  inline SyncResponse& operator=(const SyncResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SyncResponse& operator=(SyncResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SyncResponse& default_instance() {
+    return *reinterpret_cast<const SyncResponse*>(
+        &_SyncResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 1;
+  friend void swap(SyncResponse& a, SyncResponse& b) { a.Swap(&b); }
+  inline void Swap(SyncResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SyncResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SyncResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SyncResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SyncResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SyncResponse& from) { SyncResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SyncResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.SyncResponse"; }
+
+  explicit SyncResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SyncResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SyncResponse& from);
+  SyncResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SyncResponse&& from) noexcept
+      : SyncResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kFencedFieldNumber = 1,
+  };
+  // bool fenced = 1;
+  void clear_fenced() ;
+  bool fenced() const;
+  void set_fenced(bool value);
+
+  private:
+  bool _internal_fenced() const;
+  void _internal_set_fenced(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.world.SyncResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SyncResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    bool fenced_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SyncResponse_class_data_;
+// -------------------------------------------------------------------
+
+class SyncRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:s4wave.world.SyncRequest) */ {
+ public:
+  inline SyncRequest() : SyncRequest(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SyncRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SyncRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SyncRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline SyncRequest(const SyncRequest& from) : SyncRequest(nullptr, from) {}
+  inline SyncRequest(SyncRequest&& from) noexcept
+      : SyncRequest(nullptr, ::std::move(from)) {}
+  inline SyncRequest& operator=(const SyncRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SyncRequest& operator=(SyncRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SyncRequest& default_instance() {
+    return *reinterpret_cast<const SyncRequest*>(
+        &_SyncRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 0;
+  friend void swap(SyncRequest& a, SyncRequest& b) { a.Swap(&b); }
+  inline void Swap(SyncRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SyncRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SyncRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<SyncRequest>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const SyncRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const SyncRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.SyncRequest"; }
+
+  explicit SyncRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SyncRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SyncRequest& from);
+  SyncRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SyncRequest&& from) noexcept
+      : SyncRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:s4wave.world.SyncRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SyncRequest_class_data_;
+// -------------------------------------------------------------------
+
 class SetRootRefResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.world.SetRootRefResponse) */ {
  public:
@@ -2349,7 +2681,7 @@ class SetRootRefResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetRootRefResponse*>(
         &_SetRootRefResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 84;
+  static constexpr int kIndexInFileMessages = 86;
   friend void swap(SetRootRefResponse& a, SetRootRefResponse& b) { a.Swap(&b); }
   inline void Swap(SetRootRefResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2538,7 +2870,7 @@ class SetGraphQuadResponse final : public ::google::protobuf::internal::ZeroFiel
     return *reinterpret_cast<const SetGraphQuadResponse*>(
         &_SetGraphQuadResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 33;
+  static constexpr int kIndexInFileMessages = 35;
   friend void swap(SetGraphQuadResponse& a, SetGraphQuadResponse& b) { a.Swap(&b); }
   inline void Swap(SetGraphQuadResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2672,7 +3004,7 @@ class SeekResponse final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const SeekResponse*>(
         &_SeekResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 72;
+  static constexpr int kIndexInFileMessages = 74;
   friend void swap(SeekResponse& a, SeekResponse& b) { a.Swap(&b); }
   inline void Swap(SeekResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2807,7 +3139,7 @@ class SeekRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SeekRequest*>(
         &_SeekRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 71;
+  static constexpr int kIndexInFileMessages = 73;
   friend void swap(SeekRequest& a, SeekRequest& b) { a.Swap(&b); }
   inline void Swap(SeekRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3002,7 +3334,7 @@ class RenameObjectResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const RenameObjectResponse*>(
         &_RenameObjectResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 27;
+  static constexpr int kIndexInFileMessages = 29;
   friend void swap(RenameObjectResponse& a, RenameObjectResponse& b) { a.Swap(&b); }
   inline void Swap(RenameObjectResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3209,7 +3541,7 @@ class RenameObjectRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RenameObjectRequest*>(
         &_RenameObjectRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 26;
+  static constexpr int kIndexInFileMessages = 28;
   friend void swap(RenameObjectRequest& a, RenameObjectRequest& b) { a.Swap(&b); }
   inline void Swap(RenameObjectRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3433,7 +3765,7 @@ class QueryGraphPathResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const QueryGraphPathResponse*>(
         &_QueryGraphPathResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 54;
+  static constexpr int kIndexInFileMessages = 56;
   friend void swap(QueryGraphPathResponse& a, QueryGraphPathResponse& b) { a.Swap(&b); }
   inline void Swap(QueryGraphPathResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3623,7 +3955,7 @@ class ObjectMetadata final : public ::google::protobuf::Message
     return *reinterpret_cast<const ObjectMetadata*>(
         &_ObjectMetadata_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 49;
+  static constexpr int kIndexInFileMessages = 51;
   friend void swap(ObjectMetadata& a, ObjectMetadata& b) { a.Swap(&b); }
   inline void Swap(ObjectMetadata* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3852,7 +4184,7 @@ class NextResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const NextResponse*>(
         &_NextResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 70;
+  static constexpr int kIndexInFileMessages = 72;
   friend void swap(NextResponse& a, NextResponse& b) { a.Swap(&b); }
   inline void Swap(NextResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4041,7 +4373,7 @@ class NextRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const NextRequest*>(
         &_NextRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 69;
+  static constexpr int kIndexInFileMessages = 71;
   friend void swap(NextRequest& a, NextRequest& b) { a.Swap(&b); }
   inline void Swap(NextRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4175,7 +4507,7 @@ class NextGraphPathQueryRequest final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const NextGraphPathQueryRequest*>(
         &_NextGraphPathQueryRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 75;
+  static constexpr int kIndexInFileMessages = 77;
   friend void swap(NextGraphPathQueryRequest& a, NextGraphPathQueryRequest& b) { a.Swap(&b); }
   inline void Swap(NextGraphPathQueryRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4310,7 +4642,7 @@ class NewTransactionResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const NewTransactionResponse*>(
         &_NewTransactionResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 7;
+  static constexpr int kIndexInFileMessages = 9;
   friend void swap(NewTransactionResponse& a, NewTransactionResponse& b) { a.Swap(&b); }
   inline void Swap(NewTransactionResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4512,7 +4844,7 @@ class NewTransactionRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const NewTransactionRequest*>(
         &_NewTransactionRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 8;
   friend void swap(NewTransactionRequest& a, NewTransactionRequest& b) { a.Swap(&b); }
   inline void Swap(NewTransactionRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4702,7 +5034,7 @@ class ListObjectsWithTypeResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListObjectsWithTypeResponse*>(
         &_ListObjectsWithTypeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 45;
+  static constexpr int kIndexInFileMessages = 47;
   friend void swap(ListObjectsWithTypeResponse& a, ListObjectsWithTypeResponse& b) { a.Swap(&b); }
   inline void Swap(ListObjectsWithTypeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4904,7 +5236,7 @@ class ListObjectsWithTypeRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListObjectsWithTypeRequest*>(
         &_ListObjectsWithTypeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 44;
+  static constexpr int kIndexInFileMessages = 46;
   friend void swap(ListObjectsWithTypeRequest& a, ListObjectsWithTypeRequest& b) { a.Swap(&b); }
   inline void Swap(ListObjectsWithTypeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5099,7 +5431,7 @@ class ListGraphEdgeBucketsRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListGraphEdgeBucketsRequest*>(
         &_ListGraphEdgeBucketsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 41;
+  static constexpr int kIndexInFileMessages = 43;
   friend void swap(ListGraphEdgeBucketsRequest& a, ListGraphEdgeBucketsRequest& b) { a.Swap(&b); }
   inline void Swap(ListGraphEdgeBucketsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5342,7 +5674,7 @@ class KeyResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const KeyResponse*>(
         &_KeyResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 68;
+  static constexpr int kIndexInFileMessages = 70;
   friend void swap(KeyResponse& a, KeyResponse& b) { a.Swap(&b); }
   inline void Swap(KeyResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5536,7 +5868,7 @@ class KeyRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const KeyRequest*>(
         &_KeyRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 67;
+  static constexpr int kIndexInFileMessages = 69;
   friend void swap(KeyRequest& a, KeyRequest& b) { a.Swap(&b); }
   inline void Swap(KeyRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5671,7 +6003,7 @@ class IterateObjectsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const IterateObjectsResponse*>(
         &_IterateObjectsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 31;
+  static constexpr int kIndexInFileMessages = 33;
   friend void swap(IterateObjectsResponse& a, IterateObjectsResponse& b) { a.Swap(&b); }
   inline void Swap(IterateObjectsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5861,7 +6193,7 @@ class IterateObjectsRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const IterateObjectsRequest*>(
         &_IterateObjectsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 30;
+  static constexpr int kIndexInFileMessages = 32;
   friend void swap(IterateObjectsRequest& a, IterateObjectsRequest& b) { a.Swap(&b); }
   inline void Swap(IterateObjectsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6068,7 +6400,7 @@ class IncrementRevResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const IncrementRevResponse*>(
         &_IncrementRevResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 88;
+  static constexpr int kIndexInFileMessages = 90;
   friend void swap(IncrementRevResponse& a, IncrementRevResponse& b) { a.Swap(&b); }
   inline void Swap(IncrementRevResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6257,7 +6589,7 @@ class IncrementRevRequest final : public ::google::protobuf::internal::ZeroField
     return *reinterpret_cast<const IncrementRevRequest*>(
         &_IncrementRevRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 87;
+  static constexpr int kIndexInFileMessages = 89;
   friend void swap(IncrementRevRequest& a, IncrementRevRequest& b) { a.Swap(&b); }
   inline void Swap(IncrementRevRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6392,7 +6724,7 @@ class GraphPathStep final : public ::google::protobuf::Message
     return *reinterpret_cast<const GraphPathStep*>(
         &_GraphPathStep_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 52;
+  static constexpr int kIndexInFileMessages = 54;
   friend void swap(GraphPathStep& a, GraphPathStep& b) { a.Swap(&b); }
   inline void Swap(GraphPathStep* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6610,7 +6942,7 @@ class GetWorldRootSnapshotRequest final : public ::google::protobuf::internal::Z
     return *reinterpret_cast<const GetWorldRootSnapshotRequest*>(
         &_GetWorldRootSnapshotRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(GetWorldRootSnapshotRequest& a, GetWorldRootSnapshotRequest& b) { a.Swap(&b); }
   inline void Swap(GetWorldRootSnapshotRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6745,7 +7077,7 @@ class GetSeqnoResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetSeqnoResponse*>(
         &_GetSeqnoResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 9;
+  static constexpr int kIndexInFileMessages = 11;
   friend void swap(GetSeqnoResponse& a, GetSeqnoResponse& b) { a.Swap(&b); }
   inline void Swap(GetSeqnoResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6934,7 +7266,7 @@ class GetSeqnoRequest final : public ::google::protobuf::internal::ZeroFieldsBas
     return *reinterpret_cast<const GetSeqnoRequest*>(
         &_GetSeqnoRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
+  static constexpr int kIndexInFileMessages = 10;
   friend void swap(GetSeqnoRequest& a, GetSeqnoRequest& b) { a.Swap(&b); }
   inline void Swap(GetSeqnoRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7068,7 +7400,7 @@ class GetRootRefRequest final : public ::google::protobuf::internal::ZeroFieldsB
     return *reinterpret_cast<const GetRootRefRequest*>(
         &_GetRootRefRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 81;
+  static constexpr int kIndexInFileMessages = 83;
   friend void swap(GetRootRefRequest& a, GetRootRefRequest& b) { a.Swap(&b); }
   inline void Swap(GetRootRefRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7203,7 +7535,7 @@ class GetReadOnlyResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetReadOnlyResponse*>(
         &_GetReadOnlyResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 19;
+  static constexpr int kIndexInFileMessages = 21;
   friend void swap(GetReadOnlyResponse& a, GetReadOnlyResponse& b) { a.Swap(&b); }
   inline void Swap(GetReadOnlyResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7392,7 +7724,7 @@ class GetReadOnlyRequest final : public ::google::protobuf::internal::ZeroFields
     return *reinterpret_cast<const GetReadOnlyRequest*>(
         &_GetReadOnlyRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 18;
+  static constexpr int kIndexInFileMessages = 20;
   friend void swap(GetReadOnlyRequest& a, GetReadOnlyRequest& b) { a.Swap(&b); }
   inline void Swap(GetReadOnlyRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7527,7 +7859,7 @@ class GetObjectRootRefsBatchRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetObjectRootRefsBatchRequest*>(
         &_GetObjectRootRefsBatchRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 47;
+  static constexpr int kIndexInFileMessages = 49;
   friend void swap(GetObjectRootRefsBatchRequest& a, GetObjectRootRefsBatchRequest& b) { a.Swap(&b); }
   inline void Swap(GetObjectRootRefsBatchRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7729,7 +8061,7 @@ class GetObjectResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetObjectResponse*>(
         &_GetObjectResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 25;
+  static constexpr int kIndexInFileMessages = 27;
   friend void swap(GetObjectResponse& a, GetObjectResponse& b) { a.Swap(&b); }
   inline void Swap(GetObjectResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7948,7 +8280,7 @@ class GetObjectRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetObjectRequest*>(
         &_GetObjectRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 24;
+  static constexpr int kIndexInFileMessages = 26;
   friend void swap(GetObjectRequest& a, GetObjectRequest& b) { a.Swap(&b); }
   inline void Swap(GetObjectRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8143,7 +8475,7 @@ class GetObjectMetadataBatchRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetObjectMetadataBatchRequest*>(
         &_GetObjectMetadataBatchRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 50;
+  static constexpr int kIndexInFileMessages = 52;
   friend void swap(GetObjectMetadataBatchRequest& a, GetObjectMetadataBatchRequest& b) { a.Swap(&b); }
   inline void Swap(GetObjectMetadataBatchRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8345,7 +8677,7 @@ class GetKeyResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetKeyResponse*>(
         &_GetKeyResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 80;
+  static constexpr int kIndexInFileMessages = 82;
   friend void swap(GetKeyResponse& a, GetKeyResponse& b) { a.Swap(&b); }
   inline void Swap(GetKeyResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8539,7 +8871,7 @@ class GetKeyRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const GetKeyRequest*>(
         &_GetKeyRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 79;
+  static constexpr int kIndexInFileMessages = 81;
   friend void swap(GetKeyRequest& a, GetKeyRequest& b) { a.Swap(&b); }
   inline void Swap(GetKeyRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8673,7 +9005,7 @@ class GetEngineInfoRequest final : public ::google::protobuf::internal::ZeroFiel
     return *reinterpret_cast<const GetEngineInfoRequest*>(
         &_GetEngineInfoRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 1;
+  static constexpr int kIndexInFileMessages = 3;
   friend void swap(GetEngineInfoRequest& a, GetEngineInfoRequest& b) { a.Swap(&b); }
   inline void Swap(GetEngineInfoRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8808,7 +9140,7 @@ class ErrResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ErrResponse*>(
         &_ErrResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 64;
+  static constexpr int kIndexInFileMessages = 66;
   friend void swap(ErrResponse& a, ErrResponse& b) { a.Swap(&b); }
   inline void Swap(ErrResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9002,7 +9334,7 @@ class ErrRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const ErrRequest*>(
         &_ErrRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 63;
+  static constexpr int kIndexInFileMessages = 65;
   friend void swap(ErrRequest& a, ErrRequest& b) { a.Swap(&b); }
   inline void Swap(ErrRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9137,7 +9469,7 @@ class EngineInfo final : public ::google::protobuf::Message
     return *reinterpret_cast<const EngineInfo*>(
         &_EngineInfo_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 0;
+  static constexpr int kIndexInFileMessages = 2;
   friend void swap(EngineInfo& a, EngineInfo& b) { a.Swap(&b); }
   inline void Swap(EngineInfo* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9348,7 +9680,7 @@ class DiscardResponse final : public ::google::protobuf::internal::ZeroFieldsBas
     return *reinterpret_cast<const DiscardResponse*>(
         &_DiscardResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 17;
+  static constexpr int kIndexInFileMessages = 19;
   friend void swap(DiscardResponse& a, DiscardResponse& b) { a.Swap(&b); }
   inline void Swap(DiscardResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9482,7 +9814,7 @@ class DiscardRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const DiscardRequest*>(
         &_DiscardRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 16;
+  static constexpr int kIndexInFileMessages = 18;
   friend void swap(DiscardRequest& a, DiscardRequest& b) { a.Swap(&b); }
   inline void Swap(DiscardRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9617,7 +9949,7 @@ class DeleteObjectResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const DeleteObjectResponse*>(
         &_DeleteObjectResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 29;
+  static constexpr int kIndexInFileMessages = 31;
   friend void swap(DeleteObjectResponse& a, DeleteObjectResponse& b) { a.Swap(&b); }
   inline void Swap(DeleteObjectResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9807,7 +10139,7 @@ class DeleteObjectRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const DeleteObjectRequest*>(
         &_DeleteObjectRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 28;
+  static constexpr int kIndexInFileMessages = 30;
   friend void swap(DeleteObjectRequest& a, DeleteObjectRequest& b) { a.Swap(&b); }
   inline void Swap(DeleteObjectRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10001,7 +10333,7 @@ class DeleteGraphQuadResponse final : public ::google::protobuf::internal::ZeroF
     return *reinterpret_cast<const DeleteGraphQuadResponse*>(
         &_DeleteGraphQuadResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 35;
+  static constexpr int kIndexInFileMessages = 37;
   friend void swap(DeleteGraphQuadResponse& a, DeleteGraphQuadResponse& b) { a.Swap(&b); }
   inline void Swap(DeleteGraphQuadResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10135,7 +10467,7 @@ class DeleteGraphObjectResponse final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const DeleteGraphObjectResponse*>(
         &_DeleteGraphObjectResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 56;
+  static constexpr int kIndexInFileMessages = 58;
   friend void swap(DeleteGraphObjectResponse& a, DeleteGraphObjectResponse& b) { a.Swap(&b); }
   inline void Swap(DeleteGraphObjectResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10270,7 +10602,7 @@ class DeleteGraphObjectRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const DeleteGraphObjectRequest*>(
         &_DeleteGraphObjectRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 55;
+  static constexpr int kIndexInFileMessages = 57;
   friend void swap(DeleteGraphObjectRequest& a, DeleteGraphObjectRequest& b) { a.Swap(&b); }
   inline void Swap(DeleteGraphObjectRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10465,7 +10797,7 @@ class CreateObjectResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateObjectResponse*>(
         &_CreateObjectResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 23;
+  static constexpr int kIndexInFileMessages = 25;
   friend void swap(CreateObjectResponse& a, CreateObjectResponse& b) { a.Swap(&b); }
   inline void Swap(CreateObjectResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10671,7 +11003,7 @@ class CommitResponse final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const CommitResponse*>(
         &_CommitResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 15;
+  static constexpr int kIndexInFileMessages = 17;
   friend void swap(CommitResponse& a, CommitResponse& b) { a.Swap(&b); }
   inline void Swap(CommitResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10805,7 +11137,7 @@ class CommitRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const CommitRequest*>(
         &_CommitRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 14;
+  static constexpr int kIndexInFileMessages = 16;
   friend void swap(CommitRequest& a, CommitRequest& b) { a.Swap(&b); }
   inline void Swap(CommitRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10939,7 +11271,7 @@ class CloseResponse final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const CloseResponse*>(
         &_CloseResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 74;
+  static constexpr int kIndexInFileMessages = 76;
   friend void swap(CloseResponse& a, CloseResponse& b) { a.Swap(&b); }
   inline void Swap(CloseResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11073,7 +11405,7 @@ class CloseRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const CloseRequest*>(
         &_CloseRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 73;
+  static constexpr int kIndexInFileMessages = 75;
   friend void swap(CloseRequest& a, CloseRequest& b) { a.Swap(&b); }
   inline void Swap(CloseRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11207,7 +11539,7 @@ class CloseGraphPathQueryResponse final : public ::google::protobuf::internal::Z
     return *reinterpret_cast<const CloseGraphPathQueryResponse*>(
         &_CloseGraphPathQueryResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 78;
+  static constexpr int kIndexInFileMessages = 80;
   friend void swap(CloseGraphPathQueryResponse& a, CloseGraphPathQueryResponse& b) { a.Swap(&b); }
   inline void Swap(CloseGraphPathQueryResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11341,7 +11673,7 @@ class CloseGraphPathQueryRequest final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const CloseGraphPathQueryRequest*>(
         &_CloseGraphPathQueryRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 77;
+  static constexpr int kIndexInFileMessages = 79;
   friend void swap(CloseGraphPathQueryRequest& a, CloseGraphPathQueryRequest& b) { a.Swap(&b); }
   inline void Swap(CloseGraphPathQueryRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11476,7 +11808,7 @@ class BuildStorageCursorResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const BuildStorageCursorResponse*>(
         &_BuildStorageCursorResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 21;
+  static constexpr int kIndexInFileMessages = 23;
   friend void swap(BuildStorageCursorResponse& a, BuildStorageCursorResponse& b) { a.Swap(&b); }
   inline void Swap(BuildStorageCursorResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11665,7 +11997,7 @@ class BuildStorageCursorRequest final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const BuildStorageCursorRequest*>(
         &_BuildStorageCursorRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 20;
+  static constexpr int kIndexInFileMessages = 22;
   friend void swap(BuildStorageCursorRequest& a, BuildStorageCursorRequest& b) { a.Swap(&b); }
   inline void Swap(BuildStorageCursorRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11800,7 +12132,7 @@ class ApplyWorldOpResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApplyWorldOpResponse*>(
         &_ApplyWorldOpResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 58;
+  static constexpr int kIndexInFileMessages = 60;
   friend void swap(ApplyWorldOpResponse& a, ApplyWorldOpResponse& b) { a.Swap(&b); }
   inline void Swap(ApplyWorldOpResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12002,7 +12334,7 @@ class ApplyWorldOpRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApplyWorldOpRequest*>(
         &_ApplyWorldOpRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 57;
+  static constexpr int kIndexInFileMessages = 59;
   friend void swap(ApplyWorldOpRequest& a, ApplyWorldOpRequest& b) { a.Swap(&b); }
   inline void Swap(ApplyWorldOpRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12231,7 +12563,7 @@ class ApplyObjectOpResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApplyObjectOpResponse*>(
         &_ApplyObjectOpResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 86;
+  static constexpr int kIndexInFileMessages = 88;
   friend void swap(ApplyObjectOpResponse& a, ApplyObjectOpResponse& b) { a.Swap(&b); }
   inline void Swap(ApplyObjectOpResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12433,7 +12765,7 @@ class ApplyObjectOpRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApplyObjectOpRequest*>(
         &_ApplyObjectOpRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 85;
+  static constexpr int kIndexInFileMessages = 87;
   friend void swap(ApplyObjectOpRequest& a, ApplyObjectOpRequest& b) { a.Swap(&b); }
   inline void Swap(ApplyObjectOpRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12662,7 +12994,7 @@ class AccessWorldStateResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessWorldStateResponse*>(
         &_AccessWorldStateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 13;
+  static constexpr int kIndexInFileMessages = 15;
   friend void swap(AccessWorldStateResponse& a, AccessWorldStateResponse& b) { a.Swap(&b); }
   inline void Swap(AccessWorldStateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12852,7 +13184,7 @@ class AccessTypedObjectResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessTypedObjectResponse*>(
         &_AccessTypedObjectResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 92;
+  static constexpr int kIndexInFileMessages = 94;
   friend void swap(AccessTypedObjectResponse& a, AccessTypedObjectResponse& b) { a.Swap(&b); }
   inline void Swap(AccessTypedObjectResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13059,7 +13391,7 @@ class AccessTypedObjectRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessTypedObjectRequest*>(
         &_AccessTypedObjectRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 91;
+  static constexpr int kIndexInFileMessages = 93;
   friend void swap(AccessTypedObjectRequest& a, AccessTypedObjectRequest& b) { a.Swap(&b); }
   inline void Swap(AccessTypedObjectRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13254,7 +13586,7 @@ class TrackedWorldStateSnapshot final : public ::google::protobuf::Message
     return *reinterpret_cast<const TrackedWorldStateSnapshot*>(
         &_TrackedWorldStateSnapshot_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 62;
+  static constexpr int kIndexInFileMessages = 64;
   friend void swap(TrackedWorldStateSnapshot& a, TrackedWorldStateSnapshot& b) { a.Swap(&b); }
   inline void Swap(TrackedWorldStateSnapshot* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13476,7 +13808,7 @@ class SetGraphQuadRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetGraphQuadRequest*>(
         &_SetGraphQuadRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 32;
+  static constexpr int kIndexInFileMessages = 34;
   friend void swap(SetGraphQuadRequest& a, SetGraphQuadRequest& b) { a.Swap(&b); }
   inline void Swap(SetGraphQuadRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13671,7 +14003,7 @@ class QueryGraphPathRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const QueryGraphPathRequest*>(
         &_QueryGraphPathRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 53;
+  static constexpr int kIndexInFileMessages = 55;
   friend void swap(QueryGraphPathRequest& a, QueryGraphPathRequest& b) { a.Swap(&b); }
   inline void Swap(QueryGraphPathRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13928,7 +14260,7 @@ class NextGraphPathQueryResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const NextGraphPathQueryResponse*>(
         &_NextGraphPathQueryResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 76;
+  static constexpr int kIndexInFileMessages = 78;
   friend void swap(NextGraphPathQueryResponse& a, NextGraphPathQueryResponse& b) { a.Swap(&b); }
   inline void Swap(NextGraphPathQueryResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14161,7 +14493,7 @@ class LookupGraphQuadsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const LookupGraphQuadsResponse*>(
         &_LookupGraphQuadsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 37;
+  static constexpr int kIndexInFileMessages = 39;
   friend void swap(LookupGraphQuadsResponse& a, LookupGraphQuadsResponse& b) { a.Swap(&b); }
   inline void Swap(LookupGraphQuadsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14358,7 +14690,7 @@ class LookupGraphQuadsRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const LookupGraphQuadsRequest*>(
         &_LookupGraphQuadsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 36;
+  static constexpr int kIndexInFileMessages = 38;
   friend void swap(LookupGraphQuadsRequest& a, LookupGraphQuadsRequest& b) { a.Swap(&b); }
   inline void Swap(LookupGraphQuadsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14565,7 +14897,7 @@ class LookupGraphQuadsBatchResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const LookupGraphQuadsBatchResult*>(
         &_LookupGraphQuadsBatchResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 39;
+  static constexpr int kIndexInFileMessages = 41;
   friend void swap(LookupGraphQuadsBatchResult& a, LookupGraphQuadsBatchResult& b) { a.Swap(&b); }
   inline void Swap(LookupGraphQuadsBatchResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14762,7 +15094,7 @@ class LookupGraphQuadsBatchRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const LookupGraphQuadsBatchRequest*>(
         &_LookupGraphQuadsBatchRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 38;
+  static constexpr int kIndexInFileMessages = 40;
   friend void swap(LookupGraphQuadsBatchRequest& a, LookupGraphQuadsBatchRequest& b) { a.Swap(&b); }
   inline void Swap(LookupGraphQuadsBatchRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14971,7 +15303,7 @@ class GraphEdgeBucket final : public ::google::protobuf::Message
     return *reinterpret_cast<const GraphEdgeBucket*>(
         &_GraphEdgeBucket_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 42;
+  static constexpr int kIndexInFileMessages = 44;
   friend void swap(GraphEdgeBucket& a, GraphEdgeBucket& b) { a.Swap(&b); }
   inline void Swap(GraphEdgeBucket* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15228,7 +15560,7 @@ class GetObjectMetadataBatchResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetObjectMetadataBatchResponse*>(
         &_GetObjectMetadataBatchResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 51;
+  static constexpr int kIndexInFileMessages = 53;
   friend void swap(GetObjectMetadataBatchResponse& a, GetObjectMetadataBatchResponse& b) { a.Swap(&b); }
   inline void Swap(GetObjectMetadataBatchResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15425,7 +15757,7 @@ class GetEngineInfoResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetEngineInfoResponse*>(
         &_GetEngineInfoResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 2;
+  static constexpr int kIndexInFileMessages = 4;
   friend void swap(GetEngineInfoResponse& a, GetEngineInfoResponse& b) { a.Swap(&b); }
   inline void Swap(GetEngineInfoResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15620,7 +15952,7 @@ class DeleteGraphQuadRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const DeleteGraphQuadRequest*>(
         &_DeleteGraphQuadRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 34;
+  static constexpr int kIndexInFileMessages = 36;
   friend void swap(DeleteGraphQuadRequest& a, DeleteGraphQuadRequest& b) { a.Swap(&b); }
   inline void Swap(DeleteGraphQuadRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15815,7 +16147,7 @@ class LookupGraphQuadsBatchResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const LookupGraphQuadsBatchResponse*>(
         &_LookupGraphQuadsBatchResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 40;
+  static constexpr int kIndexInFileMessages = 42;
   friend void swap(LookupGraphQuadsBatchResponse& a, LookupGraphQuadsBatchResponse& b) { a.Swap(&b); }
   inline void Swap(LookupGraphQuadsBatchResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -16012,7 +16344,7 @@ class ListGraphEdgeBucketsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListGraphEdgeBucketsResponse*>(
         &_ListGraphEdgeBucketsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 43;
+  static constexpr int kIndexInFileMessages = 45;
   friend void swap(ListGraphEdgeBucketsResponse& a, ListGraphEdgeBucketsResponse& b) { a.Swap(&b); }
   inline void Swap(ListGraphEdgeBucketsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -16209,7 +16541,7 @@ class WorldRootSnapshot final : public ::google::protobuf::Message
     return *reinterpret_cast<const WorldRootSnapshot*>(
         &_WorldRootSnapshot_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 5;
   friend void swap(WorldRootSnapshot& a, WorldRootSnapshot& b) { a.Swap(&b); }
   inline void Swap(WorldRootSnapshot* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -16450,7 +16782,7 @@ class SetRootRefRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetRootRefRequest*>(
         &_SetRootRefRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 83;
+  static constexpr int kIndexInFileMessages = 85;
   friend void swap(SetRootRefRequest& a, SetRootRefRequest& b) { a.Swap(&b); }
   inline void Swap(SetRootRefRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -16645,7 +16977,7 @@ class ObjectRootRef final : public ::google::protobuf::Message
     return *reinterpret_cast<const ObjectRootRef*>(
         &_ObjectRootRef_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 46;
+  static constexpr int kIndexInFileMessages = 48;
   friend void swap(ObjectRootRef& a, ObjectRootRef& b) { a.Swap(&b); }
   inline void Swap(ObjectRootRef* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -16881,7 +17213,7 @@ class GetRootRefResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetRootRefResponse*>(
         &_GetRootRefResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 82;
+  static constexpr int kIndexInFileMessages = 84;
   friend void swap(GetRootRefResponse& a, GetRootRefResponse& b) { a.Swap(&b); }
   inline void Swap(GetRootRefResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -17088,7 +17420,7 @@ class CreateObjectRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateObjectRequest*>(
         &_CreateObjectRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 22;
+  static constexpr int kIndexInFileMessages = 24;
   friend void swap(CreateObjectRequest& a, CreateObjectRequest& b) { a.Swap(&b); }
   inline void Swap(CreateObjectRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -17300,7 +17632,7 @@ class AccessWorldStateRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessWorldStateRequest*>(
         &_AccessWorldStateRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 12;
+  static constexpr int kIndexInFileMessages = 14;
   friend void swap(AccessWorldStateRequest& a, AccessWorldStateRequest& b) { a.Swap(&b); }
   inline void Swap(AccessWorldStateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -17495,7 +17827,7 @@ class GetObjectRootRefsBatchResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetObjectRootRefsBatchResponse*>(
         &_GetObjectRootRefsBatchResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 48;
+  static constexpr int kIndexInFileMessages = 50;
   friend void swap(GetObjectRootRefsBatchResponse& a, GetObjectRootRefsBatchResponse& b) { a.Swap(&b); }
   inline void Swap(GetObjectRootRefsBatchResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -17648,6 +17980,39 @@ extern const ::google::protobuf::internal::ClassDataFull GetObjectRootRefsBatchR
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// SyncRequest
+
+// -------------------------------------------------------------------
+
+// SyncResponse
+
+// bool fenced = 1;
+inline void SyncResponse::clear_fenced() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.fenced_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline bool SyncResponse::fenced() const {
+  // @@protoc_insertion_point(field_get:s4wave.world.SyncResponse.fenced)
+  return _internal_fenced();
+}
+inline void SyncResponse::set_fenced(bool value) {
+  _internal_set_fenced(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_set:s4wave.world.SyncResponse.fenced)
+}
+inline bool SyncResponse::_internal_fenced() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.fenced_;
+}
+inline void SyncResponse::_internal_set_fenced(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.fenced_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // EngineInfo

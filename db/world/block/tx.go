@@ -52,6 +52,11 @@ func (t *Tx) GetReadOnly() bool {
 	return t.state.GetReadOnly()
 }
 
+// Sync fences the block writes made through this tx's world state durable.
+func (t *Tx) Sync(ctx context.Context) (bool, error) {
+	return t.state.Sync(ctx)
+}
+
 // GetSeqno returns the current seqno of the world state.
 // This is also the sequence number of the most recent change.
 // Initializes at 0 for initial world state.

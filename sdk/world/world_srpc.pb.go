@@ -22,6 +22,8 @@ type SRPCEngineResourceServiceClient interface {
 
 	NewTransaction(ctx context.Context, in *NewTransactionRequest) (*NewTransactionResponse, error)
 
+	Sync(ctx context.Context, in *SyncRequest) (*SyncResponse, error)
+
 	GetSeqno(ctx context.Context, in *GetSeqnoRequest) (*GetSeqnoResponse, error)
 
 	WaitSeqno(ctx context.Context, in *WaitSeqnoRequest) (*WaitSeqnoResponse, error)
@@ -110,6 +112,15 @@ func (c *srpcEngineResourceServiceClient) NewTransaction(ctx context.Context, in
 	return out, nil
 }
 
+func (c *srpcEngineResourceServiceClient) Sync(ctx context.Context, in *SyncRequest) (*SyncResponse, error) {
+	out := new(SyncResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "Sync", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcEngineResourceServiceClient) GetSeqno(ctx context.Context, in *GetSeqnoRequest) (*GetSeqnoResponse, error) {
 	out := new(GetSeqnoResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "GetSeqno", in, out)
@@ -155,6 +166,8 @@ type SRPCEngineResourceServiceServer interface {
 
 	NewTransaction(context.Context, *NewTransactionRequest) (*NewTransactionResponse, error)
 
+	Sync(context.Context, *SyncRequest) (*SyncResponse, error)
+
 	GetSeqno(context.Context, *GetSeqnoRequest) (*GetSeqnoResponse, error)
 
 	WaitSeqno(context.Context, *WaitSeqnoRequest) (*WaitSeqnoResponse, error)
@@ -194,6 +207,7 @@ func (SRPCEngineResourceServiceHandler) GetMethodIDs() []string {
 		"GetWorldRootSnapshot",
 		"WatchWorldRootSnapshots",
 		"NewTransaction",
+		"Sync",
 		"GetSeqno",
 		"WaitSeqno",
 		"BuildStorageCursor",
@@ -218,6 +232,8 @@ func (d *SRPCEngineResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_WatchWorldRootSnapshots(d.impl, strm)
 	case "NewTransaction":
 		return true, d.InvokeMethod_NewTransaction(d.impl, strm)
+	case "Sync":
+		return true, d.InvokeMethod_Sync(d.impl, strm)
 	case "GetSeqno":
 		return true, d.InvokeMethod_GetSeqno(d.impl, strm)
 	case "WaitSeqno":
@@ -270,6 +286,18 @@ func (SRPCEngineResourceServiceHandler) InvokeMethod_NewTransaction(impl SRPCEng
 		return err
 	}
 	out, err := impl.NewTransaction(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCEngineResourceServiceHandler) InvokeMethod_Sync(impl SRPCEngineResourceServiceServer, strm srpc.Stream) error {
+	req := new(SyncRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.Sync(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -371,6 +399,14 @@ type srpcEngineResourceService_NewTransactionStream struct {
 	srpc.Stream
 }
 
+type SRPCEngineResourceService_SyncStream interface {
+	srpc.Stream
+}
+
+type srpcEngineResourceService_SyncStream struct {
+	srpc.Stream
+}
+
 type SRPCEngineResourceService_GetSeqnoStream interface {
 	srpc.Stream
 }
@@ -408,6 +444,8 @@ type SRPCWorldStateResourceServiceClient interface {
 	SRPCClient() srpc.Client
 
 	GetReadOnly(ctx context.Context, in *GetReadOnlyRequest) (*GetReadOnlyResponse, error)
+
+	Sync(ctx context.Context, in *SyncRequest) (*SyncResponse, error)
 
 	GetSeqno(ctx context.Context, in *GetSeqnoRequest) (*GetSeqnoResponse, error)
 
@@ -471,6 +509,15 @@ func (c *srpcWorldStateResourceServiceClient) SRPCClient() srpc.Client { return 
 func (c *srpcWorldStateResourceServiceClient) GetReadOnly(ctx context.Context, in *GetReadOnlyRequest) (*GetReadOnlyResponse, error) {
 	out := new(GetReadOnlyResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "GetReadOnly", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcWorldStateResourceServiceClient) Sync(ctx context.Context, in *SyncRequest) (*SyncResponse, error) {
+	out := new(SyncResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "Sync", in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -660,6 +707,8 @@ func (c *srpcWorldStateResourceServiceClient) ApplyWorldOp(ctx context.Context, 
 type SRPCWorldStateResourceServiceServer interface {
 	GetReadOnly(context.Context, *GetReadOnlyRequest) (*GetReadOnlyResponse, error)
 
+	Sync(context.Context, *SyncRequest) (*SyncResponse, error)
+
 	GetSeqno(context.Context, *GetSeqnoRequest) (*GetSeqnoResponse, error)
 
 	WaitSeqno(context.Context, *WaitSeqnoRequest) (*WaitSeqnoResponse, error)
@@ -728,6 +777,7 @@ func (d *SRPCWorldStateResourceServiceHandler) GetServiceID() string { return d.
 func (SRPCWorldStateResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"GetReadOnly",
+		"Sync",
 		"GetSeqno",
 		"WaitSeqno",
 		"BuildStorageCursor",
@@ -762,6 +812,8 @@ func (d *SRPCWorldStateResourceServiceHandler) InvokeMethod(
 	switch methodID {
 	case "GetReadOnly":
 		return true, d.InvokeMethod_GetReadOnly(d.impl, strm)
+	case "Sync":
+		return true, d.InvokeMethod_Sync(d.impl, strm)
 	case "GetSeqno":
 		return true, d.InvokeMethod_GetSeqno(d.impl, strm)
 	case "WaitSeqno":
@@ -813,6 +865,18 @@ func (SRPCWorldStateResourceServiceHandler) InvokeMethod_GetReadOnly(impl SRPCWo
 		return err
 	}
 	out, err := impl.GetReadOnly(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCWorldStateResourceServiceHandler) InvokeMethod_Sync(impl SRPCWorldStateResourceServiceServer, strm srpc.Stream) error {
+	req := new(SyncRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.Sync(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -1064,6 +1128,14 @@ type SRPCWorldStateResourceService_GetReadOnlyStream interface {
 }
 
 type srpcWorldStateResourceService_GetReadOnlyStream struct {
+	srpc.Stream
+}
+
+type SRPCWorldStateResourceService_SyncStream interface {
+	srpc.Stream
+}
+
+type srpcWorldStateResourceService_SyncStream struct {
 	srpc.Stream
 }
 

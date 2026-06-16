@@ -14,6 +14,13 @@ type Engine interface {
 	// Check GetReadOnly, might not return a write tx if write=true.
 	NewTransaction(ctx context.Context, write bool) (Tx, error)
 
+	// Sync fences durable storage and advances the durable world head.
+	// Runs the block barrier so every block written so far is durable, then
+	// commits the current in-memory root to the durable head ordered after the
+	// barrier. Returns true if a durability fence was applied, false if the
+	// store is always-durable and no fence was required.
+	Sync(ctx context.Context) (bool, error)
+
 	// WorldStorage provides access to the world storage via bucket cursors.
 	WorldStorage
 
