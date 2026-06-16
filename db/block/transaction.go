@@ -232,17 +232,18 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		writeRoot = subRoot.pos
 	}
 
-	// deferFlush batches GC flushes for dirty writes (see below).
+	// deferFlush batches GC ref-graph flushes for dirty writes (see below).
 	// registered BEFORE t.mtx.Lock so EndDeferFlush runs AFTER
-	// t.mtx.Unlock in LIFO order. FlushPending must run after the
-	// cursor mutex is released because the RefGraph may share it.
-	// Uses the parent ctx because subCtxCancel runs first in LIFO.
+	// t.mtx.Unlock in LIFO order. The outermost EndDeferFlush calls the GC
+	// FlushPending, which must run after the cursor mutex is released because
+	// the RefGraph may share it. Uses the parent ctx because subCtxCancel runs
+	// first in LIFO.
 	var deferFlushActive bool
 	deferFlushCtx := ctx
 	writeStore := t.store
 	defer func() {
 		if deferFlushActive {
-			if err := writeStore.EndDeferFlush(deferFlushCtx); err != nil && rerr == nil {
+			if err := EndDeferFlush(deferFlushCtx, writeStore); err != nil && rerr == nil {
 				rerr = err
 			}
 		}
@@ -264,8 +265,14 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		return writeRoot.ref, nil, nil
 	}
 
+	// buffered is the per-write coalescer wrapping the write store. It is held
+	// as the concrete type so the in-lock drain below can drain it without
+	// applying a durability fence (Sync), which would needlessly fence the
+	// inner store on every sub-tree write.
+	var buffered *BufferedStore
 	if writeStore != nil {
-		writeStore = NewBufferedStoreWithSettings(ctx, writeStore, t.bufferedStoreSettings)
+		buffered = NewBufferedStoreWithSettings(ctx, writeStore, t.bufferedStoreSettings)
+		writeStore = buffered
 	}
 
 	// begin deferred GC flushing.
@@ -274,7 +281,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	// transaction's buffered refs.
 	if writeStore != nil {
 		deferFlushActive = true
-		writeStore.BeginDeferFlush()
+		BeginDeferFlush(writeStore)
 	}
 
 	// create a sub-context
@@ -571,9 +578,9 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	if err != nil {
 		return nil, nil, err
 	}
-	if writeStore != nil {
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/flush-write-store")
-		err = writeStore.Flush(taskCtx)
+	if buffered != nil {
+		taskCtx, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/drain-write-store")
+		err = buffered.drainAll(taskCtx)
 		subtask.End()
 		if err != nil {
 			return nil, nil, err

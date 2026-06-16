@@ -225,22 +225,9 @@ func (b *S3Block) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return err
 }
 
-// Flush returns nil because S3Block has no buffered writes.
-func (b *S3Block) Flush(context.Context) error {
-	return nil
-}
-
 // Sync reports always-durable: S3Block writes commit synchronously per object.
 func (b *S3Block) Sync(context.Context) (bool, error) {
 	return true, nil
-}
-
-// BeginDeferFlush opens a no-op defer-flush scope.
-func (b *S3Block) BeginDeferFlush() {}
-
-// EndDeferFlush closes a no-op defer-flush scope.
-func (b *S3Block) EndDeferFlush(context.Context) error {
-	return nil
 }
 
 // getKeyExists checks if the given object key exists.

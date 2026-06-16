@@ -30,7 +30,7 @@ func BenchmarkBufferedStoreDrainMatrix(b *testing.B) {
 						b.Fatal(err)
 					}
 				}
-				if err := store.Flush(ctx); err != nil {
+				if _, err := store.Sync(ctx); err != nil {
 					b.Fatal(err)
 				}
 

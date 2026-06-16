@@ -350,22 +350,9 @@ func (s *streamStoreOps) RmBlock(ctx context.Context, ref *block.BlockRef) error
 	return block_store.ErrReadOnly
 }
 
-// Flush has no buffered work for the stream source.
-func (s *streamStoreOps) Flush(_ context.Context) error {
-	return nil
-}
-
 // Sync reports always-durable: the stream source holds no buffered writes.
 func (s *streamStoreOps) Sync(_ context.Context) (bool, error) {
 	return true, nil
-}
-
-// BeginDeferFlush is a no-op for the stream source.
-func (s *streamStoreOps) BeginDeferFlush() {}
-
-// EndDeferFlush is a no-op for the stream source.
-func (s *streamStoreOps) EndDeferFlush(_ context.Context) error {
-	return nil
 }
 
 // _ is a type assertion

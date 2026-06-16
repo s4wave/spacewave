@@ -125,22 +125,9 @@ func (m *MirrorUnion) StatBlock(ctx context.Context, ref *block.BlockRef) (*bloc
 	return nil, nil
 }
 
-// Flush has no buffered work for the read-only mirror.
-func (m *MirrorUnion) Flush(_ context.Context) error {
-	return nil
-}
-
 // Sync reports always-durable: the read-only mirror holds no buffered writes.
 func (m *MirrorUnion) Sync(_ context.Context) (bool, error) {
 	return true, nil
-}
-
-// BeginDeferFlush is a no-op for the read-only mirror.
-func (m *MirrorUnion) BeginDeferFlush() {}
-
-// EndDeferFlush is a no-op for the read-only mirror.
-func (m *MirrorUnion) EndDeferFlush(_ context.Context) error {
-	return nil
 }
 
 // BlockCount returns the sum of index entries across all packs. Blocks that

@@ -32,14 +32,13 @@ type countStore struct {
 	batchRelease chan struct{}
 }
 
-type deferOrderStore struct {
+type syncOrderStore struct {
 	*countStore
 
 	eventMtx   sync.Mutex
 	events     []string
-	deferDepth int
-	endCalled  chan struct{}
-	endOnce    sync.Once
+	syncCalled chan struct{}
+	syncOnce   sync.Once
 }
 
 func newCountStore(hashType hash.HashType) *countStore {
@@ -50,46 +49,32 @@ func newCountStore(hashType hash.HashType) *countStore {
 	}
 }
 
-func newDeferOrderStore(hashType hash.HashType) *deferOrderStore {
-	return &deferOrderStore{
+func newSyncOrderStore(hashType hash.HashType) *syncOrderStore {
+	return &syncOrderStore{
 		countStore: newCountStore(hashType),
-		endCalled:  make(chan struct{}),
+		syncCalled: make(chan struct{}),
 	}
 }
 
-func (s *deferOrderStore) appendEvent(event string) {
+func (s *syncOrderStore) appendEvent(event string) {
 	s.eventMtx.Lock()
 	s.events = append(s.events, event)
 	s.eventMtx.Unlock()
 }
 
-func (s *deferOrderStore) snapshotEvents() []string {
+func (s *syncOrderStore) snapshotEvents() []string {
 	s.eventMtx.Lock()
 	defer s.eventMtx.Unlock()
 	return slices.Clone(s.events)
 }
 
-func (s *deferOrderStore) BeginDeferFlush() {
-	s.eventMtx.Lock()
-	s.deferDepth++
-	s.events = append(s.events, "begin")
-	s.eventMtx.Unlock()
+func (s *syncOrderStore) Sync(ctx context.Context) (bool, error) {
+	s.appendEvent("sync")
+	s.syncOnce.Do(func() { close(s.syncCalled) })
+	return s.countStore.Sync(ctx)
 }
 
-func (s *deferOrderStore) EndDeferFlush(context.Context) error {
-	s.eventMtx.Lock()
-	s.deferDepth--
-	depth := s.deferDepth
-	s.events = append(s.events, "end")
-	s.eventMtx.Unlock()
-	s.endOnce.Do(func() { close(s.endCalled) })
-	if depth < 0 {
-		return errors.New("deferOrderStore: EndDeferFlush called more than BeginDeferFlush")
-	}
-	return nil
-}
-
-func (s *deferOrderStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) error {
+func (s *syncOrderStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) error {
 	s.appendEvent("put-start")
 	err := s.countStore.PutBlockBatch(ctx, entries)
 	s.appendEvent("put-done")
@@ -305,7 +290,7 @@ func TestBufferedStoreKeepsPendingUntilFlush(t *testing.T) {
 		t.Fatal("expected buffered store to read through pending block")
 	}
 
-	if err := store.Flush(ctx); err != nil {
+	if _, err := store.Sync(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 	found, err = inner.GetBlockExists(ctx, ref)
@@ -330,7 +315,8 @@ func TestBufferedStoreFlushWaitsForDurableDrain(t *testing.T) {
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- store.Flush(ctx)
+		_, err := store.Sync(ctx)
+		errCh <- err
 	}()
 	waitSignal(t, started, "flush drain")
 
@@ -383,7 +369,7 @@ func TestBufferedStoreDedupsPendingBlock(t *testing.T) {
 		t.Fatal("expected duplicate buffered put to return same ref")
 	}
 
-	if err := store.Flush(ctx); err != nil {
+	if _, err := store.Sync(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 	if inner.batchCalls != 1 {
@@ -437,7 +423,7 @@ func TestBufferedStoreReadsThroughPendingBlock(t *testing.T) {
 		t.Fatalf("unexpected pending stat size: %d", stat.Size)
 	}
 
-	if err := store.Flush(ctx); err != nil {
+	if _, err := store.Sync(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 }
@@ -456,7 +442,7 @@ func TestBufferedStoreReportsDrainErrorAtFlush(t *testing.T) {
 		t.Fatal("expected buffered put to be new")
 	}
 
-	if err := store.Flush(ctx); err == nil {
+	if _, err := store.Sync(ctx); err == nil {
 		t.Fatal("expected flush error")
 	}
 	found, err := inner.GetBlockExists(ctx, ref)
@@ -490,7 +476,7 @@ func TestBufferedStoreFlushesBufferedPutRefs(t *testing.T) {
 		t.Fatalf("expected no inner ref recording before flush, got %d", inner.recordCalls)
 	}
 
-	if err := store.Flush(ctx); err != nil {
+	if _, err := store.Sync(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 	if inner.recordCalls != 1 {
@@ -505,55 +491,30 @@ func TestBufferedStoreFlushesBufferedPutRefs(t *testing.T) {
 	}
 }
 
-func TestBufferedStoreNestedDeferFlushFlushesOnce(t *testing.T) {
+// TestBufferedStoreSyncDrainsBeforeInnerSync proves Sync drains all buffered
+// blocks into the inner store before forwarding the inner durability barrier.
+// The nested-defer-flush ref-batch counting invariant is owned by GCStoreOps
+// and covered by TestGCStoreOps_NestedDeferFlushFlushesOnce.
+func TestBufferedStoreSyncDrainsBeforeInnerSync(t *testing.T) {
 	ctx := context.Background()
-	inner := newCountStore(hash.HashType_HashType_BLAKE3)
-	store := NewBufferedStore(ctx, inner)
-
-	dst, _, err := store.PutBlock(ctx, []byte("dst"), nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	store.BeginDeferFlush()
-	store.BeginDeferFlush()
-	if _, _, err := store.PutBlock(ctx, []byte("src"), &PutOpts{Refs: []*BlockRef{dst}}); err != nil {
-		t.Fatal(err.Error())
-	}
-	if err := store.EndDeferFlush(ctx); err != nil {
-		t.Fatal(err.Error())
-	}
-	if inner.recordCalls != 0 {
-		t.Fatalf("expected inner refs to stay buffered at inner End, got %d", inner.recordCalls)
-	}
-	if err := store.EndDeferFlush(ctx); err != nil {
-		t.Fatal(err.Error())
-	}
-	if inner.recordCalls != 1 {
-		t.Fatalf("expected one outermost flush, got %d", inner.recordCalls)
-	}
-}
-
-func TestBufferedStoreEndDeferFlushDrainsBeforeInnerFlush(t *testing.T) {
-	ctx := context.Background()
-	inner := newDeferOrderStore(hash.HashType_HashType_BLAKE3)
+	inner := newSyncOrderStore(hash.HashType_HashType_BLAKE3)
 	started := inner.setBatchBlocker()
 	store := NewBufferedStore(ctx, inner)
 
-	store.BeginDeferFlush()
 	if _, _, err := store.PutBlock(ctx, []byte("src"), nil); err != nil {
 		t.Fatal(err.Error())
 	}
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- store.EndDeferFlush(ctx)
+		_, err := store.Sync(ctx)
+		errCh <- err
 	}()
-	waitSignal(t, started, "defer flush drain")
+	waitSignal(t, started, "sync drain")
 
 	select {
-	case <-inner.endCalled:
-		t.Fatalf("inner EndDeferFlush ran before buffered writes drained: %v", inner.snapshotEvents())
+	case <-inner.syncCalled:
+		t.Fatalf("inner Sync ran before buffered writes drained: %v", inner.snapshotEvents())
 	case <-time.After(25 * time.Millisecond):
 	}
 
@@ -564,12 +525,12 @@ func TestBufferedStoreEndDeferFlushDrainsBeforeInnerFlush(t *testing.T) {
 
 	events := inner.snapshotEvents()
 	putDone := slices.Index(events, "put-done")
-	end := slices.Index(events, "end")
-	if putDone == -1 || end == -1 {
+	syncIdx := slices.Index(events, "sync")
+	if putDone == -1 || syncIdx == -1 {
 		t.Fatalf("missing expected events: %v", events)
 	}
-	if end < putDone {
-		t.Fatalf("inner EndDeferFlush ran before buffered writes drained: %v", events)
+	if syncIdx < putDone {
+		t.Fatalf("inner Sync ran before buffered writes drained: %v", events)
 	}
 }
 
@@ -622,7 +583,7 @@ func TestBufferedStoreBlocksWhenPendingLimitExceeded(t *testing.T) {
 		t.Fatal("second put did not unblock after drain release")
 	}
 
-	if err := store.Flush(ctx); err != nil {
+	if _, err := store.Sync(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 }
@@ -665,7 +626,7 @@ func TestBufferedStoreUnblocksOnContextCancel(t *testing.T) {
 	}
 
 	inner.releaseBatchBlocker()
-	if err := store.Flush(ctx); err != nil {
+	if _, err := store.Sync(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 }
@@ -682,7 +643,7 @@ func TestBufferedStoreUsesBatchPut(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	if err := store.Flush(ctx); err != nil {
+	if _, err := store.Sync(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 	if inner.batchCalls == 0 {
@@ -722,7 +683,7 @@ func TestBufferedStoreRemovesPendingBlockWithoutResurrection(t *testing.T) {
 		t.Fatal("expected pending tombstone to hide block")
 	}
 
-	if err := store.Flush(ctx); err != nil {
+	if _, err := store.Sync(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 
@@ -748,7 +709,8 @@ func TestBufferedStoreFlushContextCancelCanRetry(t *testing.T) {
 	cancelCtx, cancel := context.WithCancel(ctx)
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- store.Flush(cancelCtx)
+		_, err := store.Sync(cancelCtx)
+		errCh <- err
 	}()
 	waitSignal(t, started, "flush drain")
 
@@ -764,7 +726,7 @@ func TestBufferedStoreFlushContextCancelCanRetry(t *testing.T) {
 	}
 
 	inner.releaseBatchBlocker()
-	if err := store.Flush(ctx); err != nil {
+	if _, err := store.Sync(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 }

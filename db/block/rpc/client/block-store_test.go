@@ -91,25 +91,11 @@ func (c *testBlockStoreClient) StatBlock(
 	return &block_rpc.StatBlockResponse{}, nil
 }
 
-func (c *testBlockStoreClient) Flush(
+func (c *testBlockStoreClient) Sync(
 	context.Context,
-	*block_rpc.FlushRequest,
-) (*block_rpc.FlushResponse, error) {
-	return &block_rpc.FlushResponse{}, nil
-}
-
-func (c *testBlockStoreClient) BeginDeferFlush(
-	context.Context,
-	*block_rpc.BeginDeferFlushRequest,
-) (*block_rpc.BeginDeferFlushResponse, error) {
-	return &block_rpc.BeginDeferFlushResponse{}, nil
-}
-
-func (c *testBlockStoreClient) EndDeferFlush(
-	context.Context,
-	*block_rpc.EndDeferFlushRequest,
-) (*block_rpc.EndDeferFlushResponse, error) {
-	return &block_rpc.EndDeferFlushResponse{}, nil
+	*block_rpc.SyncRequest,
+) (*block_rpc.SyncResponse, error) {
+	return &block_rpc.SyncResponse{}, nil
 }
 
 func TestBlockStoreGetSupportedFeaturesMasksReadOnlyWrites(t *testing.T) {

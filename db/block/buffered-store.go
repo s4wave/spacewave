@@ -4,13 +4,11 @@ import (
 	"bytes"
 	"context"
 	"slices"
-	"sync/atomic"
 
 	trace "github.com/s4wave/spacewave/db/traceutil"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/csync"
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -42,8 +40,6 @@ type BufferedStore struct {
 
 	queue []string
 
-	// deferFlush counts active defer-flush scopes.
-	deferFlush atomic.Int64
 	// drainErr captures the last drain error to surface on subsequent calls.
 	drainErr error
 }
@@ -74,9 +70,11 @@ func (s *BufferedStore) GetHashType() hash.HashType {
 	return s.inner.GetHashType()
 }
 
-// GetSupportedFeatures returns the native feature bitmask for the store.
+// GetSupportedFeatures returns the native feature bitmask for the store. The
+// buffered store forwards the GC defer-flush scope to its inner store, so it
+// advertises DeferFlusher support transparently.
 func (s *BufferedStore) GetSupportedFeatures() StoreFeature {
-	return s.inner.GetSupportedFeatures() | StoreFeatureNativeFlush | StoreFeatureNativeDeferFlush
+	return s.inner.GetSupportedFeatures() | StoreFeatureNativeDeferFlush
 }
 
 // BeginReadOperation returns the buffered store for a read scope.
@@ -334,22 +332,8 @@ func (s *BufferedStore) StatBlock(ctx context.Context, ref *BlockRef) (*BlockSta
 	return s.inner.StatBlock(ctx, ref)
 }
 
-// Flush drains buffered blocks through the current fence.
-func (s *BufferedStore) Flush(ctx context.Context) error {
-	_, subtask := trace.NewTask(ctx, "hydra/block/buffered-store/flush/wait-durable")
-	if err := s.drainAll(ctx); err != nil {
-		subtask.End()
-		return err
-	}
-	if err := s.inner.Flush(ctx); err != nil {
-		subtask.End()
-		return err
-	}
-	subtask.End()
-	return nil
-}
-
 // Sync drains buffered blocks, then forwards the durability barrier to inner.
+// Draining is owned solely by Sync (and by backpressure inside PutBlock).
 func (s *BufferedStore) Sync(ctx context.Context) (bool, error) {
 	_, subtask := trace.NewTask(ctx, "hydra/block/buffered-store/sync/wait-durable")
 	defer subtask.End()
@@ -359,27 +343,15 @@ func (s *BufferedStore) Sync(ctx context.Context) (bool, error) {
 	return s.inner.Sync(ctx)
 }
 
-// BeginDeferFlush opens a nested deferred flush scope.
+// BeginDeferFlush forwards the GC defer-flush scope to the inner store.
 func (s *BufferedStore) BeginDeferFlush() {
-	s.deferFlush.Add(1)
-	s.inner.BeginDeferFlush()
+	BeginDeferFlush(s.inner)
 }
 
-// EndDeferFlush closes a deferred flush scope and flushes at the outermost end.
+// EndDeferFlush forwards closing the GC defer-flush scope to the inner store.
+// Buffered blocks are never drained here; only Sync drains.
 func (s *BufferedStore) EndDeferFlush(ctx context.Context) error {
-	depth := s.deferFlush.Add(-1)
-	if depth < 0 {
-		return errors.New("block: EndDeferFlush called more than BeginDeferFlush")
-	}
-	if depth != 0 {
-		return s.inner.EndDeferFlush(ctx)
-	}
-	drainErr := s.drainAll(ctx)
-	innerErr := s.inner.EndDeferFlush(ctx)
-	if drainErr != nil {
-		return drainErr
-	}
-	return innerErr
+	return EndDeferFlush(ctx, s.inner)
 }
 
 func (s *BufferedStore) drainForCapacity(ctx context.Context) error {

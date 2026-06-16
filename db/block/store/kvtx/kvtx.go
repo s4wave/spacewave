@@ -296,18 +296,8 @@ func (r *readOperation) RmBlock(context.Context, *block.BlockRef) error {
 	return ErrReadOperationReadOnly
 }
 
-func (r *readOperation) Flush(context.Context) error {
-	return nil
-}
-
 func (r *readOperation) Sync(context.Context) (bool, error) {
 	return true, nil
-}
-
-func (r *readOperation) BeginDeferFlush() {}
-
-func (r *readOperation) EndDeferFlush(context.Context) error {
-	return nil
 }
 
 func (r *readOperation) release() {
@@ -415,22 +405,9 @@ func (k *KVTxBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return tx.Commit(ctx)
 }
 
-// Flush returns nil because KVTxBlock has no buffered writes.
-func (k *KVTxBlock) Flush(context.Context) error {
-	return nil
-}
-
 // Sync reports always-durable: KVTxBlock writes commit synchronously.
 func (k *KVTxBlock) Sync(context.Context) (bool, error) {
 	return true, nil
-}
-
-// BeginDeferFlush opens a no-op defer-flush scope.
-func (k *KVTxBlock) BeginDeferFlush() {}
-
-// EndDeferFlush closes a no-op defer-flush scope.
-func (k *KVTxBlock) EndDeferFlush(context.Context) error {
-	return nil
 }
 
 type putBlockBatchOp struct {

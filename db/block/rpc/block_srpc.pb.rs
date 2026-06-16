@@ -31,12 +31,8 @@ pub trait BlockStoreClient: Send + Sync {
     async fn rm_block(&self, request: &RmBlockRequest) -> starpc::Result<RmBlockResponse>;
     /// StatBlock.
     async fn stat_block(&self, request: &StatBlockRequest) -> starpc::Result<StatBlockResponse>;
-    /// Flush.
-    async fn flush(&self, request: &FlushRequest) -> starpc::Result<FlushResponse>;
-    /// BeginDeferFlush.
-    async fn begin_defer_flush(&self, request: &BeginDeferFlushRequest) -> starpc::Result<BeginDeferFlushResponse>;
-    /// EndDeferFlush.
-    async fn end_defer_flush(&self, request: &EndDeferFlushRequest) -> starpc::Result<EndDeferFlushResponse>;
+    /// Sync.
+    async fn sync(&self, request: &SyncRequest) -> starpc::Result<SyncResponse>;
 }
 
 /// Client implementation for BlockStore.
@@ -83,14 +79,8 @@ impl<C: starpc::Client + 'static> BlockStoreClient for BlockStoreClientImpl<C> {
     async fn stat_block(&self, request: &StatBlockRequest) -> starpc::Result<StatBlockResponse> {
         self.client.exec_call("block.rpc.BlockStore", "StatBlock", request).await
     }
-    async fn flush(&self, request: &FlushRequest) -> starpc::Result<FlushResponse> {
-        self.client.exec_call("block.rpc.BlockStore", "Flush", request).await
-    }
-    async fn begin_defer_flush(&self, request: &BeginDeferFlushRequest) -> starpc::Result<BeginDeferFlushResponse> {
-        self.client.exec_call("block.rpc.BlockStore", "BeginDeferFlush", request).await
-    }
-    async fn end_defer_flush(&self, request: &EndDeferFlushRequest) -> starpc::Result<EndDeferFlushResponse> {
-        self.client.exec_call("block.rpc.BlockStore", "EndDeferFlush", request).await
+    async fn sync(&self, request: &SyncRequest) -> starpc::Result<SyncResponse> {
+        self.client.exec_call("block.rpc.BlockStore", "Sync", request).await
     }
 }
 
@@ -117,12 +107,8 @@ pub trait BlockStoreServer: Send + Sync {
     async fn rm_block(&self, request: RmBlockRequest) -> starpc::Result<RmBlockResponse>;
     /// StatBlock.
     async fn stat_block(&self, request: StatBlockRequest) -> starpc::Result<StatBlockResponse>;
-    /// Flush.
-    async fn flush(&self, request: FlushRequest) -> starpc::Result<FlushResponse>;
-    /// BeginDeferFlush.
-    async fn begin_defer_flush(&self, request: BeginDeferFlushRequest) -> starpc::Result<BeginDeferFlushResponse>;
-    /// EndDeferFlush.
-    async fn end_defer_flush(&self, request: EndDeferFlushRequest) -> starpc::Result<EndDeferFlushResponse>;
+    /// Sync.
+    async fn sync(&self, request: SyncRequest) -> starpc::Result<SyncResponse>;
 }
 
 const BLOCK_STORE_METHOD_IDS: &[&str] = &[
@@ -136,9 +122,7 @@ const BLOCK_STORE_METHOD_IDS: &[&str] = &[
     "GetBlockExistsBatch",
     "RmBlock",
     "StatBlock",
-    "Flush",
-    "BeginDeferFlush",
-    "EndDeferFlush",
+    "Sync",
 ];
 
 /// Handler for BlockStore.
@@ -317,42 +301,12 @@ impl<S: BlockStoreServer + 'static> starpc::Invoker for BlockStoreHandler<S> {
                     Err(e) => (true, Err(e)),
                 }
             }
-            "Flush" => {
-                let request: FlushRequest = match stream.msg_recv().await {
+            "Sync" => {
+                let request: SyncRequest = match stream.msg_recv().await {
                     Ok(r) => r,
                     Err(e) => return (true, Err(e)),
                 };
-                match self.server.flush(request).await {
-                    Ok(response) => {
-                        if let Err(e) = stream.msg_send(&response).await {
-                            return (true, Err(e));
-                        }
-                        (true, Ok(()))
-                    }
-                    Err(e) => (true, Err(e)),
-                }
-            }
-            "BeginDeferFlush" => {
-                let request: BeginDeferFlushRequest = match stream.msg_recv().await {
-                    Ok(r) => r,
-                    Err(e) => return (true, Err(e)),
-                };
-                match self.server.begin_defer_flush(request).await {
-                    Ok(response) => {
-                        if let Err(e) = stream.msg_send(&response).await {
-                            return (true, Err(e));
-                        }
-                        (true, Ok(()))
-                    }
-                    Err(e) => (true, Err(e)),
-                }
-            }
-            "EndDeferFlush" => {
-                let request: EndDeferFlushRequest = match stream.msg_recv().await {
-                    Ok(r) => r,
-                    Err(e) => return (true, Err(e)),
-                };
-                match self.server.end_defer_flush(request).await {
+                match self.server.sync(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

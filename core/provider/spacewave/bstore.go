@@ -163,24 +163,19 @@ func (b *BlockStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block
 	return b.store.StatBlock(ctx, ref)
 }
 
-// Flush forwards to the inner store.
-func (b *BlockStore) Flush(ctx context.Context) error {
-	return b.store.Flush(ctx)
-}
-
 // Sync forwards the durability barrier to the inner store.
 func (b *BlockStore) Sync(ctx context.Context) (bool, error) {
 	return b.store.Sync(ctx)
 }
 
-// BeginDeferFlush forwards to the inner store.
+// BeginDeferFlush forwards the GC ref-batch scope to the inner store.
 func (b *BlockStore) BeginDeferFlush() {
-	b.store.BeginDeferFlush()
+	block.BeginDeferFlush(b.store)
 }
 
-// EndDeferFlush forwards to the inner store.
+// EndDeferFlush forwards the GC ref-batch scope to the inner store.
 func (b *BlockStore) EndDeferFlush(ctx context.Context) error {
-	return b.store.EndDeferFlush(ctx)
+	return block.EndDeferFlush(ctx, b.store)
 }
 
 // ForceSync flushes any pending dirty blocks to the cloud immediately.
@@ -568,24 +563,19 @@ func (d *dirtyTrackingStore) StatBlock(ctx context.Context, ref *block.BlockRef)
 	return d.store.StatBlock(ctx, ref)
 }
 
-// Flush flushes the inner store.
-func (d *dirtyTrackingStore) Flush(ctx context.Context) error {
-	return d.store.Flush(ctx)
-}
-
 // Sync forwards the durability barrier to the inner store.
 func (d *dirtyTrackingStore) Sync(ctx context.Context) (bool, error) {
 	return d.store.Sync(ctx)
 }
 
-// BeginDeferFlush forwards to the inner store.
+// BeginDeferFlush forwards the GC ref-batch scope to the inner store.
 func (d *dirtyTrackingStore) BeginDeferFlush() {
-	d.store.BeginDeferFlush()
+	block.BeginDeferFlush(d.store)
 }
 
-// EndDeferFlush forwards to the inner store.
+// EndDeferFlush forwards the GC ref-batch scope to the inner store.
 func (d *dirtyTrackingStore) EndDeferFlush(ctx context.Context) error {
-	return d.store.EndDeferFlush(ctx)
+	return block.EndDeferFlush(ctx, d.store)
 }
 
 // BuildBlockStoreOpener builds a packfile Opener for a given block store ID.

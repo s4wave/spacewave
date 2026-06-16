@@ -110,28 +110,24 @@ func (s *store) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.Bloc
 	return s.ops.StatBlock(ctx, ref)
 }
 
-// Flush forwards to the inner StoreOps.
-func (s *store) Flush(ctx context.Context) error {
-	return s.ops.Flush(ctx)
-}
-
 // Sync forwards the durability barrier to the inner StoreOps.
 func (s *store) Sync(ctx context.Context) (bool, error) {
 	return s.ops.Sync(ctx)
 }
 
-// BeginDeferFlush forwards to the inner StoreOps.
+// BeginDeferFlush forwards the GC defer-flush scope to the inner StoreOps.
 func (s *store) BeginDeferFlush() {
-	s.ops.BeginDeferFlush()
+	block.BeginDeferFlush(s.ops)
 }
 
-// EndDeferFlush forwards to the inner StoreOps.
+// EndDeferFlush forwards closing the GC defer-flush scope to the inner StoreOps.
 func (s *store) EndDeferFlush(ctx context.Context) error {
-	return s.ops.EndDeferFlush(ctx)
+	return block.EndDeferFlush(ctx, s.ops)
 }
 
 // _ is a type assertion
 var (
 	_ Store                            = ((*store)(nil))
 	_ block.DecodedBlockCacheFreshener = ((*store)(nil))
+	_ block.DeferFlusher               = ((*store)(nil))
 )

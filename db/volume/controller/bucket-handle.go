@@ -428,19 +428,6 @@ func (b *bucketHandle) PutBlockBackground(ctx context.Context, data []byte, opts
 	return b.PutBlock(ctx, data, opts)
 }
 
-// Flush publishes buffered writes for the bucket.
-func (b *bucketHandle) Flush(ctx context.Context) error {
-	if b.gcOps != nil {
-		if err := b.gcOps.Flush(ctx); err != nil {
-			return err
-		}
-		if err := b.gcOps.FlushPending(ctx); err != nil {
-			return err
-		}
-	}
-	return b.v.Flush(ctx)
-}
-
 // Sync makes bucket-level GC writes durable, then fences the volume.
 func (b *bucketHandle) Sync(ctx context.Context) (bool, error) {
 	if b.gcOps != nil {
@@ -475,4 +462,5 @@ func (b *bucketHandle) EndDeferFlush(ctx context.Context) error {
 var (
 	_ bucket.Bucket       = ((*bucketHandle)(nil))
 	_ bucket.BucketHandle = ((*bucketHandle)(nil))
+	_ block.DeferFlusher  = ((*bucketHandle)(nil))
 )

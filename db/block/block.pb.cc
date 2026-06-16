@@ -120,18 +120,19 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fbl
     "\n\004hash\030\001 \001(\0132\n.hash.Hash\"u\n\007PutOpts\022!\n\th"
     "ash_type\030\001 \001(\0162\016.hash.HashType\022(\n\017force_"
     "block_ref\030\002 \001(\0132\017.block.BlockRef\022\035\n\004refs"
-    "\030\003 \003(\0132\017.block.BlockRef*\343\001\n\014StoreFeature"
+    "\030\003 \003(\0132\017.block.BlockRef*\204\002\n\014StoreFeature"
     "\022\031\n\025STORE_FEATURE_UNKNOWN\020\000\022\"\n\036STORE_FEA"
     "TURE_NATIVE_BATCH_PUT\020\001\022%\n!STORE_FEATURE"
     "_NATIVE_BATCH_EXISTS\020\002\022\'\n#STORE_FEATURE_"
     "NATIVE_BACKGROUND_PUT\020\004\022\036\n\032STORE_FEATURE"
     "_NATIVE_FLUSH\020\010\022$\n STORE_FEATURE_NATIVE_"
-    "DEFER_FLUSH\020\020*\303\001\n\013OverlayMode\022\016\n\nUPPER_O"
-    "NLY\020\000\022\016\n\nLOWER_ONLY\020\001\022\017\n\013UPPER_CACHE\020\002\022\017"
-    "\n\013LOWER_CACHE\020\003\022\024\n\020UPPER_READ_CACHE\020\004\022\024\n"
-    "\020LOWER_READ_CACHE\020\005\022\025\n\021UPPER_WRITE_CACHE"
-    "\020\006\022\025\n\021LOWER_WRITE_CACHE\020\007\022\030\n\024UPPER_READB"
-    "ACK_CACHE\020\010b\006proto3"
+    "DEFER_FLUSH\020\020\022\037\n\033STORE_FEATURE_SELF_BUFF"
+    "ERED\020 *\303\001\n\013OverlayMode\022\016\n\nUPPER_ONLY\020\000\022\016"
+    "\n\nLOWER_ONLY\020\001\022\017\n\013UPPER_CACHE\020\002\022\017\n\013LOWER"
+    "_CACHE\020\003\022\024\n\020UPPER_READ_CACHE\020\004\022\024\n\020LOWER_"
+    "READ_CACHE\020\005\022\025\n\021UPPER_WRITE_CACHE\020\006\022\025\n\021L"
+    "OWER_WRITE_CACHE\020\007\022\030\n\024UPPER_READBACK_CAC"
+    "HE\020\010b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto_deps[1] = {
@@ -141,7 +142,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto = {
     false,
     false,
-    699,
+    732,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto,
     "github.com/s4wave/spacewave/db/block/block.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto_once,
@@ -160,7 +161,7 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL StoreFeature_descript
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t StoreFeature_internal_data_[] = {
-    196608u, 32u, 8226u, };
+    196608u, 32u, 536879138u, };
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL OverlayMode_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto);
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2fblock_2eproto[1];

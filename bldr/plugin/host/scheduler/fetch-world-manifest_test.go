@@ -2510,20 +2510,16 @@ func (s *countingBlockStore) StatBlock(ctx context.Context, ref *block.BlockRef)
 	return s.store.StatBlock(ctx, ref)
 }
 
-func (s *countingBlockStore) Flush(ctx context.Context) error {
-	return s.store.Flush(ctx)
-}
-
 func (s *countingBlockStore) Sync(ctx context.Context) (bool, error) {
 	return s.store.Sync(ctx)
 }
 
 func (s *countingBlockStore) BeginDeferFlush() {
-	s.store.BeginDeferFlush()
+	block.BeginDeferFlush(s.store)
 }
 
 func (s *countingBlockStore) EndDeferFlush(ctx context.Context) error {
-	return s.store.EndDeferFlush(ctx)
+	return block.EndDeferFlush(ctx, s.store)
 }
 
 var _ block.StoreOps = ((*countingBlockStore)(nil))

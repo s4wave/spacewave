@@ -36,12 +36,9 @@ type SRPCBlockStoreClient interface {
 	RmBlock(ctx context.Context, in *RmBlockRequest) (*RmBlockResponse, error)
 	// StatBlock requests block metadata without reading block data.
 	StatBlock(ctx context.Context, in *StatBlockRequest) (*StatBlockResponse, error)
-	// Flush requests that buffered writes are published.
-	Flush(ctx context.Context, in *FlushRequest) (*FlushResponse, error)
-	// BeginDeferFlush opens a defer-flush scope.
-	BeginDeferFlush(ctx context.Context, in *BeginDeferFlushRequest) (*BeginDeferFlushResponse, error)
-	// EndDeferFlush closes a defer-flush scope.
-	EndDeferFlush(ctx context.Context, in *EndDeferFlushRequest) (*EndDeferFlushResponse, error)
+	// Sync is the durability barrier: it drains buffered writes and blocks until
+	// every prior write is durable.
+	Sync(ctx context.Context, in *SyncRequest) (*SyncResponse, error)
 }
 
 type srpcBlockStoreClient struct {
@@ -152,27 +149,9 @@ func (c *srpcBlockStoreClient) StatBlock(ctx context.Context, in *StatBlockReque
 	return out, nil
 }
 
-func (c *srpcBlockStoreClient) Flush(ctx context.Context, in *FlushRequest) (*FlushResponse, error) {
-	out := new(FlushResponse)
-	err := c.cc.ExecCall(ctx, c.serviceID, "Flush", in, out)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *srpcBlockStoreClient) BeginDeferFlush(ctx context.Context, in *BeginDeferFlushRequest) (*BeginDeferFlushResponse, error) {
-	out := new(BeginDeferFlushResponse)
-	err := c.cc.ExecCall(ctx, c.serviceID, "BeginDeferFlush", in, out)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *srpcBlockStoreClient) EndDeferFlush(ctx context.Context, in *EndDeferFlushRequest) (*EndDeferFlushResponse, error) {
-	out := new(EndDeferFlushResponse)
-	err := c.cc.ExecCall(ctx, c.serviceID, "EndDeferFlush", in, out)
+func (c *srpcBlockStoreClient) Sync(ctx context.Context, in *SyncRequest) (*SyncResponse, error) {
+	out := new(SyncResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "Sync", in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -202,12 +181,9 @@ type SRPCBlockStoreServer interface {
 	RmBlock(context.Context, *RmBlockRequest) (*RmBlockResponse, error)
 	// StatBlock requests block metadata without reading block data.
 	StatBlock(context.Context, *StatBlockRequest) (*StatBlockResponse, error)
-	// Flush requests that buffered writes are published.
-	Flush(context.Context, *FlushRequest) (*FlushResponse, error)
-	// BeginDeferFlush opens a defer-flush scope.
-	BeginDeferFlush(context.Context, *BeginDeferFlushRequest) (*BeginDeferFlushResponse, error)
-	// EndDeferFlush closes a defer-flush scope.
-	EndDeferFlush(context.Context, *EndDeferFlushRequest) (*EndDeferFlushResponse, error)
+	// Sync is the durability barrier: it drains buffered writes and blocks until
+	// every prior write is durable.
+	Sync(context.Context, *SyncRequest) (*SyncResponse, error)
 }
 
 const SRPCBlockStoreServiceID = "block.rpc.BlockStore"
@@ -246,9 +222,7 @@ func (SRPCBlockStoreHandler) GetMethodIDs() []string {
 		"GetBlockExistsBatch",
 		"RmBlock",
 		"StatBlock",
-		"Flush",
-		"BeginDeferFlush",
-		"EndDeferFlush",
+		"Sync",
 	}
 }
 
@@ -281,12 +255,8 @@ func (d *SRPCBlockStoreHandler) InvokeMethod(
 		return true, d.InvokeMethod_RmBlock(d.impl, strm)
 	case "StatBlock":
 		return true, d.InvokeMethod_StatBlock(d.impl, strm)
-	case "Flush":
-		return true, d.InvokeMethod_Flush(d.impl, strm)
-	case "BeginDeferFlush":
-		return true, d.InvokeMethod_BeginDeferFlush(d.impl, strm)
-	case "EndDeferFlush":
-		return true, d.InvokeMethod_EndDeferFlush(d.impl, strm)
+	case "Sync":
+		return true, d.InvokeMethod_Sync(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -412,36 +382,12 @@ func (SRPCBlockStoreHandler) InvokeMethod_StatBlock(impl SRPCBlockStoreServer, s
 	return strm.MsgSend(out)
 }
 
-func (SRPCBlockStoreHandler) InvokeMethod_Flush(impl SRPCBlockStoreServer, strm srpc.Stream) error {
-	req := new(FlushRequest)
+func (SRPCBlockStoreHandler) InvokeMethod_Sync(impl SRPCBlockStoreServer, strm srpc.Stream) error {
+	req := new(SyncRequest)
 	if err := strm.MsgRecv(req); err != nil {
 		return err
 	}
-	out, err := impl.Flush(strm.Context(), req)
-	if err != nil {
-		return err
-	}
-	return strm.MsgSend(out)
-}
-
-func (SRPCBlockStoreHandler) InvokeMethod_BeginDeferFlush(impl SRPCBlockStoreServer, strm srpc.Stream) error {
-	req := new(BeginDeferFlushRequest)
-	if err := strm.MsgRecv(req); err != nil {
-		return err
-	}
-	out, err := impl.BeginDeferFlush(strm.Context(), req)
-	if err != nil {
-		return err
-	}
-	return strm.MsgSend(out)
-}
-
-func (SRPCBlockStoreHandler) InvokeMethod_EndDeferFlush(impl SRPCBlockStoreServer, strm srpc.Stream) error {
-	req := new(EndDeferFlushRequest)
-	if err := strm.MsgRecv(req); err != nil {
-		return err
-	}
-	out, err := impl.EndDeferFlush(strm.Context(), req)
+	out, err := impl.Sync(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -528,26 +474,10 @@ type srpcBlockStore_StatBlockStream struct {
 	srpc.Stream
 }
 
-type SRPCBlockStore_FlushStream interface {
+type SRPCBlockStore_SyncStream interface {
 	srpc.Stream
 }
 
-type srpcBlockStore_FlushStream struct {
-	srpc.Stream
-}
-
-type SRPCBlockStore_BeginDeferFlushStream interface {
-	srpc.Stream
-}
-
-type srpcBlockStore_BeginDeferFlushStream struct {
-	srpc.Stream
-}
-
-type SRPCBlockStore_EndDeferFlushStream interface {
-	srpc.Stream
-}
-
-type srpcBlockStore_EndDeferFlushStream struct {
+type srpcBlockStore_SyncStream struct {
 	srpc.Stream
 }

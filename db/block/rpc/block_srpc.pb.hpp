@@ -49,12 +49,8 @@ class SRPCBlockStoreClient {
   virtual starpc::Error RmBlock(const block::rpc::RmBlockRequest& in, block::rpc::RmBlockResponse* out) = 0;
   // StatBlock
   virtual starpc::Error StatBlock(const block::rpc::StatBlockRequest& in, block::rpc::StatBlockResponse* out) = 0;
-  // Flush
-  virtual starpc::Error Flush(const block::rpc::FlushRequest& in, block::rpc::FlushResponse* out) = 0;
-  // BeginDeferFlush
-  virtual starpc::Error BeginDeferFlush(const block::rpc::BeginDeferFlushRequest& in, block::rpc::BeginDeferFlushResponse* out) = 0;
-  // EndDeferFlush
-  virtual starpc::Error EndDeferFlush(const block::rpc::EndDeferFlushRequest& in, block::rpc::EndDeferFlushResponse* out) = 0;
+  // Sync
+  virtual starpc::Error Sync(const block::rpc::SyncRequest& in, block::rpc::SyncResponse* out) = 0;
 };
 
 // SRPCBlockStoreClientImpl implements SRPCBlockStoreClient.
@@ -85,12 +81,8 @@ class SRPCBlockStoreClientImpl : public SRPCBlockStoreClient {
   virtual starpc::Error RmBlock(const block::rpc::RmBlockRequest& in, block::rpc::RmBlockResponse* out) override;
   // StatBlock
   virtual starpc::Error StatBlock(const block::rpc::StatBlockRequest& in, block::rpc::StatBlockResponse* out) override;
-  // Flush
-  virtual starpc::Error Flush(const block::rpc::FlushRequest& in, block::rpc::FlushResponse* out) override;
-  // BeginDeferFlush
-  virtual starpc::Error BeginDeferFlush(const block::rpc::BeginDeferFlushRequest& in, block::rpc::BeginDeferFlushResponse* out) override;
-  // EndDeferFlush
-  virtual starpc::Error EndDeferFlush(const block::rpc::EndDeferFlushRequest& in, block::rpc::EndDeferFlushResponse* out) override;
+  // Sync
+  virtual starpc::Error Sync(const block::rpc::SyncRequest& in, block::rpc::SyncResponse* out) override;
 
  private:
   starpc::Client* cc_;
@@ -127,12 +119,8 @@ class SRPCBlockStoreServer {
   virtual starpc::Error RmBlock(const block::rpc::RmBlockRequest& req, block::rpc::RmBlockResponse* resp) = 0;
   // StatBlock
   virtual starpc::Error StatBlock(const block::rpc::StatBlockRequest& req, block::rpc::StatBlockResponse* resp) = 0;
-  // Flush
-  virtual starpc::Error Flush(const block::rpc::FlushRequest& req, block::rpc::FlushResponse* resp) = 0;
-  // BeginDeferFlush
-  virtual starpc::Error BeginDeferFlush(const block::rpc::BeginDeferFlushRequest& req, block::rpc::BeginDeferFlushResponse* resp) = 0;
-  // EndDeferFlush
-  virtual starpc::Error EndDeferFlush(const block::rpc::EndDeferFlushRequest& req, block::rpc::EndDeferFlushResponse* resp) = 0;
+  // Sync
+  virtual starpc::Error Sync(const block::rpc::SyncRequest& req, block::rpc::SyncResponse* resp) = 0;
 };
 
 // SRPCBlockStoreHandler implements starpc::Handler for BlockStore.

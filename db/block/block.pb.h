@@ -89,6 +89,7 @@ enum StoreFeature : int {
   STORE_FEATURE_NATIVE_BACKGROUND_PUT = 4,
   STORE_FEATURE_NATIVE_FLUSH = 8,
   STORE_FEATURE_NATIVE_DEFER_FLUSH = 16,
+  STORE_FEATURE_SELF_BUFFERED = 32,
   StoreFeature_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
   StoreFeature_INT_MAX_SENTINEL_DO_NOT_USE_ =
@@ -99,11 +100,11 @@ extern const uint32_t StoreFeature_internal_data_[];
 inline constexpr StoreFeature StoreFeature_MIN =
     static_cast<StoreFeature>(0);
 inline constexpr StoreFeature StoreFeature_MAX =
-    static_cast<StoreFeature>(16);
+    static_cast<StoreFeature>(32);
 inline bool StoreFeature_IsValid(int value) {
-  return 0 <= value && value <= 16 && ((65815u >> value) & 1) != 0;
+  return 0 <= value && value <= 32 && ((4295033111u >> value) & 1) != 0;
 }
-inline constexpr int StoreFeature_ARRAYSIZE = 16 + 1;
+inline constexpr int StoreFeature_ARRAYSIZE = 32 + 1;
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL StoreFeature_descriptor();
 template <typename T>
 const ::std::string& StoreFeature_Name(T value) {

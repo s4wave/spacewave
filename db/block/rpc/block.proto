@@ -38,14 +38,9 @@ service BlockStore {
   // StatBlock requests block metadata without reading block data.
   rpc StatBlock(StatBlockRequest) returns (StatBlockResponse);
 
-  // Flush requests that buffered writes are published.
-  rpc Flush(FlushRequest) returns (FlushResponse);
-
-  // BeginDeferFlush opens a defer-flush scope.
-  rpc BeginDeferFlush(BeginDeferFlushRequest) returns (BeginDeferFlushResponse);
-
-  // EndDeferFlush closes a defer-flush scope.
-  rpc EndDeferFlush(EndDeferFlushRequest) returns (EndDeferFlushResponse);
+  // Sync is the durability barrier: it drains buffered writes and blocks until
+  // every prior write is durable.
+  rpc Sync(SyncRequest) returns (SyncResponse);
 }
 
 // GetHashTypeRequest requests the preferred hash type for the store.
@@ -201,29 +196,13 @@ message StatBlockResponse {
   string error = 4;
 }
 
-// FlushRequest requests a store flush.
-message FlushRequest {}
+// SyncRequest requests a durability barrier on the store.
+message SyncRequest {}
 
-// FlushResponse is the response to flushing the store.
-message FlushResponse {
-  // Error is any error flushing the store.
-  string error = 1;
-}
-
-// BeginDeferFlushRequest requests opening a defer-flush scope.
-message BeginDeferFlushRequest {}
-
-// BeginDeferFlushResponse is the response to opening a defer-flush scope.
-message BeginDeferFlushResponse {
-  // Error is any error opening the defer-flush scope.
-  string error = 1;
-}
-
-// EndDeferFlushRequest requests closing a defer-flush scope.
-message EndDeferFlushRequest {}
-
-// EndDeferFlushResponse is the response to closing a defer-flush scope.
-message EndDeferFlushResponse {
-  // Error is any error closing the defer-flush scope.
-  string error = 1;
+// SyncResponse is the response to a durability barrier.
+message SyncResponse {
+  // Fenced reports whether a durability fence was applied.
+  bool fenced = 1;
+  // Error is any error fencing the store.
+  string error = 2;
 }

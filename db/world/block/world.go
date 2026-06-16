@@ -523,9 +523,7 @@ func (t *WorldState) Commit(ctx context.Context) error {
 
 	// Defer bucket-level GC flushes during the block write so they
 	// accumulate and flush once at the end instead of per-PutBlock.
-	if t.store != nil {
-		t.store.BeginDeferFlush()
-	}
+	block.BeginDeferFlush(t.store)
 
 	journalEntriesBefore := t.GetGCJournalEntries()
 	var bcs *block.Cursor
@@ -534,10 +532,8 @@ func (t *WorldState) Commit(ctx context.Context) error {
 		err = t.gcTree.Commit(taskCtx)
 		subtask.End()
 		if err != nil {
-			if t.store != nil {
-				if endErr := t.store.EndDeferFlush(ctx); endErr != nil {
-					return errors.Wrap(endErr, err.Error())
-				}
+			if endErr := block.EndDeferFlush(ctx, t.store); endErr != nil {
+				return errors.Wrap(endErr, err.Error())
 			}
 			return err
 		}
@@ -547,22 +543,18 @@ func (t *WorldState) Commit(ctx context.Context) error {
 	subtask.End()
 	if err != nil {
 		// End the deferred scope even on error to flush any partial work.
-		if t.store != nil {
-			if endErr := t.store.EndDeferFlush(ctx); endErr != nil {
-				return errors.Wrap(endErr, err.Error())
-			}
+		if endErr := block.EndDeferFlush(ctx, t.store); endErr != nil {
+			return errors.Wrap(endErr, err.Error())
 		}
 		return err
 	}
 
 	// End the deferred bucket-level flush scope: one batched flush.
-	if t.store != nil {
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/flush-gc-pending/bucket-batch")
-		err = t.store.EndDeferFlush(taskCtx)
-		subtask.End()
-		if err != nil {
-			return err
-		}
+	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/flush-gc-pending/bucket-batch")
+	err = block.EndDeferFlush(taskCtx, t.store)
+	subtask.End()
+	if err != nil {
+		return err
 	}
 
 	// Flush buffered world-level GC ref graph operations after Write

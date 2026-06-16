@@ -157,22 +157,9 @@ func (l *lookupBucket) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return ErrNotImplemented
 }
 
-// Flush returns nil because lookupBucket has no buffered writes.
-func (l *lookupBucket) Flush(context.Context) error {
-	return nil
-}
-
 // Sync reports always-durable: lookupBucket holds no buffered writes.
 func (l *lookupBucket) Sync(context.Context) (bool, error) {
 	return true, nil
-}
-
-// BeginDeferFlush opens a no-op defer-flush scope.
-func (l *lookupBucket) BeginDeferFlush() {}
-
-// EndDeferFlush closes a no-op defer-flush scope.
-func (l *lookupBucket) EndDeferFlush(context.Context) error {
-	return nil
 }
 
 // _ is a type assertion

@@ -350,12 +350,9 @@ func (g *GCStoreOps) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return g.refGraph.RemoveRef(ctx, parent, iri)
 }
 
-// Flush forwards the durability boundary to the inner store.
-func (g *GCStoreOps) Flush(ctx context.Context) error {
-	return g.store.Flush(ctx)
-}
-
-// Sync forwards the durability barrier to the inner store.
+// Sync forwards the durability barrier to the inner store. Applying buffered
+// ref-graph edges stays an explicit FlushPending call, not a Sync side effect,
+// because FlushPending must run with the cursor mutex released.
 func (g *GCStoreOps) Sync(ctx context.Context) (bool, error) {
 	return g.store.Sync(ctx)
 }
@@ -385,7 +382,7 @@ func (g *GCStoreOps) bufferBlockRefsLocked(source *block.BlockRef, targets []*bl
 // gcOps inside bucketHandle) are also deferred.
 func (g *GCStoreOps) BeginDeferFlush() {
 	g.deferFlush.Add(1)
-	g.store.BeginDeferFlush()
+	block.BeginDeferFlush(g.store)
 }
 
 // EndDeferFlush exits a deferred-flush scope. When the outermost
@@ -396,7 +393,7 @@ func (g *GCStoreOps) EndDeferFlush(ctx context.Context) error {
 	if depth < 0 {
 		return errors.New("block gc: EndDeferFlush called more than BeginDeferFlush")
 	}
-	innerErr := g.store.EndDeferFlush(ctx)
+	innerErr := block.EndDeferFlush(ctx, g.store)
 	if depth == 0 {
 		if err := g.FlushPending(ctx); err != nil {
 			return err
@@ -551,5 +548,6 @@ func (g *GCStoreOps) RemoveGCRef(ctx context.Context, subject, object string) er
 
 // _ is a type assertion
 var (
-	_ block.StoreOps = ((*GCStoreOps)(nil))
+	_ block.StoreOps     = ((*GCStoreOps)(nil))
+	_ block.DeferFlusher = ((*GCStoreOps)(nil))
 )

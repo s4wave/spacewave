@@ -154,22 +154,9 @@ func (k *KvfileBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return block_store.ErrReadOnly
 }
 
-// Flush returns nil because KvfileBlock has no buffered writes.
-func (k *KvfileBlock) Flush(context.Context) error {
-	return nil
-}
-
 // Sync reports always-durable: KvfileBlock writes commit synchronously.
 func (k *KvfileBlock) Sync(context.Context) (bool, error) {
 	return true, nil
-}
-
-// BeginDeferFlush opens a no-op defer-flush scope.
-func (k *KvfileBlock) BeginDeferFlush() {}
-
-// EndDeferFlush closes a no-op defer-flush scope.
-func (k *KvfileBlock) EndDeferFlush(context.Context) error {
-	return nil
 }
 
 // _ is a type assertion

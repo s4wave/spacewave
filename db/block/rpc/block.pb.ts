@@ -617,109 +617,44 @@ export const StatBlockResponse: MessageType<StatBlockResponse> =
   })
 
 /**
- * FlushRequest requests a store flush.
+ * SyncRequest requests a durability barrier on the store.
  *
- * @generated from message block.rpc.FlushRequest
+ * @generated from message block.rpc.SyncRequest
  */
-export interface FlushRequest {}
+export interface SyncRequest {}
 
-export const FlushRequest: MessageType<FlushRequest> =
-  /* @__PURE__ */ createEmptyMessageType<FlushRequest>(
-    'block.rpc.FlushRequest',
+export const SyncRequest: MessageType<SyncRequest> =
+  /* @__PURE__ */ createEmptyMessageType<SyncRequest>(
+    'block.rpc.SyncRequest',
     true,
   )
 
 /**
- * FlushResponse is the response to flushing the store.
+ * SyncResponse is the response to a durability barrier.
  *
- * @generated from message block.rpc.FlushResponse
+ * @generated from message block.rpc.SyncResponse
  */
-export interface FlushResponse {
+export interface SyncResponse {
   /**
-   * Error is any error flushing the store.
+   * Fenced reports whether a durability fence was applied.
    *
-   * @generated from field: string error = 1;
+   * @generated from field: bool fenced = 1;
+   */
+  fenced?: boolean
+  /**
+   * Error is any error fencing the store.
+   *
+   * @generated from field: string error = 2;
    */
   error?: string
 }
 
-export const FlushResponse: MessageType<FlushResponse> =
+export const SyncResponse: MessageType<SyncResponse> =
   /* @__PURE__ */ createMessageType({
-    typeName: 'block.rpc.FlushResponse',
+    typeName: 'block.rpc.SyncResponse',
     fields: [
-      { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
- * BeginDeferFlushRequest requests opening a defer-flush scope.
- *
- * @generated from message block.rpc.BeginDeferFlushRequest
- */
-export interface BeginDeferFlushRequest {}
-
-export const BeginDeferFlushRequest: MessageType<BeginDeferFlushRequest> =
-  /* @__PURE__ */ createEmptyMessageType<BeginDeferFlushRequest>(
-    'block.rpc.BeginDeferFlushRequest',
-    true,
-  )
-
-/**
- * BeginDeferFlushResponse is the response to opening a defer-flush scope.
- *
- * @generated from message block.rpc.BeginDeferFlushResponse
- */
-export interface BeginDeferFlushResponse {
-  /**
-   * Error is any error opening the defer-flush scope.
-   *
-   * @generated from field: string error = 1;
-   */
-  error?: string
-}
-
-export const BeginDeferFlushResponse: MessageType<BeginDeferFlushResponse> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'block.rpc.BeginDeferFlushResponse',
-    fields: [
-      { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
- * EndDeferFlushRequest requests closing a defer-flush scope.
- *
- * @generated from message block.rpc.EndDeferFlushRequest
- */
-export interface EndDeferFlushRequest {}
-
-export const EndDeferFlushRequest: MessageType<EndDeferFlushRequest> =
-  /* @__PURE__ */ createEmptyMessageType<EndDeferFlushRequest>(
-    'block.rpc.EndDeferFlushRequest',
-    true,
-  )
-
-/**
- * EndDeferFlushResponse is the response to closing a defer-flush scope.
- *
- * @generated from message block.rpc.EndDeferFlushResponse
- */
-export interface EndDeferFlushResponse {
-  /**
-   * Error is any error closing the defer-flush scope.
-   *
-   * @generated from field: string error = 1;
-   */
-  error?: string
-}
-
-export const EndDeferFlushResponse: MessageType<EndDeferFlushResponse> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'block.rpc.EndDeferFlushResponse',
-    fields: [
-      { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      { no: 1, name: 'fenced', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

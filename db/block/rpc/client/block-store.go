@@ -19,10 +19,6 @@ type BlockStore struct {
 	hashType hash.HashType
 	// readOnly disables write calls
 	readOnly bool
-	// beginErr stores BeginDeferFlush errors until EndDeferFlush can report them.
-	beginErr error
-	// beginErrMtx guards beginErr.
-	beginErrMtx sync.Mutex
 	// featuresOnce guards the lazy lookup of supportedFeatures.
 	featuresOnce sync.Once
 	// supportedFeatures caches the remote feature bitmask after the first call.
@@ -220,58 +216,16 @@ func (v *BlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return nil
 }
 
-// Flush requests a remote flush.
-func (v *BlockStore) Flush(ctx context.Context) error {
-	resp, err := v.client.Flush(ctx, &block_rpc.FlushRequest{})
+// Sync requests a remote durability barrier and reports whether it fenced.
+func (v *BlockStore) Sync(ctx context.Context) (bool, error) {
+	resp, err := v.client.Sync(ctx, &block_rpc.SyncRequest{})
 	if err != nil {
-		return err
+		return false, err
 	}
 	if errStr := resp.GetError(); errStr != "" {
-		return errors.New(errStr)
+		return false, errors.New(errStr)
 	}
-	return nil
-}
-
-// Sync reports no durability fence: the remote block RPC has no Sync barrier
-// surface yet.
-func (v *BlockStore) Sync(context.Context) (bool, error) {
-	return false, nil
-}
-
-// BeginDeferFlush opens a remote defer-flush scope.
-func (v *BlockStore) BeginDeferFlush() {
-	resp, err := v.client.BeginDeferFlush(context.Background(), &block_rpc.BeginDeferFlushRequest{})
-	if err == nil {
-		if errStr := resp.GetError(); errStr != "" {
-			err = errors.New(errStr)
-		}
-	}
-	if err != nil {
-		v.beginErrMtx.Lock()
-		if v.beginErr == nil {
-			v.beginErr = err
-		}
-		v.beginErrMtx.Unlock()
-	}
-}
-
-// EndDeferFlush closes a remote defer-flush scope.
-func (v *BlockStore) EndDeferFlush(ctx context.Context) error {
-	v.beginErrMtx.Lock()
-	beginErr := v.beginErr
-	v.beginErr = nil
-	v.beginErrMtx.Unlock()
-	if beginErr != nil {
-		return beginErr
-	}
-	resp, err := v.client.EndDeferFlush(ctx, &block_rpc.EndDeferFlushRequest{})
-	if err != nil {
-		return err
-	}
-	if errStr := resp.GetError(); errStr != "" {
-		return errors.New(errStr)
-	}
-	return nil
+	return resp.GetFenced(), nil
 }
 
 // _ is a type assertion

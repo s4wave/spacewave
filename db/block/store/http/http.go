@@ -364,22 +364,9 @@ func (b *HTTPBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return nil
 }
 
-// Flush returns nil because HTTPBlock has no buffered writes.
-func (b *HTTPBlock) Flush(context.Context) error {
-	return nil
-}
-
 // Sync reports always-durable: HTTPBlock writes commit synchronously per PUT.
 func (b *HTTPBlock) Sync(context.Context) (bool, error) {
 	return true, nil
-}
-
-// BeginDeferFlush opens a no-op defer-flush scope.
-func (b *HTTPBlock) BeginDeferFlush() {}
-
-// EndDeferFlush closes a no-op defer-flush scope.
-func (b *HTTPBlock) EndDeferFlush(context.Context) error {
-	return nil
 }
 
 // _ is a type assertion

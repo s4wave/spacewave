@@ -120,24 +120,19 @@ func (b *StoreRW) PutBlockBackground(ctx context.Context, data []byte, opts *Put
 	return b.writeHandle.PutBlockBackground(ctx, data, opts)
 }
 
-// Flush forwards the durability boundary to the write handle.
-func (b *StoreRW) Flush(ctx context.Context) error {
-	return b.writeHandle.Flush(ctx)
-}
-
 // Sync forwards the durability barrier to the write handle.
 func (b *StoreRW) Sync(ctx context.Context) (bool, error) {
 	return b.writeHandle.Sync(ctx)
 }
 
-// BeginDeferFlush forwards to the write handle if it supports deferred flushing.
+// BeginDeferFlush forwards the GC defer-flush scope to the write handle.
 func (b *StoreRW) BeginDeferFlush() {
-	b.writeHandle.BeginDeferFlush()
+	BeginDeferFlush(b.writeHandle)
 }
 
-// EndDeferFlush forwards to the write handle if it supports deferred flushing.
+// EndDeferFlush forwards closing the GC defer-flush scope to the write handle.
 func (b *StoreRW) EndDeferFlush(ctx context.Context) error {
-	return b.writeHandle.EndDeferFlush(ctx)
+	return EndDeferFlush(ctx, b.writeHandle)
 }
 
 // _ is a type assertion

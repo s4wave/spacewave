@@ -82,27 +82,23 @@ func (k *KVTx) PutBlockBackground(ctx context.Context, data []byte, opts *block.
 	return k.blk.PutBlockBackground(ctx, data, opts)
 }
 
-// Flush forwards the durability boundary to the underlying block store.
-func (k *KVTx) Flush(ctx context.Context) error {
-	return k.blk.Flush(ctx)
-}
-
 // Sync forwards the durability barrier to the underlying block store.
 func (k *KVTx) Sync(ctx context.Context) (bool, error) {
 	return k.blk.Sync(ctx)
 }
 
-// BeginDeferFlush forwards deferred-flush scope entry to the underlying block store when supported.
+// BeginDeferFlush forwards the GC defer-flush scope to the underlying block store.
 func (k *KVTx) BeginDeferFlush() {
-	k.blk.BeginDeferFlush()
+	block.BeginDeferFlush(k.blk)
 }
 
-// EndDeferFlush forwards deferred-flush scope exit to the underlying block store when supported.
+// EndDeferFlush forwards closing the GC defer-flush scope to the underlying block store.
 func (k *KVTx) EndDeferFlush(ctx context.Context) error {
-	return k.blk.EndDeferFlush(ctx)
+	return block.EndDeferFlush(ctx, k.blk)
 }
 
 // _ is a type assertion
 var (
-	_ block.StoreOps = ((*KVTx)(nil))
+	_ block.StoreOps     = ((*KVTx)(nil))
+	_ block.DeferFlusher = ((*KVTx)(nil))
 )

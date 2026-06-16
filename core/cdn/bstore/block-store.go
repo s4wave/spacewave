@@ -204,22 +204,9 @@ func (s *CdnBlockStore) RmBlock(_ context.Context, _ *block.BlockRef) error {
 	return block_store.ErrReadOnly
 }
 
-// Flush has no buffered work for the anonymous CDN block store.
-func (s *CdnBlockStore) Flush(_ context.Context) error {
-	return nil
-}
-
 // Sync reports always-durable: the CDN block store holds no buffered writes.
 func (s *CdnBlockStore) Sync(_ context.Context) (bool, error) {
 	return true, nil
-}
-
-// BeginDeferFlush is a no-op for the anonymous CDN block store.
-func (s *CdnBlockStore) BeginDeferFlush() {}
-
-// EndDeferFlush is a no-op for the anonymous CDN block store.
-func (s *CdnBlockStore) EndDeferFlush(_ context.Context) error {
-	return nil
 }
 
 // Pointer returns the currently-cached root pointer without triggering a

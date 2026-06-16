@@ -188,24 +188,19 @@ func (s *VLoggerStore) RmBlock(ctx context.Context, ref *block.BlockRef) (err er
 	return s.st.RmBlock(ctx, ref)
 }
 
-// Flush publishes buffered writes.
-func (s *VLoggerStore) Flush(ctx context.Context) error {
-	return s.st.Flush(ctx)
-}
-
 // Sync forwards the durability barrier to the wrapped store.
 func (s *VLoggerStore) Sync(ctx context.Context) (bool, error) {
 	return s.st.Sync(ctx)
 }
 
-// BeginDeferFlush opens a defer-flush scope.
+// BeginDeferFlush forwards the GC defer-flush scope to the wrapped store.
 func (s *VLoggerStore) BeginDeferFlush() {
-	s.st.BeginDeferFlush()
+	block.BeginDeferFlush(s.st)
 }
 
-// EndDeferFlush closes a defer-flush scope.
+// EndDeferFlush forwards closing the GC defer-flush scope to the wrapped store.
 func (s *VLoggerStore) EndDeferFlush(ctx context.Context) error {
-	return s.st.EndDeferFlush(ctx)
+	return block.EndDeferFlush(ctx, s.st)
 }
 
 // _ is a type assertion

@@ -1580,7 +1580,7 @@
       "protoFiles": ["core/trace/service/config.proto"]
     },
     "github.com/s4wave/spacewave/db/block": {
-      "hash": "6b074756b477ae46e5d1a1311f096421030be48b5708e90b8c2a7e4cfabd60d5",
+      "hash": "20203a99bca07f4f6f8748dfb9c27f289a86291f85effd119c970a922570565c",
       "generatedFiles": [
         "db/block/block.pb.cc",
         "db/block/block.pb.go",
@@ -1706,7 +1706,7 @@
       "protoFiles": ["db/block/quad/quad.proto"]
     },
     "github.com/s4wave/spacewave/db/block/rpc": {
-      "hash": "e142e300f63fac9bb8e1ed74f94a301a86c320e82d56a226206012c14a38acd3",
+      "hash": "5a3d59e3c60f1c9b845b66c157b98bf12feeaa986ec8d1fcf604bc674b7f3cdb",
       "generatedFiles": [
         "db/block/rpc/block.pb.cc",
         "db/block/rpc/block.pb.go",

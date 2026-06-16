@@ -47,6 +47,13 @@ pub enum StoreFeature {
     NativeFlush = 8,
     /// STORE_FEATURE_NATIVE_DEFER_FLUSH means BeginDeferFlush and EndDeferFlush batch flush work.
     NativeDeferFlush = 16,
+    /// STORE_FEATURE_SELF_BUFFERED means the store owns its own background write
+    /// buffer and Sync barrier, so the world block engine must not wrap it in a
+    /// BufferedStore. Self-buffered stores accept continuous PutBlockBackground
+    /// writes, read them back through their own pending state before durability,
+    /// and make them durable only at Sync. Non-self-buffered stores (native KV
+    /// such as bbolt and badger) get wrapped in a deferred-mode BufferedStore.
+    SelfBuffered = 32,
 }
 impl StoreFeature {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -61,6 +68,7 @@ impl StoreFeature {
             Self::NativeBackgroundPut => "STORE_FEATURE_NATIVE_BACKGROUND_PUT",
             Self::NativeFlush => "STORE_FEATURE_NATIVE_FLUSH",
             Self::NativeDeferFlush => "STORE_FEATURE_NATIVE_DEFER_FLUSH",
+            Self::SelfBuffered => "STORE_FEATURE_SELF_BUFFERED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -72,6 +80,7 @@ impl StoreFeature {
             "STORE_FEATURE_NATIVE_BACKGROUND_PUT" => Some(Self::NativeBackgroundPut),
             "STORE_FEATURE_NATIVE_FLUSH" => Some(Self::NativeFlush),
             "STORE_FEATURE_NATIVE_DEFER_FLUSH" => Some(Self::NativeDeferFlush),
+            "STORE_FEATURE_SELF_BUFFERED" => Some(Self::SelfBuffered),
             _ => None,
         }
     }

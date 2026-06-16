@@ -20,16 +20,107 @@ import (
 // DefaultShardCount is the default number of block shards.
 const DefaultShardCount = 4
 
-// writeReq is an internal request to the shard write actor.
+// writeReq is a wake signal to the shard write actor.
 //
-// A barrier request carries no entries; it is a durability fence that the actor
-// satisfies only after the publish covering all earlier-enqueued writes for the
-// shard completes, reusing the err reply channel and the channel FIFO order.
+// The published content always comes from the shard pending buffer, never from
+// the request: putToActors inserts entries into the buffer before sending the
+// wake, and the actor publishes a snapshot of the buffer. A barrier carries no
+// new write; it is a durability fence the actor satisfies after the publish
+// covering all earlier-enqueued writes for the shard completes. Foreground
+// requests wait on err; background requests are fire-and-forget (err is drained
+// by the actor but unread), so a background write returns before it is durable
+// and is fenced only by Sync.
 type writeReq struct {
-	entries    []segment.Entry
 	background bool
 	barrier    bool
 	err        chan error
+}
+
+// pendingEntry is a buffered, not-yet-published write held for read-through.
+type pendingEntry struct {
+	value     []byte
+	tombstone bool
+	seq       uint64
+}
+
+// pendingBuffer is a shard's in-memory buffer of accepted-but-unpublished
+// writes. It is the read-through source so a just-enqueued block reads back
+// before its publish, and the publish source so a failed publish keeps the
+// entries durable-pending until a later cycle republishes them. Entries are
+// keyed by segment key; a later write to the same key supersedes the earlier
+// one by carrying a higher seq, and a read always sees the latest.
+type pendingBuffer struct {
+	mu      sync.Mutex
+	seq     uint64
+	entries map[string]pendingEntry
+}
+
+func newPendingBuffer() *pendingBuffer {
+	return &pendingBuffer{entries: make(map[string]pendingEntry)}
+}
+
+// insert buffers entries, assigning each a monotonic seq so a later write to the
+// same key supersedes an earlier one.
+func (p *pendingBuffer) insert(entries []segment.Entry) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for i := range entries {
+		p.seq++
+		p.entries[string(entries[i].Key)] = pendingEntry{
+			value:     entries[i].Value,
+			tombstone: entries[i].Tombstone,
+			seq:       p.seq,
+		}
+	}
+}
+
+// get returns the buffered entry for key, if any.
+func (p *pendingBuffer) get(key []byte) (pendingEntry, bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	e, ok := p.entries[string(key)]
+	return e, ok
+}
+
+// snapshot copies the buffered entries for a publish, returning the entries to
+// write and the per-key seq that publish covers (for matched eviction).
+func (p *pendingBuffer) snapshot() ([]segment.Entry, map[string]uint64) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if len(p.entries) == 0 {
+		return nil, nil
+	}
+	entries := make([]segment.Entry, 0, len(p.entries))
+	seqs := make(map[string]uint64, len(p.entries))
+	for key, e := range p.entries {
+		entries = append(entries, segment.Entry{
+			Key:       []byte(key),
+			Value:     e.value,
+			Tombstone: e.tombstone,
+		})
+		seqs[key] = e.seq
+	}
+	return entries, seqs
+}
+
+// evict drops keys whose seq still matches what the completed publish covered.
+// A newer write (higher seq) that arrived during the publish is kept so the next
+// cycle republishes it.
+func (p *pendingBuffer) evict(seqs map[string]uint64) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for key, seq := range seqs {
+		if e, ok := p.entries[key]; ok && e.seq == seq {
+			delete(p.entries, key)
+		}
+	}
+}
+
+// length reports the number of buffered keys (bounded by in-flight writes).
+func (p *pendingBuffer) length() int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return len(p.entries)
 }
 
 type compactReq struct {
@@ -55,17 +146,11 @@ func newShardActor(shardIdx int, shard *Shard) *shardActor {
 	}
 }
 
-func (a *shardActor) writeCh(background bool) chan writeReq {
-	if background {
-		return a.background
-	}
-	return a.foreground
-}
-
 // Engine is the multi-shard block store engine.
 type Engine struct {
 	shards      []*Shard
 	actors      []*shardActor
+	pending     []*pendingBuffer
 	ctx         context.Context
 	cancel      context.CancelFunc
 	wg          sync.WaitGroup
@@ -95,6 +180,7 @@ func NewEngineWithSettings(
 	e := &Engine{
 		shards:      make([]*Shard, settings.ShardCount),
 		actors:      make([]*shardActor, settings.ShardCount),
+		pending:     make([]*pendingBuffer, settings.ShardCount),
 		ctx:         ctx,
 		cancel:      cancel,
 		compactionN: settings.CompactionTrigger,
@@ -133,6 +219,7 @@ func NewEngineWithSettings(
 		release()
 		e.shards[i] = shard
 		e.actors[i] = newShardActor(i, shard)
+		e.pending[i] = newPendingBuffer()
 
 		e.wg.Add(1)
 		go e.runActor(ctx, e.actors[i])
@@ -305,24 +392,61 @@ func (e *Engine) putToActors(
 	}
 	partitionTask.End()
 
+	// Buffer every write for read-through before waking the actor, so a reader
+	// in the same worker sees it immediately even though the publish is async.
+	for idx := range buckets {
+		if len(buckets[idx]) != 0 {
+			e.pending[idx].insert(buckets[idx])
+		}
+	}
+
+	if background {
+		// Fire-and-forget: wake each actor and return before the publish. The
+		// pending buffer holds the entries for read-through, and Sync fences
+		// their durability.
+		for idx := range buckets {
+			if len(buckets[idx]) == 0 {
+				continue
+			}
+			_, reqTask := trace.NewTask(taskCtx, tracePrefix+"/queue-request")
+			actor := e.actors[idx]
+			select {
+			case actor.background <- writeReq{background: true, err: make(chan error, 1)}:
+				reqTask.End()
+			case <-ctx.Done():
+				reqTask.End()
+				return ctx.Err()
+			case <-e.ctx.Done():
+				reqTask.End()
+				return context.Canceled
+			}
+		}
+		return nil
+	}
+
+	// Foreground: wake each actor and wait for the publish covering this write.
 	var wg sync.WaitGroup
 	errs := make([]error, len(e.shards))
-	for i, batch := range buckets {
-		if len(batch) == 0 {
+	for i := range buckets {
+		if len(buckets[i]) == 0 {
 			continue
 		}
 		wg.Add(1)
-		go func(idx int, b []segment.Entry) {
+		go func(idx int) {
 			defer wg.Done()
 			ch := make(chan error, 1)
 			reqCtx, reqTask := trace.NewTask(taskCtx, tracePrefix+"/queue-request")
 			actor := e.actors[idx]
 			select {
-			case actor.writeCh(background) <- writeReq{entries: b, background: background, err: ch}:
+			case actor.foreground <- writeReq{err: ch}:
 				reqTask.End()
 			case <-ctx.Done():
 				reqTask.End()
 				errs[idx] = ctx.Err()
+				return
+			case <-e.ctx.Done():
+				reqTask.End()
+				errs[idx] = context.Canceled
 				return
 			}
 			_, waitTask := trace.NewTask(reqCtx, tracePrefix+"/wait-request")
@@ -332,8 +456,11 @@ func (e *Engine) putToActors(
 			case <-ctx.Done():
 				waitTask.End()
 				errs[idx] = ctx.Err()
+			case <-e.ctx.Done():
+				waitTask.End()
+				errs[idx] = context.Canceled
 			}
-		}(i, batch)
+		}(i)
 	}
 	wg.Wait()
 
@@ -379,6 +506,15 @@ func (e *Engine) getFromShard(
 ) ([]byte, bool, error) {
 	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/get-from-shard")
 	defer task.End()
+
+	// Pending-then-published: a buffered (not-yet-published) write or tombstone
+	// is newer than anything in the manifest and wins.
+	if pe, ok := e.pending[shardIdx].get(key); ok {
+		if pe.tombstone {
+			return nil, false, nil
+		}
+		return pe.value, true, nil
+	}
 
 	shard := e.shards[shardIdx]
 	m := shard.Manifest()
@@ -468,6 +604,9 @@ func (e *Engine) shouldRetryAfterRefresh(
 }
 
 func (e *Engine) getExistsFromShard(shardIdx int, key []byte, retried bool) (bool, error) {
+	if pe, ok := e.pending[shardIdx].get(key); ok {
+		return !pe.tombstone, nil
+	}
 	ctx := context.Background()
 	shard := e.shards[shardIdx]
 	m := shard.Manifest()
@@ -613,6 +752,12 @@ func (e *Engine) statFromShard(
 	key []byte,
 	retried bool,
 ) (int64, bool, error) {
+	if pe, ok := e.pending[shardIdx].get(key); ok {
+		if pe.tombstone {
+			return 0, false, nil
+		}
+		return int64(len(pe.value)), true, nil
+	}
 	shard := e.shards[shardIdx]
 	m := shard.Manifest()
 	if latestGen := shard.getLatestGeneration(); latestGen > m.Generation {
@@ -681,6 +826,17 @@ func (e *Engine) getExistsBatchFromShard(
 
 	out := make([]bool, len(keys))
 	resolved := make([]bool, len(keys))
+	// Pending-then-published: resolve buffered keys before scanning segments so
+	// an in-flight write or tombstone wins over an older published value.
+	for i, key := range keys {
+		if len(key) == 0 {
+			continue
+		}
+		if pe, ok := e.pending[shardIdx].get(key); ok {
+			out[i] = !pe.tombstone
+			resolved[i] = true
+		}
+	}
 	for i := len(m.Segments) - 1; i >= 0; i-- {
 		seg := &m.Segments[i]
 		var candidates []int
@@ -852,26 +1008,20 @@ func (e *Engine) runActor(ctx context.Context, actor *shardActor) {
 			}
 		}
 
-		// Merge all entries. Barrier requests carry no entries; they only
-		// fence earlier writes.
-		var merged []segment.Entry
+		// The published content is the shard pending-buffer snapshot, not the
+		// requests: writers buffer entries before waking the actor. A barrier
+		// carries no entry, and a write already published by an earlier
+		// coalesced cycle is no longer buffered, so an empty snapshot means the
+		// fence is already satisfied: reply without an empty publish.
 		hasForegroundReq := false
 		for i := range reqs {
-			if reqs[i].barrier {
-				continue
-			}
-			if !reqs[i].background {
+			if !reqs[i].barrier && !reqs[i].background {
 				hasForegroundReq = true
 			}
-			merged = append(merged, reqs[i].entries...)
 		}
 
-		// Barrier-only cycle: nothing new to publish. A durability fence over
-		// an idle shard must not emit an empty generation, so reply to the
-		// waiters without acquiring the publish lock or touching the manifest.
-		// FIFO ordering guarantees any earlier writes for this shard already
-		// published in a prior cycle, so the fence is already satisfied.
-		if len(merged) == 0 {
+		snapshot, snapshotSeqs := e.pending[shardIdx].snapshot()
+		if len(snapshot) == 0 {
 			currentReqs := reqs
 			reqs = nil
 			for _, r := range currentReqs {
@@ -882,7 +1032,7 @@ func (e *Engine) runActor(ctx context.Context, actor *shardActor) {
 
 		// Acquire publish lock and flush.
 		publishCtx, publishTask := trace.NewTask(ctx, "hydra/opfs-blockshard/run-actor/publish")
-		trace.Log(publishCtx, "coalesce", "reqs="+strconv.Itoa(len(reqs))+" entries="+strconv.Itoa(len(merged)))
+		trace.Log(publishCtx, "coalesce", "reqs="+strconv.Itoa(len(reqs))+" entries="+strconv.Itoa(len(snapshot)))
 		_, lockTask := trace.NewTask(publishCtx, "hydra/opfs-blockshard/run-actor/publish/acquire-lock")
 		release, err := shard.AcquirePublishLockContext(publishCtx)
 		lockTask.End()
@@ -896,7 +1046,7 @@ func (e *Engine) runActor(ctx context.Context, actor *shardActor) {
 		}
 
 		writeCtx, writeTask := trace.NewTask(publishCtx, "hydra/opfs-blockshard/run-actor/publish/shard-publish")
-		err = shard.Publish(writeCtx, merged)
+		err = shard.Publish(writeCtx, snapshot)
 		writeTask.End()
 		if err == nil {
 			_, reclaimTask := trace.NewTask(publishCtx, "hydra/opfs-blockshard/run-actor/publish/reclaim-pending-delete")
@@ -908,8 +1058,12 @@ func (e *Engine) runActor(ctx context.Context, actor *shardActor) {
 		release()
 		publishTask.End()
 
-		// Broadcast invalidation to peer workers.
+		// Evict only on a durable publish, matching seq so a write that arrived
+		// during the publish stays buffered for the next cycle. A failed publish
+		// keeps every entry buffered (readable and retried), so durability is
+		// never silently lost. Broadcast peer invalidation only on success.
 		if err == nil {
+			e.pending[shardIdx].evict(snapshotSeqs)
 			e.broadcaster.Send(shardIdx, gen)
 		}
 

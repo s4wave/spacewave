@@ -63,6 +63,18 @@ export enum StoreFeature {
    * @generated from enum value: STORE_FEATURE_NATIVE_DEFER_FLUSH = 16;
    */
   NATIVE_DEFER_FLUSH = 16,
+
+  /**
+   * STORE_FEATURE_SELF_BUFFERED means the store owns its own background write
+   * buffer and Sync barrier, so the world block engine must not wrap it in a
+   * BufferedStore. Self-buffered stores accept continuous PutBlockBackground
+   * writes, read them back through their own pending state before durability,
+   * and make them durable only at Sync. Non-self-buffered stores (native KV
+   * such as bbolt and badger) get wrapped in a deferred-mode BufferedStore.
+   *
+   * @generated from enum value: STORE_FEATURE_SELF_BUFFERED = 32;
+   */
+  SELF_BUFFERED = 32,
 }
 
 export const StoreFeature_Enum = /* @__PURE__ */ createEnumType(
@@ -74,6 +86,7 @@ export const StoreFeature_Enum = /* @__PURE__ */ createEnumType(
     [4, 'STORE_FEATURE_NATIVE_BACKGROUND_PUT'],
     [8, 'STORE_FEATURE_NATIVE_FLUSH'],
     [16, 'STORE_FEATURE_NATIVE_DEFER_FLUSH'],
+    [32, 'STORE_FEATURE_SELF_BUFFERED'],
   ],
 )
 

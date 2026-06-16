@@ -51,20 +51,45 @@ type StoreOps interface {
 	// StatBlock returns metadata about a block without reading its data.
 	// Returns nil, nil if the block does not exist.
 	StatBlock(ctx context.Context, ref *BlockRef) (*BlockStat, error)
-	// Flush publishes buffered writes when the store has a durability boundary.
-	// Implementations without buffering return nil.
-	Flush(ctx context.Context) error
-	// Sync is a durability barrier: it blocks until every write issued before
-	// the call is durable, like POSIX sync(2). The boolean reports whether a
-	// fence was applied: true when the barrier completed or the store is
-	// always-durable, false when the store provides no durability fence. A nil
-	// error with false means "no fence available", not a failure; a non-nil
-	// error means a real sync failure.
+	// Sync is the sole durability barrier: it drains any buffered writes and
+	// blocks until every write issued before the call is durable, like POSIX
+	// sync(2). The boolean reports whether a fence was applied: true when the
+	// barrier completed or the store is always-durable, false when the store
+	// provides no durability fence. A nil error with false means "no fence
+	// available", not a failure; a non-nil error means a real sync failure.
 	Sync(ctx context.Context) (bool, error)
-	// BeginDeferFlush opens a defer-flush scope.
+}
+
+// DeferFlusher batches deferred GC ref-graph flushes across a write scope.
+//
+// This is an in-process concern owned by GCStoreOps, distinct from the
+// durability surface (StoreOps.Sync). While a scope is open, accumulated
+// ref-graph edge operations are not applied; the outermost EndDeferFlush
+// applies them in one batch. In-process store wrappers forward the scope to
+// their inner store so a GCStoreOps nested behind wrappers still batches. It is
+// never carried over the block RPC wire.
+type DeferFlusher interface {
+	// BeginDeferFlush opens a deferred GC-flush scope. Supports nesting.
 	BeginDeferFlush()
-	// EndDeferFlush closes a defer-flush scope.
+	// EndDeferFlush closes a scope; the outermost close flushes pending edges.
 	EndDeferFlush(ctx context.Context) error
+}
+
+// BeginDeferFlush opens a deferred GC-flush scope on store when it batches GC
+// ref-graph flushes. Stores without a GC ref-graph are a no-op.
+func BeginDeferFlush(store StoreOps) {
+	if df, ok := store.(DeferFlusher); ok {
+		df.BeginDeferFlush()
+	}
+}
+
+// EndDeferFlush closes a deferred GC-flush scope on store when it batches GC
+// ref-graph flushes. Stores without a GC ref-graph are a no-op.
+func EndDeferFlush(ctx context.Context, store StoreOps) error {
+	if df, ok := store.(DeferFlusher); ok {
+		return df.EndDeferFlush(ctx)
+	}
+	return nil
 }
 
 // DecodedBlockCacheFreshener is implemented by stores whose decoded-cache hits

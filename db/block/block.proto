@@ -44,6 +44,13 @@ enum StoreFeature {
   STORE_FEATURE_NATIVE_FLUSH = 8;
   // STORE_FEATURE_NATIVE_DEFER_FLUSH means BeginDeferFlush and EndDeferFlush batch flush work.
   STORE_FEATURE_NATIVE_DEFER_FLUSH = 16;
+  // STORE_FEATURE_SELF_BUFFERED means the store owns its own background write
+  // buffer and Sync barrier, so the world block engine must not wrap it in a
+  // BufferedStore. Self-buffered stores accept continuous PutBlockBackground
+  // writes, read them back through their own pending state before durability,
+  // and make them durable only at Sync. Non-self-buffered stores (native KV
+  // such as bbolt and badger) get wrapped in a deferred-mode BufferedStore.
+  STORE_FEATURE_SELF_BUFFERED = 32;
 }
 
 // OverlayMode controls the mode for the block store overlay.

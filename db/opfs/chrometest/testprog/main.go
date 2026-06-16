@@ -2920,20 +2920,16 @@ func (d *probeDirtyTrackingStore) StatBlock(ctx context.Context, ref *block.Bloc
 	return d.store.StatBlock(ctx, ref)
 }
 
-func (d *probeDirtyTrackingStore) Flush(ctx context.Context) error {
-	return d.store.Flush(ctx)
-}
-
 func (d *probeDirtyTrackingStore) Sync(ctx context.Context) (bool, error) {
 	return d.store.Sync(ctx)
 }
 
 func (d *probeDirtyTrackingStore) BeginDeferFlush() {
-	d.store.BeginDeferFlush()
+	block.BeginDeferFlush(d.store)
 }
 
 func (d *probeDirtyTrackingStore) EndDeferFlush(ctx context.Context) error {
-	return d.store.EndDeferFlush(ctx)
+	return block.EndDeferFlush(ctx, d.store)
 }
 
 func (d *probeDirtyTrackingStore) markDirty(ctx context.Context, h *hash.Hash, size int64) error {

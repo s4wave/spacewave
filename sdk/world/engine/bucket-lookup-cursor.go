@@ -223,18 +223,8 @@ func (s *sdkBucketLookupStore) StatBlock(ctx context.Context, ref *block.BlockRe
 	return &block.BlockStat{Ref: ref, Size: int64(len(data))}, nil
 }
 
-func (s *sdkBucketLookupStore) Flush(ctx context.Context) error {
-	return nil
-}
-
 func (s *sdkBucketLookupStore) Sync(ctx context.Context) (bool, error) {
 	return true, nil
-}
-
-func (s *sdkBucketLookupStore) BeginDeferFlush() {}
-
-func (s *sdkBucketLookupStore) EndDeferFlush(ctx context.Context) error {
-	return nil
 }
 
 // _ is a type assertion

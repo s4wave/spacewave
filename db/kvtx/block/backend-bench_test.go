@@ -31,7 +31,7 @@ type benchBlockStore struct {
 	putBatchMax      atomic.Int64
 	rmBlocks         atomic.Int64
 	statBlocks       atomic.Int64
-	flushCalls       atomic.Int64
+	syncCalls        atomic.Int64
 }
 
 func newBenchBlockStore() *benchBlockStore {
@@ -137,24 +137,20 @@ func (s *benchBlockStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*
 	return stat, err
 }
 
-func (s *benchBlockStore) Flush(ctx context.Context) error {
-	err := s.inner.Flush(ctx)
-	if err == nil {
-		s.flushCalls.Add(1)
-	}
-	return err
-}
-
 func (s *benchBlockStore) Sync(ctx context.Context) (bool, error) {
-	return s.inner.Sync(ctx)
+	fenced, err := s.inner.Sync(ctx)
+	if err == nil {
+		s.syncCalls.Add(1)
+	}
+	return fenced, err
 }
 
 func (s *benchBlockStore) BeginDeferFlush() {
-	s.inner.BeginDeferFlush()
+	block.BeginDeferFlush(s.inner)
 }
 
 func (s *benchBlockStore) EndDeferFlush(ctx context.Context) error {
-	return s.inner.EndDeferFlush(ctx)
+	return block.EndDeferFlush(ctx, s.inner)
 }
 
 func (s *benchBlockStore) resetCounts() {
@@ -171,7 +167,7 @@ func (s *benchBlockStore) resetCounts() {
 	s.putBatchMax.Store(0)
 	s.rmBlocks.Store(0)
 	s.statBlocks.Store(0)
-	s.flushCalls.Store(0)
+	s.syncCalls.Store(0)
 }
 
 func (s *benchBlockStore) reportMetrics(b *testing.B, ops int64) {
@@ -192,7 +188,7 @@ func (s *benchBlockStore) reportMetrics(b *testing.B, ops int64) {
 	b.ReportMetric(float64(s.putBatchMax.Load()), "put-batch-max")
 	b.ReportMetric(float64(s.rmBlocks.Load())/denom, "rm-blocks/op")
 	b.ReportMetric(float64(s.statBlocks.Load())/denom, "stat-blocks/op")
-	b.ReportMetric(float64(s.flushCalls.Load())/denom, "flushes/op")
+	b.ReportMetric(float64(s.syncCalls.Load())/denom, "syncs/op")
 }
 
 func recordBenchMax(target *atomic.Int64, next int64) {

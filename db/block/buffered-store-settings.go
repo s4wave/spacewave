@@ -31,9 +31,6 @@ func normalizeBufferedStoreSettings(s *BufferedStoreSettings) *BufferedStoreSett
 	if out.MaxPendingBytes < 0 {
 		out.MaxPendingBytes = 0
 	}
-	if out.MaxPendingEntries == 0 && out.MaxPendingBytes == 0 && out.DrainBatchEntries == 0 {
-		return DefaultBufferedStoreSettings()
-	}
 	if out.MaxPendingEntries == 0 {
 		out.MaxPendingEntries = defaultBufferedStoreMaxPendingEntries
 	}

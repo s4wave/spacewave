@@ -3,12 +3,6 @@
 /* eslint-disable */
 
 import {
-  BeginDeferFlushRequest,
-  BeginDeferFlushResponse,
-  EndDeferFlushRequest,
-  EndDeferFlushResponse,
-  FlushRequest,
-  FlushResponse,
   GetBlockExistsBatchRequest,
   GetBlockExistsBatchResponse,
   GetBlockExistsRequest,
@@ -29,6 +23,8 @@ import {
   RmBlockResponse,
   StatBlockRequest,
   StatBlockResponse,
+  SyncRequest,
+  SyncResponse,
 } from './block.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
 import { ProtoRpc } from 'starpc'
@@ -154,36 +150,15 @@ export const BlockStoreDefinition = {
       kind: MethodKind.Unary,
     },
     /**
-     * Flush requests that buffered writes are published.
+     * Sync is the durability barrier: it drains buffered writes and blocks until
+     * every prior write is durable.
      *
-     * @generated from rpc block.rpc.BlockStore.Flush
+     * @generated from rpc block.rpc.BlockStore.Sync
      */
-    Flush: {
-      name: 'Flush',
-      I: FlushRequest,
-      O: FlushResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * BeginDeferFlush opens a defer-flush scope.
-     *
-     * @generated from rpc block.rpc.BlockStore.BeginDeferFlush
-     */
-    BeginDeferFlush: {
-      name: 'BeginDeferFlush',
-      I: BeginDeferFlushRequest,
-      O: BeginDeferFlushResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * EndDeferFlush closes a defer-flush scope.
-     *
-     * @generated from rpc block.rpc.BlockStore.EndDeferFlush
-     */
-    EndDeferFlush: {
-      name: 'EndDeferFlush',
-      I: EndDeferFlushRequest,
-      O: EndDeferFlushResponse,
+    Sync: {
+      name: 'Sync',
+      I: SyncRequest,
+      O: SyncResponse,
       kind: MethodKind.Unary,
     },
   },
@@ -298,34 +273,12 @@ export interface BlockStore {
   ): Promise<StatBlockResponse>
 
   /**
-   * Flush requests that buffered writes are published.
+   * Sync is the durability barrier: it drains buffered writes and blocks until
+   * every prior write is durable.
    *
-   * @generated from rpc block.rpc.BlockStore.Flush
+   * @generated from rpc block.rpc.BlockStore.Sync
    */
-  Flush(
-    request: FlushRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<FlushResponse>
-
-  /**
-   * BeginDeferFlush opens a defer-flush scope.
-   *
-   * @generated from rpc block.rpc.BlockStore.BeginDeferFlush
-   */
-  BeginDeferFlush(
-    request: BeginDeferFlushRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<BeginDeferFlushResponse>
-
-  /**
-   * EndDeferFlush closes a defer-flush scope.
-   *
-   * @generated from rpc block.rpc.BlockStore.EndDeferFlush
-   */
-  EndDeferFlush(
-    request: EndDeferFlushRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<EndDeferFlushResponse>
+  Sync(request: SyncRequest, abortSignal?: AbortSignal): Promise<SyncResponse>
 }
 
 export const BlockStoreServiceName = BlockStoreDefinition.typeName
@@ -346,9 +299,7 @@ export class BlockStoreClient implements BlockStore {
     this.GetBlockExistsBatch = this.GetBlockExistsBatch.bind(this)
     this.RmBlock = this.RmBlock.bind(this)
     this.StatBlock = this.StatBlock.bind(this)
-    this.Flush = this.Flush.bind(this)
-    this.BeginDeferFlush = this.BeginDeferFlush.bind(this)
-    this.EndDeferFlush = this.EndDeferFlush.bind(this)
+    this.Sync = this.Sync.bind(this)
   }
   /**
    * GetHashType requests the preferred hash type for the store.
@@ -543,59 +494,22 @@ export class BlockStoreClient implements BlockStore {
   }
 
   /**
-   * Flush requests that buffered writes are published.
+   * Sync is the durability barrier: it drains buffered writes and blocks until
+   * every prior write is durable.
    *
-   * @generated from rpc block.rpc.BlockStore.Flush
+   * @generated from rpc block.rpc.BlockStore.Sync
    */
-  async Flush(
-    request: FlushRequest,
+  async Sync(
+    request: SyncRequest,
     abortSignal?: AbortSignal,
-  ): Promise<FlushResponse> {
-    const requestMsg = FlushRequest.create(request)
+  ): Promise<SyncResponse> {
+    const requestMsg = SyncRequest.create(request)
     const result = await this.rpc.request(
       this.service,
-      BlockStoreDefinition.methods.Flush.name,
-      FlushRequest.toBinary(requestMsg),
+      BlockStoreDefinition.methods.Sync.name,
+      SyncRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
-    return FlushResponse.fromBinary(result)
-  }
-
-  /**
-   * BeginDeferFlush opens a defer-flush scope.
-   *
-   * @generated from rpc block.rpc.BlockStore.BeginDeferFlush
-   */
-  async BeginDeferFlush(
-    request: BeginDeferFlushRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<BeginDeferFlushResponse> {
-    const requestMsg = BeginDeferFlushRequest.create(request)
-    const result = await this.rpc.request(
-      this.service,
-      BlockStoreDefinition.methods.BeginDeferFlush.name,
-      BeginDeferFlushRequest.toBinary(requestMsg),
-      abortSignal || undefined,
-    )
-    return BeginDeferFlushResponse.fromBinary(result)
-  }
-
-  /**
-   * EndDeferFlush closes a defer-flush scope.
-   *
-   * @generated from rpc block.rpc.BlockStore.EndDeferFlush
-   */
-  async EndDeferFlush(
-    request: EndDeferFlushRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<EndDeferFlushResponse> {
-    const requestMsg = EndDeferFlushRequest.create(request)
-    const result = await this.rpc.request(
-      this.service,
-      BlockStoreDefinition.methods.EndDeferFlush.name,
-      EndDeferFlushRequest.toBinary(requestMsg),
-      abortSignal || undefined,
-    )
-    return EndDeferFlushResponse.fromBinary(result)
+    return SyncResponse.fromBinary(result)
   }
 }

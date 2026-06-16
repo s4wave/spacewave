@@ -34,6 +34,13 @@ const (
 	StoreFeature_STORE_FEATURE_NATIVE_FLUSH StoreFeature = 8
 	// STORE_FEATURE_NATIVE_DEFER_FLUSH means BeginDeferFlush and EndDeferFlush batch flush work.
 	StoreFeature_STORE_FEATURE_NATIVE_DEFER_FLUSH StoreFeature = 16
+	// STORE_FEATURE_SELF_BUFFERED means the store owns its own background write
+	// buffer and Sync barrier, so the world block engine must not wrap it in a
+	// BufferedStore. Self-buffered stores accept continuous PutBlockBackground
+	// writes, read them back through their own pending state before durability,
+	// and make them durable only at Sync. Non-self-buffered stores (native KV
+	// such as bbolt and badger) get wrapped in a deferred-mode BufferedStore.
+	StoreFeature_STORE_FEATURE_SELF_BUFFERED StoreFeature = 32
 )
 
 // Enum value maps for StoreFeature.
@@ -45,6 +52,7 @@ var (
 		4:  "STORE_FEATURE_NATIVE_BACKGROUND_PUT",
 		8:  "STORE_FEATURE_NATIVE_FLUSH",
 		16: "STORE_FEATURE_NATIVE_DEFER_FLUSH",
+		32: "STORE_FEATURE_SELF_BUFFERED",
 	}
 	StoreFeature_value = map[string]int32{
 		"STORE_FEATURE_UNKNOWN":               0,
@@ -53,6 +61,7 @@ var (
 		"STORE_FEATURE_NATIVE_BACKGROUND_PUT": 4,
 		"STORE_FEATURE_NATIVE_FLUSH":          8,
 		"STORE_FEATURE_NATIVE_DEFER_FLUSH":    16,
+		"STORE_FEATURE_SELF_BUFFERED":         32,
 	}
 )
 
@@ -244,7 +253,9 @@ func (m *BlockRef) CloneVT() *BlockRef {
 		return (*BlockRef)(nil)
 	}
 	r := new(BlockRef)
-	r.Hash = m.Hash.CloneVT()
+	if rhs := m.Hash; rhs != nil {
+		r.Hash = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

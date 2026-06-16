@@ -13,8 +13,8 @@ type testStore struct {
 
 	features     block.StoreFeature
 	batchEntries []*block.PutBatchEntry
-	beginCount   int
-	endCount     int
+	fenced       bool
+	syncCount    int
 }
 
 func (s *testStore) GetSupportedFeatures() block.StoreFeature {
@@ -26,13 +26,9 @@ func (s *testStore) PutBlockBatch(_ context.Context, entries []*block.PutBatchEn
 	return nil
 }
 
-func (s *testStore) BeginDeferFlush() {
-	s.beginCount++
-}
-
-func (s *testStore) EndDeferFlush(context.Context) error {
-	s.endCount++
-	return nil
+func (s *testStore) Sync(context.Context) (bool, error) {
+	s.syncCount++
+	return s.fenced, nil
 }
 
 func TestBlockStoreGetSupportedFeaturesForwards(t *testing.T) {
@@ -77,57 +73,22 @@ func TestBlockStorePutBlockBatchForwardsRefs(t *testing.T) {
 	}
 }
 
-func TestBlockStoreDeferFlushRefCounts(t *testing.T) {
-	store := &testStore{}
+func TestBlockStoreSyncForwards(t *testing.T) {
+	store := &testStore{fenced: true}
 	server := NewBlockStore(store)
-	ctx := context.Background()
 
-	if _, err := server.BeginDeferFlush(ctx, &block_rpc.BeginDeferFlushRequest{}); err != nil {
-		t.Fatal(err.Error())
-	}
-	if _, err := server.BeginDeferFlush(ctx, &block_rpc.BeginDeferFlushRequest{}); err != nil {
-		t.Fatal(err.Error())
-	}
-	if store.beginCount != 1 {
-		t.Fatalf("expected one inner begin, got %d", store.beginCount)
-	}
-
-	resp, err := server.EndDeferFlush(ctx, &block_rpc.EndDeferFlushRequest{})
+	resp, err := server.Sync(context.Background(), &block_rpc.SyncRequest{})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	if errStr := resp.GetError(); errStr != "" {
 		t.Fatal(errStr)
 	}
-	if store.endCount != 0 {
-		t.Fatalf("expected no inner end before outermost close, got %d", store.endCount)
+	if !resp.GetFenced() {
+		t.Fatal("expected fenced result to forward through Sync response")
 	}
-
-	resp, err = server.EndDeferFlush(ctx, &block_rpc.EndDeferFlushRequest{})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if errStr := resp.GetError(); errStr != "" {
-		t.Fatal(errStr)
-	}
-	if store.endCount != 1 {
-		t.Fatalf("expected one inner end, got %d", store.endCount)
-	}
-}
-
-func TestBlockStoreEndDeferFlushUnderflow(t *testing.T) {
-	store := &testStore{}
-	server := NewBlockStore(store)
-
-	resp, err := server.EndDeferFlush(context.Background(), &block_rpc.EndDeferFlushRequest{})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if resp.GetError() == "" {
-		t.Fatal("expected underflow error")
-	}
-	if store.endCount != 0 {
-		t.Fatalf("expected no inner end on underflow, got %d", store.endCount)
+	if store.syncCount != 1 {
+		t.Fatalf("expected one inner Sync, got %d", store.syncCount)
 	}
 }
 

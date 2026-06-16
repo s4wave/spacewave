@@ -233,9 +233,15 @@ func (s *BlockStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block
 	return &block.BlockStat{Ref: ref, Size: size}, nil
 }
 
-// GetSupportedFeatures returns the native feature bitmask for the store.
+// GetSupportedFeatures returns the native feature bitmask for the store. The
+// engine owns a read-through pending map and an actor-FIFO Sync barrier, so the
+// store is self-buffered (the world block engine must not wrap it) and its
+// background put deprioritizes writes natively.
 func (s *BlockStore) GetSupportedFeatures() block.StoreFeature {
-	return block.StoreFeature_STORE_FEATURE_UNKNOWN
+	return block.StoreFeatureSelfBuffered |
+		block.StoreFeatureNativeBackgroundPut |
+		block.StoreFeatureNativeBatchPut |
+		block.StoreFeatureNativeBatchExists
 }
 
 // BeginReadOperation returns the blockshard store as the scoped read handle.

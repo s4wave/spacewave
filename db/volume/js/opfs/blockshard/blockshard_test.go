@@ -679,6 +679,12 @@ func TestBackgroundPutCanRunInlineCompaction(t *testing.T) {
 		if err := e.PutBackground(context.Background(), []segment.Entry{entry}); err != nil {
 			t.Fatal(err)
 		}
+		// Background writes are non-blocking and coalesce, so fence each into its
+		// own published segment; the second publish reaches the compaction
+		// trigger and the actor compacts inline on the background/barrier cycle.
+		if err := e.Sync(context.Background()); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	m := e.shards[0].Manifest()

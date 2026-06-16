@@ -506,23 +506,10 @@ func (s *PackfileStore) RmBlock(_ context.Context, _ *block.BlockRef) error {
 	return block_store.ErrReadOnly
 }
 
-// Flush has no buffered work for the read-only store.
-func (s *PackfileStore) Flush(_ context.Context) error {
-	return nil
-}
-
 // Sync reports always-durable: the read-only packfile store holds no buffered
 // writes.
 func (s *PackfileStore) Sync(_ context.Context) (bool, error) {
 	return true, nil
-}
-
-// BeginDeferFlush is a no-op for the read-only store.
-func (s *PackfileStore) BeginDeferFlush() {}
-
-// EndDeferFlush is a no-op for the read-only store.
-func (s *PackfileStore) EndDeferFlush(_ context.Context) error {
-	return nil
 }
 
 // UpdateManifest replaces the manifest and rebuilds the bloom tree.

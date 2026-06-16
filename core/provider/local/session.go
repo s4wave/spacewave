@@ -144,6 +144,9 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 		signalingURL = s.tkr.a.lookupCloudEndpoint(transportCtx)
 	}
 	if _, _, err := s.tkr.a.ensureSessionTransport(transportCtx, privKey, signalingURL); err != nil {
+		if errors.Is(err, context.Canceled) {
+			return context.Canceled
+		}
 		s.tkr.a.le.WithError(err).Warn("failed to start session transport after unlock")
 	}
 	if st := s.tkr.a.GetSessionTransport(); st != nil {
@@ -484,6 +487,9 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		defer t.a.stopSessionTransportState(sts)
 	}
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return context.Canceled
+		}
 		le.WithError(err).Warn("failed to start session transport")
 	}
 	if st := t.a.GetSessionTransport(); st != nil {

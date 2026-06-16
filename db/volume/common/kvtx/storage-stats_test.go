@@ -82,8 +82,8 @@ func TestStorageStatsSnapshotWakesOnDirectBlockMutations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetStorageStatsSnapshotWithWait() error = %v", err)
 	}
-	if err := vol.Flush(context.Background()); err != nil {
-		t.Fatalf("Flush() error = %v", err)
+	if _, err := vol.Sync(context.Background()); err != nil {
+		t.Fatalf("Sync() error = %v", err)
 	}
 	waitForStorageStatsWake(t, flushCh)
 }

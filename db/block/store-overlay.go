@@ -504,18 +504,6 @@ func (o *StoreOverlay) RmBlock(ctx context.Context, ref *BlockRef) error {
 	}
 }
 
-// Flush forwards the durability boundary to stores used by the overlay.
-func (o *StoreOverlay) Flush(ctx context.Context) error {
-	var err error
-	if uerr := o.upper.Flush(ctx); uerr != nil {
-		err = uerr
-	}
-	if lerr := o.lower.Flush(ctx); lerr != nil && err == nil {
-		err = lerr
-	}
-	return err
-}
-
 // Sync fences both overlay stores; it reports fenced only when both did.
 func (o *StoreOverlay) Sync(ctx context.Context) (bool, error) {
 	upperFenced, err := o.upper.Sync(ctx)
@@ -526,19 +514,19 @@ func (o *StoreOverlay) Sync(ctx context.Context) (bool, error) {
 	return upperFenced && lowerFenced, err
 }
 
-// BeginDeferFlush forwards to upper and lower stores that support deferred flushing.
+// BeginDeferFlush forwards the GC defer-flush scope to upper and lower stores.
 func (o *StoreOverlay) BeginDeferFlush() {
-	o.upper.BeginDeferFlush()
-	o.lower.BeginDeferFlush()
+	BeginDeferFlush(o.upper)
+	BeginDeferFlush(o.lower)
 }
 
-// EndDeferFlush forwards to upper and lower stores that support deferred flushing.
+// EndDeferFlush forwards closing the GC defer-flush scope to upper and lower stores.
 func (o *StoreOverlay) EndDeferFlush(ctx context.Context) error {
 	var err error
-	if uerr := o.upper.EndDeferFlush(ctx); uerr != nil {
+	if uerr := EndDeferFlush(ctx, o.upper); uerr != nil {
 		err = uerr
 	}
-	if lerr := o.lower.EndDeferFlush(ctx); lerr != nil && err == nil {
+	if lerr := EndDeferFlush(ctx, o.lower); lerr != nil && err == nil {
 		err = lerr
 	}
 	return err

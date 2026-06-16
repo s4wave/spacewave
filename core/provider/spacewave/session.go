@@ -147,6 +147,9 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 	))
 	transportCtx := context.WithoutCancel(ctx)
 	if err := s.tkr.a.CreateSessionTransport(transportCtx, privKey, s.tkr.a.p.endpoint); err != nil {
+		if errors.Is(err, context.Canceled) {
+			return context.Canceled
+		}
 		s.tkr.a.le.WithError(err).Warn("failed to start session transport after unlock")
 	}
 	if st := s.tkr.a.GetSessionTransport(); st != nil {
@@ -564,6 +567,9 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 	defer t.a.StopSessionTransport()
 
 	if err := t.a.CreateSessionTransport(ctx, sessionPriv, t.a.p.endpoint); err != nil {
+		if errors.Is(err, context.Canceled) {
+			return context.Canceled
+		}
 		if strings.Contains(err.Error(), "HTTP 401") {
 			le.WithError(err).Warn("registered session rejected; re-registering")
 			observed, rerr := registerSession()
@@ -572,6 +578,9 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 			} else if perr := t.a.UpsertSessionPresentation(ctx, sessionPeerID.String(), observed); perr != nil {
 				le.WithError(perr).Warn("failed to mirror session presentation metadata")
 			} else if terr := t.a.CreateSessionTransport(ctx, sessionPriv, t.a.p.endpoint); terr != nil {
+				if errors.Is(terr, context.Canceled) {
+					return context.Canceled
+				}
 				le.WithError(terr).Warn("failed to start session transport after re-registration")
 			} else if st := t.a.GetSessionTransport(); st != nil {
 				if perr := t.a.StartP2PSync(ctx, st); perr != nil {

@@ -350,15 +350,6 @@ func (v *Volume) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return nil
 }
 
-// Flush publishes buffered writes in the embedded store.
-func (v *Volume) Flush(ctx context.Context) error {
-	if err := v.Store.Flush(ctx); err != nil {
-		return err
-	}
-	v.broadcastStorageStatsChanged()
-	return nil
-}
-
 // Sync forwards the durability barrier to the embedded store.
 func (v *Volume) Sync(ctx context.Context) (bool, error) {
 	fenced, err := v.Store.Sync(ctx)
@@ -369,14 +360,14 @@ func (v *Volume) Sync(ctx context.Context) (bool, error) {
 	return fenced, nil
 }
 
-// BeginDeferFlush forwards deferred-flush scope entry to the embedded store when supported.
+// BeginDeferFlush forwards the GC defer-flush scope to the embedded store.
 func (v *Volume) BeginDeferFlush() {
-	v.Store.BeginDeferFlush()
+	block.BeginDeferFlush(v.Store)
 }
 
-// EndDeferFlush forwards deferred-flush scope exit to the embedded store when supported.
+// EndDeferFlush forwards closing the GC defer-flush scope to the embedded store.
 func (v *Volume) EndDeferFlush(ctx context.Context) error {
-	if err := v.Store.EndDeferFlush(ctx); err != nil {
+	if err := block.EndDeferFlush(ctx, v.Store); err != nil {
 		return err
 	}
 	v.broadcastStorageStatsChanged()

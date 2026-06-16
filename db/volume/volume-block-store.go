@@ -71,24 +71,19 @@ func (v *VolumeBlockStore) PutBlockBackground(ctx context.Context, data []byte, 
 	return v.store.PutBlockBackground(ctx, data, opts)
 }
 
-// Flush forwards to the wrapped block store.
-func (v *VolumeBlockStore) Flush(ctx context.Context) error {
-	return v.store.Flush(ctx)
-}
-
 // Sync forwards the durability barrier to the wrapped block store.
 func (v *VolumeBlockStore) Sync(ctx context.Context) (bool, error) {
 	return v.store.Sync(ctx)
 }
 
-// BeginDeferFlush opens a defer-flush scope on the wrapped block store.
+// BeginDeferFlush forwards the GC defer-flush scope to the wrapped block store.
 func (v *VolumeBlockStore) BeginDeferFlush() {
-	v.store.BeginDeferFlush()
+	block.BeginDeferFlush(v.store)
 }
 
-// EndDeferFlush closes a defer-flush scope on the wrapped block store.
+// EndDeferFlush forwards closing the GC defer-flush scope to the wrapped block store.
 func (v *VolumeBlockStore) EndDeferFlush(ctx context.Context) error {
-	return v.store.EndDeferFlush(ctx)
+	return block.EndDeferFlush(ctx, v.store)
 }
 
 // GetGCManagerHooks forwards WAL-backed GC manager hooks from the wrapped

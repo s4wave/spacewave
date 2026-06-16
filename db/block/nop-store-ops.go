@@ -93,22 +93,9 @@ func (NopStoreOps) StatBlock(context.Context, *BlockRef) (*BlockStat, error) {
 	return nil, nil
 }
 
-// Flush returns nil.
-func (NopStoreOps) Flush(context.Context) error {
-	return nil
-}
-
 // Sync reports no durability fence because the no-op store holds no writes.
 func (NopStoreOps) Sync(context.Context) (bool, error) {
 	return false, nil
-}
-
-// BeginDeferFlush opens a no-op defer-flush scope.
-func (NopStoreOps) BeginDeferFlush() {}
-
-// EndDeferFlush closes a no-op defer-flush scope.
-func (NopStoreOps) EndDeferFlush(context.Context) error {
-	return nil
 }
 
 // _ is a type assertion

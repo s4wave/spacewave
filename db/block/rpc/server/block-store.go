@@ -2,9 +2,7 @@ package block_rpc_server
 
 import (
 	"context"
-	"sync/atomic"
 
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
 )
@@ -13,8 +11,6 @@ import (
 type BlockStore struct {
 	// store is the underlying block store
 	store block.StoreOps
-	// deferFlush counts open remote defer-flush scopes on this server handler.
-	deferFlush atomic.Int64
 }
 
 // NewBlockStore constructs a new BlockStore from a Store.
@@ -173,44 +169,15 @@ func (s *BlockStore) StatBlock(
 	return resp, nil
 }
 
-// Flush publishes buffered writes when the store supports an explicit flush.
-func (s *BlockStore) Flush(
+// Sync drains buffered writes and blocks until prior writes are durable.
+func (s *BlockStore) Sync(
 	ctx context.Context,
-	_ *block_rpc.FlushRequest,
-) (*block_rpc.FlushResponse, error) {
-	resp := &block_rpc.FlushResponse{}
-	if err := s.store.Flush(ctx); err != nil {
-		resp.Error = err.Error()
-	}
-	return resp, nil
-}
-
-// BeginDeferFlush opens a defer-flush scope.
-func (s *BlockStore) BeginDeferFlush(
-	context.Context,
-	*block_rpc.BeginDeferFlushRequest,
-) (*block_rpc.BeginDeferFlushResponse, error) {
-	if s.deferFlush.Add(1) == 1 {
-		s.store.BeginDeferFlush()
-	}
-	return &block_rpc.BeginDeferFlushResponse{}, nil
-}
-
-// EndDeferFlush closes a defer-flush scope.
-func (s *BlockStore) EndDeferFlush(
-	ctx context.Context,
-	_ *block_rpc.EndDeferFlushRequest,
-) (*block_rpc.EndDeferFlushResponse, error) {
-	resp := &block_rpc.EndDeferFlushResponse{}
-	depth := s.deferFlush.Add(-1)
-	if depth < 0 {
-		resp.Error = errors.New("block rpc: EndDeferFlush called more than BeginDeferFlush").Error()
-		return resp, nil
-	}
-	if depth != 0 {
-		return resp, nil
-	}
-	if err := s.store.EndDeferFlush(ctx); err != nil {
+	_ *block_rpc.SyncRequest,
+) (*block_rpc.SyncResponse, error) {
+	resp := &block_rpc.SyncResponse{}
+	fenced, err := s.store.Sync(ctx)
+	resp.Fenced = fenced
+	if err != nil {
 		resp.Error = err.Error()
 	}
 	return resp, nil

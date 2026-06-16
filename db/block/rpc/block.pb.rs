@@ -190,37 +190,18 @@ pub struct StatBlockResponse {
     #[prost(string, tag="4")]
     pub error: ::prost::alloc::string::String,
 }
-/// FlushRequest requests a store flush.
+/// SyncRequest requests a durability barrier on the store.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct FlushRequest {
+pub struct SyncRequest {
 }
-/// FlushResponse is the response to flushing the store.
+/// SyncResponse is the response to a durability barrier.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct FlushResponse {
-    /// Error is any error flushing the store.
-    #[prost(string, tag="1")]
-    pub error: ::prost::alloc::string::String,
-}
-/// BeginDeferFlushRequest requests opening a defer-flush scope.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct BeginDeferFlushRequest {
-}
-/// BeginDeferFlushResponse is the response to opening a defer-flush scope.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct BeginDeferFlushResponse {
-    /// Error is any error opening the defer-flush scope.
-    #[prost(string, tag="1")]
-    pub error: ::prost::alloc::string::String,
-}
-/// EndDeferFlushRequest requests closing a defer-flush scope.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct EndDeferFlushRequest {
-}
-/// EndDeferFlushResponse is the response to closing a defer-flush scope.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct EndDeferFlushResponse {
-    /// Error is any error closing the defer-flush scope.
-    #[prost(string, tag="1")]
+pub struct SyncResponse {
+    /// Fenced reports whether a durability fence was applied.
+    #[prost(bool, tag="1")]
+    pub fenced: bool,
+    /// Error is any error fencing the store.
+    #[prost(string, tag="2")]
     pub error: ::prost::alloc::string::String,
 }
 // @@protoc_insertion_point(module)

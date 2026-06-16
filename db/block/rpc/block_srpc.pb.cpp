@@ -48,16 +48,8 @@ starpc::Error SRPCBlockStoreClientImpl::StatBlock(const block::rpc::StatBlockReq
   return cc_->ExecCall(service_id_, "StatBlock", in, out);
 }
 
-starpc::Error SRPCBlockStoreClientImpl::Flush(const block::rpc::FlushRequest& in, block::rpc::FlushResponse* out) {
-  return cc_->ExecCall(service_id_, "Flush", in, out);
-}
-
-starpc::Error SRPCBlockStoreClientImpl::BeginDeferFlush(const block::rpc::BeginDeferFlushRequest& in, block::rpc::BeginDeferFlushResponse* out) {
-  return cc_->ExecCall(service_id_, "BeginDeferFlush", in, out);
-}
-
-starpc::Error SRPCBlockStoreClientImpl::EndDeferFlush(const block::rpc::EndDeferFlushRequest& in, block::rpc::EndDeferFlushResponse* out) {
-  return cc_->ExecCall(service_id_, "EndDeferFlush", in, out);
+starpc::Error SRPCBlockStoreClientImpl::Sync(const block::rpc::SyncRequest& in, block::rpc::SyncResponse* out) {
+  return cc_->ExecCall(service_id_, "Sync", in, out);
 }
 
 std::vector<std::string> SRPCBlockStoreHandler::GetMethodIDs() const {
@@ -72,9 +64,7 @@ std::vector<std::string> SRPCBlockStoreHandler::GetMethodIDs() const {
     "GetBlockExistsBatch",
     "RmBlock",
     "StatBlock",
-    "Flush",
-    "BeginDeferFlush",
-    "EndDeferFlush",
+    "Sync",
   };
 }
 
@@ -166,28 +156,12 @@ std::pair<bool, starpc::Error> SRPCBlockStoreHandler::InvokeMethod(
     err = impl_->StatBlock(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
-  } else if (method_id == "Flush") {
-    block::rpc::FlushRequest req;
+  } else if (method_id == "Sync") {
+    block::rpc::SyncRequest req;
     starpc::Error err = strm->MsgRecv(&req);
     if (err != starpc::Error::OK) return {true, err};
-    block::rpc::FlushResponse resp;
-    err = impl_->Flush(req, &resp);
-    if (err != starpc::Error::OK) return {true, err};
-    return {true, strm->MsgSend(resp)};
-  } else if (method_id == "BeginDeferFlush") {
-    block::rpc::BeginDeferFlushRequest req;
-    starpc::Error err = strm->MsgRecv(&req);
-    if (err != starpc::Error::OK) return {true, err};
-    block::rpc::BeginDeferFlushResponse resp;
-    err = impl_->BeginDeferFlush(req, &resp);
-    if (err != starpc::Error::OK) return {true, err};
-    return {true, strm->MsgSend(resp)};
-  } else if (method_id == "EndDeferFlush") {
-    block::rpc::EndDeferFlushRequest req;
-    starpc::Error err = strm->MsgRecv(&req);
-    if (err != starpc::Error::OK) return {true, err};
-    block::rpc::EndDeferFlushResponse resp;
-    err = impl_->EndDeferFlush(req, &resp);
+    block::rpc::SyncResponse resp;
+    err = impl_->Sync(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   }

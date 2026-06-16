@@ -61,12 +61,12 @@ func (s *kvtxBlockTestStore) GetBlockExistsBatch(ctx context.Context, refs []*bl
 
 func (s *kvtxBlockTestStore) BeginDeferFlush() {
 	s.beginCalls++
-	s.StoreOps.BeginDeferFlush()
+	block.BeginDeferFlush(s.StoreOps)
 }
 
 func (s *kvtxBlockTestStore) EndDeferFlush(ctx context.Context) error {
 	s.endCalls++
-	return s.StoreOps.EndDeferFlush(ctx)
+	return block.EndDeferFlush(ctx, s.StoreOps)
 }
 
 func TestKVTxForwardsBlockStoreExtensions(t *testing.T) {
