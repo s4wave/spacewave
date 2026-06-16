@@ -143,16 +143,24 @@ func NewEngine(
 	}
 
 	// In the opt-in single-writer deferred-durability mode, defer block durability
-	// behind one long-lived BufferedStore: per-commit writes accumulate in memory
-	// and become durable only at Sync, alongside the deferred durable head.
-	// Self-buffered stores (e.g. blockshard) own their own intake and fence, so
-	// use them directly. Coordinator mode and all callers that did not opt in stay
-	// durable-on-write and use the bucket directly.
+	// so per-commit writes accumulate and become durable only at Sync, alongside
+	// the deferred durable head. Coordinator mode and all callers that did not opt
+	// in stay durable-on-write and use the bucket directly.
 	rawWriteStore := e.root.GetBucket()
 	e.writeBlockStore = rawWriteStore
-	if e.deferDurability && e.writeCoordinator == nil &&
-		rawWriteStore.GetSupportedFeatures()&block.StoreFeatureSelfBuffered == 0 {
-		e.writeBlockStore = block.NewBufferedStore(ctx, rawWriteStore)
+	if e.deferDurability && e.writeCoordinator == nil {
+		if rawWriteStore.GetSupportedFeatures()&block.StoreFeatureSelfBuffered == 0 {
+			// Not self-buffered (e.g. bbolt): defer behind one long-lived
+			// BufferedStore that accumulates writes in memory until Sync.
+			e.writeBlockStore = block.NewBufferedStore(ctx, rawWriteStore)
+		} else {
+			// Self-buffered (e.g. blockshard): the store owns its pending buffer
+			// and Sync fence, so route commit writes to its background intake
+			// rather than the synchronous foreground publish. This is the IC-3
+			// OPFS hot path: commits enqueue without a per-commit segment+manifest
+			// publish, and Sync fences them durable with the deferred head.
+			e.writeBlockStore = newBackgroundWriteStore(rawWriteStore)
+		}
 	}
 
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/new/update-read-write-txns")
