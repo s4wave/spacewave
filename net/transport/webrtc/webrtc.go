@@ -166,12 +166,7 @@ func NewWebRTC(
 	// Setup the webrtc API
 	settingEngine := webrtc.SettingEngine{}
 	settingEngine.DetachDataChannels()
-	if o.iceNet != nil {
-		settingEngine.SetNet(o.iceNet)
-	}
-	if o.iceDisconnectedTimeout != 0 || o.iceFailedTimeout != 0 || o.iceKeepaliveInterval != 0 {
-		settingEngine.SetICETimeouts(o.iceDisconnectedTimeout, o.iceFailedTimeout, o.iceKeepaliveInterval)
-	}
+	applyICEOptions(&settingEngine, &o)
 	webrtcApi := webrtc.NewAPI(webrtc.WithSettingEngine(settingEngine))
 	webrtcConf := conf.WebRtc.ToWebRtcConfiguration()
 
