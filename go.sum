@@ -39,6 +39,8 @@ github.com/aperturerobotics/cli v1.1.0 h1:7a+YRC+EY3npAnTzhHV5gLCiw91KS0Ts3XwLIL
 github.com/aperturerobotics/cli v1.1.0/go.mod h1:M7BFP9wow5ytTzMyJQOOO991fGfsUqdTI7gGEsHfTQ8=
 github.com/aperturerobotics/common v0.33.1 h1:yNN/sbUmFeDuObQcu19kte+Bgp2tCpCYlJCIFQGQS48=
 github.com/aperturerobotics/common v0.33.1/go.mod h1:SYAlWG4Y8siytCM4tSs6NUiK7T1qut2Dn//Hu2zIm2M=
+github.com/aperturerobotics/common v0.34.0 h1:4sMwc+BMnK4UBmGZOa2LwNYRuZwhOwNHfcWwP0a9eh8=
+github.com/aperturerobotics/common v0.34.0/go.mod h1:UrEmSF8+KwsIcr/ljYSUZC9APEGjf8JyMgwqCuddGY4=
 github.com/aperturerobotics/controllerbus v0.53.4 h1:bWYdG0lXkF8KFGVk97bLxUPYmKbarcJbhOcmdfrmxgY=
 github.com/aperturerobotics/controllerbus v0.53.4/go.mod h1:e0LWTxyIW7z8uItsJouNPobvdnhxTi5YO/XWBlpCOXY=
 github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d h1:TVae+YDmMmtutvNKC5d64yXx5Woa3QIq3Ndn11J1IPQ=
@@ -75,6 +77,8 @@ github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-202605
 github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260530012506-6bf78593427c/go.mod h1:dyYxemnzLMro8/Go3TSi5n2S94kRPQhYf9DrKfpv7eo=
 github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260605073731-428dc1505f4a h1:e4fa5P8F6uwg4pwaUT95wLvIgF+Df0XjRgYoOV0VSS0=
 github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260605073731-428dc1505f4a/go.mod h1:dyYxemnzLMro8/Go3TSi5n2S94kRPQhYf9DrKfpv7eo=
+github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260614231932-9ac47eecfff5 h1:NfsSMjG0+eKNdPUYepm0bikJpAKsUZps7iXffF+NTI4=
+github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260614231932-9ac47eecfff5/go.mod h1:YPUNAejo0sSHIFzZCnUbt0b3OR0Gw74cBxHIdv+yzkw=
 github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6 h1:Utc1F7jdCc6/HrwwIikJFXt/hXxkWIWETLp/CsG6Gl0=
 github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6/go.mod h1:9KnSGuqxSXbdB/Oi0I6vvfPLkclfJwMGAQaDDGVgGow=
 github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d h1:UcBuYL2R88/b0AQRdXEisWTyZLrj4Z+GMEv7Mi4k/0A=
@@ -307,6 +311,8 @@ github.com/ncruces/go-sqlite3 v0.34.3 h1:DYN5fylZd9C28Rgmo6ie8vbv1SB9/Ddy0kVBTEz
 github.com/ncruces/go-sqlite3 v0.34.3/go.mod h1:+NodfP7QTkYGFUAlAcPVcStvlfVTiqMC3OLKTaYiQCM=
 github.com/ncruces/go-sqlite3 v0.35.0 h1:10wTnMpLwmhNowJ19LqHivHK3m8heBBllfFRYEXzM/U=
 github.com/ncruces/go-sqlite3 v0.35.0/go.mod h1:fXOSIkWwN5NXgbJk+7Zls8QIW4xOflmgh11OFvcY+J0=
+github.com/ncruces/go-sqlite3 v0.35.1 h1:h/LaVyQwIvBBT0+2JmVe2tbYyWjUQ093/pYhpBqdxJo=
+github.com/ncruces/go-sqlite3 v0.35.1/go.mod h1:fXOSIkWwN5NXgbJk+7Zls8QIW4xOflmgh11OFvcY+J0=
 github.com/ncruces/go-sqlite3-wasm/v2 v2.5.35301 h1:txZKZ0qUSPe63pzv6x0afpE4xUaqRbErCLd9gXvll+A=
 github.com/ncruces/go-sqlite3-wasm/v2 v2.5.35301/go.mod h1:PtJrZyZ+fUnI9yIcFxnUBFt2avGojqWeUkSrk10hh0I=
 github.com/ncruces/go-sqlite3-wasm/v3 v3.1.35302 h1:Cew7/eNAMd1zhpXYBjofBua/63pFvbvB2h4PM/p6gKU=
