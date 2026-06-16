@@ -98,6 +98,11 @@ func (NopStoreOps) Flush(context.Context) error {
 	return nil
 }
 
+// Sync reports no durability fence because the no-op store holds no writes.
+func (NopStoreOps) Sync(context.Context) (bool, error) {
+	return false, nil
+}
+
 // BeginDeferFlush opens a no-op defer-flush scope.
 func (NopStoreOps) BeginDeferFlush() {}
 

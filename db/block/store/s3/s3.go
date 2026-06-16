@@ -230,6 +230,11 @@ func (b *S3Block) Flush(context.Context) error {
 	return nil
 }
 
+// Sync reports always-durable: S3Block writes commit synchronously per object.
+func (b *S3Block) Sync(context.Context) (bool, error) {
+	return true, nil
+}
+
 // BeginDeferFlush opens a no-op defer-flush scope.
 func (b *S3Block) BeginDeferFlush() {}
 

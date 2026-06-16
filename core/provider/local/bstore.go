@@ -125,6 +125,11 @@ func (b *BlockStore) Flush(ctx context.Context) error {
 	return b.store.Flush(ctx)
 }
 
+// Sync forwards the durability barrier to the inner store.
+func (b *BlockStore) Sync(ctx context.Context) (bool, error) {
+	return b.store.Sync(ctx)
+}
+
 // BeginDeferFlush forwards to the inner store.
 func (b *BlockStore) BeginDeferFlush() {
 	b.store.BeginDeferFlush()

@@ -511,6 +511,12 @@ func (s *PackfileStore) Flush(_ context.Context) error {
 	return nil
 }
 
+// Sync reports always-durable: the read-only packfile store holds no buffered
+// writes.
+func (s *PackfileStore) Sync(_ context.Context) (bool, error) {
+	return true, nil
+}
+
 // BeginDeferFlush is a no-op for the read-only store.
 func (s *PackfileStore) BeginDeferFlush() {}
 

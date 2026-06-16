@@ -349,6 +349,16 @@ func (s *BufferedStore) Flush(ctx context.Context) error {
 	return nil
 }
 
+// Sync drains buffered blocks, then forwards the durability barrier to inner.
+func (s *BufferedStore) Sync(ctx context.Context) (bool, error) {
+	_, subtask := trace.NewTask(ctx, "hydra/block/buffered-store/sync/wait-durable")
+	defer subtask.End()
+	if err := s.drainAll(ctx); err != nil {
+		return false, err
+	}
+	return s.inner.Sync(ctx)
+}
+
 // BeginDeferFlush opens a nested deferred flush scope.
 func (s *BufferedStore) BeginDeferFlush() {
 	s.deferFlush.Add(1)

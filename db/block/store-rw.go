@@ -125,6 +125,11 @@ func (b *StoreRW) Flush(ctx context.Context) error {
 	return b.writeHandle.Flush(ctx)
 }
 
+// Sync forwards the durability barrier to the write handle.
+func (b *StoreRW) Sync(ctx context.Context) (bool, error) {
+	return b.writeHandle.Sync(ctx)
+}
+
 // BeginDeferFlush forwards to the write handle if it supports deferred flushing.
 func (b *StoreRW) BeginDeferFlush() {
 	b.writeHandle.BeginDeferFlush()

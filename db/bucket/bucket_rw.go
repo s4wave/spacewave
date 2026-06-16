@@ -100,6 +100,11 @@ func (b *bucketRW) Flush(ctx context.Context) error {
 	return b.store.Flush(ctx)
 }
 
+// Sync forwards the durability barrier to the inner store.
+func (b *bucketRW) Sync(ctx context.Context) (bool, error) {
+	return b.store.Sync(ctx)
+}
+
 // BeginDeferFlush forwards to the inner StoreOps.
 func (b *bucketRW) BeginDeferFlush() {
 	b.store.BeginDeferFlush()

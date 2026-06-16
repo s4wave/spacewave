@@ -355,6 +355,11 @@ func (g *GCStoreOps) Flush(ctx context.Context) error {
 	return g.store.Flush(ctx)
 }
 
+// Sync forwards the durability barrier to the inner store.
+func (g *GCStoreOps) Sync(ctx context.Context) (bool, error) {
+	return g.store.Sync(ctx)
+}
+
 func (g *GCStoreOps) bufferBlockRefs(source *block.BlockRef, targets []*block.BlockRef) {
 	g.mu.Lock()
 	g.bufferBlockRefsLocked(source, targets)

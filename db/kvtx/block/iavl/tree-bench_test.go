@@ -195,6 +195,10 @@ func (s *benchBlockStore) Flush(ctx context.Context) error {
 	return err
 }
 
+func (s *benchBlockStore) Sync(ctx context.Context) (bool, error) {
+	return s.inner.Sync(ctx)
+}
+
 func (s *benchBlockStore) BeginDeferFlush() {
 	s.inner.BeginDeferFlush()
 }

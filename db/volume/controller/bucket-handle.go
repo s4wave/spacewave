@@ -441,6 +441,19 @@ func (b *bucketHandle) Flush(ctx context.Context) error {
 	return b.v.Flush(ctx)
 }
 
+// Sync makes bucket-level GC writes durable, then fences the volume.
+func (b *bucketHandle) Sync(ctx context.Context) (bool, error) {
+	if b.gcOps != nil {
+		if _, err := b.gcOps.Sync(ctx); err != nil {
+			return false, err
+		}
+		if err := b.gcOps.FlushPending(ctx); err != nil {
+			return false, err
+		}
+	}
+	return b.v.Sync(ctx)
+}
+
 // BeginDeferFlush enters a deferred-flush scope for bucket-level GC.
 // While deferred, PutBlock skips per-block FlushPending calls.
 func (b *bucketHandle) BeginDeferFlush() {

@@ -87,6 +87,11 @@ func (k *KVTx) Flush(ctx context.Context) error {
 	return k.blk.Flush(ctx)
 }
 
+// Sync forwards the durability barrier to the underlying block store.
+func (k *KVTx) Sync(ctx context.Context) (bool, error) {
+	return k.blk.Sync(ctx)
+}
+
 // BeginDeferFlush forwards deferred-flush scope entry to the underlying block store when supported.
 func (k *KVTx) BeginDeferFlush() {
 	k.blk.BeginDeferFlush()

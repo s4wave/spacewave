@@ -227,6 +227,10 @@ func (s *sdkBucketLookupStore) Flush(ctx context.Context) error {
 	return nil
 }
 
+func (s *sdkBucketLookupStore) Sync(ctx context.Context) (bool, error) {
+	return true, nil
+}
+
 func (s *sdkBucketLookupStore) BeginDeferFlush() {}
 
 func (s *sdkBucketLookupStore) EndDeferFlush(ctx context.Context) error {

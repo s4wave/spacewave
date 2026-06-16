@@ -76,6 +76,11 @@ func (v *VolumeBlockStore) Flush(ctx context.Context) error {
 	return v.store.Flush(ctx)
 }
 
+// Sync forwards the durability barrier to the wrapped block store.
+func (v *VolumeBlockStore) Sync(ctx context.Context) (bool, error) {
+	return v.store.Sync(ctx)
+}
+
 // BeginDeferFlush opens a defer-flush scope on the wrapped block store.
 func (v *VolumeBlockStore) BeginDeferFlush() {
 	v.store.BeginDeferFlush()

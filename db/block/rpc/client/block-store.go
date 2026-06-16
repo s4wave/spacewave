@@ -232,6 +232,12 @@ func (v *BlockStore) Flush(ctx context.Context) error {
 	return nil
 }
 
+// Sync reports no durability fence: the remote block RPC has no Sync barrier
+// surface yet.
+func (v *BlockStore) Sync(context.Context) (bool, error) {
+	return false, nil
+}
+
 // BeginDeferFlush opens a remote defer-flush scope.
 func (v *BlockStore) BeginDeferFlush() {
 	resp, err := v.client.BeginDeferFlush(context.Background(), &block_rpc.BeginDeferFlushRequest{})

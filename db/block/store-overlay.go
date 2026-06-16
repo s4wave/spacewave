@@ -516,6 +516,16 @@ func (o *StoreOverlay) Flush(ctx context.Context) error {
 	return err
 }
 
+// Sync fences both overlay stores; it reports fenced only when both did.
+func (o *StoreOverlay) Sync(ctx context.Context) (bool, error) {
+	upperFenced, err := o.upper.Sync(ctx)
+	lowerFenced, lerr := o.lower.Sync(ctx)
+	if err == nil {
+		err = lerr
+	}
+	return upperFenced && lowerFenced, err
+}
+
 // BeginDeferFlush forwards to upper and lower stores that support deferred flushing.
 func (o *StoreOverlay) BeginDeferFlush() {
 	o.upper.BeginDeferFlush()

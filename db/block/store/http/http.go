@@ -369,6 +369,11 @@ func (b *HTTPBlock) Flush(context.Context) error {
 	return nil
 }
 
+// Sync reports always-durable: HTTPBlock writes commit synchronously per PUT.
+func (b *HTTPBlock) Sync(context.Context) (bool, error) {
+	return true, nil
+}
+
 // BeginDeferFlush opens a no-op defer-flush scope.
 func (b *HTTPBlock) BeginDeferFlush() {}
 

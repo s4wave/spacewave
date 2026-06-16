@@ -193,6 +193,11 @@ func (s *VLoggerStore) Flush(ctx context.Context) error {
 	return s.st.Flush(ctx)
 }
 
+// Sync forwards the durability barrier to the wrapped store.
+func (s *VLoggerStore) Sync(ctx context.Context) (bool, error) {
+	return s.st.Sync(ctx)
+}
+
 // BeginDeferFlush opens a defer-flush scope.
 func (s *VLoggerStore) BeginDeferFlush() {
 	s.st.BeginDeferFlush()

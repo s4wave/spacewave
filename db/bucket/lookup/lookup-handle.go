@@ -162,6 +162,11 @@ func (l *lookupBucket) Flush(context.Context) error {
 	return nil
 }
 
+// Sync reports always-durable: lookupBucket holds no buffered writes.
+func (l *lookupBucket) Sync(context.Context) (bool, error) {
+	return true, nil
+}
+
 // BeginDeferFlush opens a no-op defer-flush scope.
 func (l *lookupBucket) BeginDeferFlush() {}
 

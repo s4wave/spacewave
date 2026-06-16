@@ -54,6 +54,13 @@ type StoreOps interface {
 	// Flush publishes buffered writes when the store has a durability boundary.
 	// Implementations without buffering return nil.
 	Flush(ctx context.Context) error
+	// Sync is a durability barrier: it blocks until every write issued before
+	// the call is durable, like POSIX sync(2). The boolean reports whether a
+	// fence was applied: true when the barrier completed or the store is
+	// always-durable, false when the store provides no durability fence. A nil
+	// error with false means "no fence available", not a failure; a non-nil
+	// error means a real sync failure.
+	Sync(ctx context.Context) (bool, error)
 	// BeginDeferFlush opens a defer-flush scope.
 	BeginDeferFlush()
 	// EndDeferFlush closes a defer-flush scope.

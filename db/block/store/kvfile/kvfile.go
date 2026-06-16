@@ -159,6 +159,11 @@ func (k *KvfileBlock) Flush(context.Context) error {
 	return nil
 }
 
+// Sync reports always-durable: KvfileBlock writes commit synchronously.
+func (k *KvfileBlock) Sync(context.Context) (bool, error) {
+	return true, nil
+}
+
 // BeginDeferFlush opens a no-op defer-flush scope.
 func (k *KvfileBlock) BeginDeferFlush() {}
 

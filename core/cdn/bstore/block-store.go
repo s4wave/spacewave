@@ -209,6 +209,11 @@ func (s *CdnBlockStore) Flush(_ context.Context) error {
 	return nil
 }
 
+// Sync reports always-durable: the CDN block store holds no buffered writes.
+func (s *CdnBlockStore) Sync(_ context.Context) (bool, error) {
+	return true, nil
+}
+
 // BeginDeferFlush is a no-op for the anonymous CDN block store.
 func (s *CdnBlockStore) BeginDeferFlush() {}
 

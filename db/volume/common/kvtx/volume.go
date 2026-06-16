@@ -359,6 +359,16 @@ func (v *Volume) Flush(ctx context.Context) error {
 	return nil
 }
 
+// Sync forwards the durability barrier to the embedded store.
+func (v *Volume) Sync(ctx context.Context) (bool, error) {
+	fenced, err := v.Store.Sync(ctx)
+	if err != nil {
+		return false, err
+	}
+	v.broadcastStorageStatsChanged()
+	return fenced, nil
+}
+
 // BeginDeferFlush forwards deferred-flush scope entry to the embedded store when supported.
 func (v *Volume) BeginDeferFlush() {
 	v.Store.BeginDeferFlush()

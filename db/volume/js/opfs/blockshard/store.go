@@ -248,6 +248,12 @@ func (s *BlockStore) Flush(context.Context) error {
 	return nil
 }
 
+// Sync reports no durability fence yet; the shard write-actor barrier lands in
+// a later milestone.
+func (s *BlockStore) Sync(context.Context) (bool, error) {
+	return false, nil
+}
+
 // BeginDeferFlush opens a no-op defer-flush scope.
 func (s *BlockStore) BeginDeferFlush() {}
 

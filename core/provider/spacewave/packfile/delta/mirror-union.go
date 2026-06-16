@@ -130,6 +130,11 @@ func (m *MirrorUnion) Flush(_ context.Context) error {
 	return nil
 }
 
+// Sync reports always-durable: the read-only mirror holds no buffered writes.
+func (m *MirrorUnion) Sync(_ context.Context) (bool, error) {
+	return true, nil
+}
+
 // BeginDeferFlush is a no-op for the read-only mirror.
 func (m *MirrorUnion) BeginDeferFlush() {}
 
