@@ -308,23 +308,10 @@ jobs:
       - name: Setup aptre tools and vendor
         run: bun run prepare
 
-      # Persist the world-backed startup Manifest build between runs so each
-      # slice restores the compiled plugin set instead of rebuilding it (~9 min)
-      # every run. Correctness-safe: Boot re-syncs sources and rebuilds changed
-      # plugins content-addressed, so a stale cache only lowers the hit rate.
-      - name: Cache wasm startup build
-        uses: actions/cache@v5
-        with:
-          path: .bldr/e2e-wasm
-          key: ${{ runner.os }}-e2e-wasm-build-${{ hashFiles('go.sum', 'bldr.star', 'bldr/bldr.yaml') }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-e2e-wasm-build-${{ hashFiles('go.sum', 'bldr.star', 'bldr/bldr.yaml') }}-
-            ${{ runner.os }}-e2e-wasm-build-
-
       - name: Run wasm E2E slice
         env:
           ENABLE_E2E_WASM: 'true'
-          E2E_WASM_STARTUP_BUILD_CACHE: 'true'
+          E2E_WASM_STARTUP_BUILD_CACHE: 'false'
           GO_TEST_REPORT_TITLE: E2E (wasm / ${{ matrix.slice.name }})
           WASM_TEST_RUN: ${{ matrix.slice.run }}
         run: bun scripts/go-test-report.ts -- go test -json -count=1 -timeout=30m -run "$WASM_TEST_RUN" ./e2e/wasm

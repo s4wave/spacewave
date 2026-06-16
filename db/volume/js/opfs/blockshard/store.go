@@ -248,10 +248,14 @@ func (s *BlockStore) Flush(context.Context) error {
 	return nil
 }
 
-// Sync reports no durability fence yet; the shard write-actor barrier lands in
-// a later milestone.
-func (s *BlockStore) Sync(context.Context) (bool, error) {
-	return false, nil
+// Sync blocks until every write issued before the call is durable. It fences
+// each shard's write actor through the engine, so a completed Sync guarantees
+// prior writes published; the fence always applies.
+func (s *BlockStore) Sync(ctx context.Context) (bool, error) {
+	if err := s.engine.Sync(ctx); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // BeginDeferFlush opens a no-op defer-flush scope.

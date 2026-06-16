@@ -21,9 +21,14 @@ import (
 const DefaultShardCount = 4
 
 // writeReq is an internal request to the shard write actor.
+//
+// A barrier request carries no entries; it is a durability fence that the actor
+// satisfies only after the publish covering all earlier-enqueued writes for the
+// shard completes, reusing the err reply channel and the channel FIFO order.
 type writeReq struct {
 	entries    []segment.Entry
 	background bool
+	barrier    bool
 	err        chan error
 }
 
@@ -166,6 +171,51 @@ func (e *Engine) Put(ctx context.Context, entries []segment.Entry) error {
 // Used for GC block writes and other non-latency-sensitive operations.
 func (e *Engine) PutBackground(ctx context.Context, entries []segment.Entry) error {
 	return e.putToActors(ctx, "hydra/opfs-blockshard/put-background", entries, true)
+}
+
+// Sync blocks until every write enqueued before the call is durable on every
+// shard. It dispatches a barrier request to each shard write actor and waits
+// for all replies. The actor satisfies a barrier only after the publish
+// covering earlier-enqueued writes for that shard completes; an idle shard
+// replies immediately without emitting an empty generation.
+func (e *Engine) Sync(ctx context.Context) error {
+	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/sync")
+	defer task.End()
+
+	var wg sync.WaitGroup
+	errs := make([]error, len(e.actors))
+	for i := range e.actors {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			ch := make(chan error, 1)
+			actor := e.actors[idx]
+			select {
+			case actor.foreground <- writeReq{barrier: true, err: ch}:
+			case <-ctx.Done():
+				errs[idx] = ctx.Err()
+				return
+			case <-e.ctx.Done():
+				errs[idx] = context.Canceled
+				return
+			}
+			select {
+			case errs[idx] = <-ch:
+			case <-ctx.Done():
+				errs[idx] = ctx.Err()
+			case <-e.ctx.Done():
+				errs[idx] = context.Canceled
+			}
+		}(i)
+	}
+	wg.Wait()
+
+	for _, err := range errs {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // CompactOnce runs at most one compaction plan per shard.
@@ -768,11 +818,15 @@ func (e *Engine) runActor(ctx context.Context, actor *shardActor) {
 		// Drain foreground channel (always first priority).
 		e.drainCh(fgCh, &reqs)
 
-		// Drain background channel when foreground is empty or
-		// starvation limit is reached.
+		// A Sync barrier must fence earlier background writes too, so force a
+		// background drain for this cycle when one is queued.
+		barrierPresent := hasBarrier(reqs)
+
+		// Drain background channel when foreground is empty, the starvation
+		// limit is reached, or a barrier must fence pending background work.
 		hasBg := len(bgCh) > 0
 		hasFg := len(reqs) > 0
-		drainBg := hasBg && (!hasFg || fgOnly >= bgStarvationLimit)
+		drainBg := hasBg && (!hasFg || fgOnly >= bgStarvationLimit || barrierPresent)
 		if drainBg {
 			e.drainCh(bgCh, &reqs)
 			fgOnly = 0
@@ -798,14 +852,32 @@ func (e *Engine) runActor(ctx context.Context, actor *shardActor) {
 			}
 		}
 
-		// Merge all entries.
+		// Merge all entries. Barrier requests carry no entries; they only
+		// fence earlier writes.
 		var merged []segment.Entry
 		hasForegroundReq := false
 		for i := range reqs {
+			if reqs[i].barrier {
+				continue
+			}
 			if !reqs[i].background {
 				hasForegroundReq = true
 			}
 			merged = append(merged, reqs[i].entries...)
+		}
+
+		// Barrier-only cycle: nothing new to publish. A durability fence over
+		// an idle shard must not emit an empty generation, so reply to the
+		// waiters without acquiring the publish lock or touching the manifest.
+		// FIFO ordering guarantees any earlier writes for this shard already
+		// published in a prior cycle, so the fence is already satisfied.
+		if len(merged) == 0 {
+			currentReqs := reqs
+			reqs = nil
+			for _, r := range currentReqs {
+				r.err <- nil
+			}
+			continue
 		}
 
 		// Acquire publish lock and flush.
@@ -875,6 +947,16 @@ func (e *Engine) runActor(ctx context.Context, actor *shardActor) {
 func (e *Engine) runCompactReq(ctx context.Context, shardIdx int, shard *Shard) error {
 	_, err := e.compactShardOnce(ctx, shardIdx, shard)
 	return err
+}
+
+// hasBarrier reports whether any request in reqs is a Sync durability fence.
+func hasBarrier(reqs []writeReq) bool {
+	for i := range reqs {
+		if reqs[i].barrier {
+			return true
+		}
+	}
+	return false
 }
 
 // drainCh non-blocking drains all available requests from ch into reqs.
