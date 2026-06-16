@@ -1524,9 +1524,13 @@ export async function swFetch(
         if (cached) {
           return cached
         }
+        // The proxy reached a relay document but its runtime client channel was
+        // torn down (e.g. the relaying document closed and the client is
+        // rerouting through a surviving document). Wait for the runtime client
+        // to reconnect, not merely for a document to exist, before retrying.
         if (
           attempt === 0 &&
-          (await webDocumentTracker.waitForRuntimeFetchRelay(
+          (await webDocumentTracker.waitForRuntimeClientReady(
             browserRuntimeFetchRelayWaitMs,
           ))
         ) {

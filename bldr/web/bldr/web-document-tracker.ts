@@ -306,6 +306,34 @@ export class WebDocumentTracker {
     })
   }
 
+  // waitForRuntimeClientReady resolves true once the shared runtime client
+  // channel reconnects, or false if timeoutMs elapses or the tracker closes.
+  // After the relaying WebDocument closes, removeWebDocument reroutes the client
+  // through a surviving document; a plugin-asset fetch that failed on the stale
+  // route waits for that reconnect to land before retrying instead of failing
+  // the navigation. waitConn drives and shares the reconnect, so a lost relay
+  // timer never beats a connect that is already in flight.
+  public async waitForRuntimeClientReady(timeoutMs: number): Promise<boolean> {
+    if (this.closed) {
+      return false
+    }
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const timeout = new Promise<boolean>((resolve) => {
+      timer = setTimeout(() => resolve(false), timeoutMs)
+    })
+    const ready = this.webRuntimeClient
+      .waitConn()
+      .then(() => true)
+      .catch(() => false)
+    try {
+      return await Promise.race([ready, timeout])
+    } finally {
+      if (timer) {
+        clearTimeout(timer)
+      }
+    }
+  }
+
   public async requestSabPair(
     targetWorkerId: string,
   ): Promise<SabPairEndpointDescriptor> {
@@ -675,14 +703,24 @@ export class WebDocumentTracker {
         : 0
     }
 
-    const shouldCloseRuntimeClient =
-      !remainingWebDocumentIds.length || wasActiveRuntimeDocument
     if (!remainingWebDocumentIds.length) {
       this.lastWebDocumentId = undefined
       this.lastWebDocumentIdx = 0
-    }
-    if (shouldCloseRuntimeClient) {
       this.webRuntimeClient.close()
+    } else if (wasActiveRuntimeDocument) {
+      // The relaying WebDocument closed but other documents remain. Drop the
+      // stale route and reconnect the shared runtime client through a surviving
+      // document instead of tearing it down. Closing the client here would
+      // surface RuntimeClientClosedError on every in-flight and subsequent
+      // plugin-asset fetch the surviving documents relay, failing their
+      // navigation. This honors the tracker contract: retry when the owning
+      // WebDocument lifecycle closes a stale route.
+      this.webRuntimeClient.rerouteChannel().catch((err: unknown) => {
+        console.error(
+          `WebDocumentTracker: ${this.clientUuid}: error rerouting runtime client:`,
+          err,
+        )
+      })
     }
 
     if (!remainingWebDocumentIds.length && this.onAllWebDocumentsClosed) {

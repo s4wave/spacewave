@@ -412,4 +412,53 @@ describe('WebRuntimeClient', () => {
 
     client.close()
   })
+
+  it('reroutes a connected runtime client through a fresh channel without telling the runtime it closed', async () => {
+    const { port1, port2 } = new MessageChannel()
+    const reconnect = new MessageChannel()
+    const openClientCh = vi
+      .fn()
+      .mockResolvedValueOnce(port1)
+      .mockResolvedValueOnce(reconnect.port1)
+    const client = new WebRuntimeClient(
+      'runtime',
+      'client',
+      WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      openClientCh,
+      null,
+      null,
+    )
+
+    await connectClient(client, port2)
+    expect(openClientCh).toHaveBeenCalledTimes(1)
+
+    const streamClose = vi.fn()
+    const activeStreams = Reflect.get(client, 'activeStreams') as Set<{
+      close(error?: Error): void
+    }>
+    activeStreams.add({ close: streamClose })
+    const postMessage = vi.spyOn(port1, 'postMessage')
+
+    await client.rerouteChannel()
+
+    // In-flight streams fail with a retryable relay-rerouted error so callers
+    // retry onto the next generation, not a terminal normal-close.
+    expect(streamClose).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('relay-rerouted'),
+      }),
+    )
+    // The runtime is not told the client is going away; no close is posted.
+    expect(postMessage).not.toHaveBeenCalledWith(
+      expect.objectContaining({ close: true }),
+    )
+    // A reconnect through a surviving document is kicked off.
+    await flushPromises()
+    expect(openClientCh).toHaveBeenCalledTimes(2)
+
+    client.close()
+    port2.close()
+    reconnect.port1.close()
+    reconnect.port2.close()
+  })
 })

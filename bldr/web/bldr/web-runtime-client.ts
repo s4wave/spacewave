@@ -28,6 +28,7 @@ export type RuntimeClientGenerationCloseReason =
   | 'normal-close'
   | 'connect-failed'
   | 'runtime-disconnected'
+  | 'relay-rerouted'
 
 // RuntimeClientGenerationSnapshot is the public runtime-client generation view.
 export interface RuntimeClientGenerationSnapshot {
@@ -269,6 +270,23 @@ export class WebRuntimeClient {
     this.reconnectingClientChannel = undefined
     reconnectingClientChannel?.catch(() => {})
     void this.closeClientChannel('normal-close')
+  }
+
+  // rerouteChannel drops the stale relay path after its relaying WebDocument
+  // closed and reconnects the client channel through a surviving WebDocument.
+  // Unlike close(), it does not tell the runtime the client is going away: the
+  // logical client stays alive on the runtime, in-flight streams fail with a
+  // retryable relay-rerouted error, and the next openStream re-establishes the
+  // channel via a surviving document instead of failing the plugin-asset fetch.
+  public async rerouteChannel(): Promise<void> {
+    const reconnectingClientChannel = this.reconnectingClientChannel
+    this.reconnectingClientChannel = undefined
+    reconnectingClientChannel?.catch(() => {})
+    await this.closeClientChannel('relay-rerouted')
+    // Re-establish through a surviving WebDocument so the next plugin-asset
+    // fetch finds a ready relay. Best-effort: a failed reconnect is retried
+    // lazily by the next openStream.
+    void this.waitConn().catch(() => {})
   }
 
   // openClientChannel opens the client MessagePort to the WebRuntimeHost.

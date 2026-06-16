@@ -327,9 +327,12 @@ describe('WebDocumentTracker resume-ready gate', () => {
     secondPort.close()
   })
 
-  it('closes the runtime client when the active relay document closes', async () => {
+  it('reroutes the runtime client when the active relay document closes while others remain', async () => {
     const tracker = buildTracker()
     const closeRuntime = vi.spyOn(tracker.webRuntimeClient, 'close')
+    const rerouteRuntime = vi
+      .spyOn(tracker.webRuntimeClient, 'rerouteChannel')
+      .mockResolvedValue(undefined)
     const firstPort = attachWebDocument(tracker, 'document-1')
     const secondPort = attachWebDocument(tracker, 'document-2')
 
@@ -341,7 +344,9 @@ describe('WebDocumentTracker resume-ready gate', () => {
     })
     await new Promise((resolve) => setTimeout(resolve, 0))
 
-    expect(closeRuntime).toHaveBeenCalledTimes(1)
+    expect(closeRuntime).not.toHaveBeenCalled()
+    expect(rerouteRuntime).toHaveBeenCalledTimes(1)
+    expect(Reflect.get(tracker, 'activeRuntimeWebDocumentId')).toBeUndefined()
     expect(Reflect.get(tracker, 'webDocuments')).not.toHaveProperty(
       'document-1',
     )
