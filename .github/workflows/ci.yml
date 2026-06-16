@@ -296,10 +296,7 @@ jobs:
       - name: Install Bun dependencies
         run: bun install --frozen-lockfile --ignore-scripts
 
-      # The support slice runs only pure-unit tests; the harness boots lazily on
-      # first use, so that slice never launches a browser and needs no Playwright.
       - name: Install Playwright browsers for Go tests
-        if: matrix.slice.name != 'support'
         run: go run github.com/playwright-community/playwright-go/cmd/playwright install --with-deps chromium
 
       - name: Cache aptre tools
@@ -311,13 +308,11 @@ jobs:
       - name: Setup aptre tools and vendor
         run: bun run prepare
 
-      # Persist the world-backed startup Manifest build between runs so the
-      # browser slices restore the compiled plugin set instead of rebuilding it
-      # (~9 min) every run. Correctness-safe: Boot re-syncs sources and rebuilds
-      # changed plugins content-addressed, so a stale cache only lowers the hit
-      # rate. The support slice never boots, so it is excluded.
+      # Persist the world-backed startup Manifest build between runs so each
+      # slice restores the compiled plugin set instead of rebuilding it (~9 min)
+      # every run. Correctness-safe: Boot re-syncs sources and rebuilds changed
+      # plugins content-addressed, so a stale cache only lowers the hit rate.
       - name: Cache wasm startup build
-        if: matrix.slice.name != 'support'
         uses: actions/cache@v5
         with:
           path: .bldr/e2e-wasm
