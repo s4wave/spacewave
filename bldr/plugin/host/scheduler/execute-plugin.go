@@ -3,7 +3,6 @@ package plugin_host_scheduler
 import (
 	"context"
 
-	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
@@ -77,6 +76,7 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 	}
 	ctx, task := trace.NewTask(ctx, "bldr/plugin-host-scheduler/execute-plugin")
 	defer task.End()
+	t.ensureAccessProviders()
 	defer func() {
 		if rerr != nil {
 			t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "execute plugin", rerr)
@@ -114,51 +114,10 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 		distFS,
 		assetsFS *unixfs.FSHandle,
 	) error {
-		// expose the plugin dist as a unixfs on the host bus
-		// this enables serving /b/pd/... requests
-		distFsID := bldr_plugin.PluginDistFsId(pluginID)
-		distAccessCtrl := unixfs_access.NewControllerWithHandle(
-			le,
-			t.c.bus,
-			&controller.Info{
-				Id:          ControllerID + distFsID,
-				Version:     Version.String(),
-				Description: "plugin dist fs for plugin: " + pluginID,
-			},
-			[]string{distFsID},
-			distFS,
-		)
-		defer distAccessCtrl.Close()
-
-		// mount the dist fs access controller
-		relDistAccessCtrl, err := t.c.bus.AddController(ctx, distAccessCtrl, nil)
-		if err != nil {
-			return err
-		}
-		defer relDistAccessCtrl()
-
-		// expose the plugin assets as a unixfs on the host bus
-		// this enables serving /b/pa/... requests
-		assetsFsID := bldr_plugin.PluginAssetsFsId(pluginID)
-		assetsAccessCtrl := unixfs_access.NewControllerWithHandle(
-			le,
-			t.c.bus,
-			&controller.Info{
-				Id:          ControllerID + assetsFsID,
-				Version:     Version.String(),
-				Description: "plugin assets fs for plugin: " + pluginID,
-			},
-			[]string{assetsFsID},
-			assetsFS,
-		)
-		defer assetsAccessCtrl.Close()
-
-		// mount the dist fs access controller
-		relAssetsAccessCtrl, err := t.c.bus.AddController(ctx, assetsAccessCtrl, nil)
-		if err != nil {
-			return err
-		}
-		defer relAssetsAccessCtrl()
+		t.distAccess.SetCurrent(unixfs_access.NewAccessUnixFSFunc(distFS))
+		defer t.distAccess.SetBlocked()
+		t.assetsAccess.SetCurrent(unixfs_access.NewAccessUnixFSFunc(assetsFS))
+		defer t.assetsAccess.SetBlocked()
 
 		hostRoot, _, hostRootRef, err := plugin_host_root.ExLookupRootByPlatform(
 			ctx,

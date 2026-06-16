@@ -38,7 +38,7 @@ type BrowserPeerObservation struct {
 // for HostProtocolID and returns a PeerWatcher that tracks discovered peers.
 func NewPeerWatcher(b bus.Bus) (*PeerWatcher, error) {
 	pw := &PeerWatcher{
-		pending: make(chan BrowserPeerObservation, 8),
+		pending: make(chan BrowserPeerObservation, 64),
 	}
 	rel, err := b.AddHandler(pw)
 	if err != nil {
@@ -150,6 +150,50 @@ func (pw *PeerWatcher) WaitForPeerObservationAfter(
 			return obs, nil
 		}
 	}
+}
+
+// nextPeerObservation blocks for the next observation in arrival order without
+// draining to the newest. Multi-browser attribution needs every observation in
+// order, because an earlier browser's reconnect events would otherwise hide a
+// later browser's first mount under the drain-to-newest behavior.
+func (pw *PeerWatcher) nextPeerObservation(ctx context.Context) (BrowserPeerObservation, error) {
+	select {
+	case obs := <-pw.pending:
+		return obs, nil
+	case <-ctx.Done():
+		return BrowserPeerObservation{}, ctx.Err()
+	}
+}
+
+// WaitForDistinctPeerObservationAfter blocks until an observation in arrival
+// order arrives whose sequence is greater than afterSeq and whose peer is not
+// in exclude. A peer can reconnect with the same ID, so a test attributing a
+// second browser must skip the first browser's reconnect events rather than
+// take the newest pending observation.
+func (pw *PeerWatcher) WaitForDistinctPeerObservationAfter(
+	ctx context.Context,
+	afterSeq uint64,
+	exclude ...peer.ID,
+) (BrowserPeerObservation, error) {
+	for {
+		obs, err := pw.nextPeerObservation(ctx)
+		if err != nil {
+			return BrowserPeerObservation{}, err
+		}
+		if obs.Sequence <= afterSeq || peerIDIn(obs.PeerID, exclude) {
+			continue
+		}
+		return obs, nil
+	}
+}
+
+func peerIDIn(id peer.ID, ids []peer.ID) bool {
+	for _, candidate := range ids {
+		if id.String() == candidate.String() {
+			return true
+		}
+	}
+	return false
 }
 
 // Release removes the handler from the bus.

@@ -28,6 +28,7 @@ import (
 	s4wave_process "github.com/s4wave/spacewave/sdk/process"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 	objecttype_controller "github.com/s4wave/spacewave/sdk/world/objecttype/controller"
+	"github.com/sirupsen/logrus"
 )
 
 // ControllerID is the controller ID.
@@ -385,6 +386,12 @@ func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState
 	)
 	if err != nil {
 		le.WithError(err).Warn("failed to get object store for process bindings")
+		c.reconcileProcessConfigs(le, nil)
+		return
+	}
+	if handle == nil || ref == nil {
+		le.Warn("process binding object store unavailable")
+		c.reconcileProcessConfigs(le, nil)
 		return
 	}
 	defer ref.Release()
@@ -406,7 +413,10 @@ func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState
 			}
 		}
 	}
+	c.reconcileProcessConfigs(le, desired)
+}
 
+func (c *Controller) reconcileProcessConfigs(le *logrus.Entry, desired map[string]processConfig) {
 	active := c.processes.GetKeysWithData()
 	le.WithField("enabled", len(desired)).WithField("active", len(active)).Debug("reconcileProcesses")
 

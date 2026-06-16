@@ -307,6 +307,13 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 					"startup-state": "world",
 				}).Debug("loaded world-backed startup build result")
 			}
+			if worldBuildResult == nil {
+				startupBuilderResult = bldr_manifest_builder.NewBuilderResult(
+					existingManifest.Manifest.CloneVT(),
+					existingManifest.ManifestRef.Clone(),
+					bldr_manifest_builder.NewInputManifest(nil, nil),
+				)
+			}
 		}
 		tx.Discard()
 	}

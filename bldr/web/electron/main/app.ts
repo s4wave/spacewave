@@ -356,47 +356,6 @@ export class BldrElectronApp {
         )
         return
       }
-      if (req.method === 'POST' && url.pathname === '/native-theme') {
-        const source = url.searchParams.get('source') ?? 'system'
-        if (!isNativeThemeSource(source)) {
-          sendE2EJSON(res, 400, { error: 'invalid native theme source' })
-          return
-        }
-        nativeTheme.themeSource = source
-        this.desktopTrayController?.setPopoverAppearanceForE2E(source)
-        sendE2EJSON(res, 200, { ok: true, source })
-        return
-      }
-      if (req.method === 'POST' && url.pathname === '/tray-popover/open') {
-        const shown =
-          (await this.desktopTrayController?.showPopoverForE2E()) ?? false
-        sendE2EJSON(res, 200, { shown })
-        return
-      }
-      if (req.method === 'POST' && url.pathname === '/tray-popover/close') {
-        this.desktopTrayController?.closePopoverForE2E()
-        sendE2EJSON(res, 200, { ok: true })
-        return
-      }
-      if (req.method === 'GET' && url.pathname === '/tray-popover/inspection') {
-        const inspection =
-          await this.desktopTrayController?.inspectPopoverForE2E()
-        if (!inspection) {
-          sendE2EJSON(res, 404, { error: 'tray popover is not open' })
-          return
-        }
-        sendE2EJSON(res, 200, inspection)
-        return
-      }
-      if (req.method === 'GET' && url.pathname === '/tray-popover/screenshot') {
-        const png = await this.desktopTrayController?.capturePopoverPNGForE2E()
-        if (!png) {
-          sendE2EJSON(res, 404, { error: 'tray popover is not open' })
-          return
-        }
-        sendE2EBinary(res, 200, 'image/png', png)
-        return
-      }
       if (req.method === 'POST' && url.pathname === '/open-or-focus') {
         await this.desktopRuntimeResource.OpenOrFocusMainWindow({
           route: url.searchParams.get('route') || undefined,
@@ -763,21 +722,4 @@ async function readE2EJSON<T>(req: IncomingMessage): Promise<T> {
   }
   const raw = Buffer.concat(chunks).toString('utf8').trim()
   return raw ? (JSON.parse(raw) as T) : ({} as T)
-}
-
-function isNativeThemeSource(
-  source: string,
-): source is Electron.NativeTheme['themeSource'] {
-  return source === 'system' || source === 'light' || source === 'dark'
-}
-
-function sendE2EBinary(
-  res: ServerResponse,
-  statusCode: number,
-  contentType: string,
-  value: Buffer,
-) {
-  res.statusCode = statusCode
-  res.setHeader('content-type', contentType)
-  res.end(value)
 }

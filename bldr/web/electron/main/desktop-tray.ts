@@ -9,14 +9,6 @@ import {
 } from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray.pb.js'
 import type { ElectronInit } from '../../plugin/electron/electron.pb.js'
 import type { DesktopRuntimeResource } from './desktop-runtime.js'
-import {
-  buildDesktopTrayIconModel,
-  renderMacOSTrayIconDataURL,
-  type DesktopTrayIconModel,
-} from './desktop-tray-icon.js'
-import { buildDesktopTrayNotificationDecision } from './desktop-tray-notifications.js'
-import { canInvokeDesktopTrayEntry } from './desktop-tray-panel-descriptor.js'
-import { DesktopTrayPopoverController } from './desktop-tray-popover.js'
 
 interface DesktopTrayControllerOpts {
   init: ElectronInit
@@ -26,7 +18,6 @@ interface DesktopTrayControllerOpts {
 interface DesktopTrayResource {
   OpenOrFocusMainWindow: DesktopRuntimeResource['OpenOrFocusMainWindow']
   QuitDesktopRuntime: DesktopRuntimeResource['QuitDesktopRuntime']
-  getState: DesktopRuntimeResource['getState']
   desktopTrayResource: Pick<
     DesktopRuntimeResource['desktopTrayResource'],
     'WatchDesktopTray' | 'InvokeDesktopTrayEntry' | 'getState'
@@ -36,11 +27,7 @@ interface DesktopTrayResource {
 // DesktopTrayController owns the native desktop status icon for the app lifetime.
 export class DesktopTrayController {
   private tray?: Electron.Tray
-  private popover?: DesktopTrayPopoverController
   private currentTrayState?: DesktopTrayState
-  private currentIconKey = ''
-  private registeredShortcut = ''
-  private readonly deliveredNotifications = new Set<string>()
   private watchStarted = false
 
   constructor(private readonly opts: DesktopTrayControllerOpts) {}
@@ -50,43 +37,20 @@ export class DesktopTrayController {
       return
     }
     this.tray = new electron.Tray(this.buildIcon())
-    if (isDesktopTrayPopoverEnabled()) {
-      this.popover = new DesktopTrayPopoverController({
-        appName: this.opts.init.appName,
-        actionHandler: (entryId) => this.handlePopoverAction(entryId),
-        runtimeState: () => this.opts.resource.getState(),
-      })
-    }
+    this.tray.setToolTip(this.opts.init.appName || 'Spacewave')
     this.rebuildMenu(this.opts.resource.desktopTrayResource.getState())
-    this.registerToggleShortcut()
     this.startWatch()
     this.tray.on('click', () => {
-      void this.handleTrayClick()
+      void this.openOrFocusMainWindow()
     })
   }
 
   public dispose(): void {
-    this.popover?.close()
-    if (this.registeredShortcut && electron.globalShortcut) {
-      electron.globalShortcut.unregister(this.registeredShortcut)
-      this.registeredShortcut = ''
-    }
     this.tray?.destroy?.()
     this.tray = undefined
   }
 
-  private buildIcon(model?: DesktopTrayIconModel): Electron.NativeImage {
-    if (
-      model?.dynamicIconEnabled &&
-      os.platform() === 'darwin' &&
-      electron.nativeImage.createFromDataURL
-    ) {
-      const image = electron.nativeImage.createFromDataURL(
-        renderMacOSTrayIconDataURL(model),
-      )
-      image.setTemplateImage(true)
-      return image
-    }
+  private buildIcon(): Electron.NativeImage {
     const iconPath = this.getIconPath()
     const image = iconPath
       ? electron.nativeImage.createFromPath(iconPath)
@@ -139,59 +103,8 @@ export class DesktopTrayController {
     ) {
       return
     }
-    const previous = this.currentTrayState
     this.currentTrayState = cloneDesktopTrayState(state)
-    const icon = buildDesktopTrayIconModel({
-      appName: this.opts.init.appName,
-      state,
-      dynamicIconEnabled: isDesktopTrayDynamicIconEnabled(),
-    })
-    this.updateIconState(icon)
-    this.maybeNotify(previous, state)
     this.tray?.setContextMenu(this.buildMenu(state))
-    this.popover?.update(state)
-  }
-
-  private async handleTrayClick(): Promise<void> {
-    if (this.popover) {
-      const handled = await this.popover.toggle(
-        this.tray,
-        this.currentTrayState ??
-          this.opts.resource.desktopTrayResource.getState(),
-      )
-      if (handled) {
-        return
-      }
-    }
-    await this.openOrFocusMainWindow()
-  }
-
-  public async showPopoverForE2E(): Promise<boolean> {
-    if (!this.popover) {
-      return false
-    }
-    return this.popover.show(
-      this.tray,
-      this.opts.resource.desktopTrayResource.getState(),
-    )
-  }
-
-  public async capturePopoverPNGForE2E(): Promise<Buffer | undefined> {
-    return this.popover?.capturePNG()
-  }
-
-  public async inspectPopoverForE2E(): Promise<unknown> {
-    return this.popover?.inspectForE2E()
-  }
-
-  public closePopoverForE2E(): void {
-    this.popover?.close()
-  }
-
-  public setPopoverAppearanceForE2E(
-    appearance: 'dark' | 'light' | 'system',
-  ): void {
-    this.popover?.setAppearanceForE2E(appearance)
   }
 
   private buildMenu(state: DesktopTrayState): Electron.Menu {
@@ -313,67 +226,8 @@ export class DesktopTrayController {
     }
   }
 
-  private updateIconState(model: DesktopTrayIconModel): void {
-    this.tray?.setToolTip(model.tooltip)
-    if (os.platform() === 'darwin') {
-      if (model.dynamicIconEnabled && this.currentIconKey !== model.renderKey) {
-        this.currentIconKey = model.renderKey
-        this.tray?.setImage?.(this.buildIcon(model))
-      }
-      this.tray?.setTitle(model.fallbackTitle)
-    }
-  }
-
-  private maybeNotify(
-    previous: DesktopTrayState | undefined,
-    next: DesktopTrayState,
-  ): void {
-    if (!isDesktopTrayNotificationsEnabled()) {
-      return
-    }
-    const decision = buildDesktopTrayNotificationDecision(previous, next)
-    if (!decision || this.deliveredNotifications.has(decision.key)) {
-      return
-    }
-    if (electron.Notification?.isSupported?.() === false) {
-      return
-    }
-    this.deliveredNotifications.add(decision.key)
-    new electron.Notification({
-      title: decision.title,
-      body: decision.body,
-      silent: true,
-    }).show()
-  }
-
-  private registerToggleShortcut(): void {
-    const shortcut = desktopTrayToggleShortcut()
-    if (!shortcut || !electron.globalShortcut) {
-      return
-    }
-    if (
-      electron.globalShortcut.register(shortcut, () => {
-        void this.handleTrayClick()
-      })
-    ) {
-      this.registeredShortcut = shortcut
-      return
-    }
-    console.error(`desktop tray toggle shortcut unavailable: ${shortcut}`)
-  }
-
   private async openOrFocusMainWindow(): Promise<void> {
     await this.opts.resource.OpenOrFocusMainWindow({})
-  }
-
-  private async handlePopoverAction(entryId: string): Promise<void> {
-    const entry = (this.currentTrayState?.entries ?? []).find(
-      (entry) => entry.id === entryId,
-    )
-    if (!entry) {
-      return
-    }
-    await this.invokeTrayEntry(entry)
   }
 
   private async invokeTrayEntry(entry: DesktopTrayEntry): Promise<void> {
@@ -444,20 +298,26 @@ function disabledItem(label: string): Electron.MenuItemConstructorOptions {
   return { label, enabled: false }
 }
 
-function isDesktopTrayPopoverEnabled(): boolean {
-  return process.env.BLDR_ELECTRON_DESKTOP_TRAY_POPOVER === '1'
-}
-
-function isDesktopTrayDynamicIconEnabled(): boolean {
-  return process.env.BLDR_ELECTRON_DESKTOP_TRAY_DYNAMIC_ICON === '1'
-}
-
-function isDesktopTrayNotificationsEnabled(): boolean {
-  return process.env.BLDR_ELECTRON_DESKTOP_TRAY_NOTIFICATIONS === '1'
-}
-
-function desktopTrayToggleShortcut(): string {
-  return process.env.BLDR_ELECTRON_DESKTOP_TRAY_TOGGLE_SHORTCUT?.trim() ?? ''
+function canInvokeDesktopTrayEntry(entry: DesktopTrayEntry): boolean {
+  if (
+    entry.kind !== DesktopTrayEntryKind.ACTION ||
+    !(entry.enabled ?? false) ||
+    !entry.action
+  ) {
+    return false
+  }
+  switch (entry.action.kind) {
+    case DesktopTrayActionKind.OPEN_ROUTE:
+    case DesktopTrayActionKind.NEW_WINDOW:
+    case DesktopTrayActionKind.QUIT:
+    case DesktopTrayActionKind.ATTACHED_HANDLER:
+      return true
+    case DesktopTrayActionKind.COPY_TEXT:
+    case DesktopTrayActionKind.REVEAL_PATH:
+      return !!entry.action.value
+    default:
+      return false
+  }
 }
 
 function cloneDesktopTrayState(state: DesktopTrayState): DesktopTrayState {

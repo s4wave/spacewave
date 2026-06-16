@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	"github.com/s4wave/spacewave/db/world"
@@ -19,6 +20,15 @@ import (
 	"github.com/s4wave/spacewave/net/util/confparse"
 	"github.com/sirupsen/logrus"
 )
+
+type manifestCommitIdentityContextKey struct{}
+
+type manifestCommitTimestampContextKey struct{}
+
+type manifestCommitIdentity struct {
+	existingBuilderResult *BuilderResult
+	manifestDeps          []*InputManifest_ManifestDep
+}
 
 // Validate validates the configuration.
 func (c *BuilderConfig) Validate() error {
@@ -52,6 +62,33 @@ func (c *BuilderConfig) Validate() error {
 	return nil
 }
 
+// WithManifestCommitIdentity attaches the previous manifest and current watched
+// manifest refs used to decide whether a commit publishes a new revision.
+func WithManifestCommitIdentity(
+	ctx context.Context,
+	existingBuilderResult *BuilderResult,
+	manifestDeps []*InputManifest_ManifestDep,
+) context.Context {
+	if existingBuilderResult == nil && len(manifestDeps) == 0 {
+		return ctx
+	}
+	var existingBuilderResultClone *BuilderResult
+	if existingBuilderResult != nil {
+		existingBuilderResultClone = existingBuilderResult.CloneVT()
+	}
+	return context.WithValue(ctx, manifestCommitIdentityContextKey{}, &manifestCommitIdentity{
+		existingBuilderResult: existingBuilderResultClone,
+		manifestDeps:          cloneManifestDeps(manifestDeps),
+	})
+}
+
+func withManifestCommitTimestamp(ctx context.Context, ts *timestamp.Timestamp) context.Context {
+	if ts == nil {
+		return ctx
+	}
+	return context.WithValue(ctx, manifestCommitTimestampContextKey{}, ts.CloneVT())
+}
+
 // ParsePeerID parses the peer id field.
 func (c *BuilderConfig) ParsePeerID() (peer.ID, error) {
 	return confparse.ParsePeerID(c.GetPeerId())
@@ -71,20 +108,50 @@ func (c *BuilderConfig) CommitManifest(
 	if err != nil {
 		return nil, nil, err
 	}
-	return manifest_world.CommitManifest(
+	ts := manifestCommitTimestamp(ctx)
+
+	var manifestValue *manifest.Manifest
+	manifestRef, err := world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
+		var err error
+		manifestValue, err = manifest.CreateManifestWithBilly(
+			ctx,
+			bcs,
+			meta,
+			entrypointFilename,
+			distFs,
+			assetsFs,
+			ts,
+		)
+		return err
+	})
+	if err != nil {
+		return nil, manifestRef, err
+	}
+
+	if existingManifest, existingRef := reuseManifestCommit(ctx, manifestValue); existingManifest != nil {
+		return existingManifest, existingRef, nil
+	}
+
+	manifestValue.GetMeta().Logger(le).
+		WithField("object-key", c.GetObjectKey()).
+		WithField("link-object-keys", c.GetLinkObjectKeys()).
+		Info("committing manifest to world")
+	_, _, err = ws.ApplyWorldOp(
 		ctx,
-		le,
-		ws,
-		ws.AccessWorldState,
-		meta,
-		entrypointFilename,
-		distFs,
-		assetsFs,
-		c.GetObjectKey(),
-		c.GetLinkObjectKeys(),
+		manifest_world.NewStoreManifestOp(
+			c.GetObjectKey(),
+			c.GetLinkObjectKeys(),
+			manifest.NewManifestRef(
+				manifestValue.GetMeta(),
+				manifestRef,
+			),
+		),
 		pid,
-		timestamp.Now(),
 	)
+	if err != nil {
+		return nil, nil, err
+	}
+	return manifestValue, manifestRef, nil
 }
 
 // CommitManifestWithPaths is a shortcut for CommitManifest with on-disk paths.
@@ -133,4 +200,97 @@ func (c *BuilderConfig) CheckoutManifest(
 		nil,
 		nil,
 	)
+}
+
+func manifestCommitTimestamp(ctx context.Context) *timestamp.Timestamp {
+	ts, ok := ctx.Value(manifestCommitTimestampContextKey{}).(*timestamp.Timestamp)
+	if ok && ts != nil {
+		return ts.CloneVT()
+	}
+	return timestamp.Now()
+}
+
+func reuseManifestCommit(
+	ctx context.Context,
+	manifestValue *manifest.Manifest,
+) (*manifest.Manifest, *bucket.ObjectRef) {
+	identity, ok := ctx.Value(manifestCommitIdentityContextKey{}).(*manifestCommitIdentity)
+	if !ok || identity == nil {
+		return nil, nil
+	}
+	existingResult := identity.existingBuilderResult
+	if existingResult == nil {
+		return nil, nil
+	}
+	existingManifest := existingResult.GetManifest()
+	if !manifestCommitOutputsEqual(existingManifest, manifestValue) {
+		return nil, nil
+	}
+	if !manifestDepsEqual(existingResult.GetInputManifest().GetManifestDeps(), identity.manifestDeps) {
+		return nil, nil
+	}
+	return existingManifest.CloneVT(), existingResult.GetManifestRef().GetManifestRef().Clone()
+}
+
+func manifestCommitOutputsEqual(existingManifest, manifestValue *manifest.Manifest) bool {
+	if existingManifest == nil || manifestValue == nil {
+		return false
+	}
+	existingMeta := existingManifest.GetMeta()
+	meta := manifestValue.GetMeta()
+	if existingMeta.GetManifestId() != meta.GetManifestId() {
+		return false
+	}
+	if existingMeta.GetBuildType() != meta.GetBuildType() {
+		return false
+	}
+	if existingMeta.GetPlatformId() != meta.GetPlatformId() {
+		return false
+	}
+	if existingMeta.GetDescription() != meta.GetDescription() {
+		return false
+	}
+	if existingManifest.GetEntrypoint() != manifestValue.GetEntrypoint() {
+		return false
+	}
+	if !existingManifest.GetDistFsRef().EqualVT(manifestValue.GetDistFsRef()) {
+		return false
+	}
+	return existingManifest.GetAssetsFsRef().EqualVT(manifestValue.GetAssetsFsRef())
+}
+
+func manifestDepsEqual(
+	cachedDeps []*InputManifest_ManifestDep,
+	currentDeps []*InputManifest_ManifestDep,
+) bool {
+	if len(cachedDeps) != len(currentDeps) {
+		return false
+	}
+	cachedByID := make(map[string]*InputManifest_ManifestDep, len(cachedDeps))
+	for _, dep := range cachedDeps {
+		cachedByID[dep.GetManifestId()] = dep
+	}
+	for _, dep := range currentDeps {
+		cachedDep, ok := cachedByID[dep.GetManifestId()]
+		if !ok {
+			return false
+		}
+		if !cachedDep.GetManifestRef().EqualVT(dep.GetManifestRef()) {
+			return false
+		}
+	}
+	return true
+}
+
+func cloneManifestDeps(deps []*InputManifest_ManifestDep) []*InputManifest_ManifestDep {
+	if len(deps) == 0 {
+		return nil
+	}
+	cloned := make([]*InputManifest_ManifestDep, len(deps))
+	for i, dep := range deps {
+		if dep != nil {
+			cloned[i] = dep.CloneVT()
+		}
+	}
+	return cloned
 }

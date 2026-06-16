@@ -2514,6 +2514,10 @@ func (s *countingBlockStore) Flush(ctx context.Context) error {
 	return s.store.Flush(ctx)
 }
 
+func (s *countingBlockStore) Sync(ctx context.Context) (bool, error) {
+	return s.store.Sync(ctx)
+}
+
 func (s *countingBlockStore) BeginDeferFlush() {
 	s.store.BeginDeferFlush()
 }

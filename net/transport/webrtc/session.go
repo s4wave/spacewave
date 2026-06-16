@@ -549,6 +549,10 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	var lastLocalSeqno, currRemoteSeqno uint64
 	var currLinkRwc datachannel.ReadWriteCloser
 	_ = currRemoteSeqno // TODO: remote restarted SDP?
+	// lastAppliedRemoteSdp is the SDP string we last applied via
+	// SetRemoteDescription. A byte-identical duplicate is ignored to avoid an
+	// unnecessary renegotiation / ICE restart.
+	var lastAppliedRemoteSdp string
 	// Which ICE candidate index did we send last?
 	var lastSentICE int
 
@@ -673,11 +677,27 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 			}
 
 			sessDesc := currRxSdp.ToSessionDescription()
-			if sessDesc != nil {
-				// Set the remote description
+			switch {
+			case sessDesc == nil:
+				// Malformed description; ignore it.
+			case currRxSdp.GetSdp() == lastAppliedRemoteSdp:
+				// A byte-identical duplicate of the description we already applied.
+				// Ignore it to avoid an unnecessary renegotiation / ICE restart. The
+				// offerer re-sends its offer on every request_offer, so the answerer
+				// routinely sees the same offer twice.
+			case s.offerer && sess.pc.SignalingState() != webrtc.SignalingStateHaveLocalOffer:
+				// Drop an answer that arrives with no local offer pending. Applying an
+				// answer while signalingState is already "stable" makes pion fail with
+				// "set remote answer sdp: called in wrong state: stable", which would
+				// tear down an otherwise healthy PeerConnection and cascade into a
+				// reconnect storm.
+				le.WithField("signaling-state", sess.pc.SignalingState().String()).
+					Debug("dropping stale answer: no pending local offer")
+			default:
 				if err := sess.pc.SetRemoteDescription(*sessDesc); err != nil {
 					return pkgerrors.Wrap(err, "set remote description")
 				}
+				lastAppliedRemoteSdp = currRxSdp.GetSdp()
 
 				// Transmit an answer if applicable
 				if !s.offerer {

@@ -28,6 +28,14 @@ const quitWaitTimeout = 2 * time.Second
 // RuntimeID is the runtime identifier
 const RuntimeID = "electron"
 
+type electronExitDisposition int
+
+const (
+	electronExitRestart electronExitDisposition = iota
+	electronExitHost
+	electronExitStayResident
+)
+
 // Controller is the electron runtime controller.
 //
 // Communicates with the electron Renderer via IPC.
@@ -156,10 +164,24 @@ func (r *Controller) Execute(ctx context.Context) error {
 	)
 
 	err = r.bus.ExecuteController(ctx, rc)
-	if r.shouldExitWithoutRestart(err, e) {
+	waitCtx, waitCancel := context.WithTimeout(context.Background(), quitWaitTimeout)
+	processErr := e.Wait(waitCtx)
+	waitCancel()
+
+	switch computeElectronExitDisposition(
+		err,
+		processErr,
+		r.electronInit.GetQuitPolicy(),
+		r.electronInit.GetDesktopPresencePolicy(),
+	) {
+	case electronExitHost:
 		r.le.Info("electron exited cleanly; requesting host exit")
 		requestHostExit(r.le)
 		return nil
+	case electronExitStayResident:
+		r.le.Info("electron exited; daemon staying resident under window-lifetime")
+		return nil
+	case electronExitRestart:
 	}
 	if err != nil && err != context.Canceled && err.Error() != "stream reset" {
 		r.le.WithError(err).Error("electron remote runtime exited with error")
@@ -170,26 +192,24 @@ func (r *Controller) Execute(ctx context.Context) error {
 	return err
 }
 
-func (r *Controller) shouldExitWithoutRestart(err error, e *Electron) bool {
-	quitPolicy := r.electronInit.GetQuitPolicy()
-	waitCtx, waitCancel := context.WithTimeout(context.Background(), quitWaitTimeout)
-	defer waitCancel()
-	waitErr := e.Wait(waitCtx)
-	return shouldExitWithoutRestart(err, waitErr, quitPolicy)
-}
-
-func shouldExitWithoutRestart(
+// computeElectronExitDisposition decides what to do after the Electron runtime exits.
+func computeElectronExitDisposition(
 	runtimeErr error,
 	processErr error,
 	quitPolicy QuitPolicy,
-) bool {
-	if quitPolicy != QuitPolicy_QUIT_POLICY_EXIT {
-		return false
+	presence DesktopPresencePolicy,
+) electronExitDisposition {
+	clean := processErr == nil || isExpectedRuntimeDisconnect(runtimeErr)
+	if !clean {
+		return electronExitRestart
 	}
-	if processErr == nil {
-		return true
+	if presence == DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME {
+		return electronExitStayResident
 	}
-	return isExpectedRuntimeDisconnect(runtimeErr)
+	if quitPolicy == QuitPolicy_QUIT_POLICY_EXIT {
+		return electronExitHost
+	}
+	return electronExitRestart
 }
 
 func isExpectedRuntimeDisconnect(err error) bool {

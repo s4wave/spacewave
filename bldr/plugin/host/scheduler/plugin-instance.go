@@ -5,11 +5,13 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/routine"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,6 +34,11 @@ type pluginInstance struct {
 
 	// runningPluginCtr contains the running plugin ref
 	runningPluginCtr *ccontainer.CContainer[bldr_plugin.RunningPlugin]
+
+	// distAccess owns the lifetime of the plugin dist fs access provider
+	distAccess *unixfs_access.RotatingAccess
+	// assetsAccess owns the lifetime of the plugin assets fs access provider
+	assetsAccess *unixfs_access.RotatingAccess
 
 	// fetchWorldManifestRoutine calls FetchManifest and stores the results to the world.
 	fetchWorldManifestRoutine *routine.StateRoutineContainer[*pluginHostSet]
@@ -66,6 +73,8 @@ func (c *Controller) newPluginInstance(key string) (keyed.Routine, *pluginInstan
 		pluginID:         pluginID,
 		instanceKey:      instanceKey,
 		runningPluginCtr: ccontainer.NewCContainer[bldr_plugin.RunningPlugin](nil),
+		distAccess:       unixfs_access.NewRotatingAccess(),
+		assetsAccess:     unixfs_access.NewRotatingAccess(),
 	}
 
 	fetchBackoff, execBackoff := c.conf.BuildFetchBackoff(), c.conf.BuildExecBackoff()
@@ -99,6 +108,8 @@ func (c *Controller) newPluginInstance(key string) (keyed.Routine, *pluginInstan
 
 // execute executes the routine.
 func (t *pluginInstance) execute(ctx context.Context) error {
+	t.ensureAccessProviders()
+
 	t.c.setPluginStatus(
 		t.pluginID,
 		t.instanceKey,
@@ -129,6 +140,46 @@ func (t *pluginInstance) execute(ctx context.Context) error {
 	t.executePluginRoutine.SetContext(ctx, true)
 	defer t.executePluginRoutine.ClearContext()
 
+	distFsID := bldr_plugin.PluginDistFsId(t.pluginID)
+	distAccessCtrl := unixfs_access.NewController(
+		t.le,
+		t.c.bus,
+		&controller.Info{
+			Id:          ControllerID + distFsID,
+			Version:     Version.String(),
+			Description: "plugin dist fs for plugin: " + t.pluginID,
+		},
+		[]string{distFsID},
+		t.distAccess.AccessUnixFS,
+	)
+	defer distAccessCtrl.Close()
+
+	relDistAccessCtrl, err := t.c.bus.AddController(ctx, distAccessCtrl, nil)
+	if err != nil {
+		return err
+	}
+	defer relDistAccessCtrl()
+
+	assetsFsID := bldr_plugin.PluginAssetsFsId(t.pluginID)
+	assetsAccessCtrl := unixfs_access.NewController(
+		t.le,
+		t.c.bus,
+		&controller.Info{
+			Id:          ControllerID + assetsFsID,
+			Version:     Version.String(),
+			Description: "plugin assets fs for plugin: " + t.pluginID,
+		},
+		[]string{assetsFsID},
+		t.assetsAccess.AccessUnixFS,
+	)
+	defer assetsAccessCtrl.Close()
+
+	relAssetsAccessCtrl, err := t.c.bus.AddController(ctx, assetsAccessCtrl, nil)
+	if err != nil {
+		return err
+	}
+	defer relAssetsAccessCtrl()
+
 	// Watch the set of plugin hosts.
 	return ccontainer.WatchChanges(
 		ctx,
@@ -141,6 +192,15 @@ func (t *pluginInstance) execute(ctx context.Context) error {
 		},
 		nil,
 	)
+}
+
+func (t *pluginInstance) ensureAccessProviders() {
+	if t.distAccess == nil {
+		t.distAccess = unixfs_access.NewRotatingAccess()
+	}
+	if t.assetsAccess == nil {
+		t.assetsAccess = unixfs_access.NewRotatingAccess()
+	}
 }
 
 // _ is a type assertion

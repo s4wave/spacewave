@@ -203,6 +203,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	// TODO: We do not increment the manifest revision when hot reloading.
 	// TODO: Should that be done here?
+	watchManifestIDs := c.c.GetWatchManifestIds()
 
 	for {
 		if ctx.Err() != nil {
@@ -214,6 +215,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 		var result *bldr_manifest_builder.BuilderResult
 		var err error
 		cacheHit := false
+		var buildManifestDeps []*bldr_manifest_builder.InputManifest_ManifestDep
+		var buildManifestDepRefs map[string]*bucket.ObjectRef
 
 		if !startupValidated {
 			startupValidated = true
@@ -255,6 +258,22 @@ func (c *Controller) Execute(ctx context.Context) error {
 			})
 			args := buildOwner.buildArgs()
 
+			if len(watchManifestIDs) != 0 {
+				buildManifestDeps, buildManifestDepRefs = c.resolveManifestDeps(attempt.ctx, le, watchManifestIDs)
+				le.WithField("watch-manifest-ids", watchManifestIDs).
+					WithField("resolved-refs", len(buildManifestDepRefs)).
+					Debug("resolved manifest dep refs for watching")
+			}
+			existingBuilderResult := c.c.GetStartupBuilderResult()
+			if buildOwner.prevResult != nil {
+				existingBuilderResult = buildOwner.prevResult
+			}
+			buildCtx := bldr_manifest_builder.WithManifestCommitIdentity(
+				attempt.ctx,
+				existingBuilderResult,
+				buildManifestDeps,
+			)
+
 			// construct the builder host which will set the restartFn when necessary
 			builderHost := newBuildManifestHost(c, builderConfig, attempt.restart)
 
@@ -265,7 +284,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}
 
 			// Call the builder controller BuildManifest function.
-			result, err = builderCtrl.BuildManifest(attempt.ctx, args, builderHost)
+			result, err = builderCtrl.BuildManifest(buildCtx, args, builderHost)
 			if ctx.Err() != nil {
 				attempt.release()
 				return context.Canceled
@@ -293,18 +312,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		// Set the result promise
-		watchManifestIDs := c.c.GetWatchManifestIds()
 		// Only watch manifest deps if the build produced a result.
 		// Compilers that skip a platform return nil result with nil error.
 		hasManifestDeps := len(watchManifestIDs) > 0 && result != nil
 		// Populate manifest_deps with current refs for watched manifests.
-		if err == nil && hasManifestDeps && result.GetInputManifest() != nil {
-			deps, refs := c.resolveManifestDeps(ctx, le, watchManifestIDs)
-			result.GetInputManifest().ManifestDeps = deps
-			manifestDepSnapshot = refs
-			le.WithField("watch-manifest-ids", watchManifestIDs).
-				WithField("resolved-refs", len(refs)).
-				Debug("resolved manifest dep refs for watching")
+		if err == nil && hasManifestDeps && result.GetInputManifest() != nil && buildManifestDeps != nil {
+			result.GetInputManifest().ManifestDeps = buildManifestDeps
+			manifestDepSnapshot = buildManifestDepRefs
 		}
 		if attempt.wasRestarted() {
 			attempt.release()
@@ -497,6 +511,11 @@ func (c *Controller) storeManifestBuildResult(
 	result *bldr_manifest_builder.BuilderResult,
 ) error {
 	builderConfig := c.c.GetBuilderConfig()
+	if result.GetManifest().GetMeta().GetRev() != builderConfig.GetManifestMeta().GetRev() {
+		le.WithField("manifest-rev", result.GetManifest().GetMeta().GetRev()).
+			Debug("skipping world-backed manifest build result for reused manifest")
+		return nil
+	}
 	busEngine := world.NewBusEngine(ctx, c.bus, builderConfig.GetEngineId())
 	tx, err := busEngine.NewTransaction(ctx, true)
 	if err != nil {

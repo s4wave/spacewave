@@ -3,7 +3,6 @@ package electron
 import (
 	"context"
 	"errors"
-	"os/exec"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -429,21 +428,70 @@ func unavailableRendererOpenStream(
 	return nil, errors.New("renderer window is unavailable")
 }
 
-func TestShouldExitWithoutRestart(t *testing.T) {
-	if !shouldExitWithoutRestart(errors.New("stream reset"), nil, QuitPolicy_QUIT_POLICY_EXIT) {
-		t.Fatal("expected clean exit + exit policy to stop restart")
-	}
-	if shouldExitWithoutRestart(errors.New("stream reset"), nil, QuitPolicy_QUIT_POLICY_RESTART) {
-		t.Fatal("expected restart policy to keep restart behavior")
-	}
-	if shouldExitWithoutRestart(nil, exec.ErrNotFound, QuitPolicy_QUIT_POLICY_EXIT) {
-		t.Fatal("expected non-zero process exit to keep restart behavior")
-	}
-	if !shouldExitWithoutRestart(errors.New("stream reset"), context.DeadlineExceeded, QuitPolicy_QUIT_POLICY_EXIT) {
-		t.Fatal("expected stream reset + exit policy to stop restart")
-	}
-	if shouldExitWithoutRestart(errors.New("unexpected disconnect"), context.DeadlineExceeded, QuitPolicy_QUIT_POLICY_EXIT) {
-		t.Fatal("expected unexpected disconnect to keep restart behavior")
+func TestComputeElectronExitDisposition(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		runtimeErr error
+		processErr error
+		quitPolicy QuitPolicy
+		presence   DesktopPresencePolicy
+		want       electronExitDisposition
+	}{
+		{
+			name:       "clean exit window lifetime exit policy stays resident",
+			quitPolicy: QuitPolicy_QUIT_POLICY_EXIT,
+			presence:   DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME,
+			want:       electronExitStayResident,
+		},
+		{
+			name:       "clean exit window lifetime restart policy stays resident",
+			quitPolicy: QuitPolicy_QUIT_POLICY_RESTART,
+			presence:   DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME,
+			want:       electronExitStayResident,
+		},
+		{
+			name:       "clean exit tray background exit policy exits host",
+			quitPolicy: QuitPolicy_QUIT_POLICY_EXIT,
+			presence:   DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND,
+			want:       electronExitHost,
+		},
+		{
+			name:       "clean exit tray background restart policy restarts",
+			quitPolicy: QuitPolicy_QUIT_POLICY_RESTART,
+			presence:   DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND,
+			want:       electronExitRestart,
+		},
+		{
+			name:       "expected runtime disconnect stays resident under window lifetime",
+			runtimeErr: errors.New("stream reset"),
+			processErr: context.DeadlineExceeded,
+			quitPolicy: QuitPolicy_QUIT_POLICY_EXIT,
+			presence:   DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME,
+			want:       electronExitStayResident,
+		},
+		{
+			name:       "non-clean exit restarts under window lifetime",
+			runtimeErr: errors.New("unexpected disconnect"),
+			processErr: context.DeadlineExceeded,
+			quitPolicy: QuitPolicy_QUIT_POLICY_EXIT,
+			presence:   DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME,
+			want:       electronExitRestart,
+		},
+		{
+			name:       "non-clean exit restarts under tray background",
+			runtimeErr: errors.New("unexpected disconnect"),
+			processErr: context.DeadlineExceeded,
+			quitPolicy: QuitPolicy_QUIT_POLICY_EXIT,
+			presence:   DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND,
+			want:       electronExitRestart,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := computeElectronExitDisposition(tc.runtimeErr, tc.processErr, tc.quitPolicy, tc.presence)
+			if got != tc.want {
+				t.Fatalf("computeElectronExitDisposition() = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }
 

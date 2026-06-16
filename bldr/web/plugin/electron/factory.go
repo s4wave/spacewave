@@ -3,6 +3,7 @@ package electron
 import (
 	"context"
 	"os"
+	"runtime"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -76,7 +77,7 @@ func (t *Factory) Construct(
 			DevTools:                  cc.GetDevTools(),
 			ThemeSource:               cc.GetThemeSource(),
 			QuitPolicy:                cc.GetQuitPolicy(),
-			DesktopPresencePolicy:     cc.GetDesktopPresencePolicy(),
+			DesktopPresencePolicy:     effectiveDesktopPresencePolicy(cc.GetDesktopPresencePolicy(), runtime.GOOS),
 			TrayIconPath:              cc.GetTrayIconPath(),
 			MacosTemplateTrayIconPath: cc.GetMacosTemplateTrayIconPath(),
 			ManagedCliRelease:         cc.GetManagedCliRelease().CloneVT(),

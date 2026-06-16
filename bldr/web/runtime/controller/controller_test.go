@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -146,7 +145,7 @@ func TestServePluginAssetsFsHTTPRebindsPendingFrontendAssets(t *testing.T) {
 
 	pluginID := "spacewave-app"
 	unixFsID := bldr_plugin.PluginAssetsFsId(pluginID)
-	rotating := newRotatingAccess(newBlockedAccess())
+	rotating := unixfs_access.NewRotatingAccess()
 	accessCtrl := unixfs_access.NewController(
 		tb.Logger,
 		tb.Bus,
@@ -188,7 +187,12 @@ func TestServePluginAssetsFsHTTPRebindsPendingFrontendAssets(t *testing.T) {
 				reqCtx, reqCancel := context.WithTimeout(ctx, 5*time.Second)
 				defer reqCancel()
 
-				started := rotating.ResetBlocked()
+				started := make(chan struct{})
+				rotating.SetCurrent(func(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
+					close(started)
+					<-ctx.Done()
+					return nil, nil, ctx.Err()
+				})
 				rw := httptest.NewRecorder()
 				req := httptest.NewRequest("GET", tt.path, nil).WithContext(reqCtx)
 				done := make(chan struct{})
@@ -260,65 +264,5 @@ func assertHTTPAssetResponse(t *testing.T, rw *httptest.ResponseRecorder, wantBo
 	}
 	if got := res.Header.Get("Cache-Control"); got != "no-cache, no-store, must-revalidate" {
 		t.Fatalf("unexpected cache-control header: %q", got)
-	}
-}
-
-type rotatingAccess struct {
-	mtx     sync.Mutex
-	current unixfs_access.AccessUnixFSFunc
-	waiters []func()
-	started chan struct{}
-}
-
-func newRotatingAccess(current unixfs_access.AccessUnixFSFunc) *rotatingAccess {
-	return &rotatingAccess{
-		current: current,
-		started: make(chan struct{}),
-	}
-}
-
-func (r *rotatingAccess) AccessUnixFS(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
-	r.mtx.Lock()
-	current := r.current
-	started := r.started
-	r.waiters = append(r.waiters, released)
-	r.mtx.Unlock()
-
-	select {
-	case <-started:
-	default:
-		close(started)
-	}
-
-	return current(ctx, released)
-}
-
-func (r *rotatingAccess) ResetBlocked() <-chan struct{} {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
-	r.current = newBlockedAccess()
-	r.started = make(chan struct{})
-	r.waiters = nil
-	return r.started
-}
-
-func (r *rotatingAccess) SetCurrent(current unixfs_access.AccessUnixFSFunc) {
-	r.mtx.Lock()
-	waiters := append([]func(){}, r.waiters...)
-	r.current = current
-	r.waiters = nil
-	r.mtx.Unlock()
-
-	for _, waiter := range waiters {
-		if waiter != nil {
-			waiter()
-		}
-	}
-}
-
-func newBlockedAccess() unixfs_access.AccessUnixFSFunc {
-	return func(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
-		<-ctx.Done()
-		return nil, nil, ctx.Err()
 	}
 }
