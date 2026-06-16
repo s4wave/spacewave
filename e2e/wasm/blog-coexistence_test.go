@@ -208,13 +208,13 @@ func collectNotebookDebug(page playwright.Page) any {
 }
 
 func TestBlogCoexistenceScenario(t *testing.T) {
-	sess := testHarness.NewCleanPageSession(t)
-	scenario := createBlogScenario(t, testHarness, sess)
+	sess := harness(t).NewCleanPageSession(t)
+	scenario := createBlogScenario(t, harness(t), sess)
 	page := sess.Page()
 
 	t.Run("notebook edits appear in blog reading view", func(t *testing.T) {
 		t.Log("open companion notebook")
-		NavigateHash(t, testHarness, page, scenario.objectHash("blog/site-notebook"))
+		NavigateHash(t, harness(t), page, scenario.objectHash("blog/site-notebook"))
 		waitForNotebookReady(t, page, "Hello World")
 		t.Log("open hello world note")
 		openNotebookNote(t, page, "Hello World")
@@ -237,7 +237,7 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 		}, "\n"))
 
 		t.Log("return to blog reader")
-		NavigateHash(t, testHarness, page, scenario.objectHash("blog/site"))
+		NavigateHash(t, harness(t), page, scenario.objectHash("blog/site"))
 		waitForBlogReady(t, page, "Shared Update")
 		if err := page.Locator("text=Shared Update").First().Click(); err != nil {
 			t.Fatalf("open updated blog post: %v", err)
@@ -249,7 +249,7 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 
 	t.Run("blog editor creates published post visible in notebook", func(t *testing.T) {
 		t.Log("open blog viewer")
-		NavigateHash(t, testHarness, page, scenario.objectHash("blog/site"))
+		NavigateHash(t, harness(t), page, scenario.objectHash("blog/site"))
 		waitForBlogReady(t, page, "Shared Update")
 
 		t.Log("create new post from blog editing mode")
@@ -288,17 +288,17 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 		}
 
 		t.Log("wait for published post in blog reader")
-		NavigateHash(t, testHarness, page, scenario.objectHash("blog/site"))
+		NavigateHash(t, harness(t), page, scenario.objectHash("blog/site"))
 		waitForBlogReady(t, page, "Second Post")
 
 		t.Log("verify published post appears in notebook")
-		NavigateHash(t, testHarness, page, scenario.objectHash("blog/site-notebook"))
+		NavigateHash(t, harness(t), page, scenario.objectHash("blog/site-notebook"))
 		waitForNotebookReady(t, page, "Second Post")
 	})
 
 	t.Run("non-blog files stay out of reading view but appear in blog editing mode", func(t *testing.T) {
 		t.Log("create plain notebook note")
-		NavigateHash(t, testHarness, page, scenario.objectHash("blog/site-notebook"))
+		NavigateHash(t, harness(t), page, scenario.objectHash("blog/site-notebook"))
 		waitForNotebookReady(t, page, "")
 
 		newNoteBtn := page.Locator("button[title='New note']").First()
@@ -308,7 +308,7 @@ func TestBlogCoexistenceScenario(t *testing.T) {
 		waitForNotebookReady(t, page, "untitled")
 
 		t.Log("verify plain note hidden in reading mode")
-		NavigateHash(t, testHarness, page, scenario.objectHash("blog/site"))
+		NavigateHash(t, harness(t), page, scenario.objectHash("blog/site"))
 		if err := page.Locator("button[title='Reading mode']").First().Click(); err != nil {
 			t.Fatalf("switch blog to reading mode for plain note check: %v", err)
 		}

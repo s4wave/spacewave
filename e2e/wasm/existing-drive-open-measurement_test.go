@@ -14,19 +14,19 @@ import (
 // baseline with timings for the route, loading, UnixFS shell, and content-ready
 // layers.
 func TestExistingDriveOpenMeasurement(t *testing.T) {
-	sess := testHarness.NewRetainedStatePageSession(t)
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	sess := harness(t).NewRetainedStatePageSession(t)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
 
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 	targetHash, err := currentHash(page.URL())
 	if err != nil {
 		t.Fatalf("current drive hash: %v", err)
 	}
 
-	NavigateHash(t, testHarness, page, "#/u/"+uintString(scenario.GetSessionIndex()))
+	NavigateHash(t, harness(t), page, "#/u/"+uintString(scenario.GetSessionIndex()))
 
-	raw, err := page.Evaluate(testHarness.Script("measure-existing-drive-open.ts"), map[string]any{
+	raw, err := page.Evaluate(harness(t).Script("measure-existing-drive-open.ts"), map[string]any{
 		"targetHash": targetHash,
 		"deadlineMs": 120000,
 	})

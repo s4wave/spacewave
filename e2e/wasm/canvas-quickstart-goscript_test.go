@@ -22,7 +22,7 @@ func TestGoScriptCanvasQuickstartRouteResourceProbe(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
-	sess := testHarness.NewCleanPageSession(t)
+	sess := harness(t).NewCleanPageSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 	defer func() {
@@ -38,7 +38,7 @@ func TestGoScriptCanvasQuickstartRouteResourceProbe(t *testing.T) {
 	page := sess.Page()
 	WaitForApp(t, page)
 	EnableQuickstartTimingLogs(t, page)
-	NavigateHash(t, testHarness, page, "#/quickstart/canvas")
+	NavigateHash(t, harness(t), page, "#/quickstart/canvas")
 
 	probe := waitForCanvasRouteResourceProbe(t, page)
 	if probe.Timeout {
@@ -70,7 +70,7 @@ func TestGoScriptCanvasQuickstartCreateMutate(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
-	sess := testHarness.NewCleanPageSession(t)
+	sess := harness(t).NewCleanPageSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 	defer func() {
@@ -86,7 +86,7 @@ func TestGoScriptCanvasQuickstartCreateMutate(t *testing.T) {
 	page := sess.Page()
 	WaitForApp(t, page)
 	EnableQuickstartTimingLogs(t, page)
-	NavigateHash(t, testHarness, page, "#/quickstart/canvas")
+	NavigateHash(t, harness(t), page, "#/quickstart/canvas")
 
 	probe := waitForCanvasRouteResourceProbe(t, page)
 	if probe.Timeout {

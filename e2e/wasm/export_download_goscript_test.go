@@ -31,7 +31,7 @@ func TestGoScriptProjectedExportDownloadBrowserParity(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 	defer func() {
@@ -44,9 +44,9 @@ func TestGoScriptProjectedExportDownloadBrowserParity(t *testing.T) {
 		}
 	}()
 
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 
 	seed := seedGoScriptProjectedExportFixtures(t, page)
 	projectedObject := buildProjectedObjectContentPath(

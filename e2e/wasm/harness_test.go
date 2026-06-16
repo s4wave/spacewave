@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -24,27 +25,58 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// testHarness is the package-level shared harness booted once in TestMain.
-// It owns the devtool bus, WASM build, HTTP server, and Playwright browser
-// process. Individual tests create isolated sessions via h.NewCleanSession(t).
-var testHarness *Harness
+// sharedHarness is the package-level harness, booted lazily on first access via
+// harness(). It owns the devtool bus, WASM build, HTTP server, and Playwright
+// browser process. Booting is deferred so test slices that exercise only
+// pure-unit logic (config resolution, crash classifier, peer watcher, script
+// compilation) never pay the multi-minute Manifest build. Individual tests
+// create isolated sessions via h.NewCleanSession(t).
+var (
+	harnessOnce    sync.Once
+	sharedHarness  *Harness
+	harnessBootErr error
+)
 
 // TIER: pr
 func TestMain(m *testing.M) {
+	if !E2EWasmEnabled() {
+		logrus.NewEntry(logrus.New()).Info("skipping e2e/wasm package; set ENABLE_E2E_WASM=true to run")
+		os.Exit(0)
+	}
+
+	code := m.Run()
+	if sharedHarness != nil {
+		sharedHarness.Release()
+	}
+	os.Exit(code)
+}
+
+// harness returns the package-level shared harness, booting it on first use.
+// A boot failure fails the calling test rather than aborting the whole package,
+// so harness-independent tests in the same slice still run.
+func harness(t testing.TB) *Harness {
+	t.Helper()
+	harnessOnce.Do(func() {
+		sharedHarness, harnessBootErr = bootSharedHarness()
+	})
+	if harnessBootErr != nil {
+		t.Fatalf("boot wasm harness: %v", harnessBootErr)
+	}
+	return sharedHarness
+}
+
+// bootSharedHarness boots the harness, launches the browser, and compiles the
+// e2e test scripts. It runs once, guarded by harnessOnce.
+func bootSharedHarness() (*Harness, error) {
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
-
-	if !E2EWasmEnabled() {
-		le.Info("skipping e2e/wasm package; set ENABLE_E2E_WASM=true to run")
-		os.Exit(0)
-	}
 
 	ctx := context.Background()
 
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
-		le.WithError(err).Fatal("configure e2e wasm compiler")
+		return nil, errors.Wrap(err, "configure e2e wasm compiler")
 	}
 	opts := []Option{
 		WithSessionHarness(),
@@ -63,7 +95,7 @@ func TestMain(m *testing.M) {
 		le.WithField("compiler", compiler).Info("disabling trace service injection for alternate e2e/wasm compiler mode")
 		manifestBuildTimeout, err := ResolveE2EWasmManifestBuildTimeout(20 * time.Minute)
 		if err != nil {
-			le.WithError(err).Fatal("configure e2e wasm manifest build timeout")
+			return nil, errors.Wrap(err, "configure e2e wasm manifest build timeout")
 		}
 		opts = append(opts, WithManifestBuildTimeout(manifestBuildTimeout))
 	} else {
@@ -74,7 +106,7 @@ func TestMain(m *testing.M) {
 	case E2EWasmCompilerGo:
 	case E2EWasmCompilerTinyGo:
 		if err := ApplyE2EWasmTinyGoCompilerEnv(); err != nil {
-			le.WithError(err).Fatal("configure TinyGo e2e wasm compiler env")
+			return nil, errors.Wrap(err, "configure TinyGo e2e wasm compiler env")
 		}
 		opts = append(opts, WithTinyGoCore())
 	case E2EWasmCompilerGoScript:
@@ -83,29 +115,25 @@ func TestMain(m *testing.M) {
 
 	h, err := Boot(ctx, le, opts...)
 	if err != nil {
-		le.WithError(err).Fatal("boot wasm harness")
+		return nil, errors.Wrap(err, "boot wasm harness")
 	}
 
 	if err := h.LaunchBrowser(); err != nil {
 		h.Release()
-		le.WithError(err).Fatal("launch browser")
+		return nil, errors.Wrap(err, "launch browser")
 	}
 
 	if err := h.CompileScripts("."); err != nil {
 		h.Release()
-		le.WithError(err).Fatal("compile test scripts")
+		return nil, errors.Wrap(err, "compile test scripts")
 	}
 
-	testHarness = h
-
-	code := m.Run()
-	h.Release()
-	os.Exit(code)
+	return h, nil
 }
 
 // TestWasmHarnessBoot verifies the shared harness is serving.
 func TestWasmHarnessBoot(t *testing.T) {
-	h := testHarness
+	h := harness(t)
 	if h.Port() == 0 {
 		t.Fatal("expected non-zero port")
 	}
@@ -124,7 +152,7 @@ func TestWasmHarnessBoot(t *testing.T) {
 func TestWasmHarnessTraceConfig(t *testing.T) {
 	skipTraceServiceWhenDisabled(t)
 
-	h := testHarness
+	h := harness(t)
 	for name, manifest := range h.GetProjectConfig().GetManifests() {
 		builder := manifest.GetBuilder()
 		if builder == nil || builder.GetId() != bldr_plugin_compiler_go.ConfigID {
@@ -164,13 +192,13 @@ func skipTraceServiceWhenDisabled(t testing.TB) {
 // running in the browser WASM by calling GetPeerInfo and asserting a
 // non-empty peer ID.
 func TestSessionHarnessPeerInfo(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	client := sess.BrowserClient()
 	if client == nil {
 		t.Fatal("expected non-nil browser client")
 	}
 
-	ctx := testHarness.Context()
+	ctx := harness(t).Context()
 	peerInfoClient := newPeerInfoClient(sess)
 	resp, err := peerInfoClient.GetPeerInfo(ctx, &e2e_wasm_session.GetPeerInfoRequest{})
 	if err != nil {
@@ -185,10 +213,10 @@ func TestSessionHarnessPeerInfo(t *testing.T) {
 // TestMultiSessionPeerDiscovery verifies two browser sessions produce
 // distinct bifrost peers discoverable via the session harness.
 func TestMultiSessionPeerDiscovery(t *testing.T) {
-	sessA := testHarness.NewCleanSession(t)
-	sessB := testHarness.NewCleanSession(t)
+	sessA := harness(t).NewCleanSession(t)
+	sessB := harness(t).NewCleanSession(t)
 
-	ctx, cancel := context.WithCancel(testHarness.Context())
+	ctx, cancel := context.WithCancel(harness(t).Context())
 	t.Cleanup(cancel)
 	clientA := newPeerInfoClient(sessA)
 	clientB := newPeerInfoClient(sessB)
@@ -215,10 +243,10 @@ func TestMultiSessionPeerDiscovery(t *testing.T) {
 // streams targeting each other and forward messages through the Go test
 // process.
 func TestSignalRelayCrossConnect(t *testing.T) {
-	sessA := testHarness.NewCleanSession(t)
-	sessB := testHarness.NewCleanSession(t)
+	sessA := harness(t).NewCleanSession(t)
+	sessB := harness(t).NewCleanSession(t)
 
-	ctx, cancel := context.WithCancel(testHarness.Context())
+	ctx, cancel := context.WithCancel(harness(t).Context())
 	t.Cleanup(cancel)
 	peerInfoA := newPeerInfoClient(sessA)
 	peerInfoB := newPeerInfoClient(sessB)
@@ -281,10 +309,10 @@ func TestSignalRelayCrossConnect(t *testing.T) {
 // TestEndToEndLinkEstablishment verifies two browser WASM sessions can
 // establish a bifrost link through the signaling relay cross-connect.
 func TestEndToEndLinkEstablishment(t *testing.T) {
-	sessA := testHarness.NewCleanSession(t)
-	sessB := testHarness.NewCleanSession(t)
+	sessA := harness(t).NewCleanSession(t)
+	sessB := harness(t).NewCleanSession(t)
 
-	ctx, cancel := context.WithCancel(testHarness.Context())
+	ctx, cancel := context.WithCancel(harness(t).Context())
 	t.Cleanup(cancel)
 	peerInfoA := newPeerInfoClient(sessA)
 	peerInfoB := newPeerInfoClient(sessB)
@@ -368,10 +396,10 @@ func TestEndToEndLinkEstablishment(t *testing.T) {
 // TestWasmHarnessPackageLifecycle verifies the shared harness is reused
 // across tests rather than booting a new instance per test.
 func TestWasmHarnessPackageLifecycle(t *testing.T) {
-	if testHarness == nil {
+	if harness(t) == nil {
 		t.Fatal("expected shared harness from TestMain")
 	}
-	if testHarness.Port() == 0 {
+	if harness(t).Port() == 0 {
 		t.Fatal("shared harness has zero port")
 	}
 }
@@ -379,7 +407,7 @@ func TestWasmHarnessPackageLifecycle(t *testing.T) {
 // TestWasmHarnessReadiness verifies the info endpoint responds immediately
 // since Boot already waited for server readiness.
 func TestWasmHarnessReadiness(t *testing.T) {
-	h := testHarness
+	h := harness(t)
 	resp, err := http.Get(h.BaseURL() + "/bldr-dev/web-wasm/info")
 	if err != nil {
 		t.Fatalf("info endpoint unreachable after Boot: %v", err)
@@ -395,7 +423,7 @@ func TestWasmHarnessReadiness(t *testing.T) {
 
 // TestWasmHarnessTeardown verifies the harness is still usable at test time.
 func TestWasmHarnessTeardown(t *testing.T) {
-	h := testHarness
+	h := harness(t)
 	resp, err := http.Get(h.BaseURL() + "/bldr-dev/web-wasm/info")
 	if err != nil {
 		t.Fatalf("harness became unresponsive before teardown: %v", err)
@@ -408,7 +436,7 @@ func TestWasmHarnessTeardown(t *testing.T) {
 
 // TestBrowserLaunchFromGo verifies the browser process was launched.
 func TestBrowserLaunchFromGo(t *testing.T) {
-	h := testHarness
+	h := harness(t)
 	if h.Browser() == nil {
 		t.Fatal("expected non-nil browser")
 	}
@@ -420,7 +448,7 @@ func TestBrowserLaunchFromGo(t *testing.T) {
 // TestBrowserSessionIsolation verifies each NewCleanSession creates a fresh
 // browser context with clean storage while the devtool bus stays shared.
 func TestBrowserSessionIsolation(t *testing.T) {
-	h := testHarness
+	h := harness(t)
 
 	// First session: inject a localStorage marker.
 	s1 := h.NewCleanSession(t)
@@ -458,7 +486,7 @@ func TestBrowserSessionIsolation(t *testing.T) {
 // TestRetainedStatePageSessionReusesWarmContext verifies the opt-in page-only
 // mode reuses one warm BrowserContext while clean page sessions remain isolated.
 func TestRetainedStatePageSessionReusesWarmContext(t *testing.T) {
-	h := testHarness
+	h := harness(t)
 	lsScript := h.Script("local-storage.ts")
 	markerKey := "retained-state-page-session-marker"
 
@@ -511,7 +539,7 @@ func TestRetainedStatePageSessionReusesWarmContext(t *testing.T) {
 // TestRetainedStateResourceSessionSupportsSequentialReuse verifies the opt-in
 // Resource SDK helper can run sequential sessions on the retained warm context.
 func TestRetainedStateResourceSessionSupportsSequentialReuse(t *testing.T) {
-	h := testHarness
+	h := harness(t)
 
 	s1 := h.NewRetainedStateSession(t)
 	if s1.Root() == nil {
@@ -547,7 +575,7 @@ func TestRetainedStateResourceSessionSupportsSequentialReuse(t *testing.T) {
 // retained-state sessions do not keep page registrations, console watchers,
 // Resource SDK handles, or browser peer leases after release.
 func TestRetainedStateSessionReleaseCleansPerSessionState(t *testing.T) {
-	h := testHarness
+	h := harness(t)
 	baselinePages := h.pageSessionCount()
 	baselineLeases := h.browserPeerLeaseCount()
 
@@ -650,7 +678,7 @@ func assertConsoleClosed(t testing.TB, ch <-chan string) {
 
 // TestBrowserHelpersAndRawAccess verifies raw Playwright access works.
 func TestBrowserHelpersAndRawAccess(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 
 	page := sess.Page()
 	err := page.Locator("body").WaitFor()
@@ -669,8 +697,8 @@ func TestBrowserHelpersAndRawAccess(t *testing.T) {
 
 // TestBrowserRouteNavigation verifies the session page loaded the app URL.
 func TestBrowserRouteNavigation(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
-	h := testHarness
+	sess := harness(t).NewCleanSession(t)
+	h := harness(t)
 
 	page := sess.Page()
 	url := page.URL()
@@ -685,7 +713,7 @@ func TestBrowserRouteNavigation(t *testing.T) {
 // TestRootResourceMount verifies the Resource SDK client is connected and
 // can access the root resource within an isolated session.
 func TestRootResourceMount(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	if sess.ResourceClient() == nil {
 		t.Fatal("expected non-nil resource client")
 	}
@@ -707,7 +735,7 @@ func TestRootResourceMount(t *testing.T) {
 
 // TestSessionMount verifies a session can be mounted from Go.
 func TestSessionMount(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
 	defer cancel()
 
@@ -734,7 +762,7 @@ func TestSessionMount(t *testing.T) {
 // TestSpaceMountAfterQuickstart verifies state created through the browser
 // app is visible to Go resource mounts.
 func TestSpaceMountAfterQuickstart(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
 	defer cancel()
 
@@ -771,7 +799,7 @@ func TestSpaceMountAfterQuickstart(t *testing.T) {
 // TestResourceSetupHelpers verifies resource helpers work for setup and
 // teardown outside of profiled interactions.
 func TestResourceSetupHelpers(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
 	defer cancel()
 
@@ -792,7 +820,7 @@ func TestResourceSetupHelpers(t *testing.T) {
 func TestTraceCaptureBytes(t *testing.T) {
 	skipTraceServiceWhenDisabled(t)
 
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 
@@ -817,7 +845,7 @@ func TestTraceCaptureBytes(t *testing.T) {
 func TestTraceCaptureWritesFile(t *testing.T) {
 	skipTraceServiceWhenDisabled(t)
 
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 
@@ -869,7 +897,7 @@ func TestTracePathDerivation(t *testing.T) {
 func TestTraceWindowControl(t *testing.T) {
 	skipTraceServiceWhenDisabled(t)
 
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 
@@ -892,7 +920,7 @@ func TestTraceWindowControl(t *testing.T) {
 func TestTracePolicyBehavior(t *testing.T) {
 	skipTraceServiceWhenDisabled(t)
 
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 
@@ -915,7 +943,7 @@ func TestTracePolicyBehavior(t *testing.T) {
 // TestQuickstartDriveRoute verifies the quickstart dashboard is reachable
 // via client-side routing without a full page reload.
 func TestQuickstartDriveRoute(t *testing.T) {
-	sess := testHarness.NewCleanPageSession(t)
+	sess := harness(t).NewCleanPageSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 	defer func() {
@@ -930,10 +958,10 @@ func TestQuickstartDriveRoute(t *testing.T) {
 	page := sess.Page()
 
 	WaitForApp(t, page)
-	AssertRootImportMap(t, testHarness, page)
-	NavigateHash(t, testHarness, page, "#/quickstart/drive")
-	WaitForDriveReady(t, testHarness, page)
-	AssertBrowserStartupDone(t, testHarness, page)
+	AssertRootImportMap(t, harness(t), page)
+	NavigateHash(t, harness(t), page, "#/quickstart/drive")
+	WaitForDriveReady(t, harness(t), page)
+	AssertBrowserStartupDone(t, harness(t), page)
 
 	url := page.URL()
 	if url == "" {
@@ -947,7 +975,7 @@ func TestQuickstartDriveRoute(t *testing.T) {
 // TestQuickstartDriveDirectRouteStartup verifies a fresh browser can boot
 // directly into the Drive quickstart route.
 func TestQuickstartDriveDirectRouteStartup(t *testing.T) {
-	sess := testHarness.NewCleanBlankSession(t)
+	sess := harness(t).NewCleanBlankSession(t)
 	script := "globalThis.__s4waveLogQuickstartTiming = true;"
 	if err := sess.BrowserContext().AddInitScript(playwright.Script{Content: &script}); err != nil {
 		t.Fatalf("install quickstart timing init script: %v", err)
@@ -964,15 +992,15 @@ func TestQuickstartDriveDirectRouteStartup(t *testing.T) {
 		}
 	}()
 
-	if err := testHarness.loadAppPageURL(sess, testHarness.baseURL+"/#/quickstart/drive"); err != nil {
+	if err := harness(t).loadAppPageURL(sess, harness(t).baseURL+"/#/quickstart/drive"); err != nil {
 		t.Fatalf("load direct drive route: %v", err)
 	}
 	page := sess.Page()
 	WaitForApp(t, page)
-	AssertRootImportMap(t, testHarness, page)
-	ready := WaitForDriveReady(t, testHarness, page)
+	AssertRootImportMap(t, harness(t), page)
+	ready := WaitForDriveReady(t, harness(t), page)
 	AssertQuickstartContentAfterProgress(t, ready)
-	AssertBrowserStartupDone(t, testHarness, page)
+	AssertBrowserStartupDone(t, harness(t), page)
 }
 
 // TestGoScriptQuickstartDriveDirectRouteMountGate verifies the GoScript direct
@@ -987,7 +1015,7 @@ func TestGoScriptQuickstartDriveDirectRouteMountGate(t *testing.T) {
 		t.Skipf("GoScript-only regression gate; compiler=%s", compiler)
 	}
 
-	sess := testHarness.NewCleanBlankSession(t)
+	sess := harness(t).NewCleanBlankSession(t)
 	script := "globalThis.__s4waveLogQuickstartTiming = true;"
 	if err := sess.BrowserContext().AddInitScript(playwright.Script{Content: &script}); err != nil {
 		t.Fatalf("install quickstart timing init script: %v", err)
@@ -1004,13 +1032,13 @@ func TestGoScriptQuickstartDriveDirectRouteMountGate(t *testing.T) {
 		}
 	}()
 
-	if err := testHarness.loadAppPageURL(sess, testHarness.baseURL+"/#/quickstart/drive"); err != nil {
+	if err := harness(t).loadAppPageURL(sess, harness(t).baseURL+"/#/quickstart/drive"); err != nil {
 		t.Fatalf("load direct drive route: %v", err)
 	}
 	page := sess.Page()
 	WaitForApp(t, page)
-	AssertRootImportMap(t, testHarness, page)
-	ready := WaitForDriveReady(t, testHarness, page)
+	AssertRootImportMap(t, harness(t), page)
+	ready := WaitForDriveReady(t, harness(t), page)
 	formatOptionalTiming := func(v *int) string {
 		if v == nil {
 			return "unset"
@@ -1027,7 +1055,7 @@ func TestGoScriptQuickstartDriveDirectRouteMountGate(t *testing.T) {
 		formatOptionalTiming(ready.QuickstartFinishedMs),
 	)
 	AssertQuickstartContentAfterProgress(t, ready)
-	AssertBrowserStartupDone(t, testHarness, page)
+	AssertBrowserStartupDone(t, harness(t), page)
 }
 
 // TestGoScriptSharedObjectDirectRouteBodyMountGate verifies a fresh page can
@@ -1042,7 +1070,7 @@ func TestGoScriptSharedObjectDirectRouteBodyMountGate(t *testing.T) {
 		t.Skipf("GoScript-only regression gate; compiler=%s", compiler)
 	}
 
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 	defer func() {
@@ -1055,9 +1083,9 @@ func TestGoScriptSharedObjectDirectRouteBodyMountGate(t *testing.T) {
 		}
 	}()
 
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 
 	targetHash, err := currentHash(page.URL())
 	if err != nil {
@@ -1070,15 +1098,15 @@ func TestGoScriptSharedObjectDirectRouteBodyMountGate(t *testing.T) {
 	if err := sess.ReplacePageInCurrentContext(); err != nil {
 		t.Fatalf("replace page in current context: %v", err)
 	}
-	if err := testHarness.loadAppPageURL(sess, testHarness.BaseURL()+"/"+targetHash); err != nil {
+	if err := harness(t).loadAppPageURL(sess, harness(t).BaseURL()+"/"+targetHash); err != nil {
 		t.Fatalf("load direct SharedObject route after page replacement: %v", err)
 	}
 
 	page = sess.Page()
 	WaitForApp(t, page)
-	AssertRootImportMap(t, testHarness, page)
-	AssertBrowserStartupDone(t, testHarness, page)
-	WaitForDriveReady(t, testHarness, page)
+	AssertRootImportMap(t, harness(t), page)
+	AssertBrowserStartupDone(t, harness(t), page)
+	WaitForDriveReady(t, harness(t), page)
 	assertDirectSharedObjectRouteStartupMarks(t, page)
 	assertDirectSharedObjectRouteSpaceState(t, page)
 
@@ -1101,7 +1129,7 @@ func TestGoScriptQuickstartSpaceDirectRouteMountGate(t *testing.T) {
 		t.Skipf("GoScript-only regression gate; compiler=%s", compiler)
 	}
 
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 	defer func() {
@@ -1117,7 +1145,7 @@ func TestGoScriptQuickstartSpaceDirectRouteMountGate(t *testing.T) {
 	page := sess.Page()
 	WaitForApp(t, page)
 	EnableQuickstartTimingLogs(t, page)
-	NavigateHash(t, testHarness, page, "#/quickstart/space")
+	NavigateHash(t, harness(t), page, "#/quickstart/space")
 	WaitForEmptySpaceReady(t, page)
 
 	targetHash, err := currentHash(page.URL())
@@ -1131,14 +1159,14 @@ func TestGoScriptQuickstartSpaceDirectRouteMountGate(t *testing.T) {
 	if err := sess.ReplacePageInCurrentContext(); err != nil {
 		t.Fatalf("replace page in current context: %v", err)
 	}
-	if err := testHarness.loadAppPageURL(sess, testHarness.BaseURL()+"/"+targetHash); err != nil {
+	if err := harness(t).loadAppPageURL(sess, harness(t).BaseURL()+"/"+targetHash); err != nil {
 		t.Fatalf("load direct Space route after page replacement: %v", err)
 	}
 
 	page = sess.Page()
 	WaitForApp(t, page)
-	AssertRootImportMap(t, testHarness, page)
-	AssertBrowserStartupDone(t, testHarness, page)
+	AssertRootImportMap(t, harness(t), page)
+	AssertBrowserStartupDone(t, harness(t), page)
 	WaitForEmptySpaceReady(t, page)
 	assertDirectSpaceRouteStartupMarks(t, page)
 	assertDirectSpaceRouteSpaceState(t, page)
@@ -1157,7 +1185,7 @@ func TestGoScriptFSHandleBrowserResourceOperations(t *testing.T) {
 		t.Skipf("GoScript-only regression gate; compiler=%s", compiler)
 	}
 
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 	defer func() {
@@ -1170,9 +1198,9 @@ func TestGoScriptFSHandleBrowserResourceOperations(t *testing.T) {
 		}
 	}()
 
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 	assertGoScriptFSHandleBrowserResourceOperations(t, page)
 
 	t.Logf(
@@ -1707,8 +1735,8 @@ func assertDirectSpaceRouteSpaceState(t testing.TB, page playwright.Page) {
 // TestDriveScenarioSequence verifies the owned drive flow as one ordered
 // sequence on a single harness session.
 func TestDriveScenarioSequence(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	sess := harness(t).NewCleanSession(t)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
 
 	t.Run("shell", func(t *testing.T) {
@@ -1724,19 +1752,19 @@ func TestDriveScenarioSequence(t *testing.T) {
 	})
 
 	t.Run("contents", func(t *testing.T) {
-		ready := WaitForDriveReady(t, testHarness, page)
+		ready := WaitForDriveReady(t, harness(t), page)
 		AssertQuickstartContentAfterProgress(t, ready)
 	})
 
 	t.Run("first-impression", func(t *testing.T) {
-		WaitForDriveReady(t, testHarness, page)
+		WaitForDriveReady(t, harness(t), page)
 		openDriveInviteDialog(t, page)
 
 		t.Logf("opened Space invite dialog from Drive first-impression CTA, page URL: %s", page.URL())
 	})
 
 	t.Run("state-ready", func(t *testing.T) {
-		WaitForDriveReady(t, testHarness, page)
+		WaitForDriveReady(t, harness(t), page)
 
 		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 		defer cancel()
@@ -1777,7 +1805,7 @@ func TestDriveScenarioSequence(t *testing.T) {
 	})
 
 	t.Run("open-file", func(t *testing.T) {
-		WaitForDriveReady(t, testHarness, page)
+		WaitForDriveReady(t, harness(t), page)
 		openGettingStartedFile(t, page)
 
 		t.Logf("opened getting-started file in owned drive scenario, page URL: %s", page.URL())
@@ -1791,7 +1819,7 @@ func TestDriveScenarioSequence(t *testing.T) {
 			t.Fatalf("click up: %v", err)
 		}
 
-		WaitForDriveReady(t, testHarness, page)
+		WaitForDriveReady(t, harness(t), page)
 
 		if err := page.Locator("[role='row']").Locator("text=" + gettingStartedFileName).First().WaitFor(); err != nil {
 			t.Fatalf("wait for getting-started row after up: %v", err)
@@ -1809,7 +1837,7 @@ func TestDriveScenarioSequence(t *testing.T) {
 	})
 
 	t.Run("history", func(t *testing.T) {
-		WaitForDriveReady(t, testHarness, page)
+		WaitForDriveReady(t, harness(t), page)
 
 		if err := page.Locator("button[title='Back']").First().Click(); err != nil {
 			t.Fatalf("click back to file content: %v", err)
@@ -1820,7 +1848,7 @@ func TestDriveScenarioSequence(t *testing.T) {
 		if err := page.Locator("button[title='Back']").First().Click(); err != nil {
 			t.Fatalf("click back to root listing: %v", err)
 		}
-		WaitForDriveReady(t, testHarness, page)
+		WaitForDriveReady(t, harness(t), page)
 		waitForDriveEntry(t, page, gettingStartedFileName)
 		assertDriveRoute(t, page, scenario.GetSessionIndex(), scenario.GetSpaceID())
 
@@ -1833,7 +1861,7 @@ func TestDriveScenarioSequence(t *testing.T) {
 		if err := page.Locator("button[title='Forward']").First().Click(); err != nil {
 			t.Fatalf("click forward to root listing: %v", err)
 		}
-		WaitForDriveReady(t, testHarness, page)
+		WaitForDriveReady(t, harness(t), page)
 		waitForDriveEntry(t, page, gettingStartedFileName)
 		assertDriveRoute(t, page, scenario.GetSessionIndex(), scenario.GetSpaceID())
 	})
@@ -1842,8 +1870,8 @@ func TestDriveScenarioSequence(t *testing.T) {
 // TestQuickstartDriveNavigateHomeFromNestedDir reproduces navigating into
 // /test/dir and returning to / with the path-bar Home button.
 func TestQuickstartDriveNavigateHomeFromNestedDir(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	sess := harness(t).NewCleanSession(t)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
 	browser := page.Locator("[data-testid='unixfs-browser']")
 
@@ -1867,7 +1895,7 @@ func TestQuickstartDriveNavigateHomeFromNestedDir(t *testing.T) {
 		}
 	}
 
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 	createDriveFolder(t, page, "test")
 	openDir("test")
 	waitForPathSegment("test")
@@ -1876,7 +1904,7 @@ func TestQuickstartDriveNavigateHomeFromNestedDir(t *testing.T) {
 	if err := page.Locator("button[aria-label='Navigate to root']").First().Click(); err != nil {
 		t.Fatalf("return to root after fixture setup: %v", err)
 	}
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 
 	openDir("test")
 	waitForPathSegment("test")
@@ -1890,7 +1918,7 @@ func TestQuickstartDriveNavigateHomeFromNestedDir(t *testing.T) {
 		t.Fatalf("click root button: %v", err)
 	}
 
-	_, err := page.Evaluate(testHarness.Script("wait-for-drive.ts"), map[string]any{
+	_, err := page.Evaluate(harness(t).Script("wait-for-drive.ts"), map[string]any{
 		"deadlineMs": 15000,
 	})
 	if err != nil {
@@ -1925,11 +1953,11 @@ func TestQuickstartDriveNavigateHomeFromNestedDir(t *testing.T) {
 // deleted through the session resource API and disappears from the session
 // resources list.
 func TestQuickstartDriveDeleteSpace(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	sess := harness(t).NewCleanSession(t)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
 
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
 	defer cancel()
@@ -1974,15 +2002,15 @@ func TestQuickstartDriveDeleteSpace(t *testing.T) {
 func TestQuickstartDriveTrace(t *testing.T) {
 	skipTraceServiceWhenDisabled(t)
 
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
 	page := sess.Page()
 
 	WaitForApp(t, page)
 	data, err := sess.CaptureTrace(ctx, "quickstart-drive", func(ctx context.Context) error {
-		NavigateHash(t, testHarness, page, "#/quickstart/drive")
-		WaitForDriveReady(t, testHarness, page)
+		NavigateHash(t, harness(t), page, "#/quickstart/drive")
+		WaitForDriveReady(t, harness(t), page)
 		return nil
 	})
 	if err != nil {
@@ -2015,14 +2043,14 @@ func TestDriveNavigationBurstTrace(t *testing.T) {
 	const releasedErr = "resource or inode was released"
 	const welcomeMsg = "Welcome to your new drive"
 
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 120*time.Second)
 	defer cancel()
 	page := sess.Page()
 
 	WaitForApp(t, page)
-	NavigateHash(t, testHarness, page, "#/quickstart/drive")
-	WaitForDriveReady(t, testHarness, page)
+	NavigateHash(t, harness(t), page, "#/quickstart/drive")
+	WaitForDriveReady(t, harness(t), page)
 
 	browser := page.Locator("[data-testid='unixfs-browser']")
 	content := browser.Locator("text=" + welcomeMsg).First()
@@ -2117,11 +2145,11 @@ func containsSpaceResource(spaces []*space.SpaceSoListEntry, spaceID string) boo
 // TestQuickstartForgeRoute verifies the forge quickstart creates a space and
 // redirects to the forge dashboard route.
 func TestQuickstartForgeRoute(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	page := sess.Page()
 
 	WaitForApp(t, page)
-	NavigateHash(t, testHarness, page, "#/quickstart/forge")
+	NavigateHash(t, harness(t), page, "#/quickstart/forge")
 	WaitForForgeViewer(t, page)
 
 	url := page.URL()
@@ -2137,8 +2165,8 @@ func TestQuickstartForgeRoute(t *testing.T) {
 // sequence: space creation, dashboard rendering, entity visibility, and
 // resource mount accessibility from Go.
 func TestForgeScenarioSequence(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
-	scenario := CreateForgeScenario(t, testHarness, sess)
+	sess := harness(t).NewCleanSession(t)
+	scenario := CreateForgeScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
 
 	t.Run("shell", func(t *testing.T) {
@@ -2154,11 +2182,11 @@ func TestForgeScenarioSequence(t *testing.T) {
 	})
 
 	t.Run("dashboard-ready", func(t *testing.T) {
-		WaitForForgeReady(t, testHarness, page)
+		WaitForForgeReady(t, harness(t), page)
 	})
 
 	t.Run("state-ready", func(t *testing.T) {
-		WaitForForgeReady(t, testHarness, page)
+		WaitForForgeReady(t, harness(t), page)
 
 		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 		defer cancel()
@@ -2199,7 +2227,7 @@ func TestForgeScenarioSequence(t *testing.T) {
 	})
 
 	t.Run("entity-navigation", func(t *testing.T) {
-		WaitForForgeReady(t, testHarness, page)
+		WaitForForgeReady(t, harness(t), page)
 
 		// Click on the first entity link in the dashboard to navigate into a viewer.
 		link := page.Locator("[data-testid='forge-viewer'] a").First()
@@ -2242,13 +2270,13 @@ func waitForConsoleMessage(
 // TestForgeWorkerExecution verifies binding approval starts the quickstart
 // worker and drives the Forge pass/execution path to completion with logs.
 func TestForgeWorkerExecution(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
-	scenario := CreateForgeScenario(t, testHarness, sess)
+	scenario := CreateForgeScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
-	WaitForForgeReady(t, testHarness, page)
+	WaitForForgeReady(t, harness(t), page)
 
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
 	defer cancel()
@@ -2291,15 +2319,15 @@ func TestForgeWorkerExecution(t *testing.T) {
 func TestQuickstartForgeTrace(t *testing.T) {
 	skipTraceServiceWhenDisabled(t)
 
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
 	page := sess.Page()
 
 	WaitForApp(t, page)
 	data, err := sess.CaptureTrace(ctx, "quickstart-forge", func(ctx context.Context) error {
-		NavigateHash(t, testHarness, page, "#/quickstart/forge")
-		WaitForForgeReady(t, testHarness, page)
+		NavigateHash(t, harness(t), page, "#/quickstart/forge")
+		WaitForForgeReady(t, harness(t), page)
 		return nil
 	})
 	if err != nil {
@@ -2326,14 +2354,14 @@ func TestQuickstartForgeTrace(t *testing.T) {
 func TestQuickstartDriveNavigateTrace(t *testing.T) {
 	skipTraceServiceWhenDisabled(t)
 
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
 	page := sess.Page()
 
 	WaitForApp(t, page)
-	NavigateHash(t, testHarness, page, "#/quickstart/drive")
-	WaitForDriveReady(t, testHarness, page)
+	NavigateHash(t, harness(t), page, "#/quickstart/drive")
+	WaitForDriveReady(t, harness(t), page)
 
 	data, err := sess.CaptureTrace(ctx, "quickstart-drive-navigate", func(ctx context.Context) error {
 		row := page.Locator("[data-testid='unixfs-browser']").Locator("text=getting-started.md").First()

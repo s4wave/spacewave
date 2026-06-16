@@ -168,11 +168,11 @@ func seekVideo(t testing.TB, page playwright.Page, label string, seconds float64
 // TestQuickstartDriveVideoPreview verifies projected mp4/webm previews load,
 // seek, and survive file-viewer navigation without stale player state.
 func TestQuickstartDriveVideoPreview(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	sess := harness(t).NewCleanSession(t)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
 
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 
 	mp4Name := "video-preview.mp4"
 	webmName := "video-preview.webm"
@@ -207,7 +207,7 @@ func TestQuickstartDriveVideoPreview(t *testing.T) {
 	if err := page.Locator("button[title='Up']").First().Click(); err != nil {
 		t.Fatalf("click up from mp4 preview: %v", err)
 	}
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 	waitForDriveEntry(t, page, webmName)
 	openDriveEntry(t, page, webmName)
 
@@ -229,7 +229,7 @@ func TestQuickstartDriveVideoPreview(t *testing.T) {
 	if err := page.Locator("button[title='Back']").First().Click(); err != nil {
 		t.Fatalf("click back to drive root: %v", err)
 	}
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 	waitForDriveEntry(t, page, mp4Name)
 	waitForDriveEntry(t, page, webmName)
 
@@ -248,7 +248,7 @@ func TestQuickstartDriveVideoPreview(t *testing.T) {
 	if err := page.Locator("button[title='Forward']").First().Click(); err != nil {
 		t.Fatalf("click forward to drive root: %v", err)
 	}
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 	waitForDriveEntry(t, page, mp4Name)
 	waitForDriveEntry(t, page, webmName)
 

@@ -5,8 +5,8 @@ package wasm
 import "testing"
 
 func TestMultiSessionScenario(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
-	scenario := CreateMultiSessionScenario(t, testHarness, sess)
+	sess := harness(t).NewCleanSession(t)
+	scenario := CreateMultiSessionScenario(t, harness(t), sess)
 
 	if scenario.GetFirstSessionIndex() == 0 {
 		t.Fatal("expected non-zero first session index")

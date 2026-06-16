@@ -35,7 +35,7 @@ Navigation churn should not stall root readdir.
 // side, and churn file browser navigation while collecting stuck-state
 // diagnostics on failures.
 func TestQuickstartDriveSplitTabNavigation(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	page := sess.Page()
 	if err := page.SetViewportSize(1440, 900); err != nil {
 		t.Fatalf("set viewport size: %v", err)
@@ -44,10 +44,10 @@ func TestQuickstartDriveSplitTabNavigation(t *testing.T) {
 	defer stopConsole()
 
 	probe := newSplitDriveProbe(t, page, console)
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page = scenario.GetSession().Page()
 	probe.page = page
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 
 	upload := playwright.InputFile{
 		Name:     splitDriveUploadName,

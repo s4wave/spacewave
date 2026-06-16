@@ -24,7 +24,7 @@ func TestGoScriptDriveBrowserPreviewRenameUIParity(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	page := sess.Page()
 	if err := page.SetViewportSize(1440, 900); err != nil {
 		t.Fatalf("set viewport size: %v", err)
@@ -32,9 +32,9 @@ func TestGoScriptDriveBrowserPreviewRenameUIParity(t *testing.T) {
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page = scenario.GetSession().Page()
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 	waitForStarterDriveGuidance(t, page)
 
 	openGettingStartedFile(t, page)
@@ -71,7 +71,7 @@ func TestGoScriptDriveBrowserRepeatUploadUIParity(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	page := sess.Page()
 	if err := page.SetViewportSize(1440, 900); err != nil {
 		t.Fatalf("set viewport size: %v", err)
@@ -79,9 +79,9 @@ func TestGoScriptDriveBrowserRepeatUploadUIParity(t *testing.T) {
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page = scenario.GetSession().Page()
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 	waitForStarterDriveGuidance(t, page)
 
 	previewFile := playwright.InputFile{
@@ -128,7 +128,7 @@ func TestGoScriptDriveBrowserMoveDragDeleteUIParity(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	page := sess.Page()
 	if err := page.SetViewportSize(1440, 900); err != nil {
 		t.Fatalf("set viewport size: %v", err)
@@ -136,9 +136,9 @@ func TestGoScriptDriveBrowserMoveDragDeleteUIParity(t *testing.T) {
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page = scenario.GetSession().Page()
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 	waitForStarterDriveGuidance(t, page)
 
 	createDriveFolder(t, page, "row5-target")
@@ -192,7 +192,7 @@ func TestGoScriptDriveBrowserLayoutDropReloadUIParity(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	page := sess.Page()
 	if err := page.SetViewportSize(1440, 900); err != nil {
 		t.Fatalf("set viewport size: %v", err)
@@ -200,9 +200,9 @@ func TestGoScriptDriveBrowserLayoutDropReloadUIParity(t *testing.T) {
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page = scenario.GetSession().Page()
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 	waitForStarterDriveGuidance(t, page)
 
 	layoutFile := playwright.InputFile{

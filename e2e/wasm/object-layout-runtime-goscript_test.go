@@ -20,7 +20,7 @@ func TestGoScriptObjectLayoutRuntimeParity(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	page := sess.Page()
 	if err := page.SetViewportSize(1440, 900); err != nil {
 		t.Fatalf("set viewport size: %v", err)
@@ -28,9 +28,9 @@ func TestGoScriptObjectLayoutRuntimeParity(t *testing.T) {
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page = scenario.GetSession().Page()
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 	waitForStarterDriveGuidance(t, page)
 
 	prepare := runObjectLayoutRuntimeScript(t, page, "prepare")
@@ -42,7 +42,7 @@ func TestGoScriptObjectLayoutRuntimeParity(t *testing.T) {
 		{id: "files", name: "Files"},
 	})
 
-	NavigateHash(t, testHarness, page, objectHash)
+	NavigateHash(t, harness(t), page, objectHash)
 	waitForObjectLayoutRoute(t, page)
 	waitForDriveEntry(t, page, gettingStartedFileName)
 
@@ -83,8 +83,8 @@ func TestGoScriptObjectLayoutRuntimeParity(t *testing.T) {
 		{name: layoutFile.Name, infoCase: "unixfsObjectInfo", unixfsPath: "/" + layoutFile.Name},
 	})
 
-	NavigateHash(t, testHarness, page, "#/")
-	NavigateHash(t, testHarness, page, objectHash)
+	NavigateHash(t, harness(t), page, "#/")
+	NavigateHash(t, harness(t), page, objectHash)
 	waitForObjectLayoutRoute(t, page)
 	afterReopen := runObjectLayoutRuntimeScript(t, page, "inspect")
 	assertObjectLayoutTabs(t, afterReopen, []layoutTabExpectation{
@@ -110,7 +110,7 @@ func TestGoScriptObjectLayoutSeedModelParity(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	page := sess.Page()
 	if err := page.SetViewportSize(1440, 900); err != nil {
 		t.Fatalf("set viewport size: %v", err)
@@ -118,9 +118,9 @@ func TestGoScriptObjectLayoutSeedModelParity(t *testing.T) {
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page = scenario.GetSession().Page()
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 	waitForStarterDriveGuidance(t, page)
 
 	seeded := runObjectLayoutRuntimeScript(t, page, "seed-model")
@@ -154,7 +154,7 @@ type layoutTabExpectation struct {
 func runObjectLayoutRuntimeScript(t testing.TB, page playwright.Page, action string) map[string]any {
 	t.Helper()
 
-	raw, err := page.Evaluate(testHarness.Script("object-layout-runtime-parity.ts"), map[string]any{
+	raw, err := page.Evaluate(harness(t).Script("object-layout-runtime-parity.ts"), map[string]any{
 		"action":     action,
 		"deadlineMs": 120000,
 	})

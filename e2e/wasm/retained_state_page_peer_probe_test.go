@@ -12,7 +12,7 @@ import (
 // retained BrowserContext gets a new browser peer or can reuse the retained
 // peer.
 func TestRetainedStatePagePeerProbe(t *testing.T) {
-	h := testHarness
+	h := harness(t)
 	sess := h.NewRetainedStateBlankSession(t)
 	watcher := h.getPeerWatcher()
 

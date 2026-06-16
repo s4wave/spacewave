@@ -20,7 +20,7 @@ func TestGoScriptChatQuickstartMessagingParity(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
-	sess := testHarness.NewCleanPageSession(t)
+	sess := harness(t).NewCleanPageSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 	defer func() {
@@ -36,7 +36,7 @@ func TestGoScriptChatQuickstartMessagingParity(t *testing.T) {
 	page := sess.Page()
 	WaitForApp(t, page)
 	EnableQuickstartTimingLogs(t, page)
-	NavigateHash(t, testHarness, page, "#/quickstart/chat")
+	NavigateHash(t, harness(t), page, "#/quickstart/chat")
 
 	waitForChatRoute(t, page)
 	route := page.URL()
@@ -56,12 +56,12 @@ func TestGoScriptChatQuickstartMessagingParity(t *testing.T) {
 	}
 	waitForChatMessage(t, page, message)
 
-	NavigateHash(t, testHarness, page, "#/")
+	NavigateHash(t, harness(t), page, "#/")
 	hashIdx := strings.Index(route, "#")
 	if hashIdx < 0 {
 		t.Fatalf("Chat quickstart route has no hash: %q", route)
 	}
-	NavigateHash(t, testHarness, page, route[hashIdx:])
+	NavigateHash(t, harness(t), page, route[hashIdx:])
 	waitForChatMessage(t, page, message)
 }
 

@@ -29,13 +29,13 @@ const driveUploadExternalWaitTimeoutEnv = "E2E_WASM_DRIVE_UPLOAD_WAIT_TIMEOUT_MS
 // under browser WASM and classifies the console stream for the original
 // fatal-Go-plus-exited-Go-loop recovery pattern.
 func TestQuickstartDriveUploadCrashRecovery(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 
 	uploadAndVerifyDriveFixture(t, scenario, page, true)
 
@@ -53,13 +53,13 @@ func TestQuickstartDriveUploadCrashRecovery(t *testing.T) {
 func TestQuickstartDriveUploadTrace(t *testing.T) {
 	skipTraceServiceWhenDisabled(t)
 
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 
 	ctx, cancel := context.WithTimeout(t.Context(), 120*time.Second)
 	defer cancel()
@@ -97,13 +97,13 @@ func TestQuickstartDriveLargeUploadBudgetReport(t *testing.T) {
 		t.Fatalf("stat large upload fixture: %v", err)
 	}
 
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 
 	before, ok := captureTinyGoBudgetSnapshot(t, sess)
 	if !ok {
@@ -158,13 +158,13 @@ func TestQuickstartDriveLargeUploadBudgetReport(t *testing.T) {
 }
 
 func TestQuickstartDriveUploadBudgetProfiles(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 
 	var profiles []driveUploadBudgetProfile
 	recordProfile := func(name string, fn func()) {
@@ -250,13 +250,13 @@ func TestQuickstartDriveUploadBudgetProfiles(t *testing.T) {
 }
 
 func TestQuickstartDriveUploadOverwriteBudgetProfile(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
+	sess := harness(t).NewCleanSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 
 	before, ok := captureTinyGoBudgetSnapshot(t, sess)
 	if !ok {
@@ -619,7 +619,7 @@ type tinyGoBrowserBudgetTotals struct {
 func captureTinyGoBudgetSnapshot(t testing.TB, sess *TestSession) (tinyGoBudgetDebugPayload, bool) {
 	t.Helper()
 
-	script := testHarness.Script("tinygo-budget-debug.ts")
+	script := harness(t).Script("tinygo-budget-debug.ts")
 	args := map[string]any{"op": "snapshot"}
 	deadline := time.Now().Add(5 * time.Second)
 	for {

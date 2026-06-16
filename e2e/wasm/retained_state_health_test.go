@@ -16,11 +16,11 @@ import (
 // opens with ready health after the page is recreated inside the same browser
 // context.
 func TestRecreatedPageSharedObjectHealthGuard(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	sess := harness(t).NewCleanSession(t)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
 
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 	targetHash, err := currentHash(page.URL())
 	if err != nil {
 		t.Fatalf("current drive hash: %v", err)
@@ -29,16 +29,16 @@ func TestRecreatedPageSharedObjectHealthGuard(t *testing.T) {
 	if err := sess.ReplacePageInCurrentContext(); err != nil {
 		t.Fatalf("replace page in current context: %v", err)
 	}
-	if err := testHarness.loadAppPageURL(sess, testHarness.BaseURL()+"/"+targetHash); err != nil {
+	if err := harness(t).loadAppPageURL(sess, harness(t).BaseURL()+"/"+targetHash); err != nil {
 		t.Fatalf("load drive route after page replacement: %v", err)
 	}
 
 	page = sess.Page()
 	WaitForApp(t, page)
-	AssertRootImportMap(t, testHarness, page)
-	AssertBrowserStartupDone(t, testHarness, page)
+	AssertRootImportMap(t, harness(t), page)
+	AssertBrowserStartupDone(t, harness(t), page)
 
-	ctx, cancel := context.WithTimeout(testHarness.Context(), 90*time.Second)
+	ctx, cancel := context.WithTimeout(harness(t).Context(), 90*time.Second)
 	defer cancel()
 	if err := sess.ConnectResources(ctx); err != nil {
 		t.Fatalf("connect resources after recreated page route load: %v", err)
@@ -48,8 +48,8 @@ func TestRecreatedPageSharedObjectHealthGuard(t *testing.T) {
 	}
 	waitForSharedObjectReadyHealth(t, ctx, sess, scenario.GetSessionIndex(), scenario.GetSpaceID())
 
-	NavigateHash(t, testHarness, page, targetHash)
-	WaitForDriveReady(t, testHarness, page)
+	NavigateHash(t, harness(t), page, targetHash)
+	WaitForDriveReady(t, harness(t), page)
 	assertNoSharedObjectHealthCard(t, page)
 
 	t.Logf(

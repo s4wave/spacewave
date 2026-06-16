@@ -25,9 +25,9 @@ func TestQuickstartV86BootSmoke(t *testing.T) {
 		t.Skip("set RUN_V86_E2E=true to run the v86 boot smoke")
 	}
 
-	sess := testHarness.NewCleanBlankSession(t)
+	sess := harness(t).NewCleanBlankSession(t)
 	installV86CdnMirrorRuntimeEnv(t, sess)
-	if err := testHarness.loadAppPageURL(sess, testHarness.baseURL+"/#/"); err != nil {
+	if err := harness(t).loadAppPageURL(sess, harness(t).baseURL+"/#/"); err != nil {
 		t.Fatalf("load app: %v", err)
 	}
 	console, stopConsole := sess.WatchConsole()
@@ -44,13 +44,13 @@ func TestQuickstartV86BootSmoke(t *testing.T) {
 
 	page := sess.Page()
 	WaitForApp(t, page)
-	AssertRootImportMap(t, testHarness, page)
+	AssertRootImportMap(t, harness(t), page)
 	cdnProbe := probeV86CdnMount(page)
 	t.Logf("v86 CDN direct probe: %s", cdnProbe)
 	if !strings.Contains(cdnProbe, `"defaultV86ImageFound": true`) {
 		t.Fatalf("v86 CDN probe did not find the default V86Image before wizard load: %s", cdnProbe)
 	}
-	NavigateHash(t, testHarness, page, "#/quickstart/v86")
+	NavigateHash(t, harness(t), page, "#/quickstart/v86")
 	WaitForApp(t, page)
 
 	wait := playwright.LocatorWaitForOptions{Timeout: playwright.Float(v86SmokeTimeoutMS)}

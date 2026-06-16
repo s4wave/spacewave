@@ -5,8 +5,8 @@ package wasm
 import "testing"
 
 func TestLocalOnboardingScenario(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
-	scenario := CreateLocalOnboardingScenario(t, testHarness, sess)
+	sess := harness(t).NewCleanSession(t)
+	scenario := CreateLocalOnboardingScenario(t, harness(t), sess)
 
 	if scenario.GetSessionIndex() == 0 {
 		t.Fatal("expected non-zero session index")

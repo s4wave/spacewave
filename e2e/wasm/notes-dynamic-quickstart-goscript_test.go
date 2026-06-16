@@ -19,9 +19,9 @@ type notesDynamicQuickstartScenario struct {
 
 func TestGoScriptNotesDynamicQuickstartsParity(t *testing.T) {
 	t.Run("notebook", func(t *testing.T) {
-		sess := testHarness.NewCleanPageSession(t)
+		sess := harness(t).NewCleanPageSession(t)
 		page := sess.Page()
-		scenario := createNotesDynamicQuickstartScenario(t, testHarness, page, "notebook")
+		scenario := createNotesDynamicQuickstartScenario(t, harness(t), page, "notebook")
 		waitForNotebookReady(t, page, "welcome")
 		openNotebookNote(t, page, "welcome")
 		writeSourceNote(t, page, strings.Join([]string{
@@ -36,7 +36,7 @@ func TestGoScriptNotesDynamicQuickstartsParity(t *testing.T) {
 			"",
 		}, "\n"))
 		assertNoteText(t, page, "Notebook dynamic quickstart edits persist.")
-		assertNotesRouteReloadAndReopen(t, testHarness, page, scenario.objectHash("notebook"), func() {
+		assertNotesRouteReloadAndReopen(t, harness(t), page, scenario.objectHash("notebook"), func() {
 			waitForNotebookReady(t, page, "GoScript Notebook Proof")
 			openNotebookNote(t, page, "GoScript Notebook Proof")
 			assertNoteText(t, page, "Notebook dynamic quickstart edits persist.")
@@ -44,9 +44,9 @@ func TestGoScriptNotesDynamicQuickstartsParity(t *testing.T) {
 	})
 
 	t.Run("docs", func(t *testing.T) {
-		sess := testHarness.NewCleanPageSession(t)
+		sess := harness(t).NewCleanPageSession(t)
 		page := sess.Page()
-		scenario := createNotesDynamicQuickstartScenario(t, testHarness, page, "docs")
+		scenario := createNotesDynamicQuickstartScenario(t, harness(t), page, "docs")
 		waitForDocsReady(t, page, "index")
 		writeSourceNote(t, page, strings.Join([]string{
 			"# GoScript Docs Proof",
@@ -55,16 +55,16 @@ func TestGoScriptNotesDynamicQuickstartsParity(t *testing.T) {
 			"",
 		}, "\n"))
 		assertNoteText(t, page, "Docs dynamic quickstart edits persist.")
-		assertNotesRouteReloadAndReopen(t, testHarness, page, scenario.objectHash("documentation"), func() {
+		assertNotesRouteReloadAndReopen(t, harness(t), page, scenario.objectHash("documentation"), func() {
 			waitForDocsReady(t, page, "index")
 			assertNoteText(t, page, "Docs dynamic quickstart edits persist.")
 		})
 	})
 
 	t.Run("blog", func(t *testing.T) {
-		sess := testHarness.NewCleanPageSession(t)
+		sess := harness(t).NewCleanPageSession(t)
 		page := sess.Page()
-		scenario := createNotesDynamicQuickstartScenario(t, testHarness, page, "blog")
+		scenario := createNotesDynamicQuickstartScenario(t, harness(t), page, "blog")
 		waitForBlogReady(t, page, "Hello World")
 		if err := page.Locator("button[title='Editing mode']").First().Click(); err != nil {
 			t.Fatalf("switch blog to editing mode: %v", err)
@@ -85,13 +85,13 @@ func TestGoScriptNotesDynamicQuickstartsParity(t *testing.T) {
 			"Blog dynamic quickstart edits persist.",
 			"",
 		}, "\n"))
-		NavigateHash(t, testHarness, page, scenario.objectHash("blog/site"))
+		NavigateHash(t, harness(t), page, scenario.objectHash("blog/site"))
 		waitForBlogReady(t, page, "GoScript Blog Proof")
 		if err := page.Locator("text=GoScript Blog Proof").First().Click(); err != nil {
 			t.Fatalf("open edited blog post: %v", err)
 		}
 		assertNoteText(t, page, "Blog dynamic quickstart edits persist.")
-		assertNotesRouteReloadAndReopen(t, testHarness, page, scenario.objectHash("blog/site"), func() {
+		assertNotesRouteReloadAndReopen(t, harness(t), page, scenario.objectHash("blog/site"), func() {
 			waitForBlogReady(t, page, "GoScript Blog Proof")
 			if err := page.Locator("text=GoScript Blog Proof").First().Click(); err != nil {
 				t.Fatalf("reopen edited blog post: %v", err)
@@ -102,11 +102,11 @@ func TestGoScriptNotesDynamicQuickstartsParity(t *testing.T) {
 }
 
 func TestGoScriptBlogDynamicQuickstartRetainedStateParity(t *testing.T) {
-	sess := testHarness.NewRetainedStatePageSession(t)
+	sess := harness(t).NewRetainedStatePageSession(t)
 	page := sess.Page()
-	scenario := createNotesDynamicQuickstartScenario(t, testHarness, page, "blog")
+	scenario := createNotesDynamicQuickstartScenario(t, harness(t), page, "blog")
 	waitForBlogReady(t, page, "Hello World")
-	NavigateHash(t, testHarness, page, scenario.objectHash("blog/site"))
+	NavigateHash(t, harness(t), page, scenario.objectHash("blog/site"))
 	waitForBlogReady(t, page, "Hello World")
 }
 

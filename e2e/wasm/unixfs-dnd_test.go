@@ -73,12 +73,12 @@ func openDriveDir(t testing.TB, open func(name string), name string) {
 // folder move path to classify whether the current report is stale or a real
 // runtime regression against the implemented same-root move contract.
 func TestQuickstartDriveSingleEntryRowMove(t *testing.T) {
-	sess := testHarness.NewCleanSession(t)
-	scenario := CreateDriveScenario(t, testHarness, sess)
+	sess := harness(t).NewCleanSession(t)
+	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
 	browser := page.Locator("[data-testid='unixfs-browser']")
 
-	WaitForDriveReady(t, testHarness, page)
+	WaitForDriveReady(t, harness(t), page)
 	UploadViaPicker(t, page, []playwright.InputFile{
 		{
 			Name:     "hello.txt",

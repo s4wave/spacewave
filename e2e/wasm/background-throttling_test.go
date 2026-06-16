@@ -21,10 +21,10 @@ var backgroundThrottleForbiddenConsole = []string{
 // beyond common timer-throttling windows and resume without timer-owned runtime
 // lifecycle failures.
 func TestBackgroundThrottledLifecycle(t *testing.T) {
-	sess := testHarness.NewCleanPageSession(t)
+	sess := harness(t).NewCleanPageSession(t)
 	page := sess.Page()
 	WaitForApp(t, page)
-	AssertBrowserStartupDone(t, testHarness, page)
+	AssertBrowserStartupDone(t, harness(t), page)
 
 	console, stopConsole := sess.WatchConsole()
 	consoleCollector := startBackgroundThrottleConsoleCollector(console)
@@ -48,11 +48,11 @@ func TestBackgroundThrottledLifecycle(t *testing.T) {
 		t.Fatalf("bring app page forward: %v", err)
 	}
 	WaitForApp(t, page)
-	AssertBrowserStartupDone(t, testHarness, page)
+	AssertBrowserStartupDone(t, harness(t), page)
 
-	NavigateHash(t, testHarness, page, "#/quickstart/drive")
-	WaitForDriveReady(t, testHarness, page)
-	AssertBrowserStartupDone(t, testHarness, page)
+	NavigateHash(t, harness(t), page, "#/quickstart/drive")
+	WaitForDriveReady(t, harness(t), page)
+	AssertBrowserStartupDone(t, harness(t), page)
 
 	stopConsole()
 	consoleCollector.Wait()

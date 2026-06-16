@@ -21,7 +21,7 @@ func TestGoScriptGitQuickstartLocalCreateReloadParity(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
-	sess := testHarness.NewCleanPageSession(t)
+	sess := harness(t).NewCleanPageSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 	defer func() {
@@ -35,20 +35,20 @@ func TestGoScriptGitQuickstartLocalCreateReloadParity(t *testing.T) {
 	}()
 
 	page := sess.Page()
-	scenario := createGitQuickstartScenario(t, testHarness, page)
+	scenario := createGitQuickstartScenario(t, harness(t), page)
 	repoHash := scenario.objectHash(scenario.repoObjectKey)
 	worktreeObjectKey := scenario.repoObjectKey + "/worktree"
 	worktreeHash := scenario.objectHash(worktreeObjectKey)
 
 	waitForGitRepoViewerReady(t, page, scenario.repoObjectKey)
-	assertGitRouteReloadAndReopen(t, testHarness, page, repoHash, func() {
+	assertGitRouteReloadAndReopen(t, harness(t), page, repoHash, func() {
 		waitForGitRepoViewerReady(t, page, scenario.repoObjectKey)
 	})
 
-	NavigateHash(t, testHarness, page, worktreeHash)
+	NavigateHash(t, harness(t), page, worktreeHash)
 	waitForGitWorktreeViewerReady(t, page, worktreeObjectKey)
 	assertGitEmptyWorktreeHidesLogTab(t, page, worktreeObjectKey)
-	assertGitRouteReloadAndReopen(t, testHarness, page, worktreeHash, func() {
+	assertGitRouteReloadAndReopen(t, harness(t), page, worktreeHash, func() {
 		waitForGitWorktreeViewerReady(t, page, worktreeObjectKey)
 		assertGitEmptyWorktreeHidesLogTab(t, page, worktreeObjectKey)
 	})
