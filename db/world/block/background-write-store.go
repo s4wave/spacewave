@@ -33,7 +33,7 @@ func newBackgroundWriteStore(inner block.StoreOps) backgroundWriteStore {
 
 // PutBlock enqueues the write at background priority on the inner store.
 func (s backgroundWriteStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	return s.StoreOps.PutBlockBackground(ctx, data, opts)
+	return s.PutBlockBackground(ctx, data, opts)
 }
 
 // BeginDeferFlush forwards the GC defer-flush scope to the inner store.
