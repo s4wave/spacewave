@@ -26,7 +26,7 @@ require (
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.14.1-0.20260604043655-9ed25e8f78ac // latest
 	github.com/aperturerobotics/cli v1.1.0 // latest
-	github.com/aperturerobotics/common v0.33.1 // latest
+	github.com/aperturerobotics/common v0.34.0 // latest
 	github.com/aperturerobotics/controllerbus v0.53.4 // latest
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
@@ -40,7 +40,7 @@ require (
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0 // indirect
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 // indirect
 	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.1
-	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260605073731-428dc1505f4a
+	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260614231932-9ac47eecfff5
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6
 	github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d
 	github.com/aperturerobotics/goscript v0.2.4
@@ -100,7 +100,7 @@ require (
 	github.com/mattn/go-isatty v0.0.22
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mr-tron/base58 v1.3.0
-	github.com/ncruces/go-sqlite3 v0.35.0
+	github.com/ncruces/go-sqlite3 v0.35.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pierrec/lz4/v4 v4.1.27
 	github.com/pion/datachannel v1.6.0
