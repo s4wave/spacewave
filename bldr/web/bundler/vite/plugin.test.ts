@@ -121,6 +121,86 @@ describe('createWebPkgRemapPlugin', () => {
     })
   })
 
+  it('keeps declared served names when the package root export resolves under dist', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'web-pkg-dist-'))
+    try {
+      const pkgRoot = path.join(root, 'node_modules', '@aptre', 'protobuf-es-lite')
+      fs.mkdirSync(path.join(pkgRoot, 'dist'), { recursive: true })
+      // exports["."] points at ./dist/index.js, the on-disk layout whose dist/
+      // subdir must NOT leak into the served URL when declared imports exist.
+      fs.writeFileSync(
+        path.join(pkgRoot, 'package.json'),
+        JSON.stringify({
+          name: '@aptre/protobuf-es-lite',
+          type: 'module',
+          exports: { '.': { import: './dist/index.js' } },
+        }),
+      )
+      fs.writeFileSync(
+        path.join(pkgRoot, 'dist', 'index.js'),
+        'export const root = true\n',
+      )
+
+      const plugin = createWebPkgRemapPlugin({
+        webPkgIDs: ['@aptre/protobuf-es-lite'],
+        webPkgImports: {
+          '@aptre/protobuf-es-lite': ['index.js', 'message.js'],
+        },
+      })
+
+      const configResolved = plugin.configResolved
+      if (typeof configResolved !== 'function') {
+        throw new Error('missing configResolved hook')
+      }
+      configResolved.call(
+        {} as never,
+        {
+          root,
+          resolve: {
+            alias: [
+              { find: '@aptre/protobuf-es-lite', replacement: pkgRoot },
+            ],
+          },
+        } as ResolvedConfig,
+      )
+
+      const renderChunk = plugin.renderChunk
+      if (typeof renderChunk !== 'function') {
+        throw new Error('missing renderChunk hook')
+      }
+      const rendered = renderChunk.call(
+        {} as never,
+        'import { createMessageType } from "@aptre/protobuf-es-lite";',
+        {} as never,
+        {} as never,
+        {} as never,
+      )
+      expect(rendered).toContain('"/b/pkg/@aptre/protobuf-es-lite/index.mjs"')
+      expect(rendered).not.toContain('/dist/')
+
+      const resolveId = plugin.resolveId
+      if (typeof resolveId !== 'function') {
+        throw new Error('missing resolveId hook')
+      }
+      const resolved = await resolveId.call(
+        {
+          resolve: async () => {
+            throw new Error('declared imports must not hit on-disk resolution')
+          },
+        } as never,
+        '@aptre/protobuf-es-lite',
+        path.join(root, 'src', 'entry.js'),
+        { isEntry: false },
+      )
+      expect(resolved).toEqual({
+        id: '/b/pkg/@aptre/protobuf-es-lite/index.mjs',
+        external: true,
+      })
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
   it('maps a bare package import to a non-index package root served name', async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'web-pkg-root-'))
     try {

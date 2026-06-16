@@ -276,9 +276,15 @@ export function createWebPkgRemapPlugin(
             // Not resolvable from node_modules, will use empty root
           }
         }
-        const rootServedName = webPkgRoots[pkgID]
-          ? readPackageRootServedName(webPkgRoots[pkgID])
-          : null
+        // Declared imports (webPkgImports) own the served-name map: they map the
+        // bare specifier to the dist-stripped served index buildWebPkg emits.
+        // Only fall back to the package.json root export (whose dist/ subdir
+        // differs from the served names) when the package has no declared map,
+        // so the on-disk path never clobbers an authoritative declared entry.
+        const rootServedName =
+          !servedNameMaps[pkgID] && webPkgRoots[pkgID]
+            ? readPackageRootServedName(webPkgRoots[pkgID])
+            : null
         if (rootServedName) {
           let map = servedNameMaps[pkgID]
           if (!map) {
