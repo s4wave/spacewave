@@ -214,7 +214,12 @@ func (r *LookupRpcServiceResolver) Resolve(ctx context.Context, handler directiv
 		}
 		return err
 	}
-	defer rel()
+	// rel is nil for the loopback and plugin-host client paths
+	// (WaitPluginClient/WaitPluginHostClient return a nil release func there), so
+	// guard the deferred release to avoid a nil func call when the deferred runs.
+	if rel != nil {
+		defer rel()
+	}
 
 	// Create an invoker that forwards calls to the client and strips the service id prefix
 	invoker := newClientForwardingInvoker(client, r.stripServiceIDPrefix)

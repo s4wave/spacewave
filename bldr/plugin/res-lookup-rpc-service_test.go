@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 )
@@ -48,6 +49,23 @@ func TestResolveLookupRpcServiceDoesNotRouteRequesterServerID(t *testing.T) {
 	}
 	if resolver != nil {
 		t.Fatalf("expected plain service lookup with plugin requester server ID to be ignored, got %T", resolver)
+	}
+}
+
+func TestResolveLookupRpcServiceHandlesNilReleaseFunc(t *testing.T) {
+	// Regression: WaitPluginClient/WaitPluginHostClient return a nil release func
+	// on the loopback and plugin-host client paths. Resolve must not defer a nil
+	// func call, which previously panicked (nil func value, pc=0x0) when the
+	// deferred ran and crashed the whole plugin process.
+	resolver := NewLookupRpcServiceResolver(
+		&nilReleaseClientHandler{client: &testForwardingClient{}},
+		"mercury-core",
+		"plugin/mercury-core/",
+	)
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if err := resolver.Resolve(ctx, stubResolverHandler{}); err != context.Canceled {
+		t.Fatalf("expected context.Canceled, got %v", err)
 	}
 }
 
@@ -302,8 +320,36 @@ func (s *testForwardingLocalStream) sentStrings() []string {
 	return out
 }
 
+// nilReleaseClientHandler returns a non-nil client and a nil release func,
+// matching the loopback and plugin-host client paths.
+type nilReleaseClientHandler struct {
+	client srpc.Client
+}
+
+func (h *nilReleaseClientHandler) WaitPluginHostClient(context.Context, func()) (srpc.Client, func(), error) {
+	return h.client, nil, nil
+}
+
+func (h *nilReleaseClientHandler) WaitPluginClient(context.Context, func(), string) (srpc.Client, func(), error) {
+	return h.client, nil, nil
+}
+
+// stubResolverHandler is a no-op directive.ResolverHandler for resolver tests.
+type stubResolverHandler struct{}
+
+func (stubResolverHandler) AddValue(directive.Value) (uint32, bool)       { return 1, true }
+func (stubResolverHandler) RemoveValue(uint32) (directive.Value, bool)    { return nil, true }
+func (stubResolverHandler) CountValues(bool) int                          { return 0 }
+func (stubResolverHandler) ClearValues() []uint32                         { return nil }
+func (stubResolverHandler) MarkIdle(bool)                                 {}
+func (stubResolverHandler) AddValueRemovedCallback(uint32, func()) func() { return func() {} }
+func (stubResolverHandler) AddResolverRemovedCallback(func()) func()      { return func() {} }
+func (stubResolverHandler) AddResolver(directive.Resolver, func()) func() { return func() {} }
+
 var (
-	_ srpc.Client = (*testForwardingClient)(nil)
-	_ srpc.Stream = (*testForwardingStream)(nil)
-	_ srpc.Stream = (*testForwardingLocalStream)(nil)
+	_ srpc.Client               = (*testForwardingClient)(nil)
+	_ srpc.Stream               = (*testForwardingStream)(nil)
+	_ srpc.Stream               = (*testForwardingLocalStream)(nil)
+	_ LookupRpcClientHandler    = (*nilReleaseClientHandler)(nil)
+	_ directive.ResolverHandler = stubResolverHandler{}
 )
