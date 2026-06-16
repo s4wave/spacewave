@@ -2831,6 +2831,8 @@ type probeDirtyTrackingStore struct {
 	flusher    *probeSyncFlusher
 }
 
+var _ block.StoreOps = (*probeDirtyTrackingStore)(nil)
+
 func (d *probeDirtyTrackingStore) GetHashType() hash.HashType {
 	return d.store.GetHashType()
 }
@@ -2920,6 +2922,10 @@ func (d *probeDirtyTrackingStore) StatBlock(ctx context.Context, ref *block.Bloc
 
 func (d *probeDirtyTrackingStore) Flush(ctx context.Context) error {
 	return d.store.Flush(ctx)
+}
+
+func (d *probeDirtyTrackingStore) Sync(ctx context.Context) (bool, error) {
+	return d.store.Sync(ctx)
 }
 
 func (d *probeDirtyTrackingStore) BeginDeferFlush() {

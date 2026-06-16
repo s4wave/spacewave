@@ -476,6 +476,30 @@ func runBoltGraphRole(t *testing.T, role string) {
 func writeBoltGraph(t *testing.T, ctx context.Context, vol *volume_bolt.Bolt, label string, useGC bool) *block.BlockRef {
 	t.Helper()
 
+	// Cross-process bbolt graph writes must refresh the shared freelist before
+	// building a block transaction and publish the generation after commit.
+	scope := coord.Scope{
+		VolumeID:      vol.GetID(),
+		ObjectStoreID: "bolt-graph-visibility",
+		ParticipantID: label,
+	}
+	lease, err := vol.WaitAcquireWriteLease(ctx, scope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	released := false
+	defer func() {
+		if released {
+			return
+		}
+		if err := lease.Release(context.Background()); err != nil {
+			t.Errorf("release write lease: %v", err)
+		}
+	}()
+	if _, err := lease.Refresh(ctx); err != nil {
+		t.Fatal(err)
+	}
+
 	store := boltGraphStore(vol, useGC)
 	tx, cursor := block.NewTransaction(store, nil, nil, nil)
 	root := &block_mock.Root{ExampleSubBlock: &block_mock.SubBlock{}}
@@ -491,6 +515,13 @@ func writeBoltGraph(t *testing.T, ctx context.Context, vol *volume_bolt.Bolt, la
 			t.Fatal(err)
 		}
 	}
+	if _, err := lease.Publish(ctx, coord.Event{KeyPrefixChanged: []byte("bolt-graph-visibility/")}); err != nil {
+		t.Fatal(err)
+	}
+	if err := lease.Release(ctx); err != nil {
+		t.Fatal(err)
+	}
+	released = true
 	return ref
 }
 
