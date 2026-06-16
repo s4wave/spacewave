@@ -726,6 +726,22 @@ func TestWorldEngineWatchReload(t *testing.T) {
 	}
 	le.Infof("got sequence number after first write: %v", firstWriteSeqno)
 
+	// Fence the engine so the first write's blocks drain from the deferred
+	// single-writer buffer into the volume. The out-of-band modification below
+	// reads the world root directly from the raw bucket, which only sees blocks
+	// that have been made durable by Sync.
+	if err := func() error {
+		worldEng, _, worldEngRef, err := world.ExLookupWorldEngine(ctx, b, false, engineID, nil)
+		if err != nil {
+			return err
+		}
+		defer worldEngRef.Release()
+		_, err = worldEng.Sync(ctx)
+		return err
+	}(); err != nil {
+		t.Fatal(err.Error())
+	}
+
 	// Now we will modify the world state without telling the controller,
 	// Then apply a configset with a higher revision for that controller ID.
 	// This will shut down the world engine controller and start a new one.

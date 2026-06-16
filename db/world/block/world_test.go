@@ -2183,3 +2183,156 @@ func TestWorldState_GC_SweepTx(t *testing.T) {
 		}
 	}
 }
+
+// commitObjectInEngine creates one object through an engine block transaction
+// and advances the engine root, failing the test on any error.
+func commitObjectInEngine(t *testing.T, ctx context.Context, eng *world_block.Engine, key string) {
+	t.Helper()
+	btx, err := eng.NewBlockEngineTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer btx.Discard()
+	if _, err := btx.CreateObject(ctx, key, &bucket.ObjectRef{BucketId: "test"}); err != nil {
+		t.Fatal(err.Error())
+	}
+	ref, err := btx.CommitBlockTransaction(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := eng.SetRootRef(ctx, ref); err != nil {
+		t.Fatal(err.Error())
+	}
+}
+
+// TestEngineDeferredDurabilityCrashRecovery proves the single-writer deferred
+// durability fence: a per-commit write advances only the in-memory root, Sync
+// runs the block barrier and then advances the durable head, and a crash (engine
+// drop) before the next Sync rolls recovery back to the last Sync'd head with all
+// of its blocks present and the unsynced commit gone.
+func TestEngineDeferredDurabilityCrashRecovery(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	cur, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// commitFn stands in for the durable head write (writeHeadState). It records
+	// the head and the call count so the test can assert the per-commit cadence.
+	var durableHead *bucket.ObjectRef
+	var commitCount int
+	commitFn := func(_ context.Context, _, nref *bucket.ObjectRef) error {
+		commitCount++
+		durableHead = nref.Clone()
+		return nil
+	}
+
+	eng, err := world_block.NewEngine(ctx, le, cur, world_mock.LookupMockOp, commitFn, false, world_block.WithDeferredDurability())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Tick 1: a deferred commit advances only the in-memory root.
+	commitObjectInEngine(t, ctx, eng, "obj-a")
+	if commitCount != 0 {
+		t.Fatalf("deferred commit must not advance the durable head, got %d head writes", commitCount)
+	}
+	rootAfterA := eng.GetRootRef().Clone()
+
+	// Sync fences the block barrier then advances the durable head to obj-a.
+	if _, err := eng.Sync(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	if commitCount != 1 {
+		t.Fatalf("Sync must advance the durable head exactly once, got %d", commitCount)
+	}
+	if durableHead == nil || !durableHead.EqualsRef(rootAfterA) {
+		t.Fatal("durable head must equal the in-memory root after Sync")
+	}
+	syncedHead := durableHead.Clone()
+
+	// Tick 2: another deferred commit; the durable head must still lag at obj-a.
+	commitObjectInEngine(t, ctx, eng, "obj-b")
+	if commitCount != 1 {
+		t.Fatalf("post-Sync deferred commit must not advance the durable head, got %d", commitCount)
+	}
+
+	// Crash: drop the engine without a fence. The obj-b blocks live only in the
+	// in-memory buffer and are lost; the durable head still names obj-a.
+	if err := eng.Close(); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Recover: reopen a world state at the durable head over the same volume.
+	cur2, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer cur2.Release()
+	cur2.SetRootRef(syncedHead.GetRootRef())
+	recovered, err := world_block.BuildMockWorldState(ctx, le, false, cur2, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer recovered.Discard()
+
+	// obj-a's blocks were fenced durable by Sync, so it recovers (this read also
+	// proves block-before-head ordering: the head names only durable blocks)...
+	if _, err := world.MustGetObject(ctx, recovered, "obj-a"); err != nil {
+		t.Fatalf("recovery must land on the last Sync'd head with its blocks present: %v", err.Error())
+	}
+	// ...and obj-b, committed after the last Sync, is rolled back.
+	if _, err := world.MustGetObject(ctx, recovered, "obj-b"); err == nil {
+		t.Fatal("post-Sync commit must not survive a crash before the next Sync")
+	}
+}
+
+// TestEngineDefaultDurableOnWrite proves the default single-writer engine (no
+// deferred-durability opt-in) keeps durable-on-write semantics: each commit
+// advances the durable head immediately. This is the contract the SharedObject,
+// CDN, and CLI engines depend on for cross-participant block availability.
+func TestEngineDefaultDurableOnWrite(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	cur, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	var commitCount int
+	commitFn := func(_ context.Context, _, _ *bucket.ObjectRef) error {
+		commitCount++
+		return nil
+	}
+
+	eng, err := world_block.NewEngine(ctx, le, cur, world_mock.LookupMockOp, commitFn, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer eng.Close()
+
+	commitObjectInEngine(t, ctx, eng, "obj-a")
+	if commitCount != 1 {
+		t.Fatalf("default single-writer must advance the durable head per commit, got %d", commitCount)
+	}
+	commitObjectInEngine(t, ctx, eng, "obj-b")
+	if commitCount != 2 {
+		t.Fatalf("default single-writer must advance the durable head per commit, got %d", commitCount)
+	}
+}

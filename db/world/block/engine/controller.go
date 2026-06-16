@@ -214,7 +214,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 		useStateCoordinator = c.coordinatorSupported(ctx, stateCoordinator, stateCoordScope)
 	}
 
-	var engineOpts []world_block.EngineOption
+	// Enable single-writer deferred durability: in non-coordinator mode block
+	// writes and the durable head batch until Sync (the clean-shutdown flush
+	// below and explicit consumer fences). Ignored when the write coordinator is
+	// active, which keeps durable-on-write per-commit CAS semantics.
+	engineOpts := []world_block.EngineOption{world_block.WithDeferredDurability()}
 	if useStateCoordinator {
 		engineOpts = append(engineOpts, world_block.WithWriteCoordinator(
 			stateCoordinator,
@@ -258,6 +262,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	<-rctx.Done()
 	le.Debug("shutting down")
+	// Clean-shutdown durability flush. In the single-writer path the durable
+	// head advances only at Sync, so a normal shutdown must fence before dropping
+	// the engine or committed-but-unsynced work would be lost. Detach from the
+	// now-canceled engine context because the durable stores stay mounted until
+	// Execute returns (storeRef.Release is deferred above).
+	if _, err := engine.Sync(context.WithoutCancel(ctx)); err != nil {
+		le.WithError(err).Warn("world engine shutdown sync failed")
+	}
 	c.engineCtr.SetValue(nil)
 
 	return nil

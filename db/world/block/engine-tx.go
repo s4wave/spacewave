@@ -110,15 +110,25 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 			// do nothing if nothing changed
 			if !nroot.EqualVT(nextRootRef.RootRef) {
 				nextRootRef.RootRef = nroot
-				commitErr = e.engine.validateRootRefLocked(ctx, nextRootRef)
-				if errors.Is(commitErr, block.ErrNotFound) {
-					commitErr = fmt.Errorf("validate committed root: %w", coord.ErrStaleGeneration)
-				}
-				// call the commit function if set
-				if commitErr == nil && e.engine.commitFn != nil {
-					commitErr = e.engine.commitFn(ctx, e.baseHeadRef, nextRootRef.Clone())
-					if commitErr == nil {
-						e.engine.durableHeadRef = nextRootRef.Clone()
+				// Durable-on-write modes (coordinator, and the default single-writer
+				// path) publish the durable head per commit: validate the committed
+				// root is followable from durable storage, then write the head via
+				// commitFn. The opt-in single-writer deferred path defers both to
+				// Sync, where the block barrier first makes the root's blocks
+				// durable; here it only advances the in-memory root. Validating per
+				// commit in the deferred path would read the raw bucket and miss the
+				// buffered-but-undrained blocks (ErrNotFound).
+				deferred := e.engine.deferDurability && e.engine.writeCoordinator == nil
+				if !deferred {
+					commitErr = e.engine.validateRootRefLocked(ctx, nextRootRef)
+					if errors.Is(commitErr, block.ErrNotFound) {
+						commitErr = fmt.Errorf("validate committed root: %w", coord.ErrStaleGeneration)
+					}
+					if commitErr == nil && e.engine.commitFn != nil {
+						commitErr = e.engine.commitFn(ctx, e.baseHeadRef, nextRootRef.Clone())
+						if commitErr == nil {
+							e.engine.durableHeadRef = nextRootRef.Clone()
+						}
 					}
 				}
 				if commitErr == nil {

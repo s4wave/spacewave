@@ -8,6 +8,7 @@ import (
 
 	"github.com/aperturerobotics/util/csync"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/coord"
@@ -51,6 +52,20 @@ type Engine struct {
 	// single-writer path the durable head is advanced only by Sync, so root can
 	// run ahead of durableHeadRef between fences. Guarded by rmtx.
 	durableHeadRef *bucket.ObjectRef
+	// writeBlockStore is the long-lived block store backing write transactions.
+	// In the single-writer path with a store that is not self-buffered it is a
+	// deferred BufferedStore wrapping the bucket store: block writes accumulate
+	// and become durable only at Sync. Otherwise it is the bucket store directly
+	// (coordinator mode stays durable-on-write; self-buffered stores own their
+	// own intake + Sync fence). Stable for the engine lifetime because the world
+	// cursor never switches buckets.
+	writeBlockStore block.StoreOps
+	// deferDurability enables the single-writer deferred-durability mode: block
+	// writes and the durable head advance batch until Sync instead of becoming
+	// durable per commit. Opt-in because callers that propose blocks to a remote
+	// authority or write-then-exit need durable-on-write semantics. Ignored when
+	// a write coordinator is configured (coordinator mode stays durable-on-write).
+	deferDurability bool
 	// writeCoordinator gates standalone ObjectStore-backed writers.
 	writeCoordinator coord.Coordinator
 	// writeCoordScope identifies this engine's durable ObjectStore head.
@@ -72,6 +87,15 @@ type CommitFn func(ctx context.Context, baseRef, nref *bucket.ObjectRef) error
 
 // EngineOption configures optional Engine integrations.
 type EngineOption func(*Engine)
+
+// WithDeferredDurability enables single-writer deferred durability: block writes
+// and the durable head advance batch in memory until Sync. It is the IC-3
+// hot-path fence and has no effect when a write coordinator is configured.
+func WithDeferredDurability() EngineOption {
+	return func(e *Engine) {
+		e.deferDurability = true
+	}
+}
 
 // WithWriteCoordinator requires write transactions to acquire a coordinator
 // lease and refresh the durable World head before mutation.
@@ -117,6 +141,20 @@ func NewEngine(
 			opt(e)
 		}
 	}
+
+	// In the opt-in single-writer deferred-durability mode, defer block durability
+	// behind one long-lived BufferedStore: per-commit writes accumulate in memory
+	// and become durable only at Sync, alongside the deferred durable head.
+	// Self-buffered stores (e.g. blockshard) own their own intake and fence, so
+	// use them directly. Coordinator mode and all callers that did not opt in stay
+	// durable-on-write and use the bucket directly.
+	rawWriteStore := e.root.GetBucket()
+	e.writeBlockStore = rawWriteStore
+	if e.deferDurability && e.writeCoordinator == nil &&
+		rawWriteStore.GetSupportedFeatures()&block.StoreFeatureSelfBuffered == 0 {
+		e.writeBlockStore = block.NewBufferedStore(ctx, rawWriteStore)
+	}
+
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/new/update-read-write-txns")
 	err := e.updateReadWriteTxns(taskCtx)
 	subtask.End()
@@ -156,7 +194,7 @@ func (e *Engine) Sync(ctx context.Context) (bool, error) {
 	}
 
 	// block barrier: drain and fence every buffered block write durable.
-	fenced, err := e.root.GetBucket().Sync(ctx)
+	fenced, err := e.writeBlockStore.Sync(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -166,6 +204,13 @@ func (e *Engine) Sync(ctx context.Context) (bool, error) {
 	if e.writeCoordinator == nil && e.commitFn != nil {
 		cur := e.root.GetRef()
 		if e.durableHeadRef == nil || !e.durableHeadRef.EqualsRef(cur) {
+			// The root's blocks are durable now (post-barrier); validate it is
+			// followable from durable storage before publishing the head. In the
+			// single-writer path this is the only validation point, because the
+			// per-commit path defers both validation and the head to Sync.
+			if err := e.validateRootRefLocked(ctx, cur); err != nil {
+				return false, err
+			}
 			if err := e.commitFn(ctx, e.durableHeadRef, cur.Clone()); err != nil {
 				return false, err
 			}
@@ -723,7 +768,12 @@ func (e *Engine) buildWorldState(ctx context.Context, readOnly bool) (*WorldStat
 	defer task.End()
 
 	_, subtask := trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/get-bucket")
-	store := e.root.GetBucket()
+	// Both read and write transactions read and write through writeBlockStore so
+	// that, in the single-writer deferred path, reads see blocks that are
+	// committed in memory but not yet drained to durable storage (read your
+	// writes before Sync). It is the bucket store directly in coordinator and
+	// self-buffered modes.
+	store := e.writeBlockStore
 	worldStore := store
 	if !readOnly && e.writeCoordinator != nil {
 		worldStore = nil
