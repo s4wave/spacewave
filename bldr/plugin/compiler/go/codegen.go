@@ -36,6 +36,28 @@ func BuildPackageName(pkg *types.Package) string {
 	return pkg.Name()
 }
 
+// FactoryNeedsBus reports whether a package NewFactory takes the controller bus
+// argument, validating that its required arity is 0 or 1.
+//
+// A trailing variadic parameter (e.g. options) is optional: generated factory
+// wrappers never pass it, so it does not count toward required arity. This lets
+// a factory expose an injection seam such as NewFactory(bus, ...Option) while
+// the wrapper still calls NewFactory(bus).
+func FactoryNeedsBus(pkgPath string, sig *types.Signature) (bool, error) {
+	required := sig.Params().Len()
+	if sig.Variadic() {
+		required--
+	}
+	switch required {
+	case 0:
+		return false, nil
+	case 1:
+		return true, nil
+	default:
+		return false, errors.Errorf("package %s NewFactory has unsupported arity %d", pkgPath, required)
+	}
+}
+
 func buildFactoryCall(pkgName string, pkg *types.Package) (gast.Expr, error) {
 	newFactoryObj := pkg.Scope().Lookup("NewFactory")
 	if newFactoryObj == nil {
@@ -45,21 +67,20 @@ func buildFactoryCall(pkgName string, pkg *types.Package) (gast.Expr, error) {
 	if !ok {
 		return nil, errors.Errorf("package %s NewFactory is not a function", pkg.Path())
 	}
+	needsBus, err := FactoryNeedsBus(pkg.Path(), sig)
+	if err != nil {
+		return nil, err
+	}
 	call := &gast.CallExpr{
 		Fun: &gast.SelectorExpr{
 			X:   gast.NewIdent(pkgName),
 			Sel: gast.NewIdent("NewFactory"),
 		},
 	}
-	switch sig.Params().Len() {
-	case 0:
-		return call, nil
-	case 1:
+	if needsBus {
 		call.Args = []gast.Expr{gast.NewIdent("b")}
-		return call, nil
-	default:
-		return nil, errors.Errorf("package %s NewFactory has unsupported arity %d", pkg.Path(), sig.Params().Len())
 	}
+	return call, nil
 }
 
 // CodegenPluginWrapperFromAnalysis codegens a plugin wrapper from analysis.

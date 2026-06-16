@@ -137,14 +137,9 @@ func (c *Controller) BuildManifest(
 		if !ok {
 			return nil, errors.Errorf("package %s NewFactory is not a function", pkg.PkgPath)
 		}
-		var passBus bool
-		switch sig.Params().Len() {
-		case 0:
-			passBus = false
-		case 1:
-			passBus = true
-		default:
-			return nil, errors.Errorf("package %s NewFactory has unsupported arity %d", pkg.PkgPath, sig.Params().Len())
+		passBus, err := plugin_compiler_go.FactoryNeedsBus(pkg.PkgPath, sig)
+		if err != nil {
+			return nil, err
 		}
 		factoryImports[pkg.PkgPath] = FactoryImport{
 			Alias:   plugin_compiler_go.BuildPackageName(pkg.Types),
