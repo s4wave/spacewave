@@ -1156,6 +1156,24 @@ func TestOpfsChromeWorldCoordinatorMultiWriter(t *testing.T) {
 	})
 }
 
+func TestOpfsChromeWorldDeferredCrashRecovery(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-world-deferred-crash-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario: "world-deferred-crash-recovery",
+		root:     root,
+		shards:   defaultShards,
+	})
+}
+
 func TestOpfsChromeTinyGoWorldLargeUnixFSUpload(t *testing.T) {
 	requireChromeProfile(t, chromeSmoke)
 	if os.Getenv(tinyGoEnv) != "1" && !strings.EqualFold(os.Getenv(tinyGoEnv), "true") {

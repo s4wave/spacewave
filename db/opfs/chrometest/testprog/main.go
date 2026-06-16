@@ -274,6 +274,8 @@ func run(ctx context.Context, c *config) error {
 		return runWorldInitUnixFS(ctx, c)
 	case "world-coord-multi-writer":
 		return runWorldCoordinatorMultiWriter(ctx, c)
+	case "world-deferred-crash-recovery":
+		return runWorldDeferredCrashRecovery(ctx, c)
 	case "world-large-unixfs-upload":
 		return runWorldLargeUnixFSUpload(ctx, c)
 	case "world-resource-large-unixfs-upload":
@@ -2137,6 +2139,125 @@ func runWorldCoordinatorMultiWriter(ctx context.Context, c *config) error {
 	return writer.verifyObjects(ctx, "opfs-serialized-writer-a", "opfs-serialized-writer-b")
 }
 
+// runWorldDeferredCrashRecovery is the wasm/OPFS port of the host
+// TestEngineDeferredDurabilityCrashRecovery. It proves world commits over the
+// blockshard OPFS volume defer durability to Sync: a per-commit write advances
+// only the in-memory root, Sync runs the block barrier then advances the durable
+// head, and a crash (engine + volume teardown WITHOUT a final Sync) recovers to
+// the last Sync'd world head. The rollback invariant holds via the durable HEAD
+// (advanced only at Sync through commitFn), not block absence.
+func runWorldDeferredCrashRecovery(ctx context.Context, c *config) error {
+	writer, err := openDeferredWorldEngine(ctx, c, "writer")
+	if err != nil {
+		return err
+	}
+
+	seedHead, err := writer.readHead(ctx)
+	if err != nil {
+		writer.release()
+		return errors.Wrap(err, "read seed OPFS world head")
+	}
+
+	// Tick 1: a deferred commit advances only the in-memory root; the durable
+	// head must still lag at the seed.
+	if err := createWorldObject(ctx, writer, "opfs-deferred-obj-a"); err != nil {
+		writer.release()
+		return err
+	}
+	if lagHead, err := writer.readHead(ctx); err != nil {
+		writer.release()
+		return errors.Wrap(err, "read OPFS head after deferred obj-a")
+	} else if !objectRefsEqual(lagHead, seedHead) {
+		writer.release()
+		return errors.New("deferred commit must not advance the durable OPFS head before Sync")
+	}
+	rootAfterA := writer.engine.GetRootRef().Clone()
+
+	// Sync fences the block barrier then advances the durable head to obj-a.
+	if _, err := writer.engine.Sync(ctx); err != nil {
+		writer.release()
+		return errors.Wrap(err, "Sync OPFS deferred world engine")
+	}
+	headA, err := writer.readHead(ctx)
+	if err != nil {
+		writer.release()
+		return errors.Wrap(err, "read OPFS head after Sync")
+	}
+	if !objectRefsEqual(headA, rootAfterA) {
+		writer.release()
+		return errors.New("Sync must advance the durable OPFS head to the in-memory root")
+	}
+	if objectRefsEqual(headA, seedHead) {
+		writer.release()
+		return errors.New("Sync'd OPFS head must differ from the seed head")
+	}
+
+	// Tick 2: another deferred commit; the durable head must still lag at obj-a.
+	if err := createWorldObject(ctx, writer, "opfs-deferred-obj-b"); err != nil {
+		writer.release()
+		return err
+	}
+	if lagHead, err := writer.readHead(ctx); err != nil {
+		writer.release()
+		return errors.Wrap(err, "read OPFS head after deferred obj-b")
+	} else if !objectRefsEqual(lagHead, headA) {
+		writer.release()
+		return errors.New("post-Sync deferred commit must not advance the durable OPFS head")
+	}
+
+	// Crash: tear down the engine and volume WITHOUT a final Sync. obj-b lives
+	// only in the in-memory buffer; the durable head still names obj-a.
+	writer.release()
+
+	// Recover: reopen a deferred world engine over the same OPFS origin storage.
+	// The cursor builds at the persisted durable head (obj-a).
+	recovered, err := openDeferredWorldEngine(ctx, c, "writer")
+	if err != nil {
+		return err
+	}
+	defer recovered.release()
+
+	if !objectRefsEqual(recovered.engine.GetRootRef(), headA) {
+		return errors.Errorf("OPFS recovery root=%v want last Sync'd head=%v", recovered.engine.GetRootRef(), headA)
+	}
+
+	tx, err := recovered.engine.NewTransaction(ctx, false)
+	if err != nil {
+		return errors.Wrap(err, "open OPFS recovery read transaction")
+	}
+	defer tx.Discard()
+	// obj-a's blocks were fenced durable by Sync, so it recovers (this read also
+	// proves block-before-head ordering: the head names only durable blocks).
+	if _, found, err := tx.GetObject(ctx, "opfs-deferred-obj-a"); err != nil {
+		return errors.Wrap(err, "read obj-a after OPFS recovery")
+	} else if !found {
+		return errors.New("OPFS recovery must land on the last Sync'd head with obj-a present")
+	}
+	// obj-b, committed after the last Sync, is rolled back: the durable head never
+	// referenced its tree.
+	if _, found, err := tx.GetObject(ctx, "opfs-deferred-obj-b"); err != nil {
+		return errors.Wrap(err, "read obj-b after OPFS recovery")
+	} else if found {
+		return errors.New("post-Sync OPFS commit must not survive a crash before the next Sync")
+	}
+	return nil
+}
+
+func createWorldObject(ctx context.Context, h *coordinatorWorldEngine, key string) error {
+	tx, err := h.engine.NewTransaction(ctx, true)
+	if err != nil {
+		return errors.Wrapf(err, "open OPFS writer for %q", key)
+	}
+	if _, err := tx.CreateObject(ctx, key, nil); err != nil {
+		tx.Discard()
+		return errors.Wrapf(err, "create OPFS world object %q", key)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return errors.Wrapf(err, "commit OPFS world object %q", key)
+	}
+	return nil
+}
+
 type coordinatorWorldEngine struct {
 	vol           *volume_opfs.Opfs
 	objectStoreID string
@@ -2148,6 +2269,14 @@ type coordinatorWorldEngine struct {
 }
 
 func openCoordinatorWorldEngine(ctx context.Context, c *config, participant string) (*coordinatorWorldEngine, error) {
+	return openWorldEngine(ctx, c, participant, false)
+}
+
+func openDeferredWorldEngine(ctx context.Context, c *config, participant string) (*coordinatorWorldEngine, error) {
+	return openWorldEngine(ctx, c, participant, true)
+}
+
+func openWorldEngine(ctx context.Context, c *config, participant string, deferred bool) (*coordinatorWorldEngine, error) {
 	vol, err := openVolume(ctx, c)
 	if err != nil {
 		return nil, err
@@ -2196,10 +2325,19 @@ func openCoordinatorWorldEngine(ctx context.Context, c *config, participant stri
 	commitFn := func(ctx context.Context, baseRef, nref *bucket.ObjectRef) error {
 		return h.casHead(ctx, baseRef, nref)
 	}
-	scope := coord.Scope{
-		VolumeID:      vol.GetID(),
-		ObjectStoreID: objectStoreID,
-		ParticipantID: participant,
+	var engineOpt world_block.EngineOption
+	if deferred {
+		// Single-writer deferred durability: block writes and the durable head
+		// advance both batch until Sync. The crash-recovery scenario fences
+		// explicitly and a teardown without Sync rolls back to the last head.
+		engineOpt = world_block.WithDeferredDurability()
+	} else {
+		scope := coord.Scope{
+			VolumeID:      vol.GetID(),
+			ObjectStoreID: objectStoreID,
+			ParticipantID: participant,
+		}
+		engineOpt = world_block.WithWriteCoordinator(vol, scope, []byte("world-head"), h.readHead)
 	}
 	engine, err := world_block.NewEngine(
 		ctx,
@@ -2208,11 +2346,11 @@ func openCoordinatorWorldEngine(ctx context.Context, c *config, participant stri
 		space_world_ops.LookupWorldOp,
 		commitFn,
 		false,
-		world_block.WithWriteCoordinator(vol, scope, []byte("world-head"), h.readHead),
+		engineOpt,
 	)
 	if err != nil {
 		h.release()
-		return nil, errors.Wrap(err, "open OPFS coordinated world engine")
+		return nil, errors.Wrap(err, "open OPFS world engine")
 	}
 	h.engine = engine
 	return h, nil
