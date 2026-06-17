@@ -134,7 +134,7 @@
   },
   {
     "name": "github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs",
-    "version": "v0.0.0-20260605073731-428dc1505f4a",
+    "version": "v0.0.0-20260614231932-9ac47eecfff5",
     "licenseName": "MIT",
     "licenseURL": "https://github.com/s4wave/spacewave/blob/HEAD/vendor/github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs/LICENSE",
     "licenseText": "The MIT License (MIT)\n \nCopyright (c) 2024-2025 Christian Stewart\nCopyright (c) 2017-2024 Fabrice Bellard\nCopyright (c) 2017-2024 Charlie Gordon\nCopyright (c) 2023-2025 Ben Noordhuis\nCopyright (c) 2023-2025 Saúl Ibarra Corretgé\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in\nall copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL\nTHE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN\nTHE SOFTWARE.\n"
@@ -505,7 +505,7 @@
   },
   {
     "name": "github.com/ncruces/go-sqlite3",
-    "version": "v0.35.0",
+    "version": "v0.35.1",
     "licenseName": "MIT",
     "licenseURL": "https://github.com/s4wave/spacewave/blob/HEAD/vendor/github.com/ncruces/go-sqlite3/LICENSE",
     "licenseText": "MIT License\n\nCopyright (c) 2023 Nuno Cruces\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n"

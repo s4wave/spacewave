@@ -923,7 +923,7 @@
     },
     {
       "name": "github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs",
-      "version": "v0.0.0-20260605073731-428dc1505f4a",
+      "version": "v0.0.0-20260614231932-9ac47eecfff5",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/go-quickjs-wasi-reactor",
@@ -1340,7 +1340,7 @@
     },
     {
       "name": "github.com/ncruces/go-sqlite3",
-      "version": "v0.35.0",
+      "version": "v0.35.1",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/ncruces/go-sqlite3",
