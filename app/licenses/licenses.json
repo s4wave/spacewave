@@ -812,7 +812,7 @@
     },
     {
       "name": "github.com/aperturerobotics/bbolt",
-      "version": "v0.0.0-20260609012612-b7698b22dace",
+      "version": "v0.0.0-20260617204204-71b28cbadcb4",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/etcd-io/bbolt",
@@ -947,7 +947,7 @@
     },
     {
       "name": "github.com/aperturerobotics/goscript",
-      "version": "v0.2.4",
+      "version": "v0.2.5-0.20260617213207-b51ec4c0e582",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/goscript",
@@ -1730,7 +1730,7 @@
     },
     {
       "name": "golang.org/x/exp",
-      "version": "v0.0.0-20260218203240-3dfff04db8fa",
+      "version": "v0.0.0-20260611194520-c48552f49976",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/exp",
