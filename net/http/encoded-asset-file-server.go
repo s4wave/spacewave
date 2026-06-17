@@ -2,15 +2,12 @@ package bifrost_http
 
 import (
 	"errors"
-	"io"
 	"io/fs"
 	"mime"
 	"net/http"
 	"path"
 	"strconv"
 	"strings"
-
-	brotli "github.com/aperturerobotics/go-brotli-decoder"
 )
 
 const encodedAssetVary = "Accept-Encoding"
@@ -53,25 +50,6 @@ func applyEncodedAssetHeaders(rw http.ResponseWriter, req *http.Request, hfs htt
 		return
 	}
 	rw.Header().Set("Content-Length", strconv.FormatInt(st.Size(), 10))
-}
-
-func maybeServeDecodedBrotli(rw http.ResponseWriter, req *http.Request, hfs http.FileSystem) bool {
-	if !strings.HasSuffix(req.URL.Path, ".br") || acceptsEncoding(req, "br") {
-		return false
-	}
-	f, err := openHTTPFile(hfs, req.URL.Path)
-	if err != nil {
-		msg, code := ToHTTPError(err)
-		http.Error(rw, msg, code)
-		return true
-	}
-	defer f.Close()
-
-	_, err = io.Copy(rw, brotli.NewReader(f))
-	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
-	}
-	return true
 }
 
 func encodedAssetContentType(name string) (string, string) {
