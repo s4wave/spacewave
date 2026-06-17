@@ -5,7 +5,6 @@ package wasm
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	"path/filepath"
 	"slices"
@@ -14,79 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aperturerobotics/util/gitroot"
 	"github.com/pkg/errors"
-	playwright "github.com/playwright-community/playwright-go"
 	exptrace "golang.org/x/exp/trace"
+
+	"github.com/s4wave/spacewave/e2e/drivebench"
 )
-
-// driveStartupBenchRun is one bench cell artifact: the resolved build identity,
-// wall-clock milestones from navigation start to Drive content-ready, the
-// browser-observed quickstart timing, the served bundle size, the Resource SDK
-// connection timing, and, when the trace service is available, the captured
-// runtime trace summary. It is written as run.json per cell so cells compare
-// across runtime states and build modes.
-type driveStartupBenchRun struct {
-	Timestamp          string                        `json:"timestamp"`
-	Compiler           string                        `json:"compiler"`
-	BuildMode          string                        `json:"buildMode"`
-	RuntimeState       string                        `json:"runtimeState"`
-	Cell               string                        `json:"cell"`
-	Milestones         driveStartupBenchMilestones   `json:"milestones"`
-	Browser            driveStartupBenchBrowser      `json:"browser"`
-	ServedBundle       driveStartupBenchBundle       `json:"servedBundle"`
-	ResourceConnection driveStartupBenchResourceConn `json:"resourceConnection"`
-	Trace              *driveStartupBenchTrace       `json:"trace,omitempty"`
-}
-
-// driveStartupBenchMilestones records wall-clock milliseconds from navigation
-// start to each boot milestone. ContentReadyMs is the moment getting-started.md
-// is present in the file browser, which is also when the first file row renders.
-type driveStartupBenchMilestones struct {
-	LiveAppMs       int64 `json:"liveAppMs"`
-	RouteAcceptedMs int64 `json:"routeAcceptedMs"`
-	UnixfsVisibleMs int64 `json:"unixfsVisibleMs"`
-	ContentReadyMs  int64 `json:"contentReadyMs"`
-}
-
-// driveStartupBenchBrowser carries the browser-side quickstart timing reported
-// by the Drive viewer, independent of the Go-side wall clock.
-type driveStartupBenchBrowser struct {
-	ContentReadyMs            int    `json:"contentReadyMs"`
-	QuickstartState           string `json:"quickstartState"`
-	QuickstartProgressReadyMs *int   `json:"quickstartProgressReadyMs,omitempty"`
-	QuickstartContentReadyMs  *int   `json:"quickstartContentReadyMs,omitempty"`
-	QuickstartFinishedMs      *int   `json:"quickstartFinishedMs,omitempty"`
-}
-
-// driveStartupBenchBundle is the served bundle size observed by the browser, the
-// sum of transferred resource bytes and the WASM subtotal. A warm runtime state
-// reports a smaller transfer total because cached assets contribute zero
-// transfer bytes.
-type driveStartupBenchBundle struct {
-	TotalTransferBytes int64 `json:"totalTransferBytes"`
-	WasmTransferBytes  int64 `json:"wasmTransferBytes"`
-	ResourceCount      int   `json:"resourceCount"`
-}
-
-// driveStartupBenchResourceConn summarizes the Resource SDK connection timing
-// for the session.
-type driveStartupBenchResourceConn struct {
-	DurationMs     int64 `json:"durationMs"`
-	Attempts       int   `json:"attempts"`
-	StartupReloads int   `json:"startupReloads"`
-}
-
-// driveStartupBenchTrace summarizes the captured runtime trace and the paths of
-// the raw trace plus its tracetool extraction.
-type driveStartupBenchTrace struct {
-	Bytes            int    `json:"bytes"`
-	RuntimeTracePath string `json:"runtimeTracePath"`
-	TracetoolPath    string `json:"tracetoolPath"`
-	UserTasks        int    `json:"userTasks"`
-	UserRegions      int    `json:"userRegions"`
-	UserLogs         int    `json:"userLogs"`
-}
 
 // TestGoScriptDriveStartupBench records the time-to-Drive bench for the
 // unbundled build across three runtime states on one owned BrowserContext:
@@ -230,41 +161,47 @@ func runDriveBenchCell(
 	}
 
 	connTiming := sess.ResourceConnectionTiming()
-	run := driveStartupBenchRun{
+	run := drivebench.Run{
 		Timestamp:    in.navStart.UTC().Format(time.RFC3339Nano),
 		Compiler:     string(compiler),
 		BuildMode:    in.buildMode,
 		RuntimeState: in.runtimeState,
 		Cell:         in.cell,
-		Milestones: driveStartupBenchMilestones{
+		Milestones: drivebench.Milestones{
 			LiveAppMs:       in.liveAppMs,
 			RouteAcceptedMs: routeAcceptedMs,
 			UnixfsVisibleMs: unixfsVisibleMs,
 			ContentReadyMs:  contentReadyMs,
 		},
-		Browser: driveStartupBenchBrowser{
+		Browser: drivebench.Browser{
 			ContentReadyMs:            driveReady.ContentReadyMs,
 			QuickstartState:           driveReady.QuickstartState,
 			QuickstartProgressReadyMs: driveReady.QuickstartProgressReadyMs,
 			QuickstartContentReadyMs:  driveReady.QuickstartContentReadyMs,
 			QuickstartFinishedMs:      driveReady.QuickstartFinishedMs,
 		},
-		ServedBundle:       measureServedBundle(t, page),
 		ResourceConnection: summarizeResourceConnection(connTiming),
 	}
+	// ServedBundle stays nil: bundle size is a bundled-build metric the
+	// releasewasm bench measures from the built production bundle on disk. The
+	// unbundled dev build serves an unbundled module graph with no single bundle,
+	// and its worker-loaded modules never appear on the page resource timeline.
 
-	cellDir := driveBenchCellDir(t, in.runStamp, in.cell)
+	cellDir, err := drivebench.CellDir(in.runStamp, in.cell)
+	if err != nil {
+		t.Fatalf("resolve cell dir: %v", err)
+	}
 	if traceEnabled {
 		tracePath := filepath.Join(cellDir, "runtime.trace")
-		if err := WriteTraceArtifact(tracePath, traceData); err != nil {
+		if err := drivebench.WriteArtifact(tracePath, traceData); err != nil {
 			t.Fatalf("write runtime.trace: %v", err)
 		}
 		tracetoolPath := filepath.Join(cellDir, "tracetool.txt")
 		summary, tasks, regions, logs := summarizeTrace(t, traceData)
-		if err := WriteTraceArtifact(tracetoolPath, []byte(summary)); err != nil {
+		if err := drivebench.WriteArtifact(tracetoolPath, []byte(summary)); err != nil {
 			t.Fatalf("write tracetool.txt: %v", err)
 		}
-		run.Trace = &driveStartupBenchTrace{
+		run.Trace = &drivebench.Trace{
 			Bytes:            len(traceData),
 			RuntimeTracePath: tracePath,
 			TracetoolPath:    tracetoolPath,
@@ -274,12 +211,8 @@ func runDriveBenchCell(
 		}
 	}
 
-	data, err := json.MarshalIndent(run, "", "  ")
+	runPath, err := drivebench.WriteRun(cellDir, run)
 	if err != nil {
-		t.Fatalf("marshal run.json: %v", err)
-	}
-	runPath := filepath.Join(cellDir, "run.json")
-	if err := WriteTraceArtifact(runPath, data); err != nil {
 		t.Fatalf("write run.json: %v", err)
 	}
 	t.Logf("drive bench cell %s written to %s (live=%dms route=%dms unixfs=%dms content=%dms trace=%v)",
@@ -343,57 +276,14 @@ func msSince(start time.Time) int64 {
 	return time.Since(start).Milliseconds()
 }
 
-// driveBenchCellDir returns the artifact directory for one bench cell under the
-// repo-root .bldr tree, grouped by the run stamp shared across the run's cells.
-func driveBenchCellDir(t testing.TB, runStamp string, cell string) string {
-	t.Helper()
-	repoRoot, err := gitroot.FindRepoRoot()
-	if err != nil {
-		t.Fatalf("find repo root: %v", err)
-	}
-	return filepath.Join(repoRoot, ".bldr", "e2e-goscript-drive-bench", runStamp, cell)
-}
-
-// measureServedBundle sums the browser's transferred resource bytes, reporting
-// the total, the WASM subtotal, and the resource count. transferSize falls back
-// to encodedBodySize for entries without a populated transfer size.
-func measureServedBundle(t testing.TB, page playwright.Page) driveStartupBenchBundle {
-	t.Helper()
-	raw, err := page.Evaluate(`() => {
-		const entries = performance.getEntriesByType('resource')
-		let total = 0
-		let wasm = 0
-		for (const entry of entries) {
-			const size = entry.transferSize || entry.encodedBodySize || 0
-			total += size
-			if (entry.name.endsWith('.wasm')) {
-				wasm += size
-			}
-		}
-		return { total, wasm, count: entries.length }
-	}`)
-	if err != nil {
-		t.Fatalf("measure served bundle: %v", err)
-	}
-	fields, ok := raw.(map[string]any)
-	if !ok {
-		t.Fatalf("unexpected served bundle result %T", raw)
-	}
-	return driveStartupBenchBundle{
-		TotalTransferBytes: numberFieldInt64(fields, "total"),
-		WasmTransferBytes:  numberFieldInt64(fields, "wasm"),
-		ResourceCount:      int(numberFieldInt64(fields, "count")),
-	}
-}
-
 // summarizeResourceConnection reduces the session connection timing to the cell
 // schema fields.
-func summarizeResourceConnection(timing ResourceConnectionTiming) driveStartupBenchResourceConn {
+func summarizeResourceConnection(timing ResourceConnectionTiming) drivebench.ResourceConn {
 	var durationMs int64
 	if !timing.StartedAt.IsZero() && !timing.CompletedAt.IsZero() {
 		durationMs = timing.CompletedAt.Sub(timing.StartedAt).Milliseconds()
 	}
-	return driveStartupBenchResourceConn{
+	return drivebench.ResourceConn{
 		DurationMs:     durationMs,
 		Attempts:       len(timing.Attempts),
 		StartupReloads: timing.StartupReloads,
@@ -543,13 +433,4 @@ func benchTracePrefixFor(typ string) string {
 		return seg
 	}
 	return "other"
-}
-
-// numberFieldInt64 reads a numeric field from a Playwright eval result, which
-// decodes JS numbers as float64.
-func numberFieldInt64(fields map[string]any, key string) int64 {
-	if v, ok := fields[key].(float64); ok {
-		return int64(v)
-	}
-	return 0
 }
