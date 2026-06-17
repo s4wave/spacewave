@@ -43,6 +43,9 @@ const (
 	// E2EWasmGoScriptRuntimeTraceEnv opts GoScript browser runs into
 	// runtime-trace capture; off by default so routine GoScript e2e stays fast.
 	E2EWasmGoScriptRuntimeTraceEnv = "E2E_WASM_GOSCRIPT_RUNTIME_TRACE"
+	// E2EWasmDriveBenchEnv opts in the time-to-Drive startup bench; off by
+	// default so routine e2e does not pay the bench measurement cost.
+	E2EWasmDriveBenchEnv = "E2E_WASM_DRIVE_BENCH"
 )
 
 var (
@@ -193,6 +196,17 @@ func E2EWasmTraceServiceEnabled(compiler E2EWasmCompiler) bool {
 // into runtime-trace capture via E2E_WASM_GOSCRIPT_RUNTIME_TRACE.
 func E2EWasmGoScriptRuntimeTraceEnabled() bool {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv(E2EWasmGoScriptRuntimeTraceEnv))) {
+	case "true", "1", "yes", "on":
+		return true
+	default:
+		return false
+	}
+}
+
+// E2EWasmDriveBenchEnabled reports whether the time-to-Drive startup bench runs,
+// gated by E2E_WASM_DRIVE_BENCH so routine e2e skips the measurement.
+func E2EWasmDriveBenchEnabled() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(E2EWasmDriveBenchEnv))) {
 	case "true", "1", "yes", "on":
 		return true
 	default:

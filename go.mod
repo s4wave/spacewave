@@ -43,7 +43,7 @@ require (
 	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260614231932-9ac47eecfff5
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6
 	github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d
-	github.com/aperturerobotics/goscript v0.2.5-0.20260617213207-b51ec4c0e582
+	github.com/aperturerobotics/goscript v0.2.5-0.20260617221130-494ddd197da3
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.14.0 // master
