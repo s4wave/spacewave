@@ -159,7 +159,14 @@ func (s *sessionTracker) executeLink(ctx context.Context, dcRwc datachannel.Read
 		linkOpts = &transport_quic.Opts{}
 	}
 	linkOpts.DisableDatagrams = true
-	linkOpts.DisableKeepAlive = true
+	// Keep QUIC keepalive enabled for WebRTC links. The link rides a datachannel
+	// and can sit idle (a quiet resource stream, a lull between bursts) longer
+	// than MaxIdleTimeout; without keepalive PINGs quic-go reaps it with an idle
+	// timeout ("no recent network activity") and the link has to re-establish,
+	// stalling traffic that depended on it. Keepalive (MaxIdleTimeout/2) holds an
+	// otherwise-healthy idle link open. Unlike the websocket transport, the
+	// datachannel has no lower-layer keepalive of its own.
+	linkOpts.DisableKeepAlive = false
 	linkOpts.DisablePathMtuDiscovery = true
 	linkOpts.MaxIdleTimeoutDur = "60s"
 
