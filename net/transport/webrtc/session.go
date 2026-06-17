@@ -555,6 +555,17 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	var lastAppliedRemoteSdp string
 	// Which ICE candidate index did we send last?
 	var lastSentICE int
+	// sentIceComplete records whether the end-of-candidates marker has been
+	// transmitted for the current negotiation generation. It is reset whenever
+	// lastSentICE resets (a new local offer/answer regathers candidates).
+	var sentIceComplete bool
+	// pendingRemoteIce buffers remote ICE candidates that arrive before the
+	// remote description is set. pion's AddICECandidate requires a remote
+	// description, and the offerer routinely receives the answerer's trickled
+	// candidates before the answer SDP lands; without buffering, those host
+	// candidates are lost and the offerer rides a peer-reflexive-only pair.
+	// Buffered candidates are flushed immediately after SetRemoteDescription.
+	var pendingRemoteIce []webrtc.ICECandidateInit
 
 	for {
 		phase = "wait for session change"
@@ -612,6 +623,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 		var currConnState webrtc.PeerConnectionState
 		var currFatalErr error
 		var currTxICE []*webrtc.ICECandidateInit
+		var currLocalIceComplete bool
 		var currDcRwc datachannel.ReadWriteCloser
 		phase = "snapshot session state"
 		sess.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
@@ -622,8 +634,10 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 			// check ice candidates to tx
 			if currLocalSeqno != lastLocalSeqno || lastSentICE > len(sess.localIceCandidates) {
 				lastSentICE = 0
+				sentIceComplete = false
 			}
 			currTxICE = sess.localIceCandidates[lastSentICE:]
+			currLocalIceComplete = sess.localIceCandidatesComplete
 
 			// check if data channel is open
 			if sess.dcOpen {
@@ -699,6 +713,14 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 				}
 				lastAppliedRemoteSdp = currRxSdp.GetSdp()
 
+				// Flush any candidates that arrived before the remote description.
+				for i := range pendingRemoteIce {
+					if err := sess.pc.AddICECandidate(pendingRemoteIce[i]); err != nil {
+						return pkgerrors.Wrap(err, "add buffered remote ice candidate")
+					}
+				}
+				pendingRemoteIce = nil
+
 				// Transmit an answer if applicable
 				if !s.offerer {
 					if s.w.GetVerbose() {
@@ -726,10 +748,17 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 			if err != nil {
 				return pkgerrors.Wrap(err, "parse remote ice candidate")
 			}
-			// If there is no remote description, drop the ICE candidate.
-			if ice != nil && sess.pc.RemoteDescription() != nil {
-				if err := sess.pc.AddICECandidate(*ice); err != nil {
-					return pkgerrors.Wrap(err, "add remote ice candidate")
+			// Apply the candidate once a remote description exists; otherwise
+			// buffer it. pion drops candidates added with no remote description,
+			// and the offerer commonly receives the answerer's candidates before
+			// the answer SDP lands.
+			if ice != nil {
+				if sess.pc.RemoteDescription() != nil {
+					if err := sess.pc.AddICECandidate(*ice); err != nil {
+						return pkgerrors.Wrap(err, "add remote ice candidate")
+					}
+				} else {
+					pendingRemoteIce = append(pendingRemoteIce, *ice)
 				}
 			}
 		}
@@ -781,6 +810,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 
 			// Restart sending ice candidates & recheck
 			lastSentICE = 0
+			sentIceComplete = false
 			waitCh = nil
 			continue
 		}
@@ -808,6 +838,28 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 				xmitSignal(&WebRtcSignal{Body: &WebRtcSignal_Ice{Ice: ice}})
 				lastSentICE++
 			}
+		} else if currLocalIceComplete && !sentIceComplete {
+			// All gathered candidates are sent and gathering is complete: signal
+			// end-of-candidates exactly once. libwebrtc and pion keep the ICE
+			// checklist non-final until they receive this marker; without it the
+			// selected pair loses consent at the fixed 15s timeout and the link
+			// dies (connected -> disconnected -> failed). Verified with a raw
+			// two-browser trickle bisection: the identical exchange stays
+			// connected only when end-of-candidates is sent. An empty candidate
+			// string is the end-of-candidates marker for both pion (native and
+			// js) and the browser; sdpMLineIndex 0 keeps the browser's
+			// addIceCandidate from rejecting an all-null candidate.
+			phase = "transmit end-of-candidates"
+			if s.w.GetVerbose() {
+				le.Debug("signal tx: end-of-candidates")
+			}
+			mlineIndex := uint16(0)
+			eoc, err := NewWebRtcIce(&webrtc.ICECandidateInit{SDPMLineIndex: &mlineIndex})
+			if err != nil {
+				return pkgerrors.Wrap(err, "marshal end-of-candidates")
+			}
+			xmitSignal(&WebRtcSignal{Body: &WebRtcSignal_Ice{Ice: eoc}})
+			sentIceComplete = true
 		}
 
 		// If there are still ICE candidates to transmit, recheck next time right away.
