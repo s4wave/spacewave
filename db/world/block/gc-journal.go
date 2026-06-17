@@ -234,9 +234,18 @@ func (j *gcJournal) DeleteApplied(ctx context.Context, entries []gcJournalEntry)
 		j.count--
 	}
 	if j.count == 0 {
+		// A fully drained journal resets to the empty/new-journal state: both
+		// the seq and count metadata keys are removed and the in-memory
+		// sequence is reset. Retaining a nonzero seq key here would force the
+		// next newGCJournal rebuild down the metadata-upgrade branch and
+		// re-issue storeSeq, an avoidable rewrite on every drain.
 		if err := j.tree.Delete(ctx, gcJournalCountKey); err != nil {
 			return err
 		}
+		if err := j.tree.Delete(ctx, gcJournalSeqKey); err != nil {
+			return err
+		}
+		j.seq = 0
 		return nil
 	}
 	return j.storeCount(ctx, j.count)

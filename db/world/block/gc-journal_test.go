@@ -18,6 +18,7 @@ type gcJournalTestTree struct {
 	scanPrefixKeys int
 	scanPrefix     int
 	scanValues     int
+	seqKeySets     int
 }
 
 func newGCJournalTestTree() *gcJournalTestTree {
@@ -42,6 +43,9 @@ func (t *gcJournalTestTree) Exists(_ context.Context, key []byte) (bool, error) 
 }
 
 func (t *gcJournalTestTree) Set(_ context.Context, key, value []byte) error {
+	if bytes.Equal(key, gcJournalSeqKey) {
+		t.seqKeySets++
+	}
 	t.values[string(key)] = bytes.Clone(value)
 	return nil
 }
@@ -270,6 +274,69 @@ func TestGCJournalTakeDeleteAppliedPreservesPendingEntries(t *testing.T) {
 	}
 	if got := remaining[0].adds[0].Subject; got != "subject-c" {
 		t.Fatalf("remaining subject = %q, want subject-c", got)
+	}
+}
+
+func TestGCJournalDeleteAppliedFullDrainResetsMetadata(t *testing.T) {
+	ctx := context.Background()
+	tree := newGCJournalTestTree()
+	journal, err := newGCJournal(ctx, tree, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range 2 {
+		err := journal.Append(ctx, []block_gc.RefEdge{{
+			Subject: "subject-" + string(rune('a'+i)),
+			Object:  "object-" + string(rune('a'+i)),
+		}}, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	entries, err := journal.Take(ctx, 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("take entries = %d, want 2", len(entries))
+	}
+	if err := journal.DeleteApplied(ctx, entries); err != nil {
+		t.Fatal(err)
+	}
+	if journal.Entries() != 0 {
+		t.Fatalf("entries after full drain = %d, want 0", journal.Entries())
+	}
+	if journal.seq != 0 {
+		t.Fatalf("in-memory seq after full drain = %d, want 0", journal.seq)
+	}
+	if _, found, err := tree.Get(ctx, gcJournalSeqKey); err != nil {
+		t.Fatal(err)
+	} else if found {
+		t.Fatal("full drain must remove sequence metadata, matching a new journal")
+	}
+	if _, found, err := tree.Get(ctx, gcJournalCountKey); err != nil {
+		t.Fatal(err)
+	} else if found {
+		t.Fatal("full drain must remove count metadata")
+	}
+
+	// Rebuilding write=true over a drained journal must take the clean path and
+	// never re-issue storeSeq; the retained-seq upgrade branch is what faulted
+	// with block-not-found on the deferred-durability browser store.
+	tree.seqKeySets = 0
+	reloaded, err := newGCJournal(ctx, tree, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reloaded.Entries() != 0 {
+		t.Fatalf("reloaded entries = %d, want 0", reloaded.Entries())
+	}
+	if reloaded.seq != 0 {
+		t.Fatalf("reloaded seq = %d, want 0", reloaded.seq)
+	}
+	if tree.seqKeySets != 0 {
+		t.Fatalf("rebuild over drained journal issued %d seq writes, want 0", tree.seqKeySets)
 	}
 }
 
