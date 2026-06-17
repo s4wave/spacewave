@@ -5,6 +5,7 @@ package web_pkg
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/aperturerobotics/fastjson"
@@ -418,6 +419,9 @@ func ResolveWebPkgRefsFromConfig(
 			pkgRoot = resolveTSConfigWebPkgRoot(codeRootPath, pkgID)
 		}
 		if pkgRoot == "" {
+			pkgRoot = resolveMaterializedWebPkgRoot(codeRootPath, pkgID)
+		}
+		if pkgRoot == "" {
 			candidate := filepath.Join(codeRootPath, "node_modules", pkgID)
 			if info, err := os.Stat(candidate); err == nil && info.IsDir() {
 				pkgRoot = candidate
@@ -445,6 +449,33 @@ func ResolveWebPkgRefsFromConfig(
 
 	SortWebPkgRefs(refs)
 	return refs, nil
+}
+
+// resolveMaterializedWebPkgRoot resolves a scoped web pkg "@scope/name" to a
+// materialized "<codeRoot>/.scope/name" directory. A downstream app that
+// consumes a web pkg from a Go module populates this directory from the module
+// source, because go mod vendor strips the module's pure-TS dirs from the
+// vendor tree. The monorepo build resolves the pkg from its own source via the
+// earlier stages and never creates this directory, so this stage is inert
+// there. Only single-segment scoped IDs map; "@scope/name" -> ".scope/name".
+func resolveMaterializedWebPkgRoot(codeRootPath, pkgID string) string {
+	if !strings.HasPrefix(pkgID, "@") {
+		return ""
+	}
+	slash := strings.IndexByte(pkgID, '/')
+	if slash < 0 {
+		return ""
+	}
+	scope := pkgID[1:slash]
+	name := pkgID[slash+1:]
+	if scope == "" || name == "" || strings.ContainsRune(name, '/') {
+		return ""
+	}
+	candidate := filepath.Join(codeRootPath, "."+scope, name)
+	if info, err := os.Stat(candidate); err == nil && info.IsDir() {
+		return candidate
+	}
+	return ""
 }
 
 func resolveTSConfigWebPkgRoot(codeRootPath, pkgID string) string {
@@ -518,10 +549,5 @@ func fileExists(path string) bool {
 }
 
 func stringSliceContains(values []string, value string) bool {
-	for _, existing := range values {
-		if existing == value {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(values, value)
 }
