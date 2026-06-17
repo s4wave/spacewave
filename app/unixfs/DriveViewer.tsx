@@ -113,21 +113,21 @@ function DriveGettingStartedHeader(props: UnixFSBrowserDirectoryHeaderProps) {
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
           <DriveGettingStartedAction
             testId="drive-upload-cta"
-            icon={<LuUpload className="text-foreground-alt size-4" />}
+            icon={<LuUpload className="text-brand size-4" />}
             label="Upload files"
             description="Add content"
             onClick={() => dismissThen(onUploadFiles)}
           />
           <DriveGettingStartedAction
             testId="drive-new-folder-cta"
-            icon={<LuFolderPlus className="text-foreground-alt size-4" />}
+            icon={<LuFolderPlus className="text-brand size-4" />}
             label="New folder"
             description="Create structure"
             onClick={() => dismissThen(onNewFolder)}
           />
           <DriveGettingStartedAction
             testId="drive-open-guide-cta"
-            icon={<LuBookOpen className="text-foreground-alt size-4" />}
+            icon={<LuBookOpen className="text-brand size-4" />}
             label="Open guide"
             description="Read getting-started.md"
             onClick={handleOpenGuide}
@@ -135,7 +135,7 @@ function DriveGettingStartedHeader(props: UnixFSBrowserDirectoryHeaderProps) {
           {canShareSpace && (
             <DriveGettingStartedAction
               testId="drive-invite-cta"
-              icon={<LuUserPlus className="text-foreground-alt size-4" />}
+              icon={<LuUserPlus className="text-brand size-4" />}
               label="Invite people"
               description="Share this Space"
               onClick={handleShareSpace}
@@ -170,10 +170,10 @@ function DriveGettingStartedAction({
       onClick={onClick}
       className={cn(
         'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50',
-        'group flex min-h-18 min-w-0 items-center gap-3 rounded-lg border p-3 text-left transition-all duration-150',
+        'group flex min-w-0 items-center gap-3 rounded-lg border p-3 text-left transition-all duration-150',
       )}
     >
-      <span className="bg-foreground/5 group-hover:bg-foreground/8 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+      <span className="bg-brand/10 group-hover:bg-brand/15 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
         {icon}
       </span>
       <span className="flex min-w-0 flex-col">
