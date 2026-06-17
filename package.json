@@ -175,6 +175,7 @@
     "bldr:start:desktop:release": "bun run bldr:build:release && cd ./.bldr/build/desktop/$(go env GOOS)/$(go env GOARCH)/bldr-demo-release/dist && ./bldr-demo",
     "bldr:start:web": "bun run bldr:bldr -- --minify-entrypoint=false start --plugins web web",
     "bldr:start:web:wasm": "bun run bldr:bldr -- --log-level debug --minify-entrypoint=false start web --wasm",
+    "bldr:start:web:goscript": "bun run bldr:bldr -- --log-level debug --minify-entrypoint=false start web --goscript",
     "bldr:start:web:wasm:browser": "node bldr/scripts/start-web-wasm-browser.js",
     "bldr:start:web:release": "bun run bldr:build:release:web && bun run bldr:bldr -- static --path ./.bldr-dist/build/web/js/wasm/bldr-demo-release/dist",
     "bldr:start:web:release:debug": "bun run bldr:build:release:web:debug && bun run bldr:bldr -- static --path ./.bldr-dist/build/web/js/wasm/bldr-demo-release/dist",

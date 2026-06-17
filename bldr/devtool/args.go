@@ -20,6 +20,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type webStartMode string
+
+const (
+	webStartModeWasm     webStartMode = "wasm"
+	webStartModeGoScript webStartMode = "goscript"
+)
+
 // DevtoolArgs contains common flags for the dev tools.
 type DevtoolArgs struct {
 	// Logger is the root logger.
@@ -65,7 +72,7 @@ type DevtoolArgs struct {
 	JSSourcemaps string
 	// WebListenAddr is the address to listen for start:web
 	WebListenAddr string
-	// WebUseWasm runs the entire runtime in the browser with wasm.
+	// WebUseWasm compiles browser Go plugins with standard Go/WASM.
 	WebUseWasm bool
 	// WebUseGoScript compiles browser Go plugins with GoScript.
 	WebUseGoScript bool
@@ -408,14 +415,14 @@ func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 				},
 				&cli.BoolFlag{
 					Name:        "wasm",
-					Usage:       "if set, use WebAssembly to load the runtime in the browser",
+					Usage:       "compile browser Go plugins with standard Go/WASM",
 					EnvVars:     []string{"BLDR_WEB_WASM"},
 					Destination: &a.WebUseWasm,
 					Value:       a.WebUseWasm,
 				},
 				&cli.BoolFlag{
 					Name:        "goscript",
-					Usage:       "compile browser Go plugins with GoScript",
+					Usage:       "compile browser Go plugins with GoScript (default)",
 					EnvVars:     []string{"BLDR_WEB_GOSCRIPT"},
 					Destination: &a.WebUseGoScript,
 					Value:       a.WebUseGoScript,
@@ -423,17 +430,32 @@ func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 			},
 			Action: func(c *cli.Context) error {
 				return a.runStatusCommand(c.Context, func(ctx context.Context) error {
-					if a.WebUseGoScript {
+					mode, err := a.resolveWebStartMode()
+					if err != nil {
+						return err
+					}
+					switch mode {
+					case webStartModeGoScript:
 						return a.ExecuteWebGoScriptProject(ctx)
-					}
-					if a.WebUseWasm {
+					case webStartModeWasm:
 						return a.ExecuteWebWasmProject(ctx)
+					default:
+						return errors.New("unknown web start mode")
 					}
-					return a.ExecuteWebWsProject(ctx)
 				})
 			},
 		},
 	}
+}
+
+func (a *DevtoolArgs) resolveWebStartMode() (webStartMode, error) {
+	if a.WebUseWasm && a.WebUseGoScript {
+		return "", errors.New("only one of --wasm or --goscript may be set")
+	}
+	if a.WebUseWasm {
+		return webStartModeWasm, nil
+	}
+	return webStartModeGoScript, nil
 }
 
 // BuildBuildCommand builds the bldr build command.

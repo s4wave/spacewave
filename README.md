@@ -79,10 +79,10 @@ bun install
 # Start the desktop app
 bun run start:desktop
 
-# Start the web app
+# Start the web app with GoScript browser Go plugins
 bun run start:web
 
-# Start the WASM web app
+# Start the web app with standard Go/WASM browser Go plugins
 bun run start:web:wasm
 ```
 

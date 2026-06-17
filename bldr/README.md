@@ -213,11 +213,14 @@ bun install
 Here are some of the available ways to start bldr from the spacewave repo root:
 
 ```
-# start web application (loads web plugin via --plugins)
+# start web application with GoScript browser Go plugins (loads web plugin via --plugins)
 bun run bldr:start:web
 
-# start web application in wasm mode
+# start web application with standard Go/WASM browser Go plugins
 bun run bldr:start:web:wasm
+
+# explicit alias for the default GoScript mode
+bun run bldr:start:web:goscript
 
 # start native application (loads web plugin via --plugins)
 bun run bldr:start:desktop
