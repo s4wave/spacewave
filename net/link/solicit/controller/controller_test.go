@@ -396,6 +396,33 @@ func TestControlStreamLocalSnapshotWatchLinkRemoval(t *testing.T) {
 	}
 }
 
+func TestLinkRemovalWaitsForDuplicateEstablishLinkValues(t *testing.T) {
+	c := newTestSolicitController(t)
+	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
+	uuid := ls.ml.GetLinkUUID()
+
+	c.addLink(ls.ml)
+	c.addLink(ls.ml)
+
+	c.removeLink(uuid)
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		current := c.links[uuid]
+		if current == nil {
+			t.Fatal("duplicate link value removal deleted active link state")
+		}
+		if current.refCount != 1 {
+			t.Fatalf("link refCount after one removal = %d, want 1", current.refCount)
+		}
+	})
+
+	c.removeLink(uuid)
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if c.links[uuid] != nil {
+			t.Fatal("link state survived final value removal")
+		}
+	})
+}
+
 func TestControlStreamLocalSnapshotRemoteHashesRefresh(t *testing.T) {
 	c := newTestSolicitController(t)
 	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))

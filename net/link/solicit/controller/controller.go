@@ -62,6 +62,7 @@ type linkState struct {
 	ml           link.MountedLink
 	sessionID    []byte
 	localIsLower bool
+	refCount     int
 
 	// guarded by Controller.bcast
 	remoteHashes [][]byte
@@ -228,9 +229,11 @@ func (c *Controller) addLink(ml link.MountedLink) {
 
 	var added bool
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		if _, exists := c.links[uuid]; exists {
+		if existing := c.links[uuid]; existing != nil {
+			existing.refCount++
 			return
 		}
+		ls.refCount = 1
 		c.links[uuid] = ls
 		added = true
 		broadcast()
@@ -248,8 +251,13 @@ func (c *Controller) removeLink(uuid uint64) {
 	var ls *linkState
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		ls = c.links[uuid]
-		delete(c.links, uuid)
 		if ls != nil {
+			ls.refCount--
+			if ls.refCount > 0 {
+				ls = nil
+				return
+			}
+			delete(c.links, uuid)
 			broadcast()
 		}
 	})
