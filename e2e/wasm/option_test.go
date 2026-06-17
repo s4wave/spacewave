@@ -313,6 +313,69 @@ func TestConfigureGoScriptForManifestRemovesSeedRuntimeConfig(t *testing.T) {
 	}
 }
 
+// TestE2EWasmTraceServiceEnabled pins the trace-service injection gate that
+// bootSharedHarness uses to drive InjectTraceConfig: native Go always injects,
+// GoScript injects only under the E2E_WASM_GOSCRIPT_RUNTIME_TRACE opt-in, and
+// TinyGo never injects.
+func TestE2EWasmTraceServiceEnabled(t *testing.T) {
+	t.Run("GoScript follows the opt-in env", func(t *testing.T) {
+		t.Setenv(E2EWasmGoScriptRuntimeTraceEnv, "")
+		if E2EWasmTraceServiceEnabled(E2EWasmCompilerGoScript) {
+			t.Fatal("expected GoScript trace service disabled without the opt-in")
+		}
+		t.Setenv(E2EWasmGoScriptRuntimeTraceEnv, "1")
+		if !E2EWasmTraceServiceEnabled(E2EWasmCompilerGoScript) {
+			t.Fatal("expected GoScript trace service enabled with the opt-in")
+		}
+	})
+
+	t.Run("native Go always enabled, TinyGo never", func(t *testing.T) {
+		t.Setenv(E2EWasmGoScriptRuntimeTraceEnv, "1")
+		if !E2EWasmTraceServiceEnabled(E2EWasmCompilerGo) {
+			t.Fatal("native Go trace service should stay enabled")
+		}
+		if E2EWasmTraceServiceEnabled(E2EWasmCompilerTinyGo) {
+			t.Fatal("TinyGo trace service should stay disabled")
+		}
+	})
+}
+
+// TestConfigureGoScriptForManifestPreservesTraceService verifies the GoScript
+// compiler mutator leaves an injected trace service intact. InjectTraceConfig
+// runs before the compiler mutator, so the mutator must not strip it.
+func TestConfigureGoScriptForManifestPreservesTraceService(t *testing.T) {
+	data := mustMarshalGoPluginConfig(t, &bldr_plugin_compiler_go.Config{
+		GoPkgs: []string{"./core/trace/service", "./core/plugin/space"},
+		ConfigSet: map[string]*configset_proto.ControllerConfig{
+			"trace-service": {Id: "trace/service"},
+			"space":         {Id: "plugin/space"},
+		},
+	})
+	conf := &bldr_project.ProjectConfig{
+		Manifests: map[string]*bldr_project.ManifestConfig{
+			"spacewave-core": {
+				Builder: &configset_proto.ControllerConfig{
+					Id:     bldr_plugin_compiler_go.ConfigID,
+					Config: data,
+				},
+			},
+		},
+	}
+	if err := ConfigureGoScriptForManifest("spacewave-core")(conf); err != nil {
+		t.Fatal(err)
+	}
+	got := &bldr_plugin_compiler_go.Config{}
+	if err := got.UnmarshalJSON(conf.GetManifests()["spacewave-core"].GetBuilder().GetConfig()); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(got.GetGoPkgs(), "./core/trace/service") {
+		t.Fatal("GoScript mutator stripped an injected ./core/trace/service")
+	}
+	if _, ok := got.GetConfigSet()["trace-service"]; !ok {
+		t.Fatal("GoScript mutator stripped an injected trace-service config")
+	}
+}
+
 func TestConfigureGoScriptBrowserStartupUsesLauncherAndCore(t *testing.T) {
 	launcherStatic := mustMarshalGoPluginConfig(t, &bldr_plugin_compiler_go.Config{
 		GoPkgs: []string{"./production-launcher"},

@@ -40,6 +40,9 @@ const (
 	E2EWasmTinyGoInterpTimeoutEnv = "E2E_WASM_TINYGO_INTERP_TIMEOUT"
 	// E2EWasmManifestBuildTimeoutEnv overrides the local startup Manifest build wait.
 	E2EWasmManifestBuildTimeoutEnv = "E2E_WASM_MANIFEST_BUILD_TIMEOUT"
+	// E2EWasmGoScriptRuntimeTraceEnv opts GoScript browser runs into
+	// runtime-trace capture; off by default so routine GoScript e2e stays fast.
+	E2EWasmGoScriptRuntimeTraceEnv = "E2E_WASM_GOSCRIPT_RUNTIME_TRACE"
 )
 
 var (
@@ -172,9 +175,29 @@ func ResolveE2EWasmCompiler() (E2EWasmCompiler, error) {
 }
 
 // E2EWasmTraceServiceEnabled reports whether the trace service should be
-// injected into the app harness config.
+// injected into the app harness config. Native Go always carries it; GoScript
+// opts in via E2E_WASM_GOSCRIPT_RUNTIME_TRACE so routine GoScript e2e does not
+// pay the trace-service compile cost; TinyGo never carries it.
 func E2EWasmTraceServiceEnabled(compiler E2EWasmCompiler) bool {
-	return compiler == E2EWasmCompilerGo
+	switch compiler {
+	case E2EWasmCompilerGo:
+		return true
+	case E2EWasmCompilerGoScript:
+		return E2EWasmGoScriptRuntimeTraceEnabled()
+	default:
+		return false
+	}
+}
+
+// E2EWasmGoScriptRuntimeTraceEnabled reports whether GoScript browser runs opt
+// into runtime-trace capture via E2E_WASM_GOSCRIPT_RUNTIME_TRACE.
+func E2EWasmGoScriptRuntimeTraceEnabled() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(E2EWasmGoScriptRuntimeTraceEnv))) {
+	case "true", "1", "yes", "on":
+		return true
+	default:
+		return false
+	}
 }
 
 // E2EWasmSlowCompilerEnabled reports whether app readiness should allow the

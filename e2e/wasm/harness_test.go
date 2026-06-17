@@ -3,7 +3,9 @@
 package wasm
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -23,6 +25,7 @@ import (
 	e2e_wasm_session "github.com/s4wave/spacewave/e2e/wasm/session"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	"github.com/sirupsen/logrus"
+	exptrace "golang.org/x/exp/trace"
 )
 
 // sharedHarness is the package-level harness, booted lazily on first access via
@@ -92,14 +95,11 @@ func bootSharedHarness() (*Harness, error) {
 		}))
 	}
 	if compiler != E2EWasmCompilerGo {
-		le.WithField("compiler", compiler).Info("disabling trace service injection for alternate e2e/wasm compiler mode")
 		manifestBuildTimeout, err := ResolveE2EWasmManifestBuildTimeout(20 * time.Minute)
 		if err != nil {
 			return nil, errors.Wrap(err, "configure e2e wasm manifest build timeout")
 		}
 		opts = append(opts, WithManifestBuildTimeout(manifestBuildTimeout))
-	} else {
-		opts = append(opts, WithConfigMutator(trace_service.InjectTraceConfig))
 	}
 
 	switch compiler {
@@ -111,6 +111,15 @@ func bootSharedHarness() (*Harness, error) {
 		opts = append(opts, WithTinyGoCore())
 	case E2EWasmCompilerGoScript:
 		opts = append(opts, WithGoScriptBrowserStartup())
+	}
+
+	// Inject the trace service after the compiler mutators so the GoScript
+	// startup override, which rebuilds the launcher and core manifests, cannot
+	// drop it from the final config.
+	if E2EWasmTraceServiceEnabled(compiler) {
+		opts = append(opts, WithConfigMutator(trace_service.InjectTraceConfig))
+	} else {
+		le.WithField("compiler", compiler).Info("trace service injection disabled for this e2e/wasm compiler mode")
 	}
 
 	h, err := Boot(ctx, le, opts...)
@@ -148,7 +157,8 @@ func TestWasmHarnessBoot(t *testing.T) {
 	}
 }
 
-// TestWasmHarnessTraceConfig verifies trace service wiring was injected.
+// TestWasmHarnessTraceConfig verifies trace service wiring was injected into
+// every Go builder manifest by InjectTraceConfig.
 func TestWasmHarnessTraceConfig(t *testing.T) {
 	skipTraceServiceWhenDisabled(t)
 
@@ -837,7 +847,28 @@ func TestTraceCaptureBytes(t *testing.T) {
 	if len(data) == 0 {
 		t.Fatal("expected non-empty trace data")
 	}
+	assertTraceParses(t, data)
 	t.Logf("captured %d bytes of trace data", len(data))
+}
+
+// assertTraceParses walks the captured bytes with the upstream Go trace reader,
+// the same parser tracetool's fork is built on, so a clean walk to EOF proves
+// tracetool reads the GoScript capture.
+func assertTraceParses(t testing.TB, data []byte) {
+	t.Helper()
+	reader, err := exptrace.NewReader(bytes.NewReader(data))
+	if err != nil {
+		t.Fatalf("upstream trace reader rejected the capture header: %v", err)
+	}
+	for {
+		_, err := reader.ReadEvent()
+		if err == io.EOF {
+			return
+		}
+		if err != nil {
+			t.Fatalf("upstream trace reader failed mid-capture: %v", err)
+		}
+	}
 }
 
 // TestTraceCaptureWritesFile verifies the returned bytes are written to an
