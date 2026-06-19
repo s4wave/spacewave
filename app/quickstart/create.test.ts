@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { TypePred, buildTypeObjectKey } from '@s4wave/sdk/world/types/types.js'
+import { keyToIRI } from '@s4wave/sdk/world/graph-utils.js'
 import { SET_SPACE_SETTINGS_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import { SPACE_SETTINGS_BLOCK_TYPE } from '@s4wave/core/space/world/world.js'
 import { SpaceSettings } from '@s4wave/core/space/world/world.pb.js'
@@ -34,6 +36,7 @@ import {
 } from '@s4wave/sdk/chat/init-chat-demo.js'
 import { InitForgeQuickstartOp } from '@s4wave/core/forge/dashboard/dashboard.pb.js'
 import { INIT_FORGE_QUICKSTART_OP_ID } from '@s4wave/sdk/forge/dashboard/init-forge-quickstart.js'
+import { Query } from '@s4wave/sdk/sql/query/query.pb.js'
 import { CreateVmV86Op, SetV86StateOp, VmState } from '@s4wave/sdk/vm/v86.pb.js'
 import { CREATE_VM_V86_OP_ID } from '@s4wave/sdk/vm/create-vm-v86.js'
 import type { RegisterCleanup } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -80,6 +83,31 @@ const fsFileHandleMocks = vi.hoisted(() => ({
   release: vi.fn(),
 }))
 
+const kvStoreMocks = vi.hoisted(() => ({
+  constructor: vi.fn(),
+  withTransaction: vi.fn(),
+  release: vi.fn(),
+  tx: {
+    set: vi.fn(),
+  },
+}))
+
+const sqlDbMocks = vi.hoisted(() => ({
+  constructor: vi.fn(),
+  withTransaction: vi.fn(),
+  release: vi.fn(),
+  tx: {
+    exec: vi.fn(),
+  },
+}))
+
+const sqlQueryMocks = vi.hoisted(() => ({
+  constructor: vi.fn(),
+  setQueryText: vi.fn(),
+  setParameters: vi.fn(),
+  release: vi.fn(),
+}))
+
 vi.mock('@s4wave/sdk/quickstart/registry/registry_srpc.pb.js', () => ({
   QuickstartRegistryResourceServiceClient: vi.fn(function () {
     return quickstartRegistryMocks
@@ -105,6 +133,28 @@ vi.mock('@s4wave/sdk/unixfs/index.js', () => ({
   }),
 }))
 
+vi.mock('@s4wave/sdk/kv/index.js', () => ({
+  KvStoreTypeID: 'kv/store',
+  KvStore: vi.fn(function () {
+    kvStoreMocks.constructor()
+    return kvStoreMocks
+  }),
+}))
+
+vi.mock('@s4wave/sdk/sql/index.js', () => ({
+  SqlDbTypeID: 'sql/db',
+  SqlQueryBlockTypeID: 'github.com/s4wave/spacewave/sdk/sql/query.Query',
+  SqlQueryTypeID: 'sql/query',
+  SqlDatabase: vi.fn(function () {
+    sqlDbMocks.constructor()
+    return sqlDbMocks
+  }),
+  SqlQuery: vi.fn(function () {
+    sqlQueryMocks.constructor()
+    return sqlQueryMocks
+  }),
+}))
+
 type ApplyWorldOp = (
   opTypeId: string,
   opData: Uint8Array,
@@ -112,32 +162,63 @@ type ApplyWorldOp = (
   abortSignal?: AbortSignal,
 ) => Promise<{ seqno: bigint; sysErr: boolean }>
 
-function buildQuickstartWorld() {
+interface TypedAccessFixture {
+  resourceId: number
+  typeId: string
+}
+
+function buildQuickstartWorld(
+  accessByKey: Record<string, TypedAccessFixture> = {},
+) {
   const applyWorldOp = vi.fn<ApplyWorldOp>().mockResolvedValue({
     seqno: 1n,
     sysErr: false,
   })
   const releaseCursor = vi.fn()
+  const releaseObject = vi.fn()
+  const transactionWrite = vi.fn().mockResolvedValue({
+    rootRef: { hash: { hashType: 1, hash: new Uint8Array([1]) } },
+  })
+  const blockCursorSetBlock = vi.fn().mockResolvedValue(undefined)
+  const blockCursorMarkDirty = vi.fn().mockResolvedValue(undefined)
+  const buildTransaction = vi.fn().mockResolvedValue({
+    transaction: { write: transactionWrite },
+    cursor: {
+      markDirty: blockCursorMarkDirty,
+      setBlock: blockCursorSetBlock,
+    },
+  })
+  const createObject = vi.fn().mockResolvedValue({
+    release: releaseObject,
+    [Symbol.dispose]: releaseObject,
+  })
+  const setGraphQuad = vi.fn().mockResolvedValue(undefined)
+  const accessTypedObject = vi.fn((objectKey: string) =>
+    Promise.resolve(
+      accessByKey[objectKey] ?? {
+        resourceId: 71,
+        typeId: 'unixfs/fs-node',
+      },
+    ),
+  )
   return {
     world: {
       applyWorldOp,
       getObject: vi.fn().mockResolvedValue(null),
       lookupGraphQuads: vi.fn().mockResolvedValue({ quads: [] }),
       deleteGraphQuad: vi.fn().mockResolvedValue(undefined),
-      setGraphQuad: vi.fn().mockResolvedValue(undefined),
+      setGraphQuad,
       buildStorageCursor: vi.fn(() =>
         Promise.resolve({
+          buildTransaction,
           putBlock: vi.fn().mockResolvedValue({ ref: {} }),
-          getRef: vi.fn().mockResolvedValue({ ref: {} }),
+          getRef: vi.fn().mockResolvedValue({ ref: { bucketId: 'world' } }),
           release: releaseCursor,
           [Symbol.dispose]: releaseCursor,
         }),
       ),
-      createObject: vi.fn().mockResolvedValue({}),
-      accessTypedObject: vi.fn().mockResolvedValue({
-        resourceId: 71,
-        typeId: 'unixfs/fs-node',
-      }),
+      createObject,
+      accessTypedObject,
       getResourceRef: vi.fn(() => ({
         createRef: vi.fn((resourceId: number) => ({
           resourceId,
@@ -146,6 +227,10 @@ function buildQuickstartWorld() {
       })),
     },
     applyWorldOp,
+    accessTypedObject,
+    blockCursorSetBlock,
+    createObject,
+    setGraphQuad,
   }
 }
 
@@ -250,6 +335,33 @@ describe('quickstart create', () => {
     fsHandleMocks.mknod.mockResolvedValue(undefined)
     fsHandleMocks.lookup.mockResolvedValue(fsFileHandleMocks)
     fsFileHandleMocks.writeAt.mockResolvedValue(0n)
+    kvStoreMocks.constructor.mockReset()
+    kvStoreMocks.withTransaction.mockReset()
+    kvStoreMocks.release.mockReset()
+    kvStoreMocks.tx.set.mockReset()
+    kvStoreMocks.tx.set.mockResolvedValue(undefined)
+    kvStoreMocks.withTransaction.mockImplementation(
+      async (_write: boolean, fn: (tx: typeof kvStoreMocks.tx) => unknown) =>
+        await fn(kvStoreMocks.tx),
+    )
+    sqlDbMocks.constructor.mockReset()
+    sqlDbMocks.withTransaction.mockReset()
+    sqlDbMocks.release.mockReset()
+    sqlDbMocks.tx.exec.mockReset()
+    sqlDbMocks.tx.exec.mockResolvedValue({})
+    sqlDbMocks.withTransaction.mockImplementation(
+      async (
+        _write: boolean,
+        _dsn: string,
+        fn: (tx: typeof sqlDbMocks.tx) => unknown,
+      ) => await fn(sqlDbMocks.tx),
+    )
+    sqlQueryMocks.constructor.mockReset()
+    sqlQueryMocks.setQueryText.mockReset()
+    sqlQueryMocks.setQueryText.mockResolvedValue(undefined)
+    sqlQueryMocks.setParameters.mockReset()
+    sqlQueryMocks.setParameters.mockResolvedValue(undefined)
+    sqlQueryMocks.release.mockReset()
     quickstartRegistryMocks.ListQuickstarts.mockReset()
     quickstartRegistryMocks.WatchQuickstarts.mockReset()
     quickstartRegistryMocks.ExecuteQuickstart.mockReset()
@@ -444,6 +556,8 @@ describe('quickstart create', () => {
       ['v86', 'My V86 VM'],
       ['device', 'My Computers'],
       ['forge', 'My Forge Dashboard'],
+      ['kv', 'My Key-Value Store'],
+      ['sql', 'My SQL Database'],
     ]
 
     for (const [quickstartId, name] of cases) {
@@ -466,6 +580,20 @@ describe('quickstart create', () => {
     expect(getQuickstartInitialObjectRouteHandoff('canvas')).toEqual({
       objectKey: 'canvas-1',
       objectType: 'canvas',
+    })
+    expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1', 'kv')).toBe(
+      '/u/2/so/space-1/-/kv/store',
+    )
+    expect(getQuickstartInitialObjectRouteHandoff('kv')).toEqual({
+      objectKey: 'kv/store',
+      objectType: 'kv/store',
+    })
+    expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1', 'sql')).toBe(
+      '/u/2/so/space-1/-/sql/db',
+    )
+    expect(getQuickstartInitialObjectRouteHandoff('sql')).toEqual({
+      objectKey: 'sql/db',
+      objectType: 'sql/db',
     })
     expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1', 'space')).toBe(
       '/u/2/so/space-1',
@@ -843,6 +971,136 @@ describe('quickstart create', () => {
     ])
   })
 
+  it('seeds the KV quickstart with examples and indexes the store', async () => {
+    const { world, applyWorldOp, createObject, setGraphQuad } =
+      buildQuickstartWorld({
+        'kv/store': { resourceId: 201, typeId: 'kv/store' },
+      })
+
+    await populateSpace('kv', { spaceWorld: world } as never)
+
+    expect(createObject).toHaveBeenCalledWith('kv/store', {}, undefined)
+    expect(createObject).toHaveBeenCalledWith(
+      buildTypeObjectKey('kv/store'),
+      {},
+      undefined,
+    )
+    expect(setGraphQuad).toHaveBeenCalledWith(
+      keyToIRI('kv/store'),
+      TypePred,
+      keyToIRI(buildTypeObjectKey('kv/store')),
+      undefined,
+      undefined,
+    )
+    expect(kvStoreMocks.constructor).toHaveBeenCalledTimes(1)
+    expect(kvStoreMocks.withTransaction).toHaveBeenCalledTimes(1)
+    expect(kvStoreMocks.withTransaction.mock.calls[0]?.[0]).toBe(true)
+    expect(kvStoreMocks.tx.set).toHaveBeenCalledTimes(3)
+
+    const decoder = new TextDecoder()
+    const entries = kvStoreMocks.tx.set.mock.calls.map((call) => ({
+      key: decoder.decode(call[0]),
+      value: call[1],
+    }))
+    expect(
+      entries.map((entry) => [
+        entry.key,
+        entry.key === 'binary/blob'
+          ? Array.from(entry.value)
+          : decoder.decode(entry.value),
+      ]),
+    ).toEqual([
+      ['hello', 'world'],
+      [
+        'profile.json',
+        '{"name":"Ada Lovelace","role":"analyst","active":true}',
+      ],
+      ['binary/blob', [0, 1, 2, 3, 5, 8, 13]],
+    ])
+    expect(kvStoreMocks.release).toHaveBeenCalledTimes(1)
+    expect(getSettingsIndexPath(applyWorldOp)).toBe('kv/store')
+  })
+
+  it('seeds the SQL quickstart with schema, rows, a linked query, and index', async () => {
+    const {
+      world,
+      applyWorldOp,
+      blockCursorSetBlock,
+      createObject,
+      setGraphQuad,
+    } = buildQuickstartWorld({
+      'sql/db': { resourceId: 301, typeId: 'sql/db' },
+      'sql/query/example': { resourceId: 302, typeId: 'sql/query' },
+    })
+
+    await populateSpace('sql', { spaceWorld: world } as never)
+
+    expect(createObject).toHaveBeenCalledWith('sql/db', {}, undefined)
+    expect(createObject).toHaveBeenCalledWith(
+      buildTypeObjectKey('sql/db'),
+      {},
+      undefined,
+    )
+    expect(createObject).toHaveBeenCalledWith(
+      'sql/query/example',
+      {
+        bucketId: 'world',
+        rootRef: { hash: { hashType: 1, hash: new Uint8Array([1]) } },
+      },
+      undefined,
+    )
+    expect(createObject).toHaveBeenCalledWith(
+      buildTypeObjectKey('sql/query'),
+      {},
+      undefined,
+    )
+    expect(setGraphQuad).toHaveBeenCalledWith(
+      keyToIRI('sql/db'),
+      TypePred,
+      keyToIRI(buildTypeObjectKey('sql/db')),
+      undefined,
+      undefined,
+    )
+    expect(setGraphQuad).toHaveBeenCalledWith(
+      keyToIRI('sql/query/example'),
+      TypePred,
+      keyToIRI(buildTypeObjectKey('sql/query')),
+      undefined,
+      undefined,
+    )
+    expect(sqlDbMocks.constructor).toHaveBeenCalledTimes(1)
+    expect(
+      sqlDbMocks.withTransaction.mock.calls.map((call) => call[1]),
+    ).toEqual(['', '/quickstart'])
+    expect(sqlDbMocks.tx.exec.mock.calls.map((call) => call[0])).toEqual([
+      'CREATE DATABASE quickstart',
+      'CREATE TABLE people (id BIGINT NOT NULL PRIMARY KEY, name TEXT NOT NULL, role TEXT NOT NULL)',
+      "INSERT INTO people (id, name, role) VALUES (1, 'ada', 'analyst')",
+      "INSERT INTO people (id, name, role) VALUES (2, 'grace', 'engineer')",
+      'CREATE TABLE projects (id BIGINT NOT NULL PRIMARY KEY, owner_id BIGINT NOT NULL, title TEXT NOT NULL)',
+      "INSERT INTO projects (id, owner_id, title) VALUES (10, 1, 'difference engine notes')",
+      "INSERT INTO projects (id, owner_id, title) VALUES (11, 2, 'compiler logbook')",
+    ])
+    expect(sqlDbMocks.release).toHaveBeenCalledTimes(1)
+
+    const queryBlockReq = blockCursorSetBlock.mock.calls[0]?.[0]
+    expect(Query.fromBinary(queryBlockReq.data ?? new Uint8Array())).toEqual({})
+    expect(queryBlockReq.markDirty).toBe(true)
+    expect(sqlQueryMocks.constructor).toHaveBeenCalledTimes(1)
+    expect(sqlQueryMocks.setQueryText).toHaveBeenCalledWith(
+      'SELECT name, role FROM quickstart.people WHERE id = ?',
+      'mysql',
+      'sql/db',
+      undefined,
+    )
+    expect(sqlQueryMocks.setParameters).toHaveBeenCalledWith(
+      [{ value: { case: 'intValue', value: 1n } }],
+      undefined,
+    )
+    expect(sqlQueryMocks.release).toHaveBeenCalledTimes(1)
+    expect(getSettingsIndexPath(applyWorldOp)).toBe('sql/db')
+  })
+
   it('indexes every quickstart to the object it creates or seeds', async () => {
     {
       const { world, applyWorldOp } = buildQuickstartWorld()
@@ -925,6 +1183,21 @@ describe('quickstart create', () => {
       )
       expect(chatIndex).toBeGreaterThanOrEqual(0)
       expect(settingsIndex).toBeGreaterThan(chatIndex)
+    }
+    {
+      const { world, applyWorldOp } = buildQuickstartWorld({
+        'kv/store': { resourceId: 201, typeId: 'kv/store' },
+      })
+      await populateSpace('kv', { spaceWorld: world } as never)
+      expect(getSettingsIndexPath(applyWorldOp)).toBe('kv/store')
+    }
+    {
+      const { world, applyWorldOp } = buildQuickstartWorld({
+        'sql/db': { resourceId: 301, typeId: 'sql/db' },
+        'sql/query/example': { resourceId: 302, typeId: 'sql/query' },
+      })
+      await populateSpace('sql', { spaceWorld: world } as never)
+      expect(getSettingsIndexPath(applyWorldOp)).toBe('sql/db')
     }
     {
       const { world, applyWorldOp } = buildQuickstartWorld()

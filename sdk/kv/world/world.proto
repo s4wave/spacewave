@@ -5,10 +5,34 @@ import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
 
 option go_package = "github.com/s4wave/spacewave/sdk/kv/world;s4wave_kv_world";
 
+// KvMutationKind identifies a replayable KVTX write mutation.
+enum KvMutationKind {
+  // KV_MUTATION_KIND_UNSPECIFIED is invalid.
+  KV_MUTATION_KIND_UNSPECIFIED = 0;
+  // KV_MUTATION_KIND_SET stores a value at a key.
+  KV_MUTATION_KIND_SET = 1;
+  // KV_MUTATION_KIND_DELETE removes a key.
+  KV_MUTATION_KIND_DELETE = 2;
+}
+
+// KvMutation records one write in the transaction commit order.
+message KvMutation {
+  // Kind is the mutation operation.
+  KvMutationKind kind = 1;
+  // Key is the KVTX key.
+  bytes key = 2;
+  // Value is the KVTX value for set mutations.
+  bytes value = 3;
+}
+
 // KvSetRootOp advances a kv/store world object's root after a KVTX commit.
 message KvSetRootOp {
   // ObjectKey is the kv/store object key to update.
   string object_key = 1;
   // RootRef is the committed KVTX root reference.
   .bucket.ObjectRef root_ref = 2;
+  // BaseRef is the object root the transaction committed from.
+  .bucket.ObjectRef base_ref = 3;
+  // Mutations are the committed writes needed to rebase from a moved base.
+  repeated KvMutation mutations = 4;
 }

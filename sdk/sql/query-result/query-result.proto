@@ -1,0 +1,62 @@
+syntax = "proto3";
+package s4wave.sql.query_result;
+
+import "google/protobuf/timestamp.proto";
+import "github.com/s4wave/spacewave/db/sql/sql.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/sql/query-result;s4wave_sql_query_result";
+
+// QueryResult is a standalone SQL query execution result world object.
+message QueryResult {
+  // Columns describes the returned result columns.
+  repeated .sql.ColumnSchema columns = 1;
+  // RowBatches stores returned rows in column order.
+  repeated .sql.RowBatch row_batches = 2;
+  // ExecutedAt is the execution timestamp.
+  .google.protobuf.Timestamp executed_at = 3;
+  // Truncated indicates rows were omitted by the run row limit.
+  bool truncated = 4;
+  // Error records an execution error when no rows were returned.
+  QueryResultError error = 5;
+  // SourceQueryObjectKey is the sql/query object that produced this result.
+  string source_query_object_key = 6;
+  // TargetDbObjectKey is the sql/db object used for execution.
+  string target_db_object_key = 7;
+  // RowCount is the number of persisted rows.
+  uint64 row_count = 8;
+}
+
+// QueryResultError captures a SQL execution error.
+message QueryResultError {
+  // Message is the execution error text.
+  string message = 1;
+}
+
+// SqlQueryResultResourceService exposes a SQL query result world object.
+service SqlQueryResultResourceService {
+  // GetResultGrid returns the persisted result grid.
+  rpc GetResultGrid(GetResultGridRequest) returns (GetResultGridResponse);
+}
+
+// GetResultGridRequest is a request for the result grid.
+message GetResultGridRequest {}
+
+// GetResultGridResponse returns the persisted result grid.
+message GetResultGridResponse {
+  // Columns describes the returned result columns.
+  repeated .sql.ColumnSchema columns = 1;
+  // RowBatches stores returned rows in column order.
+  repeated .sql.RowBatch row_batches = 2;
+  // ExecutedAt is the execution timestamp.
+  .google.protobuf.Timestamp executed_at = 3;
+  // Truncated indicates rows were omitted by the run row limit.
+  bool truncated = 4;
+  // Error records an execution error when no rows were returned.
+  QueryResultError error = 5;
+  // SourceQueryObjectKey is the sql/query object that produced this result.
+  string source_query_object_key = 6;
+  // TargetDbObjectKey is the sql/db object used for execution.
+  string target_db_object_key = 7;
+  // RowCount is the number of persisted rows.
+  uint64 row_count = 8;
+}

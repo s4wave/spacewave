@@ -1,6 +1,7 @@
 package s4wave_kv_world
 
 import (
+	"bytes"
 	"context"
 	"sync"
 
@@ -24,8 +25,9 @@ type WorldBackedStore struct {
 	key   string
 	root  *bucket_lookup.Cursor
 
-	mtx         sync.Mutex
-	pendingRoot *bucket.ObjectRef
+	mtx      sync.Mutex
+	writeMtx sync.Mutex
+	tx       *worldBackedTx
 }
 
 // NewWorldBackedStore opens a KVTX store against a world object's current root.
@@ -71,14 +73,29 @@ func (s *WorldBackedStore) Close() {
 
 // NewTransaction returns a KVTX transaction.
 func (s *WorldBackedStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	if write {
+		s.writeMtx.Lock()
+	}
+	var baseRoot *bucket.ObjectRef
+	if write {
+		baseRoot = s.inner.GetRootRef()
+	}
 	tx, err := s.inner.NewTransaction(ctx, write)
 	if err != nil || !write {
+		if write {
+			s.writeMtx.Unlock()
+		}
 		return tx, err
 	}
-	return &worldBackedTx{
-		store: s,
-		inner: tx,
-	}, nil
+	wtx := &worldBackedTx{
+		store:    s,
+		inner:    tx,
+		baseRoot: baseRoot,
+	}
+	s.mtx.Lock()
+	s.tx = wtx
+	s.mtx.Unlock()
+	return wtx, nil
 }
 
 func (s *WorldBackedStore) captureCommittedRoot(root *bucket.ObjectRef) error {
@@ -86,44 +103,60 @@ func (s *WorldBackedStore) captureCommittedRoot(root *bucket.ObjectRef) error {
 		return errors.New("kv/store: committed root is empty")
 	}
 	s.mtx.Lock()
-	s.pendingRoot = root.Clone()
-	s.mtx.Unlock()
+	defer s.mtx.Unlock()
+	if s.tx == nil {
+		return errors.New("kv/store: committed root captured without active transaction")
+	}
+	s.tx.committedRoot = root.Clone()
 	return nil
 }
 
-func (s *WorldBackedStore) clearPendingRoot() {
+func (s *WorldBackedStore) clearActiveTx(tx *worldBackedTx) {
 	s.mtx.Lock()
-	s.pendingRoot = nil
+	if s.tx == tx {
+		s.tx = nil
+	}
 	s.mtx.Unlock()
 }
 
-func (s *WorldBackedStore) takePendingRoot() *bucket.ObjectRef {
-	s.mtx.Lock()
-	root := s.pendingRoot
-	s.pendingRoot = nil
-	s.mtx.Unlock()
-	return root
+func (s *WorldBackedStore) refreshInnerRoot(ctx context.Context) error {
+	obj, err := world.MustGetObject(ctx, s.ws, s.key)
+	if err != nil {
+		return err
+	}
+	root, _, err := obj.GetRootRef(ctx)
+	if err != nil {
+		return err
+	}
+	return s.inner.SetRootRef(ctx, root)
 }
 
 type worldBackedTx struct {
-	store *WorldBackedStore
-	inner kvtx.Tx
+	store         *WorldBackedStore
+	inner         kvtx.Tx
+	baseRoot      *bucket.ObjectRef
+	committedRoot *bucket.ObjectRef
+	mutations     []*KvMutation
+	releaseOnce   sync.Once
 }
 
 // Commit commits KVTX data, then advances the world object root outside KVTX locks.
 func (t *worldBackedTx) Commit(ctx context.Context) error {
-	t.store.clearPendingRoot()
+	defer t.releaseWrite()
+	t.committedRoot = nil
 	if err := t.inner.Commit(ctx); err != nil {
-		t.store.clearPendingRoot()
 		return err
 	}
 
-	root := t.store.takePendingRoot()
+	root := t.committedRoot
 	if root == nil {
 		return &CommitPersistedError{Err: errors.New("kv/store: committed root was not captured")}
 	}
-	_, _, err := t.store.ws.ApplyWorldOp(ctx, NewKvSetRootOp(t.store.key, root), peer.ID(""))
+	_, _, err := t.store.ws.ApplyWorldOp(ctx, NewKvSetRootOp(t.store.key, t.baseRoot, root, t.mutations), peer.ID(""))
 	if err != nil {
+		return &CommitPersistedError{Err: err}
+	}
+	if err := t.store.refreshInnerRoot(ctx); err != nil {
 		return &CommitPersistedError{Err: err}
 	}
 	return nil
@@ -131,7 +164,15 @@ func (t *worldBackedTx) Commit(ctx context.Context) error {
 
 // Discard discards the transaction.
 func (t *worldBackedTx) Discard() {
+	t.releaseWrite()
 	t.inner.Discard()
+}
+
+func (t *worldBackedTx) releaseWrite() {
+	t.releaseOnce.Do(func() {
+		t.store.clearActiveTx(t)
+		t.store.writeMtx.Unlock()
+	})
 }
 
 // Size returns the number of keys in the transaction.
@@ -151,12 +192,27 @@ func (t *worldBackedTx) Exists(ctx context.Context, key []byte) (bool, error) {
 
 // Set sets a key in the transaction.
 func (t *worldBackedTx) Set(ctx context.Context, key, value []byte) error {
-	return t.inner.Set(ctx, key, value)
+	if err := t.inner.Set(ctx, key, value); err != nil {
+		return err
+	}
+	t.mutations = append(t.mutations, &KvMutation{
+		Kind:  KvMutationKind_KV_MUTATION_KIND_SET,
+		Key:   bytes.Clone(key),
+		Value: bytes.Clone(value),
+	})
+	return nil
 }
 
 // Delete deletes a key in the transaction.
 func (t *worldBackedTx) Delete(ctx context.Context, key []byte) error {
-	return t.inner.Delete(ctx, key)
+	if err := t.inner.Delete(ctx, key); err != nil {
+		return err
+	}
+	t.mutations = append(t.mutations, &KvMutation{
+		Kind: KvMutationKind_KV_MUTATION_KIND_DELETE,
+		Key:  bytes.Clone(key),
+	})
+	return nil
 }
 
 // ScanPrefix scans key-value pairs by prefix.

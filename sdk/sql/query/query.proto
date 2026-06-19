@@ -1,0 +1,79 @@
+syntax = "proto3";
+package s4wave.sql.query;
+
+import "github.com/s4wave/spacewave/db/sql/sql.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/sql/query;s4wave_sql_query";
+
+// Query is a standalone SQL query world object.
+message Query {
+  // SqlText is the SQL text executed by Run.
+  string sql_text = 1;
+  // Parameters are positional SQL bind arguments.
+  repeated .sql.SqlValue parameters = 2;
+  // DialectHint records the SQL dialect expected by the author.
+  string dialect_hint = 3;
+  // TargetDbObjectKey is the sql/db object this query runs against.
+  string target_db_object_key = 4;
+}
+
+// SqlQueryResourceService exposes a SQL query world object.
+service SqlQueryResourceService {
+  // GetQueryText returns the query text and target metadata.
+  rpc GetQueryText(GetQueryTextRequest) returns (GetQueryTextResponse);
+  // SetQueryText updates the query text and target metadata.
+  rpc SetQueryText(SetQueryTextRequest) returns (SetQueryTextResponse);
+  // SetParameters updates the positional bind arguments.
+  rpc SetParameters(SetParametersRequest) returns (SetParametersResponse);
+  // Run executes the query and creates a query result object.
+  rpc Run(RunQueryRequest) returns (RunQueryResponse);
+}
+
+// GetQueryTextRequest is a request for query text.
+message GetQueryTextRequest {}
+
+// GetQueryTextResponse contains query text and target metadata.
+message GetQueryTextResponse {
+  // SqlText is the SQL text executed by Run.
+  string sql_text = 1;
+  // DialectHint records the SQL dialect expected by the author.
+  string dialect_hint = 2;
+  // TargetDbObjectKey is the sql/db object this query runs against.
+  string target_db_object_key = 3;
+}
+
+// SetQueryTextRequest updates query text and target metadata.
+message SetQueryTextRequest {
+  // SqlText is the SQL text executed by Run.
+  string sql_text = 1;
+  // DialectHint records the SQL dialect expected by the author.
+  string dialect_hint = 2;
+  // TargetDbObjectKey is the sql/db object this query runs against.
+  string target_db_object_key = 3;
+}
+
+// SetQueryTextResponse is returned after updating the query text.
+message SetQueryTextResponse {}
+
+// SetParametersRequest updates positional bind arguments.
+message SetParametersRequest {
+  // Parameters are positional SQL bind arguments.
+  repeated .sql.SqlValue parameters = 1;
+}
+
+// SetParametersResponse is returned after updating parameters.
+message SetParametersResponse {}
+
+// RunQueryRequest executes the query.
+message RunQueryRequest {
+  // MaxRows limits rows persisted in the result. Zero uses the default.
+  uint32 max_rows = 1;
+}
+
+// RunQueryResponse identifies the created result object.
+message RunQueryResponse {
+  // ResultObjectKey is the new sql/query-result world object key.
+  string result_object_key = 1;
+  // Error is set when SQL execution failed but a result object was created.
+  string error = 2;
+}

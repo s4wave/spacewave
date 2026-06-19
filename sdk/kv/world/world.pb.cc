@@ -30,13 +30,46 @@ namespace s4wave {
 namespace kv {
 namespace world {
 
+inline constexpr KvMutation::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        value_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        kind_{static_cast< ::s4wave::kv::world::KvMutationKind >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR KvMutation::KvMutation(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(KvMutation_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct KvMutationDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR KvMutationDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~KvMutationDefaultTypeInternal() {}
+  union {
+    KvMutation _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 KvMutationDefaultTypeInternal _KvMutation_default_instance_;
+
 inline constexpr KvSetRootOp::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
+        mutations_{},
         object_key_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        root_ref_{nullptr} {}
+        root_ref_{nullptr},
+        base_ref_{nullptr} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR KvSetRootOp::KvSetRootOp(::_pbi::ConstantInitialized)
@@ -60,27 +93,42 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace world
 }  // namespace kv
 }  // namespace s4wave
-static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fkv_2fworld_2fworld_2eproto = nullptr;
+static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fkv_2fworld_2fworld_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fkv_2fworld_2fworld_2eproto = nullptr;
 const ::uint32_t
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fkv_2fworld_2fworld_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::s4wave::kv::world::KvSetRootOp, _impl_._has_bits_),
-        5, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::s4wave::kv::world::KvSetRootOp, _impl_.object_key_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::kv::world::KvSetRootOp, _impl_.root_ref_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::kv::world::KvMutation, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::kv::world::KvMutation, _impl_.kind_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::kv::world::KvMutation, _impl_.key_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::kv::world::KvMutation, _impl_.value_),
+        2,
         0,
         1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::kv::world::KvSetRootOp, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::kv::world::KvSetRootOp, _impl_.object_key_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::kv::world::KvSetRootOp, _impl_.root_ref_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::kv::world::KvSetRootOp, _impl_.base_ref_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::kv::world::KvSetRootOp, _impl_.mutations_),
+        1,
+        2,
+        3,
+        0,
 };
 
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
-        {0, sizeof(::s4wave::kv::world::KvSetRootOp)},
+        {0, sizeof(::s4wave::kv::world::KvMutation)},
+        {9, sizeof(::s4wave::kv::world::KvSetRootOp)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
+    &::s4wave::kv::world::_KvMutation_default_instance_._instance,
     &::s4wave::kv::world::_KvSetRootOp_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fkv_2fworld_2fworld_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
@@ -88,10 +136,17 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fk
     "\n4github.com/s4wave/spacewave/sdk/kv/wor"
     "ld/world.proto\022\017s4wave.kv.world\0322github."
     "com/s4wave/spacewave/db/bucket/bucket.pr"
-    "oto\"F\n\013KvSetRootOp\022\022\n\nobject_key\030\001 \001(\t\022#"
-    "\n\010root_ref\030\002 \001(\0132\021.bucket.ObjectRefB:Z8g"
-    "ithub.com/s4wave/spacewave/sdk/kv/world;"
-    "s4wave_kv_worldb\006proto3"
+    "oto\"W\n\nKvMutation\022-\n\004kind\030\001 \001(\0162\037.s4wave"
+    ".kv.world.KvMutationKind\022\013\n\003key\030\002 \001(\014\022\r\n"
+    "\005value\030\003 \001(\014\"\233\001\n\013KvSetRootOp\022\022\n\nobject_k"
+    "ey\030\001 \001(\t\022#\n\010root_ref\030\002 \001(\0132\021.bucket.Obje"
+    "ctRef\022#\n\010base_ref\030\003 \001(\0132\021.bucket.ObjectR"
+    "ef\022.\n\tmutations\030\004 \003(\0132\033.s4wave.kv.world."
+    "KvMutation*i\n\016KvMutationKind\022 \n\034KV_MUTAT"
+    "ION_KIND_UNSPECIFIED\020\000\022\030\n\024KV_MUTATION_KI"
+    "ND_SET\020\001\022\033\n\027KV_MUTATION_KIND_DELETE\020\002B:Z"
+    "8github.com/s4wave/spacewave/sdk/kv/worl"
+    "d;s4wave_kv_worldb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fkv_2fworld_2fworld_2eproto_deps[1] = {
@@ -101,13 +156,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fkv_2fworld_2fworld_2eproto = {
     false,
     false,
-    263,
+    545,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fkv_2fworld_2fworld_2eproto,
     "github.com/s4wave/spacewave/sdk/kv/world/world.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fkv_2fworld_2fworld_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fkv_2fworld_2fworld_2eproto_deps,
     1,
-    1,
+    2,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fkv_2fworld_2fworld_2eproto::offsets,
@@ -117,6 +172,356 @@ PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2
 namespace s4wave {
 namespace kv {
 namespace world {
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL KvMutationKind_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fkv_2fworld_2fworld_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fkv_2fworld_2fworld_2eproto[0];
+}
+PROTOBUF_CONSTINIT const uint32_t KvMutationKind_internal_data_[] = {
+    196608u, 0u, };
+// ===================================================================
+
+class KvMutation::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<KvMutation>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(KvMutation, _impl_._has_bits_);
+};
+
+KvMutation::KvMutation(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, KvMutation_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.kv.world.KvMutation)
+}
+PROTOBUF_NDEBUG_INLINE KvMutation::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::kv::world::KvMutation& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        key_(arena, from.key_),
+        value_(arena, from.value_) {}
+
+KvMutation::KvMutation(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const KvMutation& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, KvMutation_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  KvMutation* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.kind_ = from._impl_.kind_;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.kv.world.KvMutation)
+}
+PROTOBUF_NDEBUG_INLINE KvMutation::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        key_(arena),
+        value_(arena) {}
+
+inline void KvMutation::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.kind_ = {};
+}
+KvMutation::~KvMutation() {
+  // @@protoc_insertion_point(destructor:s4wave.kv.world.KvMutation)
+  SharedDtor(*this);
+}
+inline void KvMutation::SharedDtor(MessageLite& self) {
+  KvMutation& this_ = static_cast<KvMutation&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.key_.Destroy();
+  this_._impl_.value_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL KvMutation::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) KvMutation(arena);
+}
+constexpr auto KvMutation::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(KvMutation),
+                                            alignof(KvMutation));
+}
+constexpr auto KvMutation::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_KvMutation_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &KvMutation::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<KvMutation>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &KvMutation::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<KvMutation>(), &KvMutation::ByteSizeLong,
+              &KvMutation::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(KvMutation, _impl_._cached_size_),
+          false,
+      },
+      &KvMutation::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fkv_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull KvMutation_class_data_ =
+        KvMutation::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+KvMutation::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&KvMutation_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(KvMutation_class_data_.tc_table);
+  return KvMutation_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 0, 0, 2>
+KvMutation::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(KvMutation, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    KvMutation_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::kv::world::KvMutation>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .s4wave.kv.world.KvMutationKind kind = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(KvMutation, _impl_.kind_), 2>(),
+     {8, 2, 0,
+      PROTOBUF_FIELD_OFFSET(KvMutation, _impl_.kind_)}},
+    // bytes key = 2;
+    {::_pbi::TcParser::FastBS1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(KvMutation, _impl_.key_)}},
+    // bytes value = 3;
+    {::_pbi::TcParser::FastBS1,
+     {26, 1, 0,
+      PROTOBUF_FIELD_OFFSET(KvMutation, _impl_.value_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .s4wave.kv.world.KvMutationKind kind = 1;
+    {PROTOBUF_FIELD_OFFSET(KvMutation, _impl_.kind_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // bytes key = 2;
+    {PROTOBUF_FIELD_OFFSET(KvMutation, _impl_.key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // bytes value = 3;
+    {PROTOBUF_FIELD_OFFSET(KvMutation, _impl_.value_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void KvMutation::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.kv.world.KvMutation)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.key_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.value_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_.kind_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL KvMutation::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const KvMutation& this_ = static_cast<const KvMutation&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL KvMutation::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const KvMutation& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.kv.world.KvMutation)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.kv.world.KvMutationKind kind = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_kind() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_kind(), target);
+    }
+  }
+
+  // bytes key = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_key().empty()) {
+      const ::std::string& _s = this_._internal_key();
+      target = stream->WriteBytesMaybeAliased(2, _s, target);
+    }
+  }
+
+  // bytes value = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_value().empty()) {
+      const ::std::string& _s = this_._internal_value();
+      target = stream->WriteBytesMaybeAliased(3, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.kv.world.KvMutation)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t KvMutation::ByteSizeLong(const MessageLite& base) {
+  const KvMutation& this_ = static_cast<const KvMutation&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t KvMutation::ByteSizeLong() const {
+  const KvMutation& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.kv.world.KvMutation)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // bytes key = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_key());
+      }
+    }
+    // bytes value = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_value().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_value());
+      }
+    }
+    // .s4wave.kv.world.KvMutationKind kind = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_kind() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_kind());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void KvMutation::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<KvMutation*>(&to_msg);
+  auto& from = static_cast<const KvMutation&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.kv.world.KvMutation)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_key().empty()) {
+        _this->_internal_set_key(from._internal_key());
+      } else {
+        if (_this->_impl_.key_.IsDefault()) {
+          _this->_internal_set_key("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_value().empty()) {
+        _this->_internal_set_value(from._internal_value());
+      } else {
+        if (_this->_impl_.value_.IsDefault()) {
+          _this->_internal_set_value("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_kind() != 0) {
+        _this->_impl_.kind_ = from._impl_.kind_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void KvMutation::CopyFrom(const KvMutation& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.kv.world.KvMutation)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void KvMutation::InternalSwap(KvMutation* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.key_, &other->_impl_.key_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.value_, &other->_impl_.value_, arena);
+  swap(_impl_.kind_, other->_impl_.kind_);
+}
+
+::google::protobuf::Metadata KvMutation::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
 // ===================================================================
 
 class KvSetRootOp::_Internal {
@@ -131,7 +536,13 @@ void KvSetRootOp::clear_root_ref() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.root_ref_ != nullptr) _impl_.root_ref_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000004U);
+}
+void KvSetRootOp::clear_base_ref() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.base_ref_ != nullptr) _impl_.base_ref_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
 }
 KvSetRootOp::KvSetRootOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -148,6 +559,7 @@ PROTOBUF_NDEBUG_INLINE KvSetRootOp::Impl_::Impl_(
     [[maybe_unused]] const ::s4wave::kv::world::KvSetRootOp& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
+        mutations_{visibility, arena, from.mutations_},
         object_key_(arena, from.object_key_) {}
 
 KvSetRootOp::KvSetRootOp(
@@ -164,8 +576,11 @@ KvSetRootOp::KvSetRootOp(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.root_ref_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+  _impl_.root_ref_ = (CheckHasBit(cached_has_bits, 0x00000004U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.root_ref_)
+                : nullptr;
+  _impl_.base_ref_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.base_ref_)
                 : nullptr;
 
   // @@protoc_insertion_point(copy_constructor:s4wave.kv.world.KvSetRootOp)
@@ -174,11 +589,17 @@ PROTOBUF_NDEBUG_INLINE KvSetRootOp::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
+        mutations_{visibility, arena},
         object_key_(arena) {}
 
 inline void KvSetRootOp::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.root_ref_ = {};
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, root_ref_),
+           0,
+           offsetof(Impl_, base_ref_) -
+               offsetof(Impl_, root_ref_) +
+               sizeof(Impl_::base_ref_));
 }
 KvSetRootOp::~KvSetRootOp() {
   // @@protoc_insertion_point(destructor:s4wave.kv.world.KvSetRootOp)
@@ -193,6 +614,7 @@ inline void KvSetRootOp::SharedDtor(MessageLite& self) {
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.object_key_.Destroy();
   delete this_._impl_.root_ref_;
+  delete this_._impl_.base_ref_;
   this_._impl_.~Impl_();
 }
 
@@ -202,8 +624,20 @@ inline void* PROTOBUF_NONNULL KvSetRootOp::PlacementNew_(
   return ::new (mem) KvSetRootOp(arena);
 }
 constexpr auto KvSetRootOp::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(KvSetRootOp),
-                                            alignof(KvSetRootOp));
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(KvSetRootOp, _impl_.mutations_) +
+          decltype(KvSetRootOp::_impl_.mutations_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(KvSetRootOp), alignof(KvSetRootOp), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&KvSetRootOp::PlacementNew_,
+                                 sizeof(KvSetRootOp),
+                                 alignof(KvSetRootOp));
+  }
 }
 constexpr auto KvSetRootOp::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
@@ -239,17 +673,17 @@ KvSetRootOp::GetClassData() const {
   return KvSetRootOp_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 1, 46, 2>
+const ::_pbi::TcParseTable<2, 4, 3, 46, 2>
 KvSetRootOp::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(KvSetRootOp, _impl_._has_bits_),
     0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
+    4, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967280,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
-    1,  // num_aux_entries
+    4,  // num_field_entries
+    3,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     KvSetRootOp_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -258,24 +692,38 @@ KvSetRootOp::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::kv::world::KvSetRootOp>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // .bucket.ObjectRef root_ref = 2;
-    {::_pbi::TcParser::FastMtS1,
-     {18, 1, 0,
-      PROTOBUF_FIELD_OFFSET(KvSetRootOp, _impl_.root_ref_)}},
+    // repeated .s4wave.kv.world.KvMutation mutations = 4;
+    {::_pbi::TcParser::FastMtR1,
+     {34, 0, 2,
+      PROTOBUF_FIELD_OFFSET(KvSetRootOp, _impl_.mutations_)}},
     // string object_key = 1;
     {::_pbi::TcParser::FastUS1,
-     {10, 0, 0,
+     {10, 1, 0,
       PROTOBUF_FIELD_OFFSET(KvSetRootOp, _impl_.object_key_)}},
+    // .bucket.ObjectRef root_ref = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 2, 0,
+      PROTOBUF_FIELD_OFFSET(KvSetRootOp, _impl_.root_ref_)}},
+    // .bucket.ObjectRef base_ref = 3;
+    {::_pbi::TcParser::FastMtS1,
+     {26, 3, 1,
+      PROTOBUF_FIELD_OFFSET(KvSetRootOp, _impl_.base_ref_)}},
   }}, {{
     65535, 65535
   }}, {{
     // string object_key = 1;
-    {PROTOBUF_FIELD_OFFSET(KvSetRootOp, _impl_.object_key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(KvSetRootOp, _impl_.object_key_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // .bucket.ObjectRef root_ref = 2;
-    {PROTOBUF_FIELD_OFFSET(KvSetRootOp, _impl_.root_ref_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(KvSetRootOp, _impl_.root_ref_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .bucket.ObjectRef base_ref = 3;
+    {PROTOBUF_FIELD_OFFSET(KvSetRootOp, _impl_.base_ref_), _Internal::kHasBitsOffset + 3, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // repeated .s4wave.kv.world.KvMutation mutations = 4;
+    {PROTOBUF_FIELD_OFFSET(KvSetRootOp, _impl_.mutations_), _Internal::kHasBitsOffset + 0, 2, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::bucket::ObjectRef>()},
+      {::_pbi::TcParser::GetTable<::bucket::ObjectRef>()},
+      {::_pbi::TcParser::GetTable<::s4wave::kv::world::KvMutation>()},
   }},
   {{
     "\33\12\0\0\0\0\0\0"
@@ -291,13 +739,20 @@ PROTOBUF_NOINLINE void KvSetRootOp::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      _impl_.object_key_.ClearNonDefaultToEmpty();
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.mutations_.Clear();
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.object_key_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       ABSL_DCHECK(_impl_.root_ref_ != nullptr);
       _impl_.root_ref_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(_impl_.base_ref_ != nullptr);
+      _impl_.base_ref_->Clear();
     }
   }
   _impl_._has_bits_.Clear();
@@ -324,7 +779,7 @@ PROTOBUF_NOINLINE void KvSetRootOp::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // string object_key = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     if (!this_._internal_object_key().empty()) {
       const ::std::string& _s = this_._internal_object_key();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
@@ -334,10 +789,30 @@ PROTOBUF_NOINLINE void KvSetRootOp::Clear() {
   }
 
   // .bucket.ObjectRef root_ref = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         2, *this_._impl_.root_ref_, this_._impl_.root_ref_->GetCachedSize(), target,
         stream);
+  }
+
+  // .bucket.ObjectRef base_ref = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        3, *this_._impl_.base_ref_, this_._impl_.base_ref_->GetCachedSize(), target,
+        stream);
+  }
+
+  // repeated .s4wave.kv.world.KvMutation mutations = 4;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_mutations_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_mutations().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              4, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
   }
 
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
@@ -365,18 +840,30 @@ PROTOBUF_NOINLINE void KvSetRootOp::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // repeated .s4wave.kv.world.KvMutation mutations = 4;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_mutations_size();
+      for (const auto& msg : this_._internal_mutations()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
     // string object_key = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       if (!this_._internal_object_key().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_object_key());
       }
     }
     // .bucket.ObjectRef root_ref = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.root_ref_);
+    }
+    // .bucket.ObjectRef base_ref = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.base_ref_);
     }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
@@ -398,8 +885,13 @@ void KvSetRootOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_mutations()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_mutations());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       if (!from._internal_object_key().empty()) {
         _this->_internal_set_object_key(from._internal_object_key());
       } else {
@@ -408,12 +900,20 @@ void KvSetRootOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       ABSL_DCHECK(from._impl_.root_ref_ != nullptr);
       if (_this->_impl_.root_ref_ == nullptr) {
         _this->_impl_.root_ref_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.root_ref_);
       } else {
         _this->_impl_.root_ref_->MergeFrom(*from._impl_.root_ref_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(from._impl_.base_ref_ != nullptr);
+      if (_this->_impl_.base_ref_ == nullptr) {
+        _this->_impl_.base_ref_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.base_ref_);
+      } else {
+        _this->_impl_.base_ref_->MergeFrom(*from._impl_.base_ref_);
       }
     }
   }
@@ -436,8 +936,14 @@ void KvSetRootOp::InternalSwap(KvSetRootOp* PROTOBUF_RESTRICT PROTOBUF_NONNULL o
   ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.mutations_.InternalSwap(&other->_impl_.mutations_);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.object_key_, &other->_impl_.object_key_, arena);
-  swap(_impl_.root_ref_, other->_impl_.root_ref_);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(KvSetRootOp, _impl_.base_ref_)
+      + sizeof(KvSetRootOp::_impl_.base_ref_)
+      - PROTOBUF_FIELD_OFFSET(KvSetRootOp, _impl_.root_ref_)>(
+          reinterpret_cast<char*>(&_impl_.root_ref_),
+          reinterpret_cast<char*>(&other->_impl_.root_ref_));
 }
 
 ::google::protobuf::Metadata KvSetRootOp::GetMetadata() const {

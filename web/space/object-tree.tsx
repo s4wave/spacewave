@@ -20,6 +20,7 @@ import {
   LuNetwork,
   LuPaintbrush,
   LuScale,
+  LuTable,
   LuWrench,
 } from 'react-icons/lu'
 import {
@@ -96,6 +97,7 @@ const metadataIcons: Record<
   network: LuNetwork,
   paintbrush: LuPaintbrush,
   scale: LuScale,
+  table: LuTable,
   wrench: LuWrench,
 }
 
@@ -134,7 +136,17 @@ export function getObjectTypeIcon(
     case 'canvas':
       return <LuPaintbrush className={iconSize} />
     case 'kv/store':
+    case 'sql/db':
       return <LuDatabase className={iconSize} />
+    case 'sql/query':
+      return <LuFileText className={iconSize} />
+    case 'sql/schema':
+    case 'sql/query-result':
+      return <LuTable className={iconSize} />
+    case 'sql/table-view':
+      return <LuListFilter className={iconSize} />
+    case 'sql/workbench':
+      return <LuLayoutGrid className={iconSize} />
     default:
       return <LuBox className={iconSize} />
   }
@@ -161,6 +173,18 @@ export function getObjectTypeLabel(
       return 'Canvas'
     case 'kv/store':
       return 'Key/Value Store'
+    case 'sql/db':
+      return 'SQL Database'
+    case 'sql/query':
+      return 'SQL Query'
+    case 'sql/query-result':
+      return 'SQL Query Result'
+    case 'sql/schema':
+      return 'SQL Schema'
+    case 'sql/table-view':
+      return 'SQL Table View'
+    case 'sql/workbench':
+      return 'SQL Workbench'
     default:
       return typeId || 'Object'
   }

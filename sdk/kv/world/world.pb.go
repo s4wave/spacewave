@@ -5,6 +5,7 @@
 package s4wave_kv_world
 
 import (
+	base64 "encoding/base64"
 	fmt "fmt"
 	io "io"
 	slices "slices"
@@ -16,6 +17,84 @@ import (
 	bucket "github.com/s4wave/spacewave/db/bucket"
 )
 
+// KvMutationKind identifies a replayable KVTX write mutation.
+type KvMutationKind int32
+
+const (
+	// KV_MUTATION_KIND_UNSPECIFIED is invalid.
+	KvMutationKind_KV_MUTATION_KIND_UNSPECIFIED KvMutationKind = 0
+	// KV_MUTATION_KIND_SET stores a value at a key.
+	KvMutationKind_KV_MUTATION_KIND_SET KvMutationKind = 1
+	// KV_MUTATION_KIND_DELETE removes a key.
+	KvMutationKind_KV_MUTATION_KIND_DELETE KvMutationKind = 2
+)
+
+// Enum value maps for KvMutationKind.
+var (
+	KvMutationKind_name = map[int32]string{
+		0: "KV_MUTATION_KIND_UNSPECIFIED",
+		1: "KV_MUTATION_KIND_SET",
+		2: "KV_MUTATION_KIND_DELETE",
+	}
+	KvMutationKind_value = map[string]int32{
+		"KV_MUTATION_KIND_UNSPECIFIED": 0,
+		"KV_MUTATION_KIND_SET":         1,
+		"KV_MUTATION_KIND_DELETE":      2,
+	}
+)
+
+func (x KvMutationKind) Enum() *KvMutationKind {
+	p := new(KvMutationKind)
+	*p = x
+	return p
+}
+
+func (x KvMutationKind) String() string {
+	name, valid := KvMutationKind_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// KvMutation records one write in the transaction commit order.
+type KvMutation struct {
+	unknownFields []byte
+	// Kind is the mutation operation.
+	Kind KvMutationKind `protobuf:"varint,1,opt,name=kind,proto3" json:"kind,omitempty"`
+	// Key is the KVTX key.
+	Key []byte `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	// Value is the KVTX value for set mutations.
+	Value []byte `protobuf:"bytes,3,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *KvMutation) Reset() {
+	*x = KvMutation{}
+}
+
+func (*KvMutation) ProtoMessage() {}
+
+func (x *KvMutation) GetKind() KvMutationKind {
+	if x != nil {
+		return x.Kind
+	}
+	return KvMutationKind_KV_MUTATION_KIND_UNSPECIFIED
+}
+
+func (x *KvMutation) GetKey() []byte {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+func (x *KvMutation) GetValue() []byte {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
 // KvSetRootOp advances a kv/store world object's root after a KVTX commit.
 type KvSetRootOp struct {
 	unknownFields []byte
@@ -23,6 +102,10 @@ type KvSetRootOp struct {
 	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
 	// RootRef is the committed KVTX root reference.
 	RootRef *bucket.ObjectRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
+	// BaseRef is the object root the transaction committed from.
+	BaseRef *bucket.ObjectRef `protobuf:"bytes,3,opt,name=base_ref,json=baseRef,proto3" json:"baseRef,omitempty"`
+	// Mutations are the committed writes needed to rebase from a moved base.
+	Mutations []*KvMutation `protobuf:"bytes,4,rep,name=mutations,proto3" json:"mutations,omitempty"`
 }
 
 func (x *KvSetRootOp) Reset() {
@@ -45,6 +128,42 @@ func (x *KvSetRootOp) GetRootRef() *bucket.ObjectRef {
 	return nil
 }
 
+func (x *KvSetRootOp) GetBaseRef() *bucket.ObjectRef {
+	if x != nil {
+		return x.BaseRef
+	}
+	return nil
+}
+
+func (x *KvSetRootOp) GetMutations() []*KvMutation {
+	if x != nil {
+		return x.Mutations
+	}
+	return nil
+}
+
+func (m *KvMutation) CloneVT() *KvMutation {
+	if m == nil {
+		return (*KvMutation)(nil)
+	}
+	r := new(KvMutation)
+	r.Kind = m.Kind
+	if rhs := m.Key; rhs != nil {
+		r.Key = slices.Clone(rhs)
+	}
+	if rhs := m.Value; rhs != nil {
+		r.Value = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *KvMutation) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *KvSetRootOp) CloneVT() *KvSetRootOp {
 	if m == nil {
 		return (*KvSetRootOp)(nil)
@@ -54,6 +173,15 @@ func (m *KvSetRootOp) CloneVT() *KvSetRootOp {
 	if rhs := m.RootRef; rhs != nil {
 		r.RootRef = rhs.CloneVT()
 	}
+	if rhs := m.BaseRef; rhs != nil {
+		r.BaseRef = rhs.CloneVT()
+	}
+	if rhs := m.Mutations; rhs != nil {
+		r.Mutations = make([]*KvMutation, len(rhs))
+		for k, v := range rhs {
+			r.Mutations[k] = v.CloneVT()
+		}
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -62,6 +190,32 @@ func (m *KvSetRootOp) CloneVT() *KvSetRootOp {
 
 func (m *KvSetRootOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
+}
+
+func (this *KvMutation) EqualVT(that *KvMutation) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Kind != that.Kind {
+		return false
+	}
+	if string(this.Key) != string(that.Key) {
+		return false
+	}
+	if string(this.Value) != string(that.Value) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *KvMutation) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*KvMutation)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
 }
 
 func (this *KvSetRootOp) EqualVT(that *KvSetRootOp) bool {
@@ -76,6 +230,26 @@ func (this *KvSetRootOp) EqualVT(that *KvSetRootOp) bool {
 	if !this.RootRef.EqualVT(that.RootRef) {
 		return false
 	}
+	if !this.BaseRef.EqualVT(that.BaseRef) {
+		return false
+	}
+	if len(this.Mutations) != len(that.Mutations) {
+		return false
+	}
+	for i, vx := range this.Mutations {
+		vy := that.Mutations[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &KvMutation{}
+			}
+			if q == nil {
+				q = &KvMutation{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -85,6 +259,104 @@ func (this *KvSetRootOp) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the KvMutationKind to JSON.
+func (x KvMutationKind) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), KvMutationKind_name)
+}
+
+// MarshalText marshals the KvMutationKind to text.
+func (x KvMutationKind) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), KvMutationKind_name)), nil
+}
+
+// MarshalJSON marshals the KvMutationKind to JSON.
+func (x KvMutationKind) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the KvMutationKind from JSON.
+func (x *KvMutationKind) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(KvMutationKind_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read KvMutationKind enum: %v", err)
+		return
+	}
+	*x = KvMutationKind(v)
+}
+
+// UnmarshalText unmarshals the KvMutationKind from text.
+func (x *KvMutationKind) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), KvMutationKind_value)
+	if err != nil {
+		return err
+	}
+	*x = KvMutationKind(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the KvMutationKind from JSON.
+func (x *KvMutationKind) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the KvMutation message to JSON.
+func (x *KvMutation) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Kind != 0 || s.HasField("kind") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("kind")
+		x.Kind.MarshalProtoJSON(s)
+	}
+	if len(x.Key) > 0 || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteBytes(x.Key)
+	}
+	if len(x.Value) > 0 || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		s.WriteBytes(x.Value)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the KvMutation to JSON.
+func (x *KvMutation) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the KvMutation message from JSON.
+func (x *KvMutation) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "kind":
+			s.AddField("kind")
+			x.Kind.UnmarshalProtoJSON(s)
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadBytes()
+		case "value":
+			s.AddField("value")
+			x.Value = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the KvMutation from JSON.
+func (x *KvMutation) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the KvSetRootOp message to JSON.
@@ -104,6 +376,22 @@ func (x *KvSetRootOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("rootRef")
 		x.RootRef.MarshalProtoJSON(s.WithField("rootRef"))
+	}
+	if x.BaseRef != nil || s.HasField("baseRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("baseRef")
+		x.BaseRef.MarshalProtoJSON(s.WithField("baseRef"))
+	}
+	if len(x.Mutations) > 0 || s.HasField("mutations") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("mutations")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Mutations {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("mutations"))
+		}
+		s.WriteArrayEnd()
 	}
 	s.WriteObjectEnd()
 }
@@ -132,6 +420,31 @@ func (x *KvSetRootOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.RootRef = &bucket.ObjectRef{}
 			x.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
+		case "base_ref", "baseRef":
+			if s.ReadNil() {
+				x.BaseRef = nil
+				return
+			}
+			x.BaseRef = &bucket.ObjectRef{}
+			x.BaseRef.UnmarshalProtoJSON(s.WithField("base_ref", true))
+		case "mutations":
+			s.AddField("mutations")
+			if s.ReadNil() {
+				x.Mutations = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Mutations = append(x.Mutations, nil)
+					return
+				}
+				v := &KvMutation{}
+				v.UnmarshalProtoJSON(s.WithField("mutations", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Mutations = append(x.Mutations, v)
+			})
 		}
 	})
 }
@@ -139,6 +452,58 @@ func (x *KvSetRootOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 // UnmarshalJSON unmarshals the KvSetRootOp from JSON.
 func (x *KvSetRootOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+func (m *KvMutation) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *KvMutation) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KvMutation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Value) > 0 {
+		i -= len(m.Value)
+		copy(dAtA[i:], m.Value)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Value)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Key) > 0 {
+		i -= len(m.Key)
+		copy(dAtA[i:], m.Key)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Key)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Kind != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Kind))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *KvSetRootOp) MarshalVT() (dAtA []byte, err error) {
@@ -171,6 +536,28 @@ func (m *KvSetRootOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.Mutations) > 0 {
+		for iNdEx := len(m.Mutations) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Mutations[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if m.BaseRef != nil {
+		size, err := m.BaseRef.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if m.RootRef != nil {
 		size, err := m.RootRef.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -191,6 +578,27 @@ func (m *KvSetRootOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *KvMutation) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Kind != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Kind))
+	}
+	l = len(m.Key)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Value)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *KvSetRootOp) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -205,8 +613,60 @@ func (m *KvSetRootOp) SizeVT() (n int) {
 		l = m.RootRef.SizeVT()
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if m.BaseRef != nil {
+		l = m.BaseRef.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.Mutations) > 0 {
+		for _, e := range m.Mutations {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x KvMutationKind) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x *KvMutation) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("KvMutation {")
+	if x.Kind != 0 {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("kind: ")
+		sb.WriteString("\"")
+		sb.WriteString(KvMutationKind(x.Kind).String())
+		sb.WriteString("\"")
+	}
+	if len(x.Key) != 0 {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("key: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.Key))
+		sb.WriteString("\"")
+	}
+	if len(x.Value) != 0 {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("value: ")
+		sb.WriteString("\"")
+		sb.WriteString(base64.StdEncoding.EncodeToString(x.Value))
+		sb.WriteString("\"")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *KvMutation) String() string {
+	return x.MarshalProtoText()
 }
 
 func (x *KvSetRootOp) MarshalProtoText() string {
@@ -226,12 +686,142 @@ func (x *KvSetRootOp) MarshalProtoText() string {
 		sb.WriteString("root_ref: ")
 		sb.WriteString(x.RootRef.MarshalProtoText())
 	}
+	if x.BaseRef != nil {
+		if sb.Len() > 13 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("base_ref: ")
+		sb.WriteString(x.BaseRef.MarshalProtoText())
+	}
+	if len(x.Mutations) > 0 {
+		if sb.Len() > 13 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("mutations: [")
+		for i, v := range x.Mutations {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			if v == nil {
+				sb.WriteString((&KvMutation{}).MarshalProtoText())
+			} else {
+				sb.WriteString(v.MarshalProtoText())
+			}
+		}
+		sb.WriteString("]")
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
 
 func (x *KvSetRootOp) String() string {
 	return x.MarshalProtoText()
+}
+
+func (m *KvMutation) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: KvMutation: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: KvMutation: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Kind", wireType)
+			}
+			m.Kind = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Kind = KvMutationKind(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
+			if m.Key == nil {
+				m.Key = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+			}
+			var byteLen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			byteLen = int(_v)
+			if err != nil {
+				return err
+			}
+			if byteLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Value = append(m.Value[:0], dAtA[iNdEx:postIndex]...)
+			if m.Value == nil {
+				m.Value = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 
 func (m *KvSetRootOp) UnmarshalVT(dAtA []byte) error {
@@ -301,6 +891,60 @@ func (m *KvSetRootOp) UnmarshalVT(dAtA []byte) error {
 				m.RootRef = &bucket.ObjectRef{}
 			}
 			if err := m.RootRef.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BaseRef", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.BaseRef == nil {
+				m.BaseRef = &bucket.ObjectRef{}
+			}
+			if err := m.BaseRef.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mutations", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Mutations = append(m.Mutations, &KvMutation{})
+			if err := m.Mutations[len(m.Mutations)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

@@ -2,6 +2,7 @@ package unixfs_world
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 
 	"github.com/aperturerobotics/util/broadcast"
@@ -30,6 +31,8 @@ type FSCursor struct {
 	ctx context.Context
 	// ctxCancel is canceled when the cursor is released
 	ctxCancel context.CancelFunc
+	// watchWg waits for world-change watchers to exit before Release returns.
+	watchWg sync.WaitGroup
 	// le is the logger
 	le *logrus.Entry
 	// ws is the world state
@@ -61,7 +64,23 @@ func NewFSCursor(
 	writer unixfs.FSWriter,
 	watchChanges bool,
 ) *FSCursor {
-	ctx, ctxCancel := context.WithCancel(context.Background()) //nolint:gosec
+	return NewFSCursorWithContext(context.Background(), le, ws, objKey, posType, writer, watchChanges)
+}
+
+// NewFSCursorWithContext constructs a new FSCursor whose watchers stop when ctx is canceled.
+func NewFSCursorWithContext(
+	ctx context.Context,
+	le *logrus.Entry,
+	ws world.WorldState,
+	objKey string,
+	posType FSType,
+	writer unixfs.FSWriter,
+	watchChanges bool,
+) *FSCursor {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	ctx, ctxCancel := context.WithCancel(ctx)
 	return &FSCursor{
 		ctx:       ctx,
 		ctxCancel: ctxCancel,
@@ -86,12 +105,24 @@ func NewFSCursorWithWriter(
 	fsType FSType,
 	sender peer.ID,
 ) (*FSCursor, *FSWriter) {
+	return NewFSCursorWithWriterContext(context.Background(), le, ws, objKey, fsType, sender)
+}
+
+// NewFSCursorWithWriterContext builds a writer-backed FSCursor whose watchers stop when ctx is canceled.
+func NewFSCursorWithWriterContext(
+	ctx context.Context,
+	le *logrus.Entry,
+	ws world.WorldState,
+	objKey string,
+	fsType FSType,
+	sender peer.ID,
+) (*FSCursor, *FSWriter) {
 	// the fs writer processes write ops
 	fsw := NewFSWriter(ws, objKey, fsType, sender)
 
 	// construct the fs cursor
 	// watchChanges must be true otherwise WaitObjectRev will never update
-	fsc := NewFSCursor(le, ws, objKey, fsType, fsw, true)
+	fsc := NewFSCursorWithContext(ctx, le, ws, objKey, fsType, fsw, true)
 
 	// we need the writer to wait until the FSCursor has processed the updated
 	// revision of the world before returning from writes. pass the FSCursor to
@@ -213,9 +244,9 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 			f.rootFSCursor = nfs
 			// dispatch goroutine to wait for changes
 			if f.watchChanges {
-				go func() {
+				f.watchWg.Go(func() {
 					f.watchWorldChanges(nfs, objRef)
-				}()
+				})
 			}
 			// add callback to release cursors when nfs is released
 			nfs.AddChangeCb(func(ch *unixfs.FSCursorChange) bool {
@@ -271,8 +302,15 @@ func (f *FSCursor) lockedAddChangeCb(cb unixfs.FSCursorChangeCb) bool {
 // Release releases the filesystem cursor.
 // note: locks mtx. must NOT be locked when calling
 func (f *FSCursor) Release() {
+	f.release(true)
+}
+
+func (f *FSCursor) release(waitForWatchers bool) {
 	if f.CheckReleased() {
 		// fast path
+		if waitForWatchers {
+			f.watchWg.Wait()
+		}
 		return
 	}
 	var changeCbs unixfs.FSCursorChangeCbSlice
@@ -292,6 +330,9 @@ func (f *FSCursor) Release() {
 		broadcast()
 	})
 	_ = changeCbs.CallCbs(&unixfs.FSCursorChange{Cursor: f, Released: true})
+	if waitForWatchers {
+		f.watchWg.Wait()
+	}
 }
 
 // watchWorldChanges waits for changes to the world object in a goroutine.
@@ -356,7 +397,7 @@ func (f *FSCursor) watchWorldChanges(nfs *unixfs_block_fs.FS, currRef *bucket.Ob
 
 	// release this cursor when loop exits
 	// this signals to WaitObjectRev that watchWorldChanges is no longer running.
-	f.Release()
+	f.release(false)
 }
 
 // _ is a type assertion

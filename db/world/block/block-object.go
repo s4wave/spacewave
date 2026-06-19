@@ -8,7 +8,16 @@ import (
 )
 
 // NewObject constructs a new Object block from a key and root ref.
+//
+// A nil root ref is normalized to an empty ObjectRef so that an object created
+// with no explicit root carries an empty root sub-block, identical to one
+// created with an explicit empty ref. Readers that strictly decode the object
+// root (the SQL store opener) then see an empty root rather than a missing
+// sub-block that decodes as the wrong block type.
 func NewObject(key string, rootRef *bucket.ObjectRef) *Object {
+	if rootRef == nil {
+		rootRef = &bucket.ObjectRef{}
+	}
 	return &Object{
 		Key:     key,
 		RootRef: rootRef,

@@ -13,9 +13,18 @@ import type {
 // KvStoreTypeID is the world ObjectType id for KVTX stores.
 export const KvStoreTypeID = 'kv/store'
 
+// KvKeyEntry is a key and its value byte length from a store scan.
+export interface KvKeyEntry {
+  // key is the raw key bytes.
+  key: Uint8Array
+  // byteLength is the length of the key's stored value in bytes.
+  byteLength: number
+}
+
 // IKvStore contains the bytes-only KV store interface.
 export interface IKvStore {
   keyCount(abortSignal?: AbortSignal): Promise<bigint>
+  scanKeys(prefix: Uint8Array, abortSignal?: AbortSignal): Promise<KvKeyEntry[]>
   get(
     key: Uint8Array,
     abortSignal?: AbortSignal,
@@ -44,6 +53,18 @@ export class KvStore extends Resource implements IKvStore {
     return this.withTransaction(
       false,
       async (tx) => tx.keyCount(abortSignal),
+      abortSignal,
+    )
+  }
+
+  // scanKeys returns every key with the given prefix and its value byte length.
+  public async scanKeys(
+    prefix: Uint8Array,
+    abortSignal?: AbortSignal,
+  ): Promise<KvKeyEntry[]> {
+    return this.withTransaction(
+      false,
+      async (tx) => tx.scanKeys(prefix, abortSignal),
       abortSignal,
     )
   }
@@ -150,6 +171,21 @@ export class KvTransaction {
   public async keyCount(abortSignal?: AbortSignal): Promise<bigint> {
     const resp = await this.ops.KeyCount({}, abortSignal)
     return resp.keyCount ?? 0n
+  }
+
+  // scanKeys returns every key with the given prefix and its value byte length.
+  public async scanKeys(
+    prefix: Uint8Array,
+    abortSignal?: AbortSignal,
+  ): Promise<KvKeyEntry[]> {
+    const entries: KvKeyEntry[] = []
+    const stream = this.ops.ScanPrefix({ prefix, onlyKeys: false }, abortSignal)
+    for await (const resp of stream) {
+      if (resp.error) throw new Error(resp.error)
+      if (!resp.key) continue
+      entries.push({ key: resp.key, byteLength: resp.value?.length ?? 0 })
+    }
+    return entries
   }
 
   // get returns a key value, if present.

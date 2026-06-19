@@ -104,7 +104,7 @@ func TestKvStoreFactoryCommitsWorldBackedRootAndReplaysOp(t *testing.T) {
 		t.Fatalf("LookupWorldOp returned %T, want *KvSetRootOp", lookupOp)
 	}
 
-	op := s4wave_kv_world.NewKvSetRootOp(objectKey, afterRoot)
+	op := s4wave_kv_world.NewKvSetRootOp(objectKey, afterRoot, afterRoot, nil)
 	data, err := op.MarshalBlock()
 	if err != nil {
 		t.Fatalf("MarshalBlock: %v", err)
@@ -181,6 +181,21 @@ func createKvStoreObject(t *testing.T, ctx context.Context, ws world.WorldState,
 		}
 	}
 	return rootRef.Clone()
+}
+
+// createEmptyKvStoreObject creates a kv/store object with an empty initial root,
+// mirroring the browser quickstart path that creates the object before any block
+// is written, so the first commit advances the root from an empty base.
+func createEmptyKvStoreObject(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string) {
+	t.Helper()
+	if _, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
+		return nil
+	}); err != nil {
+		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
+	}
+	if err := world_types.SetObjectType(ctx, ws, objectKey, s4wave_kv_world.KvStoreTypeID); err != nil {
+		t.Fatalf("SetObjectType(%s): %v", objectKey, err)
+	}
 }
 
 func getObjectRoot(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string) *bucket.ObjectRef {

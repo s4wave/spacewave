@@ -1,0 +1,68 @@
+syntax = "proto3";
+package s4wave.sql.table_view;
+
+import "github.com/s4wave/spacewave/db/sql/sql.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/sql/table-view;s4wave_sql_table_view";
+
+// TableView is a standalone saved table projection and filter.
+message TableView {
+  // TargetSchemaObjectKey is the sql/schema object this view reads from.
+  string target_schema_object_key = 1;
+  // TargetTableName is the table name inside the target schema.
+  string target_table_name = 2;
+  // WhereExpression is an optional SQL WHERE expression.
+  string where_expression = 3;
+  // ProjectedColumns limits returned columns. Empty selects all columns.
+  repeated string projected_columns = 4;
+  // SortOrder orders returned rows.
+  repeated SortOrder sort_order = 5;
+  // RowLimit limits returned rows. Zero uses the default limit.
+  uint32 row_limit = 6;
+  // WhereParameters are positional bind arguments used by WhereExpression.
+  repeated .sql.SqlValue where_parameters = 7;
+  // DisplayName is an optional user-facing label.
+  string display_name = 8;
+  // Description is optional user-facing metadata.
+  string description = 9;
+}
+
+// SortOrder describes one ORDER BY term.
+message SortOrder {
+  // ColumnName is the column to sort.
+  string column_name = 1;
+  // Descending sorts the column descending when true.
+  bool descending = 2;
+}
+
+// SqlTableViewResourceService exposes a SQL table view world object.
+service SqlTableViewResourceService {
+  // GetTableView returns the table view metadata.
+  rpc GetTableView(GetTableViewRequest) returns (GetTableViewResponse);
+  // FetchRows executes the table view SELECT.
+  rpc FetchRows(FetchRowsRequest) returns (FetchRowsResponse);
+}
+
+// GetTableViewRequest is a request for table view metadata.
+message GetTableViewRequest {}
+
+// GetTableViewResponse contains table view metadata.
+message GetTableViewResponse {
+  // TableView is the persisted table view block.
+  TableView table_view = 1;
+}
+
+// FetchRowsRequest executes the saved table view.
+message FetchRowsRequest {}
+
+// FetchRowsResponse contains rows returned by the table view.
+message FetchRowsResponse {
+  // Columns describes the returned columns.
+  repeated .sql.ColumnSchema columns = 1;
+  // RowBatches stores returned rows in column order.
+  repeated .sql.RowBatch row_batches = 2;
+  // RowCount is the number of returned rows.
+  uint64 row_count = 3;
+  // Truncated indicates rows were omitted by the view row limit.
+  bool truncated = 4;
+}

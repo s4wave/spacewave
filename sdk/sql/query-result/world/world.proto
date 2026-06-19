@@ -1,0 +1,14 @@
+syntax = "proto3";
+package s4wave.sql.query_result.world;
+
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/sql/query-result/world;s4wave_sql_query_result_world";
+
+// SqlQueryResultSetRootOp advances a sql/query-result world object's root.
+message SqlQueryResultSetRootOp {
+  // ObjectKey is the sql/query-result object key to update.
+  string object_key = 1;
+  // RootRef is the committed query result root reference.
+  .bucket.ObjectRef root_ref = 2;
+}

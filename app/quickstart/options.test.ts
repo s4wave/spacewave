@@ -50,6 +50,18 @@ describe('quickstart options', () => {
     expect(isQuickstartOptionVisible(getQuickstartOption('forge'), true)).toBe(
       true,
     )
+    expect(isQuickstartOptionVisible(getQuickstartOption('kv'), false)).toBe(
+      false,
+    )
+    expect(isQuickstartOptionVisible(getQuickstartOption('kv'), true)).toBe(
+      true,
+    )
+    expect(isQuickstartOptionVisible(getQuickstartOption('sql'), false)).toBe(
+      false,
+    )
+    expect(isQuickstartOptionVisible(getQuickstartOption('sql'), true)).toBe(
+      true,
+    )
   })
 
   it('keeps hidden, dynamic, and path-based quickstarts out of public prerender pages', () => {

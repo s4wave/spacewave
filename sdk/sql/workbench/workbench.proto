@@ -1,0 +1,103 @@
+syntax = "proto3";
+package s4wave.sql.workbench;
+
+option go_package = "github.com/s4wave/spacewave/sdk/sql/workbench;s4wave_sql_workbench";
+
+// Workbench is a persistent SQL exploration workspace.
+message Workbench {
+  // TargetDbObjectKey is the sql/db object this workbench explores.
+  string target_db_object_key = 1;
+  // PinnedQueryObjectKeys are sql/query objects pinned in the workbench.
+  repeated string pinned_query_object_keys = 2;
+  // OpenTabs are persisted query/result tabs in display order.
+  repeated WorkbenchTab open_tabs = 3;
+  // Layout stores user preferences for the workbench frame.
+  WorkbenchLayout layout = 4;
+  // DisplayName is an optional user-facing label.
+  string display_name = 5;
+  // Description is optional user-facing metadata.
+  string description = 6;
+}
+
+// WorkbenchTabKind identifies the kind of object opened in a workbench tab.
+enum WorkbenchTabKind {
+  WORKBENCH_TAB_KIND_UNSPECIFIED = 0;
+  WORKBENCH_TAB_KIND_QUERY = 1;
+  WORKBENCH_TAB_KIND_QUERY_RESULT = 2;
+}
+
+// WorkbenchTab describes one persisted workbench tab.
+message WorkbenchTab {
+  // TabId is the stable tab identifier in the workbench layout.
+  string tab_id = 1;
+  // ObjectKey is the sql/query or sql/query-result object shown by the tab.
+  string object_key = 2;
+  // Kind identifies the object type expected for ObjectKey.
+  WorkbenchTabKind kind = 3;
+  // Title is an optional tab label.
+  string title = 4;
+  // Pinned keeps the tab open across layout changes.
+  bool pinned = 5;
+}
+
+// WorkbenchLayout stores layout preferences for the workbench viewer.
+message WorkbenchLayout {
+  // Mode names the viewer layout mode.
+  string mode = 1;
+  // SidebarWidth stores the preferred database tree width in pixels.
+  uint32 sidebar_width = 2;
+  // ResultPanelHeight stores the preferred result panel height in pixels.
+  uint32 result_panel_height = 3;
+  // ActiveTabId stores the selected tab.
+  string active_tab_id = 4;
+}
+
+// SqlWorkbenchResourceService exposes a SQL workbench world object.
+service SqlWorkbenchResourceService {
+  // GetWorkbench returns the persisted workbench state.
+  rpc GetWorkbench(GetWorkbenchRequest) returns (GetWorkbenchResponse);
+  // AddPin pins a sql/query object.
+  rpc AddPin(AddPinRequest) returns (AddPinResponse);
+  // RemovePin removes a pinned sql/query object.
+  rpc RemovePin(RemovePinRequest) returns (RemovePinResponse);
+  // SetLayout replaces the open tabs and layout preferences.
+  rpc SetLayout(SetLayoutRequest) returns (SetLayoutResponse);
+}
+
+// GetWorkbenchRequest is a request for workbench state.
+message GetWorkbenchRequest {}
+
+// GetWorkbenchResponse contains workbench state.
+message GetWorkbenchResponse {
+  // Workbench is the persisted workbench block.
+  Workbench workbench = 1;
+}
+
+// AddPinRequest pins a sql/query object.
+message AddPinRequest {
+  // QueryObjectKey is the sql/query object to pin.
+  string query_object_key = 1;
+}
+
+// AddPinResponse is returned after adding a pin.
+message AddPinResponse {}
+
+// RemovePinRequest removes a pinned sql/query object.
+message RemovePinRequest {
+  // QueryObjectKey is the sql/query object to unpin.
+  string query_object_key = 1;
+}
+
+// RemovePinResponse is returned after removing a pin.
+message RemovePinResponse {}
+
+// SetLayoutRequest replaces the open tabs and layout preferences.
+message SetLayoutRequest {
+  // OpenTabs are persisted query/result tabs in display order.
+  repeated WorkbenchTab open_tabs = 1;
+  // Layout stores user preferences for the workbench frame.
+  WorkbenchLayout layout = 2;
+}
+
+// SetLayoutResponse is returned after updating layout state.
+message SetLayoutResponse {}

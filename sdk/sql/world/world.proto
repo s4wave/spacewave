@@ -1,0 +1,51 @@
+syntax = "proto3";
+package s4wave.sql.world;
+
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+import "github.com/s4wave/spacewave/db/sql/sql.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/sql/world;s4wave_sql_world";
+
+// SqlStatementKind identifies a replayable SQL transaction statement.
+enum SqlStatementKind {
+  // SQL_STATEMENT_KIND_UNSPECIFIED is invalid.
+  SQL_STATEMENT_KIND_UNSPECIFIED = 0;
+  // SQL_STATEMENT_KIND_EXEC replays via ExecContext.
+  SQL_STATEMENT_KIND_EXEC = 1;
+  // SQL_STATEMENT_KIND_QUERY replays via QueryContext and drains rows.
+  SQL_STATEMENT_KIND_QUERY = 2;
+}
+
+// SqlArgument records one SQL bind argument.
+message SqlArgument {
+  // Name is the named-argument name, if any.
+  string name = 1;
+  // Ordinal is the positional argument ordinal.
+  int32 ordinal = 2;
+  // Value is the SQL bind value.
+  .sql.SqlValue value = 3;
+}
+
+// SqlStatement records one statement in transaction execution order.
+message SqlStatement {
+  // Kind is the replay method.
+  SqlStatementKind kind = 1;
+  // Dsn is the transaction default database.
+  string dsn = 2;
+  // Query is the SQL statement text.
+  string query = 3;
+  // Args are the bind arguments.
+  repeated SqlArgument args = 4;
+}
+
+// SqlSetRootOp advances a sql/db world object's root after a SQL commit.
+message SqlSetRootOp {
+  // ObjectKey is the sql/db object key to update.
+  string object_key = 1;
+  // RootRef is the committed SQL root reference.
+  .bucket.ObjectRef root_ref = 2;
+  // BaseRef is the object root the transaction committed from.
+  .bucket.ObjectRef base_ref = 3;
+  // Statements are the committed writes needed to rebase from a moved base.
+  repeated SqlStatement statements = 4;
+}

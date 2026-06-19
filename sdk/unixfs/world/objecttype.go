@@ -40,9 +40,9 @@ func UnixFSFactory(
 
 	var fsCursor *unixfs_world.FSCursor
 	if !ws.GetReadOnly() {
-		fsCursor, _ = unixfs_world.NewFSCursorWithWriter(ctx, le, ws, objectKey, fsType, "")
+		fsCursor, _ = unixfs_world.NewFSCursorWithWriterContext(ctx, le, ws, objectKey, fsType, "")
 	} else {
-		fsCursor = unixfs_world.NewFSCursor(le, ws, objectKey, fsType, nil, false)
+		fsCursor = unixfs_world.NewFSCursorWithContext(ctx, le, ws, objectKey, fsType, nil, false)
 	}
 
 	fsh, err := unixfs.NewFSHandle(fsCursor)
@@ -62,6 +62,7 @@ func UnixFSFactory(
 
 	cleanup := func() {
 		fsh.Release()
+		fsCursor.Release()
 	}
 
 	return resource.GetMux(), cleanup, nil

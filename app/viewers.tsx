@@ -74,6 +74,27 @@ import {
 } from '@s4wave/app/terminal/TerminalViewer.js'
 import { OrgViewer, OrganizationTypeID } from '@s4wave/app/org/OrgViewer.js'
 import { KvStoreViewer, KvStoreTypeID } from '@s4wave/app/kv/KvStoreViewer.js'
+import { SqlDbViewer, SqlDbTypeID } from '@s4wave/app/sql/SqlDbViewer.js'
+import {
+  SqlQueryViewer,
+  SqlQueryTypeID,
+} from '@s4wave/app/sql/SqlQueryViewer.js'
+import {
+  SqlQueryResultViewer,
+  SqlQueryResultTypeID,
+} from '@s4wave/app/sql/SqlQueryResultViewer.js'
+import {
+  SqlSchemaViewer,
+  SqlSchemaTypeID,
+} from '@s4wave/app/sql/SqlSchemaViewer.js'
+import {
+  SqlTableViewViewer,
+  SqlTableViewTypeID,
+} from '@s4wave/app/sql/SqlTableViewViewer.js'
+import {
+  SqlWorkbenchViewer,
+  SqlWorkbenchTypeID,
+} from '@s4wave/app/sql/SqlWorkbenchViewer.js'
 import {
   WizardViewer,
   WizardTypePrefix,
@@ -220,6 +241,48 @@ const productObjectViewers: ObjectViewerComponent[] = [
     name: 'Key/Value Store',
     category: 'Data',
     component: KvStoreViewer,
+  },
+  {
+    componentID: 'spacewave.sql.db',
+    typeID: SqlDbTypeID,
+    name: 'SQL Database',
+    category: 'Data',
+    component: SqlDbViewer,
+  },
+  {
+    componentID: 'spacewave.sql.query',
+    typeID: SqlQueryTypeID,
+    name: 'SQL Query',
+    category: 'Data',
+    component: SqlQueryViewer,
+  },
+  {
+    componentID: 'spacewave.sql.query-result',
+    typeID: SqlQueryResultTypeID,
+    name: 'SQL Query Result',
+    category: 'Data',
+    component: SqlQueryResultViewer,
+  },
+  {
+    componentID: 'spacewave.sql.schema',
+    typeID: SqlSchemaTypeID,
+    name: 'SQL Schema',
+    category: 'Data',
+    component: SqlSchemaViewer,
+  },
+  {
+    componentID: 'spacewave.sql.table-view',
+    typeID: SqlTableViewTypeID,
+    name: 'SQL Table View',
+    category: 'Data',
+    component: SqlTableViewViewer,
+  },
+  {
+    componentID: 'spacewave.sql.workbench',
+    typeID: SqlWorkbenchTypeID,
+    name: 'SQL Workbench',
+    category: 'Data',
+    component: SqlWorkbenchViewer,
   },
   {
     componentID: 'spacewave.device.viewer',

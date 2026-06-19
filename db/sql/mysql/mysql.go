@@ -43,6 +43,13 @@ func (t *Mysql) GetRootNodeRef() *bucket.ObjectRef {
 	return t.rootCursor.GetRef().Clone()
 }
 
+// SetRootNodeRef switches the root cursor to an externally advanced root.
+func (t *Mysql) SetRootNodeRef(ref *bucket.ObjectRef) {
+	t.rmtx.Lock()
+	defer t.rmtx.Unlock()
+	t.rootCursor.SetRootRef(ref.GetRootRef().Clone())
+}
+
 // NewMysqlTransaction returns a transaction against the db.
 func (t *Mysql) NewMysqlTransaction(ctx context.Context, write bool) (*Tx, error) {
 	if write {

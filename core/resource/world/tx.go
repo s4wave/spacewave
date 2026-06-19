@@ -19,7 +19,8 @@ type TxResource struct {
 	mux    srpc.Mux
 	engine world.Engine
 
-	releaseOnce sync.Once
+	typedResource *TypedObjectResource
+	releaseOnce   sync.Once
 }
 
 // NewTxResource creates a new TxResource.
@@ -46,6 +47,7 @@ func NewTxResource(
 	// Register TypedObjectResourceService if engine is available
 	if engine != nil {
 		typedResource := NewTypedObjectResource(le, b, tx, engine)
+		txResource.typedResource = typedResource
 		_ = s4wave_world.SRPCRegisterTypedObjectResourceService(mux, typedResource)
 	}
 	return txResource
@@ -53,6 +55,9 @@ func NewTxResource(
 
 // Commit commits the transaction.
 func (r *TxResource) Commit(ctx context.Context, req *s4wave_world.CommitRequest) (*s4wave_world.CommitResponse, error) {
+	if r.typedResource != nil {
+		r.typedResource.Close()
+	}
 	err := r.tx.Commit(ctx)
 	if err != nil {
 		return nil, err
@@ -69,6 +74,9 @@ func (r *TxResource) Discard(ctx context.Context, req *s4wave_world.DiscardReque
 // Release discards the underlying transaction exactly once.
 func (r *TxResource) Release() {
 	r.releaseOnce.Do(func() {
+		if r.typedResource != nil {
+			r.typedResource.Close()
+		}
 		r.tx.Discard()
 	})
 }

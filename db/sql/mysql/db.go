@@ -6,10 +6,14 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
+	"sync"
 
 	gdriver "github.com/dolthub/go-mysql-server/driver"
 	hydra_sql "github.com/s4wave/spacewave/db/sql"
 )
+
+// go-mysql-server initializes package-global status variables during connector open.
+var sqlConnectorMu sync.Mutex
 
 // NewSqlDriver constructs a sql driver from a transaction.
 //
@@ -23,6 +27,9 @@ func NewSqlDriver(ctx context.Context, tx *Tx, driverOpts *gdriver.Options) *gdr
 // NOTE: dsn is used to specify arguments and is NOT the db name.
 // ctx is used for the driver Resolve() function.
 func NewSqlConnector(ctx context.Context, tx *Tx, dsn string) (driver.Connector, error) {
+	sqlConnectorMu.Lock()
+	defer sqlConnectorMu.Unlock()
+
 	driver := NewSqlDriver(ctx, tx, &gdriver.Options{})
 	return driver.OpenConnector(dsn)
 }

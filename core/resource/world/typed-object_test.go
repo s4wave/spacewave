@@ -4,11 +4,16 @@ package resource_world_test
 
 import (
 	"context"
+	"errors"
+	"maps"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/go-git/go-git/v6"
 	"github.com/go-git/go-git/v6/plumbing/object"
 	_ "github.com/go-git/go-git/v6/plumbing/transport/file"
@@ -19,19 +24,24 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	git_block "github.com/s4wave/spacewave/db/git/block"
 	git_world "github.com/s4wave/spacewave/db/git/world"
+	sql_rpc "github.com/s4wave/spacewave/db/sql/rpc"
+	sql_rpc_client "github.com/s4wave/spacewave/db/sql/rpc/client"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_device_world "github.com/s4wave/spacewave/sdk/device/world"
 	s4wave_git "github.com/s4wave/spacewave/sdk/git"
 	s4wave_git_world "github.com/s4wave/spacewave/sdk/git/world"
 	s4wave_layout_world "github.com/s4wave/spacewave/sdk/layout/world"
+	s4wave_sql_world "github.com/s4wave/spacewave/sdk/sql/world"
 	s4wave_testbed "github.com/s4wave/spacewave/sdk/testbed"
 	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
 	s4wave_unixfs_world "github.com/s4wave/spacewave/sdk/unixfs/world"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 	objecttype_controller "github.com/s4wave/spacewave/sdk/world/objecttype/controller"
+	"github.com/sirupsen/logrus"
 )
 
 // TestTypedObjectResource tests the TypedObjectResourceService.
@@ -128,6 +138,106 @@ func TestTypedObjectResource(t *testing.T) {
 			objRef.Release()
 		}
 		_ = resClient // referenced for cleanup func
+	})
+
+	t.Run("AccessTypedObjectSharesFactoryHandleUntilLastRelease", func(t *testing.T) {
+		var mu sync.Mutex
+		var opens int
+		var cleanups int
+		cleanupCh := make(chan struct{})
+		baseFactory := s4wave_layout_world.ObjectLayoutType.GetFactory()
+		sharedType := objecttype.NewObjectType(s4wave_layout_world.ObjectLayoutTypeID, func(
+			ctx context.Context,
+			le *logrus.Entry,
+			b bus.Bus,
+			engine world.Engine,
+			ws world.WorldState,
+			objectKey string,
+		) (srpc.Invoker, func(), error) {
+			mu.Lock()
+			opens++
+			mu.Unlock()
+			invoker, cleanup, err := baseFactory(ctx, le, b, engine, ws, objectKey)
+			if err != nil {
+				return nil, nil, err
+			}
+			return invoker, func() {
+				mu.Lock()
+				cleanups++
+				if cleanups == 1 {
+					close(cleanupCh)
+				}
+				mu.Unlock()
+				cleanup()
+			}, nil
+		})
+		resClient, engine, cleanup := setupWorldResourceClientWithObjectTypesAndExtras(ctx, t, tb, map[string]objecttype.ObjectType{
+			s4wave_layout_world.ObjectLayoutTypeID: sharedType,
+		})
+		defer cleanup()
+
+		objectKey := "object-layout/shared-handle"
+		sdkTx, err := engine.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatalf("NewTransaction failed: %v", err)
+		}
+		op := space_world_ops.NewInitObjectLayoutOp(objectKey, time.Now())
+		opData, err := op.MarshalBlock()
+		if err != nil {
+			sdkTx.Release()
+			t.Fatalf("MarshalBlock failed: %v", err)
+		}
+		if _, _, err := sdkTx.ApplyWorldOp(ctx, space_world_ops.InitObjectLayoutOpId, opData, ""); err != nil {
+			sdkTx.Release()
+			t.Fatalf("ApplyWorldOp failed: %v", err)
+		}
+		if err := sdkTx.Commit(ctx); err != nil {
+			sdkTx.Release()
+			t.Fatalf("Commit failed: %v", err)
+		}
+		sdkTx.Release()
+
+		engineClient, err := engine.GetResourceRef().GetClient()
+		if err != nil {
+			t.Fatalf("GetClient(engine) failed: %v", err)
+		}
+		typedSvcClient := s4wave_world.NewSRPCTypedObjectResourceServiceClient(engineClient)
+		first, err := typedSvcClient.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{ObjectKey: objectKey})
+		if err != nil {
+			t.Fatalf("AccessTypedObject(first) failed: %v", err)
+		}
+		second, err := typedSvcClient.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{ObjectKey: objectKey})
+		if err != nil {
+			t.Fatalf("AccessTypedObject(second) failed: %v", err)
+		}
+
+		mu.Lock()
+		gotOpens := opens
+		mu.Unlock()
+		if gotOpens != 1 {
+			t.Fatalf("factory opens = %d, want 1", gotOpens)
+		}
+
+		firstRef := resClient.CreateResourceReference(first.GetResourceId())
+		secondRef := resClient.CreateResourceReference(second.GetResourceId())
+		firstRef.Release()
+		select {
+		case <-cleanupCh:
+			t.Fatal("factory cleanup ran before last resource release")
+		default:
+		}
+		secondRef.Release()
+		select {
+		case <-cleanupCh:
+		case <-time.After(5 * time.Second):
+			t.Fatal("factory cleanup did not run after last resource release")
+		}
+		mu.Lock()
+		gotCleanups := cleanups
+		mu.Unlock()
+		if gotCleanups != 1 {
+			t.Fatalf("factory cleanups = %d, want 1", gotCleanups)
+		}
 	})
 
 	t.Run("AccessTypedObjectLayout", func(t *testing.T) {
@@ -544,6 +654,74 @@ func TestTypedObjectResource(t *testing.T) {
 	})
 }
 
+func TestSqlTypedObjectResourceFirstTransactionFromEmptyRoot(t *testing.T) {
+	ctx := context.Background()
+
+	tb, tbCleanup := setupWorldTestbed(ctx, t)
+	defer tbCleanup()
+
+	resClient, engine, cleanup := setupWorldResourceClientWithObjectTypesAndExtras(ctx, t, tb, map[string]objecttype.ObjectType{
+		s4wave_sql_world.SqlDbTypeID: s4wave_sql_world.SqlDbType,
+	})
+	defer cleanup()
+
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatalf("NewTransaction failed: %v", err)
+	}
+	defer tx.Discard(ctx)
+
+	const objectKey = "sql/resource-empty-root"
+	_, err = tx.CreateObject(ctx, objectKey, nil)
+	if err != nil {
+		t.Fatalf("CreateObject(%s): %v", objectKey, err)
+	}
+	typeObjectKey := world_types.BuildTypeObjectKey(s4wave_sql_world.SqlDbTypeID)
+	if _, err := tx.CreateObject(ctx, typeObjectKey, nil); err != nil && !errors.Is(err, world.ErrObjectExists) {
+		t.Fatalf("CreateObject(%s): %v", typeObjectKey, err)
+	}
+	typeQuad := world.NewGraphQuadWithKeys(
+		objectKey,
+		world_types.TypePred.String(),
+		typeObjectKey,
+		"",
+	)
+	if err := tx.SetGraphQuad(ctx, typeQuad); err != nil {
+		t.Fatalf("SetGraphQuad(%s type): %v", objectKey, err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatalf("Commit: %v", err)
+	}
+
+	engineClient, err := engine.GetResourceRef().GetClient()
+	if err != nil {
+		t.Fatalf("GetClient failed: %v", err)
+	}
+	typedSvcClient := s4wave_world.NewSRPCTypedObjectResourceServiceClient(engineClient)
+	resp, err := typedSvcClient.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{
+		ObjectKey: objectKey,
+	})
+	if err != nil {
+		t.Fatalf("AccessTypedObject(%s): %v", objectKey, err)
+	}
+	if resp.GetTypeId() != s4wave_sql_world.SqlDbTypeID {
+		t.Fatalf("typed object type = %q, want %q", resp.GetTypeId(), s4wave_sql_world.SqlDbTypeID)
+	}
+
+	sqlRef := resClient.CreateResourceReference(resp.GetResourceId())
+	defer sqlRef.Release()
+	sqlClient, err := sqlRef.GetClient()
+	if err != nil {
+		t.Fatalf("sql resource client: %v", err)
+	}
+	store := sql_rpc_client.NewStore(sql_rpc.NewSRPCSqlClient(sqlClient))
+	sqlTx, err := store.NewSqlTransaction(ctx, true, "")
+	if err != nil {
+		t.Fatalf("NewSqlTransaction: %v", err)
+	}
+	defer sqlTx.Discard()
+}
+
 func createTypedObjectSourceRepo(t *testing.T) string {
 	t.Helper()
 
@@ -577,6 +755,15 @@ func createTypedObjectSourceRepo(t *testing.T) string {
 
 // setupWorldResourceClientWithObjectTypes sets up resource client with ObjectType controller.
 func setupWorldResourceClientWithObjectTypes(ctx context.Context, t *testing.T, tb *world_testbed.Testbed) (*resource_client.Client, *s4wave_world.Engine, func()) {
+	return setupWorldResourceClientWithObjectTypesAndExtras(ctx, t, tb, nil)
+}
+
+func setupWorldResourceClientWithObjectTypesAndExtras(
+	ctx context.Context,
+	t *testing.T,
+	tb *world_testbed.Testbed,
+	extraTypes map[string]objecttype.ObjectType,
+) (*resource_client.Client, *s4wave_world.Engine, func()) {
 	// Register ObjectType controller with known types on the testbed's bus
 	objectTypes := map[string]objecttype.ObjectType{
 		s4wave_layout_world.ObjectLayoutTypeID: s4wave_layout_world.ObjectLayoutType,
@@ -584,6 +771,7 @@ func setupWorldResourceClientWithObjectTypes(ctx context.Context, t *testing.T, 
 		s4wave_unixfs_world.UnixFSTypeID:       s4wave_unixfs_world.UnixFSType,
 		s4wave_device.DeviceTypeID:             s4wave_device_world.DeviceType,
 	}
+	maps.Copy(objectTypes, extraTypes)
 	lookupFunc := func(ctx context.Context, typeID string) (objecttype.ObjectType, error) {
 		return objectTypes[typeID], nil
 	}

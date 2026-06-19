@@ -1,4 +1,5 @@
 import type { RegisterCleanup } from '@aptre/bldr-sdk/hooks/useResource.js'
+import type { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import type { Root } from '@s4wave/sdk/root'
 import type { Session } from '@s4wave/sdk/session'
 import type { CreateSpaceResponse } from '@s4wave/sdk/session/session.pb.js'
@@ -12,6 +13,16 @@ import { SpaceContents } from '@s4wave/sdk/space/contents.js'
 import { SUBPATH_DELIMITER } from '@s4wave/sdk/space/object-uri.js'
 import { Engine } from '@s4wave/sdk/world/engine.js'
 import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
+import { createWorldObject } from '@s4wave/sdk/world/utils.js'
+import { setObjectType } from '@s4wave/sdk/world/types/types.js'
+import { KvStore, KvStoreTypeID } from '@s4wave/sdk/kv/index.js'
+import {
+  SqlDatabase,
+  SqlDbTypeID,
+  SqlQuery,
+  SqlQueryBlockTypeID,
+  SqlQueryTypeID,
+} from '@s4wave/sdk/sql/index.js'
 import {
   isValidSpacePluginId,
   SPACE_SETTINGS_BLOCK_TYPE,
@@ -49,6 +60,7 @@ import {
 import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import { CreateComputersDashboardOp } from '@s4wave/sdk/device/device.pb.js'
 import { CREATE_COMPUTERS_DASHBOARD_OP_ID } from '@s4wave/sdk/device/computers/create-computers-dashboard.js'
+import { Query } from '@s4wave/sdk/sql/query/query.pb.js'
 import { CreateVmV86Op, SetV86StateOp, VmState } from '@s4wave/sdk/vm/v86.pb.js'
 import { CREATE_VM_V86_OP_ID } from '@s4wave/sdk/vm/create-vm-v86.js'
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
@@ -87,6 +99,9 @@ const QUICKSTART_CREATE_LOCAL_ACCOUNT_TIMEOUT_MS = import.meta.env?.DEV
 const QUICKSTART_RECOVER_LOCAL_SESSION_TIMEOUT_MS = import.meta.env?.DEV
   ? 60000
   : 15000
+const KV_QUICKSTART_STORE_KEY = 'kv/store'
+const SQL_QUICKSTART_DB_KEY = 'sql/db'
+const SQL_QUICKSTART_QUERY_KEY = 'sql/query/example'
 const DRIVE_STARTER_GUIDE_NAME = 'getting-started.md'
 const DEVICE_QUICKSTART_DASHBOARD_KEY = 'computers'
 const DRIVE_STARTER_GUIDE_CONTENT = `# Getting Started
@@ -104,6 +119,14 @@ type NotesQuickstartId = Extract<
   QuickstartSpaceCreateId,
   'notebook' | 'docs' | 'blog'
 >
+
+type QuickstartResourceHandle = {
+  release(): void
+}
+
+type QuickstartResourceConstructor<T extends QuickstartResourceHandle> = new (
+  resourceRef: ClientResourceRef,
+) => T
 
 export interface QuickstartPhaseTiming {
   name: string
@@ -379,6 +402,10 @@ export function getQuickstartSpaceName(
       return 'My Computers'
     case 'forge':
       return 'My Forge Dashboard'
+    case 'kv':
+      return 'My Key-Value Store'
+    case 'sql':
+      return 'My SQL Database'
   }
 }
 
@@ -691,6 +718,10 @@ export function getQuickstartInitialObjectKey(
       return CHAT_DEMO_CHANNEL_KEY
     case 'forge':
       return 'forge'
+    case 'kv':
+      return KV_QUICKSTART_STORE_KEY
+    case 'sql':
+      return SQL_QUICKSTART_DB_KEY
     case 'device':
       return ''
     case 'space':
@@ -715,6 +746,10 @@ export function getQuickstartInitialObjectType(
       return ''
     case 'canvas':
       return CanvasTypeID
+    case 'kv':
+      return KvStoreTypeID
+    case 'sql':
+      return SqlDbTypeID
     case 'space':
     case 'git':
     case 'notebook':
@@ -1059,6 +1094,12 @@ export async function populateSpace(
     case 'chat':
       await initChatQuickstart(setup.spaceWorld, abortSignal)
       break
+    case 'kv':
+      await initKvQuickstart(setup.spaceWorld, abortSignal)
+      break
+    case 'sql':
+      await initSqlQuickstart(setup.spaceWorld, abortSignal)
+      break
     case 'docs':
       await initNotesQuickstart(setup, quickstartId, abortSignal)
       break
@@ -1079,6 +1120,206 @@ export async function populateSpace(
       throw new Error('Unknown quickstart ID: ' + String(_exhaustive))
     }
   }
+}
+
+async function createEmptyTypedObject(
+  spaceWorld: IWorldState,
+  objectKey: string,
+  typeId: string,
+  abortSignal?: AbortSignal,
+): Promise<void> {
+  const objectState = await spaceWorld.createObject(objectKey, {}, abortSignal)
+  try {
+    await setObjectType(spaceWorld, objectKey, typeId, abortSignal)
+  } finally {
+    objectState.release()
+  }
+}
+
+async function createSeededTypedObject(
+  spaceWorld: EngineWorldState,
+  objectKey: string,
+  typeId: string,
+  blockTypeId: string,
+  data: Uint8Array,
+  abortSignal?: AbortSignal,
+): Promise<void> {
+  using worldCursor = await spaceWorld.buildStorageCursor(abortSignal)
+  const created = await createWorldObject(
+    spaceWorld,
+    worldCursor,
+    objectKey,
+    (cursor) =>
+      cursor.setBlock(
+        { data, markDirty: true, blockType: blockTypeId },
+        abortSignal,
+      ),
+    abortSignal,
+  )
+  try {
+    await setObjectType(spaceWorld, objectKey, typeId, abortSignal)
+  } finally {
+    created.objectState.release()
+  }
+}
+
+async function openQuickstartHandle<T extends QuickstartResourceHandle>(
+  spaceWorld: IWorldState,
+  objectKey: string,
+  typeId: string,
+  ResourceCtor: QuickstartResourceConstructor<T>,
+  abortSignal?: AbortSignal,
+): Promise<T> {
+  const access = await spaceWorld.accessTypedObject(objectKey, abortSignal)
+  if (!access.resourceId || access.typeId !== typeId) {
+    throw new Error(
+      `quickstart expected ${typeId} at ${objectKey}, got ${access.typeId || 'unknown'}`,
+    )
+  }
+  return new ResourceCtor(
+    spaceWorld.getResourceRef().createRef(access.resourceId),
+  )
+}
+
+async function initKvQuickstart(
+  spaceWorld: EngineWorldState,
+  abortSignal?: AbortSignal,
+): Promise<void> {
+  await createEmptyTypedObject(
+    spaceWorld,
+    KV_QUICKSTART_STORE_KEY,
+    KvStoreTypeID,
+    abortSignal,
+  )
+  const store = await openQuickstartHandle(
+    spaceWorld,
+    KV_QUICKSTART_STORE_KEY,
+    KvStoreTypeID,
+    KvStore,
+    abortSignal,
+  )
+  try {
+    const encoder = new TextEncoder()
+    await store.withTransaction(
+      true,
+      async (tx) => {
+        await tx.set(encoder.encode('hello'), encoder.encode('world'))
+        await tx.set(
+          encoder.encode('profile.json'),
+          encoder.encode(
+            JSON.stringify({
+              name: 'Ada Lovelace',
+              role: 'analyst',
+              active: true,
+            }),
+          ),
+        )
+        await tx.set(
+          encoder.encode('binary/blob'),
+          new Uint8Array([0, 1, 2, 3, 5, 8, 13]),
+        )
+      },
+      abortSignal,
+    )
+  } finally {
+    store.release()
+  }
+  await createSpaceSettingsObject(
+    spaceWorld,
+    abortSignal,
+    KV_QUICKSTART_STORE_KEY,
+  )
+}
+
+async function initSqlQuickstart(
+  spaceWorld: EngineWorldState,
+  abortSignal?: AbortSignal,
+): Promise<void> {
+  await createEmptyTypedObject(
+    spaceWorld,
+    SQL_QUICKSTART_DB_KEY,
+    SqlDbTypeID,
+    abortSignal,
+  )
+  const db = await openQuickstartHandle(
+    spaceWorld,
+    SQL_QUICKSTART_DB_KEY,
+    SqlDbTypeID,
+    SqlDatabase,
+    abortSignal,
+  )
+  try {
+    await db.withTransaction(
+      true,
+      '',
+      async (tx) => {
+        await tx.exec('CREATE DATABASE quickstart')
+      },
+      abortSignal,
+    )
+    await db.withTransaction(
+      true,
+      '/quickstart',
+      async (tx) => {
+        await tx.exec(
+          'CREATE TABLE people (id BIGINT NOT NULL PRIMARY KEY, name TEXT NOT NULL, role TEXT NOT NULL)',
+        )
+        await tx.exec(
+          "INSERT INTO people (id, name, role) VALUES (1, 'ada', 'analyst')",
+        )
+        await tx.exec(
+          "INSERT INTO people (id, name, role) VALUES (2, 'grace', 'engineer')",
+        )
+        await tx.exec(
+          'CREATE TABLE projects (id BIGINT NOT NULL PRIMARY KEY, owner_id BIGINT NOT NULL, title TEXT NOT NULL)',
+        )
+        await tx.exec(
+          "INSERT INTO projects (id, owner_id, title) VALUES (10, 1, 'difference engine notes')",
+        )
+        await tx.exec(
+          "INSERT INTO projects (id, owner_id, title) VALUES (11, 2, 'compiler logbook')",
+        )
+      },
+      abortSignal,
+    )
+  } finally {
+    db.release()
+  }
+
+  await createSeededTypedObject(
+    spaceWorld,
+    SQL_QUICKSTART_QUERY_KEY,
+    SqlQueryTypeID,
+    SqlQueryBlockTypeID,
+    Query.toBinary({}),
+    abortSignal,
+  )
+  const query = await openQuickstartHandle(
+    spaceWorld,
+    SQL_QUICKSTART_QUERY_KEY,
+    SqlQueryTypeID,
+    SqlQuery,
+    abortSignal,
+  )
+  try {
+    await query.setQueryText(
+      'SELECT name, role FROM quickstart.people WHERE id = ?',
+      'mysql',
+      SQL_QUICKSTART_DB_KEY,
+      abortSignal,
+    )
+    await query.setParameters(
+      [{ value: { case: 'intValue', value: 1n } }],
+      abortSignal,
+    )
+  } finally {
+    query.release()
+  }
+  await createSpaceSettingsObject(
+    spaceWorld,
+    abortSignal,
+    SQL_QUICKSTART_DB_KEY,
+  )
 }
 
 function isNotesQuickstartId(

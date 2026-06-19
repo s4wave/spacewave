@@ -3973,6 +3973,17 @@
       ],
       "protoFiles": ["sdk/git/repo.proto", "sdk/git/worktree.proto"]
     },
+    "github.com/s4wave/spacewave/sdk/kv/world": {
+      "hash": "0f1a4dfdcd9557d249f80773cdaaa9a7eb8e463af58332439d7f292aacb39656",
+      "generatedFiles": [
+        "sdk/kv/world/world.pb.cc",
+        "sdk/kv/world/world.pb.go",
+        "sdk/kv/world/world.pb.h",
+        "sdk/kv/world/world.pb.rs",
+        "sdk/kv/world/world.pb.ts"
+      ],
+      "protoFiles": ["sdk/kv/world/world.proto"]
+    },
     "github.com/s4wave/spacewave/sdk/layout": {
       "hash": "fd38937e5b59a969428fb01baf22851bd16ff7bfa036896f46f47fd0988e365a",
       "generatedFiles": [
@@ -4230,6 +4241,17 @@
         "sdk/space/space_srpc.pb.ts"
       ],
       "protoFiles": ["sdk/space/space.proto"]
+    },
+    "github.com/s4wave/spacewave/sdk/sql/world": {
+      "hash": "4e92d51c8a67dca5b0c52781be527357bddd80942bb8c909503b4cd30e8246aa",
+      "generatedFiles": [
+        "sdk/sql/world/world.pb.cc",
+        "sdk/sql/world/world.pb.go",
+        "sdk/sql/world/world.pb.h",
+        "sdk/sql/world/world.pb.rs",
+        "sdk/sql/world/world.pb.ts"
+      ],
+      "protoFiles": ["sdk/sql/world/world.proto"]
     },
     "github.com/s4wave/spacewave/sdk/sshhost": {
       "hash": "6485936bc9a4bca3763ab6162a25cd72c9fdb80e39d2ad15609c2883f69633df",

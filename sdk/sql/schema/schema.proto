@@ -1,0 +1,48 @@
+syntax = "proto3";
+package s4wave.sql.schema;
+
+option go_package = "github.com/s4wave/spacewave/sdk/sql/schema;s4wave_sql_schema";
+
+// Schema is a standalone SQL schema world object.
+message Schema {
+  // SchemaName is the schema name inside the target sql/db.
+  string schema_name = 1;
+  // TargetDbObjectKey is the sql/db object this schema belongs to.
+  string target_db_object_key = 2;
+  // DisplayName is an optional user-facing label.
+  string display_name = 3;
+  // Description is optional user-facing metadata.
+  string description = 4;
+}
+
+// SqlSchemaResourceService exposes a SQL schema world object.
+service SqlSchemaResourceService {
+  // GetSchema returns the schema metadata.
+  rpc GetSchema(GetSchemaRequest) returns (GetSchemaResponse);
+  // ListTables lists tables in the target sql/db schema.
+  rpc ListTables(ListTablesRequest) returns (ListTablesResponse);
+}
+
+// GetSchemaRequest is a request for schema metadata.
+message GetSchemaRequest {}
+
+// GetSchemaResponse contains schema metadata.
+message GetSchemaResponse {
+  // Schema is the persisted schema block.
+  Schema schema = 1;
+}
+
+// ListTablesRequest is a request for tables in the schema.
+message ListTablesRequest {}
+
+// ListTablesResponse contains tables in the schema.
+message ListTablesResponse {
+  // Tables are the tables visible in the schema.
+  repeated TableInfo tables = 1;
+}
+
+// TableInfo describes a SQL table.
+message TableInfo {
+  // Name is the table name.
+  string name = 1;
+}

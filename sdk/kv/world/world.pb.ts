@@ -2,13 +2,88 @@
 // @generated from file github.com/s4wave/spacewave/sdk/kv/world/world.proto (package s4wave.kv.world, syntax proto3)
 /* eslint-disable */
 
-import { ObjectRef } from '../../../db/bucket/bucket.pb.js'
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { ObjectRef } from '../../../db/bucket/bucket.pb.js'
 
 export const protobufPackage = 's4wave.kv.world'
+
+/**
+ * KvMutationKind identifies a replayable KVTX write mutation.
+ *
+ * @generated from enum s4wave.kv.world.KvMutationKind
+ */
+export enum KvMutationKind {
+  /**
+   * KV_MUTATION_KIND_UNSPECIFIED is invalid.
+   *
+   * @generated from enum value: KV_MUTATION_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * KV_MUTATION_KIND_SET stores a value at a key.
+   *
+   * @generated from enum value: KV_MUTATION_KIND_SET = 1;
+   */
+  SET = 1,
+
+  /**
+   * KV_MUTATION_KIND_DELETE removes a key.
+   *
+   * @generated from enum value: KV_MUTATION_KIND_DELETE = 2;
+   */
+  DELETE = 2,
+}
+
+export const KvMutationKind_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.kv.world.KvMutationKind',
+  [
+    [0, 'KV_MUTATION_KIND_UNSPECIFIED'],
+    [1, 'KV_MUTATION_KIND_SET'],
+    [2, 'KV_MUTATION_KIND_DELETE'],
+  ],
+)
+
+/**
+ * KvMutation records one write in the transaction commit order.
+ *
+ * @generated from message s4wave.kv.world.KvMutation
+ */
+export interface KvMutation {
+  /**
+   * Kind is the mutation operation.
+   *
+   * @generated from field: s4wave.kv.world.KvMutationKind kind = 1;
+   */
+  kind?: KvMutationKind
+  /**
+   * Key is the KVTX key.
+   *
+   * @generated from field: bytes key = 2;
+   */
+  key?: Uint8Array
+  /**
+   * Value is the KVTX value for set mutations.
+   *
+   * @generated from field: bytes value = 3;
+   */
+  value?: Uint8Array
+}
+
+export const KvMutation: MessageType<KvMutation> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.kv.world.KvMutation',
+    fields: [
+      { no: 1, name: 'kind', kind: 'enum', T: KvMutationKind_Enum },
+      { no: 2, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 3, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * KvSetRootOp advances a kv/store world object's root after a KVTX commit.
@@ -28,6 +103,18 @@ export interface KvSetRootOp {
    * @generated from field: bucket.ObjectRef root_ref = 2;
    */
   rootRef?: ObjectRef
+  /**
+   * BaseRef is the object root the transaction committed from.
+   *
+   * @generated from field: bucket.ObjectRef base_ref = 3;
+   */
+  baseRef?: ObjectRef
+  /**
+   * Mutations are the committed writes needed to rebase from a moved base.
+   *
+   * @generated from field: repeated s4wave.kv.world.KvMutation mutations = 4;
+   */
+  mutations?: KvMutation[]
 }
 
 export const KvSetRootOp: MessageType<KvSetRootOp> =
@@ -36,6 +123,14 @@ export const KvSetRootOp: MessageType<KvSetRootOp> =
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
+      { no: 3, name: 'base_ref', kind: 'message', T: () => ObjectRef },
+      {
+        no: 4,
+        name: 'mutations',
+        kind: 'message',
+        T: () => KvMutation,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

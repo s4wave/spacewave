@@ -23,6 +23,7 @@ type EngineResource struct {
 	lookupOp          world.LookupOp
 	engineInfo        *s4wave_world.EngineInfo
 	worldStateOptions []WorldStateResourceOption
+	typedResource     *TypedObjectResource
 }
 
 // NewEngineResource creates a new EngineResource.
@@ -42,6 +43,7 @@ func NewEngineResource(
 		engineInfo:        engineInfo,
 		worldStateOptions: opts,
 	}
+	engineResource.typedResource = NewTypedObjectResource(le, b, world.NewEngineWorldState(w, true), w)
 	engineResource.mux = resource_server.NewResourceMux(
 		func(mux srpc.Mux) error { return s4wave_world.SRPCRegisterEngineResourceService(mux, engineResource) },
 		func(mux srpc.Mux) error {
@@ -307,16 +309,7 @@ func (r *EngineResource) WatchWorldState(
 
 // AccessTypedObject looks up an object, determines its type, and returns a typed resource.
 func (r *EngineResource) AccessTypedObject(ctx context.Context, req *s4wave_world.AccessTypedObjectRequest) (*s4wave_world.AccessTypedObjectResponse, error) {
-	// Use an engine-backed WorldState so that each internal operation creates its
-	// own short-lived transaction. This avoids two problems with the previous
-	// approach of creating a single read-only Tx here:
-	//  1. The Tx was read-only, so typed resources (e.g. UnixFS) were created
-	//     without a writer, making file uploads fail with "read-only fs".
-	//  2. The Tx was discarded after this method returned, but the created
-	//     resource (e.g. FSCursor) outlived it and used it for lazy operations.
-	ws := world.NewEngineWorldState(r.engine, true)
-	typedResource := NewTypedObjectResource(r.le, r.b, ws, r.engine)
-	return typedResource.AccessTypedObject(ctx, req)
+	return r.typedResource.AccessTypedObject(ctx, req)
 }
 
 // _ is a type assertion

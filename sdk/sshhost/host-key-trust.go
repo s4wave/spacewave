@@ -1,3 +1,10 @@
+//go:build !js
+
+// SSH host-key trust pins parse and fingerprint authorized_keys via
+// golang.org/x/crypto/ssh, which pulls reflect through its wire codec. Only the
+// native terminal SSH client (sdk/terminal/ssh_connect.go, also !js) calls
+// these; the browser GoScript closure registers the SSH host op without them, so
+// this file stays native-only to keep reflect out of the web build.
 package s4wave_sshhost
 
 import (

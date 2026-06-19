@@ -2,9 +2,11 @@ import React from 'react'
 import {
   LuBookOpen,
   LuBox,
+  LuDatabase,
   LuGitBranch,
   LuHammer,
   LuHardDrive,
+  LuKey,
   LuLayoutGrid,
   LuLink,
   LuLogIn,
@@ -117,6 +119,26 @@ export const QUICKSTART_OPTIONS = [
       'Start a Spacewave Chat with an encrypted channel for local-first group messaging, shared history, and private collaboration across your devices.',
     category: 'social',
     icon: LuMessageSquare,
+    experimental: true,
+  },
+  {
+    id: 'kv',
+    name: 'Create a Key/Value Store',
+    description: 'Seed a byte-oriented key/value store with examples',
+    seoDescription:
+      'Create an experimental Spacewave key/value store seeded with text, JSON, and binary examples for local-first app data.',
+    category: 'data',
+    icon: LuKey,
+    experimental: true,
+  },
+  {
+    id: 'sql',
+    name: 'Create a SQL Database',
+    description: 'Seed a SQL database with sample tables and a query',
+    seoDescription:
+      'Create an experimental Spacewave SQL database seeded with related tables, rows, and a linked example query.',
+    category: 'data',
+    icon: LuDatabase,
     experimental: true,
   },
   {

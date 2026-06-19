@@ -1,0 +1,14 @@
+syntax = "proto3";
+package s4wave.sql.query.world;
+
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/sql/query/world;s4wave_sql_query_world";
+
+// SqlQuerySetRootOp advances a sql/query world object's root.
+message SqlQuerySetRootOp {
+  // ObjectKey is the sql/query object key to update.
+  string object_key = 1;
+  // RootRef is the committed query root reference.
+  .bucket.ObjectRef root_ref = 2;
+}
