@@ -31,12 +31,8 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) (err error) {
 	defer b.Release()
 	commandLogFile := a.commandLogFile()
 	b.setCommandStartingWithLogFile("build", "initializing build", commandLogFile)
-	stopTUI, err := a.startTUIRunner(ctx, b.GetStatusProducer())
-	if err != nil {
-		return err
-	}
 	defer func() {
-		b.finishCommandThenStopTUI(ctx, "build", commandLogFile, err, stopTUI)
+		b.finishCommandWithLogFile(ctx, "build", commandLogFile, err)
 	}()
 
 	err = b.SyncDistSources(a.BldrVersion, a.BldrVersionSum, a.BldrSrcPath)
@@ -45,7 +41,7 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) (err error) {
 	}
 
 	// write the banner
-	a.writeBannerTo(os.Stderr)
+	writeBannerTo(os.Stderr)
 
 	// execute the project controller
 	// compiles the plugins and stores them in the devtool bus world

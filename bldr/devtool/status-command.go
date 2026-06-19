@@ -44,10 +44,3 @@ func (d *DevtoolBus) finishCommandWithLogFile(ctx context.Context, name, logFile
 	}
 	d.SetCommandStatus(command)
 }
-
-func (d *DevtoolBus) finishCommandThenStopTUI(ctx context.Context, name, logFile string, err error, stopTUI func()) {
-	d.finishCommandWithLogFile(ctx, name, logFile, err)
-	if stopTUI != nil {
-		stopTUI()
-	}
-}

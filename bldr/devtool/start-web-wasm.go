@@ -74,12 +74,8 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) (err error) {
 	defer d.Release()
 	commandLogFile := a.commandLogFile()
 	d.setCommandStartingWithLogFile("start web", "initializing wasm web runtime", commandLogFile)
-	stopTUI, err := a.startTUIRunner(ctx, d.GetStatusProducer())
-	if err != nil {
-		return err
-	}
 	defer func() {
-		d.finishCommandThenStopTUI(ctx, "start web", commandLogFile, err, stopTUI)
+		d.finishCommandWithLogFile(ctx, "start web", commandLogFile, err)
 	}()
 
 	err = d.SyncDistSources(a.BldrVersion, a.BldrVersionSum, a.BldrSrcPath)
@@ -119,7 +115,7 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) (err error) {
 		return err
 	}
 	d.setCommandRunningWithLogFile("start web", "wasm web runtime active on "+a.WebListenAddr, commandLogFile)
-	a.writeBannerTo(os.Stderr)
+	writeBannerTo(os.Stderr)
 	return d.ExecuteWebWasm(
 		ctx,
 		repoRoot,

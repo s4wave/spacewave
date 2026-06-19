@@ -56,28 +56,6 @@ func TestDevtoolBusFinishCommandReportsErrorAndCancel(t *testing.T) {
 	}
 }
 
-func TestDevtoolBusFinishCommandStopsTUIAfterTerminalStatus(t *testing.T) {
-	d := &DevtoolBus{statusProducer: devtool_status.NewBldrDevtoolStatusProducer(nil)}
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	stopped := false
-	d.finishCommandThenStopTUI(ctx, "start web", "/tmp/bldr.log", nil, func() {
-		command := d.GetStatusProducer().GetStatus().GetCommand()
-		if command.State != devtool_status.BldrDevtoolCommandStateCanceled {
-			t.Fatalf("expected canceled status before TUI stop, got %+v", command)
-		}
-		if command.LogFile != "/tmp/bldr.log" {
-			t.Fatalf("expected log file before TUI stop, got %+v", command)
-		}
-		stopped = true
-	})
-
-	if !stopped {
-		t.Fatal("expected TUI stop callback")
-	}
-}
-
 func TestBuildCommandSummaryIncludesFiniteBuildInputs(t *testing.T) {
 	summary := buildCommandSummary("desktop", "release", "devtool", "desktop/darwin/arm64")
 	if summary != "building targets desktop build-type=release remote=devtool targets=desktop/darwin/arm64" {

@@ -3,14 +3,11 @@
 package devtool
 
 import (
-	"context"
 	"errors"
-	"io"
 	"os"
 	"path/filepath"
 	"runtime/debug"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/aperturerobotics/cli"
@@ -76,8 +73,6 @@ type DevtoolArgs struct {
 	WebUseWasm bool
 	// WebUseGoScript compiles browser Go plugins with GoScript.
 	WebUseGoScript bool
-	// NoTUI disables the interactive devtool terminal UI.
-	NoTUI bool
 
 	// BuildCsv is the list of builds to build.
 	BuildCsv string
@@ -103,22 +98,10 @@ type DevtoolArgs struct {
 
 	// LogFiles is the list of log file specs.
 	LogFiles cli.StringSlice
-	// TUIRunner renders interactive command status when terminal UI mode is active.
-	TUIRunner DevtoolTUIRunner
 	// activeLogFile is the primary resolved log file path for the active command.
 	activeLogFile string
 	// logFileCleanup closes log file hooks on shutdown.
 	logFileCleanup func()
-	// terminalDetector reports whether the current process can use a terminal UI.
-	terminalDetector func() bool
-	// resolvedUIMode is set by status-command entrypoints before execution.
-	resolvedUIMode DevtoolUIMode
-	// hasResolvedUIMode indicates resolvedUIMode is set.
-	hasResolvedUIMode bool
-	// statusCommandCancel cancels the active status command from the TUI key path.
-	statusCommandCancel func()
-	// statusCommandMu guards statusCommandCancel.
-	statusCommandMu sync.Mutex
 }
 
 // NewDevtoolArgs constructs new default arguments.
@@ -150,9 +133,6 @@ func (a *DevtoolArgs) FillDefaults() {
 	a.JSMinification = "default"
 	a.JSSourcemaps = "default"
 	a.Watch = true
-	if a.TUIRunner == nil {
-		a.TUIRunner = NewDevtoolTUIRunner()
-	}
 
 	if buildInfo, ok := debug.ReadBuildInfo(); ok && buildInfo.Main.Version != "(devel)" {
 		a.BldrVersion = buildInfo.Main.Version
@@ -288,13 +268,6 @@ func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 			Value:       a.DisableCleanup,
 			Destination: &a.DisableCleanup,
 		},
-		&cli.BoolFlag{
-			Name:        "no-tui",
-			Usage:       "disable the interactive terminal UI",
-			EnvVars:     []string{"BLDR_NO_TUI"},
-			Value:       a.NoTUI,
-			Destination: &a.NoTUI,
-		},
 		logfile.BuildLogFileFlag(&a.LogFiles),
 	}
 }
@@ -399,7 +372,7 @@ func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				return a.runStatusCommand(c.Context, a.ExecuteNativeProject)
+				return a.ExecuteNativeProject(c.Context)
 			},
 		},
 		{
@@ -429,20 +402,18 @@ func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				return a.runStatusCommand(c.Context, func(ctx context.Context) error {
-					mode, err := a.resolveWebStartMode()
-					if err != nil {
-						return err
-					}
-					switch mode {
-					case webStartModeGoScript:
-						return a.ExecuteWebGoScriptProject(ctx)
-					case webStartModeWasm:
-						return a.ExecuteWebWasmProject(ctx)
-					default:
-						return errors.New("unknown web start mode")
-					}
-				})
+				mode, err := a.resolveWebStartMode()
+				if err != nil {
+					return err
+				}
+				switch mode {
+				case webStartModeGoScript:
+					return a.ExecuteWebGoScriptProject(c.Context)
+				case webStartModeWasm:
+					return a.ExecuteWebWasmProject(c.Context)
+				default:
+					return errors.New("unknown web start mode")
+				}
 			},
 		},
 	}
@@ -481,7 +452,7 @@ func (a *DevtoolArgs) BuildBuildCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return a.runStatusCommand(c.Context, a.BuildProject)
+			return a.BuildProject(c.Context)
 		},
 	}
 }
@@ -599,9 +570,6 @@ func (a *DevtoolArgs) InitRepoRoot() (
 				return
 			}
 			a.logFileCleanup = cleanup
-			if a.ShouldUseTUI() {
-				a.Logger.Logger.SetOutput(io.Discard)
-			}
 			logfile.EnsureLoggerLevel(a.Logger.Logger, specs)
 		}
 	}
