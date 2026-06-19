@@ -73,6 +73,7 @@ import {
   TerminalTypeID,
 } from '@s4wave/app/terminal/TerminalViewer.js'
 import { OrgViewer, OrganizationTypeID } from '@s4wave/app/org/OrgViewer.js'
+import { KvStoreViewer, KvStoreTypeID } from '@s4wave/app/kv/KvStoreViewer.js'
 import {
   WizardViewer,
   WizardTypePrefix,
@@ -212,6 +213,13 @@ const productObjectViewers: ObjectViewerComponent[] = [
     name: 'Organization',
     category: 'Management',
     component: OrgViewer,
+  },
+  {
+    componentID: 'spacewave.kv.store',
+    typeID: KvStoreTypeID,
+    name: 'Key/Value Store',
+    category: 'Data',
+    component: KvStoreViewer,
   },
   {
     componentID: 'spacewave.device.viewer',

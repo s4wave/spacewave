@@ -10,6 +10,7 @@ import (
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+	s4wave_kv_world "github.com/s4wave/spacewave/sdk/kv/world"
 	s4wave_sshhost "github.com/s4wave/spacewave/sdk/sshhost"
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
 	s4wave_wizard "github.com/s4wave/spacewave/sdk/world/wizard"
@@ -96,6 +97,14 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 	}
 	if _, ok := op.(*s4wave_sshhost.CreateSshHostOp); !ok {
 		t.Fatalf("expected CreateSshHostOp, got %T", op)
+	}
+
+	op, err = lookupOp(context.Background(), s4wave_kv_world.KvSetRootOpId)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := op.(*s4wave_kv_world.KvSetRootOp); !ok {
+		t.Fatalf("expected KvSetRootOp, got %T", op)
 	}
 }
 

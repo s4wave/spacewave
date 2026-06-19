@@ -20,6 +20,7 @@ import (
 	s4wave_device_world "github.com/s4wave/spacewave/sdk/device/world"
 	s4wave_forge_world "github.com/s4wave/spacewave/sdk/forge/world"
 	s4wave_git_world "github.com/s4wave/spacewave/sdk/git/world"
+	s4wave_kv_world "github.com/s4wave/spacewave/sdk/kv/world"
 	s4wave_layout_world "github.com/s4wave/spacewave/sdk/layout/world"
 	s4wave_org "github.com/s4wave/spacewave/sdk/org"
 	s4wave_org_world "github.com/s4wave/spacewave/sdk/org/world"
@@ -49,6 +50,8 @@ func LookupObjectType(ctx context.Context, typeID string) (objecttype.ObjectType
 		return s4wave_canvas_world.CanvasType, nil
 	case s4wave_git_world.GitWorktreeTypeID:
 		return s4wave_git_world.GitWorktreeType, nil
+	case s4wave_kv_world.KvStoreTypeID:
+		return s4wave_kv_world.KvStoreType, nil
 	case forge_cluster.ClusterTypeID:
 		return s4wave_forge_world.ClusterType, nil
 	case forge_job.JobTypeID:

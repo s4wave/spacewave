@@ -6,6 +6,7 @@ import {
   LuBrainCircuit,
   LuCheck,
   LuClipboardList,
+  LuDatabase,
   LuFile,
   LuFileQuestion,
   LuFileText,
@@ -132,6 +133,8 @@ export function getObjectTypeIcon(
       return <LuGitBranch className={iconSize} />
     case 'canvas':
       return <LuPaintbrush className={iconSize} />
+    case 'kv/store':
+      return <LuDatabase className={iconSize} />
     default:
       return <LuBox className={iconSize} />
   }
@@ -156,6 +159,8 @@ export function getObjectTypeLabel(
       return 'Git Worktree'
     case 'canvas':
       return 'Canvas'
+    case 'kv/store':
+      return 'Key/Value Store'
     default:
       return typeId || 'Object'
   }

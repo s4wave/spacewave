@@ -17,6 +17,7 @@ import (
 	s4wave_apt "github.com/s4wave/spacewave/sdk/apt"
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+	s4wave_kv_world "github.com/s4wave/spacewave/sdk/kv/world"
 	s4wave_org "github.com/s4wave/spacewave/sdk/org"
 	s4wave_sshhost "github.com/s4wave/spacewave/sdk/sshhost"
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
@@ -39,6 +40,7 @@ func LookupWorldOp(ctx context.Context, opTypeID string) (world.Operation, error
 		space_world_ops.LookupCanvasSetNodeOp,
 		space_world_ops.LookupCanvasAddEdgeOp,
 		space_world_ops.LookupCanvasRemoveEdgeOp,
+		s4wave_kv_world.LookupKvSetRootOp,
 		s4wave_apt.LookupAptOp,
 		s4wave_device.LookupCreateComputersDashboardOp,
 		s4wave_sshhost.LookupCreateSshHostOp,
