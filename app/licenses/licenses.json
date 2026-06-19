@@ -860,7 +860,7 @@
     },
     {
       "name": "github.com/aperturerobotics/fastjson",
-      "version": "v0.1.1",
+      "version": "v0.1.2-0.20260619070337-5d150feb5e98",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/fastjson",
@@ -931,7 +931,7 @@
     },
     {
       "name": "github.com/aperturerobotics/go-websocket",
-      "version": "v1.8.15-0.20260329113544-74dbfb8f11c6",
+      "version": "v1.8.15-0.20260619192713-a096778f08c1",
       "spdx": "ISC",
       "source": "go",
       "repo": "https://github.com/nhooyr/websocket",
