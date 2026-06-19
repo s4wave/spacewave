@@ -1,3 +1,9 @@
+//go:build !js
+
+// Package sql_mock exercises a SqlStore through the stdlib high-level *sql.DB
+// API (sql.Tx, sql.Rows.Scan), which pulls reflect via convert.go. The browser
+// GoScript build never opens a *sql.DB, so this native-only test helper stays
+// out of the web closure.
 package sql_mock
 
 import (
