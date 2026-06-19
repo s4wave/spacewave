@@ -1,30 +1,18 @@
-//go:build !tinygo && !goscript
+//go:build goscript
 
 package objecttypes
 
 import (
 	"context"
 
-	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
-	forge_dashboard "github.com/s4wave/spacewave/core/forge/dashboard"
-	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
-	forge_execution "github.com/s4wave/spacewave/forge/execution"
-	forge_job "github.com/s4wave/spacewave/forge/job"
-	forge_pass "github.com/s4wave/spacewave/forge/pass"
-	forge_task "github.com/s4wave/spacewave/forge/task"
-	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	s4wave_canvas_world "github.com/s4wave/spacewave/sdk/canvas/world"
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	spacewave_chat_world "github.com/s4wave/spacewave/sdk/chat/world"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_device_world "github.com/s4wave/spacewave/sdk/device/world"
-	s4wave_forge_world "github.com/s4wave/spacewave/sdk/forge/world"
 	s4wave_git_world "github.com/s4wave/spacewave/sdk/git/world"
 	s4wave_kv_world "github.com/s4wave/spacewave/sdk/kv/world"
 	s4wave_layout_world "github.com/s4wave/spacewave/sdk/layout/world"
-	s4wave_org "github.com/s4wave/spacewave/sdk/org"
-	s4wave_org_world "github.com/s4wave/spacewave/sdk/org/world"
-	s4wave_secret_world "github.com/s4wave/spacewave/sdk/secret/world"
 	s4wave_sql_query "github.com/s4wave/spacewave/sdk/sql/query"
 	s4wave_sql_query_result "github.com/s4wave/spacewave/sdk/sql/query-result"
 	s4wave_sql_query_result_world "github.com/s4wave/spacewave/sdk/sql/query-result/world"
@@ -41,13 +29,11 @@ import (
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
 	s4wave_terminal_world "github.com/s4wave/spacewave/sdk/terminal/world"
 	s4wave_unixfs_world "github.com/s4wave/spacewave/sdk/unixfs/world"
-	s4wave_vm "github.com/s4wave/spacewave/sdk/vm"
-	s4wave_vm_world "github.com/s4wave/spacewave/sdk/vm/world"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 	s4wave_wizard "github.com/s4wave/spacewave/sdk/world/wizard"
 )
 
-// LookupObjectType looks up an object type by ID.
+// LookupObjectType looks up a GoScript-supported object type by ID.
 // Returns nil if not found.
 func LookupObjectType(ctx context.Context, typeID string) (objecttype.ObjectType, error) {
 	switch typeID {
@@ -75,42 +61,16 @@ func LookupObjectType(ctx context.Context, typeID string) (objecttype.ObjectType
 		return s4wave_sql_table_view_world.SqlTableViewType, nil
 	case s4wave_sql_workbench.SqlWorkbenchTypeID:
 		return s4wave_sql_workbench_world.SqlWorkbenchType, nil
-	case forge_cluster.ClusterTypeID:
-		return s4wave_forge_world.ClusterType, nil
-	case forge_job.JobTypeID:
-		return s4wave_forge_world.JobType, nil
-	case forge_task.TaskTypeID:
-		return s4wave_forge_world.TaskType, nil
-	case forge_pass.PassTypeID:
-		return s4wave_forge_world.PassType, nil
-	case forge_execution.ExecutionTypeID:
-		return s4wave_forge_world.ExecutionType, nil
-	case forge_worker.WorkerTypeID:
-		return s4wave_forge_world.WorkerType, nil
-	case forge_dashboard.ForgeDashboardTypeID:
-		return s4wave_forge_world.DashboardType, nil
 	case spacewave_chat.ChatChannelTypeID:
 		return spacewave_chat_world.ChatChannelType, nil
 	case spacewave_chat.ChatMessageTypeID:
 		return spacewave_chat_world.ChatMessageType, nil
-	case s4wave_vm.VmV86TypeID:
-		return s4wave_vm_world.VmV86Type, nil
-	case s4wave_vm.V86ImageTypeID:
-		return s4wave_vm_world.V86ImageType, nil
-	case s4wave_org.OrganizationTypeID:
-		return s4wave_org_world.OrganizationType, nil
-	case s4wave_device.DeviceTypeID:
-		return s4wave_device_world.DeviceType, nil
 	case s4wave_device.ComputersDashboardTypeID:
 		return s4wave_device_world.ComputersDashboardType, nil
 	case s4wave_terminal.TerminalTypeID:
 		return s4wave_terminal_world.TerminalType, nil
-	case s4wave_secret_world.SecretTypeID:
-		return s4wave_secret_world.SecretType, nil
 	case s4wave_sshhost.SshHostTypeID:
 		return s4wave_sshhost_world.SshHostType, nil
-	case bldr_manifest_world.ManifestTypeID:
-		return objecttype.NewObjectType(bldr_manifest_world.ManifestTypeID, s4wave_forge_world.ForgeReadOnlyFactory), nil
 	default:
 		return s4wave_wizard.LookupWizardObjectType(ctx, typeID)
 	}
