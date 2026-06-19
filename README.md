@@ -11,7 +11,7 @@
   </p>
 </div>
 
-## Overview
+--------
 
 **Spacewave** turns your computers into a local-first cloud you control. Start
 with a private workspace, use it from the browser or desktop app, sync it
