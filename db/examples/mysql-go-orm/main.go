@@ -13,6 +13,7 @@ import (
 	common "github.com/s4wave/spacewave/db/examples/common"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
 	"github.com/s4wave/spacewave/db/sql/mysql"
+	"github.com/s4wave/spacewave/db/sql/mysql/gormadapter"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
 	"github.com/sirupsen/logrus"
@@ -103,7 +104,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		db, sqlDB, err := mysql.NewMysqlGorm(
+		db, sqlDB, err := gormadapter.NewMysqlGorm(
 			ctx,
 			le,
 			tx,
