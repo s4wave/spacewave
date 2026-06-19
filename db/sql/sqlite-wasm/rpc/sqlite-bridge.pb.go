@@ -5,103 +5,16 @@
 package sql_sqlite_wasm_rpc
 
 import (
-	base64 "encoding/base64"
-	binary "encoding/binary"
 	fmt "fmt"
 	io "io"
-	math "math"
 	slices "slices"
 	strconv "strconv"
 	strings "strings"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	sql "github.com/s4wave/spacewave/db/sql"
 )
-
-// SqlValue represents a SQLite value (int64, double, string, bytes, or null).
-type SqlValue struct {
-	unknownFields []byte
-	// Types that are assignable to Value:
-	//
-	//	*SqlValue_IntValue
-	//	*SqlValue_FloatValue
-	//	*SqlValue_StrValue
-	//	*SqlValue_BlobValue
-	Value isSqlValue_Value `protobuf_oneof:"value"`
-}
-
-func (x *SqlValue) Reset() {
-	*x = SqlValue{}
-}
-
-func (*SqlValue) ProtoMessage() {}
-
-func (m *SqlValue) GetValue() isSqlValue_Value {
-	if m != nil {
-		return m.Value
-	}
-	return nil
-}
-
-func (x *SqlValue) GetIntValue() int64 {
-	if x, ok := x.GetValue().(*SqlValue_IntValue); ok {
-		return x.IntValue
-	}
-	return 0
-}
-
-func (x *SqlValue) GetFloatValue() float64 {
-	if x, ok := x.GetValue().(*SqlValue_FloatValue); ok {
-		return x.FloatValue
-	}
-	return 0
-}
-
-func (x *SqlValue) GetStrValue() string {
-	if x, ok := x.GetValue().(*SqlValue_StrValue); ok {
-		return x.StrValue
-	}
-	return ""
-}
-
-func (x *SqlValue) GetBlobValue() []byte {
-	if x, ok := x.GetValue().(*SqlValue_BlobValue); ok {
-		return x.BlobValue
-	}
-	return nil
-}
-
-type isSqlValue_Value interface {
-	isSqlValue_Value()
-}
-
-type SqlValue_IntValue struct {
-	// int_value is an INTEGER value.
-	IntValue int64 `protobuf:"varint,1,opt,name=int_value,json=intValue,proto3,oneof"`
-}
-
-type SqlValue_FloatValue struct {
-	// float_value is a REAL value.
-	FloatValue float64 `protobuf:"fixed64,2,opt,name=float_value,json=floatValue,proto3,oneof"`
-}
-
-type SqlValue_StrValue struct {
-	// str_value is a TEXT value.
-	StrValue string `protobuf:"bytes,3,opt,name=str_value,json=strValue,proto3,oneof"`
-}
-
-type SqlValue_BlobValue struct {
-	// blob_value is a BLOB value.
-	BlobValue []byte `protobuf:"bytes,4,opt,name=blob_value,json=blobValue,proto3,oneof"`
-}
-
-func (*SqlValue_IntValue) isSqlValue_Value() {}
-
-func (*SqlValue_FloatValue) isSqlValue_Value() {}
-
-func (*SqlValue_StrValue) isSqlValue_Value() {}
-
-func (*SqlValue_BlobValue) isSqlValue_Value() {}
 
 // OpenDbRequest is the request to open a database.
 type OpenDbRequest struct {
@@ -182,7 +95,7 @@ type ExecRequest struct {
 	// sql is the SQL statement to execute.
 	Sql string `protobuf:"bytes,2,opt,name=sql,proto3" json:"sql,omitempty"`
 	// params are the bind parameters.
-	Params []*SqlValue `protobuf:"bytes,3,rep,name=params,proto3" json:"params,omitempty"`
+	Params []*sql.SqlValue `protobuf:"bytes,3,rep,name=params,proto3" json:"params,omitempty"`
 }
 
 func (x *ExecRequest) Reset() {
@@ -205,7 +118,7 @@ func (x *ExecRequest) GetSql() string {
 	return ""
 }
 
-func (x *ExecRequest) GetParams() []*SqlValue {
+func (x *ExecRequest) GetParams() []*sql.SqlValue {
 	if x != nil {
 		return x.Params
 	}
@@ -249,7 +162,7 @@ type QueryRequest struct {
 	// sql is the SQL query to execute.
 	Sql string `protobuf:"bytes,2,opt,name=sql,proto3" json:"sql,omitempty"`
 	// params are the bind parameters.
-	Params []*SqlValue `protobuf:"bytes,3,rep,name=params,proto3" json:"params,omitempty"`
+	Params []*sql.SqlValue `protobuf:"bytes,3,rep,name=params,proto3" json:"params,omitempty"`
 }
 
 func (x *QueryRequest) Reset() {
@@ -272,7 +185,7 @@ func (x *QueryRequest) GetSql() string {
 	return ""
 }
 
-func (x *QueryRequest) GetParams() []*SqlValue {
+func (x *QueryRequest) GetParams() []*sql.SqlValue {
 	if x != nil {
 		return x.Params
 	}
@@ -286,7 +199,7 @@ type QueryResponse struct {
 	// column_names is set in the first response message only.
 	ColumnNames []string `protobuf:"bytes,1,rep,name=column_names,json=columnNames,proto3" json:"columnNames,omitempty"`
 	// row contains one row of values, set in subsequent messages.
-	Row []*SqlValue `protobuf:"bytes,2,rep,name=row,proto3" json:"row,omitempty"`
+	Row []*sql.SqlValue `protobuf:"bytes,2,rep,name=row,proto3" json:"row,omitempty"`
 }
 
 func (x *QueryResponse) Reset() {
@@ -302,7 +215,7 @@ func (x *QueryResponse) GetColumnNames() []string {
 	return nil
 }
 
-func (x *QueryResponse) GetRow() []*SqlValue {
+func (x *QueryResponse) GetRow() []*sql.SqlValue {
 	if x != nil {
 		return x.Row
 	}
@@ -339,78 +252,6 @@ func (x *DeleteDbResponse) Reset() {
 }
 
 func (*DeleteDbResponse) ProtoMessage() {}
-
-func (m *SqlValue) CloneVT() *SqlValue {
-	if m == nil {
-		return (*SqlValue)(nil)
-	}
-	r := new(SqlValue)
-	if m.Value != nil {
-		r.Value = m.Value.(interface{ CloneOneofVT() isSqlValue_Value }).CloneOneofVT()
-	}
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *SqlValue) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *SqlValue_IntValue) CloneVT() *SqlValue_IntValue {
-	if m == nil {
-		return (*SqlValue_IntValue)(nil)
-	}
-	r := new(SqlValue_IntValue)
-	r.IntValue = m.IntValue
-	return r
-}
-
-func (m *SqlValue_IntValue) CloneOneofVT() isSqlValue_Value {
-	return m.CloneVT()
-}
-
-func (m *SqlValue_FloatValue) CloneVT() *SqlValue_FloatValue {
-	if m == nil {
-		return (*SqlValue_FloatValue)(nil)
-	}
-	r := new(SqlValue_FloatValue)
-	r.FloatValue = m.FloatValue
-	return r
-}
-
-func (m *SqlValue_FloatValue) CloneOneofVT() isSqlValue_Value {
-	return m.CloneVT()
-}
-
-func (m *SqlValue_StrValue) CloneVT() *SqlValue_StrValue {
-	if m == nil {
-		return (*SqlValue_StrValue)(nil)
-	}
-	r := new(SqlValue_StrValue)
-	r.StrValue = m.StrValue
-	return r
-}
-
-func (m *SqlValue_StrValue) CloneOneofVT() isSqlValue_Value {
-	return m.CloneVT()
-}
-
-func (m *SqlValue_BlobValue) CloneVT() *SqlValue_BlobValue {
-	if m == nil {
-		return (*SqlValue_BlobValue)(nil)
-	}
-	r := new(SqlValue_BlobValue)
-	if rhs := m.BlobValue; rhs != nil {
-		r.BlobValue = slices.Clone(rhs)
-	}
-	return r
-}
-
-func (m *SqlValue_BlobValue) CloneOneofVT() isSqlValue_Value {
-	return m.CloneVT()
-}
 
 func (m *OpenDbRequest) CloneVT() *OpenDbRequest {
 	if m == nil {
@@ -483,7 +324,7 @@ func (m *ExecRequest) CloneVT() *ExecRequest {
 	r.DbId = m.DbId
 	r.Sql = m.Sql
 	if rhs := m.Params; rhs != nil {
-		r.Params = make([]*SqlValue, len(rhs))
+		r.Params = make([]*sql.SqlValue, len(rhs))
 		for k, v := range rhs {
 			r.Params[k] = v.CloneVT()
 		}
@@ -523,7 +364,7 @@ func (m *QueryRequest) CloneVT() *QueryRequest {
 	r.DbId = m.DbId
 	r.Sql = m.Sql
 	if rhs := m.Params; rhs != nil {
-		r.Params = make([]*SqlValue, len(rhs))
+		r.Params = make([]*sql.SqlValue, len(rhs))
 		for k, v := range rhs {
 			r.Params[k] = v.CloneVT()
 		}
@@ -547,7 +388,7 @@ func (m *QueryResponse) CloneVT() *QueryResponse {
 		r.ColumnNames = slices.Clone(rhs)
 	}
 	if rhs := m.Row; rhs != nil {
-		r.Row = make([]*SqlValue, len(rhs))
+		r.Row = make([]*sql.SqlValue, len(rhs))
 		for k, v := range rhs {
 			r.Row[k] = v.CloneVT()
 		}
@@ -591,101 +432,6 @@ func (m *DeleteDbResponse) CloneVT() *DeleteDbResponse {
 
 func (m *DeleteDbResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
-}
-
-func (this *SqlValue) EqualVT(that *SqlValue) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Value == nil && that.Value != nil {
-		return false
-	} else if this.Value != nil {
-		if that.Value == nil {
-			return false
-		}
-		if !this.Value.(interface{ EqualVT(isSqlValue_Value) bool }).EqualVT(that.Value) {
-			return false
-		}
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *SqlValue) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*SqlValue)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *SqlValue_IntValue) EqualVT(thatIface isSqlValue_Value) bool {
-	that, ok := thatIface.(*SqlValue_IntValue)
-	if !ok {
-		return false
-	}
-	if this == that {
-		return true
-	}
-	if this == nil && that != nil || this != nil && that == nil {
-		return false
-	}
-	if this.IntValue != that.IntValue {
-		return false
-	}
-	return true
-}
-
-func (this *SqlValue_FloatValue) EqualVT(thatIface isSqlValue_Value) bool {
-	that, ok := thatIface.(*SqlValue_FloatValue)
-	if !ok {
-		return false
-	}
-	if this == that {
-		return true
-	}
-	if this == nil && that != nil || this != nil && that == nil {
-		return false
-	}
-	if this.FloatValue != that.FloatValue {
-		return false
-	}
-	return true
-}
-
-func (this *SqlValue_StrValue) EqualVT(thatIface isSqlValue_Value) bool {
-	that, ok := thatIface.(*SqlValue_StrValue)
-	if !ok {
-		return false
-	}
-	if this == that {
-		return true
-	}
-	if this == nil && that != nil || this != nil && that == nil {
-		return false
-	}
-	if this.StrValue != that.StrValue {
-		return false
-	}
-	return true
-}
-
-func (this *SqlValue_BlobValue) EqualVT(thatIface isSqlValue_Value) bool {
-	that, ok := thatIface.(*SqlValue_BlobValue)
-	if !ok {
-		return false
-	}
-	if this == that {
-		return true
-	}
-	if this == nil && that != nil || this != nil && that == nil {
-		return false
-	}
-	if string(this.BlobValue) != string(that.BlobValue) {
-		return false
-	}
-	return true
 }
 
 func (this *OpenDbRequest) EqualVT(that *OpenDbRequest) bool {
@@ -784,10 +530,10 @@ func (this *ExecRequest) EqualVT(that *ExecRequest) bool {
 		vy := that.Params[i]
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &SqlValue{}
+				p = &sql.SqlValue{}
 			}
 			if q == nil {
-				q = &SqlValue{}
+				q = &sql.SqlValue{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -847,10 +593,10 @@ func (this *QueryRequest) EqualVT(that *QueryRequest) bool {
 		vy := that.Params[i]
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &SqlValue{}
+				p = &sql.SqlValue{}
 			}
 			if q == nil {
-				q = &SqlValue{}
+				q = &sql.SqlValue{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -890,10 +636,10 @@ func (this *QueryResponse) EqualVT(that *QueryResponse) bool {
 		vy := that.Row[i]
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &SqlValue{}
+				p = &sql.SqlValue{}
 			}
 			if q == nil {
-				q = &SqlValue{}
+				q = &sql.SqlValue{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -946,80 +692,6 @@ func (this *DeleteDbResponse) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
-}
-
-// MarshalProtoJSON marshals the SqlValue message to JSON.
-func (x *SqlValue) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Value != nil {
-		switch ov := x.Value.(type) {
-		case *SqlValue_IntValue:
-			s.WriteMoreIf(&wroteField)
-			s.WriteObjectField("intValue")
-			s.WriteInt64(ov.IntValue)
-		case *SqlValue_FloatValue:
-			s.WriteMoreIf(&wroteField)
-			s.WriteObjectField("floatValue")
-			s.WriteFloat64(ov.FloatValue)
-		case *SqlValue_StrValue:
-			s.WriteMoreIf(&wroteField)
-			s.WriteObjectField("strValue")
-			s.WriteString(ov.StrValue)
-		case *SqlValue_BlobValue:
-			s.WriteMoreIf(&wroteField)
-			s.WriteObjectField("blobValue")
-			s.WriteBytes(ov.BlobValue)
-		}
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the SqlValue to JSON.
-func (x *SqlValue) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the SqlValue message from JSON.
-func (x *SqlValue) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "int_value", "intValue":
-			s.AddField("int_value")
-			ov := &SqlValue_IntValue{}
-			x.Value = ov
-			ov.IntValue = s.ReadInt64()
-		case "float_value", "floatValue":
-			s.AddField("float_value")
-			ov := &SqlValue_FloatValue{}
-			x.Value = ov
-			ov.FloatValue = s.ReadFloat64()
-		case "str_value", "strValue":
-			s.AddField("str_value")
-			ov := &SqlValue_StrValue{}
-			x.Value = ov
-			ov.StrValue = s.ReadString()
-		case "blob_value", "blobValue":
-			s.AddField("blob_value")
-			ov := &SqlValue_BlobValue{}
-			x.Value = ov
-			ov.BlobValue = s.ReadBytes()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the SqlValue from JSON.
-func (x *SqlValue) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the OpenDbRequest message to JSON.
@@ -1241,7 +913,7 @@ func (x *ExecRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.Params = append(x.Params, nil)
 					return
 				}
-				v := &SqlValue{}
+				v := &sql.SqlValue{}
 				v.UnmarshalProtoJSON(s.WithField("params", false))
 				if s.Err() != nil {
 					return
@@ -1370,7 +1042,7 @@ func (x *QueryRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.Params = append(x.Params, nil)
 					return
 				}
-				v := &SqlValue{}
+				v := &sql.SqlValue{}
 				v.UnmarshalProtoJSON(s.WithField("params", false))
 				if s.Err() != nil {
 					return
@@ -1445,7 +1117,7 @@ func (x *QueryResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.Row = append(x.Row, nil)
 					return
 				}
-				v := &SqlValue{}
+				v := &sql.SqlValue{}
 				v.UnmarshalProtoJSON(s.WithField("row", false))
 				if s.Err() != nil {
 					return
@@ -1531,105 +1203,6 @@ func (x *DeleteDbResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 // UnmarshalJSON unmarshals the DeleteDbResponse from JSON.
 func (x *DeleteDbResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-func (m *SqlValue) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *SqlValue) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *SqlValue) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if vtmsg, ok := m.Value.(interface {
-		MarshalToSizedBufferVT([]byte) (int, error)
-	}); ok {
-		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *SqlValue_IntValue) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *SqlValue_IntValue) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.IntValue))
-	i--
-	dAtA[i] = 0x8
-	return len(dAtA) - i, nil
-}
-
-func (m *SqlValue_FloatValue) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *SqlValue_FloatValue) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	i -= 8
-	binary.LittleEndian.PutUint64(dAtA[i:], uint64(math.Float64bits(float64(m.FloatValue))))
-	i--
-	dAtA[i] = 0x11
-	return len(dAtA) - i, nil
-}
-
-func (m *SqlValue_StrValue) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *SqlValue_StrValue) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	i -= len(m.StrValue)
-	copy(dAtA[i:], m.StrValue)
-	i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.StrValue)))
-	i--
-	dAtA[i] = 0x1a
-	return len(dAtA) - i, nil
-}
-
-func (m *SqlValue_BlobValue) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *SqlValue_BlobValue) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	i -= len(m.BlobValue)
-	copy(dAtA[i:], m.BlobValue)
-	i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.BlobValue)))
-	i--
-	dAtA[i] = 0x22
-	return len(dAtA) - i, nil
 }
 
 func (m *OpenDbRequest) MarshalVT() (dAtA []byte, err error) {
@@ -2065,61 +1638,6 @@ func (m *DeleteDbResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *SqlValue) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if vtmsg, ok := m.Value.(interface{ SizeVT() int }); ok {
-		n += vtmsg.SizeVT()
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *SqlValue_IntValue) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.IntValue))
-	return n
-}
-
-func (m *SqlValue_FloatValue) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += 9
-	return n
-}
-
-func (m *SqlValue_StrValue) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.StrValue)
-	n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	return n
-}
-
-func (m *SqlValue_BlobValue) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.BlobValue)
-	n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	return n
-}
-
 func (m *OpenDbRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2278,45 +1796,6 @@ func (m *DeleteDbResponse) SizeVT() (n int) {
 	return n
 }
 
-func (x *SqlValue) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("SqlValue {")
-	switch body := x.Value.(type) {
-	case *SqlValue_IntValue:
-		if sb.Len() > 10 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("int_value: ")
-		sb.WriteString(strconv.FormatInt(int64(body.IntValue), 10))
-	case *SqlValue_FloatValue:
-		if sb.Len() > 10 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("float_value: ")
-		sb.WriteString(strconv.FormatFloat(body.FloatValue, 'g', -1, 64))
-	case *SqlValue_StrValue:
-		if sb.Len() > 10 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("str_value: ")
-		sb.WriteString(strconv.Quote(body.StrValue))
-	case *SqlValue_BlobValue:
-		if sb.Len() > 10 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("blob_value: ")
-		sb.WriteString("\"")
-		sb.WriteString(base64.StdEncoding.EncodeToString(body.BlobValue))
-		sb.WriteString("\"")
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *SqlValue) String() string {
-	return x.MarshalProtoText()
-}
-
 func (x *OpenDbRequest) MarshalProtoText() string {
 	var sb strings.Builder
 	sb.WriteString("OpenDbRequest {")
@@ -2409,7 +1888,7 @@ func (x *ExecRequest) MarshalProtoText() string {
 				sb.WriteString(", ")
 			}
 			if v == nil {
-				sb.WriteString((&SqlValue{}).MarshalProtoText())
+				sb.WriteString((&sql.SqlValue{}).MarshalProtoText())
 			} else {
 				sb.WriteString(v.MarshalProtoText())
 			}
@@ -2476,7 +1955,7 @@ func (x *QueryRequest) MarshalProtoText() string {
 				sb.WriteString(", ")
 			}
 			if v == nil {
-				sb.WriteString((&SqlValue{}).MarshalProtoText())
+				sb.WriteString((&sql.SqlValue{}).MarshalProtoText())
 			} else {
 				sb.WriteString(v.MarshalProtoText())
 			}
@@ -2517,7 +1996,7 @@ func (x *QueryResponse) MarshalProtoText() string {
 				sb.WriteString(", ")
 			}
 			if v == nil {
-				sb.WriteString((&SqlValue{}).MarshalProtoText())
+				sb.WriteString((&sql.SqlValue{}).MarshalProtoText())
 			} else {
 				sb.WriteString(v.MarshalProtoText())
 			}
@@ -2559,118 +2038,6 @@ func (x *DeleteDbResponse) MarshalProtoText() string {
 
 func (x *DeleteDbResponse) String() string {
 	return x.MarshalProtoText()
-}
-
-func (m *SqlValue) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: SqlValue: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: SqlValue: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field IntValue", wireType)
-			}
-			var v int64
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Value = &SqlValue_IntValue{IntValue: v}
-		case 2:
-			if wireType != 1 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FloatValue", wireType)
-			}
-			var v uint64
-			var _v64 uint64
-			_v64, iNdEx, err = protobuf_go_lite.DecodeFixed64(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			v = uint64(_v64)
-			m.Value = &SqlValue_FloatValue{FloatValue: float64(math.Float64frombits(v))}
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field StrValue", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Value = &SqlValue_StrValue{StrValue: string(dAtA[iNdEx:postIndex])}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BlobValue", wireType)
-			}
-			var byteLen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			byteLen = int(_v)
-			if err != nil {
-				return err
-			}
-			if byteLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			v := make([]byte, postIndex-iNdEx)
-			copy(v, dAtA[iNdEx:postIndex])
-			m.Value = &SqlValue_BlobValue{BlobValue: v}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
 }
 
 func (m *OpenDbRequest) UnmarshalVT(dAtA []byte) error {
@@ -2957,7 +2324,7 @@ func (m *ExecRequest) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Params = append(m.Params, &SqlValue{})
+			m.Params = append(m.Params, &sql.SqlValue{})
 			if err := m.Params[len(m.Params)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
@@ -3118,7 +2485,7 @@ func (m *QueryRequest) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Params = append(m.Params, &SqlValue{})
+			m.Params = append(m.Params, &sql.SqlValue{})
 			if err := m.Params[len(m.Params)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
@@ -3209,7 +2576,7 @@ func (m *QueryResponse) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Row = append(m.Row, &SqlValue{})
+			m.Row = append(m.Row, &sql.SqlValue{})
 			if err := m.Row[len(m.Row)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}

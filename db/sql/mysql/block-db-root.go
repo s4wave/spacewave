@@ -131,11 +131,11 @@ func (r *DatabaseRoot) GetRootTableSet(bcs *block.Cursor) *namedsbset.NamedSubBl
 func (r *DatabaseRoot) InsertTable(name string, ref *block.BlockRef, bcs *block.Cursor) (*block.Cursor, bool) {
 	set := r.GetRootTableSet(bcs)
 	r.Tables = append(r.Tables, &DatabaseRootTable{Name: name, Ref: ref})
+	set.SortNamedRefs()
 	var ebcs *block.Cursor
 	if bcs != nil {
-		ebcs = set.GetCursor().FollowSubBlock(uint32(len(r.Tables) - 1)) //nolint:gosec
+		_, ebcs, _ = set.LookupByName(name)
 	}
-	set.SortNamedRefs()
 	return ebcs, true
 }
 

@@ -5,6 +5,8 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
@@ -13,7 +15,10 @@ import (
 	"github.com/s4wave/spacewave/db/object"
 	hydra_sql "github.com/s4wave/spacewave/db/sql"
 	sql_mysql "github.com/s4wave/spacewave/db/sql/mysql"
+	sql_rpc "github.com/s4wave/spacewave/db/sql/rpc"
+	sql_rpc_server "github.com/s4wave/spacewave/db/sql/rpc/server"
 	"github.com/s4wave/spacewave/db/volume"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 
@@ -179,4 +184,34 @@ func (c *Controller) executeDB(ctx context.Context, ctr *ccontainer.CContainer[*
 	le.Debug("shutting down")
 	ctr.SetValue(nil)
 	return context.Canceled
+}
+
+// HandleDirective asks if the handler can resolve the directive.
+func (c *Controller) HandleDirective(
+	ctx context.Context,
+	inst directive.Instance,
+) ([]directive.Resolver, error) {
+	switch d := inst.GetDirective().(type) {
+	case bifrost_rpc.LookupRpcService:
+		serviceID := c.conf.GetSqlRpcServiceId()
+		if serviceID != "" && serviceID == d.LookupRpcServiceID() {
+			return directive.R(
+				directive.NewGetterResolver(func(ctx context.Context) (bifrost_rpc.LookupRpcServiceValue, error) {
+					store, err := c.GetSqlStore(ctx)
+					if err != nil {
+						return nil, err
+					}
+					mux := srpc.NewMux()
+					handler := sql_rpc.NewSRPCSqlHandler(sql_rpc_server.NewStore(store), serviceID)
+					if err := mux.Register(handler); err != nil {
+						return nil, err
+					}
+					var invoker bifrost_rpc.LookupRpcServiceValue = mux
+					return invoker, nil
+				}),
+				nil,
+			)
+		}
+	}
+	return c.Controller.HandleDirective(ctx, inst)
 }

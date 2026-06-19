@@ -123,11 +123,11 @@ func (n *Root) InsertDatabase(name string, ref *block.BlockRef, bcs *block.Curso
 	set := n.GetRootDbSet(bcs)
 	rd := &RootDb{Name: name, Ref: ref}
 	n.Databases = append(n.Databases, rd)
+	set.SortNamedRefs()
 	var ebcs *block.Cursor
 	if bcs != nil {
-		ebcs = set.GetCursor().FollowSubBlock(uint32(len(n.Databases) - 1)) //nolint:gosec
+		_, ebcs, _ = set.LookupByName(name)
 	}
-	set.SortNamedRefs()
 	return rd, ebcs
 }
 

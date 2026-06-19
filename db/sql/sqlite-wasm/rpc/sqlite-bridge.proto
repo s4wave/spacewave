@@ -1,6 +1,8 @@
 syntax = "proto3";
 package sql.sqlite_wasm.rpc;
 
+import "github.com/s4wave/spacewave/db/sql/sql.proto";
+
 // SqliteBridge wraps sqlite.wasm with a starpc RPC service.
 // Runs in a dedicated Worker with OPFS persistence.
 service SqliteBridge {
@@ -15,21 +17,6 @@ service SqliteBridge {
   rpc Query(QueryRequest) returns (stream QueryResponse);
   // DeleteDb deletes a database by path.
   rpc DeleteDb(DeleteDbRequest) returns (DeleteDbResponse);
-}
-
-// SqlValue represents a SQLite value (int64, double, string, bytes, or null).
-message SqlValue {
-  oneof value {
-    // int_value is an INTEGER value.
-    int64 int_value = 1;
-    // float_value is a REAL value.
-    double float_value = 2;
-    // str_value is a TEXT value.
-    string str_value = 3;
-    // blob_value is a BLOB value.
-    bytes blob_value = 4;
-  }
-  // If no field in the oneof is set, the value is NULL.
 }
 
 // OpenDbRequest is the request to open a database.
@@ -60,7 +47,7 @@ message ExecRequest {
   // sql is the SQL statement to execute.
   string sql = 2;
   // params are the bind parameters.
-  repeated SqlValue params = 3;
+  repeated .sql.SqlValue params = 3;
 }
 
 // ExecResponse is the response after executing a statement.
@@ -78,7 +65,7 @@ message QueryRequest {
   // sql is the SQL query to execute.
   string sql = 2;
   // params are the bind parameters.
-  repeated SqlValue params = 3;
+  repeated .sql.SqlValue params = 3;
 }
 
 // QueryResponse is a streaming response for a SELECT query.
@@ -87,7 +74,7 @@ message QueryResponse {
   // column_names is set in the first response message only.
   repeated string column_names = 1;
   // row contains one row of values, set in subsequent messages.
-  repeated SqlValue row = 2;
+  repeated .sql.SqlValue row = 2;
 }
 
 // DeleteDbRequest is the request to delete a database.

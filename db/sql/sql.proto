@@ -1,0 +1,36 @@
+syntax = "proto3";
+package sql;
+
+// SqlValue represents a SQL value. If no field in the oneof is set, the value is NULL.
+message SqlValue {
+  oneof value {
+    // IntValue is a signed integer value.
+    int64 int_value = 1;
+    // FloatValue is a double-precision floating point value.
+    double float_value = 2;
+    // StrValue is a string value.
+    string str_value = 3;
+    // BlobValue is a byte string value.
+    bytes blob_value = 4;
+  }
+}
+
+// Row contains SQL values in column order.
+message Row {
+  // Values is the row value list.
+  repeated SqlValue values = 1;
+}
+
+// ColumnSchema describes one result column.
+message ColumnSchema {
+  // Name is the column name.
+  string name = 1;
+  // DatabaseTypeName is the database-specific type name, if known.
+  string database_type_name = 2;
+}
+
+// RowBatch contains a batch of query rows.
+message RowBatch {
+  // Rows is the batch of rows.
+  repeated Row rows = 1;
+}

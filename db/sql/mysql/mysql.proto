@@ -54,6 +54,28 @@ message TableRoot {
   uint32 collation_id = 6;
   // Comment is an additional comment on the table.
   string comment = 7;
+  // Indexes contains secondary index metadata. Lookups are scan-backed.
+  repeated TableIndex indexes = 8;
+}
+
+// TableIndex is a secondary table index definition.
+message TableIndex {
+  // Name is the unique name of the index.
+  string name = 1;
+  // Columns is the ordered set of columns in the index.
+  repeated TableIndexColumn columns = 2;
+  // Unique indicates that indexed values must be unique.
+  bool unique = 3;
+  // Comment contains the index comment.
+  string comment = 4;
+}
+
+// TableIndexColumn is a column in a TableIndex.
+message TableIndexColumn {
+  // Name is the indexed column name.
+  string name = 1;
+  // Length is the optional prefix length. Zero means full length.
+  int64 length = 2;
 }
 
 // TablePartitionRoot contains the root of a table partition.

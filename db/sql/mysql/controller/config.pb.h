@@ -425,6 +425,7 @@ class Config final : public ::google::protobuf::Message
     kObjectStoreIdFieldNumber = 4,
     kObjectStorePrefixFieldNumber = 5,
     kObjectStoreHeadKeyFieldNumber = 6,
+    kSqlRpcServiceIdFieldNumber = 10,
     kInitHeadRefFieldNumber = 7,
     kStateTransformConfFieldNumber = 8,
   };
@@ -540,6 +541,21 @@ class Config final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_object_store_head_key();
 
   public:
+  // string sql_rpc_service_id = 10;
+  void clear_sql_rpc_service_id() ;
+  const ::std::string& sql_rpc_service_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_sql_rpc_service_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_sql_rpc_service_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_sql_rpc_service_id();
+  void set_allocated_sql_rpc_service_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_sql_rpc_service_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_sql_rpc_service_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_sql_rpc_service_id();
+
+  public:
   // .bucket.ObjectRef init_head_ref = 7;
   bool has_init_head_ref() const;
   void clear_init_head_ref() ;
@@ -574,8 +590,8 @@ class Config final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 9,
-                                   2, 132,
+  static const ::google::protobuf::internal::TcParseTable<4, 10,
+                                   2, 150,
                                    2>
       _table_;
 
@@ -603,6 +619,7 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr object_store_id_;
     ::google::protobuf::internal::ArenaStringPtr object_store_prefix_;
     ::google::protobuf::internal::ArenaStringPtr object_store_head_key_;
+    ::google::protobuf::internal::ArenaStringPtr sql_rpc_service_id_;
     ::bucket::ObjectRef* PROTOBUF_NULLABLE init_head_ref_;
     ::block::transform::Config* PROTOBUF_NULLABLE state_transform_conf_;
     PROTOBUF_TSAN_DECLARE_MEMBER
@@ -1021,7 +1038,7 @@ inline void Config::set_allocated_object_store_head_key(::std::string* PROTOBUF_
 
 // .bucket.ObjectRef init_head_ref = 7;
 inline bool Config::has_init_head_ref() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000080U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000100U);
   PROTOBUF_ASSUME(!value || _impl_.init_head_ref_ != nullptr);
   return value;
 }
@@ -1042,16 +1059,16 @@ inline void Config::unsafe_arena_set_allocated_init_head_ref(
   }
   _impl_.init_head_ref_ = reinterpret_cast<::bucket::ObjectRef*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:mysql.controller.Config.init_head_ref)
 }
 inline ::bucket::ObjectRef* PROTOBUF_NULLABLE Config::release_init_head_ref() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
   ::bucket::ObjectRef* released = _impl_.init_head_ref_;
   _impl_.init_head_ref_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -1071,7 +1088,7 @@ inline ::bucket::ObjectRef* PROTOBUF_NULLABLE Config::unsafe_arena_release_init_
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:mysql.controller.Config.init_head_ref)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
   ::bucket::ObjectRef* temp = _impl_.init_head_ref_;
   _impl_.init_head_ref_ = nullptr;
   return temp;
@@ -1086,7 +1103,7 @@ inline ::bucket::ObjectRef* PROTOBUF_NONNULL Config::_internal_mutable_init_head
 }
 inline ::bucket::ObjectRef* PROTOBUF_NONNULL Config::mutable_init_head_ref()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   ::bucket::ObjectRef* _msg = _internal_mutable_init_head_ref();
   // @@protoc_insertion_point(field_mutable:mysql.controller.Config.init_head_ref)
   return _msg;
@@ -1103,9 +1120,9 @@ inline void Config::set_allocated_init_head_ref(::bucket::ObjectRef* PROTOBUF_NU
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
   }
 
   _impl_.init_head_ref_ = reinterpret_cast<::bucket::ObjectRef*>(value);
@@ -1114,7 +1131,7 @@ inline void Config::set_allocated_init_head_ref(::bucket::ObjectRef* PROTOBUF_NU
 
 // .block.transform.Config state_transform_conf = 8;
 inline bool Config::has_state_transform_conf() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000100U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000200U);
   PROTOBUF_ASSUME(!value || _impl_.state_transform_conf_ != nullptr);
   return value;
 }
@@ -1135,16 +1152,16 @@ inline void Config::unsafe_arena_set_allocated_state_transform_conf(
   }
   _impl_.state_transform_conf_ = reinterpret_cast<::block::transform::Config*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:mysql.controller.Config.state_transform_conf)
 }
 inline ::block::transform::Config* PROTOBUF_NULLABLE Config::release_state_transform_conf() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
   ::block::transform::Config* released = _impl_.state_transform_conf_;
   _impl_.state_transform_conf_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -1164,7 +1181,7 @@ inline ::block::transform::Config* PROTOBUF_NULLABLE Config::unsafe_arena_releas
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:mysql.controller.Config.state_transform_conf)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
   ::block::transform::Config* temp = _impl_.state_transform_conf_;
   _impl_.state_transform_conf_ = nullptr;
   return temp;
@@ -1179,7 +1196,7 @@ inline ::block::transform::Config* PROTOBUF_NONNULL Config::_internal_mutable_st
 }
 inline ::block::transform::Config* PROTOBUF_NONNULL Config::mutable_state_transform_conf()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   ::block::transform::Config* _msg = _internal_mutable_state_transform_conf();
   // @@protoc_insertion_point(field_mutable:mysql.controller.Config.state_transform_conf)
   return _msg;
@@ -1196,9 +1213,9 @@ inline void Config::set_allocated_state_transform_conf(::block::transform::Confi
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
   }
 
   _impl_.state_transform_conf_ = reinterpret_cast<::block::transform::Config*>(value);
@@ -1275,6 +1292,71 @@ inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
 Config::_internal_mutable_create_dbs() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.create_dbs_;
+}
+
+// string sql_rpc_service_id = 10;
+inline void Config::clear_sql_rpc_service_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.sql_rpc_service_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline const ::std::string& Config::sql_rpc_service_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:mysql.controller.Config.sql_rpc_service_id)
+  return _internal_sql_rpc_service_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Config::set_sql_rpc_service_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  _impl_.sql_rpc_service_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:mysql.controller.Config.sql_rpc_service_id)
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_sql_rpc_service_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::std::string* _s = _internal_mutable_sql_rpc_service_id();
+  // @@protoc_insertion_point(field_mutable:mysql.controller.Config.sql_rpc_service_id)
+  return _s;
+}
+inline const ::std::string& Config::_internal_sql_rpc_service_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.sql_rpc_service_id_.Get();
+}
+inline void Config::_internal_set_sql_rpc_service_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.sql_rpc_service_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_sql_rpc_service_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.sql_rpc_service_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Config::release_sql_rpc_service_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:mysql.controller.Config.sql_rpc_service_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000080U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  auto* released = _impl_.sql_rpc_service_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.sql_rpc_service_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Config::set_allocated_sql_rpc_service_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  }
+  _impl_.sql_rpc_service_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.sql_rpc_service_id_.IsDefault()) {
+    _impl_.sql_rpc_service_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:mysql.controller.Config.sql_rpc_service_id)
 }
 
 // -------------------------------------------------------------------

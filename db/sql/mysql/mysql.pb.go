@@ -140,6 +140,8 @@ type TableRoot struct {
 	CollationId uint32 `protobuf:"varint,6,opt,name=collation_id,json=collationId,proto3" json:"collationId,omitempty"`
 	// Comment is an additional comment on the table.
 	Comment string `protobuf:"bytes,7,opt,name=comment,proto3" json:"comment,omitempty"`
+	// Indexes contains secondary index metadata. Lookups are scan-backed.
+	Indexes []*TableIndex `protobuf:"bytes,8,rep,name=indexes,proto3" json:"indexes,omitempty"`
 }
 
 func (x *TableRoot) Reset() {
@@ -195,6 +197,89 @@ func (x *TableRoot) GetComment() string {
 		return x.Comment
 	}
 	return ""
+}
+
+func (x *TableRoot) GetIndexes() []*TableIndex {
+	if x != nil {
+		return x.Indexes
+	}
+	return nil
+}
+
+// TableIndex is a secondary table index definition.
+type TableIndex struct {
+	unknownFields []byte
+	// Name is the unique name of the index.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Columns is the ordered set of columns in the index.
+	Columns []*TableIndexColumn `protobuf:"bytes,2,rep,name=columns,proto3" json:"columns,omitempty"`
+	// Unique indicates that indexed values must be unique.
+	Unique bool `protobuf:"varint,3,opt,name=unique,proto3" json:"unique,omitempty"`
+	// Comment contains the index comment.
+	Comment string `protobuf:"bytes,4,opt,name=comment,proto3" json:"comment,omitempty"`
+}
+
+func (x *TableIndex) Reset() {
+	*x = TableIndex{}
+}
+
+func (*TableIndex) ProtoMessage() {}
+
+func (x *TableIndex) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *TableIndex) GetColumns() []*TableIndexColumn {
+	if x != nil {
+		return x.Columns
+	}
+	return nil
+}
+
+func (x *TableIndex) GetUnique() bool {
+	if x != nil {
+		return x.Unique
+	}
+	return false
+}
+
+func (x *TableIndex) GetComment() string {
+	if x != nil {
+		return x.Comment
+	}
+	return ""
+}
+
+// TableIndexColumn is a column in a TableIndex.
+type TableIndexColumn struct {
+	unknownFields []byte
+	// Name is the indexed column name.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Length is the optional prefix length. Zero means full length.
+	Length int64 `protobuf:"varint,2,opt,name=length,proto3" json:"length,omitempty"`
+}
+
+func (x *TableIndexColumn) Reset() {
+	*x = TableIndexColumn{}
+}
+
+func (*TableIndexColumn) ProtoMessage() {}
+
+func (x *TableIndexColumn) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *TableIndexColumn) GetLength() int64 {
+	if x != nil {
+		return x.Length
+	}
+	return 0
 }
 
 // TablePartitionRoot contains the root of a table partition.
@@ -569,7 +654,9 @@ func (m *RootDb) CloneVT() *RootDb {
 	}
 	r := new(RootDb)
 	r.Name = m.Name
-	r.Ref = m.Ref.CloneVT()
+	if rhs := m.Ref; rhs != nil {
+		r.Ref = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -607,7 +694,9 @@ func (m *DatabaseRootTable) CloneVT() *DatabaseRootTable {
 	}
 	r := new(DatabaseRootTable)
 	r.Name = m.Name
-	r.Ref = m.Ref.CloneVT()
+	if rhs := m.Ref; rhs != nil {
+		r.Ref = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -637,6 +726,12 @@ func (m *TableRoot) CloneVT() *TableRoot {
 			r.TablePartitions[k] = v.CloneVT()
 		}
 	}
+	if rhs := m.Indexes; rhs != nil {
+		r.Indexes = make([]*TableIndex, len(rhs))
+		for k, v := range rhs {
+			r.Indexes[k] = v.CloneVT()
+		}
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -647,12 +742,55 @@ func (m *TableRoot) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *TableIndex) CloneVT() *TableIndex {
+	if m == nil {
+		return (*TableIndex)(nil)
+	}
+	r := new(TableIndex)
+	r.Name = m.Name
+	r.Unique = m.Unique
+	r.Comment = m.Comment
+	if rhs := m.Columns; rhs != nil {
+		r.Columns = make([]*TableIndexColumn, len(rhs))
+		for k, v := range rhs {
+			r.Columns[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *TableIndex) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *TableIndexColumn) CloneVT() *TableIndexColumn {
+	if m == nil {
+		return (*TableIndexColumn)(nil)
+	}
+	r := new(TableIndexColumn)
+	r.Name = m.Name
+	r.Length = m.Length
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *TableIndexColumn) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *TablePartitionRoot) CloneVT() *TablePartitionRoot {
 	if m == nil {
 		return (*TablePartitionRoot)(nil)
 	}
 	r := new(TablePartitionRoot)
-	r.RowKeyValue = m.RowKeyValue.CloneVT()
+	if rhs := m.RowKeyValue; rhs != nil {
+		r.RowKeyValue = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1042,11 +1180,94 @@ func (this *TableRoot) EqualVT(that *TableRoot) bool {
 	if this.Comment != that.Comment {
 		return false
 	}
+	if len(this.Indexes) != len(that.Indexes) {
+		return false
+	}
+	for i, vx := range this.Indexes {
+		vy := that.Indexes[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &TableIndex{}
+			}
+			if q == nil {
+				q = &TableIndex{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *TableRoot) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*TableRoot)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *TableIndex) EqualVT(that *TableIndex) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	if len(this.Columns) != len(that.Columns) {
+		return false
+	}
+	for i, vx := range this.Columns {
+		vy := that.Columns[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &TableIndexColumn{}
+			}
+			if q == nil {
+				q = &TableIndexColumn{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if this.Unique != that.Unique {
+		return false
+	}
+	if this.Comment != that.Comment {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *TableIndex) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*TableIndex)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *TableIndexColumn) EqualVT(that *TableIndexColumn) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	if this.Length != that.Length {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *TableIndexColumn) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*TableIndexColumn)
 	if !ok {
 		return false
 	}
@@ -1705,6 +1926,17 @@ func (x *TableRoot) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("comment")
 		s.WriteString(x.Comment)
 	}
+	if len(x.Indexes) > 0 || s.HasField("indexes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("indexes")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Indexes {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("indexes"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1770,12 +2002,167 @@ func (x *TableRoot) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "comment":
 			s.AddField("comment")
 			x.Comment = s.ReadString()
+		case "indexes":
+			s.AddField("indexes")
+			if s.ReadNil() {
+				x.Indexes = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Indexes = append(x.Indexes, nil)
+					return
+				}
+				v := &TableIndex{}
+				v.UnmarshalProtoJSON(s.WithField("indexes", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Indexes = append(x.Indexes, v)
+			})
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the TableRoot from JSON.
 func (x *TableRoot) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the TableIndex message to JSON.
+func (x *TableIndex) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Name != "" || s.HasField("name") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
+	}
+	if len(x.Columns) > 0 || s.HasField("columns") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("columns")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Columns {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("columns"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.Unique || s.HasField("unique") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("unique")
+		s.WriteBool(x.Unique)
+	}
+	if x.Comment != "" || s.HasField("comment") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("comment")
+		s.WriteString(x.Comment)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the TableIndex to JSON.
+func (x *TableIndex) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TableIndex message from JSON.
+func (x *TableIndex) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
+		case "columns":
+			s.AddField("columns")
+			if s.ReadNil() {
+				x.Columns = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Columns = append(x.Columns, nil)
+					return
+				}
+				v := &TableIndexColumn{}
+				v.UnmarshalProtoJSON(s.WithField("columns", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Columns = append(x.Columns, v)
+			})
+		case "unique":
+			s.AddField("unique")
+			x.Unique = s.ReadBool()
+		case "comment":
+			s.AddField("comment")
+			x.Comment = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the TableIndex from JSON.
+func (x *TableIndex) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the TableIndexColumn message to JSON.
+func (x *TableIndexColumn) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Name != "" || s.HasField("name") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
+	}
+	if x.Length != 0 || s.HasField("length") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("length")
+		s.WriteInt64(x.Length)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the TableIndexColumn to JSON.
+func (x *TableIndexColumn) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TableIndexColumn message from JSON.
+func (x *TableIndexColumn) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
+		case "length":
+			s.AddField("length")
+			x.Length = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the TableIndexColumn from JSON.
+func (x *TableIndexColumn) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2462,6 +2849,18 @@ func (m *TableRoot) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.Indexes) > 0 {
+		for iNdEx := len(m.Indexes) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Indexes[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x42
+		}
+	}
 	if len(m.Comment) > 0 {
 		i -= len(m.Comment)
 		copy(dAtA[i:], m.Comment)
@@ -2529,6 +2928,120 @@ func (m *TableRoot) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		}
 		i -= size
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *TableIndex) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TableIndex) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *TableIndex) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Comment) > 0 {
+		i -= len(m.Comment)
+		copy(dAtA[i:], m.Comment)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Comment)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.Unique {
+		i--
+		if m.Unique {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Columns) > 0 {
+		for iNdEx := len(m.Columns) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Columns[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.Name) > 0 {
+		i -= len(m.Name)
+		copy(dAtA[i:], m.Name)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Name)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *TableIndexColumn) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TableIndexColumn) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *TableIndexColumn) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Length != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Length))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Name) > 0 {
+		i -= len(m.Name)
+		copy(dAtA[i:], m.Name)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Name)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -3130,6 +3643,56 @@ func (m *TableRoot) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
+	if len(m.Indexes) > 0 {
+		for _, e := range m.Indexes {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *TableIndex) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Name)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if len(m.Columns) > 0 {
+		for _, e := range m.Columns {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if m.Unique {
+		n += 2
+	}
+	l = len(m.Comment)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *TableIndexColumn) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Name)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Length != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Length))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -3536,11 +4099,102 @@ func (x *TableRoot) MarshalProtoText() string {
 		sb.WriteString("comment: ")
 		sb.WriteString(strconv.Quote(x.Comment))
 	}
+	if len(x.Indexes) > 0 {
+		if sb.Len() > 11 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("indexes: [")
+		for i, v := range x.Indexes {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			if v == nil {
+				sb.WriteString((&TableIndex{}).MarshalProtoText())
+			} else {
+				sb.WriteString(v.MarshalProtoText())
+			}
+		}
+		sb.WriteString("]")
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
 
 func (x *TableRoot) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *TableIndex) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("TableIndex {")
+	if x.Name != "" {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("name: ")
+		sb.WriteString(strconv.Quote(x.Name))
+	}
+	if len(x.Columns) > 0 {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("columns: [")
+		for i, v := range x.Columns {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			if v == nil {
+				sb.WriteString((&TableIndexColumn{}).MarshalProtoText())
+			} else {
+				sb.WriteString(v.MarshalProtoText())
+			}
+		}
+		sb.WriteString("]")
+	}
+	if x.Unique != false {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("unique: ")
+		sb.WriteString(strconv.FormatBool(x.Unique))
+	}
+	if x.Comment != "" {
+		if sb.Len() > 12 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("comment: ")
+		sb.WriteString(strconv.Quote(x.Comment))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *TableIndex) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *TableIndexColumn) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("TableIndexColumn {")
+	if x.Name != "" {
+		if sb.Len() > 18 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("name: ")
+		sb.WriteString(strconv.Quote(x.Name))
+	}
+	if x.Length != 0 {
+		if sb.Len() > 18 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("length: ")
+		sb.WriteString(strconv.FormatInt(int64(x.Length), 10))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *TableIndexColumn) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -4314,6 +4968,231 @@ func (m *TableRoot) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Comment = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Indexes", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Indexes = append(m.Indexes, &TableIndex{})
+			if err := m.Indexes[len(m.Indexes)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *TableIndex) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TableIndex: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TableIndex: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Name = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Columns", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Columns = append(m.Columns, &TableIndexColumn{})
+			if err := m.Columns[len(m.Columns)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Unique", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Unique = bool(v != 0)
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Comment", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Comment = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *TableIndexColumn) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TableIndexColumn: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TableIndexColumn: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Name = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Length", wireType)
+			}
+			m.Length = 0
+			m.Length, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

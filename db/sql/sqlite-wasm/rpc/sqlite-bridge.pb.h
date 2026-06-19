@@ -32,6 +32,7 @@
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
 #include "google/protobuf/unknown_field_set.h"
+#include "../../sql.pb.h"
 // @@protoc_insertion_point(includes)
 
 // Must be included last.
@@ -98,10 +99,6 @@ class QueryResponse;
 struct QueryResponseDefaultTypeInternal;
 extern QueryResponseDefaultTypeInternal _QueryResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull QueryResponse_class_data_;
-class SqlValue;
-struct SqlValueDefaultTypeInternal;
-extern SqlValueDefaultTypeInternal _SqlValue_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull SqlValue_class_data_;
 }  // namespace rpc
 }  // namespace sqlite_wasm
 }  // namespace sql
@@ -117,265 +114,6 @@ namespace rpc {
 // ===================================================================
 
 
-// -------------------------------------------------------------------
-
-class SqlValue final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:sql.sqlite_wasm.rpc.SqlValue) */ {
- public:
-  inline SqlValue() : SqlValue(nullptr) {}
-  ~SqlValue() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(SqlValue* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(SqlValue));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR SqlValue(::google::protobuf::internal::ConstantInitialized);
-
-  inline SqlValue(const SqlValue& from) : SqlValue(nullptr, from) {}
-  inline SqlValue(SqlValue&& from) noexcept
-      : SqlValue(nullptr, ::std::move(from)) {}
-  inline SqlValue& operator=(const SqlValue& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline SqlValue& operator=(SqlValue&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const SqlValue& default_instance() {
-    return *reinterpret_cast<const SqlValue*>(
-        &_SqlValue_default_instance_);
-  }
-  enum ValueCase {
-    kIntValue = 1,
-    kFloatValue = 2,
-    kStrValue = 3,
-    kBlobValue = 4,
-    VALUE_NOT_SET = 0,
-  };
-  static constexpr int kIndexInFileMessages = 0;
-  friend void swap(SqlValue& a, SqlValue& b) { a.Swap(&b); }
-  inline void Swap(SqlValue* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(SqlValue* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  SqlValue* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<SqlValue>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const SqlValue& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const SqlValue& from) { SqlValue::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(SqlValue* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "sql.sqlite_wasm.rpc.SqlValue"; }
-
-  explicit SqlValue(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  SqlValue(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SqlValue& from);
-  SqlValue(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SqlValue&& from) noexcept
-      : SqlValue(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kIntValueFieldNumber = 1,
-    kFloatValueFieldNumber = 2,
-    kStrValueFieldNumber = 3,
-    kBlobValueFieldNumber = 4,
-  };
-  // int64 int_value = 1;
-  bool has_int_value() const;
-  void clear_int_value() ;
-  ::int64_t int_value() const;
-  void set_int_value(::int64_t value);
-
-  private:
-  ::int64_t _internal_int_value() const;
-  void _internal_set_int_value(::int64_t value);
-
-  public:
-  // double float_value = 2;
-  bool has_float_value() const;
-  void clear_float_value() ;
-  double float_value() const;
-  void set_float_value(double value);
-
-  private:
-  double _internal_float_value() const;
-  void _internal_set_float_value(double value);
-
-  public:
-  // string str_value = 3;
-  bool has_str_value() const;
-  void clear_str_value() ;
-  const ::std::string& str_value() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_str_value(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_str_value();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_str_value();
-  void set_allocated_str_value(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_str_value() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_str_value(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_str_value();
-
-  public:
-  // bytes blob_value = 4;
-  bool has_blob_value() const;
-  void clear_blob_value() ;
-  const ::std::string& blob_value() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_blob_value(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_blob_value();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_blob_value();
-  void set_allocated_blob_value(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_blob_value() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_blob_value(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_blob_value();
-
-  public:
-  void clear_value();
-  ValueCase value_case() const;
-  // @@protoc_insertion_point(class_scope:sql.sqlite_wasm.rpc.SqlValue)
- private:
-  class _Internal;
-  void set_has_int_value();
-  void set_has_float_value();
-  void set_has_str_value();
-  void set_has_blob_value();
-  inline bool has_value() const;
-  inline void clear_has_value();
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 4,
-                                   0, 46,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const SqlValue& from_msg);
-    union ValueUnion {
-      constexpr ValueUnion() : _constinit_{} {}
-      ::google::protobuf::internal::ConstantInitialized _constinit_;
-      ::int64_t int_value_;
-      double float_value_;
-      ::google::protobuf::internal::ArenaStringPtr str_value_;
-      ::google::protobuf::internal::ArenaStringPtr blob_value_;
-    } value_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::uint32_t _oneof_case_[1];
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull SqlValue_class_data_;
 // -------------------------------------------------------------------
 
 class OpenDbResponse final : public ::google::protobuf::Message
@@ -433,7 +171,7 @@ class OpenDbResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const OpenDbResponse*>(
         &_OpenDbResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 2;
+  static constexpr int kIndexInFileMessages = 1;
   friend void swap(OpenDbResponse& a, OpenDbResponse& b) { a.Swap(&b); }
   inline void Swap(OpenDbResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -623,7 +361,7 @@ class OpenDbRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const OpenDbRequest*>(
         &_OpenDbRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 1;
+  static constexpr int kIndexInFileMessages = 0;
   friend void swap(OpenDbRequest& a, OpenDbRequest& b) { a.Swap(&b); }
   inline void Swap(OpenDbRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -818,7 +556,7 @@ class ExecResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ExecResponse*>(
         &_ExecResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 5;
   friend void swap(ExecResponse& a, ExecResponse& b) { a.Swap(&b); }
   inline void Swap(ExecResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1019,7 +757,7 @@ class DeleteDbResponse final : public ::google::protobuf::internal::ZeroFieldsBa
     return *reinterpret_cast<const DeleteDbResponse*>(
         &_DeleteDbResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 10;
+  static constexpr int kIndexInFileMessages = 9;
   friend void swap(DeleteDbResponse& a, DeleteDbResponse& b) { a.Swap(&b); }
   inline void Swap(DeleteDbResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1154,7 +892,7 @@ class DeleteDbRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const DeleteDbRequest*>(
         &_DeleteDbRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 9;
+  static constexpr int kIndexInFileMessages = 8;
   friend void swap(DeleteDbRequest& a, DeleteDbRequest& b) { a.Swap(&b); }
   inline void Swap(DeleteDbRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1348,7 +1086,7 @@ class CloseDbResponse final : public ::google::protobuf::internal::ZeroFieldsBas
     return *reinterpret_cast<const CloseDbResponse*>(
         &_CloseDbResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 3;
   friend void swap(CloseDbResponse& a, CloseDbResponse& b) { a.Swap(&b); }
   inline void Swap(CloseDbResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1483,7 +1221,7 @@ class CloseDbRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const CloseDbRequest*>(
         &_CloseDbRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 2;
   friend void swap(CloseDbRequest& a, CloseDbRequest& b) { a.Swap(&b); }
   inline void Swap(CloseDbRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1673,7 +1411,7 @@ class QueryResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const QueryResponse*>(
         &_QueryResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
+  static constexpr int kIndexInFileMessages = 7;
   friend void swap(QueryResponse& a, QueryResponse& b) { a.Swap(&b); }
   inline void Swap(QueryResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1785,23 +1523,23 @@ class QueryResponse final : public ::google::protobuf::Message
   ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_column_names();
 
   public:
-  // repeated .sql.sqlite_wasm.rpc.SqlValue row = 2;
+  // repeated .sql.SqlValue row = 2;
   int row_size() const;
   private:
   int _internal_row_size() const;
 
   public:
   void clear_row() ;
-  ::sql::sqlite_wasm::rpc::SqlValue* PROTOBUF_NONNULL mutable_row(int index);
-  ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>* PROTOBUF_NONNULL mutable_row();
+  ::sql::SqlValue* PROTOBUF_NONNULL mutable_row(int index);
+  ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL mutable_row();
 
   private:
-  const ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>& _internal_row() const;
-  ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>* PROTOBUF_NONNULL _internal_mutable_row();
+  const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>& _internal_row() const;
+  ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL _internal_mutable_row();
   public:
-  const ::sql::sqlite_wasm::rpc::SqlValue& row(int index) const;
-  ::sql::sqlite_wasm::rpc::SqlValue* PROTOBUF_NONNULL add_row();
-  const ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>& row() const;
+  const ::sql::SqlValue& row(int index) const;
+  ::sql::SqlValue* PROTOBUF_NONNULL add_row();
+  const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>& row() const;
   // @@protoc_insertion_point(class_scope:sql.sqlite_wasm.rpc.QueryResponse)
  private:
   class _Internal;
@@ -1829,7 +1567,7 @@ class QueryResponse final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::RepeatedPtrField<::std::string> column_names_;
-    ::google::protobuf::RepeatedPtrField< ::sql::sqlite_wasm::rpc::SqlValue > row_;
+    ::google::protobuf::RepeatedPtrField< ::sql::SqlValue > row_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1894,7 +1632,7 @@ class QueryRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const QueryRequest*>(
         &_QueryRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 7;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(QueryRequest& a, QueryRequest& b) { a.Swap(&b); }
   inline void Swap(QueryRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1985,23 +1723,23 @@ class QueryRequest final : public ::google::protobuf::Message
     kSqlFieldNumber = 2,
     kDbIdFieldNumber = 1,
   };
-  // repeated .sql.sqlite_wasm.rpc.SqlValue params = 3;
+  // repeated .sql.SqlValue params = 3;
   int params_size() const;
   private:
   int _internal_params_size() const;
 
   public:
   void clear_params() ;
-  ::sql::sqlite_wasm::rpc::SqlValue* PROTOBUF_NONNULL mutable_params(int index);
-  ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>* PROTOBUF_NONNULL mutable_params();
+  ::sql::SqlValue* PROTOBUF_NONNULL mutable_params(int index);
+  ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL mutable_params();
 
   private:
-  const ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>& _internal_params() const;
-  ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>* PROTOBUF_NONNULL _internal_mutable_params();
+  const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>& _internal_params() const;
+  ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL _internal_mutable_params();
   public:
-  const ::sql::sqlite_wasm::rpc::SqlValue& params(int index) const;
-  ::sql::sqlite_wasm::rpc::SqlValue* PROTOBUF_NONNULL add_params();
-  const ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>& params() const;
+  const ::sql::SqlValue& params(int index) const;
+  ::sql::SqlValue* PROTOBUF_NONNULL add_params();
+  const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>& params() const;
   // string sql = 2;
   void clear_sql() ;
   const ::std::string& sql() const;
@@ -2053,7 +1791,7 @@ class QueryRequest final : public ::google::protobuf::Message
         const QueryRequest& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::RepeatedPtrField< ::sql::sqlite_wasm::rpc::SqlValue > params_;
+    ::google::protobuf::RepeatedPtrField< ::sql::SqlValue > params_;
     ::google::protobuf::internal::ArenaStringPtr sql_;
     ::uint32_t db_id_;
     PROTOBUF_TSAN_DECLARE_MEMBER
@@ -2120,7 +1858,7 @@ class ExecRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ExecRequest*>(
         &_ExecRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 4;
   friend void swap(ExecRequest& a, ExecRequest& b) { a.Swap(&b); }
   inline void Swap(ExecRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2211,23 +1949,23 @@ class ExecRequest final : public ::google::protobuf::Message
     kSqlFieldNumber = 2,
     kDbIdFieldNumber = 1,
   };
-  // repeated .sql.sqlite_wasm.rpc.SqlValue params = 3;
+  // repeated .sql.SqlValue params = 3;
   int params_size() const;
   private:
   int _internal_params_size() const;
 
   public:
   void clear_params() ;
-  ::sql::sqlite_wasm::rpc::SqlValue* PROTOBUF_NONNULL mutable_params(int index);
-  ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>* PROTOBUF_NONNULL mutable_params();
+  ::sql::SqlValue* PROTOBUF_NONNULL mutable_params(int index);
+  ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL mutable_params();
 
   private:
-  const ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>& _internal_params() const;
-  ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>* PROTOBUF_NONNULL _internal_mutable_params();
+  const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>& _internal_params() const;
+  ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL _internal_mutable_params();
   public:
-  const ::sql::sqlite_wasm::rpc::SqlValue& params(int index) const;
-  ::sql::sqlite_wasm::rpc::SqlValue* PROTOBUF_NONNULL add_params();
-  const ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>& params() const;
+  const ::sql::SqlValue& params(int index) const;
+  ::sql::SqlValue* PROTOBUF_NONNULL add_params();
+  const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>& params() const;
   // string sql = 2;
   void clear_sql() ;
   const ::std::string& sql() const;
@@ -2279,7 +2017,7 @@ class ExecRequest final : public ::google::protobuf::Message
         const ExecRequest& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::RepeatedPtrField< ::sql::sqlite_wasm::rpc::SqlValue > params_;
+    ::google::protobuf::RepeatedPtrField< ::sql::SqlValue > params_;
     ::google::protobuf::internal::ArenaStringPtr sql_;
     ::uint32_t db_id_;
     PROTOBUF_TSAN_DECLARE_MEMBER
@@ -2302,243 +2040,6 @@ extern const ::google::protobuf::internal::ClassDataFull ExecRequest_class_data_
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif  // __GNUC__
-// -------------------------------------------------------------------
-
-// SqlValue
-
-// int64 int_value = 1;
-inline bool SqlValue::has_int_value() const {
-  return value_case() == kIntValue;
-}
-inline void SqlValue::set_has_int_value() {
-  _impl_._oneof_case_[0] = kIntValue;
-}
-inline void SqlValue::clear_int_value() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value_case() == kIntValue) {
-    _impl_.value_.int_value_ = ::int64_t{0};
-    clear_has_value();
-  }
-}
-inline ::int64_t SqlValue::int_value() const {
-  // @@protoc_insertion_point(field_get:sql.sqlite_wasm.rpc.SqlValue.int_value)
-  return _internal_int_value();
-}
-inline void SqlValue::set_int_value(::int64_t value) {
-  if (value_case() != kIntValue) {
-    clear_value();
-    set_has_int_value();
-  }
-  _impl_.value_.int_value_ = value;
-  // @@protoc_insertion_point(field_set:sql.sqlite_wasm.rpc.SqlValue.int_value)
-}
-inline ::int64_t SqlValue::_internal_int_value() const {
-  if (value_case() == kIntValue) {
-    return _impl_.value_.int_value_;
-  }
-  return ::int64_t{0};
-}
-
-// double float_value = 2;
-inline bool SqlValue::has_float_value() const {
-  return value_case() == kFloatValue;
-}
-inline void SqlValue::set_has_float_value() {
-  _impl_._oneof_case_[0] = kFloatValue;
-}
-inline void SqlValue::clear_float_value() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value_case() == kFloatValue) {
-    _impl_.value_.float_value_ = 0;
-    clear_has_value();
-  }
-}
-inline double SqlValue::float_value() const {
-  // @@protoc_insertion_point(field_get:sql.sqlite_wasm.rpc.SqlValue.float_value)
-  return _internal_float_value();
-}
-inline void SqlValue::set_float_value(double value) {
-  if (value_case() != kFloatValue) {
-    clear_value();
-    set_has_float_value();
-  }
-  _impl_.value_.float_value_ = value;
-  // @@protoc_insertion_point(field_set:sql.sqlite_wasm.rpc.SqlValue.float_value)
-}
-inline double SqlValue::_internal_float_value() const {
-  if (value_case() == kFloatValue) {
-    return _impl_.value_.float_value_;
-  }
-  return 0;
-}
-
-// string str_value = 3;
-inline bool SqlValue::has_str_value() const {
-  return value_case() == kStrValue;
-}
-inline void SqlValue::set_has_str_value() {
-  _impl_._oneof_case_[0] = kStrValue;
-}
-inline void SqlValue::clear_str_value() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value_case() == kStrValue) {
-    _impl_.value_.str_value_.Destroy();
-    clear_has_value();
-  }
-}
-inline const ::std::string& SqlValue::str_value() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:sql.sqlite_wasm.rpc.SqlValue.str_value)
-  return _internal_str_value();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void SqlValue::set_str_value(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value_case() != kStrValue) {
-    clear_value();
-
-    set_has_str_value();
-    _impl_.value_.str_value_.InitDefault();
-  }
-  _impl_.value_.str_value_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:sql.sqlite_wasm.rpc.SqlValue.str_value)
-}
-inline ::std::string* PROTOBUF_NONNULL SqlValue::mutable_str_value()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  if (value_case() != kStrValue) {
-    clear_value();
-
-    set_has_str_value();
-    _impl_.value_.str_value_.InitDefault();
-  }
-  ::std::string* _s = _internal_mutable_str_value();
-  // @@protoc_insertion_point(field_mutable:sql.sqlite_wasm.rpc.SqlValue.str_value)
-  return _s;
-}
-inline const ::std::string& SqlValue::_internal_str_value() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  if (value_case() != kStrValue) {
-    return ::google::protobuf::internal::GetEmptyStringAlreadyInited();
-  }
-  return _impl_.value_.str_value_.Get();
-}
-inline void SqlValue::_internal_set_str_value(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.value_.str_value_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL SqlValue::_internal_mutable_str_value() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.value_.str_value_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE SqlValue::release_str_value() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:sql.sqlite_wasm.rpc.SqlValue.str_value)
-  if (value_case() != kStrValue) {
-    return nullptr;
-  }
-  clear_has_value();
-  return _impl_.value_.str_value_.Release();
-}
-inline void SqlValue::set_allocated_str_value(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (has_value()) {
-    clear_value();
-  }
-  if (value != nullptr) {
-    set_has_str_value();
-    _impl_.value_.str_value_.InitAllocated(value, GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:sql.sqlite_wasm.rpc.SqlValue.str_value)
-}
-
-// bytes blob_value = 4;
-inline bool SqlValue::has_blob_value() const {
-  return value_case() == kBlobValue;
-}
-inline void SqlValue::set_has_blob_value() {
-  _impl_._oneof_case_[0] = kBlobValue;
-}
-inline void SqlValue::clear_blob_value() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value_case() == kBlobValue) {
-    _impl_.value_.blob_value_.Destroy();
-    clear_has_value();
-  }
-}
-inline const ::std::string& SqlValue::blob_value() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:sql.sqlite_wasm.rpc.SqlValue.blob_value)
-  return _internal_blob_value();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void SqlValue::set_blob_value(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value_case() != kBlobValue) {
-    clear_value();
-
-    set_has_blob_value();
-    _impl_.value_.blob_value_.InitDefault();
-  }
-  _impl_.value_.blob_value_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:sql.sqlite_wasm.rpc.SqlValue.blob_value)
-}
-inline ::std::string* PROTOBUF_NONNULL SqlValue::mutable_blob_value()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  if (value_case() != kBlobValue) {
-    clear_value();
-
-    set_has_blob_value();
-    _impl_.value_.blob_value_.InitDefault();
-  }
-  ::std::string* _s = _internal_mutable_blob_value();
-  // @@protoc_insertion_point(field_mutable:sql.sqlite_wasm.rpc.SqlValue.blob_value)
-  return _s;
-}
-inline const ::std::string& SqlValue::_internal_blob_value() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  if (value_case() != kBlobValue) {
-    return ::google::protobuf::internal::GetEmptyStringAlreadyInited();
-  }
-  return _impl_.value_.blob_value_.Get();
-}
-inline void SqlValue::_internal_set_blob_value(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.value_.blob_value_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL SqlValue::_internal_mutable_blob_value() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.value_.blob_value_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE SqlValue::release_blob_value() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:sql.sqlite_wasm.rpc.SqlValue.blob_value)
-  if (value_case() != kBlobValue) {
-    return nullptr;
-  }
-  clear_has_value();
-  return _impl_.value_.blob_value_.Release();
-}
-inline void SqlValue::set_allocated_blob_value(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (has_value()) {
-    clear_value();
-  }
-  if (value != nullptr) {
-    set_has_blob_value();
-    _impl_.value_.blob_value_.InitAllocated(value, GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:sql.sqlite_wasm.rpc.SqlValue.blob_value)
-}
-
-inline bool SqlValue::has_value() const {
-  return value_case() != VALUE_NOT_SET;
-}
-inline void SqlValue::clear_has_value() {
-  _impl_._oneof_case_[0] = VALUE_NOT_SET;
-}
-inline SqlValue::ValueCase SqlValue::value_case() const {
-  return SqlValue::ValueCase(_impl_._oneof_case_[0]);
-}
 // -------------------------------------------------------------------
 
 // OpenDbRequest
@@ -2764,57 +2265,51 @@ inline void ExecRequest::set_allocated_sql(::std::string* PROTOBUF_NULLABLE valu
   // @@protoc_insertion_point(field_set_allocated:sql.sqlite_wasm.rpc.ExecRequest.sql)
 }
 
-// repeated .sql.sqlite_wasm.rpc.SqlValue params = 3;
+// repeated .sql.SqlValue params = 3;
 inline int ExecRequest::_internal_params_size() const {
   return _internal_params().size();
 }
 inline int ExecRequest::params_size() const {
   return _internal_params_size();
 }
-inline void ExecRequest::clear_params() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.params_.Clear();
-  ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00000001U);
-}
-inline ::sql::sqlite_wasm::rpc::SqlValue* PROTOBUF_NONNULL ExecRequest::mutable_params(int index)
+inline ::sql::SqlValue* PROTOBUF_NONNULL ExecRequest::mutable_params(int index)
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_mutable:sql.sqlite_wasm.rpc.ExecRequest.params)
   return _internal_mutable_params()->Mutable(index);
 }
-inline ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>* PROTOBUF_NONNULL ExecRequest::mutable_params()
+inline ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL ExecRequest::mutable_params()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
   // @@protoc_insertion_point(field_mutable_list:sql.sqlite_wasm.rpc.ExecRequest.params)
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _internal_mutable_params();
 }
-inline const ::sql::sqlite_wasm::rpc::SqlValue& ExecRequest::params(int index) const
+inline const ::sql::SqlValue& ExecRequest::params(int index) const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_get:sql.sqlite_wasm.rpc.ExecRequest.params)
   return _internal_params().Get(index);
 }
-inline ::sql::sqlite_wasm::rpc::SqlValue* PROTOBUF_NONNULL ExecRequest::add_params()
+inline ::sql::SqlValue* PROTOBUF_NONNULL ExecRequest::add_params()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::sql::sqlite_wasm::rpc::SqlValue* _add =
+  ::sql::SqlValue* _add =
       _internal_mutable_params()->InternalAddWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), GetArena());
   SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
   // @@protoc_insertion_point(field_add:sql.sqlite_wasm.rpc.ExecRequest.params)
   return _add;
 }
-inline const ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>& ExecRequest::params() const
+inline const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>& ExecRequest::params() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_list:sql.sqlite_wasm.rpc.ExecRequest.params)
   return _internal_params();
 }
-inline const ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>&
+inline const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>&
 ExecRequest::_internal_params() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.params_;
 }
-inline ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>* PROTOBUF_NONNULL
+inline ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL
 ExecRequest::_internal_mutable_params() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.params_;
@@ -2968,57 +2463,51 @@ inline void QueryRequest::set_allocated_sql(::std::string* PROTOBUF_NULLABLE val
   // @@protoc_insertion_point(field_set_allocated:sql.sqlite_wasm.rpc.QueryRequest.sql)
 }
 
-// repeated .sql.sqlite_wasm.rpc.SqlValue params = 3;
+// repeated .sql.SqlValue params = 3;
 inline int QueryRequest::_internal_params_size() const {
   return _internal_params().size();
 }
 inline int QueryRequest::params_size() const {
   return _internal_params_size();
 }
-inline void QueryRequest::clear_params() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.params_.Clear();
-  ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00000001U);
-}
-inline ::sql::sqlite_wasm::rpc::SqlValue* PROTOBUF_NONNULL QueryRequest::mutable_params(int index)
+inline ::sql::SqlValue* PROTOBUF_NONNULL QueryRequest::mutable_params(int index)
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_mutable:sql.sqlite_wasm.rpc.QueryRequest.params)
   return _internal_mutable_params()->Mutable(index);
 }
-inline ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>* PROTOBUF_NONNULL QueryRequest::mutable_params()
+inline ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL QueryRequest::mutable_params()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
   // @@protoc_insertion_point(field_mutable_list:sql.sqlite_wasm.rpc.QueryRequest.params)
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _internal_mutable_params();
 }
-inline const ::sql::sqlite_wasm::rpc::SqlValue& QueryRequest::params(int index) const
+inline const ::sql::SqlValue& QueryRequest::params(int index) const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_get:sql.sqlite_wasm.rpc.QueryRequest.params)
   return _internal_params().Get(index);
 }
-inline ::sql::sqlite_wasm::rpc::SqlValue* PROTOBUF_NONNULL QueryRequest::add_params()
+inline ::sql::SqlValue* PROTOBUF_NONNULL QueryRequest::add_params()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::sql::sqlite_wasm::rpc::SqlValue* _add =
+  ::sql::SqlValue* _add =
       _internal_mutable_params()->InternalAddWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), GetArena());
   SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
   // @@protoc_insertion_point(field_add:sql.sqlite_wasm.rpc.QueryRequest.params)
   return _add;
 }
-inline const ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>& QueryRequest::params() const
+inline const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>& QueryRequest::params() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_list:sql.sqlite_wasm.rpc.QueryRequest.params)
   return _internal_params();
 }
-inline const ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>&
+inline const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>&
 QueryRequest::_internal_params() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.params_;
 }
-inline ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>* PROTOBUF_NONNULL
+inline ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL
 QueryRequest::_internal_mutable_params() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.params_;
@@ -3100,57 +2589,51 @@ QueryResponse::_internal_mutable_column_names() {
   return &_impl_.column_names_;
 }
 
-// repeated .sql.sqlite_wasm.rpc.SqlValue row = 2;
+// repeated .sql.SqlValue row = 2;
 inline int QueryResponse::_internal_row_size() const {
   return _internal_row().size();
 }
 inline int QueryResponse::row_size() const {
   return _internal_row_size();
 }
-inline void QueryResponse::clear_row() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.row_.Clear();
-  ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00000002U);
-}
-inline ::sql::sqlite_wasm::rpc::SqlValue* PROTOBUF_NONNULL QueryResponse::mutable_row(int index)
+inline ::sql::SqlValue* PROTOBUF_NONNULL QueryResponse::mutable_row(int index)
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_mutable:sql.sqlite_wasm.rpc.QueryResponse.row)
   return _internal_mutable_row()->Mutable(index);
 }
-inline ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>* PROTOBUF_NONNULL QueryResponse::mutable_row()
+inline ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL QueryResponse::mutable_row()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
   // @@protoc_insertion_point(field_mutable_list:sql.sqlite_wasm.rpc.QueryResponse.row)
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _internal_mutable_row();
 }
-inline const ::sql::sqlite_wasm::rpc::SqlValue& QueryResponse::row(int index) const
+inline const ::sql::SqlValue& QueryResponse::row(int index) const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_get:sql.sqlite_wasm.rpc.QueryResponse.row)
   return _internal_row().Get(index);
 }
-inline ::sql::sqlite_wasm::rpc::SqlValue* PROTOBUF_NONNULL QueryResponse::add_row()
+inline ::sql::SqlValue* PROTOBUF_NONNULL QueryResponse::add_row()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::sql::sqlite_wasm::rpc::SqlValue* _add =
+  ::sql::SqlValue* _add =
       _internal_mutable_row()->InternalAddWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), GetArena());
   SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
   // @@protoc_insertion_point(field_add:sql.sqlite_wasm.rpc.QueryResponse.row)
   return _add;
 }
-inline const ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>& QueryResponse::row() const
+inline const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>& QueryResponse::row() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_list:sql.sqlite_wasm.rpc.QueryResponse.row)
   return _internal_row();
 }
-inline const ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>&
+inline const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>&
 QueryResponse::_internal_row() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.row_;
 }
-inline ::google::protobuf::RepeatedPtrField<::sql::sqlite_wasm::rpc::SqlValue>* PROTOBUF_NONNULL
+inline ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL
 QueryResponse::_internal_mutable_row() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.row_;

@@ -6,6 +6,7 @@
 package sqlite_wasm
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"database/sql/driver"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	hydra_sql "github.com/s4wave/spacewave/db/sql"
 	"github.com/s4wave/spacewave/db/sql/sqlite-wasm/rpc"
 )
 
@@ -275,11 +277,11 @@ func (r *wasmRows) Next(dest []driver.Value) error {
 }
 
 // namedValuesToProto converts driver.NamedValue args to proto SqlValue params.
-func namedValuesToProto(args []driver.NamedValue) []*sql_sqlite_wasm_rpc.SqlValue {
+func namedValuesToProto(args []driver.NamedValue) []*hydra_sql.SqlValue {
 	if len(args) == 0 {
 		return nil
 	}
-	params := make([]*sql_sqlite_wasm_rpc.SqlValue, len(args))
+	params := make([]*hydra_sql.SqlValue, len(args))
 	for i, arg := range args {
 		params[i] = goToProtoValue(arg.Value)
 	}
@@ -296,46 +298,46 @@ func valuesToNamed(args []driver.Value) []driver.NamedValue {
 }
 
 // goToProtoValue converts a Go driver value to a proto SqlValue.
-func goToProtoValue(v driver.Value) *sql_sqlite_wasm_rpc.SqlValue {
+func goToProtoValue(v driver.Value) *hydra_sql.SqlValue {
 	if v == nil {
-		return &sql_sqlite_wasm_rpc.SqlValue{}
+		return &hydra_sql.SqlValue{}
 	}
 	switch val := v.(type) {
 	case int64:
-		return &sql_sqlite_wasm_rpc.SqlValue{
-			Value: &sql_sqlite_wasm_rpc.SqlValue_IntValue{IntValue: val},
+		return &hydra_sql.SqlValue{
+			Value: &hydra_sql.SqlValue_IntValue{IntValue: val},
 		}
 	case float64:
-		return &sql_sqlite_wasm_rpc.SqlValue{
-			Value: &sql_sqlite_wasm_rpc.SqlValue_FloatValue{FloatValue: val},
+		return &hydra_sql.SqlValue{
+			Value: &hydra_sql.SqlValue_FloatValue{FloatValue: val},
 		}
 	case string:
-		return &sql_sqlite_wasm_rpc.SqlValue{
-			Value: &sql_sqlite_wasm_rpc.SqlValue_StrValue{StrValue: val},
+		return &hydra_sql.SqlValue{
+			Value: &hydra_sql.SqlValue_StrValue{StrValue: val},
 		}
 	case []byte:
-		return &sql_sqlite_wasm_rpc.SqlValue{
-			Value: &sql_sqlite_wasm_rpc.SqlValue_BlobValue{BlobValue: val},
+		return &hydra_sql.SqlValue{
+			Value: &hydra_sql.SqlValue_BlobValue{BlobValue: bytes.Clone(val)},
 		}
 	default:
-		return &sql_sqlite_wasm_rpc.SqlValue{}
+		return &hydra_sql.SqlValue{}
 	}
 }
 
 // protoToDriverValue converts a proto SqlValue to a Go driver.Value.
-func protoToDriverValue(v *sql_sqlite_wasm_rpc.SqlValue) driver.Value {
+func protoToDriverValue(v *hydra_sql.SqlValue) driver.Value {
 	if v == nil {
 		return nil
 	}
 	switch val := v.GetValue().(type) {
-	case *sql_sqlite_wasm_rpc.SqlValue_IntValue:
+	case *hydra_sql.SqlValue_IntValue:
 		return val.IntValue
-	case *sql_sqlite_wasm_rpc.SqlValue_FloatValue:
+	case *hydra_sql.SqlValue_FloatValue:
 		return val.FloatValue
-	case *sql_sqlite_wasm_rpc.SqlValue_StrValue:
+	case *hydra_sql.SqlValue_StrValue:
 		return val.StrValue
-	case *sql_sqlite_wasm_rpc.SqlValue_BlobValue:
-		return val.BlobValue
+	case *hydra_sql.SqlValue_BlobValue:
+		return bytes.Clone(val.BlobValue)
 	default:
 		return nil
 	}

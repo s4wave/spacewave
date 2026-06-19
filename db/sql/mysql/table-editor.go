@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"bytes"
 	"context"
 	"io"
 
@@ -17,6 +18,7 @@ type TableEditor struct {
 	ctx           context.Context
 	t             *Table
 	buildBlobOpts *blob.BuildBlobOpts
+	statementRoot *TableRoot
 }
 
 // NewTableEditor constructs a new table row inserter.
@@ -39,8 +41,7 @@ func (i *TableEditor) SetBuildBlobOpts(opts *blob.BuildBlobOpts) {
 // Integrators should mark the state of the data in some way that it may be
 // returned to in the case of an error.
 func (i *TableEditor) StatementBegin(ctx *sql.Context) {
-	// TODO mark state so we can return to it later (Discard)
-	// really we need a wrapper for this, which creates a new TableEditorTx each time.
+	i.statementRoot = i.t.root.CloneVT()
 }
 
 // Insert inserts the row given, returning an error if it cannot. Insert will be
@@ -52,6 +53,10 @@ func (i *TableEditor) Insert(sqlCtx *sql.Context, row sql.Row) error {
 	if sqlCtx != nil && sqlCtx.Context != nil {
 		cctx = sqlCtx.Context
 	}
+	checkCtx := sqlCtx
+	if checkCtx == nil {
+		checkCtx = sql.NewContext(cctx)
+	}
 	schema := i.t.schema.Schema
 	if len(row) != len(schema) {
 		return sql.ErrInvalidColumnNumber.New(len(schema), len(row))
@@ -62,10 +67,9 @@ func (i *TableEditor) Insert(sqlCtx *sql.Context, row sql.Row) error {
 		return err
 	}
 
-	// TODO: check Primary Key collision
-	// if another row with the same primary key(s) exists:
-	// return sql.ErrPrimaryKeyViolation.New(fmt.Sprint(vals))
-	// TODO: may require accessing the table index for the primary key(s)
+	if err := i.ensureUniqueRow(checkCtx, row, nil); err != nil {
+		return err
+	}
 
 	// auto increment
 	autoIncIdx := i.t.autoIncIdx
@@ -159,6 +163,9 @@ func (i *TableEditor) Update(sqlCtx *sql.Context, oldRow, newRow sql.Row) error 
 	if err != nil {
 		return err
 	}
+	if err := i.ensureUniqueRow(checkCtx, newRow, rowKey); err != nil {
+		return err
+	}
 	tx, err := pt.BuildTreeTx(cctx, false, true)
 	if err != nil {
 		return err
@@ -170,6 +177,153 @@ func (i *TableEditor) Update(sqlCtx *sql.Context, oldRow, newRow sql.Row) error 
 		return err
 	}
 	return tx.SetCursorAtKey(cctx, rowKey, rowCursor, false)
+}
+
+// Delete deletes the row given.
+func (i *TableEditor) Delete(sqlCtx *sql.Context, row sql.Row) error {
+	cctx := i.ctx
+	if sqlCtx != nil && sqlCtx.Context != nil {
+		cctx = sqlCtx.Context
+	}
+	checkCtx := sqlCtx
+	if checkCtx == nil {
+		checkCtx = sql.NewContext(cctx)
+	}
+	if len(row) != len(i.t.schema.Schema) {
+		return sql.ErrInvalidColumnNumber.New(len(i.t.schema.Schema), len(row))
+	}
+	if err := i.t.schema.Schema.CheckRow(checkCtx, row); err != nil {
+		return err
+	}
+	pt, rowKey, err := i.findRowKey(checkCtx, row)
+	if err != nil {
+		return err
+	}
+	tx, err := pt.BuildTreeTx(cctx, false, true)
+	if err != nil {
+		return err
+	}
+	return tx.Delete(cctx, rowKey)
+}
+
+func (i *TableEditor) ensureUniqueRow(sqlCtx *sql.Context, row sql.Row, skipKey []byte) error {
+	if len(i.t.schema.PkOrdinals) != 0 {
+		found, err := i.hasRowWithEqualValues(sqlCtx, row, i.t.schema.PkOrdinals, skipKey, false)
+		if err != nil {
+			return err
+		}
+		if found {
+			return sql.ErrPrimaryKeyViolation.New()
+		}
+	}
+	for _, index := range i.t.root.GetIndexes() {
+		if !index.GetUnique() {
+			continue
+		}
+		ords, err := i.t.indexColumnOrdinals(index.GetColumns())
+		if err != nil {
+			return err
+		}
+		found, err := i.hasRowWithEqualValues(sqlCtx, row, ords, skipKey, true)
+		if err != nil {
+			return err
+		}
+		if found {
+			return sql.ErrDuplicateEntry.New(index.GetName())
+		}
+	}
+	return nil
+}
+
+func (i *TableEditor) hasRowWithEqualValues(
+	sqlCtx *sql.Context,
+	row sql.Row,
+	ordinals []int,
+	skipKey []byte,
+	skipNull bool,
+) (bool, error) {
+	if len(ordinals) == 0 {
+		return false, nil
+	}
+	if skipNull {
+		for _, ord := range ordinals {
+			if row[ord] == nil {
+				return false, nil
+			}
+		}
+	}
+	cctx := i.ctx
+	if sqlCtx != nil && sqlCtx.Context != nil {
+		cctx = sqlCtx.Context
+	}
+	partIter, err := i.t.Partitions(sqlCtx)
+	if err != nil {
+		return false, err
+	}
+	defer partIter.Close(sqlCtx)
+
+	for {
+		part, err := partIter.Next(sqlCtx)
+		if err == io.EOF {
+			return false, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		pt, ok := part.(*TablePartition)
+		if !ok {
+			return false, ErrUnexpectedType
+		}
+		tx, err := pt.BuildTreeTx(cctx, false, false)
+		if err != nil {
+			return false, err
+		}
+		rowIter, err := NewTablePartitionRowIter(cctx, tx, i.t.schema.Schema)
+		if err != nil {
+			tx.Discard()
+			return false, err
+		}
+		for {
+			next, err := rowIter.Next(sqlCtx)
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				rowIter.Close(sqlCtx)
+				tx.Discard()
+				return false, err
+			}
+			if skipKey != nil && bytes.Equal(skipKey, rowIter.it.Key()) {
+				continue
+			}
+			equals, err := i.rowsEqualOnOrdinals(sqlCtx, row, next, ordinals)
+			if err != nil {
+				rowIter.Close(sqlCtx)
+				tx.Discard()
+				return false, err
+			}
+			if equals {
+				rowIter.Close(sqlCtx)
+				tx.Discard()
+				return true, nil
+			}
+		}
+		rowIter.Close(sqlCtx)
+		tx.Discard()
+	}
+}
+
+func (i *TableEditor) rowsEqualOnOrdinals(sqlCtx *sql.Context, left, right sql.Row, ordinals []int) (bool, error) {
+	for _, ord := range ordinals {
+		cmp, err := i.t.schema.Schema[ord].Type.Compare(sqlCtx, left[ord], right[ord])
+		if err != nil {
+			return false, err
+		}
+		if cmp != 0 {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 func (i *TableEditor) findRowKey(sqlCtx *sql.Context, row sql.Row) (*TablePartition, []byte, error) {
@@ -221,7 +375,7 @@ func (i *TableEditor) findRowKey(sqlCtx *sql.Context, row sql.Row) (*TablePartit
 				return nil, nil, err
 			}
 			if equals {
-				rowKey := append([]byte(nil), rowIter.it.Key()...)
+				rowKey := bytes.Clone(rowIter.it.Key())
 				rowIter.Close(sqlCtx)
 				tx.Discard()
 				return pt, rowKey, nil
@@ -257,14 +411,23 @@ func (i *TableEditor) AcquireAutoIncrementLock(ctx *sql.Context) (func(), error)
 // DiscardChanges is called if a statement encounters an error, and all current
 // changes since the statement beginning should be discarded.
 func (i *TableEditor) DiscardChanges(ctx *sql.Context, errorEncountered error) error {
-	return errors.New("TODO DiscardChanges in table editor")
+	if errorEncountered == nil || i.statementRoot == nil {
+		return nil
+	}
+	cctx := i.ctx
+	if ctx != nil && ctx.Context != nil {
+		cctx = ctx.Context
+	}
+	root := i.statementRoot.CloneVT()
+	i.statementRoot = nil
+	return i.t.reloadRoot(cctx, root)
 }
 
 // StatementComplete is called after the last operation of the statement,
 // indicating that it has successfully completed. The mark set in StatementBegin
 // may be removed, and a new one should be created on the next StatementBegin.
 func (i *TableEditor) StatementComplete(ctx *sql.Context) error {
-	// TODO
+	i.statementRoot = nil
 	return nil
 }
 
@@ -279,4 +442,5 @@ var (
 	_ sql.AutoIncrementSetter = ((*TableEditor)(nil))
 	_ sql.RowInserter         = ((*TableEditor)(nil))
 	_ sql.RowUpdater          = ((*TableEditor)(nil))
+	_ sql.RowDeleter          = ((*TableEditor)(nil))
 )

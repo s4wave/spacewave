@@ -4,13 +4,17 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/dolthub/go-mysql-server/sql/types"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	"github.com/s4wave/spacewave/db/bucket"
 	hydra_sql_mock "github.com/s4wave/spacewave/db/sql/mock"
 	mysql "github.com/s4wave/spacewave/db/sql/mysql"
+	sql_rpc "github.com/s4wave/spacewave/db/sql/rpc"
+	sql_rpc_client "github.com/s4wave/spacewave/db/sql/rpc/client"
 	"github.com/s4wave/spacewave/db/testbed"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 
@@ -56,12 +60,14 @@ func TestMysqlDb(t *testing.T) {
 	}
 
 	dbName := "test-db"
+	sqlRpcServiceID := "test/sql/rpc"
 	conf := &Config{
-		SqlDbId:       dbID,
-		BucketId:      bucketID,
-		VolumeId:      tb.Volume.GetID(),
-		ObjectStoreId: objStoreID,
-		CreateDbs:     []string{dbName},
+		SqlDbId:         dbID,
+		BucketId:        bucketID,
+		VolumeId:        tb.Volume.GetID(),
+		ObjectStoreId:   objStoreID,
+		CreateDbs:       []string{dbName},
+		SqlRpcServiceId: sqlRpcServiceID,
 	}
 
 	ctrl, err := NewController(le, tb.Bus, conf, sfs)
@@ -129,6 +135,25 @@ func TestMysqlDb(t *testing.T) {
 
 	// tests
 	err = hydra_sql_mock.TestSqlStore_Basic(ctx, le, sdb, "/"+dbName)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	invokers, _, invokerRef, err := bifrost_rpc.ExLookupRpcService(ctx, tb.Bus, sqlRpcServiceID, "", true, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(invokers) != 1 {
+		t.Fatalf("expected one sql rpc invoker, got %d", len(invokers))
+	}
+	defer invokerRef.Release()
+
+	rpcClient := sql_rpc.NewSRPCSqlClientWithServiceID(
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invokers[0]))),
+		sqlRpcServiceID,
+	)
+	rpcStore := sql_rpc_client.NewStore(rpcClient)
+	err = hydra_sql_mock.TestSqlStore_Basic(ctx, le, rpcStore, "/"+dbName)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

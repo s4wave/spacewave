@@ -39,6 +39,10 @@ pub struct Config {
     /// CreateDbs is a list of database names to create (if they don't exist).
     #[prost(string, repeated, tag="9")]
     pub create_dbs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// SqlRpcServiceId is the optional RPC service id used to expose the SQL store.
+    /// If empty, LookupRpcService is not processed by this controller.
+    #[prost(string, tag="10")]
+    pub sql_rpc_service_id: ::prost::alloc::string::String,
 }
 /// HeadState contains the head state in the object storage.
 #[derive(Clone, PartialEq, ::prost::Message)]

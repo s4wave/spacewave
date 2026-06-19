@@ -96,25 +96,7 @@ func (t *Tx) OpenDatabase(ctx context.Context, name string, create bool) (*Datab
 
 // BuildDatabaseProvider builds the database catalog from the available dbs.
 func (t *Tx) BuildDatabaseProvider(ctx context.Context) (sql.DatabaseProvider, error) {
-	t.rmtx.Lock()
-	defer t.rmtx.Unlock()
-
-	rootDbs := t.root.GetDatabases()
-	dbs := make([]sql.Database, len(rootDbs))
-	for i, v := range rootDbs {
-		db, err := t.openDatabaseLocked(ctx, v.GetName(), false, !t.write)
-		if err != nil {
-			if ErrDatabaseNotFound.Is(err) {
-				continue
-			}
-			return nil, err
-		}
-		dbs[i] = db
-	}
-	// dbs = append(dbs, information_schema.NewInformationSchemaDatabase(cl))
-
-	// TODO: return a MutableDatabaseProvider
-	return sql.NewDatabaseProvider(dbs...), nil
+	return &databaseProvider{ctx: ctx, tx: t}, nil
 }
 
 // openDatabaseLocked implements OpenDatabase when rmtx is locked by caller.

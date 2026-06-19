@@ -470,6 +470,86 @@ export const TableColumn: MessageType<TableColumn> =
   })
 
 /**
+ * TableIndexColumn is a column in a TableIndex.
+ *
+ * @generated from message mysql.TableIndexColumn
+ */
+export interface TableIndexColumn {
+  /**
+   * Name is the indexed column name.
+   *
+   * @generated from field: string name = 1;
+   */
+  name?: string
+  /**
+   * Length is the optional prefix length. Zero means full length.
+   *
+   * @generated from field: int64 length = 2;
+   */
+  length?: bigint
+}
+
+export const TableIndexColumn: MessageType<TableIndexColumn> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'mysql.TableIndexColumn',
+    fields: [
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'length', kind: 'scalar', T: ScalarType.INT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * TableIndex is a secondary table index definition.
+ *
+ * @generated from message mysql.TableIndex
+ */
+export interface TableIndex {
+  /**
+   * Name is the unique name of the index.
+   *
+   * @generated from field: string name = 1;
+   */
+  name?: string
+  /**
+   * Columns is the ordered set of columns in the index.
+   *
+   * @generated from field: repeated mysql.TableIndexColumn columns = 2;
+   */
+  columns?: TableIndexColumn[]
+  /**
+   * Unique indicates that indexed values must be unique.
+   *
+   * @generated from field: bool unique = 3;
+   */
+  unique?: boolean
+  /**
+   * Comment contains the index comment.
+   *
+   * @generated from field: string comment = 4;
+   */
+  comment?: string
+}
+
+export const TableIndex: MessageType<TableIndex> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'mysql.TableIndex',
+    fields: [
+      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'columns',
+        kind: 'message',
+        T: () => TableIndexColumn,
+        repeated: true,
+      },
+      { no: 3, name: 'unique', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 4, name: 'comment', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * TableRoot is the root object of the table.
  *
  * @generated from message mysql.TableRoot
@@ -519,6 +599,12 @@ export interface TableRoot {
    * @generated from field: string comment = 7;
    */
   comment?: string
+  /**
+   * Indexes contains secondary index metadata. Lookups are scan-backed.
+   *
+   * @generated from field: repeated mysql.TableIndex indexes = 8;
+   */
+  indexes?: TableIndex[]
 }
 
 export const TableRoot: MessageType<TableRoot> =
@@ -544,6 +630,13 @@ export const TableRoot: MessageType<TableRoot> =
       { no: 4, name: 'auto_incr_val', kind: 'message', T: () => TableColumn },
       { no: 6, name: 'collation_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 7, name: 'comment', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 8,
+        name: 'indexes',
+        kind: 'message',
+        T: () => TableIndex,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

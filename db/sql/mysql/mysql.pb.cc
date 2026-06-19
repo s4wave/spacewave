@@ -99,6 +99,34 @@ struct TableSchemaColumnDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TableSchemaColumnDefaultTypeInternal _TableSchemaColumn_default_instance_;
 
+inline constexpr TableIndexColumn::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        length_{::int64_t{0}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR TableIndexColumn::TableIndexColumn(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(TableIndexColumn_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct TableIndexColumnDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR TableIndexColumnDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~TableIndexColumnDefaultTypeInternal() {}
+  union {
+    TableIndexColumn _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TableIndexColumnDefaultTypeInternal _TableIndexColumn_default_instance_;
+
 inline constexpr TableSchema::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -123,6 +151,38 @@ struct TableSchemaDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TableSchemaDefaultTypeInternal _TableSchema_default_instance_;
+
+inline constexpr TableIndex::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        columns_{},
+        name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        comment_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        unique_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR TableIndex::TableIndex(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(TableIndex_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct TableIndexDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR TableIndexDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~TableIndexDefaultTypeInternal() {}
+  union {
+    TableIndex _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TableIndexDefaultTypeInternal _TableIndex_default_instance_;
 
 inline constexpr RootDb::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -312,6 +372,7 @@ inline constexpr TableRoot::Impl_::Impl_(
         table_partitions_{},
         primary_key_ordinals_{},
         _primary_key_ordinals_cached_byte_size_{0},
+        indexes_{},
         comment_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
@@ -373,7 +434,7 @@ const ::uint32_t
         1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::mysql::TableRoot, _impl_._has_bits_),
-        10, // hasbit index offset
+        11, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::mysql::TableRoot, _impl_.table_schema_),
         PROTOBUF_FIELD_OFFSET(::mysql::TableRoot, _impl_.primary_key_ordinals_),
         PROTOBUF_FIELD_OFFSET(::mysql::TableRoot, _impl_.table_partitions_),
@@ -381,13 +442,33 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::mysql::TableRoot, _impl_.auto_incr_val_),
         PROTOBUF_FIELD_OFFSET(::mysql::TableRoot, _impl_.collation_id_),
         PROTOBUF_FIELD_OFFSET(::mysql::TableRoot, _impl_.comment_),
-        3,
+        PROTOBUF_FIELD_OFFSET(::mysql::TableRoot, _impl_.indexes_),
+        4,
         1,
         0,
-        5,
-        4,
         6,
+        5,
+        7,
+        3,
         2,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::mysql::TableIndex, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::mysql::TableIndex, _impl_.name_),
+        PROTOBUF_FIELD_OFFSET(::mysql::TableIndex, _impl_.columns_),
+        PROTOBUF_FIELD_OFFSET(::mysql::TableIndex, _impl_.unique_),
+        PROTOBUF_FIELD_OFFSET(::mysql::TableIndex, _impl_.comment_),
+        1,
+        0,
+        3,
+        2,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::mysql::TableIndexColumn, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::mysql::TableIndexColumn, _impl_.name_),
+        PROTOBUF_FIELD_OFFSET(::mysql::TableIndexColumn, _impl_.length_),
+        0,
+        1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::mysql::TablePartitionRoot, _impl_._has_bits_),
         4, // hasbit index offset
@@ -452,12 +533,14 @@ static const ::_pbi::MigrationSchema
         {12, sizeof(::mysql::DatabaseRoot)},
         {17, sizeof(::mysql::DatabaseRootTable)},
         {24, sizeof(::mysql::TableRoot)},
-        {41, sizeof(::mysql::TablePartitionRoot)},
-        {46, sizeof(::mysql::TableRow)},
-        {51, sizeof(::mysql::TableColumn)},
-        {63, sizeof(::mysql::TableTimestamp)},
-        {70, sizeof(::mysql::TableSchema)},
-        {75, sizeof(::mysql::TableSchemaColumn)},
+        {43, sizeof(::mysql::TableIndex)},
+        {54, sizeof(::mysql::TableIndexColumn)},
+        {61, sizeof(::mysql::TablePartitionRoot)},
+        {66, sizeof(::mysql::TableRow)},
+        {71, sizeof(::mysql::TableColumn)},
+        {83, sizeof(::mysql::TableTimestamp)},
+        {90, sizeof(::mysql::TableSchema)},
+        {95, sizeof(::mysql::TableSchemaColumn)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::mysql::_Root_default_instance_._instance,
@@ -465,6 +548,8 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::mysql::_DatabaseRoot_default_instance_._instance,
     &::mysql::_DatabaseRootTable_default_instance_._instance,
     &::mysql::_TableRoot_default_instance_._instance,
+    &::mysql::_TableIndex_default_instance_._instance,
+    &::mysql::_TableIndexColumn_default_instance_._instance,
     &::mysql::_TablePartitionRoot_default_instance_._instance,
     &::mysql::_TableRow_default_instance_._instance,
     &::mysql::_TableColumn_default_instance_._instance,
@@ -484,32 +569,36 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsq
     "\001 \001(\t\022\034\n\003ref\030\002 \001(\0132\017.block.BlockRef\"8\n\014D"
     "atabaseRoot\022(\n\006tables\030\001 \003(\0132\030.mysql.Data"
     "baseRootTable\"\?\n\021DatabaseRootTable\022\014\n\004na"
-    "me\030\001 \001(\t\022\034\n\003ref\030\002 \001(\0132\017.block.BlockRef\"\355"
-    "\001\n\tTableRoot\022(\n\014table_schema\030\001 \001(\0132\022.mys"
+    "me\030\001 \001(\t\022\034\n\003ref\030\002 \001(\0132\017.block.BlockRef\"\221"
+    "\002\n\tTableRoot\022(\n\014table_schema\030\001 \001(\0132\022.mys"
     "ql.TableSchema\022\034\n\024primary_key_ordinals\030\005"
     " \003(\005\0223\n\020table_partitions\030\002 \003(\0132\031.mysql.T"
     "ablePartitionRoot\022\021\n\trow_nonce\030\003 \001(\004\022)\n\r"
     "auto_incr_val\030\004 \001(\0132\022.mysql.TableColumn\022"
-    "\024\n\014collation_id\030\006 \001(\r\022\017\n\007comment\030\007 \001(\t\"F"
-    "\n\022TablePartitionRoot\0220\n\rrow_key_value\030\001 "
-    "\001(\0132\031.kvtx.block.KeyValueStore\"/\n\010TableR"
-    "ow\022#\n\007columns\030\001 \003(\0132\022.mysql.TableColumn\""
-    "\241\002\n\013TableColumn\022\024\n\nbool_value\030\002 \001(\010H\000\022\023\n"
-    "\tint_value\030\003 \001(\003H\000\022\024\n\nuint_value\030\004 \001(\004H\000"
-    "\022\025\n\013float_value\030\005 \001(\001H\000\022!\n\013string_blob\030\006"
-    " \001(\0132\n.blob.BlobH\000\022 \n\nbytes_blob\030\007 \001(\0132\n"
-    ".blob.BlobH\000\022\037\n\tjson_blob\030\010 \001(\0132\n.blob.B"
-    "lobH\000\0220\n\017timestamp_value\030\t \001(\0132\025.mysql.T"
-    "ableTimestampH\000\022\031\n\017timespan_micros\030\n \001(\003"
-    "H\000B\007\n\005value\"5\n\016TableTimestamp\022\024\n\014unix_se"
-    "conds\030\001 \001(\003\022\r\n\005nanos\030\002 \001(\005\"8\n\013TableSchem"
-    "a\022)\n\007columns\030\001 \003(\0132\030.mysql.TableSchemaCo"
-    "lumn\"\301\001\n\021TableSchemaColumn\022\014\n\004name\030\001 \001(\t"
-    "\022\023\n\013column_type\030\002 \001(\t\022\032\n\022default_value_e"
-    "xpr\030\003 \001(\t\022\026\n\016auto_increment\030\004 \001(\010\022\020\n\010nul"
-    "lable\030\005 \001(\010\022\016\n\006source\030\006 \001(\t\022\023\n\013primary_k"
-    "ey\030\007 \001(\010\022\017\n\007comment\030\010 \001(\t\022\r\n\005extra\030\t \001(\t"
-    "b\006proto3"
+    "\024\n\014collation_id\030\006 \001(\r\022\017\n\007comment\030\007 \001(\t\022\""
+    "\n\007indexes\030\010 \003(\0132\021.mysql.TableIndex\"e\n\nTa"
+    "bleIndex\022\014\n\004name\030\001 \001(\t\022(\n\007columns\030\002 \003(\0132"
+    "\027.mysql.TableIndexColumn\022\016\n\006unique\030\003 \001(\010"
+    "\022\017\n\007comment\030\004 \001(\t\"0\n\020TableIndexColumn\022\014\n"
+    "\004name\030\001 \001(\t\022\016\n\006length\030\002 \001(\003\"F\n\022TablePart"
+    "itionRoot\0220\n\rrow_key_value\030\001 \001(\0132\031.kvtx."
+    "block.KeyValueStore\"/\n\010TableRow\022#\n\007colum"
+    "ns\030\001 \003(\0132\022.mysql.TableColumn\"\241\002\n\013TableCo"
+    "lumn\022\024\n\nbool_value\030\002 \001(\010H\000\022\023\n\tint_value\030"
+    "\003 \001(\003H\000\022\024\n\nuint_value\030\004 \001(\004H\000\022\025\n\013float_v"
+    "alue\030\005 \001(\001H\000\022!\n\013string_blob\030\006 \001(\0132\n.blob"
+    ".BlobH\000\022 \n\nbytes_blob\030\007 \001(\0132\n.blob.BlobH"
+    "\000\022\037\n\tjson_blob\030\010 \001(\0132\n.blob.BlobH\000\0220\n\017ti"
+    "mestamp_value\030\t \001(\0132\025.mysql.TableTimesta"
+    "mpH\000\022\031\n\017timespan_micros\030\n \001(\003H\000B\007\n\005value"
+    "\"5\n\016TableTimestamp\022\024\n\014unix_seconds\030\001 \001(\003"
+    "\022\r\n\005nanos\030\002 \001(\005\"8\n\013TableSchema\022)\n\007column"
+    "s\030\001 \003(\0132\030.mysql.TableSchemaColumn\"\301\001\n\021Ta"
+    "bleSchemaColumn\022\014\n\004name\030\001 \001(\t\022\023\n\013column_"
+    "type\030\002 \001(\t\022\032\n\022default_value_expr\030\003 \001(\t\022\026"
+    "\n\016auto_increment\030\004 \001(\010\022\020\n\010nullable\030\005 \001(\010"
+    "\022\016\n\006source\030\006 \001(\t\022\023\n\013primary_key\030\007 \001(\010\022\017\n"
+    "\007comment\030\010 \001(\t\022\r\n\005extra\030\t \001(\tb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto_deps[3] = {
@@ -521,13 +610,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto = {
     false,
     false,
-    1408,
+    1597,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto,
     "github.com/s4wave/spacewave/db/sql/mysql/mysql.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto_deps,
     3,
-    11,
+    13,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto::offsets,
@@ -1783,6 +1872,7 @@ PROTOBUF_NDEBUG_INLINE TableRoot::Impl_::Impl_(
         table_partitions_{visibility, arena, from.table_partitions_},
         primary_key_ordinals_{visibility, arena, from.primary_key_ordinals_},
         _primary_key_ordinals_cached_byte_size_{0},
+        indexes_{visibility, arena, from.indexes_},
         comment_(arena, from.comment_) {}
 
 TableRoot::TableRoot(
@@ -1799,10 +1889,10 @@ TableRoot::TableRoot(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.table_schema_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+  _impl_.table_schema_ = (CheckHasBit(cached_has_bits, 0x00000010U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.table_schema_)
                 : nullptr;
-  _impl_.auto_incr_val_ = (CheckHasBit(cached_has_bits, 0x00000010U))
+  _impl_.auto_incr_val_ = (CheckHasBit(cached_has_bits, 0x00000020U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.auto_incr_val_)
                 : nullptr;
   ::memcpy(reinterpret_cast<char*>(&_impl_) +
@@ -1822,6 +1912,7 @@ PROTOBUF_NDEBUG_INLINE TableRoot::Impl_::Impl_(
         table_partitions_{visibility, arena},
         primary_key_ordinals_{visibility, arena},
         _primary_key_ordinals_cached_byte_size_{0},
+        indexes_{visibility, arena},
         comment_(arena) {}
 
 inline void TableRoot::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
@@ -1863,6 +1954,10 @@ constexpr auto TableRoot::InternalNewImpl_() {
                   ::google::protobuf::Message::internal_visibility()),
       PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.table_partitions_) +
           decltype(TableRoot::_impl_.table_partitions_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.indexes_) +
+          decltype(TableRoot::_impl_.indexes_)::
               InternalGetArenaOffset(
                   ::google::protobuf::Message::internal_visibility()),
   });
@@ -1909,17 +2004,17 @@ TableRoot::GetClassData() const {
   return TableRoot_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 7, 3, 31, 2>
+const ::_pbi::TcParseTable<3, 8, 4, 39, 2>
 TableRoot::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(TableRoot, _impl_._has_bits_),
     0, // no _extensions_
-    7, 56,  // max_field_number, fast_idx_mask
+    8, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967168,  // skipmap
+    4294967040,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    7,  // num_field_entries
-    3,  // num_aux_entries
+    8,  // num_field_entries
+    4,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     TableRoot_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -1928,60 +2023,66 @@ TableRoot::_table_ = {
     ::_pbi::TcParser::GetTable<::mysql::TableRoot>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    {::_pbi::TcParser::MiniParse, {}},
+    // repeated .mysql.TableIndex indexes = 8;
+    {::_pbi::TcParser::FastMtR1,
+     {66, 2, 3,
+      PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.indexes_)}},
     // .mysql.TableSchema table_schema = 1;
     {::_pbi::TcParser::FastMtS1,
-     {10, 3, 0,
+     {10, 4, 0,
       PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.table_schema_)}},
     // repeated .mysql.TablePartitionRoot table_partitions = 2;
     {::_pbi::TcParser::FastMtR1,
      {18, 0, 1,
       PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.table_partitions_)}},
     // uint64 row_nonce = 3;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(TableRoot, _impl_.row_nonce_), 5>(),
-     {24, 5, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(TableRoot, _impl_.row_nonce_), 6>(),
+     {24, 6, 0,
       PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.row_nonce_)}},
     // .mysql.TableColumn auto_incr_val = 4;
     {::_pbi::TcParser::FastMtS1,
-     {34, 4, 2,
+     {34, 5, 2,
       PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.auto_incr_val_)}},
     // repeated int32 primary_key_ordinals = 5;
     {::_pbi::TcParser::FastV32P1,
      {42, 1, 0,
       PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.primary_key_ordinals_)}},
     // uint32 collation_id = 6;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(TableRoot, _impl_.collation_id_), 6>(),
-     {48, 6, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(TableRoot, _impl_.collation_id_), 7>(),
+     {48, 7, 0,
       PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.collation_id_)}},
     // string comment = 7;
     {::_pbi::TcParser::FastUS1,
-     {58, 2, 0,
+     {58, 3, 0,
       PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.comment_)}},
   }}, {{
     65535, 65535
   }}, {{
     // .mysql.TableSchema table_schema = 1;
-    {PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.table_schema_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.table_schema_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // repeated .mysql.TablePartitionRoot table_partitions = 2;
     {PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.table_partitions_), _Internal::kHasBitsOffset + 0, 1, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
     // uint64 row_nonce = 3;
-    {PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.row_nonce_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.row_nonce_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // .mysql.TableColumn auto_incr_val = 4;
-    {PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.auto_incr_val_), _Internal::kHasBitsOffset + 4, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.auto_incr_val_), _Internal::kHasBitsOffset + 5, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // repeated int32 primary_key_ordinals = 5;
     {PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.primary_key_ordinals_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kPackedInt32)},
     // uint32 collation_id = 6;
-    {PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.collation_id_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.collation_id_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // string comment = 7;
-    {PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.comment_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.comment_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated .mysql.TableIndex indexes = 8;
+    {PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.indexes_), _Internal::kHasBitsOffset + 2, 3, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::mysql::TableSchema>()},
       {::_pbi::TcParser::GetTable<::mysql::TablePartitionRoot>()},
       {::_pbi::TcParser::GetTable<::mysql::TableColumn>()},
+      {::_pbi::TcParser::GetTable<::mysql::TableIndex>()},
   }},
   {{
-    "\17\0\0\0\0\0\0\7"
+    "\17\0\0\0\0\0\0\7\0\0\0\0\0\0\0\0"
     "mysql.TableRoot"
     "comment"
   }},
@@ -1994,26 +2095,29 @@ PROTOBUF_NOINLINE void TableRoot::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _impl_.table_partitions_.Clear();
     }
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
       _impl_.primary_key_ordinals_.Clear();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      _impl_.comment_.ClearNonDefaultToEmpty();
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      _impl_.indexes_.Clear();
     }
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.comment_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       ABSL_DCHECK(_impl_.table_schema_ != nullptr);
       _impl_.table_schema_->Clear();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       ABSL_DCHECK(_impl_.auto_incr_val_ != nullptr);
       _impl_.auto_incr_val_->Clear();
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000060U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000c0U)) {
     ::memset(&_impl_.row_nonce_, 0, static_cast<::size_t>(
         reinterpret_cast<char*>(&_impl_.collation_id_) -
         reinterpret_cast<char*>(&_impl_.row_nonce_)) + sizeof(_impl_.collation_id_));
@@ -2042,7 +2146,7 @@ PROTOBUF_NOINLINE void TableRoot::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // .mysql.TableSchema table_schema = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         1, *this_._impl_.table_schema_, this_._impl_.table_schema_->GetCachedSize(), target,
         stream);
@@ -2062,7 +2166,7 @@ PROTOBUF_NOINLINE void TableRoot::Clear() {
   }
 
   // uint64 row_nonce = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
     if (this_._internal_row_nonce() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -2071,7 +2175,7 @@ PROTOBUF_NOINLINE void TableRoot::Clear() {
   }
 
   // .mysql.TableColumn auto_incr_val = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         4, *this_._impl_.auto_incr_val_, this_._impl_.auto_incr_val_->GetCachedSize(), target,
         stream);
@@ -2089,7 +2193,7 @@ PROTOBUF_NOINLINE void TableRoot::Clear() {
   }
 
   // uint32 collation_id = 6;
-  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
     if (this_._internal_collation_id() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -2098,12 +2202,25 @@ PROTOBUF_NOINLINE void TableRoot::Clear() {
   }
 
   // string comment = 7;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
     if (!this_._internal_comment().empty()) {
       const ::std::string& _s = this_._internal_comment();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
           _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "mysql.TableRoot.comment");
       target = stream->WriteStringMaybeAliased(7, _s, target);
+    }
+  }
+
+  // repeated .mysql.TableIndex indexes = 8;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_indexes_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_indexes().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              8, repfield, repfield.GetCachedSize(),
+              target, stream);
     }
   }
 
@@ -2132,7 +2249,7 @@ PROTOBUF_NOINLINE void TableRoot::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     // repeated .mysql.TablePartitionRoot table_partitions = 2;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       total_size += 1UL * this_._internal_table_partitions_size();
@@ -2147,32 +2264,39 @@ PROTOBUF_NOINLINE void TableRoot::Clear() {
               this_._internal_primary_key_ordinals(), 1,
               this_._impl_._primary_key_ordinals_cached_byte_size_);
     }
+    // repeated .mysql.TableIndex indexes = 8;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      total_size += 1UL * this_._internal_indexes_size();
+      for (const auto& msg : this_._internal_indexes()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
     // string comment = 7;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (!this_._internal_comment().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_comment());
       }
     }
     // .mysql.TableSchema table_schema = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.table_schema_);
     }
     // .mysql.TableColumn auto_incr_val = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.auto_incr_val_);
     }
     // uint64 row_nonce = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (this_._internal_row_nonce() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
             this_._internal_row_nonce());
       }
     }
     // uint32 collation_id = 6;
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (this_._internal_collation_id() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_collation_id());
@@ -2198,7 +2322,7 @@ void TableRoot::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _this->_internal_mutable_table_partitions()->InternalMergeFromWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), arena,
@@ -2207,7 +2331,12 @@ void TableRoot::MergeImpl(::google::protobuf::MessageLite& to_msg,
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
       _this->_internal_mutable_primary_key_ordinals()->MergeFrom(from._internal_primary_key_ordinals());
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      _this->_internal_mutable_indexes()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_indexes());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (!from._internal_comment().empty()) {
         _this->_internal_set_comment(from._internal_comment());
       } else {
@@ -2216,7 +2345,7 @@ void TableRoot::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       ABSL_DCHECK(from._impl_.table_schema_ != nullptr);
       if (_this->_impl_.table_schema_ == nullptr) {
         _this->_impl_.table_schema_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.table_schema_);
@@ -2224,7 +2353,7 @@ void TableRoot::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.table_schema_->MergeFrom(*from._impl_.table_schema_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       ABSL_DCHECK(from._impl_.auto_incr_val_ != nullptr);
       if (_this->_impl_.auto_incr_val_ == nullptr) {
         _this->_impl_.auto_incr_val_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.auto_incr_val_);
@@ -2232,12 +2361,12 @@ void TableRoot::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.auto_incr_val_->MergeFrom(*from._impl_.auto_incr_val_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (from._internal_row_nonce() != 0) {
         _this->_impl_.row_nonce_ = from._impl_.row_nonce_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (from._internal_collation_id() != 0) {
         _this->_impl_.collation_id_ = from._impl_.collation_id_;
       }
@@ -2264,6 +2393,7 @@ void TableRoot::InternalSwap(TableRoot* PROTOBUF_RESTRICT PROTOBUF_NONNULL other
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   _impl_.table_partitions_.InternalSwap(&other->_impl_.table_partitions_);
   _impl_.primary_key_ordinals_.InternalSwap(&other->_impl_.primary_key_ordinals_);
+  _impl_.indexes_.InternalSwap(&other->_impl_.indexes_);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.comment_, &other->_impl_.comment_, arena);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(TableRoot, _impl_.collation_id_)
@@ -2274,6 +2404,717 @@ void TableRoot::InternalSwap(TableRoot* PROTOBUF_RESTRICT PROTOBUF_NONNULL other
 }
 
 ::google::protobuf::Metadata TableRoot::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class TableIndex::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<TableIndex>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(TableIndex, _impl_._has_bits_);
+};
+
+TableIndex::TableIndex(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, TableIndex_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:mysql.TableIndex)
+}
+PROTOBUF_NDEBUG_INLINE TableIndex::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::mysql::TableIndex& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        columns_{visibility, arena, from.columns_},
+        name_(arena, from.name_),
+        comment_(arena, from.comment_) {}
+
+TableIndex::TableIndex(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const TableIndex& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, TableIndex_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  TableIndex* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.unique_ = from._impl_.unique_;
+
+  // @@protoc_insertion_point(copy_constructor:mysql.TableIndex)
+}
+PROTOBUF_NDEBUG_INLINE TableIndex::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        columns_{visibility, arena},
+        name_(arena),
+        comment_(arena) {}
+
+inline void TableIndex::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.unique_ = {};
+}
+TableIndex::~TableIndex() {
+  // @@protoc_insertion_point(destructor:mysql.TableIndex)
+  SharedDtor(*this);
+}
+inline void TableIndex::SharedDtor(MessageLite& self) {
+  TableIndex& this_ = static_cast<TableIndex&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.name_.Destroy();
+  this_._impl_.comment_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL TableIndex::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) TableIndex(arena);
+}
+constexpr auto TableIndex::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(TableIndex, _impl_.columns_) +
+          decltype(TableIndex::_impl_.columns_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(TableIndex), alignof(TableIndex), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&TableIndex::PlacementNew_,
+                                 sizeof(TableIndex),
+                                 alignof(TableIndex));
+  }
+}
+constexpr auto TableIndex::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_TableIndex_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &TableIndex::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<TableIndex>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &TableIndex::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<TableIndex>(), &TableIndex::ByteSizeLong,
+              &TableIndex::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(TableIndex, _impl_._cached_size_),
+          false,
+      },
+      &TableIndex::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull TableIndex_class_data_ =
+        TableIndex::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+TableIndex::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&TableIndex_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(TableIndex_class_data_.tc_table);
+  return TableIndex_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 1, 36, 2>
+TableIndex::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(TableIndex, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    TableIndex_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::mysql::TableIndex>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string comment = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 2, 0,
+      PROTOBUF_FIELD_OFFSET(TableIndex, _impl_.comment_)}},
+    // string name = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 1, 0,
+      PROTOBUF_FIELD_OFFSET(TableIndex, _impl_.name_)}},
+    // repeated .mysql.TableIndexColumn columns = 2;
+    {::_pbi::TcParser::FastMtR1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(TableIndex, _impl_.columns_)}},
+    // bool unique = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(TableIndex, _impl_.unique_), 3>(),
+     {24, 3, 0,
+      PROTOBUF_FIELD_OFFSET(TableIndex, _impl_.unique_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string name = 1;
+    {PROTOBUF_FIELD_OFFSET(TableIndex, _impl_.name_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated .mysql.TableIndexColumn columns = 2;
+    {PROTOBUF_FIELD_OFFSET(TableIndex, _impl_.columns_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // bool unique = 3;
+    {PROTOBUF_FIELD_OFFSET(TableIndex, _impl_.unique_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string comment = 4;
+    {PROTOBUF_FIELD_OFFSET(TableIndex, _impl_.comment_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::mysql::TableIndexColumn>()},
+  }},
+  {{
+    "\20\4\0\0\7\0\0\0"
+    "mysql.TableIndex"
+    "name"
+    "comment"
+  }},
+};
+PROTOBUF_NOINLINE void TableIndex::Clear() {
+// @@protoc_insertion_point(message_clear_start:mysql.TableIndex)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.columns_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.name_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.comment_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_.unique_ = false;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL TableIndex::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const TableIndex& this_ = static_cast<const TableIndex&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL TableIndex::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const TableIndex& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:mysql.TableIndex)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string name = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_name().empty()) {
+      const ::std::string& _s = this_._internal_name();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "mysql.TableIndex.name");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // repeated .mysql.TableIndexColumn columns = 2;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_columns_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_columns().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              2, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // bool unique = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_unique() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          3, this_._internal_unique(), target);
+    }
+  }
+
+  // string comment = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_comment().empty()) {
+      const ::std::string& _s = this_._internal_comment();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "mysql.TableIndex.comment");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:mysql.TableIndex)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t TableIndex::ByteSizeLong(const MessageLite& base) {
+  const TableIndex& this_ = static_cast<const TableIndex&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t TableIndex::ByteSizeLong() const {
+  const TableIndex& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:mysql.TableIndex)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // repeated .mysql.TableIndexColumn columns = 2;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_columns_size();
+      for (const auto& msg : this_._internal_columns()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // string name = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_name());
+      }
+    }
+    // string comment = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_comment().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_comment());
+      }
+    }
+    // bool unique = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_unique() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void TableIndex::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<TableIndex*>(&to_msg);
+  auto& from = static_cast<const TableIndex&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:mysql.TableIndex)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_columns()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_columns());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_name().empty()) {
+        _this->_internal_set_name(from._internal_name());
+      } else {
+        if (_this->_impl_.name_.IsDefault()) {
+          _this->_internal_set_name("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_comment().empty()) {
+        _this->_internal_set_comment(from._internal_comment());
+      } else {
+        if (_this->_impl_.comment_.IsDefault()) {
+          _this->_internal_set_comment("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_unique() != 0) {
+        _this->_impl_.unique_ = from._impl_.unique_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void TableIndex::CopyFrom(const TableIndex& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:mysql.TableIndex)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void TableIndex::InternalSwap(TableIndex* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.columns_.InternalSwap(&other->_impl_.columns_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.name_, &other->_impl_.name_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.comment_, &other->_impl_.comment_, arena);
+  swap(_impl_.unique_, other->_impl_.unique_);
+}
+
+::google::protobuf::Metadata TableIndex::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class TableIndexColumn::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<TableIndexColumn>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(TableIndexColumn, _impl_._has_bits_);
+};
+
+TableIndexColumn::TableIndexColumn(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, TableIndexColumn_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:mysql.TableIndexColumn)
+}
+PROTOBUF_NDEBUG_INLINE TableIndexColumn::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::mysql::TableIndexColumn& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        name_(arena, from.name_) {}
+
+TableIndexColumn::TableIndexColumn(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const TableIndexColumn& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, TableIndexColumn_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  TableIndexColumn* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.length_ = from._impl_.length_;
+
+  // @@protoc_insertion_point(copy_constructor:mysql.TableIndexColumn)
+}
+PROTOBUF_NDEBUG_INLINE TableIndexColumn::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        name_(arena) {}
+
+inline void TableIndexColumn::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.length_ = {};
+}
+TableIndexColumn::~TableIndexColumn() {
+  // @@protoc_insertion_point(destructor:mysql.TableIndexColumn)
+  SharedDtor(*this);
+}
+inline void TableIndexColumn::SharedDtor(MessageLite& self) {
+  TableIndexColumn& this_ = static_cast<TableIndexColumn&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.name_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL TableIndexColumn::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) TableIndexColumn(arena);
+}
+constexpr auto TableIndexColumn::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(TableIndexColumn),
+                                            alignof(TableIndexColumn));
+}
+constexpr auto TableIndexColumn::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_TableIndexColumn_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &TableIndexColumn::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<TableIndexColumn>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &TableIndexColumn::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<TableIndexColumn>(), &TableIndexColumn::ByteSizeLong,
+              &TableIndexColumn::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(TableIndexColumn, _impl_._cached_size_),
+          false,
+      },
+      &TableIndexColumn::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull TableIndexColumn_class_data_ =
+        TableIndexColumn::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+TableIndexColumn::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&TableIndexColumn_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(TableIndexColumn_class_data_.tc_table);
+  return TableIndexColumn_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 35, 2>
+TableIndexColumn::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(TableIndexColumn, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    TableIndexColumn_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::mysql::TableIndexColumn>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // int64 length = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(TableIndexColumn, _impl_.length_), 1>(),
+     {16, 1, 0,
+      PROTOBUF_FIELD_OFFSET(TableIndexColumn, _impl_.length_)}},
+    // string name = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(TableIndexColumn, _impl_.name_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string name = 1;
+    {PROTOBUF_FIELD_OFFSET(TableIndexColumn, _impl_.name_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // int64 length = 2;
+    {PROTOBUF_FIELD_OFFSET(TableIndexColumn, _impl_.length_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
+  }},
+  // no aux_entries
+  {{
+    "\26\4\0\0\0\0\0\0"
+    "mysql.TableIndexColumn"
+    "name"
+  }},
+};
+PROTOBUF_NOINLINE void TableIndexColumn::Clear() {
+// @@protoc_insertion_point(message_clear_start:mysql.TableIndexColumn)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.name_.ClearNonDefaultToEmpty();
+  }
+  _impl_.length_ = ::int64_t{0};
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL TableIndexColumn::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const TableIndexColumn& this_ = static_cast<const TableIndexColumn&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL TableIndexColumn::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const TableIndexColumn& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:mysql.TableIndexColumn)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string name = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_name().empty()) {
+      const ::std::string& _s = this_._internal_name();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "mysql.TableIndexColumn.name");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // int64 length = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (this_._internal_length() != 0) {
+      target =
+          ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<2>(
+              stream, this_._internal_length(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:mysql.TableIndexColumn)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t TableIndexColumn::ByteSizeLong(const MessageLite& base) {
+  const TableIndexColumn& this_ = static_cast<const TableIndexColumn&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t TableIndexColumn::ByteSizeLong() const {
+  const TableIndexColumn& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:mysql.TableIndexColumn)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // string name = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_name());
+      }
+    }
+    // int64 length = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (this_._internal_length() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+            this_._internal_length());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void TableIndexColumn::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<TableIndexColumn*>(&to_msg);
+  auto& from = static_cast<const TableIndexColumn&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:mysql.TableIndexColumn)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_name().empty()) {
+        _this->_internal_set_name(from._internal_name());
+      } else {
+        if (_this->_impl_.name_.IsDefault()) {
+          _this->_internal_set_name("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (from._internal_length() != 0) {
+        _this->_impl_.length_ = from._impl_.length_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void TableIndexColumn::CopyFrom(const TableIndexColumn& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:mysql.TableIndexColumn)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void TableIndexColumn::InternalSwap(TableIndexColumn* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.name_, &other->_impl_.name_, arena);
+  swap(_impl_.length_, other->_impl_.length_);
+}
+
+::google::protobuf::Metadata TableIndexColumn::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

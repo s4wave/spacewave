@@ -47,6 +47,9 @@ type Config struct {
 	StateTransformConf *transform.Config `protobuf:"bytes,8,opt,name=state_transform_conf,json=stateTransformConf,proto3" json:"stateTransformConf,omitempty"`
 	// CreateDbs is a list of database names to create (if they don't exist).
 	CreateDbs []string `protobuf:"bytes,9,rep,name=create_dbs,json=createDbs,proto3" json:"createDbs,omitempty"`
+	// SqlRpcServiceId is the optional RPC service id used to expose the SQL store.
+	// If empty, LookupRpcService is not processed by this controller.
+	SqlRpcServiceId string `protobuf:"bytes,10,opt,name=sql_rpc_service_id,json=sqlRpcServiceId,proto3" json:"sqlRpcServiceId,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -118,6 +121,13 @@ func (x *Config) GetCreateDbs() []string {
 	return nil
 }
 
+func (x *Config) GetSqlRpcServiceId() string {
+	if x != nil {
+		return x.SqlRpcServiceId
+	}
+	return ""
+}
+
 // HeadState contains the head state in the object storage.
 type HeadState struct {
 	unknownFields []byte
@@ -149,8 +159,13 @@ func (m *Config) CloneVT() *Config {
 	r.ObjectStoreId = m.ObjectStoreId
 	r.ObjectStorePrefix = m.ObjectStorePrefix
 	r.ObjectStoreHeadKey = m.ObjectStoreHeadKey
-	r.InitHeadRef = m.InitHeadRef.CloneVT()
-	r.StateTransformConf = m.StateTransformConf.CloneVT()
+	r.SqlRpcServiceId = m.SqlRpcServiceId
+	if rhs := m.InitHeadRef; rhs != nil {
+		r.InitHeadRef = rhs.CloneVT()
+	}
+	if rhs := m.StateTransformConf; rhs != nil {
+		r.StateTransformConf = rhs.CloneVT()
+	}
 	if rhs := m.CreateDbs; rhs != nil {
 		r.CreateDbs = slices.Clone(rhs)
 	}
@@ -169,7 +184,9 @@ func (m *HeadState) CloneVT() *HeadState {
 		return (*HeadState)(nil)
 	}
 	r := new(HeadState)
-	r.HeadRef = m.HeadRef.CloneVT()
+	if rhs := m.HeadRef; rhs != nil {
+		r.HeadRef = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -218,6 +235,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		if vx != vy {
 			return false
 		}
+	}
+	if this.SqlRpcServiceId != that.SqlRpcServiceId {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -303,6 +323,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("createDbs")
 		s.WriteStringArray(x.CreateDbs)
 	}
+	if x.SqlRpcServiceId != "" || s.HasField("sqlRpcServiceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sqlRpcServiceId")
+		s.WriteString(x.SqlRpcServiceId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -359,6 +384,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.CreateDbs = s.ReadStringArray()
+		case "sql_rpc_service_id", "sqlRpcServiceId":
+			s.AddField("sql_rpc_service_id")
+			x.SqlRpcServiceId = s.ReadString()
 		}
 	})
 }
@@ -443,6 +471,13 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.SqlRpcServiceId) > 0 {
+		i -= len(m.SqlRpcServiceId)
+		copy(dAtA[i:], m.SqlRpcServiceId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SqlRpcServiceId)))
+		i--
+		dAtA[i] = 0x52
 	}
 	if len(m.CreateDbs) > 0 {
 		for iNdEx := len(m.CreateDbs) - 1; iNdEx >= 0; iNdEx-- {
@@ -605,6 +640,10 @@ func (m *Config) SizeVT() (n int) {
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
 	}
+	l = len(m.SqlRpcServiceId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -694,6 +733,13 @@ func (x *Config) MarshalProtoText() string {
 			sb.WriteString(strconv.Quote(v))
 		}
 		sb.WriteString("]")
+	}
+	if x.SqlRpcServiceId != "" {
+		if sb.Len() > 8 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("sql_rpc_service_id: ")
+		sb.WriteString(strconv.Quote(x.SqlRpcServiceId))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -950,6 +996,28 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.CreateDbs = append(m.CreateDbs, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SqlRpcServiceId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SqlRpcServiceId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

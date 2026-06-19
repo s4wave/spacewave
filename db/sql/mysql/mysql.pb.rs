@@ -63,6 +63,35 @@ pub struct TableRoot {
     /// Comment is an additional comment on the table.
     #[prost(string, tag="7")]
     pub comment: ::prost::alloc::string::String,
+    /// Indexes contains secondary index metadata. Lookups are scan-backed.
+    #[prost(message, repeated, tag="8")]
+    pub indexes: ::prost::alloc::vec::Vec<TableIndex>,
+}
+/// TableIndex is a secondary table index definition.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TableIndex {
+    /// Name is the unique name of the index.
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+    /// Columns is the ordered set of columns in the index.
+    #[prost(message, repeated, tag="2")]
+    pub columns: ::prost::alloc::vec::Vec<TableIndexColumn>,
+    /// Unique indicates that indexed values must be unique.
+    #[prost(bool, tag="3")]
+    pub unique: bool,
+    /// Comment contains the index comment.
+    #[prost(string, tag="4")]
+    pub comment: ::prost::alloc::string::String,
+}
+/// TableIndexColumn is a column in a TableIndex.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TableIndexColumn {
+    /// Name is the indexed column name.
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+    /// Length is the optional prefix length. Zero means full length.
+    #[prost(int64, tag="2")]
+    pub length: i64,
 }
 /// TablePartitionRoot contains the root of a table partition.
 #[derive(Clone, PartialEq, ::prost::Message)]

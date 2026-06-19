@@ -33,6 +33,9 @@ message Config {
   .block.transform.Config state_transform_conf = 8;
   // CreateDbs is a list of database names to create (if they don't exist).
   repeated string create_dbs = 9;
+  // SqlRpcServiceId is the optional RPC service id used to expose the SQL store.
+  // If empty, LookupRpcService is not processed by this controller.
+  string sql_rpc_service_id = 10;
 }
 
 // HeadState contains the head state in the object storage.

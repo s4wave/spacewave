@@ -1,0 +1,133 @@
+syntax = "proto3";
+package sql.rpc;
+
+import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
+import "github.com/s4wave/spacewave/db/sql/sql.proto";
+
+// Sql proxies a SqlStore via RPC.
+service Sql {
+  // SqlTransaction executes a SQL transaction.
+  rpc SqlTransaction(stream SqlTransactionRequest) returns (stream SqlTransactionResponse);
+  // SqlTransactionRpc is a rpcstream request for an ongoing SqlTransaction.
+  // Exposes service: SqlOps.
+  // Component ID: transaction_id from SqlTransaction.
+  rpc SqlTransactionRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+}
+
+// SqlTransactionRequest is a request in a SqlTransaction rpc.
+message SqlTransactionRequest {
+  // Body contains the message body.
+  oneof body {
+    // Init initializes the transaction.
+    SqlTransactionInit init = 1;
+    // Commit commits the transaction.
+    bool commit = 2;
+    // Discard discards the transaction.
+    bool discard = 3;
+  }
+}
+
+// SqlTransactionInit initializes a SQL transaction.
+message SqlTransactionInit {
+  // Write indicates if this should be a write transaction.
+  bool write = 1;
+  // Dsn is the SQL database path/name.
+  string dsn = 2;
+}
+
+// SqlTransactionResponse is a response to the SqlTransaction rpc.
+message SqlTransactionResponse {
+  // Body contains the message body.
+  oneof body {
+    // Ack acknowledges the transaction open.
+    SqlTransactionAck ack = 1;
+    // Complete contains transaction completion status.
+    SqlTransactionComplete complete = 2;
+  }
+}
+
+// SqlTransactionAck contains transaction open status.
+message SqlTransactionAck {
+  // Error is any error opening the transaction.
+  string error = 1;
+  // TransactionId is the identifier to use for the RpcStream.
+  string transaction_id = 2;
+}
+
+// SqlTransactionComplete contains transaction completion status.
+message SqlTransactionComplete {
+  // Error is any error completing the transaction.
+  string error = 1;
+  // Committed indicates the transaction committed.
+  bool committed = 2;
+  // Discarded indicates the transaction was discarded.
+  bool discarded = 3;
+}
+
+// SqlOps exposes SqlOps for a transaction.
+service SqlOps {
+  // Exec executes a statement.
+  rpc Exec(SqlExecRequest) returns (SqlExecResponse);
+  // Query executes a query with explicit row iteration control.
+  rpc Query(stream SqlQueryRequest) returns (stream SqlQueryResponse);
+}
+
+// SqlExecRequest is a SQL exec request.
+message SqlExecRequest {
+  // Query is the SQL statement.
+  string query = 1;
+  // Args are positional bind arguments.
+  repeated .sql.SqlValue args = 2;
+}
+
+// SqlExecResponse is a SQL exec response.
+message SqlExecResponse {
+  // Error is any execution error.
+  string error = 1;
+  // LastInsertId is the last insert id if known.
+  int64 last_insert_id = 2;
+  // RowsAffected is the row count if known.
+  int64 rows_affected = 3;
+}
+
+// SqlQueryRequest controls a query stream.
+message SqlQueryRequest {
+  // Body contains the query stream request.
+  oneof body {
+    // Init opens the query.
+    SqlQueryInit init = 1;
+    // Next requests up to this many rows. Zero means one row.
+    uint32 next = 2;
+    // Close closes the query.
+    bool close = 3;
+  }
+}
+
+// SqlQueryInit opens a query stream.
+message SqlQueryInit {
+  // Query is the SQL query.
+  string query = 1;
+  // Args are positional bind arguments.
+  repeated .sql.SqlValue args = 2;
+}
+
+// SqlQueryResponse is a query stream response.
+message SqlQueryResponse {
+  // Body contains the response body.
+  oneof body {
+    // Ack returns result columns.
+    SqlQueryAck ack = 1;
+    // Batch returns query rows.
+    .sql.RowBatch batch = 2;
+    // ReqError reports a request error.
+    string req_error = 3;
+    // Closed acknowledges stream close or EOF.
+    bool closed = 4;
+  }
+}
+
+// SqlQueryAck contains query metadata.
+message SqlQueryAck {
+  // Columns describes result columns.
+  repeated .sql.ColumnSchema columns = 1;
+}

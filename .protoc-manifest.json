@@ -1,7 +1,7 @@
 {
   "version": 2,
   "protocFlagsHash": "1c28c09115aa511ff35b1be26994db5c0c847fc8e5879acca1694ab90f3ae614",
-  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.14.0,starpc=v0.49.16,protobuf-es-lite=1.1.0",
+  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.14.0,starpc=v0.49.18,protobuf-es-lite=1.1.0",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
       "hash": "b151ca9704cbadf4e0cf0a5f55e57d006ba858f63ba47a9bf2f9a92eb52a78c2",
@@ -2263,8 +2263,19 @@
       ],
       "protoFiles": ["db/object/rpc/object.proto"]
     },
+    "github.com/s4wave/spacewave/db/sql": {
+      "hash": "e4b59ae5f23148e39ca3551e1b181e4c5e198ebde7eac532f56e46b7145f81bd",
+      "generatedFiles": [
+        "db/sql/sql.pb.cc",
+        "db/sql/sql.pb.go",
+        "db/sql/sql.pb.h",
+        "db/sql/sql.pb.rs",
+        "db/sql/sql.pb.ts"
+      ],
+      "protoFiles": ["db/sql/sql.proto"]
+    },
     "github.com/s4wave/spacewave/db/sql/mysql": {
-      "hash": "a425d3e5b27462d929dc550182de5fec2e0cdb021d7e9e06c8b1aa83919609e4",
+      "hash": "1dc4b58bea6fb58b94a922b82d0f660e5f477c8e3b6f39711f4cfc080a7cde7a",
       "generatedFiles": [
         "db/sql/mysql/mysql.pb.cc",
         "db/sql/mysql/mysql.pb.go",
@@ -2275,7 +2286,7 @@
       "protoFiles": ["db/sql/mysql/mysql.proto"]
     },
     "github.com/s4wave/spacewave/db/sql/mysql/controller": {
-      "hash": "b05a9eee4dfb5230fc3c3cc8b4c79195f4a014aa96dcf2574804f17c44b4417e",
+      "hash": "22bda978e3b310e1bfa10f30f8e619f495134b755e18d4b5970a6b93c9925f1b",
       "generatedFiles": [
         "db/sql/mysql/controller/config.pb.cc",
         "db/sql/mysql/controller/config.pb.go",
@@ -2285,8 +2296,24 @@
       ],
       "protoFiles": ["db/sql/mysql/controller/config.proto"]
     },
+    "github.com/s4wave/spacewave/db/sql/rpc": {
+      "hash": "6f8ab9edefab13e976576f5e6766cc8eefded6d1cfc7053e9acbbabfab276537",
+      "generatedFiles": [
+        "db/sql/rpc/sql.pb.cc",
+        "db/sql/rpc/sql.pb.go",
+        "db/sql/rpc/sql.pb.h",
+        "db/sql/rpc/sql.pb.rs",
+        "db/sql/rpc/sql.pb.ts",
+        "db/sql/rpc/sql_srpc.pb.cpp",
+        "db/sql/rpc/sql_srpc.pb.go",
+        "db/sql/rpc/sql_srpc.pb.hpp",
+        "db/sql/rpc/sql_srpc.pb.rs",
+        "db/sql/rpc/sql_srpc.pb.ts"
+      ],
+      "protoFiles": ["db/sql/rpc/sql.proto"]
+    },
     "github.com/s4wave/spacewave/db/sql/sqlite-wasm/rpc": {
-      "hash": "863fbc5f60683431c53087046b4e98c750ebb8a7d700938a7dbdbbe54f98fc95",
+      "hash": "700bc9f262d8a437a85be52f73c23db30922b2d8d5bed0c1ff5986cba06ef299",
       "generatedFiles": [
         "db/sql/sqlite-wasm/rpc/sqlite-bridge.pb.cc",
         "db/sql/sqlite-wasm/rpc/sqlite-bridge.pb.go",

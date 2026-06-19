@@ -12,8 +12,8 @@ import type {
   OpenDbResponse,
   QueryRequest,
   QueryResponse,
-  SqlValue as ProtoSqlValue,
 } from './sqlite-bridge.pb.js'
+import type { SqlValue as ProtoSqlValue } from '../../sql.pb.js'
 import type { SqliteBridge } from './sqlite-bridge_srpc.pb.js'
 
 interface SharedDatabaseEntry {

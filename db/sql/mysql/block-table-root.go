@@ -41,6 +41,19 @@ func (r *TableRoot) Validate() error {
 			return errors.Wrapf(err, "table_partitions[%d]", i)
 		}
 	}
+	for i, index := range r.GetIndexes() {
+		if index.GetName() == "" {
+			return errors.Errorf("indexes[%d]: empty name", i)
+		}
+		if len(index.GetColumns()) == 0 {
+			return errors.Errorf("indexes[%d]: empty columns", i)
+		}
+		for j, col := range index.GetColumns() {
+			if col.GetName() == "" {
+				return errors.Errorf("indexes[%d]: columns[%d]: empty name", i, j)
+			}
+		}
+	}
 	var autoIncrIdx int
 	for i, c := range r.GetTableSchema().GetColumns() {
 		if c.GetAutoIncrement() {

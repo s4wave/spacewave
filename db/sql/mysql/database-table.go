@@ -29,10 +29,16 @@ func (d *Database) CreateTable(ctx *sql.Context, name string, schema sql.Primary
 
 // DropTable deletes a table, if it exists.
 func (d *Database) DropTable(ctx *sql.Context, name string) error {
+	oldLen := len(d.root.GetTables())
 	_, _, ok := d.nsbs.DeleteByName(name)
 	if !ok {
 		return sql.ErrTableNotFound.New(name)
 	}
+	if cursor := d.nsbs.GetCursor(); cursor != nil && oldLen > len(d.root.GetTables()) {
+		cursor.ClearRef(uint32(oldLen - 1)) //nolint:gosec
+	}
+	delete(d.tbls, name)
+	d.MarkDirty()
 	return nil
 }
 

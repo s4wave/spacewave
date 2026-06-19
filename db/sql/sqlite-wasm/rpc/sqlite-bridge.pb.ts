@@ -9,96 +9,9 @@ import {
 } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { SqlValue } from '../../sql.pb.js'
 
 export const protobufPackage = 'sql.sqlite_wasm.rpc'
-
-/**
- * SqlValue represents a SQLite value (int64, double, string, bytes, or null).
- *
- * @generated from message sql.sqlite_wasm.rpc.SqlValue
- */
-export interface SqlValue {
-  /**
-   * @generated from oneof sql.sqlite_wasm.rpc.SqlValue.value
-   */
-  value?:
-    | {
-        value?: undefined
-        case: undefined
-      }
-    | {
-        /**
-         * int_value is an INTEGER value.
-         *
-         * @generated from field: int64 int_value = 1;
-         */
-        value: bigint
-        case: 'intValue'
-      }
-    | {
-        /**
-         * float_value is a REAL value.
-         *
-         * @generated from field: double float_value = 2;
-         */
-        value: number
-        case: 'floatValue'
-      }
-    | {
-        /**
-         * str_value is a TEXT value.
-         *
-         * @generated from field: string str_value = 3;
-         */
-        value: string
-        case: 'strValue'
-      }
-    | {
-        /**
-         * blob_value is a BLOB value.
-         *
-         * @generated from field: bytes blob_value = 4;
-         */
-        value: Uint8Array
-        case: 'blobValue'
-      }
-}
-
-export const SqlValue: MessageType<SqlValue> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'sql.sqlite_wasm.rpc.SqlValue',
-    fields: [
-      {
-        no: 1,
-        name: 'int_value',
-        kind: 'scalar',
-        T: ScalarType.INT64,
-        oneof: 'value',
-      },
-      {
-        no: 2,
-        name: 'float_value',
-        kind: 'scalar',
-        T: ScalarType.DOUBLE,
-        oneof: 'value',
-      },
-      {
-        no: 3,
-        name: 'str_value',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-        oneof: 'value',
-      },
-      {
-        no: 4,
-        name: 'blob_value',
-        kind: 'scalar',
-        T: ScalarType.BYTES,
-        oneof: 'value',
-      },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
 
 /**
  * OpenDbRequest is the request to open a database.
@@ -203,7 +116,7 @@ export interface ExecRequest {
   /**
    * params are the bind parameters.
    *
-   * @generated from field: repeated sql.sqlite_wasm.rpc.SqlValue params = 3;
+   * @generated from field: repeated sql.SqlValue params = 3;
    */
   params?: SqlValue[]
 }
@@ -281,7 +194,7 @@ export interface QueryRequest {
   /**
    * params are the bind parameters.
    *
-   * @generated from field: repeated sql.sqlite_wasm.rpc.SqlValue params = 3;
+   * @generated from field: repeated sql.SqlValue params = 3;
    */
   params?: SqlValue[]
 }
@@ -319,7 +232,7 @@ export interface QueryResponse {
   /**
    * row contains one row of values, set in subsequent messages.
    *
-   * @generated from field: repeated sql.sqlite_wasm.rpc.SqlValue row = 2;
+   * @generated from field: repeated sql.SqlValue row = 2;
    */
   row?: SqlValue[]
 }

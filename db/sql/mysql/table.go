@@ -28,6 +28,54 @@ type Table struct {
 	autoIncVal uint64
 }
 
+func (t *Table) loadRootState(ctx context.Context, root *TableRoot) error {
+	schema, err := root.GetTableSchema().ToSqlSchema(sql.NewContext(ctx))
+	if err != nil {
+		return err
+	}
+	pkOrdsVals := root.GetPrimaryKeyOrdinals()
+	pkOrds := make([]int, len(pkOrdsVals))
+	for i, v := range pkOrdsVals {
+		pkOrds[i] = int(v)
+	}
+	pkSchema := sql.NewPrimaryKeySchema(schema, pkOrds...)
+
+	var autoIncIdx int
+	var autoIncVal uint64
+	for i, colSch := range root.GetTableSchema().GetColumns() {
+		if !colSch.GetAutoIncrement() {
+			continue
+		}
+		autoIncIdx = i + 1
+		autoIncInter, _, err := root.FetchAutoIncrVal(ctx, t.bcs, types.Uint64)
+		if err != nil {
+			return errors.Wrapf(err, "table_schema: columns[%d]: auto_incr_val", i)
+		}
+		if autoIncInter != nil {
+			var ok bool
+			autoIncVal, ok = autoIncInter.(uint64)
+			if !ok {
+				return errors.New("auto-increment type must be uint64")
+			}
+		}
+		break
+	}
+
+	t.schema = pkSchema
+	t.root = root
+	t.autoIncIdx = autoIncIdx
+	t.autoIncVal = autoIncVal
+	return nil
+}
+
+func (t *Table) reloadRoot(ctx context.Context, root *TableRoot) error {
+	if err := t.loadRootState(ctx, root); err != nil {
+		return err
+	}
+	t.bcs.SetBlock(root, true)
+	return nil
+}
+
 // LoadTable constructs a new table handle, loading the root block.
 func LoadTable(ctx context.Context, name string, bcs *block.Cursor) (*Table, error) {
 	// follow the database root
@@ -35,49 +83,15 @@ func LoadTable(ctx context.Context, name string, bcs *block.Cursor) (*Table, err
 	if err != nil {
 		return nil, err
 	}
-	var sctx *sql.Context
-	schema, err := dbr.GetTableSchema().ToSqlSchema(sctx)
-	if err != nil {
+	t := &Table{
+		ctx:  ctx,
+		name: name,
+		bcs:  bcs,
+	}
+	if err := t.loadRootState(ctx, dbr); err != nil {
 		return nil, err
 	}
-	pkOrdsVals := dbr.GetPrimaryKeyOrdinals()
-	pkOrds := make([]int, len(pkOrdsVals))
-	for i, v := range pkOrdsVals {
-		pkOrds[i] = int(v)
-	}
-	pkSchema := sql.NewPrimaryKeySchema(schema, pkOrds...)
-	// check for auto increment
-	var autoIncIdx int
-	var autoIncVal uint64
-	for i, colSch := range dbr.GetTableSchema().GetColumns() {
-		if colSch.GetAutoIncrement() {
-			autoIncIdx = i + 1
-			autoIncType := types.Uint64
-			var autoIncInter any
-			autoIncInter, _, err = dbr.FetchAutoIncrVal(ctx, bcs, autoIncType)
-			if err == nil {
-				var ok bool
-				autoIncVal, ok = autoIncInter.(uint64)
-				if !ok {
-					err = errors.New("auto-increment type must be uint64")
-				}
-			}
-			if err != nil {
-				return nil, errors.Wrapf(err, "table_schema: columns[%d]: auto_incr_val", i)
-			}
-			break
-		}
-	}
-	return &Table{
-		ctx:    ctx,
-		name:   name,
-		schema: pkSchema,
-		bcs:    bcs,
-		root:   dbr,
-
-		autoIncIdx: autoIncIdx,
-		autoIncVal: autoIncVal,
-	}, nil
+	return t, nil
 }
 
 // BuildTable constructs a new table, storing it in the block cursor (if set).
@@ -192,8 +206,10 @@ func (t *Table) PartitionAtIndex(ix int) (*TablePartition, error) {
 	}
 	pt := pts[ix]
 	bcs = bcs.FollowSubBlock(2).FollowSubBlock(uint32(ix)) //nolint:gosec
-	var indexLookup sql.IndexLookup                        // TODO lookup from index
-	// TODO: pkSchema here?
+	var indexLookup sql.IndexLookup
+	if t.lookup != nil {
+		indexLookup = *t.lookup
+	}
 	return NewTablePartition(ix, pt, bcs, t.schema.Schema, indexLookup)
 }
 
@@ -239,6 +255,11 @@ func (t *Table) Inserter(sqlCtx *sql.Context) sql.RowInserter {
 
 // Updater returns a row updater for the table.
 func (t *Table) Updater(sqlCtx *sql.Context) sql.RowUpdater {
+	return t.NewTableEditor(sqlCtx)
+}
+
+// Deleter returns a row deleter for the table.
+func (t *Table) Deleter(sqlCtx *sql.Context) sql.RowDeleter {
 	return t.NewTableEditor(sqlCtx)
 }
 
@@ -297,22 +318,15 @@ func (t *Table) NewTableEditor(sqlCtx *sql.Context) *TableEditor {
 
 // _ is a type assertion
 var (
-	_ sql.Table              = (*Table)(nil)
-	_ sql.PrimaryKeyTable    = (*Table)(nil)
-	_ sql.PartitionCounter   = (*Table)(nil)
-	_ sql.InsertableTable    = (*Table)(nil)
-	_ sql.UpdatableTable     = (*Table)(nil)
-	_ sql.AutoIncrementTable = (*Table)(nil)
-	/*
-		_ sql.DeletableTable           = (*Table)(nil)
-		_ sql.ReplaceableTable         = (*Table)(nil)
-		_ sql.TruncateableTable        = (*Table)(nil)
-		_ sql.DriverIndexableTable     = (*Table)(nil)
-		_ sql.AlterableTable           = (*Table)(nil)
-		_ sql.PrimaryKeyAlterableTable = (*Table)(nil)
-		_ sql.IndexAlterableTable      = (*Table)(nil)
-		_ sql.IndexedTable             = (*Table)(nil)
-		_ sql.ForeignKeyAlterableTable = (*Table)(nil)
-		_ sql.ForeignKeyTable          = (*Table)(nil)
-	*/
+	_ sql.Table               = (*Table)(nil)
+	_ sql.PrimaryKeyTable     = (*Table)(nil)
+	_ sql.PartitionCounter    = (*Table)(nil)
+	_ sql.InsertableTable     = (*Table)(nil)
+	_ sql.UpdatableTable      = (*Table)(nil)
+	_ sql.AutoIncrementTable  = (*Table)(nil)
+	_ sql.DeletableTable      = (*Table)(nil)
+	_ sql.AlterableTable      = (*Table)(nil)
+	_ sql.IndexAddressable    = (*Table)(nil)
+	_ sql.IndexedTable        = (*Table)(nil)
+	_ sql.IndexAlterableTable = (*Table)(nil)
 )

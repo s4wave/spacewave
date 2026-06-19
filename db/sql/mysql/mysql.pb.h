@@ -78,6 +78,14 @@ class TableColumn;
 struct TableColumnDefaultTypeInternal;
 extern TableColumnDefaultTypeInternal _TableColumn_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull TableColumn_class_data_;
+class TableIndex;
+struct TableIndexDefaultTypeInternal;
+extern TableIndexDefaultTypeInternal _TableIndex_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull TableIndex_class_data_;
+class TableIndexColumn;
+struct TableIndexColumnDefaultTypeInternal;
+extern TableIndexColumnDefaultTypeInternal _TableIndexColumn_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull TableIndexColumn_class_data_;
 class TablePartitionRoot;
 struct TablePartitionRootDefaultTypeInternal;
 extern TablePartitionRootDefaultTypeInternal _TablePartitionRoot_default_instance_;
@@ -170,7 +178,7 @@ class TableTimestamp final : public ::google::protobuf::Message
     return *reinterpret_cast<const TableTimestamp*>(
         &_TableTimestamp_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
+  static constexpr int kIndexInFileMessages = 10;
   friend void swap(TableTimestamp& a, TableTimestamp& b) { a.Swap(&b); }
   inline void Swap(TableTimestamp* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -372,7 +380,7 @@ class TableSchemaColumn final : public ::google::protobuf::Message
     return *reinterpret_cast<const TableSchemaColumn*>(
         &_TableSchemaColumn_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 10;
+  static constexpr int kIndexInFileMessages = 12;
   friend void swap(TableSchemaColumn& a, TableSchemaColumn& b) { a.Swap(&b); }
   inline void Swap(TableSchemaColumn* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -633,6 +641,213 @@ class TableSchemaColumn final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull TableSchemaColumn_class_data_;
 // -------------------------------------------------------------------
 
+class TableIndexColumn final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:mysql.TableIndexColumn) */ {
+ public:
+  inline TableIndexColumn() : TableIndexColumn(nullptr) {}
+  ~TableIndexColumn() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(TableIndexColumn* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(TableIndexColumn));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR TableIndexColumn(::google::protobuf::internal::ConstantInitialized);
+
+  inline TableIndexColumn(const TableIndexColumn& from) : TableIndexColumn(nullptr, from) {}
+  inline TableIndexColumn(TableIndexColumn&& from) noexcept
+      : TableIndexColumn(nullptr, ::std::move(from)) {}
+  inline TableIndexColumn& operator=(const TableIndexColumn& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline TableIndexColumn& operator=(TableIndexColumn&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const TableIndexColumn& default_instance() {
+    return *reinterpret_cast<const TableIndexColumn*>(
+        &_TableIndexColumn_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 6;
+  friend void swap(TableIndexColumn& a, TableIndexColumn& b) { a.Swap(&b); }
+  inline void Swap(TableIndexColumn* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(TableIndexColumn* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  TableIndexColumn* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<TableIndexColumn>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const TableIndexColumn& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const TableIndexColumn& from) { TableIndexColumn::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(TableIndexColumn* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "mysql.TableIndexColumn"; }
+
+  explicit TableIndexColumn(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  TableIndexColumn(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const TableIndexColumn& from);
+  TableIndexColumn(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, TableIndexColumn&& from) noexcept
+      : TableIndexColumn(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kNameFieldNumber = 1,
+    kLengthFieldNumber = 2,
+  };
+  // string name = 1;
+  void clear_name() ;
+  const ::std::string& name() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_name(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_name();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_name();
+  void set_allocated_name(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_name() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_name();
+
+  public:
+  // int64 length = 2;
+  void clear_length() ;
+  ::int64_t length() const;
+  void set_length(::int64_t value);
+
+  private:
+  ::int64_t _internal_length() const;
+  void _internal_set_length(::int64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:mysql.TableIndexColumn)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 35,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const TableIndexColumn& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr name_;
+    ::int64_t length_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull TableIndexColumn_class_data_;
+// -------------------------------------------------------------------
+
 class TableSchema final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:mysql.TableSchema) */ {
  public:
@@ -688,7 +903,7 @@ class TableSchema final : public ::google::protobuf::Message
     return *reinterpret_cast<const TableSchema*>(
         &_TableSchema_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 9;
+  static constexpr int kIndexInFileMessages = 11;
   friend void swap(TableSchema& a, TableSchema& b) { a.Swap(&b); }
   inline void Swap(TableSchema* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -828,6 +1043,249 @@ class TableSchema final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull TableSchema_class_data_;
+// -------------------------------------------------------------------
+
+class TableIndex final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:mysql.TableIndex) */ {
+ public:
+  inline TableIndex() : TableIndex(nullptr) {}
+  ~TableIndex() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(TableIndex* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(TableIndex));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR TableIndex(::google::protobuf::internal::ConstantInitialized);
+
+  inline TableIndex(const TableIndex& from) : TableIndex(nullptr, from) {}
+  inline TableIndex(TableIndex&& from) noexcept
+      : TableIndex(nullptr, ::std::move(from)) {}
+  inline TableIndex& operator=(const TableIndex& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline TableIndex& operator=(TableIndex&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const TableIndex& default_instance() {
+    return *reinterpret_cast<const TableIndex*>(
+        &_TableIndex_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 5;
+  friend void swap(TableIndex& a, TableIndex& b) { a.Swap(&b); }
+  inline void Swap(TableIndex* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(TableIndex* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  TableIndex* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<TableIndex>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const TableIndex& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const TableIndex& from) { TableIndex::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(TableIndex* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "mysql.TableIndex"; }
+
+  explicit TableIndex(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  TableIndex(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const TableIndex& from);
+  TableIndex(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, TableIndex&& from) noexcept
+      : TableIndex(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kColumnsFieldNumber = 2,
+    kNameFieldNumber = 1,
+    kCommentFieldNumber = 4,
+    kUniqueFieldNumber = 3,
+  };
+  // repeated .mysql.TableIndexColumn columns = 2;
+  int columns_size() const;
+  private:
+  int _internal_columns_size() const;
+
+  public:
+  void clear_columns() ;
+  ::mysql::TableIndexColumn* PROTOBUF_NONNULL mutable_columns(int index);
+  ::google::protobuf::RepeatedPtrField<::mysql::TableIndexColumn>* PROTOBUF_NONNULL mutable_columns();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::mysql::TableIndexColumn>& _internal_columns() const;
+  ::google::protobuf::RepeatedPtrField<::mysql::TableIndexColumn>* PROTOBUF_NONNULL _internal_mutable_columns();
+  public:
+  const ::mysql::TableIndexColumn& columns(int index) const;
+  ::mysql::TableIndexColumn* PROTOBUF_NONNULL add_columns();
+  const ::google::protobuf::RepeatedPtrField<::mysql::TableIndexColumn>& columns() const;
+  // string name = 1;
+  void clear_name() ;
+  const ::std::string& name() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_name(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_name();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_name();
+  void set_allocated_name(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_name() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_name();
+
+  public:
+  // string comment = 4;
+  void clear_comment() ;
+  const ::std::string& comment() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_comment(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_comment();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_comment();
+  void set_allocated_comment(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_comment() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_comment(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_comment();
+
+  public:
+  // bool unique = 3;
+  void clear_unique() ;
+  bool unique() const;
+  void set_unique(bool value);
+
+  private:
+  bool _internal_unique() const;
+  void _internal_set_unique(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:mysql.TableIndex)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   1, 36,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const TableIndex& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::mysql::TableIndexColumn > columns_;
+    ::google::protobuf::internal::ArenaStringPtr name_;
+    ::google::protobuf::internal::ArenaStringPtr comment_;
+    bool unique_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fmysql_2fmysql_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull TableIndex_class_data_;
 // -------------------------------------------------------------------
 
 class RootDb final : public ::google::protobuf::Message
@@ -1715,7 +2173,7 @@ class TableColumn final : public ::google::protobuf::Message
     kTimespanMicros = 10,
     VALUE_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 7;
+  static constexpr int kIndexInFileMessages = 9;
   friend void swap(TableColumn& a, TableColumn& b) { a.Swap(&b); }
   inline void Swap(TableColumn* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2059,7 +2517,7 @@ class TableRow final : public ::google::protobuf::Message
     return *reinterpret_cast<const TableRow*>(
         &_TableRow_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 8;
   friend void swap(TableRow& a, TableRow& b) { a.Swap(&b); }
   inline void Swap(TableRow* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2256,7 +2714,7 @@ class TablePartitionRoot final : public ::google::protobuf::Message
     return *reinterpret_cast<const TablePartitionRoot*>(
         &_TablePartitionRoot_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 7;
   friend void swap(TablePartitionRoot& a, TablePartitionRoot& b) { a.Swap(&b); }
   inline void Swap(TablePartitionRoot* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2540,6 +2998,7 @@ class TableRoot final : public ::google::protobuf::Message
   enum : int {
     kTablePartitionsFieldNumber = 2,
     kPrimaryKeyOrdinalsFieldNumber = 5,
+    kIndexesFieldNumber = 8,
     kCommentFieldNumber = 7,
     kTableSchemaFieldNumber = 1,
     kAutoIncrValFieldNumber = 4,
@@ -2581,6 +3040,23 @@ class TableRoot final : public ::google::protobuf::Message
   ::google::protobuf::RepeatedField<::int32_t>* PROTOBUF_NONNULL _internal_mutable_primary_key_ordinals();
 
   public:
+  // repeated .mysql.TableIndex indexes = 8;
+  int indexes_size() const;
+  private:
+  int _internal_indexes_size() const;
+
+  public:
+  void clear_indexes() ;
+  ::mysql::TableIndex* PROTOBUF_NONNULL mutable_indexes(int index);
+  ::google::protobuf::RepeatedPtrField<::mysql::TableIndex>* PROTOBUF_NONNULL mutable_indexes();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::mysql::TableIndex>& _internal_indexes() const;
+  ::google::protobuf::RepeatedPtrField<::mysql::TableIndex>* PROTOBUF_NONNULL _internal_mutable_indexes();
+  public:
+  const ::mysql::TableIndex& indexes(int index) const;
+  ::mysql::TableIndex* PROTOBUF_NONNULL add_indexes();
+  const ::google::protobuf::RepeatedPtrField<::mysql::TableIndex>& indexes() const;
   // string comment = 7;
   void clear_comment() ;
   const ::std::string& comment() const;
@@ -2650,8 +3126,8 @@ class TableRoot final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 7,
-                                   3, 31,
+  static const ::google::protobuf::internal::TcParseTable<3, 8,
+                                   4, 39,
                                    2>
       _table_;
 
@@ -2675,6 +3151,7 @@ class TableRoot final : public ::google::protobuf::Message
     ::google::protobuf::RepeatedPtrField< ::mysql::TablePartitionRoot > table_partitions_;
     ::google::protobuf::RepeatedField<::int32_t> primary_key_ordinals_;
     ::google::protobuf::internal::CachedSize _primary_key_ordinals_cached_byte_size_;
+    ::google::protobuf::RepeatedPtrField< ::mysql::TableIndex > indexes_;
     ::google::protobuf::internal::ArenaStringPtr comment_;
     ::mysql::TableSchema* PROTOBUF_NULLABLE table_schema_;
     ::mysql::TableColumn* PROTOBUF_NULLABLE auto_incr_val_;
@@ -3150,7 +3627,7 @@ inline void DatabaseRootTable::set_allocated_ref(::block::BlockRef* PROTOBUF_NUL
 
 // .mysql.TableSchema table_schema = 1;
 inline bool TableRoot::has_table_schema() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
   PROTOBUF_ASSUME(!value || _impl_.table_schema_ != nullptr);
   return value;
 }
@@ -3158,7 +3635,7 @@ inline void TableRoot::clear_table_schema() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.table_schema_ != nullptr) _impl_.table_schema_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000010U);
 }
 inline const ::mysql::TableSchema& TableRoot::_internal_table_schema() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -3177,16 +3654,16 @@ inline void TableRoot::unsafe_arena_set_allocated_table_schema(
   }
   _impl_.table_schema_ = reinterpret_cast<::mysql::TableSchema*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:mysql.TableRoot.table_schema)
 }
 inline ::mysql::TableSchema* PROTOBUF_NULLABLE TableRoot::release_table_schema() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::mysql::TableSchema* released = _impl_.table_schema_;
   _impl_.table_schema_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -3206,7 +3683,7 @@ inline ::mysql::TableSchema* PROTOBUF_NULLABLE TableRoot::unsafe_arena_release_t
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:mysql.TableRoot.table_schema)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::mysql::TableSchema* temp = _impl_.table_schema_;
   _impl_.table_schema_ = nullptr;
   return temp;
@@ -3221,7 +3698,7 @@ inline ::mysql::TableSchema* PROTOBUF_NONNULL TableRoot::_internal_mutable_table
 }
 inline ::mysql::TableSchema* PROTOBUF_NONNULL TableRoot::mutable_table_schema()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::mysql::TableSchema* _msg = _internal_mutable_table_schema();
   // @@protoc_insertion_point(field_mutable:mysql.TableRoot.table_schema)
   return _msg;
@@ -3238,9 +3715,9 @@ inline void TableRoot::set_allocated_table_schema(::mysql::TableSchema* PROTOBUF
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   }
 
   _impl_.table_schema_ = reinterpret_cast<::mysql::TableSchema*>(value);
@@ -3358,7 +3835,7 @@ inline void TableRoot::clear_row_nonce() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.row_nonce_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000040U);
 }
 inline ::uint64_t TableRoot::row_nonce() const {
   // @@protoc_insertion_point(field_get:mysql.TableRoot.row_nonce)
@@ -3366,7 +3843,7 @@ inline ::uint64_t TableRoot::row_nonce() const {
 }
 inline void TableRoot::set_row_nonce(::uint64_t value) {
   _internal_set_row_nonce(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_set:mysql.TableRoot.row_nonce)
 }
 inline ::uint64_t TableRoot::_internal_row_nonce() const {
@@ -3380,7 +3857,7 @@ inline void TableRoot::_internal_set_row_nonce(::uint64_t value) {
 
 // .mysql.TableColumn auto_incr_val = 4;
 inline bool TableRoot::has_auto_incr_val() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
   PROTOBUF_ASSUME(!value || _impl_.auto_incr_val_ != nullptr);
   return value;
 }
@@ -3388,7 +3865,7 @@ inline void TableRoot::clear_auto_incr_val() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.auto_incr_val_ != nullptr) _impl_.auto_incr_val_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000020U);
 }
 inline const ::mysql::TableColumn& TableRoot::_internal_auto_incr_val() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -3407,16 +3884,16 @@ inline void TableRoot::unsafe_arena_set_allocated_auto_incr_val(
   }
   _impl_.auto_incr_val_ = reinterpret_cast<::mysql::TableColumn*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:mysql.TableRoot.auto_incr_val)
 }
 inline ::mysql::TableColumn* PROTOBUF_NULLABLE TableRoot::release_auto_incr_val() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   ::mysql::TableColumn* released = _impl_.auto_incr_val_;
   _impl_.auto_incr_val_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -3436,7 +3913,7 @@ inline ::mysql::TableColumn* PROTOBUF_NULLABLE TableRoot::unsafe_arena_release_a
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:mysql.TableRoot.auto_incr_val)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   ::mysql::TableColumn* temp = _impl_.auto_incr_val_;
   _impl_.auto_incr_val_ = nullptr;
   return temp;
@@ -3451,7 +3928,7 @@ inline ::mysql::TableColumn* PROTOBUF_NONNULL TableRoot::_internal_mutable_auto_
 }
 inline ::mysql::TableColumn* PROTOBUF_NONNULL TableRoot::mutable_auto_incr_val()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   ::mysql::TableColumn* _msg = _internal_mutable_auto_incr_val();
   // @@protoc_insertion_point(field_mutable:mysql.TableRoot.auto_incr_val)
   return _msg;
@@ -3468,9 +3945,9 @@ inline void TableRoot::set_allocated_auto_incr_val(::mysql::TableColumn* PROTOBU
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   }
 
   _impl_.auto_incr_val_ = reinterpret_cast<::mysql::TableColumn*>(value);
@@ -3482,7 +3959,7 @@ inline void TableRoot::clear_collation_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.collation_id_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000040U);
+                  0x00000080U);
 }
 inline ::uint32_t TableRoot::collation_id() const {
   // @@protoc_insertion_point(field_get:mysql.TableRoot.collation_id)
@@ -3490,7 +3967,7 @@ inline ::uint32_t TableRoot::collation_id() const {
 }
 inline void TableRoot::set_collation_id(::uint32_t value) {
   _internal_set_collation_id(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   // @@protoc_insertion_point(field_set:mysql.TableRoot.collation_id)
 }
 inline ::uint32_t TableRoot::_internal_collation_id() const {
@@ -3507,7 +3984,7 @@ inline void TableRoot::clear_comment() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.comment_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000008U);
 }
 inline const ::std::string& TableRoot::comment() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -3517,13 +3994,13 @@ inline const ::std::string& TableRoot::comment() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void TableRoot::set_comment(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   _impl_.comment_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:mysql.TableRoot.comment)
 }
 inline ::std::string* PROTOBUF_NONNULL TableRoot::mutable_comment()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::std::string* _s = _internal_mutable_comment();
   // @@protoc_insertion_point(field_mutable:mysql.TableRoot.comment)
   return _s;
@@ -3543,6 +4020,277 @@ inline ::std::string* PROTOBUF_NONNULL TableRoot::_internal_mutable_comment() {
 inline ::std::string* PROTOBUF_NULLABLE TableRoot::release_comment() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:mysql.TableRoot.comment)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.comment_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.comment_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TableRoot::set_allocated_comment(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.comment_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.comment_.IsDefault()) {
+    _impl_.comment_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:mysql.TableRoot.comment)
+}
+
+// repeated .mysql.TableIndex indexes = 8;
+inline int TableRoot::_internal_indexes_size() const {
+  return _internal_indexes().size();
+}
+inline int TableRoot::indexes_size() const {
+  return _internal_indexes_size();
+}
+inline void TableRoot::clear_indexes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.indexes_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::mysql::TableIndex* PROTOBUF_NONNULL TableRoot::mutable_indexes(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:mysql.TableRoot.indexes)
+  return _internal_mutable_indexes()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::mysql::TableIndex>* PROTOBUF_NONNULL TableRoot::mutable_indexes()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_mutable_list:mysql.TableRoot.indexes)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_indexes();
+}
+inline const ::mysql::TableIndex& TableRoot::indexes(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:mysql.TableRoot.indexes)
+  return _internal_indexes().Get(index);
+}
+inline ::mysql::TableIndex* PROTOBUF_NONNULL TableRoot::add_indexes()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::mysql::TableIndex* _add =
+      _internal_mutable_indexes()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_add:mysql.TableRoot.indexes)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::mysql::TableIndex>& TableRoot::indexes() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:mysql.TableRoot.indexes)
+  return _internal_indexes();
+}
+inline const ::google::protobuf::RepeatedPtrField<::mysql::TableIndex>&
+TableRoot::_internal_indexes() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.indexes_;
+}
+inline ::google::protobuf::RepeatedPtrField<::mysql::TableIndex>* PROTOBUF_NONNULL
+TableRoot::_internal_mutable_indexes() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.indexes_;
+}
+
+// -------------------------------------------------------------------
+
+// TableIndex
+
+// string name = 1;
+inline void TableIndex::clear_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.name_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& TableIndex::name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:mysql.TableIndex.name)
+  return _internal_name();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TableIndex::set_name(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:mysql.TableIndex.name)
+}
+inline ::std::string* PROTOBUF_NONNULL TableIndex::mutable_name()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_name();
+  // @@protoc_insertion_point(field_mutable:mysql.TableIndex.name)
+  return _s;
+}
+inline const ::std::string& TableIndex::_internal_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.name_.Get();
+}
+inline void TableIndex::_internal_set_name(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.name_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TableIndex::_internal_mutable_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.name_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TableIndex::release_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:mysql.TableIndex.name)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.name_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.name_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TableIndex::set_allocated_name(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.name_.IsDefault()) {
+    _impl_.name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:mysql.TableIndex.name)
+}
+
+// repeated .mysql.TableIndexColumn columns = 2;
+inline int TableIndex::_internal_columns_size() const {
+  return _internal_columns().size();
+}
+inline int TableIndex::columns_size() const {
+  return _internal_columns_size();
+}
+inline void TableIndex::clear_columns() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.columns_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::mysql::TableIndexColumn* PROTOBUF_NONNULL TableIndex::mutable_columns(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:mysql.TableIndex.columns)
+  return _internal_mutable_columns()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::mysql::TableIndexColumn>* PROTOBUF_NONNULL TableIndex::mutable_columns()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:mysql.TableIndex.columns)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_columns();
+}
+inline const ::mysql::TableIndexColumn& TableIndex::columns(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:mysql.TableIndex.columns)
+  return _internal_columns().Get(index);
+}
+inline ::mysql::TableIndexColumn* PROTOBUF_NONNULL TableIndex::add_columns()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::mysql::TableIndexColumn* _add =
+      _internal_mutable_columns()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:mysql.TableIndex.columns)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::mysql::TableIndexColumn>& TableIndex::columns() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:mysql.TableIndex.columns)
+  return _internal_columns();
+}
+inline const ::google::protobuf::RepeatedPtrField<::mysql::TableIndexColumn>&
+TableIndex::_internal_columns() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.columns_;
+}
+inline ::google::protobuf::RepeatedPtrField<::mysql::TableIndexColumn>* PROTOBUF_NONNULL
+TableIndex::_internal_mutable_columns() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.columns_;
+}
+
+// bool unique = 3;
+inline void TableIndex::clear_unique() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.unique_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline bool TableIndex::unique() const {
+  // @@protoc_insertion_point(field_get:mysql.TableIndex.unique)
+  return _internal_unique();
+}
+inline void TableIndex::set_unique(bool value) {
+  _internal_set_unique(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:mysql.TableIndex.unique)
+}
+inline bool TableIndex::_internal_unique() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.unique_;
+}
+inline void TableIndex::_internal_set_unique(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.unique_ = value;
+}
+
+// string comment = 4;
+inline void TableIndex::clear_comment() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.comment_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& TableIndex::comment() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:mysql.TableIndex.comment)
+  return _internal_comment();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TableIndex::set_comment(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.comment_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:mysql.TableIndex.comment)
+}
+inline ::std::string* PROTOBUF_NONNULL TableIndex::mutable_comment()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_comment();
+  // @@protoc_insertion_point(field_mutable:mysql.TableIndex.comment)
+  return _s;
+}
+inline const ::std::string& TableIndex::_internal_comment() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.comment_.Get();
+}
+inline void TableIndex::_internal_set_comment(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.comment_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TableIndex::_internal_mutable_comment() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.comment_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TableIndex::release_comment() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:mysql.TableIndex.comment)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
     return nullptr;
   }
@@ -3553,7 +4301,7 @@ inline ::std::string* PROTOBUF_NULLABLE TableRoot::release_comment() {
   }
   return released;
 }
-inline void TableRoot::set_allocated_comment(::std::string* PROTOBUF_NULLABLE value) {
+inline void TableIndex::set_allocated_comment(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
     SetHasBit(_impl_._has_bits_[0], 0x00000004U);
@@ -3564,7 +4312,101 @@ inline void TableRoot::set_allocated_comment(::std::string* PROTOBUF_NULLABLE va
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.comment_.IsDefault()) {
     _impl_.comment_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:mysql.TableRoot.comment)
+  // @@protoc_insertion_point(field_set_allocated:mysql.TableIndex.comment)
+}
+
+// -------------------------------------------------------------------
+
+// TableIndexColumn
+
+// string name = 1;
+inline void TableIndexColumn::clear_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.name_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& TableIndexColumn::name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:mysql.TableIndexColumn.name)
+  return _internal_name();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TableIndexColumn::set_name(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:mysql.TableIndexColumn.name)
+}
+inline ::std::string* PROTOBUF_NONNULL TableIndexColumn::mutable_name()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_name();
+  // @@protoc_insertion_point(field_mutable:mysql.TableIndexColumn.name)
+  return _s;
+}
+inline const ::std::string& TableIndexColumn::_internal_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.name_.Get();
+}
+inline void TableIndexColumn::_internal_set_name(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.name_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TableIndexColumn::_internal_mutable_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.name_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TableIndexColumn::release_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:mysql.TableIndexColumn.name)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.name_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.name_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TableIndexColumn::set_allocated_name(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.name_.IsDefault()) {
+    _impl_.name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:mysql.TableIndexColumn.name)
+}
+
+// int64 length = 2;
+inline void TableIndexColumn::clear_length() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.length_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::int64_t TableIndexColumn::length() const {
+  // @@protoc_insertion_point(field_get:mysql.TableIndexColumn.length)
+  return _internal_length();
+}
+inline void TableIndexColumn::set_length(::int64_t value) {
+  _internal_set_length(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:mysql.TableIndexColumn.length)
+}
+inline ::int64_t TableIndexColumn::_internal_length() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.length_;
+}
+inline void TableIndexColumn::_internal_set_length(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.length_ = value;
 }
 
 // -------------------------------------------------------------------

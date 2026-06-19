@@ -80,6 +80,13 @@ export interface Config {
    * @generated from field: repeated string create_dbs = 9;
    */
   createDbs?: string[]
+  /**
+   * SqlRpcServiceId is the optional RPC service id used to expose the SQL store.
+   * If empty, LookupRpcService is not processed by this controller.
+   *
+   * @generated from field: string sql_rpc_service_id = 10;
+   */
+  sqlRpcServiceId?: string
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -109,6 +116,12 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       kind: 'scalar',
       T: ScalarType.STRING,
       repeated: true,
+    },
+    {
+      no: 10,
+      name: 'sql_rpc_service_id',
+      kind: 'scalar',
+      T: ScalarType.STRING,
     },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,

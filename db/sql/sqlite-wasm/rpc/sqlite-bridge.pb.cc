@@ -30,32 +30,6 @@ namespace sql {
 namespace sqlite_wasm {
 namespace rpc {
 
-inline constexpr SqlValue::Impl_::Impl_(
-    ::_pbi::ConstantInitialized) noexcept
-      : value_{},
-        _cached_size_{0},
-        _oneof_case_{} {}
-
-template <typename>
-PROTOBUF_CONSTEXPR SqlValue::SqlValue(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(SqlValue_class_data_.base()),
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(),
-#endif  // PROTOBUF_CUSTOM_VTABLE
-      _impl_(::_pbi::ConstantInitialized()) {
-}
-struct SqlValueDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR SqlValueDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~SqlValueDefaultTypeInternal() {}
-  union {
-    SqlValue _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SqlValueDefaultTypeInternal _SqlValue_default_instance_;
-
 inline constexpr OpenDbResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -315,13 +289,6 @@ static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULL
 const ::uint32_t
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
-        0x004, // bitmap
-        PROTOBUF_FIELD_OFFSET(::sql::sqlite_wasm::rpc::SqlValue, _impl_._oneof_case_[0]),
-        PROTOBUF_FIELD_OFFSET(::sql::sqlite_wasm::rpc::SqlValue, _impl_.value_),
-        PROTOBUF_FIELD_OFFSET(::sql::sqlite_wasm::rpc::SqlValue, _impl_.value_),
-        PROTOBUF_FIELD_OFFSET(::sql::sqlite_wasm::rpc::SqlValue, _impl_.value_),
-        PROTOBUF_FIELD_OFFSET(::sql::sqlite_wasm::rpc::SqlValue, _impl_.value_),
-        PROTOBUF_FIELD_OFFSET(::sql::sqlite_wasm::rpc::SqlValue, _impl_.value_),
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::sql::sqlite_wasm::rpc::OpenDbRequest, _impl_._has_bits_),
         4, // hasbit index offset
@@ -380,20 +347,18 @@ const ::uint32_t
 
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
-        {0, sizeof(::sql::sqlite_wasm::rpc::SqlValue)},
-        {7, sizeof(::sql::sqlite_wasm::rpc::OpenDbRequest)},
-        {12, sizeof(::sql::sqlite_wasm::rpc::OpenDbResponse)},
-        {17, sizeof(::sql::sqlite_wasm::rpc::CloseDbRequest)},
-        {22, sizeof(::sql::sqlite_wasm::rpc::CloseDbResponse)},
-        {23, sizeof(::sql::sqlite_wasm::rpc::ExecRequest)},
-        {32, sizeof(::sql::sqlite_wasm::rpc::ExecResponse)},
-        {39, sizeof(::sql::sqlite_wasm::rpc::QueryRequest)},
-        {48, sizeof(::sql::sqlite_wasm::rpc::QueryResponse)},
-        {55, sizeof(::sql::sqlite_wasm::rpc::DeleteDbRequest)},
-        {60, sizeof(::sql::sqlite_wasm::rpc::DeleteDbResponse)},
+        {0, sizeof(::sql::sqlite_wasm::rpc::OpenDbRequest)},
+        {5, sizeof(::sql::sqlite_wasm::rpc::OpenDbResponse)},
+        {10, sizeof(::sql::sqlite_wasm::rpc::CloseDbRequest)},
+        {15, sizeof(::sql::sqlite_wasm::rpc::CloseDbResponse)},
+        {16, sizeof(::sql::sqlite_wasm::rpc::ExecRequest)},
+        {25, sizeof(::sql::sqlite_wasm::rpc::ExecResponse)},
+        {32, sizeof(::sql::sqlite_wasm::rpc::QueryRequest)},
+        {41, sizeof(::sql::sqlite_wasm::rpc::QueryResponse)},
+        {48, sizeof(::sql::sqlite_wasm::rpc::DeleteDbRequest)},
+        {53, sizeof(::sql::sqlite_wasm::rpc::DeleteDbResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
-    &::sql::sqlite_wasm::rpc::_SqlValue_default_instance_._instance,
     &::sql::sqlite_wasm::rpc::_OpenDbRequest_default_instance_._instance,
     &::sql::sqlite_wasm::rpc::_OpenDbResponse_default_instance_._instance,
     &::sql::sqlite_wasm::rpc::_CloseDbRequest_default_instance_._instance,
@@ -409,45 +374,46 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsq
     protodesc_cold) = {
     "\nFgithub.com/s4wave/spacewave/db/sql/sql"
     "ite-wasm/rpc/sqlite-bridge.proto\022\023sql.sq"
-    "lite_wasm.rpc\"j\n\010SqlValue\022\023\n\tint_value\030\001"
-    " \001(\003H\000\022\025\n\013float_value\030\002 \001(\001H\000\022\023\n\tstr_val"
-    "ue\030\003 \001(\tH\000\022\024\n\nblob_value\030\004 \001(\014H\000B\007\n\005valu"
-    "e\"\035\n\rOpenDbRequest\022\014\n\004path\030\001 \001(\t\"\037\n\016Open"
-    "DbResponse\022\r\n\005db_id\030\001 \001(\r\"\037\n\016CloseDbRequ"
-    "est\022\r\n\005db_id\030\001 \001(\r\"\021\n\017CloseDbResponse\"X\n"
-    "\013ExecRequest\022\r\n\005db_id\030\001 \001(\r\022\013\n\003sql\030\002 \001(\t"
-    "\022-\n\006params\030\003 \003(\0132\035.sql.sqlite_wasm.rpc.S"
-    "qlValue\";\n\014ExecResponse\022\017\n\007changes\030\001 \001(\003"
-    "\022\032\n\022last_insert_row_id\030\002 \001(\003\"Y\n\014QueryReq"
-    "uest\022\r\n\005db_id\030\001 \001(\r\022\013\n\003sql\030\002 \001(\t\022-\n\006para"
-    "ms\030\003 \003(\0132\035.sql.sqlite_wasm.rpc.SqlValue\""
-    "Q\n\rQueryResponse\022\024\n\014column_names\030\001 \003(\t\022*"
-    "\n\003row\030\002 \003(\0132\035.sql.sqlite_wasm.rpc.SqlVal"
-    "ue\"\037\n\017DeleteDbRequest\022\014\n\004path\030\001 \001(\t\"\022\n\020D"
-    "eleteDbResponse2\257\003\n\014SqliteBridge\022Q\n\006Open"
-    "Db\022\".sql.sqlite_wasm.rpc.OpenDbRequest\032#"
-    ".sql.sqlite_wasm.rpc.OpenDbResponse\022T\n\007C"
-    "loseDb\022#.sql.sqlite_wasm.rpc.CloseDbRequ"
-    "est\032$.sql.sqlite_wasm.rpc.CloseDbRespons"
-    "e\022K\n\004Exec\022 .sql.sqlite_wasm.rpc.ExecRequ"
-    "est\032!.sql.sqlite_wasm.rpc.ExecResponse\022P"
-    "\n\005Query\022!.sql.sqlite_wasm.rpc.QueryReque"
-    "st\032\".sql.sqlite_wasm.rpc.QueryResponse0\001"
-    "\022W\n\010DeleteDb\022$.sql.sqlite_wasm.rpc.Delet"
-    "eDbRequest\032%.sql.sqlite_wasm.rpc.DeleteD"
-    "bResponseb\006proto3"
+    "lite_wasm.rpc\032,github.com/s4wave/spacewa"
+    "ve/db/sql/sql.proto\"\035\n\rOpenDbRequest\022\014\n\004"
+    "path\030\001 \001(\t\"\037\n\016OpenDbResponse\022\r\n\005db_id\030\001 "
+    "\001(\r\"\037\n\016CloseDbRequest\022\r\n\005db_id\030\001 \001(\r\"\021\n\017"
+    "CloseDbResponse\"H\n\013ExecRequest\022\r\n\005db_id\030"
+    "\001 \001(\r\022\013\n\003sql\030\002 \001(\t\022\035\n\006params\030\003 \003(\0132\r.sql"
+    ".SqlValue\";\n\014ExecResponse\022\017\n\007changes\030\001 \001"
+    "(\003\022\032\n\022last_insert_row_id\030\002 \001(\003\"I\n\014QueryR"
+    "equest\022\r\n\005db_id\030\001 \001(\r\022\013\n\003sql\030\002 \001(\t\022\035\n\006pa"
+    "rams\030\003 \003(\0132\r.sql.SqlValue\"A\n\rQueryRespon"
+    "se\022\024\n\014column_names\030\001 \003(\t\022\032\n\003row\030\002 \003(\0132\r."
+    "sql.SqlValue\"\037\n\017DeleteDbRequest\022\014\n\004path\030"
+    "\001 \001(\t\"\022\n\020DeleteDbResponse2\257\003\n\014SqliteBrid"
+    "ge\022Q\n\006OpenDb\022\".sql.sqlite_wasm.rpc.OpenD"
+    "bRequest\032#.sql.sqlite_wasm.rpc.OpenDbRes"
+    "ponse\022T\n\007CloseDb\022#.sql.sqlite_wasm.rpc.C"
+    "loseDbRequest\032$.sql.sqlite_wasm.rpc.Clos"
+    "eDbResponse\022K\n\004Exec\022 .sql.sqlite_wasm.rp"
+    "c.ExecRequest\032!.sql.sqlite_wasm.rpc.Exec"
+    "Response\022P\n\005Query\022!.sql.sqlite_wasm.rpc."
+    "QueryRequest\032\".sql.sqlite_wasm.rpc.Query"
+    "Response0\001\022W\n\010DeleteDb\022$.sql.sqlite_wasm"
+    ".rpc.DeleteDbRequest\032%.sql.sqlite_wasm.r"
+    "pc.DeleteDbResponseb\006proto3"
+};
+static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto_deps[1] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsql_2eproto,
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto = {
     false,
     false,
-    1137,
+    1027,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
     "github.com/s4wave/spacewave/db/sql/sqlite-wasm/rpc/sqlite-bridge.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto_once,
-    nullptr,
-    0,
-    11,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto_deps,
+    1,
+    10,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto::offsets,
@@ -457,386 +423,6 @@ PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2
 namespace sql {
 namespace sqlite_wasm {
 namespace rpc {
-// ===================================================================
-
-class SqlValue::_Internal {
- public:
-  static constexpr ::int32_t kOneofCaseOffset =
-      PROTOBUF_FIELD_OFFSET(::sql::sqlite_wasm::rpc::SqlValue, _impl_._oneof_case_);
-};
-
-SqlValue::SqlValue(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, SqlValue_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:sql.sqlite_wasm.rpc.SqlValue)
-}
-PROTOBUF_NDEBUG_INLINE SqlValue::Impl_::Impl_(
-    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
-    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-    [[maybe_unused]] const ::sql::sqlite_wasm::rpc::SqlValue& from_msg)
-      : value_{},
-        _cached_size_{0},
-        _oneof_case_{from._oneof_case_[0]} {}
-
-SqlValue::SqlValue(
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const SqlValue& from)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, SqlValue_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  SqlValue* const _this = this;
-  (void)_this;
-  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
-  switch (value_case()) {
-    case VALUE_NOT_SET:
-      break;
-      case kIntValue:
-        _impl_.value_.int_value_ = from._impl_.value_.int_value_;
-        break;
-      case kFloatValue:
-        _impl_.value_.float_value_ = from._impl_.value_.float_value_;
-        break;
-      case kStrValue:
-        new (&_impl_.value_.str_value_) decltype(_impl_.value_.str_value_){arena, from._impl_.value_.str_value_};
-        break;
-      case kBlobValue:
-        new (&_impl_.value_.blob_value_) decltype(_impl_.value_.blob_value_){arena, from._impl_.value_.blob_value_};
-        break;
-  }
-
-  // @@protoc_insertion_point(copy_constructor:sql.sqlite_wasm.rpc.SqlValue)
-}
-PROTOBUF_NDEBUG_INLINE SqlValue::Impl_::Impl_(
-    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
-    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-      : value_{},
-        _cached_size_{0},
-        _oneof_case_{} {}
-
-inline void SqlValue::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
-  new (&_impl_) Impl_(internal_visibility(), arena);
-}
-SqlValue::~SqlValue() {
-  // @@protoc_insertion_point(destructor:sql.sqlite_wasm.rpc.SqlValue)
-  SharedDtor(*this);
-}
-inline void SqlValue::SharedDtor(MessageLite& self) {
-  SqlValue& this_ = static_cast<SqlValue&>(self);
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    this_.CheckHasBitConsistency();
-  }
-  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
-  ABSL_DCHECK(this_.GetArena() == nullptr);
-  if (this_.has_value()) {
-    this_.clear_value();
-  }
-  this_._impl_.~Impl_();
-}
-
-void SqlValue::clear_value() {
-// @@protoc_insertion_point(one_of_clear_start:sql.sqlite_wasm.rpc.SqlValue)
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  switch (value_case()) {
-    case kIntValue: {
-      // No need to clear
-      break;
-    }
-    case kFloatValue: {
-      // No need to clear
-      break;
-    }
-    case kStrValue: {
-      _impl_.value_.str_value_.Destroy();
-      break;
-    }
-    case kBlobValue: {
-      _impl_.value_.blob_value_.Destroy();
-      break;
-    }
-    case VALUE_NOT_SET: {
-      break;
-    }
-  }
-  _impl_._oneof_case_[0] = VALUE_NOT_SET;
-}
-
-
-inline void* PROTOBUF_NONNULL SqlValue::PlacementNew_(
-    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) SqlValue(arena);
-}
-constexpr auto SqlValue::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(SqlValue),
-                                            alignof(SqlValue));
-}
-constexpr auto SqlValue::InternalGenerateClassData_() {
-  return ::google::protobuf::internal::ClassDataFull{
-      ::google::protobuf::internal::ClassData{
-          &_SqlValue_default_instance_._instance,
-          &_table_.header,
-          nullptr,  // OnDemandRegisterArenaDtor
-          nullptr,  // IsInitialized
-          &SqlValue::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<SqlValue>(),
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-          &SqlValue::SharedDtor,
-          ::google::protobuf::Message::GetClearImpl<SqlValue>(), &SqlValue::ByteSizeLong,
-              &SqlValue::_InternalSerialize,
-#endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(SqlValue, _impl_._cached_size_),
-          false,
-      },
-      &SqlValue::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fsql_2fsqlite_2dwasm_2frpc_2fsqlite_2dbridge_2eproto,
-      nullptr,  // tracker
-  };
-}
-
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull SqlValue_class_data_ =
-        SqlValue::InternalGenerateClassData_();
-
-PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-SqlValue::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&SqlValue_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(SqlValue_class_data_.tc_table);
-  return SqlValue_class_data_.base();
-}
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 4, 0, 46, 2>
-SqlValue::_table_ = {
-  {
-    0,  // no _has_bits_
-    0, // no _extensions_
-    4, 0,  // max_field_number, fast_idx_mask
-    offsetof(decltype(_table_), field_lookup_table),
-    4294967280,  // skipmap
-    offsetof(decltype(_table_), field_entries),
-    4,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
-    SqlValue_class_data_.base(),
-    nullptr,  // post_loop_handler
-    ::_pbi::TcParser::GenericFallback,  // fallback
-    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::sql::sqlite_wasm::rpc::SqlValue>(),  // to_prefetch
-    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
-  }, {{
-    {::_pbi::TcParser::MiniParse, {}},
-  }}, {{
-    65535, 65535
-  }}, {{
-    // int64 int_value = 1;
-    {PROTOBUF_FIELD_OFFSET(SqlValue, _impl_.value_.int_value_), _Internal::kOneofCaseOffset + 0, 0, (0 | ::_fl::kFcOneof | ::_fl::kInt64)},
-    // double float_value = 2;
-    {PROTOBUF_FIELD_OFFSET(SqlValue, _impl_.value_.float_value_), _Internal::kOneofCaseOffset + 0, 0, (0 | ::_fl::kFcOneof | ::_fl::kDouble)},
-    // string str_value = 3;
-    {PROTOBUF_FIELD_OFFSET(SqlValue, _impl_.value_.str_value_), _Internal::kOneofCaseOffset + 0, 0, (0 | ::_fl::kFcOneof | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // bytes blob_value = 4;
-    {PROTOBUF_FIELD_OFFSET(SqlValue, _impl_.value_.blob_value_), _Internal::kOneofCaseOffset + 0, 0, (0 | ::_fl::kFcOneof | ::_fl::kBytes | ::_fl::kRepAString)},
-  }},
-  // no aux_entries
-  {{
-    "\34\0\0\11\0\0\0\0"
-    "sql.sqlite_wasm.rpc.SqlValue"
-    "str_value"
-  }},
-};
-PROTOBUF_NOINLINE void SqlValue::Clear() {
-// @@protoc_insertion_point(message_clear_start:sql.sqlite_wasm.rpc.SqlValue)
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  clear_value();
-  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
-}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-::uint8_t* PROTOBUF_NONNULL SqlValue::_InternalSerialize(
-    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
-    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
-  const SqlValue& this_ = static_cast<const SqlValue&>(base);
-#else   // PROTOBUF_CUSTOM_VTABLE
-::uint8_t* PROTOBUF_NONNULL SqlValue::_InternalSerialize(
-    ::uint8_t* PROTOBUF_NONNULL target,
-    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-  const SqlValue& this_ = *this;
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    this_.CheckHasBitConsistency();
-  }
-  // @@protoc_insertion_point(serialize_to_array_start:sql.sqlite_wasm.rpc.SqlValue)
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
-
-  switch (this_.value_case()) {
-    case kIntValue: {
-      target =
-          ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<1>(
-              stream, this_._internal_int_value(), target);
-      break;
-    }
-    case kFloatValue: {
-      target = stream->EnsureSpace(target);
-      target = ::_pbi::WireFormatLite::WriteDoubleToArray(
-          2, this_._internal_float_value(), target);
-      break;
-    }
-    case kStrValue: {
-      const ::std::string& _s = this_._internal_str_value();
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "sql.sqlite_wasm.rpc.SqlValue.str_value");
-      target = stream->WriteStringMaybeAliased(3, _s, target);
-      break;
-    }
-    case kBlobValue: {
-      const ::std::string& _s = this_._internal_blob_value();
-      target = stream->WriteBytesMaybeAliased(4, _s, target);
-      break;
-    }
-    default:
-      break;
-  }
-  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
-    target =
-        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
-            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:sql.sqlite_wasm.rpc.SqlValue)
-  return target;
-}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-::size_t SqlValue::ByteSizeLong(const MessageLite& base) {
-  const SqlValue& this_ = static_cast<const SqlValue&>(base);
-#else   // PROTOBUF_CUSTOM_VTABLE
-::size_t SqlValue::ByteSizeLong() const {
-  const SqlValue& this_ = *this;
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(message_byte_size_start:sql.sqlite_wasm.rpc.SqlValue)
-  ::size_t total_size = 0;
-
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void)cached_has_bits;
-
-  switch (this_.value_case()) {
-    // int64 int_value = 1;
-    case kIntValue: {
-      total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
-          this_._internal_int_value());
-      break;
-    }
-    // double float_value = 2;
-    case kFloatValue: {
-      total_size += 9;
-      break;
-    }
-    // string str_value = 3;
-    case kStrValue: {
-      total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                      this_._internal_str_value());
-      break;
-    }
-    // bytes blob_value = 4;
-    case kBlobValue: {
-      total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
-                                      this_._internal_blob_value());
-      break;
-    }
-    case VALUE_NOT_SET: {
-      break;
-    }
-  }
-  return this_.MaybeComputeUnknownFieldsSize(total_size,
-                                             &this_._impl_._cached_size_);
-}
-
-void SqlValue::MergeImpl(::google::protobuf::MessageLite& to_msg,
-                            const ::google::protobuf::MessageLite& from_msg) {
-   auto* const _this =
-      static_cast<SqlValue*>(&to_msg);
-  auto& from = static_cast<const SqlValue&>(from_msg);
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    from.CheckHasBitConsistency();
-  }
-  ::google::protobuf::Arena* arena = _this->GetArena();
-  // @@protoc_insertion_point(class_specific_merge_from_start:sql.sqlite_wasm.rpc.SqlValue)
-  ABSL_DCHECK_NE(&from, _this);
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
-
-  if (const uint32_t oneof_from_case =
-          from._impl_._oneof_case_[0]) {
-    const uint32_t oneof_to_case = _this->_impl_._oneof_case_[0];
-    const bool oneof_needs_init = oneof_to_case != oneof_from_case;
-    if (oneof_needs_init) {
-      if (oneof_to_case != 0) {
-        _this->clear_value();
-      }
-      _this->_impl_._oneof_case_[0] = oneof_from_case;
-    }
-
-    switch (oneof_from_case) {
-      case kIntValue: {
-        _this->_impl_.value_.int_value_ = from._impl_.value_.int_value_;
-        break;
-      }
-      case kFloatValue: {
-        _this->_impl_.value_.float_value_ = from._impl_.value_.float_value_;
-        break;
-      }
-      case kStrValue: {
-        if (oneof_needs_init) {
-          _this->_impl_.value_.str_value_.InitDefault();
-        }
-        _this->_impl_.value_.str_value_.Set(from._internal_str_value(), arena);
-        break;
-      }
-      case kBlobValue: {
-        if (oneof_needs_init) {
-          _this->_impl_.value_.blob_value_.InitDefault();
-        }
-        _this->_impl_.value_.blob_value_.Set(from._internal_blob_value(), arena);
-        break;
-      }
-      case VALUE_NOT_SET:
-        break;
-    }
-  }
-  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-}
-
-void SqlValue::CopyFrom(const SqlValue& from) {
-  // @@protoc_insertion_point(class_specific_copy_from_start:sql.sqlite_wasm.rpc.SqlValue)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-
-void SqlValue::InternalSwap(SqlValue* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
-  using ::std::swap;
-  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_.value_, other->_impl_.value_);
-  swap(_impl_._oneof_case_[0], other->_impl_._oneof_case_[0]);
-}
-
-::google::protobuf::Metadata SqlValue::GetMetadata() const {
-  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
-}
 // ===================================================================
 
 class OpenDbRequest::_Internal {
@@ -1727,6 +1313,12 @@ class ExecRequest::_Internal {
       8 * PROTOBUF_FIELD_OFFSET(ExecRequest, _impl_._has_bits_);
 };
 
+void ExecRequest::clear_params() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.params_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
 ExecRequest::ExecRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::Message(arena, ExecRequest_class_data_.base()) {
@@ -1871,7 +1463,7 @@ ExecRequest::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {18, 1, 0,
       PROTOBUF_FIELD_OFFSET(ExecRequest, _impl_.sql_)}},
-    // repeated .sql.sqlite_wasm.rpc.SqlValue params = 3;
+    // repeated .sql.SqlValue params = 3;
     {::_pbi::TcParser::FastMtR1,
      {26, 0, 0,
       PROTOBUF_FIELD_OFFSET(ExecRequest, _impl_.params_)}},
@@ -1882,11 +1474,11 @@ ExecRequest::_table_ = {
     {PROTOBUF_FIELD_OFFSET(ExecRequest, _impl_.db_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // string sql = 2;
     {PROTOBUF_FIELD_OFFSET(ExecRequest, _impl_.sql_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // repeated .sql.sqlite_wasm.rpc.SqlValue params = 3;
+    // repeated .sql.SqlValue params = 3;
     {PROTOBUF_FIELD_OFFSET(ExecRequest, _impl_.params_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
-      {::_pbi::TcParser::GetTable<::sql::sqlite_wasm::rpc::SqlValue>()},
+      {::_pbi::TcParser::GetTable<::sql::SqlValue>()},
   }},
   {{
     "\37\0\3\0\0\0\0\0"
@@ -1953,7 +1545,7 @@ PROTOBUF_NOINLINE void ExecRequest::Clear() {
     }
   }
 
-  // repeated .sql.sqlite_wasm.rpc.SqlValue params = 3;
+  // repeated .sql.SqlValue params = 3;
   if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
     for (unsigned i = 0, n = static_cast<unsigned>(
                              this_._internal_params_size());
@@ -1992,7 +1584,7 @@ PROTOBUF_NOINLINE void ExecRequest::Clear() {
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
   if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
-    // repeated .sql.sqlite_wasm.rpc.SqlValue params = 3;
+    // repeated .sql.SqlValue params = 3;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       total_size += 1UL * this_._internal_params_size();
       for (const auto& msg : this_._internal_params()) {
@@ -2384,6 +1976,12 @@ class QueryRequest::_Internal {
       8 * PROTOBUF_FIELD_OFFSET(QueryRequest, _impl_._has_bits_);
 };
 
+void QueryRequest::clear_params() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.params_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
 QueryRequest::QueryRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::Message(arena, QueryRequest_class_data_.base()) {
@@ -2528,7 +2126,7 @@ QueryRequest::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {18, 1, 0,
       PROTOBUF_FIELD_OFFSET(QueryRequest, _impl_.sql_)}},
-    // repeated .sql.sqlite_wasm.rpc.SqlValue params = 3;
+    // repeated .sql.SqlValue params = 3;
     {::_pbi::TcParser::FastMtR1,
      {26, 0, 0,
       PROTOBUF_FIELD_OFFSET(QueryRequest, _impl_.params_)}},
@@ -2539,11 +2137,11 @@ QueryRequest::_table_ = {
     {PROTOBUF_FIELD_OFFSET(QueryRequest, _impl_.db_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // string sql = 2;
     {PROTOBUF_FIELD_OFFSET(QueryRequest, _impl_.sql_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // repeated .sql.sqlite_wasm.rpc.SqlValue params = 3;
+    // repeated .sql.SqlValue params = 3;
     {PROTOBUF_FIELD_OFFSET(QueryRequest, _impl_.params_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
-      {::_pbi::TcParser::GetTable<::sql::sqlite_wasm::rpc::SqlValue>()},
+      {::_pbi::TcParser::GetTable<::sql::SqlValue>()},
   }},
   {{
     "\40\0\3\0\0\0\0\0"
@@ -2610,7 +2208,7 @@ PROTOBUF_NOINLINE void QueryRequest::Clear() {
     }
   }
 
-  // repeated .sql.sqlite_wasm.rpc.SqlValue params = 3;
+  // repeated .sql.SqlValue params = 3;
   if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
     for (unsigned i = 0, n = static_cast<unsigned>(
                              this_._internal_params_size());
@@ -2649,7 +2247,7 @@ PROTOBUF_NOINLINE void QueryRequest::Clear() {
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
   if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
-    // repeated .sql.sqlite_wasm.rpc.SqlValue params = 3;
+    // repeated .sql.SqlValue params = 3;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       total_size += 1UL * this_._internal_params_size();
       for (const auto& msg : this_._internal_params()) {
@@ -2748,6 +2346,12 @@ class QueryResponse::_Internal {
       8 * PROTOBUF_FIELD_OFFSET(QueryResponse, _impl_._has_bits_);
 };
 
+void QueryResponse::clear_row() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.row_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
 QueryResponse::QueryResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::Message(arena, QueryResponse_class_data_.base()) {
@@ -2884,7 +2488,7 @@ QueryResponse::_table_ = {
     ::_pbi::TcParser::GetTable<::sql::sqlite_wasm::rpc::QueryResponse>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // repeated .sql.sqlite_wasm.rpc.SqlValue row = 2;
+    // repeated .sql.SqlValue row = 2;
     {::_pbi::TcParser::FastMtR1,
      {18, 1, 0,
       PROTOBUF_FIELD_OFFSET(QueryResponse, _impl_.row_)}},
@@ -2897,11 +2501,11 @@ QueryResponse::_table_ = {
   }}, {{
     // repeated string column_names = 1;
     {PROTOBUF_FIELD_OFFSET(QueryResponse, _impl_.column_names_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
-    // repeated .sql.sqlite_wasm.rpc.SqlValue row = 2;
+    // repeated .sql.SqlValue row = 2;
     {PROTOBUF_FIELD_OFFSET(QueryResponse, _impl_.row_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
-      {::_pbi::TcParser::GetTable<::sql::sqlite_wasm::rpc::SqlValue>()},
+      {::_pbi::TcParser::GetTable<::sql::SqlValue>()},
   }},
   {{
     "\41\14\0\0\0\0\0\0"
@@ -2958,7 +2562,7 @@ PROTOBUF_NOINLINE void QueryResponse::Clear() {
     }
   }
 
-  // repeated .sql.sqlite_wasm.rpc.SqlValue row = 2;
+  // repeated .sql.SqlValue row = 2;
   if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
     for (unsigned i = 0, n = static_cast<unsigned>(
                              this_._internal_row_size());
@@ -3006,7 +2610,7 @@ PROTOBUF_NOINLINE void QueryResponse::Clear() {
             this_._internal_column_names().Get(i));
       }
     }
-    // repeated .sql.sqlite_wasm.rpc.SqlValue row = 2;
+    // repeated .sql.SqlValue row = 2;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
       total_size += 1UL * this_._internal_row_size();
       for (const auto& msg : this_._internal_row()) {
