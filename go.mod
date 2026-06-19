@@ -14,7 +14,7 @@ replace (
 // https://github.com/dgraph-io/badger/pull/2048
 replace github.com/dgraph-io/badger/v4 => github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac // main
 
-replace github.com/dgraph-io/ristretto/v2 => github.com/aperturerobotics/ristretto/v2 v2.0.0-20260517212455-e8ae7254a03d // main
+replace github.com/dgraph-io/ristretto/v2 => github.com/aperturerobotics/ristretto/v2 v2.0.0-20260619193556-b7aa4f19bce9 // main
 
 // https://github.com/wazero/wazero/pull/2479
 // https://github.com/wazero/wazero/pull/2481
@@ -30,7 +30,7 @@ require (
 	github.com/aperturerobotics/controllerbus v0.53.4 // latest
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
-	github.com/aperturerobotics/fastjson v0.1.1
+	github.com/aperturerobotics/fastjson v0.1.2-0.20260619070337-5d150feb5e98
 	github.com/aperturerobotics/fsnotify v1.9.1-0.20260506231828-931cb4bf1761 // master
 	github.com/aperturerobotics/go-brotli-decoder v1.2.2
 	github.com/aperturerobotics/go-indexeddb v0.2.3 // master
@@ -41,7 +41,7 @@ require (
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 // indirect
 	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.1
 	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260614231932-9ac47eecfff5
-	github.com/aperturerobotics/go-websocket v1.8.15-0.20260329113544-74dbfb8f11c6
+	github.com/aperturerobotics/go-websocket v1.8.15-0.20260619192713-a096778f08c1
 	github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d
 	github.com/aperturerobotics/goscript v0.2.5-0.20260619072609-cdca210ee33e
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
