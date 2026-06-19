@@ -1,4 +1,4 @@
-import React, { Component, Suspense, useMemo } from 'react'
+import React, { Component, Suspense, useMemo, useState } from 'react'
 import { WebViewErrorBoundary } from './web-view-error-boundary.js'
 import type {
   LoadedProtoComponent,
@@ -37,18 +37,22 @@ export interface IReactComponentContainerProps {
 // ReactComponentContainer imports and initializes a ReactComponent script.
 export function ReactComponentContainer(props: IReactComponentContainerProps) {
   const componentProps = useMemoUint8Array(props.componentProps ?? null)
+  const [retryAttempt, setRetryAttempt] = useState(0)
 
-  const LoadedComponent: ProtoComponentType = useMemo(
-    () =>
-      React.lazy(
-        async (): Promise<{ default: LoadedProtoComponent }> =>
-          loadWebViewScriptModule(props.scriptPath),
-      ),
-    [props.scriptPath],
-  )
+  const LoadedComponent: ProtoComponentType = useMemo(() => {
+    // React caches rejected lazy payloads, so recoverable load retries must
+    // allocate a new lazy component even when the script path is unchanged.
+    void retryAttempt
+    return React.lazy(
+      async (): Promise<{ default: LoadedProtoComponent }> =>
+        loadWebViewScriptModule(props.scriptPath),
+    )
+  }, [props.scriptPath, retryAttempt])
 
   return (
-    <WebViewErrorBoundary>
+    <WebViewErrorBoundary
+      onRecoverableRetry={() => setRetryAttempt((attempt) => attempt + 1)}
+    >
       <Suspense fallback={null}>
         <InnerComponent
           componentProps={componentProps ?? undefined}

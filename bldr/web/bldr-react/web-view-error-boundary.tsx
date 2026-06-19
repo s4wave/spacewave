@@ -4,6 +4,8 @@ import { getWebViewRootAssetLoadError } from './web-view-module-loader.js'
 export interface IWebViewErrorBoundaryProps {
   // children are children elements
   children?: React.ReactNode
+  // onRecoverableRetry is called before retrying a recoverable load failure.
+  onRecoverableRetry?: () => void
 }
 
 interface IWebViewErrorBoundaryState {
@@ -166,6 +168,7 @@ export class WebViewErrorBoundary extends React.Component<
         const next = prev.countdown - 1
         if (next <= 0) {
           this.clearCountdown()
+          this.props.onRecoverableRetry?.()
           return {
             ...prev,
             countdown: 0,
@@ -180,6 +183,7 @@ export class WebViewErrorBoundary extends React.Component<
 
   private handleRetryNow = () => {
     this.clearCountdown()
+    this.props.onRecoverableRetry?.()
     this.setState((prev) => ({
       caughtError: undefined,
       countdown: 0,

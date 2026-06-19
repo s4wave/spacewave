@@ -1,5 +1,5 @@
 import React from 'react'
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { WebViewErrorBoundary } from './web-view-error-boundary.js'
@@ -68,5 +68,30 @@ describe('WebViewErrorBoundary module load diagnostics', () => {
     expect(rendered.container.textContent).not.toContain(
       'Failed to load plugin asset',
     )
+  })
+
+  it('notifies before manually retrying recoverable root asset failures', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    const onRecoverableRetry = vi.fn()
+    const error = new WebViewRootAssetLoadError({
+      scriptPath: '/b/pa/spacewave-app/v/app/App-bypass.mjs',
+      status: 200,
+      ok: true,
+      classification: 'bypass',
+    })
+
+    const rendered = render(
+      React.createElement(
+        WebViewErrorBoundary,
+        { onRecoverableRetry },
+        React.createElement(ThrowError, { error }),
+      ),
+    )
+
+    fireEvent.click(rendered.getByText('Retry now'))
+
+    expect(onRecoverableRetry).toHaveBeenCalledOnce()
   })
 })
