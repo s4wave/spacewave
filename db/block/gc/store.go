@@ -153,9 +153,15 @@ func (g *GCStoreOps) BeginReadOperation(ctx context.Context) (block.StoreOps, fu
 	if err != nil {
 		return nil, nil, err
 	}
-	scoped := *g
-	scoped.store = store
-	return &scoped, release, nil
+	scoped := &GCStoreOps{
+		store:     store,
+		refGraph:  g.refGraph,
+		wal:       g.wal,
+		parentIRI: g.parentIRI,
+		flushTask: g.flushTask,
+	}
+	scoped.deferFlush.Store(g.deferFlush.Load())
+	return scoped, release, nil
 }
 
 // PutBlock puts a block into the store and buffers a gc/ref edge for
