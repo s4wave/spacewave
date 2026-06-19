@@ -6,8 +6,7 @@
   <h3>Your own cloud, built for humans and agents</h3>
 
   <p>
-    Start with a private workspace that runs on your computers, syncs peer-to-peer, and keeps working offline.<br/>
-    Grow it into shared Spaces for apps, devices, workflows, plugins, and automation.<br/>
+    Private workspace that runs on your computers, syncs peer-to-peer, and keeps working offline.
   </p>
 </div>
 
