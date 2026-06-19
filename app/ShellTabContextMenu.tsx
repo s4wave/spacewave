@@ -65,7 +65,17 @@ export function ShellTabContextMenu({
       <DropdownMenuTrigger asChild>
         <DropdownMenuGhostAnchor x={state?.x ?? 0} y={state?.y ?? 0} />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" side="bottom">
+      {/* Rename Tab opens an inline rename input on the tab. Radix keeps the
+          closing menu mounted through its exit animation and, on unmount,
+          returns focus to the trigger. Without preventDefault that focus
+          return blurs the just-mounted input, saving and exiting edit mode
+          immediately (the rename flicker). The ghost-anchor trigger is not
+          focusable, so suppressing the return loses nothing. */}
+      <DropdownMenuContent
+        align="start"
+        side="bottom"
+        onCloseAutoFocus={(event) => event.preventDefault()}
+      >
         <DropdownMenuItem onClick={() => handleAction(onNewTab)}>
           <LuPlus className="size-4" />
           New Tab
