@@ -2,7 +2,6 @@ package crypto
 
 import (
 	stdcrypto "crypto"
-	"crypto/ecdsa"
 	"crypto/ed25519"
 )
 
@@ -47,34 +46,4 @@ func PubKeyToStdKey(pub PubKey) (stdcrypto.PublicKey, error) {
 	default:
 		return nil, ErrBadKeyType
 	}
-}
-
-// ECDSAPublicKeyFromStdKey wraps a standard library *ecdsa.PublicKey. This is
-// provided for interop with x509 certificates that may use ECDSA; bifrost does
-// not generate ECDSA keys itself.
-func ECDSAPublicKeyFromStdKey(pub *ecdsa.PublicKey) PubKey {
-	return &ecdsaPublicKeyAdapter{pub: pub}
-}
-
-// ecdsaPublicKeyAdapter wraps *ecdsa.PublicKey for verify-only use.
-type ecdsaPublicKeyAdapter struct {
-	pub *ecdsa.PublicKey
-}
-
-func (k *ecdsaPublicKeyAdapter) Type() KeyType { return KeyType(3) }
-
-func (k *ecdsaPublicKeyAdapter) Raw() ([]byte, error) {
-	return nil, ErrBadKeyType
-}
-
-func (k *ecdsaPublicKeyAdapter) Equals(o Key) bool {
-	other, ok := o.(*ecdsaPublicKeyAdapter)
-	if !ok {
-		return false
-	}
-	return k.pub.Equal(other.pub)
-}
-
-func (k *ecdsaPublicKeyAdapter) Verify(data []byte, sig []byte) (bool, error) {
-	return ecdsa.VerifyASN1(k.pub, data, sig), nil
 }
