@@ -11,8 +11,7 @@ package p2ptls
 
 import (
 	gocrypto "crypto"
-	"crypto/ecdsa"
-	"crypto/elliptic"
+	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
@@ -219,11 +218,11 @@ func GenerateSignedExtension(sk crypto.PrivKey, pubKey gocrypto.PublicKey) (pkix
 	return pkix.Extension{Id: extensionID, Critical: extensionCritical, Value: value}, nil
 }
 
-// keyToCertificate generates a new ECDSA private key and corresponding x509 certificate.
+// keyToCertificate generates a new ed25519 private key and corresponding x509 certificate.
 // The certificate includes an extension that cryptographically ties it to the provided
 // private key to authenticate TLS connections.
 func keyToCertificate(sk crypto.PrivKey, certTmpl *x509.Certificate) (*tls.Certificate, error) {
-	certKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	_, certKey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil, err
 	}
