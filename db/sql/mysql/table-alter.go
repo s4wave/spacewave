@@ -152,7 +152,7 @@ func (t *Table) rewriteRows(
 				tx.Discard()
 				return err
 			}
-			if err := newSchema.Schema.CheckRow(ctx, next); err != nil {
+			if err := newSchema.CheckRow(ctx, next); err != nil {
 				rowIter.Close(ctx)
 				tx.Discard()
 				return err

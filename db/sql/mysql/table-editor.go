@@ -192,7 +192,7 @@ func (i *TableEditor) Delete(sqlCtx *sql.Context, row sql.Row) error {
 	if len(row) != len(i.t.schema.Schema) {
 		return sql.ErrInvalidColumnNumber.New(len(i.t.schema.Schema), len(row))
 	}
-	if err := i.t.schema.Schema.CheckRow(checkCtx, row); err != nil {
+	if err := i.t.schema.CheckRow(checkCtx, row); err != nil {
 		return err
 	}
 	pt, rowKey, err := i.findRowKey(checkCtx, row)
