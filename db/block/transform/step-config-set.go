@@ -7,7 +7,8 @@ import (
 
 // stepConfigSet holds a set of step configurations.
 type stepConfigSet struct {
-	v *[]*StepConfig
+	alias block.AliasIdentityToken
+	v     *[]*StepConfig
 }
 
 // NewStepConfigSet builds a new step config set container.
@@ -33,6 +34,11 @@ func NewStepConfigSetSubBlockCtor(r *[]*StepConfig) block.SubBlockCtor {
 // IsNil returns if the object is nil.
 func (r *stepConfigSet) IsNil() bool {
 	return r == nil
+}
+
+// BlockAliasIdentity returns the in-memory alias token for stepConfigSet.
+func (r *stepConfigSet) BlockAliasIdentity() *block.AliasIdentityToken {
+	return &r.alias
 }
 
 // Get returns the value at the index.

@@ -68,8 +68,13 @@ func (s *aliasRaceShared) waitStart() {
 }
 
 type aliasRaceRoot struct {
+	alias     AliasIdentityToken
 	inlineRef *BlockRef
 	dirents   *aliasRaceDirentSlice
+}
+
+func (r *aliasRaceRoot) BlockAliasIdentity() *AliasIdentityToken {
+	return &r.alias
 }
 
 func (r *aliasRaceRoot) MarshalBlock() ([]byte, error) {
@@ -122,8 +127,13 @@ func (r *aliasRaceRoot) GetBlockRefCtor(uint32) Ctor {
 }
 
 type aliasRaceInline struct {
+	alias  AliasIdentityToken
 	shared *aliasRaceShared
 	dirent *aliasRaceDirent
+}
+
+func (i *aliasRaceInline) BlockAliasIdentity() *AliasIdentityToken {
+	return &i.alias
 }
 
 func (i *aliasRaceInline) IsNil() bool {
@@ -159,7 +169,12 @@ func (i *aliasRaceInline) ApplySubBlock(uint32, SubBlock) error {
 }
 
 type aliasRaceDirentSlice struct {
+	alias  AliasIdentityToken
 	dirent *aliasRaceDirent
+}
+
+func (s *aliasRaceDirentSlice) BlockAliasIdentity() *AliasIdentityToken {
+	return &s.alias
 }
 
 func (s *aliasRaceDirentSlice) IsNil() bool {
@@ -186,7 +201,12 @@ func (s *aliasRaceDirentSlice) GetSubBlockCtor(uint32) SubBlockCtor {
 }
 
 type aliasRaceDirent struct {
+	alias  AliasIdentityToken
 	shared *aliasRaceShared
+}
+
+func (d *aliasRaceDirent) BlockAliasIdentity() *AliasIdentityToken {
+	return &d.alias
 }
 
 func (d *aliasRaceDirent) IsNil() bool {

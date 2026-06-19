@@ -2,7 +2,6 @@ package block
 
 import (
 	"context"
-	"reflect"
 	"runtime"
 	"slices"
 	"sync"
@@ -627,14 +626,14 @@ func (t *Transaction) addMarshalAliasWaits(reachable map[int64]transactionReacha
 	if t == nil || t.blockGraph == nil {
 		return
 	}
-	handlesByBlock := make(map[uintptr][]int64, len(reachable))
+	handlesByBlock := make(map[*AliasIdentityToken][]int64, len(reachable))
 	for nodeID := range reachable {
 		h, _ := t.blockGraph.Node(nodeID).(*handle)
 		if h == nil {
 			continue
 		}
 		identity := blockAliasIdentity(h.blk)
-		if identity == 0 {
+		if identity == nil {
 			continue
 		}
 		handlesByBlock[identity] = append(handlesByBlock[identity], nodeID)
@@ -648,9 +647,9 @@ func (t *Transaction) addMarshalAliasWaits(reachable map[int64]transactionReacha
 		for _, childID := range reachable[nodeID].from {
 			waitSet[childID] = struct{}{}
 		}
-		walkMarshalAliasSubBlocks(h.blk, make(map[uintptr]struct{}), func(subBlock any) {
+		walkMarshalAliasSubBlocks(h.blk, make(map[*AliasIdentityToken]struct{}), func(subBlock any) {
 			identity := blockAliasIdentity(subBlock)
-			if identity == 0 {
+			if identity == nil {
 				return
 			}
 			for _, aliasID := range handlesByBlock[identity] {
@@ -676,20 +675,20 @@ func (t *Transaction) addMarshalAliasWaits(reachable map[int64]transactionReacha
 	}
 }
 
-func blockAliasIdentity(v any) uintptr {
+func blockAliasIdentity(v any) *AliasIdentityToken {
 	if v == nil {
-		return 0
+		return nil
 	}
-	rv := reflect.ValueOf(v)
-	if rv.Kind() != reflect.Pointer || rv.IsNil() {
-		return 0
+	withIdentity, ok := v.(BlockWithAliasIdentity)
+	if !ok {
+		return nil
 	}
-	return rv.Pointer()
+	return withIdentity.BlockAliasIdentity()
 }
 
-func walkMarshalAliasSubBlocks(v any, seen map[uintptr]struct{}, visit func(any)) {
+func walkMarshalAliasSubBlocks(v any, seen map[*AliasIdentityToken]struct{}, visit func(any)) {
 	identity := blockAliasIdentity(v)
-	if identity != 0 {
+	if identity != nil {
 		if _, ok := seen[identity]; ok {
 			return
 		}

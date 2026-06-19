@@ -36,8 +36,9 @@ type NamedBlockRefSetContainer interface {
 //
 // The list is sorted / keyed by name, unique.
 type NamedBlockRefSet struct {
-	sl  NamedBlockRefSetContainer
-	bcs *block.Cursor
+	alias block.AliasIdentityToken
+	sl    NamedBlockRefSetContainer
+	bcs   *block.Cursor
 }
 
 // NewNamedBlockRefSet constructs a new NamedBlockRefSet from a slice pointer.
@@ -50,6 +51,11 @@ func NewNamedBlockRefSet(sl NamedBlockRefSetContainer, bcs *block.Cursor) *Named
 // IsNil checks if the object is nil.
 func (r *NamedBlockRefSet) IsNil() bool {
 	return r == nil
+}
+
+// BlockAliasIdentity returns the in-memory alias token for NamedBlockRefSet.
+func (r *NamedBlockRefSet) BlockAliasIdentity() *block.AliasIdentityToken {
+	return &r.alias
 }
 
 // GetCursor returns the sub-block cursor located at r, if set.

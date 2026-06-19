@@ -11,6 +11,7 @@ import (
 
 // DirentSlice implements dirent slice functions.
 type DirentSlice struct {
+	alias   block.AliasIdentityToken
 	dirents *[]*Dirent
 	// bcs may be nil
 	// should be located at the dirent slice sub-block
@@ -29,6 +30,11 @@ func NewDirentSlice(dirents *[]*Dirent, parentNodeCursor *block.Cursor) *DirentS
 // IsNil returns if the object is nil.
 func (d *DirentSlice) IsNil() bool {
 	return d == nil
+}
+
+// BlockAliasIdentity returns the in-memory alias token for DirentSlice.
+func (d *DirentSlice) BlockAliasIdentity() *block.AliasIdentityToken {
+	return &d.alias
 }
 
 // Len is the number of elements in the collection.

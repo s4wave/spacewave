@@ -7,6 +7,7 @@ import (
 
 // StagesMap is a sub-block representing a map from Stage to hash.
 type StagesMap struct {
+	alias block.AliasIdentityToken
 	// v is the pointer to the value
 	v *map[uint32]*hash.Hash
 }
@@ -19,6 +20,11 @@ func NewStagesMap(v *map[uint32]*hash.Hash) *StagesMap {
 // IsNil returns if the object is nil.
 func (m *StagesMap) IsNil() bool {
 	return m == nil
+}
+
+// BlockAliasIdentity returns the in-memory alias token for StagesMap.
+func (m *StagesMap) BlockAliasIdentity() *block.AliasIdentityToken {
+	return &m.alias
 }
 
 // ApplySubBlock applies a sub-block change with a field id.

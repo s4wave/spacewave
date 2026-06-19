@@ -63,6 +63,7 @@ type BlockWithRefs interface {
 // SubBlock is a object contained inside a Block.
 // May optionally implement Block or other Block interfaces.
 type SubBlock interface {
+	BlockWithAliasIdentity
 	// IsNil checks if the object is nil.
 	IsNil() bool
 }

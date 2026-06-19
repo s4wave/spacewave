@@ -12,7 +12,8 @@ var ErrOutOfBounds = errors.New("ref out of bounds")
 
 // BlockRefSlice implements block ref slice functions.
 type BlockRefSlice struct {
-	refs *[]*block.BlockRef
+	alias block.AliasIdentityToken
+	refs  *[]*block.BlockRef
 	// bcs is a sub-block cursor located at the slice.
 	bcs *block.Cursor
 	// blockCtor can be nil, should construct a block at index.
@@ -51,6 +52,11 @@ func NewBlockRefSliceSubBlockCtor(
 // IsNil checks if the object is nil.
 func (d *BlockRefSlice) IsNil() bool {
 	return d == nil
+}
+
+// BlockAliasIdentity returns the in-memory alias token for BlockRefSlice.
+func (d *BlockRefSlice) BlockAliasIdentity() *block.AliasIdentityToken {
+	return &d.alias
 }
 
 // GetRefs returns the refs slice.

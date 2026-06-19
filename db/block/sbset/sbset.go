@@ -24,8 +24,9 @@ type SubBlockContainer interface {
 
 // SubBlockSet contains a ordered set of sub-blocks.
 type SubBlockSet struct {
-	sl  SubBlockContainer
-	bcs *block.Cursor
+	alias block.AliasIdentityToken
+	sl    SubBlockContainer
+	bcs   *block.Cursor
 }
 
 // NewSubBlockSet constructs a new SubBlockSet from a slice pointer.
@@ -43,6 +44,11 @@ func (r *SubBlockSet) GetCursor() *block.Cursor {
 // IsNil returns if the object is nil.
 func (r *SubBlockSet) IsNil() bool {
 	return r == nil
+}
+
+// BlockAliasIdentity returns the in-memory alias token for SubBlockSet.
+func (r *SubBlockSet) BlockAliasIdentity() *block.AliasIdentityToken {
+	return &r.alias
 }
 
 // Get gets the sub-block at the index.

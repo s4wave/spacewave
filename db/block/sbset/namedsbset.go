@@ -31,8 +31,9 @@ type NamedSubBlockContainer interface {
 //
 // The list is sorted / keyed by name, unique.
 type NamedSubBlockSet struct {
-	sl  NamedSubBlockContainer
-	bcs *block.Cursor
+	alias block.AliasIdentityToken
+	sl    NamedSubBlockContainer
+	bcs   *block.Cursor
 }
 
 // NewNamedSubBlockSet constructs a new NamedSubBlockSet from a slice pointer.
@@ -45,6 +46,11 @@ func NewNamedSubBlockSet(sl NamedSubBlockContainer, bcs *block.Cursor) *NamedSub
 // IsNil returns if the object is nil.
 func (r *NamedSubBlockSet) IsNil() bool {
 	return r == nil
+}
+
+// BlockAliasIdentity returns the in-memory alias token for NamedSubBlockSet.
+func (r *NamedSubBlockSet) BlockAliasIdentity() *block.AliasIdentityToken {
+	return &r.alias
 }
 
 // GetContainer returns the sub-block container.

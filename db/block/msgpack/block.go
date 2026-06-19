@@ -9,7 +9,8 @@ import (
 
 // MsgpackBlock directly wraps an interface with a decoder/encoder.
 type MsgpackBlock[T any] struct {
-	obj T
+	alias block.AliasIdentityToken
+	obj   T
 }
 
 // NewMsgpackBlock builds a new object wrapped with a msgpack decoder.
@@ -78,6 +79,11 @@ func BlockToObject[T comparable](ctx context.Context, bcs *block.Cursor, dest T)
 // IsNil checks if the object is nil.
 func (b *MsgpackBlock[T]) IsNil() bool {
 	return b == nil
+}
+
+// BlockAliasIdentity returns the in-memory alias token for MsgpackBlock.
+func (b *MsgpackBlock[T]) BlockAliasIdentity() *block.AliasIdentityToken {
+	return &b.alias
 }
 
 // GetObj returns the contained object.

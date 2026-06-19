@@ -8,7 +8,8 @@ import (
 
 // testNamedSubBlock is an example NamedSubBlock.
 type testNamedSubBlock struct {
-	name string
+	alias AliasIdentityToken
+	name  string
 }
 
 // GetName returns the name of the block.
@@ -19,6 +20,11 @@ func (t *testNamedSubBlock) GetName() string {
 // IsNil returns if the object is nil.
 func (t *testNamedSubBlock) IsNil() bool {
 	return t == nil
+}
+
+// BlockAliasIdentity returns the in-memory alias token for testNamedSubBlock.
+func (t *testNamedSubBlock) BlockAliasIdentity() *AliasIdentityToken {
+	return &t.alias
 }
 
 // Equals compares to the other block.

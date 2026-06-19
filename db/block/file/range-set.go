@@ -7,7 +7,8 @@ import (
 
 // rangeSet holds a set of ranges.
 type rangeSet struct {
-	v *[]*Range
+	alias block.AliasIdentityToken
+	v     *[]*Range
 }
 
 // NewRangeSet builds a new range set container.
@@ -23,6 +24,11 @@ func NewRangeSet(v *[]*Range, bcs *block.Cursor) *sbset.SubBlockSet {
 // IsNil checks if the range set is nil.
 func (r *rangeSet) IsNil() bool {
 	return r == nil
+}
+
+// BlockAliasIdentity returns the in-memory alias token for rangeSet.
+func (r *rangeSet) BlockAliasIdentity() *block.AliasIdentityToken {
+	return &r.alias
 }
 
 // Get returns the value at the index.

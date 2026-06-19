@@ -8,7 +8,8 @@ import (
 
 // ByteSlice is a byte slice sub-block.
 type ByteSlice struct {
-	sl *[]byte
+	alias block.AliasIdentityToken
+	sl    *[]byte
 }
 
 // NewByteSlice constructs a new sub-block from a byte slice.
@@ -55,6 +56,11 @@ func ByteSliceToRef(ctx context.Context, bcs *block.Cursor, apply bool) (*block.
 // IsNil returns if the object is nil.
 func (b *ByteSlice) IsNil() bool {
 	return b == nil
+}
+
+// BlockAliasIdentity returns the in-memory alias token for ByteSlice.
+func (b *ByteSlice) BlockAliasIdentity() *block.AliasIdentityToken {
+	return &b.alias
 }
 
 // GetBytes returns the byte slice.
