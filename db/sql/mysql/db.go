@@ -4,7 +4,6 @@ package mysql
 
 import (
 	"context"
-	"database/sql"
 	"database/sql/driver"
 	"sync"
 
@@ -52,17 +51,6 @@ func NewSqlConn(ctx context.Context, tx *Tx, dsn string) (SqlConn, error) {
 		return nil, err
 	}
 	return cn.(SqlConn), nil
-}
-
-// NewSqlDb opens the sql database driver.
-// NOTE: dsn is used to specify arguments and is NOT the db name.
-// ctx is used for the provider Resolve function.
-func NewSqlDb(ctx context.Context, tx *Tx, dsn string) (*sql.DB, error) {
-	conn, err := NewSqlConnector(ctx, tx, dsn)
-	if err != nil {
-		return nil, err
-	}
-	return sql.OpenDB(conn), nil
 }
 
 // _ is a type assertion
