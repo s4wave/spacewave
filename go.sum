@@ -64,8 +64,8 @@ github.com/aperturerobotics/go-websocket v1.8.15-0.20260619192713-a096778f08c1 h
 github.com/aperturerobotics/go-websocket v1.8.15-0.20260619192713-a096778f08c1/go.mod h1:9KnSGuqxSXbdB/Oi0I6vvfPLkclfJwMGAQaDDGVgGow=
 github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d h1:UcBuYL2R88/b0AQRdXEisWTyZLrj4Z+GMEv7Mi4k/0A=
 github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d/go.mod h1:EkJEy0eZ9hdcUbSxh6kBf2YC3V97ziyr9EWY7kCnB5A=
-github.com/aperturerobotics/goscript v0.2.5-0.20260619072609-cdca210ee33e h1:qnXC8gwa2TdVry7P9T9LskZxoiFFp9vxDWzkANiw8l4=
-github.com/aperturerobotics/goscript v0.2.5-0.20260619072609-cdca210ee33e/go.mod h1:wY6F0LSQmKMqwehwI1VfEnK0n6c3zZXYvGqvyuX/ybQ=
+github.com/aperturerobotics/goscript v0.2.5-0.20260620002508-f97a901fdd44 h1:umK8npLeoB6RGJCEIgn0alSMI0SKR78G7bACZFtiZAc=
+github.com/aperturerobotics/goscript v0.2.5-0.20260620002508-f97a901fdd44/go.mod h1:wY6F0LSQmKMqwehwI1VfEnK0n6c3zZXYvGqvyuX/ybQ=
 github.com/aperturerobotics/json-iterator-lite v1.1.0 h1:ZLLqHhHTKYlmCAP873ras2e/yVU/THtwC+ji3tXLMMg=
 github.com/aperturerobotics/json-iterator-lite v1.1.0/go.mod h1:SvGGBv3OVxUyqO0ZxA/nvs6z3cg7NIbZ64TnbV2OISo=
 github.com/aperturerobotics/jsonpath v0.1.5-0.20260620020844-bd6430df1008 h1:eSXCl4Xfl/zS2J04S1kNpgPrRroxa/fmC2pirWxWez8=
