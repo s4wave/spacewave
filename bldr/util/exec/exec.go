@@ -6,8 +6,10 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 
 	uexec "github.com/aperturerobotics/util/exec"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -15,8 +17,10 @@ import (
 var NewCmd = uexec.NewCmd
 
 // StartAndWait runs the given process and waits for ctx or process to complete.
-// Unlike the upstream util/exec.StartAndWait, this includes stderr context in
-// error messages via InterpretCmdErr.
+// On process failure it returns an error carrying the full captured stderr, not
+// just the trailing line: tool stack traces (Rolldown/Oxc, bun) put the real
+// message at the top and a bare frame such as "at processTicksAndRejections" at
+// the bottom, so the upstream last-line-only interpretation swallows the cause.
 func StartAndWait(ctx context.Context, le *logrus.Entry, ecmd *exec.Cmd) error {
 	var stderrBuf bytes.Buffer
 	if ecmd.Process == nil {
@@ -45,12 +49,16 @@ func StartAndWait(ctx context.Context, le *logrus.Entry, ecmd *exec.Cmd) error {
 		return ctx.Err()
 	case err := <-outErr:
 		le := le.WithField("exit-code", ecmd.ProcessState.ExitCode())
-		if err != nil {
-			le.WithError(err).Debug("process exited with error")
-			return uexec.InterpretCmdErr(err, stderrBuf)
+		if err == nil {
+			le.Debug("process exited")
+			return nil
 		}
-		le.Debug("process exited")
-		return nil
+		le.WithError(err).Debug("process exited with error")
+		stderr := strings.TrimRight(stderrBuf.String(), "\n")
+		if stderr == "" {
+			return err
+		}
+		return errors.Errorf("%s: %s", err, stderr)
 	}
 }
 
