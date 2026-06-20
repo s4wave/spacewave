@@ -1,4 +1,4 @@
-//go:build tinygo && !sql_lite
+//go:build (tinygo || goscript) && !sql_lite
 
 package mysql
 
