@@ -2,11 +2,11 @@ module github.com/s4wave/spacewave
 
 go 1.26.3
 
-replace github.com/go-git/go-git/v6 => github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260619055138-cbfe9ded8794
+replace github.com/go-git/go-git/v6 => github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260620031345-da32192f9c83
 
 // aperture: use ext-engines forks
 replace (
-	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260620015219-5ec6a474cd27 // aperture-5
+	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260620031438-1487aad3dad2 // aperture-5
 	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20260620015210-7020baa15de7 // aperture
 )
 

@@ -40,8 +40,8 @@ github.com/aperturerobotics/fsnotify v1.9.1-0.20260506231828-931cb4bf1761 h1:PEE
 github.com/aperturerobotics/fsnotify v1.9.1-0.20260506231828-931cb4bf1761/go.mod h1:exy/yzvowYqAyWyO3wBTDGumPaU6ZY6GbhzwJWL7G/o=
 github.com/aperturerobotics/go-brotli-decoder v1.2.2 h1:86K8ep4IumgTjJAKrr8YOp1O2eZNtS1Cy4p8nn8k0+U=
 github.com/aperturerobotics/go-brotli-decoder v1.2.2/go.mod h1:YTEQqhat1/c+qVaOqhuCU80nu+O8gzJOpbafK3Y8pOc=
-github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260619055138-cbfe9ded8794 h1:4+OjiRww+f9kP7/H5UVguMcuMvNyF1l4Xb1OvQ8UZ7c=
-github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260619055138-cbfe9ded8794/go.mod h1:yivaqhvl5Xe+5pRuz+SjkZ06/zkWOBKocl0GyIoXrd4=
+github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260620031345-da32192f9c83 h1:OEV//vcEj5jtC9Bb+BtlYTeV+H2m0ypzoDcTI7ODGzw=
+github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260620031345-da32192f9c83/go.mod h1:yivaqhvl5Xe+5pRuz+SjkZ06/zkWOBKocl0GyIoXrd4=
 github.com/aperturerobotics/go-indexeddb v0.2.3 h1:DfquIk9YEZjWD/lJyBWZWGCtRga43/a96bx0Ulv9VhQ=
 github.com/aperturerobotics/go-indexeddb v0.2.3/go.mod h1:JV1XngOCCui7zrMSyRz+Wvz00nUSfotRKZqJzWpl5fQ=
 github.com/aperturerobotics/go-kvfile v0.10.1-0.20260423183349-fcbaa93292c0 h1:1GiibOMnkf3sMnOkCE9zhxnTv9wsdqS/jtLwd/vzxws=
@@ -50,8 +50,8 @@ github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5 h
 github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5/go.mod h1:qCrUDxkyS9ElQNb1LyV5wcRJwhdLgkHj19CDJBW60vs=
 github.com/aperturerobotics/go-multibase v0.4.0 h1:zYxJkOb6yIXvd2m4je/QfJeoWoWW/Sbl9/FoOfY7ptQ=
 github.com/aperturerobotics/go-multibase v0.4.0/go.mod h1:PMClsExj7sks4HmxY7SAo09ZkR8B6pOCjjApo/ZE4GU=
-github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260620015219-5ec6a474cd27 h1:oMGcj7Ynm5pXNhb42vhuZyAVsCT1BhEhqcIwxjmexN0=
-github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260620015219-5ec6a474cd27/go.mod h1:VzjLRT/YIHyvdzYI+RE1960ge7HvrjOZp523m6vyLiw=
+github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260620031438-1487aad3dad2 h1:cPEfYov0WeSwpiZownWcJIwTCxtvQkPvWEjLQKj5iKc=
+github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260620031438-1487aad3dad2/go.mod h1:VzjLRT/YIHyvdzYI+RE1960ge7HvrjOZp523m6vyLiw=
 github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0 h1:6/3RSSlPEQ6LeidslB1ZCJkxW+MnfYDkvdWMDklDXw4=
 github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0/go.mod h1:OBb/beWmr/pDIZAUfi86j/4tBh2v5ctTxKMqSnh9c/4=
 github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 h1:lp+V8RYcBwTX1p81swkpZn5fhw1wn2xLorzETIxRyZQ=
