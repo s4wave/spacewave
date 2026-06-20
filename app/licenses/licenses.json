@@ -1073,7 +1073,7 @@
     },
     {
       "name": "github.com/dolthub/jsonpath",
-      "version": "v0.0.2-0.20240227200619-19675ab05c71",
+      "version": "=>",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/dolthub/jsonpath",
