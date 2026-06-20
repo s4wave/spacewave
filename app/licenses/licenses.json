@@ -1508,7 +1508,7 @@
     },
     {
       "name": "github.com/pion/webrtc/v4",
-      "version": "v4.2.15",
+      "version": "=>",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/webrtc",
