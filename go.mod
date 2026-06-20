@@ -6,8 +6,8 @@ replace github.com/go-git/go-git/v6 => github.com/aperturerobotics/go-git/v6 v6.
 
 // aperture: use ext-engines forks
 replace (
-	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260619213543-5629ee90a2be // aperture-5
-	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20260619221008-4843d1da6dec // aperture
+	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260620015219-5ec6a474cd27 // aperture-5
+	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20260620015210-7020baa15de7 // aperture
 )
 
 // aperture: use compatibility forks
@@ -199,3 +199,5 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
+
+replace github.com/dolthub/jsonpath => github.com/aperturerobotics/jsonpath v0.1.5-0.20260620020844-bd6430df1008

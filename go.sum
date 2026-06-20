@@ -50,8 +50,8 @@ github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5 h
 github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5/go.mod h1:qCrUDxkyS9ElQNb1LyV5wcRJwhdLgkHj19CDJBW60vs=
 github.com/aperturerobotics/go-multibase v0.4.0 h1:zYxJkOb6yIXvd2m4je/QfJeoWoWW/Sbl9/FoOfY7ptQ=
 github.com/aperturerobotics/go-multibase v0.4.0/go.mod h1:PMClsExj7sks4HmxY7SAo09ZkR8B6pOCjjApo/ZE4GU=
-github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260619213543-5629ee90a2be h1:RW/erU2EO0lYwyDS/3KXzbYzgnuVdhKp9CWPZKlizJQ=
-github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260619213543-5629ee90a2be/go.mod h1:VzjLRT/YIHyvdzYI+RE1960ge7HvrjOZp523m6vyLiw=
+github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260620015219-5ec6a474cd27 h1:oMGcj7Ynm5pXNhb42vhuZyAVsCT1BhEhqcIwxjmexN0=
+github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260620015219-5ec6a474cd27/go.mod h1:VzjLRT/YIHyvdzYI+RE1960ge7HvrjOZp523m6vyLiw=
 github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0 h1:6/3RSSlPEQ6LeidslB1ZCJkxW+MnfYDkvdWMDklDXw4=
 github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0/go.mod h1:OBb/beWmr/pDIZAUfi86j/4tBh2v5ctTxKMqSnh9c/4=
 github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 h1:lp+V8RYcBwTX1p81swkpZn5fhw1wn2xLorzETIxRyZQ=
@@ -68,6 +68,8 @@ github.com/aperturerobotics/goscript v0.2.5-0.20260619072609-cdca210ee33e h1:qnX
 github.com/aperturerobotics/goscript v0.2.5-0.20260619072609-cdca210ee33e/go.mod h1:wY6F0LSQmKMqwehwI1VfEnK0n6c3zZXYvGqvyuX/ybQ=
 github.com/aperturerobotics/json-iterator-lite v1.1.0 h1:ZLLqHhHTKYlmCAP873ras2e/yVU/THtwC+ji3tXLMMg=
 github.com/aperturerobotics/json-iterator-lite v1.1.0/go.mod h1:SvGGBv3OVxUyqO0ZxA/nvs6z3cg7NIbZ64TnbV2OISo=
+github.com/aperturerobotics/jsonpath v0.1.5-0.20260620020844-bd6430df1008 h1:eSXCl4Xfl/zS2J04S1kNpgPrRroxa/fmC2pirWxWez8=
+github.com/aperturerobotics/jsonpath v0.1.5-0.20260620020844-bd6430df1008/go.mod h1:1IuiZEtDbe75SMjyk2Fk+Fa+Yp56kf3WM1wYgorqc6o=
 github.com/aperturerobotics/logrus v1.9.5-0.20260430110313-9c892333814d h1:OCeEdD6ku6SBaRvSksJH7NgaqB0dtL8z3AQCLpFa9Dg=
 github.com/aperturerobotics/logrus v1.9.5-0.20260430110313-9c892333814d/go.mod h1:FXZFonkDAnFozmO+5hGAFvB0Yg9/j2SIhA/QuIkP180=
 github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 h1:4Dy3BAHh2kgVdHAqtlwcFsgY0kAwUe2m3rfFcaGwGQg=
@@ -82,8 +84,8 @@ github.com/aperturerobotics/starpc v0.49.18 h1:ZDxYN6Dncm+e7WzVvvF/9ja3Bh34ETgZy
 github.com/aperturerobotics/starpc v0.49.18/go.mod h1:5SIPOGIoUG7dLpb1NzZG2qK9l1T5oZ2454yzyMukviw=
 github.com/aperturerobotics/util v1.34.10-0.20260610174257-740fe32c1ea1 h1:JxDcPcpvTuavzPDtLNYF52a24i+E0gvtzH90C8RsJOU=
 github.com/aperturerobotics/util v1.34.10-0.20260610174257-740fe32c1ea1/go.mod h1:GxjGkYQNEj8xvLFz+T8ifqANtK5cMesOlCxh50htvBI=
-github.com/aperturerobotics/vitess v0.0.0-20260619221008-4843d1da6dec h1:ticAXrvSMfJs0PnHkykr00Duhosuycur0sXE2a4J3l0=
-github.com/aperturerobotics/vitess v0.0.0-20260619221008-4843d1da6dec/go.mod h1:BA7YZUS4BoNY+k1nl7A3TLJkLY4KfW4I0c+DbXblfis=
+github.com/aperturerobotics/vitess v0.0.0-20260620015210-7020baa15de7 h1:A6LpKhK92wyK9pfmdPTRFgnkZ6/yHBzXC+MsuD5YJPQ=
+github.com/aperturerobotics/vitess v0.0.0-20260620015210-7020baa15de7/go.mod h1:BA7YZUS4BoNY+k1nl7A3TLJkLY4KfW4I0c+DbXblfis=
 github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 h1:ZbKfJ4Qftk6XS8L05XgS6thW6hGadgeGN4KVmxwazvc=
 github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6/go.mod h1:SLrPtbLCdMA1cJ2wmpnozln6nLjIH4l/88jcOUEac00=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
@@ -129,8 +131,6 @@ github.com/dolthub/flatbuffers/v23 v23.3.3-dh.2 h1:u3PMzfF8RkKd3lB9pZ2bfn0qEG+1G
 github.com/dolthub/flatbuffers/v23 v23.3.3-dh.2/go.mod h1:mIEZOHnFx4ZMQeawhw9rhsj+0zwQj7adVsnBX7t+eKY=
 github.com/dolthub/go-icu-regex v0.0.0-20260610153742-72563bc7ca83 h1:FEMjCGEroDnY/BXyAffVZxUpXhP2GpoUJyyq5KaLn8c=
 github.com/dolthub/go-icu-regex v0.0.0-20260610153742-72563bc7ca83/go.mod h1:F3cnm+vMRK1HaU6+rNqQrOCyR03HHhR1GWG2gnPOqaE=
-github.com/dolthub/jsonpath v0.0.2-0.20240227200619-19675ab05c71 h1:bMGS25NWAGTEtT5tOBsCuCrlYnLRKpbJVJkDbrTRhwQ=
-github.com/dolthub/jsonpath v0.0.2-0.20240227200619-19675ab05c71/go.mod h1:2/2zjLQ/JOOSbbSboojeg+cAwcRV0fDLzIiWch/lhqI=
 github.com/dop251/goja v0.0.0-20260311135729-065cd970411c h1:OcLmPfx1T1RmZVHHFwWMPaZDdRf0DBMZOFMVWJa7Pdk=
 github.com/dop251/goja v0.0.0-20260311135729-065cd970411c/go.mod h1:MxLav0peU43GgvwVgNbLAj1s/bSGboKkhuULvq/7hx4=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
@@ -336,11 +336,13 @@ github.com/spf13/cast v1.10.0/go.mod h1:jNfB8QC9IA6ZuY2ZjDp0KtFO2LZZlg4S/7bzP6qq
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=
 github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=
+github.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
+github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/tidwall/btree v1.8.1 h1:27ehoXvm5AG/g+1VxLS1SD3vRhp/H7LuEfwNvddEdmA=
