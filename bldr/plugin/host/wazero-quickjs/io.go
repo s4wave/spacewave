@@ -1,3 +1,5 @@
+//go:build !goscript
+
 package plugin_host_wazero_quickjs
 
 import (
