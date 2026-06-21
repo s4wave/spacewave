@@ -1074,14 +1074,6 @@
       "copyrightNotice": "Copyright (c) 2020 kolesnikovae"
     },
     {
-      "name": "github.com/s4wave/goscript",
-      "version": "v0.2.5-0.20260621052528-a65522ee15c6",
-      "spdx": "MIT",
-      "source": "go",
-      "repo": "https://github.com/s4wave/goscript",
-      "copyrightNotice": "Copyright (c) 2024-2025 Aperture Robotics, LLC.\nCopyright (c) 2019-2025 Christian Stewart <christian@cjs.zip>"
-    },
-    {
       "name": "github.com/aperturerobotics/json-iterator-lite",
       "version": "v1.1.0",
       "spdx": "MIT",
@@ -1689,6 +1681,14 @@
       "source": "go",
       "repo": "https://github.com/restic/chunker",
       "fullText": "Copyright (c) 2014, Alexander Neumann <alexander@bumpern.de>\nAll rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are met:\n\n1. Redistributions of source code must retain the above copyright notice, this\n   list of conditions and the following disclaimer.\n\n2. Redistributions in binary form must reproduce the above copyright notice,\n   this list of conditions and the following disclaimer in the documentation\n   and/or other materials provided with the distribution.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND\nANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED\nWARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE\nDISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE\nFOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL\nDAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR\nSERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER\nCAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,\nOR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\nOF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n"
+    },
+    {
+      "name": "github.com/s4wave/goscript",
+      "version": "v0.2.5-0.20260621085247-ceffe028f014",
+      "spdx": "MIT",
+      "source": "go",
+      "repo": "https://github.com/s4wave/goscript",
+      "copyrightNotice": "Copyright (c) 2024-2025 Aperture Robotics, LLC.\nCopyright (c) 2019-2025 Christian Stewart <christian@cjs.zip>"
     },
     {
       "name": "github.com/sasha-s/go-deadlock",
