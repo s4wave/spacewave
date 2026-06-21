@@ -33,6 +33,7 @@
   },
   "include": [
     "global.d.ts",
+    "csstype-augment.d.ts",
     "app/**/*",
     "web/**/*",
     "core/**/*",
