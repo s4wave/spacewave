@@ -1,8 +1,5 @@
 module github.com/s4wave/spacewave
 
-// Iteration-only local GoScript override; remove before commit.
-replace github.com/s4wave/goscript => ../goscript
-
 go 1.26.3
 
 replace (
@@ -52,7 +49,6 @@ require (
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
 	github.com/aperturerobotics/starpc v0.49.18 // latest
 	github.com/aperturerobotics/util v1.34.10-0.20260610174257-740fe32c1ea1 // latest
-	github.com/s4wave/goscript v0.2.5-0.20260621052528-a65522ee15c6
 )
 
 require (
@@ -74,6 +70,7 @@ require (
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/pion/logging v0.2.4
 	github.com/pion/transport/v4 v4.0.2
+	github.com/s4wave/goscript v0.2.5-0.20260621085247-ceffe028f014
 	go.starlark.net v0.0.0-20260613233743-8ba36ccb83fb
 	golang.org/x/exp v0.0.0-20260611194520-c48552f49976
 	gonum.org/v1/gonum v0.17.0
