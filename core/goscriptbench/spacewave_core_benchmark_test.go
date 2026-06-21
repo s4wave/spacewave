@@ -20,7 +20,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/aperturerobotics/goscript/compiler"
+	"github.com/s4wave/goscript/compiler"
 )
 
 func TestSpacewaveCoreCompile(t *testing.T) {
@@ -130,8 +130,8 @@ func runProfileHarness(tb testing.TB, root string, profileDir string, outputDir 
 	}
 
 	goMod := "module spacewave-goscript-profile\n\ngo 1.25.3\n\n" +
-		"require github.com/aperturerobotics/goscript v0.0.0\n\n" +
-		"replace github.com/aperturerobotics/goscript => " + filepath.ToSlash(goscriptRepoAbs) + "\n"
+		"require github.com/s4wave/goscript v0.0.0\n\n" +
+		"replace github.com/s4wave/goscript => " + filepath.ToSlash(goscriptRepoAbs) + "\n"
 	if err := os.MkdirAll(harnessDir, 0o755); err != nil {
 		tb.Fatal(err)
 	}

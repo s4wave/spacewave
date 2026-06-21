@@ -15,7 +15,7 @@ import { gzipSync } from 'zlib'
 import { rolldown, type Plugin } from 'rolldown'
 
 const goscriptModule =
-  'github.com/aperturerobotics/goscript/cmd/goscript@b5c5464b34668c8ae2112a1f3b19eab0407e9542'
+  'github.com/s4wave/goscript/cmd/goscript@b5c5464b34668c8ae2112a1f3b19eab0407e9542'
 
 interface Options {
   outDir: string
@@ -301,7 +301,7 @@ async function compileGoScript(opts: Options): Promise<CommandResult | null> {
     ['run', goscriptModule, ...args],
     opts.moduleDir,
     join(opts.outDir, 'goscript-compile.log'),
-    { GONOSUMDB: 'github.com/aperturerobotics/goscript' },
+    { GONOSUMDB: 'github.com/s4wave/goscript' },
   )
 }
 

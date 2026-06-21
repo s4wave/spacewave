@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	goscript_compiler "github.com/aperturerobotics/goscript/compiler"
 	"github.com/pkg/errors"
+	goscript_compiler "github.com/s4wave/goscript/compiler"
 	"github.com/sirupsen/logrus"
 )
 

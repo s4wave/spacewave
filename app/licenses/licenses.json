@@ -1074,11 +1074,11 @@
       "copyrightNotice": "Copyright (c) 2020 kolesnikovae"
     },
     {
-      "name": "github.com/aperturerobotics/goscript",
+      "name": "github.com/s4wave/goscript",
       "version": "v0.2.5-0.20260621052528-a65522ee15c6",
       "spdx": "MIT",
       "source": "go",
-      "repo": "https://github.com/aperturerobotics/goscript",
+      "repo": "https://github.com/s4wave/goscript",
       "copyrightNotice": "Copyright (c) 2024-2025 Aperture Robotics, LLC.\nCopyright (c) 2019-2025 Christian Stewart <christian@cjs.zip>"
     },
     {
