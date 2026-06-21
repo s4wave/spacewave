@@ -111,10 +111,7 @@ func (r *fetchManifestWithMetaResolver) Resolve(ctx context.Context, handler dir
 		if currResultPromise != nil {
 			result, err := currResultPromise.AwaitWithCancelCh(ctx, waitChanged)
 			if err != nil {
-				if !watch {
-					return err
-				}
-				le.WithError(err).Warn("FetchManifest: manifest builder failed")
+				return err
 			} else if result == nil {
 				// waitChanged closed
 				continue
