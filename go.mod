@@ -2,23 +2,31 @@ module github.com/s4wave/spacewave
 
 go 1.26.3
 
-replace github.com/go-git/go-git/v6 => github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260620031345-da32192f9c83
-
-// aperture: use ext-engines forks
 replace (
+	github.com/go-git/go-git/v6 => github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260620031345-da32192f9c83
+
+	// aperture: use ext-engines forks
 	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260620031438-1487aad3dad2 // aperture-5
 	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20260620015210-7020baa15de7 // aperture
+
+	// aperture: use compatibility forks
+	// https://github.com/dgraph-io/badger/pull/2048
+	github.com/dgraph-io/badger/v4 => github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac // main
+
+	github.com/dgraph-io/ristretto/v2 => github.com/aperturerobotics/ristretto/v2 v2.0.0-20260619193556-b7aa4f19bce9 // main
+
+	// https://github.com/wazero/wazero/pull/2479
+	// https://github.com/wazero/wazero/pull/2481
+	github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 // aperture-2
+
+	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.5-0.20260430110313-9c892333814d
+
+	github.com/dolthub/jsonpath => github.com/aperturerobotics/jsonpath v0.1.5-0.20260620020844-bd6430df1008
+
+	github.com/pion/webrtc/v4 => github.com/aperturerobotics/pion-webrtc/v4 v4.2.16-0.20260620023100-dab2ab5b7c65
+
+	github.com/cloudflare/circl => /Users/cjs/company/repos/circl
 )
-
-// aperture: use compatibility forks
-// https://github.com/dgraph-io/badger/pull/2048
-replace github.com/dgraph-io/badger/v4 => github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac // main
-
-replace github.com/dgraph-io/ristretto/v2 => github.com/aperturerobotics/ristretto/v2 v2.0.0-20260619193556-b7aa4f19bce9 // main
-
-// https://github.com/wazero/wazero/pull/2479
-// https://github.com/wazero/wazero/pull/2481
-replace github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 // aperture-2
 
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
@@ -126,8 +134,6 @@ require (
 	github.com/zeebo/blake3 v0.2.4
 )
 
-replace github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.5-0.20260430110313-9c892333814d
-
 require (
 	filippo.io/hpke v0.4.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
@@ -203,3 +209,5 @@ require (
 replace github.com/dolthub/jsonpath => github.com/aperturerobotics/jsonpath v0.1.5-0.20260620020844-bd6430df1008
 
 replace github.com/pion/webrtc/v4 => github.com/aperturerobotics/pion-webrtc/v4 v4.2.16-0.20260620023100-dab2ab5b7c65
+
+replace github.com/cloudflare/circl => /Users/cjs/company/repos/circl
