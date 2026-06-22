@@ -10,7 +10,12 @@ import (
 	web_worker "github.com/s4wave/spacewave/bldr/web/worker"
 )
 
-const webWorkerReadyTimeout = time.Second * 30
+// webWorkerReadyTimeout must cover the browser's silent download, compile, and
+// startup window for large Go wasm plugin workers. WebDocument currently
+// advances to STARTUP_RUNNING before that phase and does not publish finer
+// progress, so a short host timeout recreates a worker that may still be
+// starting correctly.
+const webWorkerReadyTimeout = time.Minute * 5
 
 func waitForWebWorkerReady(ctx context.Context, docStatusCtr *ccontainer.CContainer[*web_document.WebDocumentStatus], webWorkerID string) error {
 	var docStatus *web_document.WebDocumentStatus
