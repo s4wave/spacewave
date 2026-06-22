@@ -16,9 +16,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// SqlDbTypeID is the world ObjectType id for SQL databases.
-const SqlDbTypeID = "sql/db"
-
 // SqlDbType registers the SQL database world ObjectType.
 var SqlDbType = objecttype.NewObjectType(SqlDbTypeID, SqlDbFactory)
 
