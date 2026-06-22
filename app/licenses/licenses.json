@@ -1508,11 +1508,11 @@
     },
     {
       "name": "github.com/pion/datachannel",
-      "version": "v1.6.0",
+      "version": "v1.6.2",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/datachannel",
-      "copyrightNotice": "Copyright (c) 2023 The Pion community <https://pion.ly>"
+      "copyrightNotice": "Copyright (c) 2026 The Pion community <https://pion.ly>"
     },
     {
       "name": "github.com/pion/dtls/v3",
@@ -1588,7 +1588,7 @@
     },
     {
       "name": "github.com/pion/sdp/v3",
-      "version": "v3.0.18",
+      "version": "v3.0.19",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/sdp",
