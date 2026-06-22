@@ -43,7 +43,7 @@ jobs:
       include_linux: ${{ steps.vars.outputs.include_linux }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - id: vars
         shell: bash
@@ -85,7 +85,7 @@ jobs:
     environment: ${{ needs.prep.outputs.environment_name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Go
         uses: actions/setup-go@v6
@@ -131,7 +131,7 @@ jobs:
     environment: ${{ needs.prep.outputs.environment_name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Go
         uses: actions/setup-go@v6
@@ -233,7 +233,7 @@ jobs:
       AZURE_CORE_OUTPUT: none
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Go
         uses: actions/setup-go@v6
@@ -407,7 +407,7 @@ jobs:
     environment: ${{ needs.prep.outputs.environment_name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Go
         uses: actions/setup-go@v6
@@ -474,7 +474,7 @@ jobs:
     environment: ${{ needs.prep.outputs.environment_name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Go
         uses: actions/setup-go@v6
