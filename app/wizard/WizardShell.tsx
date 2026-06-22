@@ -2,7 +2,6 @@ import { useCallback, type ReactNode } from 'react'
 import { LuArrowLeft, LuCheck, LuTrash2 } from 'react-icons/lu'
 
 import { Button } from '@s4wave/web/ui/button.js'
-import { Input } from '@s4wave/web/ui/input.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import {
   Tooltip,
@@ -10,7 +9,7 @@ import {
   TooltipTrigger,
 } from '@s4wave/web/ui/tooltip.js'
 
-import { wizardInputClassName } from './wizard-field-styles.js'
+import { WizardField } from './WizardField.js'
 
 export interface WizardShellProps {
   title: ReactNode
@@ -102,24 +101,15 @@ export function WizardShell({
 
             {step === nameStep && (
               <section>
-                <div className="mb-2 flex items-center justify-between">
-                  <label className="text-foreground text-xs font-medium select-none">
-                    {nameLabel}
-                  </label>
-                </div>
                 <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-                  <Input
-                    ref={handleNameInputRef}
+                  <WizardField
+                    inputRef={handleNameInputRef}
+                    label={nameLabel}
                     value={localName}
                     onChange={(e) => onUpdateName(e.target.value)}
                     placeholder={namePlaceholder}
-                    className={wizardInputClassName}
+                    help={nameHelp}
                   />
-                  {nameHelp && (
-                    <p className="text-foreground-alt/50 mt-2 text-xs">
-                      {nameHelp}
-                    </p>
-                  )}
                 </div>
               </section>
             )}

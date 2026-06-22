@@ -25,8 +25,6 @@ import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { CopyButton } from '@s4wave/web/ui/CopyButton.js'
 import { Button } from '@s4wave/web/ui/button.js'
-import { Input } from '@s4wave/web/ui/input.js'
-import { cn } from '@s4wave/web/style/utils.js'
 import { parseObjectUri } from '@s4wave/sdk/space/object-uri.js'
 import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import {
@@ -51,11 +49,9 @@ import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { applySpaceIndexPath } from '../space/space-settings.js'
 import { buildObjectKey } from '../space/create-op-builders.js'
 import { useWizardState } from '../wizard/useWizardState.js'
-import {
-  wizardInputClassName,
-  wizardTextareaClassName,
-} from '../wizard/wizard-field-styles.js'
 import { WizardShell } from '../wizard/WizardShell.js'
+import { WizardField } from '../wizard/WizardField.js'
+import { WizardTextareaField } from '../wizard/WizardTextareaField.js'
 import { ComputersDashboardTypeID } from './computers.js'
 import { buildCreateSshHostTerminalOpData } from './terminal-action.js'
 
@@ -683,13 +679,14 @@ function SshHostSetupForm({
           SSH Endpoint
         </div>
         <div className="grid gap-2 sm:grid-cols-[1fr_5rem_8rem]">
-          <Input
+          <WizardField
+            label="Host"
             value={config.host ?? ''}
             onChange={(e) => onConfigChange({ host: e.target.value })}
             placeholder="host.example.com"
-            className={wizardInputClassName}
           />
-          <Input
+          <WizardField
+            label="Port"
             type="number"
             min={1}
             max={65535}
@@ -698,13 +695,12 @@ function SshHostSetupForm({
               onConfigChange({ port: parsePortInput(e.target.value) })
             }
             aria-label="SSH port"
-            className={wizardInputClassName}
           />
-          <Input
+          <WizardField
+            label="User"
             value={config.username ?? ''}
             onChange={(e) => onConfigChange({ username: e.target.value })}
             placeholder="user"
-            className={wizardInputClassName}
           />
         </div>
       </div>
@@ -750,31 +746,33 @@ function SshHostSetupForm({
           />
         </div>
         {authMode === 'password' ? (
-          <Input
+          <WizardField
+            label="Password"
             type="password"
             value={credentialDraft.password}
             onChange={(e) => onCredentialChange({ password: e.target.value })}
             placeholder="SSH password"
-            className={wizardInputClassName}
           />
         ) : (
           <div className="space-y-2">
-            <textarea
+            <WizardTextareaField
+              label="Private key"
               value={credentialDraft.privateKey}
               onChange={(e) =>
                 onCredentialChange({ privateKey: e.target.value })
               }
               placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
-              className={cn(wizardTextareaClassName, 'min-h-28')}
+              className="min-h-28"
             />
-            <Input
+            <WizardField
+              label="Passphrase"
               type="password"
               value={credentialDraft.passphrase}
               onChange={(e) =>
                 onCredentialChange({ passphrase: e.target.value })
               }
               placeholder="Private key passphrase (optional)"
-              className={wizardInputClassName}
+              help="Optional for unencrypted private keys."
             />
           </div>
         )}
@@ -793,28 +791,30 @@ function SshHostSetupForm({
           have trusted host-key material.
         </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-[8rem_1fr]">
-          <Input
+          <WizardField
+            label="Algorithm"
             value={config.hostKeyAlgorithm ?? 'ssh-ed25519'}
             onChange={(e) =>
               onConfigChange({ hostKeyAlgorithm: e.target.value })
             }
             placeholder="ssh-ed25519"
-            className={wizardInputClassName}
           />
-          <Input
+          <WizardField
+            label="Fingerprint"
             value={config.hostKeyFingerprint ?? ''}
             onChange={(e) =>
               onConfigChange({ hostKeyFingerprint: e.target.value })
             }
             placeholder="SHA256:..."
-            className={wizardInputClassName}
           />
         </div>
-        <textarea
+        <WizardTextareaField
+          label="Public key"
           value={config.hostKeyPublicKey ?? ''}
           onChange={(e) => onConfigChange({ hostKeyPublicKey: e.target.value })}
           placeholder="[host]:22 ssh-ed25519 AAAA... or ssh-ed25519 AAAA..."
-          className={cn(wizardTextareaClassName, 'mt-2 min-h-16')}
+          className="min-h-16"
+          fieldClassName="mt-2"
         />
       </details>
     </section>

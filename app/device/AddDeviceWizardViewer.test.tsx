@@ -434,6 +434,53 @@ describe('AddDeviceWizardViewer', () => {
     )
   })
 
+  it('stores bare authorized-key trust input when creating an SSH Host', async () => {
+    h.currentStep = 1
+    h.configData = new TextEncoder().encode(
+      JSON.stringify({
+        mode: 'ssh',
+        ssh: {
+          host: '192.168.1.15',
+          port: 1940,
+          username: 'root',
+          authMode: 'password',
+          hostKeyPublicKey:
+            'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAItrustedbarekey',
+        },
+      }),
+    )
+    renderViewer()
+
+    fireEvent.change(screen.getByPlaceholderText('SSH password'), {
+      target: { value: 'raw-secret-value' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /open terminal/i }))
+
+    await waitFor(() =>
+      expect(h.applyWorldOp).toHaveBeenCalledWith(
+        CREATE_SSH_HOST_OP_ID,
+        expect.any(Uint8Array),
+        '12D3KooWSession',
+      ),
+    )
+
+    const hostCall = h.applyWorldOp.mock.calls.find(
+      ([opId]) => opId === CREATE_SSH_HOST_OP_ID,
+    )
+    if (!hostCall) throw new Error('expected SSH Host create op')
+    const hostOpData: unknown = hostCall[1]
+    if (!(hostOpData instanceof Uint8Array)) {
+      throw new Error('expected SSH Host op bytes')
+    }
+    const hostOp = CreateSshHostOp.fromBinary(hostOpData)
+    const pins = hostOp.hostKeyPins ?? []
+    expect(pins).toHaveLength(1)
+    expect(pins[0]?.algorithm).toBe('ssh-ed25519')
+    expect(pins[0]?.publicKey).toBe(
+      'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAItrustedbarekey',
+    )
+  })
+
   it('opens an SSH installer terminal without creating a Device object', async () => {
     h.currentStep = 1
     h.configData = new TextEncoder().encode(
