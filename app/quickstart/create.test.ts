@@ -75,6 +75,7 @@ const fsHandleMocks = vi.hoisted(() => ({
   mknod: vi.fn(),
   lookup: vi.fn(),
   writeAt: vi.fn(),
+  uploadFile: vi.fn(),
   release: vi.fn(),
 }))
 
@@ -82,6 +83,16 @@ const fsFileHandleMocks = vi.hoisted(() => ({
   writeAt: vi.fn(),
   release: vi.fn(),
 }))
+
+const uploadedFiles = vi.hoisted(
+  (): Array<{
+    name: string
+    totalSize: bigint
+    bytes: Uint8Array
+    mode?: number
+    abortSignal?: AbortSignal
+  }> => [],
+)
 
 const kvStoreMocks = vi.hoisted(() => ({
   constructor: vi.fn(),
@@ -329,12 +340,28 @@ describe('quickstart create', () => {
     fsHandleMocks.mknod.mockReset()
     fsHandleMocks.lookup.mockReset()
     fsHandleMocks.writeAt.mockReset()
+    fsHandleMocks.uploadFile.mockReset()
     fsHandleMocks.release.mockReset()
     fsFileHandleMocks.writeAt.mockReset()
     fsFileHandleMocks.release.mockReset()
+    uploadedFiles.length = 0
     fsHandleMocks.mknod.mockResolvedValue(undefined)
     fsHandleMocks.lookup.mockResolvedValue(fsFileHandleMocks)
     fsFileHandleMocks.writeAt.mockResolvedValue(0n)
+    fsHandleMocks.uploadFile.mockImplementation(
+      async (
+        name: string,
+        totalSize: bigint,
+        stream: ReadableStream<Uint8Array>,
+        mode?: number,
+        _onProgress?: (bytesWritten: bigint) => void,
+        abortSignal?: AbortSignal,
+      ) => {
+        const bytes = new Uint8Array(await new Response(stream).arrayBuffer())
+        uploadedFiles.push({ name, totalSize, bytes, mode, abortSignal })
+        return BigInt(bytes.byteLength)
+      },
+    )
     kvStoreMocks.constructor.mockReset()
     kvStoreMocks.withTransaction.mockReset()
     kvStoreMocks.release.mockReset()
@@ -827,31 +854,41 @@ describe('quickstart create', () => {
       undefined,
     )
     expect(createRef).toHaveBeenCalledWith(71)
-    expect(fsHandleMocks.mknod).toHaveBeenCalledWith(
-      ['getting-started.md'],
-      1,
-      0o644,
-      true,
-      undefined,
-    )
-    expect(fsHandleMocks.lookup).toHaveBeenCalledWith(
-      'getting-started.md',
-      undefined,
-    )
-    expect(fsFileHandleMocks.writeAt).toHaveBeenCalledWith(
-      0n,
-      expect.any(Uint8Array),
-      undefined,
-    )
-    const starterGuideBytes: unknown =
-      fsFileHandleMocks.writeAt.mock.calls[0]?.[1]
-    if (!(starterGuideBytes instanceof Uint8Array)) {
-      throw new Error('expected starter guide bytes')
+    const starterGuide = uploadedFiles[0]
+    if (!starterGuide) {
+      throw new Error('expected starter guide upload')
     }
-    expect(new TextDecoder().decode(starterGuideBytes)).toContain(
-      'starter guide is written by the Drive',
+    expect(fsHandleMocks.uploadFile).toHaveBeenCalledWith(
+      'getting-started.md',
+      BigInt(starterGuide.bytes.byteLength),
+      expect.any(ReadableStream),
+      0o644,
+      undefined,
+      undefined,
     )
-    expect(fsFileHandleMocks.release).toHaveBeenCalled()
+    expect(fsHandleMocks.mknod).not.toHaveBeenCalled()
+    expect(fsHandleMocks.lookup).not.toHaveBeenCalled()
+    expect(fsFileHandleMocks.writeAt).not.toHaveBeenCalled()
+    const expectedStarterGuide = `# Getting Started
+
+Welcome to your new drive! This starter guide is written by the Drive
+Quickstart after the generic UnixFS filesystem is initialized.
+
+## Next steps
+
+Try uploading a few files and opening them here. Video files are the best ones
+to try first.
+`
+    expect(starterGuide.name).toBe('getting-started.md')
+    expect(starterGuide.totalSize).toBe(
+      BigInt(new TextEncoder().encode(expectedStarterGuide).byteLength),
+    )
+    expect(starterGuide.mode).toBe(0o644)
+    expect(starterGuide.abortSignal).toBeUndefined()
+    expect(new TextDecoder().decode(starterGuide.bytes)).toBe(
+      expectedStarterGuide,
+    )
+    expect(fsFileHandleMocks.release).not.toHaveBeenCalled()
     expect(fsHandleMocks.release).toHaveBeenCalled()
   })
 
@@ -959,9 +996,7 @@ describe('quickstart create', () => {
       'init-drive-unixfs-commit',
       'init-drive-unixfs-discard',
       'write-drive-starter-guide-access',
-      'write-drive-starter-guide-create',
-      'write-drive-starter-guide-lookup',
-      'write-drive-starter-guide-content',
+      'write-drive-starter-guide-upload',
       'create-drive-settings',
       'create-drive-settings-get-object',
       'create-drive-settings-new-transaction',

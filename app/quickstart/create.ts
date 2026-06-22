@@ -39,7 +39,7 @@ import {
   INIT_UNIXFS_OP_ID,
   UNIXFS_OBJECT_KEY,
 } from '@s4wave/core/space/world/ops/init-unixfs.js'
-import { FSHandle, MknodType } from '@s4wave/sdk/unixfs/index.js'
+import { FSHandle } from '@s4wave/sdk/unixfs/index.js'
 import { UnixFSTypeID } from '@s4wave/sdk/unixfs/type.js'
 import {
   INIT_OBJECT_LAYOUT_OP_ID,
@@ -995,34 +995,22 @@ async function writeDriveStarterGuide(
   const ref = spaceWorld.getResourceRef().createRef(access.resourceId)
   const root = new FSHandle(ref)
   try {
-    await timeQuickstartPhase(timing, 'write-drive-starter-guide-create', () =>
-      root.mknod(
-        [DRIVE_STARTER_GUIDE_NAME],
-        MknodType.FILE,
+    const data = new TextEncoder().encode(DRIVE_STARTER_GUIDE_CONTENT)
+    await timeQuickstartPhase(timing, 'write-drive-starter-guide-upload', () =>
+      root.uploadFile(
+        DRIVE_STARTER_GUIDE_NAME,
+        BigInt(data.byteLength),
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(data)
+            controller.close()
+          },
+        }),
         0o644,
-        true,
+        undefined,
         abortSignal,
       ),
     )
-    const file = await timeQuickstartPhase(
-      timing,
-      'write-drive-starter-guide-lookup',
-      () => root.lookup(DRIVE_STARTER_GUIDE_NAME, abortSignal),
-    )
-    try {
-      await timeQuickstartPhase(
-        timing,
-        'write-drive-starter-guide-content',
-        () =>
-          file.writeAt(
-            0n,
-            new TextEncoder().encode(DRIVE_STARTER_GUIDE_CONTENT),
-            abortSignal,
-          ),
-      )
-    } finally {
-      file.release()
-    }
   } finally {
     root.release()
   }

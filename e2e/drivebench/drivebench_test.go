@@ -37,7 +37,7 @@ func TestBrowserFromQuickstartTimingCountsDriveSeedResourceCalls(t *testing.T) {
 				"elapsedMs":  float64(3),
 			},
 			map[string]any{
-				"name":       "write-drive-starter-guide-create",
+				"name":       "write-drive-starter-guide-upload",
 				"startedMs":  float64(140),
 				"finishedMs": float64(145),
 				"elapsedMs":  float64(5),
