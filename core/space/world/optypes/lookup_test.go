@@ -33,28 +33,30 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 		t.Fatalf("expected InitUnixFSOp, got %T", op)
 	}
 
-	op, err = lookupOp(context.Background(), git_world.GitInitOpId)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := op.(*git_world.GitInitOp); !ok {
-		t.Fatalf("expected GitInitOp, got %T", op)
-	}
+	if !tinygoBuild {
+		op, err = lookupOp(context.Background(), git_world.GitInitOpId)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, ok := op.(*git_world.GitInitOp); !ok {
+			t.Fatalf("expected GitInitOp, got %T", op)
+		}
 
-	op, err = lookupOp(context.Background(), git_world.GitCreateWorktreeOpId)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := op.(*git_world.GitCreateWorktreeOp); !ok {
-		t.Fatalf("expected GitCreateWorktreeOp, got %T", op)
-	}
+		op, err = lookupOp(context.Background(), git_world.GitCreateWorktreeOpId)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, ok := op.(*git_world.GitCreateWorktreeOp); !ok {
+			t.Fatalf("expected GitCreateWorktreeOp, got %T", op)
+		}
 
-	op, err = lookupOp(context.Background(), s4wave_git.CreateGitRepoWizardOpId)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := op.(*s4wave_git.CreateGitRepoWizardOp); !ok {
-		t.Fatalf("expected CreateGitRepoWizardOp, got %T", op)
+		op, err = lookupOp(context.Background(), s4wave_git.CreateGitRepoWizardOpId)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, ok := op.(*s4wave_git.CreateGitRepoWizardOp); !ok {
+			t.Fatalf("expected CreateGitRepoWizardOp, got %T", op)
+		}
 	}
 
 	op, err = lookupOp(context.Background(), s4wave_wizard.CreateWizardObjectOpId)

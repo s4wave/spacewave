@@ -1,4 +1,4 @@
-//go:build !tinygo && !sql_lite
+//go:build !js && !tinygo && !sql_lite
 
 package s4wave_sql_world
 
