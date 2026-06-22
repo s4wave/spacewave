@@ -431,9 +431,14 @@ func BuildDistBundle(
 				return err
 			}
 			goScriptOutputPath := filepath.Join(workingPath, "dist-goscript")
+			goScriptCacheRoot, err := gocompiler.GoScriptCompilerCacheRootFromEnv(workingPath)
+			if err != nil {
+				return err
+			}
 			if err := gocompiler.ExecGoScriptCompile(ctx, le, gocompiler.GoScriptCompileOptions{
 				WorkDir:                   entrypointBuildDir,
 				OutputPath:                goScriptOutputPath,
+				CacheRoot:                 goScriptCacheRoot,
 				Packages:                  []string{"."},
 				BuildFlags:                goScriptBuildFlags,
 				Env:                       goScriptEnv,

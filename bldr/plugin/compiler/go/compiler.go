@@ -866,10 +866,15 @@ func (c *Controller) BuildPlugin(
 			le.Info("compiling plugin TypeScript package tree")
 			goScriptBuildFlags = newGoScriptBuildFlags(buildType, enableCgo)
 			goScriptOverrideDirs, goScriptOverrideDirRels = existingSourceDirs(sourcePath, "gs")
+			goScriptCacheRoot, err := gocompiler.GoScriptCompilerCacheRootFromEnv(workingPath)
+			if err != nil {
+				return err
+			}
 			mainPackagePath, err := mc.CompilePluginGoScript(
 				ctx,
 				le,
 				outDistPath,
+				goScriptCacheRoot,
 				goScriptBuildFlags,
 				goScriptOverrideDirs,
 			)

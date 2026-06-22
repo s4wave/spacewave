@@ -72,6 +72,73 @@ func TestExecGoScriptCompileUsesJsWasmTarget(t *testing.T) {
 	}
 }
 
+func TestExecGoScriptCompileUsesCompilerCacheRoot(t *testing.T) {
+	dir := t.TempDir()
+	cacheRoot := filepath.Join(dir, ".bldr", "cache", "gs")
+	writeGoScriptModule(t, dir, "example.com/goscriptcache", map[string]string{
+		"main.go": "package goscriptcache\nconst Value = 1\n",
+	})
+	err := ExecGoScriptCompile(context.Background(), logrus.NewEntry(logrus.New()), GoScriptCompileOptions{
+		WorkDir:    dir,
+		OutputPath: filepath.Join(dir, "out"),
+		CacheRoot:  cacheRoot,
+		Packages:   []string{"."},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := countGoScriptCacheManifests(t, cacheRoot); got == 0 {
+		t.Fatal("compiler cache root did not receive cache manifests")
+	}
+}
+
+func TestGoScriptCompilerCacheRootFromEnvDefaultsDisabled(t *testing.T) {
+	stateRoot := filepath.Join(t.TempDir(), ".bldr")
+	buildPath := filepath.Join(stateRoot, "build", "web", "spacewave-core")
+	t.Setenv(GoScriptCompilerCacheRootEnv, "")
+	got, err := GoScriptCompilerCacheRootFromEnv(buildPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "" {
+		t.Fatalf("cache root = %q, want empty", got)
+	}
+}
+
+func TestGoScriptCompilerCacheRootFromEnvResolvesRelativeUnderBldrStateRoot(t *testing.T) {
+	stateRoot := filepath.Join(t.TempDir(), ".bldr")
+	buildPath := filepath.Join(stateRoot, "build", "web", "spacewave-core")
+	t.Setenv(GoScriptCompilerCacheRootEnv, filepath.Join("cache", "gs"))
+	got, err := GoScriptCompilerCacheRootFromEnv(buildPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(stateRoot, "cache", "gs")
+	if got != want {
+		t.Fatalf("cache root = %q, want %q", got, want)
+	}
+}
+
+func TestResolveGoScriptCompilerCacheRootAcceptsAbsoluteRoot(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "cache", "gs")
+	got, err := ResolveGoScriptCompilerCacheRoot(filepath.Join(t.TempDir(), "work"), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != root {
+		t.Fatalf("cache root = %q, want %q", got, root)
+	}
+}
+
+func TestResolveGoScriptCompilerCacheRootRejectsEscapingRelativeRoot(t *testing.T) {
+	stateRoot := filepath.Join(t.TempDir(), ".bldr")
+	buildPath := filepath.Join(stateRoot, "build", "web", "spacewave-core")
+	_, err := ResolveGoScriptCompilerCacheRoot(buildPath, filepath.Join("..", "cache"))
+	if err == nil || !strings.Contains(err.Error(), "escapes .bldr state root") {
+		t.Fatalf("resolve escaping cache root error = %v, want escape error", err)
+	}
+}
+
 func TestGoListImportPathPreservesEnv(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/goscriptenv\n\ngo 1.24\n"), 0o644); err != nil {
@@ -136,4 +203,22 @@ func readGoScriptOutput(t *testing.T, outputRoot, importPath string) string {
 		t.Fatal(err)
 	}
 	return string(data)
+}
+
+func countGoScriptCacheManifests(t *testing.T, cacheRoot string) int {
+	t.Helper()
+	count := 0
+	err := filepath.WalkDir(cacheRoot, func(_ string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !entry.IsDir() && entry.Name() == "manifest.json" {
+			count++
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return count
 }

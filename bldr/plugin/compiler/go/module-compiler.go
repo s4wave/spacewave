@@ -157,6 +157,7 @@ func (m *ModuleCompiler) CompilePluginGoScript(
 	ctx context.Context,
 	le *logrus.Entry,
 	outPath string,
+	cacheRoot string,
 	buildFlags []string,
 	overrideDirs []string,
 ) (string, error) {
@@ -167,6 +168,7 @@ func (m *ModuleCompiler) CompilePluginGoScript(
 	if err := gocompiler.ExecGoScriptCompile(ctx, le, gocompiler.GoScriptCompileOptions{
 		WorkDir:                   m.pluginCodegenPath,
 		OutputPath:                outPath,
+		CacheRoot:                 cacheRoot,
 		Packages:                  []string{"."},
 		BuildFlags:                buildFlags,
 		OverrideDirs:              overrideDirs,

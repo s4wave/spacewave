@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -22,12 +23,61 @@ func GoScriptStartupCacheEnvKeys() []string {
 type GoScriptCompileOptions struct {
 	WorkDir                   string
 	OutputPath                string
+	CacheRoot                 string
 	Packages                  []string
 	BuildFlags                []string
 	Env                       []string
 	OverrideDirs              []string
 	AllDependencies           bool
 	ProtobufTypeScriptBinding bool
+}
+
+// GoScriptCompilerCacheRootFromEnv resolves the optional compiler cache root
+// for a Bldr build working path.
+func GoScriptCompilerCacheRootFromEnv(buildPath string) (string, error) {
+	rawRoot, ok := os.LookupEnv(GoScriptCompilerCacheRootEnv)
+	if !ok || strings.TrimSpace(rawRoot) == "" {
+		return "", nil
+	}
+	return ResolveGoScriptCompilerCacheRoot(buildPath, rawRoot)
+}
+
+// ResolveGoScriptCompilerCacheRoot resolves rawRoot for a Bldr build path.
+// Absolute roots are used directly; relative roots live under the .bldr state
+// root that owns the build path.
+func ResolveGoScriptCompilerCacheRoot(buildPath, rawRoot string) (string, error) {
+	rawRoot = strings.TrimSpace(rawRoot)
+	if rawRoot == "" {
+		return "", nil
+	}
+	if filepath.IsAbs(rawRoot) {
+		return filepath.Clean(rawRoot), nil
+	}
+	cleanRoot := filepath.Clean(rawRoot)
+	if cleanRoot == "." || cleanRoot == ".." || strings.HasPrefix(cleanRoot, ".."+string(filepath.Separator)) {
+		return "", errors.Errorf("%s relative path escapes .bldr state root: %s", GoScriptCompilerCacheRootEnv, rawRoot)
+	}
+	stateRoot := goScriptBldrStateRootForBuildPath(buildPath)
+	if stateRoot == "" {
+		return "", errors.Errorf("%s relative path requires a .bldr build path: %s", GoScriptCompilerCacheRootEnv, buildPath)
+	}
+	return filepath.Join(stateRoot, cleanRoot), nil
+}
+
+func goScriptBldrStateRootForBuildPath(buildPath string) string {
+	buildPath = strings.TrimSpace(buildPath)
+	if buildPath == "" {
+		return ""
+	}
+	for dir := filepath.Clean(buildPath); ; dir = filepath.Dir(dir) {
+		if filepath.Base(dir) == ".bldr" {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return ""
+		}
+	}
 }
 
 // GoListImportPath returns the import path for the package in workDir under the given build flags.
@@ -82,6 +132,13 @@ func ExecGoScriptCompile(ctx context.Context, le *logrus.Entry, opts GoScriptCom
 		OutputPath:                opts.OutputPath,
 		AllDependencies:           opts.AllDependencies,
 		ProtobufTypeScriptBinding: opts.ProtobufTypeScriptBinding,
+	}
+	if opts.CacheRoot != "" {
+		cacheRoot := strings.TrimSpace(opts.CacheRoot)
+		if cacheRoot == "" {
+			return errors.New("goscript cache root cannot be empty")
+		}
+		conf.CacheRoot = cacheRoot
 	}
 	packages := make([]string, 0, len(opts.Packages))
 	for _, pkg := range opts.Packages {

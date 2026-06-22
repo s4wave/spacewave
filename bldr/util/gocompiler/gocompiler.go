@@ -20,6 +20,10 @@ const BldrTinyGoJSImportBuildTag = "bldr_tinygo_js_imports"
 // GoScriptBuildTag selects source meant for GoScript compilation.
 const GoScriptBuildTag = "goscript"
 
+// GoScriptCompilerCacheRootEnv opts GoScript compiles into the compiler package
+// artifact cache.
+const GoScriptCompilerCacheRootEnv = "GOSCRIPT_COMPILER_CACHE_ROOT"
+
 // GetDefaultArgs are the set of args we usually pass to the compiler.
 func GetDefaultArgs() []string {
 	return []string{
