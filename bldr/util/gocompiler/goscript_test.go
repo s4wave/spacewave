@@ -105,6 +105,19 @@ func TestGoScriptCompilerCacheRootFromEnvDefaultsDisabled(t *testing.T) {
 	}
 }
 
+func TestGoScriptCompilerCacheRootFromEnvIgnoresGoScriptCliEnv(t *testing.T) {
+	stateRoot := filepath.Join(t.TempDir(), ".bldr")
+	buildPath := filepath.Join(stateRoot, "build", "web", "spacewave-core")
+	t.Setenv("GOSCRIPT_COMPILER_CACHE_ROOT", filepath.Join("cache", "gs"))
+	got, err := GoScriptCompilerCacheRootFromEnv(buildPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "" {
+		t.Fatalf("cache root = %q, want empty", got)
+	}
+}
+
 func TestGoScriptCompilerCacheRootFromEnvResolvesRelativeUnderBldrStateRoot(t *testing.T) {
 	stateRoot := filepath.Join(t.TempDir(), ".bldr")
 	buildPath := filepath.Join(stateRoot, "build", "web", "spacewave-core")

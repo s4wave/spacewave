@@ -14,7 +14,7 @@ import (
 )
 
 // GoScriptStartupCacheEnvKeys returns env keys that affect GoScript artifact
-// identity. GoScript has none, so this returns nil.
+// identity. The compiler cache root only changes reuse cost, not output bytes.
 func GoScriptStartupCacheEnvKeys() []string {
 	return nil
 }
