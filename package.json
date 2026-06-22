@@ -61,6 +61,7 @@
     "build:release:web:e2e:ci": "bun run build:release:web:e2e:ci:assets && bun run build:release:web:e2e:ci:dist",
     "build:release:web:e2e:ci:assets": "bun run bldr -- --state-path=.bldr-dist --build-type=release build -b release-web-e2e-assets",
     "build:release:web:e2e:ci:dist": "bun run bldr -- --state-path=.bldr-dist --build-type=release build -b release-web-e2e-dist",
+    "build:release:web:e2e:tinygo": "bun run bldr -- --state-path=.bldr-dist --build-type=release build -b release-web-e2e-tinygo",
     "build:release:web:e2e:goscript": "bun run bldr -- --state-path=.bldr-dist --build-type=release build -b release-web-e2e-goscript",
     "build:release:web:debug": "bun run bldr -- --state-path=.bldr-dist --build-type=debug build -b release-web",
     "build:net": "tsgo --project tsconfig.net.json --noEmit false --outDir ./dist/",

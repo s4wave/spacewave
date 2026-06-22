@@ -26,8 +26,10 @@ import (
 )
 
 const (
-	releaseDistRelPath   = ".bldr-dist/build/js/spacewave-dist/dist"
-	prerenderDistRelPath = "app/prerender/dist"
+	releaseDistRelPath          = ".bldr-dist/build/js/spacewave-dist/dist"
+	prerenderDistRelPath        = "app/prerender/dist"
+	releaseWasmDistDirEnv       = "E2E_RELEASE_WASM_DIST_DIR"
+	releaseWasmPrerenderDistEnv = "E2E_RELEASE_WASM_PRERENDER_DIST_DIR"
 )
 
 type browserReleaseDescriptor struct {
@@ -56,44 +58,20 @@ type harness struct {
 	browser     playwright.Browser
 }
 
+type releaseWasmDistDirs struct {
+	releaseDist string
+	prerender   string
+}
+
 func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 	repoRoot, err := gitroot.FindRepoRoot()
 	if err != nil {
 		return nil, errors.Wrap(err, "find repo root")
 	}
 
-	if err := os.RemoveAll(filepath.Join(repoRoot, prerenderDistRelPath)); err != nil {
-		return nil, errors.Wrap(err, "clean prerender dist")
-	}
-	if err := os.RemoveAll(filepath.Join(repoRoot, ".bldr-dist")); err != nil {
-		return nil, errors.Wrap(err, "clean release dist state")
-	}
-
-	le.Info("building release web bundle")
-	if err := buildReleaseWeb(ctx, repoRoot); err != nil {
-		return nil, errors.Wrap(err, "build release web bundle")
-	}
-
-	distDir := filepath.Join(repoRoot, releaseDistRelPath)
-	le.Info("building prerender hydrate bundle")
-	if err := runBun(ctx, repoRoot, "run", "vite", "build", "--config", "app/prerender/vite.hydrate.config.ts"); err != nil {
-		return nil, errors.Wrap(err, "build prerender hydrate bundle")
-	}
-	le.Info("building prerender ssr bundle")
-	if err := runBun(ctx, repoRoot, "run", "vite", "build", "--config", "app/prerender/vite.ssr.config.ts"); err != nil {
-		return nil, errors.Wrap(err, "build prerender ssr bundle")
-	}
-	le.Info("running prerender build")
-	if err := runBun(ctx, repoRoot, "./app/prerender/ssr-dist/build.js", "--dist-dir", distDir); err != nil {
-		return nil, errors.Wrap(err, "run prerender build")
-	}
-
-	if _, err := os.Stat(filepath.Join(distDir, "browser-release.json")); err != nil {
-		return nil, errors.Wrap(err, "stat browser-release.json")
-	}
-	staticDir := filepath.Join(repoRoot, prerenderDistRelPath)
-	if _, err := os.Stat(filepath.Join(staticDir, "index.html")); err != nil {
-		return nil, errors.Wrap(err, "stat prerender index.html")
+	distDirs, err := prepareReleaseWasmDist(ctx, le, repoRoot)
+	if err != nil {
+		return nil, err
 	}
 
 	port, err := findFreePort()
@@ -120,7 +98,7 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 
 	h.server = &http.Server{
 		Addr:              "127.0.0.1:" + port,
-		Handler:           releaseHandler(distDir, staticDir),
+		Handler:           releaseHandler(distDirs.releaseDist, distDirs.prerender),
 		ReadHeaderTimeout: 30 * time.Second,
 	}
 	go func() {
@@ -171,6 +149,85 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 }
 
 func (h *harness) getBaseURL() string { return h.baseURL }
+
+func prepareReleaseWasmDist(ctx context.Context, le *logrus.Entry, repoRoot string) (releaseWasmDistDirs, error) {
+	if dirs, ok, err := prebuiltReleaseWasmDistDirs(repoRoot); ok || err != nil {
+		if err != nil {
+			return releaseWasmDistDirs{}, err
+		}
+		le.WithFields(logrus.Fields{
+			"dist":      dirs.releaseDist,
+			"prerender": dirs.prerender,
+		}).Info("using prebuilt release web bundle")
+		return dirs, nil
+	}
+
+	if err := os.RemoveAll(filepath.Join(repoRoot, prerenderDistRelPath)); err != nil {
+		return releaseWasmDistDirs{}, errors.Wrap(err, "clean prerender dist")
+	}
+	if err := os.RemoveAll(filepath.Join(repoRoot, ".bldr-dist")); err != nil {
+		return releaseWasmDistDirs{}, errors.Wrap(err, "clean release dist state")
+	}
+
+	le.Info("building release web bundle")
+	if err := buildReleaseWeb(ctx, repoRoot); err != nil {
+		return releaseWasmDistDirs{}, errors.Wrap(err, "build release web bundle")
+	}
+
+	distDir := filepath.Join(repoRoot, releaseDistRelPath)
+	le.Info("building prerender hydrate bundle")
+	if err := runBun(ctx, repoRoot, "run", "vite", "build", "--config", "app/prerender/vite.hydrate.config.ts"); err != nil {
+		return releaseWasmDistDirs{}, errors.Wrap(err, "build prerender hydrate bundle")
+	}
+	le.Info("building prerender ssr bundle")
+	if err := runBun(ctx, repoRoot, "run", "vite", "build", "--config", "app/prerender/vite.ssr.config.ts"); err != nil {
+		return releaseWasmDistDirs{}, errors.Wrap(err, "build prerender ssr bundle")
+	}
+	le.Info("running prerender build")
+	if err := runBun(ctx, repoRoot, "./app/prerender/ssr-dist/build.js", "--dist-dir", distDir); err != nil {
+		return releaseWasmDistDirs{}, errors.Wrap(err, "run prerender build")
+	}
+
+	staticDir := filepath.Join(repoRoot, prerenderDistRelPath)
+	if err := validateReleaseWasmDist(distDir, staticDir); err != nil {
+		return releaseWasmDistDirs{}, err
+	}
+	return releaseWasmDistDirs{releaseDist: distDir, prerender: staticDir}, nil
+}
+
+func prebuiltReleaseWasmDistDirs(repoRoot string) (releaseWasmDistDirs, bool, error) {
+	distDir := strings.TrimSpace(os.Getenv(releaseWasmDistDirEnv))
+	prerenderDir := strings.TrimSpace(os.Getenv(releaseWasmPrerenderDistEnv))
+	if distDir == "" && prerenderDir == "" {
+		return releaseWasmDistDirs{}, false, nil
+	}
+	if distDir == "" || prerenderDir == "" {
+		return releaseWasmDistDirs{}, true, errors.Errorf("%s and %s must be set together", releaseWasmDistDirEnv, releaseWasmPrerenderDistEnv)
+	}
+	distDir = repoPath(repoRoot, distDir)
+	prerenderDir = repoPath(repoRoot, prerenderDir)
+	if err := validateReleaseWasmDist(distDir, prerenderDir); err != nil {
+		return releaseWasmDistDirs{}, true, err
+	}
+	return releaseWasmDistDirs{releaseDist: distDir, prerender: prerenderDir}, true, nil
+}
+
+func repoPath(repoRoot, path string) string {
+	if filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Join(repoRoot, path)
+}
+
+func validateReleaseWasmDist(distDir, prerenderDir string) error {
+	if _, err := os.Stat(filepath.Join(distDir, "browser-release.json")); err != nil {
+		return errors.Wrap(err, "stat browser-release.json")
+	}
+	if _, err := os.Stat(filepath.Join(prerenderDir, "index.html")); err != nil {
+		return errors.Wrap(err, "stat prerender index.html")
+	}
+	return nil
+}
 
 func releaseWasmBrowserName() (string, error) {
 	name := strings.ToLower(strings.TrimSpace(os.Getenv("E2E_RELEASE_WASM_BROWSER")))

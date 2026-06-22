@@ -21,41 +21,12 @@ env:
   BINARYEN_CORES: 1
 
 jobs:
-  e2e-go-nightly:
-    name: Nightly E2E (${{ matrix.suite.name }})
+  e2e-electron-nightly:
+    name: Nightly E2E (electron)
     runs-on: ubuntu-latest
     env:
-      BLDR_WASM_OPT_DIAGNOSTICS_DIR: ${{ github.workspace }}/.tmp/wasm-opt-diagnostics
-      BLDR_GO_WASM_OPTIMIZE: ${{ matrix.suite.go_wasm_optimize }}
-      BLDR_ELECTRON_NO_SANDBOX: ${{ matrix.suite.electron_no_sandbox }}
-      E2E_ELECTRON_CDP_READY_TIMEOUT: ${{ matrix.suite.electron_cdp_ready_timeout }}
-      E2E_RELEASE_WASM_BUILD_SCRIPT: ${{ matrix.suite.release_wasm_build_script }}
-    strategy:
-      fail-fast: false
-      matrix:
-        # core/e2e/onboarding requires SPACEWAVE_CLOUD_DIR, so it stays out of
-        # this public nightly matrix until CI has a cloud checkout available.
-        suite:
-          - name: electron
-            script: test:go:e2e:electron
-            release_wasm_build_script: ''
-            needs_playwright: true
-            playwright_browsers: chromium
-            use_xvfb: true
-            electron_no_sandbox: true
-            needs_tinygo: false
-            electron_cdp_ready_timeout: 20m
-            go_wasm_optimize: ''
-          - name: release-wasm
-            script: test:go:e2e:release-wasm
-            release_wasm_build_script: build:release:web:e2e:ci
-            needs_playwright: true
-            playwright_browsers: chromium
-            use_xvfb: false
-            electron_no_sandbox: false
-            needs_tinygo: true
-            electron_cdp_ready_timeout: ''
-            go_wasm_optimize: 'false'
+      BLDR_ELECTRON_NO_SANDBOX: true
+      E2E_ELECTRON_CDP_READY_TIMEOUT: 20m
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -77,11 +48,49 @@ jobs:
         run: bun install --frozen-lockfile --ignore-scripts
 
       - name: Install Playwright browsers
-        if: ${{ matrix.suite.needs_playwright }}
-        run: go run github.com/playwright-community/playwright-go/cmd/playwright install --with-deps ${{ matrix.suite.playwright_browsers }}
+        run: go run github.com/playwright-community/playwright-go/cmd/playwright install --with-deps chromium
+
+      - name: Cache aptre tools
+        uses: actions/cache@v5
+        with:
+          path: ./.tools
+          key: ${{ runner.os }}-aptre-tools-${{ hashFiles('**/go.sum') }}
+
+      - name: Setup aptre tools and vendor
+        run: bun run prepare
+
+      - name: Run Nightly E2E electron suite
+        run: xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' bun run test:go:e2e:electron
+
+  release-wasm-build:
+    name: Nightly E2E (release-wasm build envelope)
+    runs-on: ubuntu-latest
+    env:
+      BLDR_WASM_OPT_DIAGNOSTICS_DIR: ${{ github.workspace }}/.tmp/wasm-opt-diagnostics
+      BLDR_GO_WASM_OPTIMIZE: false
+      BLDR_TINYGO_PROFILE: fast
+      BLDR_TINYGO_GC: leaking
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 25.x
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
 
       - name: Install Binaryen
-        if: ${{ matrix.suite.needs_tinygo }}
         shell: bash
         run: |
           set -euo pipefail
@@ -96,7 +105,6 @@ jobs:
           "${RUNNER_TEMP}/binaryen/bin/wasm-opt" --version
 
       - name: Install TinyGo
-        if: ${{ matrix.suite.needs_tinygo }}
         shell: bash
         run: |
           set -euo pipefail
@@ -116,19 +124,140 @@ jobs:
       - name: Setup aptre tools and vendor
         run: bun run prepare
 
-      - name: Run Nightly E2E suite
-        if: ${{ !matrix.suite.use_xvfb }}
-        run: bun run ${{ matrix.suite.script }}
+      - name: Build release-WASM TinyGo assets with resource telemetry
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/release-wasm-telemetry
+          {
+            date -u
+            echo "workflow=${GITHUB_WORKFLOW}"
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "sha=${GITHUB_SHA}"
+            echo "compiler=tinygo"
+            echo "build_script=build:release:web:e2e:tinygo"
+            echo "BLDR_TINYGO_PROFILE=${BLDR_TINYGO_PROFILE}"
+            echo "BLDR_TINYGO_GC=${BLDR_TINYGO_GC}"
+            go version
+            tinygo version
+            bun --version
+            wasm-opt --version
+            df -h
+            free -h || true
+            ulimit -a
+          } | tee .tmp/release-wasm-telemetry/preflight.txt
+          /usr/bin/time -v -o .tmp/release-wasm-telemetry/build-time.txt \
+            bun run build:release:web:e2e:tinygo 2>&1 | tee .tmp/release-wasm-telemetry/build.log
 
-      - name: Run Nightly E2E suite with xvfb
-        if: ${{ matrix.suite.use_xvfb }}
-        run: xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' bun run ${{ matrix.suite.script }}
+      - name: Build release-WASM prerender artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun run vite build --config app/prerender/vite.hydrate.config.ts
+          bun run vite build --config app/prerender/vite.ssr.config.ts
+          bun ./app/prerender/ssr-dist/build.js --dist-dir .bldr-dist/build/js/spacewave-dist/dist
 
-      - name: Upload wasm-opt diagnostics
-        if: failure() && matrix.suite.needs_tinygo
+      - name: Collect release-WASM build telemetry
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/release-wasm-telemetry
+          {
+            date -u
+            df -h
+            free -h || true
+          } > .tmp/release-wasm-telemetry/postflight.txt
+          if [ -d .bldr-dist ]; then
+            find .bldr-dist -type f \( -name '*.wasm' -o -name '*.wasm.gz' \) -print0 \
+              | xargs -0 --no-run-if-empty du -h \
+              | sort -h > .tmp/release-wasm-telemetry/wasm-sizes.txt
+          else
+            : > .tmp/release-wasm-telemetry/wasm-sizes.txt
+          fi
+          if [ -d .bldr-dist/build/js/spacewave-dist/dist ] || [ -d app/prerender/dist ]; then
+            find .bldr-dist/build/js/spacewave-dist/dist app/prerender/dist -type f -printf '%s %p\n' \
+              > .tmp/release-wasm-telemetry/browser-artifact-files.txt 2>/dev/null || true
+          else
+            : > .tmp/release-wasm-telemetry/browser-artifact-files.txt
+          fi
+
+      - name: Upload release-WASM build telemetry
+        if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: nightly-wasm-opt-diagnostics-${{ github.run_id }}
-          path: .tmp/wasm-opt-diagnostics
+          name: nightly-release-wasm-build-telemetry-${{ github.run_id }}
+          path: |
+            .tmp/release-wasm-telemetry
+            .tmp/wasm-opt-diagnostics
+          include-hidden-files: true
+          if-no-files-found: warn
+
+      - name: Upload release-WASM browser artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: nightly-release-wasm-browser-${{ github.run_id }}
+          path: |
+            .bldr-dist/build/js/spacewave-dist/dist
+            app/prerender/dist
+          include-hidden-files: true
+          if-no-files-found: error
+
+  release-wasm-smoke:
+    name: Nightly E2E (release-wasm browser smoke)
+    runs-on: ubuntu-latest
+    needs: release-wasm-build
+    env:
+      ENABLE_E2E_RELEASE_WASM: true
+      E2E_RELEASE_WASM_BROWSER: chromium
+      E2E_RELEASE_WASM_DIST_DIR: .bldr-dist/build/js/spacewave-dist/dist
+      E2E_RELEASE_WASM_PRERENDER_DIST_DIR: app/prerender/dist
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 25.x
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Install Playwright browsers
+        run: go run github.com/playwright-community/playwright-go/cmd/playwright install --with-deps chromium
+
+      - name: Cache aptre tools
+        uses: actions/cache@v5
+        with:
+          path: ./.tools
+          key: ${{ runner.os }}-aptre-tools-${{ hashFiles('**/go.sum') }}
+
+      - name: Setup aptre tools and vendor
+        run: bun run prepare
+
+      - name: Download release-WASM browser artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: nightly-release-wasm-browser-${{ github.run_id }}
+          path: .
+
+      - name: Run release-WASM browser smoke
+        run: bun run test:go:e2e:release-wasm
+
+      - name: Upload release-WASM smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nightly-release-wasm-smoke-artifacts-${{ github.run_id }}
+          path: .bldr/e2e-releasewasm/artifacts
           include-hidden-files: true
           if-no-files-found: warn
