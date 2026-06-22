@@ -41,6 +41,10 @@ enum TerminalFrameKind {
   TERMINAL_FRAME_KIND_EXIT = 7;
   // TERMINAL_FRAME_KIND_ERROR reports a terminal stream error.
   TERMINAL_FRAME_KIND_ERROR = 8;
+  // TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_CHALLENGE asks the viewer to confirm a first-connect SSH Host key.
+  TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_CHALLENGE = 9;
+  // TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_RESPONSE carries the viewer's SSH Host key trust decision.
+  TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_RESPONSE = 10;
 }
 
 // TerminalTargetKind selects the owner that opens the live terminal session.
@@ -103,6 +107,16 @@ message TerminalFrame {
   string error = 7;
   // ExitCode is the process exit code for EXIT.
   int32 exit_code = 8;
+  // SshTrustHost is the host that presented an unknown SSH host key.
+  string ssh_trust_host = 9;
+  // SshTrustAlgorithm is the presented SSH host key algorithm.
+  string ssh_trust_algorithm = 10;
+  // SshTrustSha256Fingerprint is the presented SSH host key SHA256 fingerprint.
+  string ssh_trust_sha256_fingerprint = 11;
+  // SshTrustPublicKey is the presented SSH host public key in authorized_keys format.
+  string ssh_trust_public_key = 12;
+  // SshTrustAccepted is true when the viewer explicitly accepted the presented SSH host key.
+  bool ssh_trust_accepted = 13;
 }
 
 // CreateTerminalOp creates a Terminal world object.

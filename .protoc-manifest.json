@@ -4286,7 +4286,7 @@
       "protoFiles": ["sdk/status/status.proto"]
     },
     "github.com/s4wave/spacewave/sdk/terminal": {
-      "hash": "28e30f0f06df9f9868736858efe01f091bf2ff92f25d5894c08bdb79fbec7b37",
+      "hash": "8631d8a557a41406a1f4c63bd93374c369229b1c7aca81a15f2dc4cbfa180e8d",
       "generatedFiles": [
         "sdk/terminal/terminal.pb.cc",
         "sdk/terminal/terminal.pb.go",

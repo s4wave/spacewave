@@ -153,6 +153,8 @@ enum TerminalFrameKind : int {
   TERMINAL_FRAME_KIND_CLOSE = 6,
   TERMINAL_FRAME_KIND_EXIT = 7,
   TERMINAL_FRAME_KIND_ERROR = 8,
+  TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_CHALLENGE = 9,
+  TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_RESPONSE = 10,
   TerminalFrameKind_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
   TerminalFrameKind_INT_MAX_SENTINEL_DO_NOT_USE_ =
@@ -163,11 +165,11 @@ extern const uint32_t TerminalFrameKind_internal_data_[];
 inline constexpr TerminalFrameKind TerminalFrameKind_MIN =
     static_cast<TerminalFrameKind>(0);
 inline constexpr TerminalFrameKind TerminalFrameKind_MAX =
-    static_cast<TerminalFrameKind>(8);
+    static_cast<TerminalFrameKind>(10);
 inline bool TerminalFrameKind_IsValid(int value) {
-  return 0 <= value && value <= 8;
+  return 0 <= value && value <= 10;
 }
-inline constexpr int TerminalFrameKind_ARRAYSIZE = 8 + 1;
+inline constexpr int TerminalFrameKind_ARRAYSIZE = 10 + 1;
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TerminalFrameKind_descriptor();
 template <typename T>
 const ::std::string& TerminalFrameKind_Name(T value) {
@@ -178,7 +180,7 @@ const ::std::string& TerminalFrameKind_Name(T value) {
 }
 template <>
 inline const ::std::string& TerminalFrameKind_Name(TerminalFrameKind value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<TerminalFrameKind_descriptor, 0, 8>(
+  return ::google::protobuf::internal::NameOfDenseEnum<TerminalFrameKind_descriptor, 0, 10>(
       static_cast<int>(value));
 }
 inline bool TerminalFrameKind_Parse(
@@ -509,10 +511,15 @@ class TerminalFrame final : public ::google::protobuf::Message
     kDataFieldNumber = 2,
     kCommandFieldNumber = 5,
     kErrorFieldNumber = 7,
+    kSshTrustHostFieldNumber = 9,
+    kSshTrustAlgorithmFieldNumber = 10,
+    kSshTrustSha256FingerprintFieldNumber = 11,
+    kSshTrustPublicKeyFieldNumber = 12,
     kKindFieldNumber = 1,
     kColsFieldNumber = 3,
     kRowsFieldNumber = 4,
     kExitCodeFieldNumber = 8,
+    kSshTrustAcceptedFieldNumber = 13,
   };
   // repeated string environment = 6;
   int environment_size() const;
@@ -581,6 +588,66 @@ class TerminalFrame final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_error();
 
   public:
+  // string ssh_trust_host = 9;
+  void clear_ssh_trust_host() ;
+  const ::std::string& ssh_trust_host() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_ssh_trust_host(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_ssh_trust_host();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_ssh_trust_host();
+  void set_allocated_ssh_trust_host(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_ssh_trust_host() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_ssh_trust_host(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_ssh_trust_host();
+
+  public:
+  // string ssh_trust_algorithm = 10;
+  void clear_ssh_trust_algorithm() ;
+  const ::std::string& ssh_trust_algorithm() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_ssh_trust_algorithm(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_ssh_trust_algorithm();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_ssh_trust_algorithm();
+  void set_allocated_ssh_trust_algorithm(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_ssh_trust_algorithm() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_ssh_trust_algorithm(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_ssh_trust_algorithm();
+
+  public:
+  // string ssh_trust_sha256_fingerprint = 11;
+  void clear_ssh_trust_sha256_fingerprint() ;
+  const ::std::string& ssh_trust_sha256_fingerprint() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_ssh_trust_sha256_fingerprint(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_ssh_trust_sha256_fingerprint();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_ssh_trust_sha256_fingerprint();
+  void set_allocated_ssh_trust_sha256_fingerprint(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_ssh_trust_sha256_fingerprint() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_ssh_trust_sha256_fingerprint(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_ssh_trust_sha256_fingerprint();
+
+  public:
+  // string ssh_trust_public_key = 12;
+  void clear_ssh_trust_public_key() ;
+  const ::std::string& ssh_trust_public_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_ssh_trust_public_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_ssh_trust_public_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_ssh_trust_public_key();
+  void set_allocated_ssh_trust_public_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_ssh_trust_public_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_ssh_trust_public_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_ssh_trust_public_key();
+
+  public:
   // .s4wave.terminal.TerminalFrameKind kind = 1;
   void clear_kind() ;
   ::s4wave::terminal::TerminalFrameKind kind() const;
@@ -621,12 +688,22 @@ class TerminalFrame final : public ::google::protobuf::Message
   void _internal_set_exit_code(::int32_t value);
 
   public:
+  // bool ssh_trust_accepted = 13;
+  void clear_ssh_trust_accepted() ;
+  bool ssh_trust_accepted() const;
+  void set_ssh_trust_accepted(bool value);
+
+  private:
+  bool _internal_ssh_trust_accepted() const;
+  void _internal_set_ssh_trust_accepted(bool value);
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.terminal.TerminalFrame)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 8,
-                                   0, 69,
+  static const ::google::protobuf::internal::TcParseTable<4, 13,
+                                   0, 150,
                                    2>
       _table_;
 
@@ -651,10 +728,15 @@ class TerminalFrame final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr data_;
     ::google::protobuf::internal::ArenaStringPtr command_;
     ::google::protobuf::internal::ArenaStringPtr error_;
+    ::google::protobuf::internal::ArenaStringPtr ssh_trust_host_;
+    ::google::protobuf::internal::ArenaStringPtr ssh_trust_algorithm_;
+    ::google::protobuf::internal::ArenaStringPtr ssh_trust_sha256_fingerprint_;
+    ::google::protobuf::internal::ArenaStringPtr ssh_trust_public_key_;
     int kind_;
     ::uint32_t cols_;
     ::uint32_t rows_;
     ::int32_t exit_code_;
+    bool ssh_trust_accepted_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -2456,7 +2538,7 @@ inline void TerminalFrame::clear_kind() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.kind_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000100U);
 }
 inline ::s4wave::terminal::TerminalFrameKind TerminalFrame::kind() const {
   // @@protoc_insertion_point(field_get:s4wave.terminal.TerminalFrame.kind)
@@ -2464,7 +2546,7 @@ inline ::s4wave::terminal::TerminalFrameKind TerminalFrame::kind() const {
 }
 inline void TerminalFrame::set_kind(::s4wave::terminal::TerminalFrameKind value) {
   _internal_set_kind(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   // @@protoc_insertion_point(field_set:s4wave.terminal.TerminalFrame.kind)
 }
 inline ::s4wave::terminal::TerminalFrameKind TerminalFrame::_internal_kind() const {
@@ -2546,7 +2628,7 @@ inline void TerminalFrame::clear_cols() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.cols_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000200U);
 }
 inline ::uint32_t TerminalFrame::cols() const {
   // @@protoc_insertion_point(field_get:s4wave.terminal.TerminalFrame.cols)
@@ -2554,7 +2636,7 @@ inline ::uint32_t TerminalFrame::cols() const {
 }
 inline void TerminalFrame::set_cols(::uint32_t value) {
   _internal_set_cols(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   // @@protoc_insertion_point(field_set:s4wave.terminal.TerminalFrame.cols)
 }
 inline ::uint32_t TerminalFrame::_internal_cols() const {
@@ -2571,7 +2653,7 @@ inline void TerminalFrame::clear_rows() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.rows_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000040U);
+                  0x00000400U);
 }
 inline ::uint32_t TerminalFrame::rows() const {
   // @@protoc_insertion_point(field_get:s4wave.terminal.TerminalFrame.rows)
@@ -2579,7 +2661,7 @@ inline ::uint32_t TerminalFrame::rows() const {
 }
 inline void TerminalFrame::set_rows(::uint32_t value) {
   _internal_set_rows(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
   // @@protoc_insertion_point(field_set:s4wave.terminal.TerminalFrame.rows)
 }
 inline ::uint32_t TerminalFrame::_internal_rows() const {
@@ -2798,7 +2880,7 @@ inline void TerminalFrame::clear_exit_code() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.exit_code_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000080U);
+                  0x00000800U);
 }
 inline ::int32_t TerminalFrame::exit_code() const {
   // @@protoc_insertion_point(field_get:s4wave.terminal.TerminalFrame.exit_code)
@@ -2806,7 +2888,7 @@ inline ::int32_t TerminalFrame::exit_code() const {
 }
 inline void TerminalFrame::set_exit_code(::int32_t value) {
   _internal_set_exit_code(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
   // @@protoc_insertion_point(field_set:s4wave.terminal.TerminalFrame.exit_code)
 }
 inline ::int32_t TerminalFrame::_internal_exit_code() const {
@@ -2816,6 +2898,291 @@ inline ::int32_t TerminalFrame::_internal_exit_code() const {
 inline void TerminalFrame::_internal_set_exit_code(::int32_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.exit_code_ = value;
+}
+
+// string ssh_trust_host = 9;
+inline void TerminalFrame::clear_ssh_trust_host() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ssh_trust_host_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& TerminalFrame::ssh_trust_host() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.terminal.TerminalFrame.ssh_trust_host)
+  return _internal_ssh_trust_host();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TerminalFrame::set_ssh_trust_host(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.ssh_trust_host_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.terminal.TerminalFrame.ssh_trust_host)
+}
+inline ::std::string* PROTOBUF_NONNULL TerminalFrame::mutable_ssh_trust_host()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_ssh_trust_host();
+  // @@protoc_insertion_point(field_mutable:s4wave.terminal.TerminalFrame.ssh_trust_host)
+  return _s;
+}
+inline const ::std::string& TerminalFrame::_internal_ssh_trust_host() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.ssh_trust_host_.Get();
+}
+inline void TerminalFrame::_internal_set_ssh_trust_host(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ssh_trust_host_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TerminalFrame::_internal_mutable_ssh_trust_host() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.ssh_trust_host_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TerminalFrame::release_ssh_trust_host() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.terminal.TerminalFrame.ssh_trust_host)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.ssh_trust_host_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.ssh_trust_host_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TerminalFrame::set_allocated_ssh_trust_host(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.ssh_trust_host_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.ssh_trust_host_.IsDefault()) {
+    _impl_.ssh_trust_host_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.terminal.TerminalFrame.ssh_trust_host)
+}
+
+// string ssh_trust_algorithm = 10;
+inline void TerminalFrame::clear_ssh_trust_algorithm() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ssh_trust_algorithm_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::std::string& TerminalFrame::ssh_trust_algorithm() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.terminal.TerminalFrame.ssh_trust_algorithm)
+  return _internal_ssh_trust_algorithm();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TerminalFrame::set_ssh_trust_algorithm(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  _impl_.ssh_trust_algorithm_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.terminal.TerminalFrame.ssh_trust_algorithm)
+}
+inline ::std::string* PROTOBUF_NONNULL TerminalFrame::mutable_ssh_trust_algorithm()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::std::string* _s = _internal_mutable_ssh_trust_algorithm();
+  // @@protoc_insertion_point(field_mutable:s4wave.terminal.TerminalFrame.ssh_trust_algorithm)
+  return _s;
+}
+inline const ::std::string& TerminalFrame::_internal_ssh_trust_algorithm() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.ssh_trust_algorithm_.Get();
+}
+inline void TerminalFrame::_internal_set_ssh_trust_algorithm(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ssh_trust_algorithm_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TerminalFrame::_internal_mutable_ssh_trust_algorithm() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.ssh_trust_algorithm_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TerminalFrame::release_ssh_trust_algorithm() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.terminal.TerminalFrame.ssh_trust_algorithm)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  auto* released = _impl_.ssh_trust_algorithm_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.ssh_trust_algorithm_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TerminalFrame::set_allocated_ssh_trust_algorithm(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  _impl_.ssh_trust_algorithm_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.ssh_trust_algorithm_.IsDefault()) {
+    _impl_.ssh_trust_algorithm_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.terminal.TerminalFrame.ssh_trust_algorithm)
+}
+
+// string ssh_trust_sha256_fingerprint = 11;
+inline void TerminalFrame::clear_ssh_trust_sha256_fingerprint() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ssh_trust_sha256_fingerprint_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::std::string& TerminalFrame::ssh_trust_sha256_fingerprint() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.terminal.TerminalFrame.ssh_trust_sha256_fingerprint)
+  return _internal_ssh_trust_sha256_fingerprint();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TerminalFrame::set_ssh_trust_sha256_fingerprint(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  _impl_.ssh_trust_sha256_fingerprint_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.terminal.TerminalFrame.ssh_trust_sha256_fingerprint)
+}
+inline ::std::string* PROTOBUF_NONNULL TerminalFrame::mutable_ssh_trust_sha256_fingerprint()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::std::string* _s = _internal_mutable_ssh_trust_sha256_fingerprint();
+  // @@protoc_insertion_point(field_mutable:s4wave.terminal.TerminalFrame.ssh_trust_sha256_fingerprint)
+  return _s;
+}
+inline const ::std::string& TerminalFrame::_internal_ssh_trust_sha256_fingerprint() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.ssh_trust_sha256_fingerprint_.Get();
+}
+inline void TerminalFrame::_internal_set_ssh_trust_sha256_fingerprint(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ssh_trust_sha256_fingerprint_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TerminalFrame::_internal_mutable_ssh_trust_sha256_fingerprint() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.ssh_trust_sha256_fingerprint_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TerminalFrame::release_ssh_trust_sha256_fingerprint() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.terminal.TerminalFrame.ssh_trust_sha256_fingerprint)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  auto* released = _impl_.ssh_trust_sha256_fingerprint_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.ssh_trust_sha256_fingerprint_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TerminalFrame::set_allocated_ssh_trust_sha256_fingerprint(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  _impl_.ssh_trust_sha256_fingerprint_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.ssh_trust_sha256_fingerprint_.IsDefault()) {
+    _impl_.ssh_trust_sha256_fingerprint_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.terminal.TerminalFrame.ssh_trust_sha256_fingerprint)
+}
+
+// string ssh_trust_public_key = 12;
+inline void TerminalFrame::clear_ssh_trust_public_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ssh_trust_public_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline const ::std::string& TerminalFrame::ssh_trust_public_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.terminal.TerminalFrame.ssh_trust_public_key)
+  return _internal_ssh_trust_public_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TerminalFrame::set_ssh_trust_public_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  _impl_.ssh_trust_public_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.terminal.TerminalFrame.ssh_trust_public_key)
+}
+inline ::std::string* PROTOBUF_NONNULL TerminalFrame::mutable_ssh_trust_public_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::std::string* _s = _internal_mutable_ssh_trust_public_key();
+  // @@protoc_insertion_point(field_mutable:s4wave.terminal.TerminalFrame.ssh_trust_public_key)
+  return _s;
+}
+inline const ::std::string& TerminalFrame::_internal_ssh_trust_public_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.ssh_trust_public_key_.Get();
+}
+inline void TerminalFrame::_internal_set_ssh_trust_public_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ssh_trust_public_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TerminalFrame::_internal_mutable_ssh_trust_public_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.ssh_trust_public_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TerminalFrame::release_ssh_trust_public_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.terminal.TerminalFrame.ssh_trust_public_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000080U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  auto* released = _impl_.ssh_trust_public_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.ssh_trust_public_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TerminalFrame::set_allocated_ssh_trust_public_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  }
+  _impl_.ssh_trust_public_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.ssh_trust_public_key_.IsDefault()) {
+    _impl_.ssh_trust_public_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.terminal.TerminalFrame.ssh_trust_public_key)
+}
+
+// bool ssh_trust_accepted = 13;
+inline void TerminalFrame::clear_ssh_trust_accepted() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ssh_trust_accepted_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00001000U);
+}
+inline bool TerminalFrame::ssh_trust_accepted() const {
+  // @@protoc_insertion_point(field_get:s4wave.terminal.TerminalFrame.ssh_trust_accepted)
+  return _internal_ssh_trust_accepted();
+}
+inline void TerminalFrame::set_ssh_trust_accepted(bool value) {
+  _internal_set_ssh_trust_accepted(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
+  // @@protoc_insertion_point(field_set:s4wave.terminal.TerminalFrame.ssh_trust_accepted)
+}
+inline bool TerminalFrame::_internal_ssh_trust_accepted() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.ssh_trust_accepted_;
+}
+inline void TerminalFrame::_internal_set_ssh_trust_accepted(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ssh_trust_accepted_ = value;
 }
 
 // -------------------------------------------------------------------

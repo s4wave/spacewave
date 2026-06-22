@@ -143,6 +143,20 @@ export enum TerminalFrameKind {
    * @generated from enum value: TERMINAL_FRAME_KIND_ERROR = 8;
    */
   ERROR = 8,
+
+  /**
+   * TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_CHALLENGE asks the viewer to confirm a first-connect SSH Host key.
+   *
+   * @generated from enum value: TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_CHALLENGE = 9;
+   */
+  SSH_HOST_KEY_TRUST_CHALLENGE = 9,
+
+  /**
+   * TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_RESPONSE carries the viewer's SSH Host key trust decision.
+   *
+   * @generated from enum value: TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_RESPONSE = 10;
+   */
+  SSH_HOST_KEY_TRUST_RESPONSE = 10,
 }
 
 export const TerminalFrameKind_Enum = /* @__PURE__ */ createEnumType(
@@ -157,6 +171,8 @@ export const TerminalFrameKind_Enum = /* @__PURE__ */ createEnumType(
     [6, 'TERMINAL_FRAME_KIND_CLOSE'],
     [7, 'TERMINAL_FRAME_KIND_EXIT'],
     [8, 'TERMINAL_FRAME_KIND_ERROR'],
+    [9, 'TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_CHALLENGE'],
+    [10, 'TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_RESPONSE'],
   ],
 )
 
@@ -381,6 +397,36 @@ export interface TerminalFrame {
    * @generated from field: int32 exit_code = 8;
    */
   exitCode?: number
+  /**
+   * SshTrustHost is the host that presented an unknown SSH host key.
+   *
+   * @generated from field: string ssh_trust_host = 9;
+   */
+  sshTrustHost?: string
+  /**
+   * SshTrustAlgorithm is the presented SSH host key algorithm.
+   *
+   * @generated from field: string ssh_trust_algorithm = 10;
+   */
+  sshTrustAlgorithm?: string
+  /**
+   * SshTrustSha256Fingerprint is the presented SSH host key SHA256 fingerprint.
+   *
+   * @generated from field: string ssh_trust_sha256_fingerprint = 11;
+   */
+  sshTrustSha256Fingerprint?: string
+  /**
+   * SshTrustPublicKey is the presented SSH host public key in authorized_keys format.
+   *
+   * @generated from field: string ssh_trust_public_key = 12;
+   */
+  sshTrustPublicKey?: string
+  /**
+   * SshTrustAccepted is true when the viewer explicitly accepted the presented SSH host key.
+   *
+   * @generated from field: bool ssh_trust_accepted = 13;
+   */
+  sshTrustAccepted?: boolean
 }
 
 export const TerminalFrame: MessageType<TerminalFrame> =
@@ -401,6 +447,31 @@ export const TerminalFrame: MessageType<TerminalFrame> =
       },
       { no: 7, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 8, name: 'exit_code', kind: 'scalar', T: ScalarType.INT32 },
+      { no: 9, name: 'ssh_trust_host', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 10,
+        name: 'ssh_trust_algorithm',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 11,
+        name: 'ssh_trust_sha256_fingerprint',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 12,
+        name: 'ssh_trust_public_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 13,
+        name: 'ssh_trust_accepted',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

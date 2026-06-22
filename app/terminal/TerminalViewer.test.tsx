@@ -1,6 +1,6 @@
 import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 import {
   TerminalFrameKind,
@@ -25,6 +25,7 @@ const h = vi.hoisted(() => {
     dispose: vi.fn<() => void>(),
     fit: vi.fn<() => void>(),
     clientFrames: new Array<TerminalFrame>(),
+    serverFrames: new Array<TerminalFrame>(),
     closeSeen: closeWaiter.promise,
     resolveClose: closeWaiter.resolve,
     abortObservedBeforeExit: true,
@@ -77,6 +78,17 @@ async function* terminalFrames(
   signal?: AbortSignal,
 ): AsyncIterable<TerminalFrame> {
   await Promise.resolve()
+  for (const frame of h.serverFrames) {
+    yield frame
+  }
+  if (
+    h.serverFrames.some(
+      (frame) => frame.kind === TerminalFrameKind.SSH_HOST_KEY_TRUST_CHALLENGE,
+    )
+  ) {
+    await h.closeSeen
+    return
+  }
   yield { kind: TerminalFrameKind.READY }
   yield {
     kind: TerminalFrameKind.OUTPUT,
@@ -131,6 +143,7 @@ describe('TerminalViewer', () => {
     cleanup()
     vi.clearAllMocks()
     h.clientFrames = []
+    h.serverFrames = []
     h.closeSeen = new Promise<void>((resolve) => {
       h.resolveClose = resolve
     })
@@ -219,5 +232,113 @@ describe('TerminalViewer', () => {
     expect(screen.getByText('Prod SSH Terminal')).toBeTruthy()
     expect(screen.getByText('ssh host')).toBeTruthy()
     expect(screen.getByText('hosts/prod')).toBeTruthy()
+  })
+
+  it('renders SSH host trust challenge and sends accepted response', async () => {
+    currentState = {
+      name: 'Prod SSH Terminal',
+      sshHostObjectKey: 'hosts/prod',
+      targetKind: TerminalTargetKind.SSH_HOST,
+      state: TerminalSessionState.CONNECTING,
+      status: 'connecting',
+      cols: 80,
+      rows: 24,
+    }
+    h.serverFrames = [
+      {
+        kind: TerminalFrameKind.SSH_HOST_KEY_TRUST_CHALLENGE,
+        sshTrustHost: 'prod.internal',
+        sshTrustAlgorithm: 'ssh-ed25519',
+        sshTrustSha256Fingerprint: 'SHA256:abc123',
+        sshTrustPublicKey: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAID',
+      },
+    ]
+
+    const { unmount } = render(
+      <TerminalViewer
+        objectInfo={{
+          info: {
+            case: 'worldObjectInfo',
+            value: {
+              objectKey: 'terminal/prod-ssh',
+              objectType: 'spacewave/terminal',
+            },
+          },
+        }}
+        worldState={{
+          value: null,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    await screen.findByRole('dialog', { name: 'SSH host key trust' })
+    expect(screen.getByText('prod.internal')).toBeTruthy()
+    expect(screen.getByText('ssh-ed25519')).toBeTruthy()
+    expect(screen.getByText('SHA256:abc123')).toBeTruthy()
+    expect(
+      screen.getByText('ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAID'),
+    ).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /trust/i }))
+
+    await vi.waitFor(() =>
+      expect(
+        h.clientFrames.some(
+          (frame) =>
+            frame.kind === TerminalFrameKind.SSH_HOST_KEY_TRUST_RESPONSE &&
+            frame.sshTrustAccepted === true,
+        ),
+      ).toBe(true),
+    )
+    unmount()
+  })
+
+  it('sends rejected SSH host trust response', async () => {
+    h.serverFrames = [
+      {
+        kind: TerminalFrameKind.SSH_HOST_KEY_TRUST_CHALLENGE,
+        sshTrustHost: 'prod.internal',
+        sshTrustAlgorithm: 'ssh-ed25519',
+        sshTrustSha256Fingerprint: 'SHA256:abc123',
+        sshTrustPublicKey: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAID',
+      },
+    ]
+
+    const { unmount } = render(
+      <TerminalViewer
+        objectInfo={{
+          info: {
+            case: 'worldObjectInfo',
+            value: {
+              objectKey: 'terminal/prod-ssh',
+              objectType: 'spacewave/terminal',
+            },
+          },
+        }}
+        worldState={{
+          value: null,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    await screen.findByRole('dialog', { name: 'SSH host key trust' })
+    fireEvent.click(screen.getByRole('button', { name: /reject/i }))
+
+    await vi.waitFor(() =>
+      expect(
+        h.clientFrames.some(
+          (frame) =>
+            frame.kind === TerminalFrameKind.SSH_HOST_KEY_TRUST_RESPONSE &&
+            frame.sshTrustAccepted === false,
+        ),
+      ).toBe(true),
+    )
+    unmount()
   })
 })

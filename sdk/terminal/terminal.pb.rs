@@ -73,6 +73,21 @@ pub struct TerminalFrame {
     /// ExitCode is the process exit code for EXIT.
     #[prost(int32, tag="8")]
     pub exit_code: i32,
+    /// SshTrustHost is the host that presented an unknown SSH host key.
+    #[prost(string, tag="9")]
+    pub ssh_trust_host: ::prost::alloc::string::String,
+    /// SshTrustAlgorithm is the presented SSH host key algorithm.
+    #[prost(string, tag="10")]
+    pub ssh_trust_algorithm: ::prost::alloc::string::String,
+    /// SshTrustSha256Fingerprint is the presented SSH host key SHA256 fingerprint.
+    #[prost(string, tag="11")]
+    pub ssh_trust_sha256_fingerprint: ::prost::alloc::string::String,
+    /// SshTrustPublicKey is the presented SSH host public key in authorized_keys format.
+    #[prost(string, tag="12")]
+    pub ssh_trust_public_key: ::prost::alloc::string::String,
+    /// SshTrustAccepted is true when the viewer explicitly accepted the presented SSH host key.
+    #[prost(bool, tag="13")]
+    pub ssh_trust_accepted: bool,
 }
 /// CreateTerminalOp creates a Terminal world object.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -189,6 +204,10 @@ pub enum TerminalFrameKind {
     Exit = 7,
     /// TERMINAL_FRAME_KIND_ERROR reports a terminal stream error.
     Error = 8,
+    /// TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_CHALLENGE asks the viewer to confirm a first-connect SSH Host key.
+    SshHostKeyTrustChallenge = 9,
+    /// TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_RESPONSE carries the viewer's SSH Host key trust decision.
+    SshHostKeyTrustResponse = 10,
 }
 impl TerminalFrameKind {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -206,6 +225,8 @@ impl TerminalFrameKind {
             Self::Close => "TERMINAL_FRAME_KIND_CLOSE",
             Self::Exit => "TERMINAL_FRAME_KIND_EXIT",
             Self::Error => "TERMINAL_FRAME_KIND_ERROR",
+            Self::SshHostKeyTrustChallenge => "TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_CHALLENGE",
+            Self::SshHostKeyTrustResponse => "TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_RESPONSE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -220,6 +241,8 @@ impl TerminalFrameKind {
             "TERMINAL_FRAME_KIND_CLOSE" => Some(Self::Close),
             "TERMINAL_FRAME_KIND_EXIT" => Some(Self::Exit),
             "TERMINAL_FRAME_KIND_ERROR" => Some(Self::Error),
+            "TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_CHALLENGE" => Some(Self::SshHostKeyTrustChallenge),
+            "TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_RESPONSE" => Some(Self::SshHostKeyTrustResponse),
             _ => None,
         }
     }

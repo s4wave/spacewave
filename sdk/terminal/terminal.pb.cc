@@ -60,10 +60,23 @@ inline constexpr TerminalFrame::Impl_::Impl_(
         error_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        ssh_trust_host_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        ssh_trust_algorithm_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        ssh_trust_sha256_fingerprint_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        ssh_trust_public_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         kind_{static_cast< ::s4wave::terminal::TerminalFrameKind >(0)},
         cols_{0u},
         rows_{0u},
-        exit_code_{0} {}
+        exit_code_{0},
+        ssh_trust_accepted_{false} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR TerminalFrame::TerminalFrame(::_pbi::ConstantInitialized)
@@ -250,7 +263,7 @@ const ::uint32_t
         7,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::TerminalFrame, _impl_._has_bits_),
-        11, // hasbit index offset
+        16, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::TerminalFrame, _impl_.kind_),
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::TerminalFrame, _impl_.data_),
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::TerminalFrame, _impl_.cols_),
@@ -259,14 +272,24 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::TerminalFrame, _impl_.environment_),
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::TerminalFrame, _impl_.error_),
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::TerminalFrame, _impl_.exit_code_),
-        4,
+        PROTOBUF_FIELD_OFFSET(::s4wave::terminal::TerminalFrame, _impl_.ssh_trust_host_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::terminal::TerminalFrame, _impl_.ssh_trust_algorithm_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::terminal::TerminalFrame, _impl_.ssh_trust_sha256_fingerprint_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::terminal::TerminalFrame, _impl_.ssh_trust_public_key_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::terminal::TerminalFrame, _impl_.ssh_trust_accepted_),
+        8,
         1,
-        5,
-        6,
+        9,
+        10,
         2,
         0,
         3,
+        11,
+        4,
+        5,
+        6,
         7,
+        12,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::terminal::CreateTerminalOp, _impl_._has_bits_),
         14, // hasbit index offset
@@ -304,9 +327,9 @@ static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::s4wave::terminal::Terminal)},
         {31, sizeof(::s4wave::terminal::TerminalFrame)},
-        {50, sizeof(::s4wave::terminal::CreateTerminalOp)},
-        {75, sizeof(::s4wave::terminal::WatchTerminalStateRequest)},
-        {76, sizeof(::s4wave::terminal::WatchTerminalStateResponse)},
+        {60, sizeof(::s4wave::terminal::CreateTerminalOp)},
+        {85, sizeof(::s4wave::terminal::WatchTerminalStateRequest)},
+        {86, sizeof(::s4wave::terminal::WatchTerminalStateResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::terminal::_Terminal_default_instance_._instance,
@@ -330,45 +353,52 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2ft
     " \001(\0132\032.google.protobuf.Timestamp\0228\n\013targ"
     "et_kind\030\r \001(\0162#.s4wave.terminal.Terminal"
     "TargetKind\022\033\n\023ssh_host_object_key\030\016 \001(\t\""
-    "\263\001\n\rTerminalFrame\0220\n\004kind\030\001 \001(\0162\".s4wave"
+    "\310\002\n\rTerminalFrame\0220\n\004kind\030\001 \001(\0162\".s4wave"
     ".terminal.TerminalFrameKind\022\014\n\004data\030\002 \001("
     "\014\022\014\n\004cols\030\003 \001(\r\022\014\n\004rows\030\004 \001(\r\022\017\n\007command"
     "\030\005 \001(\t\022\023\n\013environment\030\006 \003(\t\022\r\n\005error\030\007 \001"
-    "(\t\022\021\n\texit_code\030\010 \001(\005\"\257\002\n\020CreateTerminal"
-    "Op\022\022\n\nobject_key\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\022\031\n\021"
-    "device_object_key\030\003 \001(\t\022\026\n\016device_peer_i"
-    "d\030\004 \001(\t\022\017\n\007command\030\005 \001(\t\022\023\n\013environment\030"
-    "\006 \003(\t\022\014\n\004cols\030\007 \001(\r\022\014\n\004rows\030\010 \001(\r\022-\n\ttim"
-    "estamp\030\t \001(\0132\032.google.protobuf.Timestamp"
-    "\0228\n\013target_kind\030\n \001(\0162#.s4wave.terminal."
-    "TerminalTargetKind\022\033\n\023ssh_host_object_ke"
-    "y\030\013 \001(\t\"\033\n\031WatchTerminalStateRequest\"F\n\032"
-    "WatchTerminalStateResponse\022(\n\005state\030\001 \001("
-    "\0132\031.s4wave.terminal.Terminal*\363\001\n\024Termina"
-    "lSessionState\022\"\n\036TERMINAL_SESSION_STATE_"
-    "UNKNOWN\020\000\022%\n!TERMINAL_SESSION_STATE_CONN"
-    "ECTING\020\001\022!\n\035TERMINAL_SESSION_STATE_ACTIV"
-    "E\020\002\022\'\n#TERMINAL_SESSION_STATE_DISCONNECT"
-    "ED\020\003\022!\n\035TERMINAL_SESSION_STATE_FAILED\020\004\022"
-    "!\n\035TERMINAL_SESSION_STATE_CLOSED\020\005*\254\002\n\021T"
-    "erminalFrameKind\022\037\n\033TERMINAL_FRAME_KIND_"
-    "UNKNOWN\020\000\022\034\n\030TERMINAL_FRAME_KIND_OPEN\020\001\022"
-    "\035\n\031TERMINAL_FRAME_KIND_READY\020\002\022\035\n\031TERMIN"
-    "AL_FRAME_KIND_INPUT\020\003\022\036\n\032TERMINAL_FRAME_"
-    "KIND_OUTPUT\020\004\022\036\n\032TERMINAL_FRAME_KIND_RES"
-    "IZE\020\005\022\035\n\031TERMINAL_FRAME_KIND_CLOSE\020\006\022\034\n\030"
-    "TERMINAL_FRAME_KIND_EXIT\020\007\022\035\n\031TERMINAL_F"
-    "RAME_KIND_ERROR\020\010*z\n\022TerminalTargetKind\022"
-    " \n\034TERMINAL_TARGET_KIND_UNKNOWN\020\000\022\037\n\033TER"
-    "MINAL_TARGET_KIND_DEVICE\020\001\022!\n\035TERMINAL_T"
-    "ARGET_KIND_SSH_HOST\020\0022\341\001\n\027TerminalResour"
-    "ceService\022o\n\022WatchTerminalState\022*.s4wave"
-    ".terminal.WatchTerminalStateRequest\032+.s4"
-    "wave.terminal.WatchTerminalStateResponse"
-    "0\001\022U\n\017ConnectTerminal\022\036.s4wave.terminal."
-    "TerminalFrame\032\036.s4wave.terminal.Terminal"
-    "Frame(\0010\001B:Z8github.com/s4wave/spacewave"
-    "/sdk/terminal;s4wave_terminalb\006proto3"
+    "(\t\022\021\n\texit_code\030\010 \001(\005\022\026\n\016ssh_trust_host\030"
+    "\t \001(\t\022\033\n\023ssh_trust_algorithm\030\n \001(\t\022$\n\034ss"
+    "h_trust_sha256_fingerprint\030\013 \001(\t\022\034\n\024ssh_"
+    "trust_public_key\030\014 \001(\t\022\032\n\022ssh_trust_acce"
+    "pted\030\r \001(\010\"\257\002\n\020CreateTerminalOp\022\022\n\nobjec"
+    "t_key\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\022\031\n\021device_obje"
+    "ct_key\030\003 \001(\t\022\026\n\016device_peer_id\030\004 \001(\t\022\017\n\007"
+    "command\030\005 \001(\t\022\023\n\013environment\030\006 \003(\t\022\014\n\004co"
+    "ls\030\007 \001(\r\022\014\n\004rows\030\010 \001(\r\022-\n\ttimestamp\030\t \001("
+    "\0132\032.google.protobuf.Timestamp\0228\n\013target_"
+    "kind\030\n \001(\0162#.s4wave.terminal.TerminalTar"
+    "getKind\022\033\n\023ssh_host_object_key\030\013 \001(\t\"\033\n\031"
+    "WatchTerminalStateRequest\"F\n\032WatchTermin"
+    "alStateResponse\022(\n\005state\030\001 \001(\0132\031.s4wave."
+    "terminal.Terminal*\363\001\n\024TerminalSessionSta"
+    "te\022\"\n\036TERMINAL_SESSION_STATE_UNKNOWN\020\000\022%"
+    "\n!TERMINAL_SESSION_STATE_CONNECTING\020\001\022!\n"
+    "\035TERMINAL_SESSION_STATE_ACTIVE\020\002\022\'\n#TERM"
+    "INAL_SESSION_STATE_DISCONNECTED\020\003\022!\n\035TER"
+    "MINAL_SESSION_STATE_FAILED\020\004\022!\n\035TERMINAL"
+    "_SESSION_STATE_CLOSED\020\005*\227\003\n\021TerminalFram"
+    "eKind\022\037\n\033TERMINAL_FRAME_KIND_UNKNOWN\020\000\022\034"
+    "\n\030TERMINAL_FRAME_KIND_OPEN\020\001\022\035\n\031TERMINAL"
+    "_FRAME_KIND_READY\020\002\022\035\n\031TERMINAL_FRAME_KI"
+    "ND_INPUT\020\003\022\036\n\032TERMINAL_FRAME_KIND_OUTPUT"
+    "\020\004\022\036\n\032TERMINAL_FRAME_KIND_RESIZE\020\005\022\035\n\031TE"
+    "RMINAL_FRAME_KIND_CLOSE\020\006\022\034\n\030TERMINAL_FR"
+    "AME_KIND_EXIT\020\007\022\035\n\031TERMINAL_FRAME_KIND_E"
+    "RROR\020\010\0224\n0TERMINAL_FRAME_KIND_SSH_HOST_K"
+    "EY_TRUST_CHALLENGE\020\t\0223\n/TERMINAL_FRAME_K"
+    "IND_SSH_HOST_KEY_TRUST_RESPONSE\020\n*z\n\022Ter"
+    "minalTargetKind\022 \n\034TERMINAL_TARGET_KIND_"
+    "UNKNOWN\020\000\022\037\n\033TERMINAL_TARGET_KIND_DEVICE"
+    "\020\001\022!\n\035TERMINAL_TARGET_KIND_SSH_HOST\020\0022\341\001"
+    "\n\027TerminalResourceService\022o\n\022WatchTermin"
+    "alState\022*.s4wave.terminal.WatchTerminalS"
+    "tateRequest\032+.s4wave.terminal.WatchTermi"
+    "nalStateResponse0\001\022U\n\017ConnectTerminal\022\036."
+    "s4wave.terminal.TerminalFrame\032\036.s4wave.t"
+    "erminal.TerminalFrame(\0010\001B:Z8github.com/"
+    "s4wave/spacewave/sdk/terminal;s4wave_ter"
+    "minalb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fterminal_2fterminal_2eproto_deps[1] = {
@@ -378,7 +408,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fterminal_2fterminal_2eproto = {
     false,
     false,
-    2077,
+    2333,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fterminal_2fterminal_2eproto,
     "github.com/s4wave/spacewave/sdk/terminal/terminal.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fterminal_2fterminal_2eproto_once,
@@ -404,7 +434,7 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TerminalFrameKind_des
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fterminal_2fterminal_2eproto[1];
 }
 PROTOBUF_CONSTINIT const uint32_t TerminalFrameKind_internal_data_[] = {
-    589824u, 0u, };
+    720896u, 0u, };
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TerminalTargetKind_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fterminal_2fterminal_2eproto);
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fterminal_2fterminal_2eproto[2];
@@ -1233,7 +1263,11 @@ PROTOBUF_NDEBUG_INLINE TerminalFrame::Impl_::Impl_(
         environment_{visibility, arena, from.environment_},
         data_(arena, from.data_),
         command_(arena, from.command_),
-        error_(arena, from.error_) {}
+        error_(arena, from.error_),
+        ssh_trust_host_(arena, from.ssh_trust_host_),
+        ssh_trust_algorithm_(arena, from.ssh_trust_algorithm_),
+        ssh_trust_sha256_fingerprint_(arena, from.ssh_trust_sha256_fingerprint_),
+        ssh_trust_public_key_(arena, from.ssh_trust_public_key_) {}
 
 TerminalFrame::TerminalFrame(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -1252,9 +1286,9 @@ TerminalFrame::TerminalFrame(
                offsetof(Impl_, kind_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, kind_),
-           offsetof(Impl_, exit_code_) -
+           offsetof(Impl_, ssh_trust_accepted_) -
                offsetof(Impl_, kind_) +
-               sizeof(Impl_::exit_code_));
+               sizeof(Impl_::ssh_trust_accepted_));
 
   // @@protoc_insertion_point(copy_constructor:s4wave.terminal.TerminalFrame)
 }
@@ -1265,16 +1299,20 @@ PROTOBUF_NDEBUG_INLINE TerminalFrame::Impl_::Impl_(
         environment_{visibility, arena},
         data_(arena),
         command_(arena),
-        error_(arena) {}
+        error_(arena),
+        ssh_trust_host_(arena),
+        ssh_trust_algorithm_(arena),
+        ssh_trust_sha256_fingerprint_(arena),
+        ssh_trust_public_key_(arena) {}
 
 inline void TerminalFrame::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, kind_),
            0,
-           offsetof(Impl_, exit_code_) -
+           offsetof(Impl_, ssh_trust_accepted_) -
                offsetof(Impl_, kind_) +
-               sizeof(Impl_::exit_code_));
+               sizeof(Impl_::ssh_trust_accepted_));
 }
 TerminalFrame::~TerminalFrame() {
   // @@protoc_insertion_point(destructor:s4wave.terminal.TerminalFrame)
@@ -1290,6 +1328,10 @@ inline void TerminalFrame::SharedDtor(MessageLite& self) {
   this_._impl_.data_.Destroy();
   this_._impl_.command_.Destroy();
   this_._impl_.error_.Destroy();
+  this_._impl_.ssh_trust_host_.Destroy();
+  this_._impl_.ssh_trust_algorithm_.Destroy();
+  this_._impl_.ssh_trust_sha256_fingerprint_.Destroy();
+  this_._impl_.ssh_trust_public_key_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -1348,16 +1390,16 @@ TerminalFrame::GetClassData() const {
   return TerminalFrame_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 8, 0, 69, 2>
+const ::_pbi::TcParseTable<4, 13, 0, 150, 2>
 TerminalFrame::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_._has_bits_),
     0, // no _extensions_
-    8, 56,  // max_field_number, fast_idx_mask
+    13, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967040,  // skipmap
+    4294959104,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    8,  // num_field_entries
+    13,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     TerminalFrame_class_data_.base(),
@@ -1367,25 +1409,22 @@ TerminalFrame::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::terminal::TerminalFrame>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // int32 exit_code = 8;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(TerminalFrame, _impl_.exit_code_), 7>(),
-     {64, 7, 0,
-      PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.exit_code_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // .s4wave.terminal.TerminalFrameKind kind = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(TerminalFrame, _impl_.kind_), 4>(),
-     {8, 4, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(TerminalFrame, _impl_.kind_), 8>(),
+     {8, 8, 0,
       PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.kind_)}},
     // bytes data = 2;
     {::_pbi::TcParser::FastBS1,
      {18, 1, 0,
       PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.data_)}},
     // uint32 cols = 3;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(TerminalFrame, _impl_.cols_), 5>(),
-     {24, 5, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(TerminalFrame, _impl_.cols_), 9>(),
+     {24, 9, 0,
       PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.cols_)}},
     // uint32 rows = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(TerminalFrame, _impl_.rows_), 6>(),
-     {32, 6, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(TerminalFrame, _impl_.rows_), 10>(),
+     {32, 10, 0,
       PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.rows_)}},
     // string command = 5;
     {::_pbi::TcParser::FastUS1,
@@ -1399,17 +1438,43 @@ TerminalFrame::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {58, 3, 0,
       PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.error_)}},
+    // int32 exit_code = 8;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(TerminalFrame, _impl_.exit_code_), 11>(),
+     {64, 11, 0,
+      PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.exit_code_)}},
+    // string ssh_trust_host = 9;
+    {::_pbi::TcParser::FastUS1,
+     {74, 4, 0,
+      PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.ssh_trust_host_)}},
+    // string ssh_trust_algorithm = 10;
+    {::_pbi::TcParser::FastUS1,
+     {82, 5, 0,
+      PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.ssh_trust_algorithm_)}},
+    // string ssh_trust_sha256_fingerprint = 11;
+    {::_pbi::TcParser::FastUS1,
+     {90, 6, 0,
+      PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.ssh_trust_sha256_fingerprint_)}},
+    // string ssh_trust_public_key = 12;
+    {::_pbi::TcParser::FastUS1,
+     {98, 7, 0,
+      PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.ssh_trust_public_key_)}},
+    // bool ssh_trust_accepted = 13;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(TerminalFrame, _impl_.ssh_trust_accepted_), 12>(),
+     {104, 12, 0,
+      PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.ssh_trust_accepted_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
     // .s4wave.terminal.TerminalFrameKind kind = 1;
-    {PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.kind_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.kind_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // bytes data = 2;
     {PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.data_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
     // uint32 cols = 3;
-    {PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.cols_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.cols_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // uint32 rows = 4;
-    {PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.rows_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.rows_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // string command = 5;
     {PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.command_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // repeated string environment = 6;
@@ -1417,15 +1482,29 @@ TerminalFrame::_table_ = {
     // string error = 7;
     {PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.error_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // int32 exit_code = 8;
-    {PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.exit_code_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
+    {PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.exit_code_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
+    // string ssh_trust_host = 9;
+    {PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.ssh_trust_host_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string ssh_trust_algorithm = 10;
+    {PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.ssh_trust_algorithm_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string ssh_trust_sha256_fingerprint = 11;
+    {PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.ssh_trust_sha256_fingerprint_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string ssh_trust_public_key = 12;
+    {PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.ssh_trust_public_key_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bool ssh_trust_accepted = 13;
+    {PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.ssh_trust_accepted_), _Internal::kHasBitsOffset + 12, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
   }},
   // no aux_entries
   {{
-    "\35\0\0\0\0\7\13\5\0\0\0\0\0\0\0\0"
+    "\35\0\0\0\0\7\13\5\0\16\23\34\24\0\0\0"
     "s4wave.terminal.TerminalFrame"
     "command"
     "environment"
     "error"
+    "ssh_trust_host"
+    "ssh_trust_algorithm"
+    "ssh_trust_sha256_fingerprint"
+    "ssh_trust_public_key"
   }},
 };
 PROTOBUF_NOINLINE void TerminalFrame::Clear() {
@@ -1436,7 +1515,7 @@ PROTOBUF_NOINLINE void TerminalFrame::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _impl_.environment_.Clear();
     }
@@ -1449,11 +1528,23 @@ PROTOBUF_NOINLINE void TerminalFrame::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       _impl_.error_.ClearNonDefaultToEmpty();
     }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.ssh_trust_host_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      _impl_.ssh_trust_algorithm_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      _impl_.ssh_trust_sha256_fingerprint_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      _impl_.ssh_trust_public_key_.ClearNonDefaultToEmpty();
+    }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x000000f0U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00001f00U)) {
     ::memset(&_impl_.kind_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.exit_code_) -
-        reinterpret_cast<char*>(&_impl_.kind_)) + sizeof(_impl_.exit_code_));
+        reinterpret_cast<char*>(&_impl_.ssh_trust_accepted_) -
+        reinterpret_cast<char*>(&_impl_.kind_)) + sizeof(_impl_.ssh_trust_accepted_));
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -1479,7 +1570,7 @@ PROTOBUF_NOINLINE void TerminalFrame::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // .s4wave.terminal.TerminalFrameKind kind = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
     if (this_._internal_kind() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -1496,7 +1587,7 @@ PROTOBUF_NOINLINE void TerminalFrame::Clear() {
   }
 
   // uint32 cols = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
     if (this_._internal_cols() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -1505,7 +1596,7 @@ PROTOBUF_NOINLINE void TerminalFrame::Clear() {
   }
 
   // uint32 rows = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
     if (this_._internal_rows() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -1544,11 +1635,60 @@ PROTOBUF_NOINLINE void TerminalFrame::Clear() {
   }
 
   // int32 exit_code = 8;
-  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
     if (this_._internal_exit_code() != 0) {
       target =
           ::google::protobuf::internal::WireFormatLite::WriteInt32ToArrayWithField<8>(
               stream, this_._internal_exit_code(), target);
+    }
+  }
+
+  // string ssh_trust_host = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_ssh_trust_host().empty()) {
+      const ::std::string& _s = this_._internal_ssh_trust_host();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.terminal.TerminalFrame.ssh_trust_host");
+      target = stream->WriteStringMaybeAliased(9, _s, target);
+    }
+  }
+
+  // string ssh_trust_algorithm = 10;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (!this_._internal_ssh_trust_algorithm().empty()) {
+      const ::std::string& _s = this_._internal_ssh_trust_algorithm();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.terminal.TerminalFrame.ssh_trust_algorithm");
+      target = stream->WriteStringMaybeAliased(10, _s, target);
+    }
+  }
+
+  // string ssh_trust_sha256_fingerprint = 11;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (!this_._internal_ssh_trust_sha256_fingerprint().empty()) {
+      const ::std::string& _s = this_._internal_ssh_trust_sha256_fingerprint();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.terminal.TerminalFrame.ssh_trust_sha256_fingerprint");
+      target = stream->WriteStringMaybeAliased(11, _s, target);
+    }
+  }
+
+  // string ssh_trust_public_key = 12;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (!this_._internal_ssh_trust_public_key().empty()) {
+      const ::std::string& _s = this_._internal_ssh_trust_public_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.terminal.TerminalFrame.ssh_trust_public_key");
+      target = stream->WriteStringMaybeAliased(12, _s, target);
+    }
+  }
+
+  // bool ssh_trust_accepted = 13;
+  if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+    if (this_._internal_ssh_trust_accepted() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          13, this_._internal_ssh_trust_accepted(), target);
     }
   }
 
@@ -1608,32 +1748,68 @@ PROTOBUF_NOINLINE void TerminalFrame::Clear() {
                                         this_._internal_error());
       }
     }
-    // .s4wave.terminal.TerminalFrameKind kind = 1;
+    // string ssh_trust_host = 9;
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_ssh_trust_host().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_ssh_trust_host());
+      }
+    }
+    // string ssh_trust_algorithm = 10;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!this_._internal_ssh_trust_algorithm().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_ssh_trust_algorithm());
+      }
+    }
+    // string ssh_trust_sha256_fingerprint = 11;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (!this_._internal_ssh_trust_sha256_fingerprint().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_ssh_trust_sha256_fingerprint());
+      }
+    }
+    // string ssh_trust_public_key = 12;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (!this_._internal_ssh_trust_public_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_ssh_trust_public_key());
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00001f00U)) {
+    // .s4wave.terminal.TerminalFrameKind kind = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (this_._internal_kind() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_kind());
       }
     }
     // uint32 cols = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       if (this_._internal_cols() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_cols());
       }
     }
     // uint32 rows = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
       if (this_._internal_rows() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_rows());
       }
     }
     // int32 exit_code = 8;
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
       if (this_._internal_exit_code() != 0) {
         total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
             this_._internal_exit_code());
+      }
+    }
+    // bool ssh_trust_accepted = 13;
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+      if (this_._internal_ssh_trust_accepted() != 0) {
+        total_size += 2;
       }
     }
   }
@@ -1690,23 +1866,66 @@ void TerminalFrame::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_ssh_trust_host().empty()) {
+        _this->_internal_set_ssh_trust_host(from._internal_ssh_trust_host());
+      } else {
+        if (_this->_impl_.ssh_trust_host_.IsDefault()) {
+          _this->_internal_set_ssh_trust_host("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (!from._internal_ssh_trust_algorithm().empty()) {
+        _this->_internal_set_ssh_trust_algorithm(from._internal_ssh_trust_algorithm());
+      } else {
+        if (_this->_impl_.ssh_trust_algorithm_.IsDefault()) {
+          _this->_internal_set_ssh_trust_algorithm("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (!from._internal_ssh_trust_sha256_fingerprint().empty()) {
+        _this->_internal_set_ssh_trust_sha256_fingerprint(from._internal_ssh_trust_sha256_fingerprint());
+      } else {
+        if (_this->_impl_.ssh_trust_sha256_fingerprint_.IsDefault()) {
+          _this->_internal_set_ssh_trust_sha256_fingerprint("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (!from._internal_ssh_trust_public_key().empty()) {
+        _this->_internal_set_ssh_trust_public_key(from._internal_ssh_trust_public_key());
+      } else {
+        if (_this->_impl_.ssh_trust_public_key_.IsDefault()) {
+          _this->_internal_set_ssh_trust_public_key("");
+        }
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00001f00U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (from._internal_kind() != 0) {
         _this->_impl_.kind_ = from._impl_.kind_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       if (from._internal_cols() != 0) {
         _this->_impl_.cols_ = from._impl_.cols_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
       if (from._internal_rows() != 0) {
         _this->_impl_.rows_ = from._impl_.rows_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
       if (from._internal_exit_code() != 0) {
         _this->_impl_.exit_code_ = from._impl_.exit_code_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+      if (from._internal_ssh_trust_accepted() != 0) {
+        _this->_impl_.ssh_trust_accepted_ = from._impl_.ssh_trust_accepted_;
       }
     }
   }
@@ -1733,9 +1952,13 @@ void TerminalFrame::InternalSwap(TerminalFrame* PROTOBUF_RESTRICT PROTOBUF_NONNU
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.data_, &other->_impl_.data_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.command_, &other->_impl_.command_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.error_, &other->_impl_.error_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.ssh_trust_host_, &other->_impl_.ssh_trust_host_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.ssh_trust_algorithm_, &other->_impl_.ssh_trust_algorithm_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.ssh_trust_sha256_fingerprint_, &other->_impl_.ssh_trust_sha256_fingerprint_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.ssh_trust_public_key_, &other->_impl_.ssh_trust_public_key_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.exit_code_)
-      + sizeof(TerminalFrame::_impl_.exit_code_)
+      PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.ssh_trust_accepted_)
+      + sizeof(TerminalFrame::_impl_.ssh_trust_accepted_)
       - PROTOBUF_FIELD_OFFSET(TerminalFrame, _impl_.kind_)>(
           reinterpret_cast<char*>(&_impl_.kind_),
           reinterpret_cast<char*>(&other->_impl_.kind_));

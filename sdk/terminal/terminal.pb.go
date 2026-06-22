@@ -91,31 +91,39 @@ const (
 	TerminalFrameKind_TERMINAL_FRAME_KIND_EXIT TerminalFrameKind = 7
 	// TERMINAL_FRAME_KIND_ERROR reports a terminal stream error.
 	TerminalFrameKind_TERMINAL_FRAME_KIND_ERROR TerminalFrameKind = 8
+	// TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_CHALLENGE asks the viewer to confirm a first-connect SSH Host key.
+	TerminalFrameKind_TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_CHALLENGE TerminalFrameKind = 9
+	// TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_RESPONSE carries the viewer's SSH Host key trust decision.
+	TerminalFrameKind_TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_RESPONSE TerminalFrameKind = 10
 )
 
 // Enum value maps for TerminalFrameKind.
 var (
 	TerminalFrameKind_name = map[int32]string{
-		0: "TERMINAL_FRAME_KIND_UNKNOWN",
-		1: "TERMINAL_FRAME_KIND_OPEN",
-		2: "TERMINAL_FRAME_KIND_READY",
-		3: "TERMINAL_FRAME_KIND_INPUT",
-		4: "TERMINAL_FRAME_KIND_OUTPUT",
-		5: "TERMINAL_FRAME_KIND_RESIZE",
-		6: "TERMINAL_FRAME_KIND_CLOSE",
-		7: "TERMINAL_FRAME_KIND_EXIT",
-		8: "TERMINAL_FRAME_KIND_ERROR",
+		0:  "TERMINAL_FRAME_KIND_UNKNOWN",
+		1:  "TERMINAL_FRAME_KIND_OPEN",
+		2:  "TERMINAL_FRAME_KIND_READY",
+		3:  "TERMINAL_FRAME_KIND_INPUT",
+		4:  "TERMINAL_FRAME_KIND_OUTPUT",
+		5:  "TERMINAL_FRAME_KIND_RESIZE",
+		6:  "TERMINAL_FRAME_KIND_CLOSE",
+		7:  "TERMINAL_FRAME_KIND_EXIT",
+		8:  "TERMINAL_FRAME_KIND_ERROR",
+		9:  "TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_CHALLENGE",
+		10: "TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_RESPONSE",
 	}
 	TerminalFrameKind_value = map[string]int32{
-		"TERMINAL_FRAME_KIND_UNKNOWN": 0,
-		"TERMINAL_FRAME_KIND_OPEN":    1,
-		"TERMINAL_FRAME_KIND_READY":   2,
-		"TERMINAL_FRAME_KIND_INPUT":   3,
-		"TERMINAL_FRAME_KIND_OUTPUT":  4,
-		"TERMINAL_FRAME_KIND_RESIZE":  5,
-		"TERMINAL_FRAME_KIND_CLOSE":   6,
-		"TERMINAL_FRAME_KIND_EXIT":    7,
-		"TERMINAL_FRAME_KIND_ERROR":   8,
+		"TERMINAL_FRAME_KIND_UNKNOWN":                      0,
+		"TERMINAL_FRAME_KIND_OPEN":                         1,
+		"TERMINAL_FRAME_KIND_READY":                        2,
+		"TERMINAL_FRAME_KIND_INPUT":                        3,
+		"TERMINAL_FRAME_KIND_OUTPUT":                       4,
+		"TERMINAL_FRAME_KIND_RESIZE":                       5,
+		"TERMINAL_FRAME_KIND_CLOSE":                        6,
+		"TERMINAL_FRAME_KIND_EXIT":                         7,
+		"TERMINAL_FRAME_KIND_ERROR":                        8,
+		"TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_CHALLENGE": 9,
+		"TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_RESPONSE":  10,
 	}
 )
 
@@ -329,6 +337,16 @@ type TerminalFrame struct {
 	Error string `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"`
 	// ExitCode is the process exit code for EXIT.
 	ExitCode int32 `protobuf:"varint,8,opt,name=exit_code,json=exitCode,proto3" json:"exitCode,omitempty"`
+	// SshTrustHost is the host that presented an unknown SSH host key.
+	SshTrustHost string `protobuf:"bytes,9,opt,name=ssh_trust_host,json=sshTrustHost,proto3" json:"sshTrustHost,omitempty"`
+	// SshTrustAlgorithm is the presented SSH host key algorithm.
+	SshTrustAlgorithm string `protobuf:"bytes,10,opt,name=ssh_trust_algorithm,json=sshTrustAlgorithm,proto3" json:"sshTrustAlgorithm,omitempty"`
+	// SshTrustSha256Fingerprint is the presented SSH host key SHA256 fingerprint.
+	SshTrustSha256Fingerprint string `protobuf:"bytes,11,opt,name=ssh_trust_sha256_fingerprint,json=sshTrustSha256Fingerprint,proto3" json:"sshTrustSha256Fingerprint,omitempty"`
+	// SshTrustPublicKey is the presented SSH host public key in authorized_keys format.
+	SshTrustPublicKey string `protobuf:"bytes,12,opt,name=ssh_trust_public_key,json=sshTrustPublicKey,proto3" json:"sshTrustPublicKey,omitempty"`
+	// SshTrustAccepted is true when the viewer explicitly accepted the presented SSH host key.
+	SshTrustAccepted bool `protobuf:"varint,13,opt,name=ssh_trust_accepted,json=sshTrustAccepted,proto3" json:"sshTrustAccepted,omitempty"`
 }
 
 func (x *TerminalFrame) Reset() {
@@ -391,6 +409,41 @@ func (x *TerminalFrame) GetExitCode() int32 {
 		return x.ExitCode
 	}
 	return 0
+}
+
+func (x *TerminalFrame) GetSshTrustHost() string {
+	if x != nil {
+		return x.SshTrustHost
+	}
+	return ""
+}
+
+func (x *TerminalFrame) GetSshTrustAlgorithm() string {
+	if x != nil {
+		return x.SshTrustAlgorithm
+	}
+	return ""
+}
+
+func (x *TerminalFrame) GetSshTrustSha256Fingerprint() string {
+	if x != nil {
+		return x.SshTrustSha256Fingerprint
+	}
+	return ""
+}
+
+func (x *TerminalFrame) GetSshTrustPublicKey() string {
+	if x != nil {
+		return x.SshTrustPublicKey
+	}
+	return ""
+}
+
+func (x *TerminalFrame) GetSshTrustAccepted() bool {
+	if x != nil {
+		return x.SshTrustAccepted
+	}
+	return false
 }
 
 // CreateTerminalOp creates a Terminal world object.
@@ -580,6 +633,11 @@ func (m *TerminalFrame) CloneVT() *TerminalFrame {
 	r.Command = m.Command
 	r.Error = m.Error
 	r.ExitCode = m.ExitCode
+	r.SshTrustHost = m.SshTrustHost
+	r.SshTrustAlgorithm = m.SshTrustAlgorithm
+	r.SshTrustSha256Fingerprint = m.SshTrustSha256Fingerprint
+	r.SshTrustPublicKey = m.SshTrustPublicKey
+	r.SshTrustAccepted = m.SshTrustAccepted
 	if rhs := m.Data; rhs != nil {
 		r.Data = slices.Clone(rhs)
 	}
@@ -756,6 +814,21 @@ func (this *TerminalFrame) EqualVT(that *TerminalFrame) bool {
 		return false
 	}
 	if this.ExitCode != that.ExitCode {
+		return false
+	}
+	if this.SshTrustHost != that.SshTrustHost {
+		return false
+	}
+	if this.SshTrustAlgorithm != that.SshTrustAlgorithm {
+		return false
+	}
+	if this.SshTrustSha256Fingerprint != that.SshTrustSha256Fingerprint {
+		return false
+	}
+	if this.SshTrustPublicKey != that.SshTrustPublicKey {
+		return false
+	}
+	if this.SshTrustAccepted != that.SshTrustAccepted {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1188,6 +1261,31 @@ func (x *TerminalFrame) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("exitCode")
 		s.WriteInt32(x.ExitCode)
 	}
+	if x.SshTrustHost != "" || s.HasField("sshTrustHost") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sshTrustHost")
+		s.WriteString(x.SshTrustHost)
+	}
+	if x.SshTrustAlgorithm != "" || s.HasField("sshTrustAlgorithm") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sshTrustAlgorithm")
+		s.WriteString(x.SshTrustAlgorithm)
+	}
+	if x.SshTrustSha256Fingerprint != "" || s.HasField("sshTrustSha256Fingerprint") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sshTrustSha256Fingerprint")
+		s.WriteString(x.SshTrustSha256Fingerprint)
+	}
+	if x.SshTrustPublicKey != "" || s.HasField("sshTrustPublicKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sshTrustPublicKey")
+		s.WriteString(x.SshTrustPublicKey)
+	}
+	if x.SshTrustAccepted || s.HasField("sshTrustAccepted") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sshTrustAccepted")
+		s.WriteBool(x.SshTrustAccepted)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1233,6 +1331,21 @@ func (x *TerminalFrame) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "exit_code", "exitCode":
 			s.AddField("exit_code")
 			x.ExitCode = s.ReadInt32()
+		case "ssh_trust_host", "sshTrustHost":
+			s.AddField("ssh_trust_host")
+			x.SshTrustHost = s.ReadString()
+		case "ssh_trust_algorithm", "sshTrustAlgorithm":
+			s.AddField("ssh_trust_algorithm")
+			x.SshTrustAlgorithm = s.ReadString()
+		case "ssh_trust_sha256_fingerprint", "sshTrustSha256Fingerprint":
+			s.AddField("ssh_trust_sha256_fingerprint")
+			x.SshTrustSha256Fingerprint = s.ReadString()
+		case "ssh_trust_public_key", "sshTrustPublicKey":
+			s.AddField("ssh_trust_public_key")
+			x.SshTrustPublicKey = s.ReadString()
+		case "ssh_trust_accepted", "sshTrustAccepted":
+			s.AddField("ssh_trust_accepted")
+			x.SshTrustAccepted = s.ReadBool()
 		}
 	})
 }
@@ -1609,6 +1722,44 @@ func (m *TerminalFrame) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.SshTrustAccepted {
+		i--
+		if m.SshTrustAccepted {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x68
+	}
+	if len(m.SshTrustPublicKey) > 0 {
+		i -= len(m.SshTrustPublicKey)
+		copy(dAtA[i:], m.SshTrustPublicKey)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SshTrustPublicKey)))
+		i--
+		dAtA[i] = 0x62
+	}
+	if len(m.SshTrustSha256Fingerprint) > 0 {
+		i -= len(m.SshTrustSha256Fingerprint)
+		copy(dAtA[i:], m.SshTrustSha256Fingerprint)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SshTrustSha256Fingerprint)))
+		i--
+		dAtA[i] = 0x5a
+	}
+	if len(m.SshTrustAlgorithm) > 0 {
+		i -= len(m.SshTrustAlgorithm)
+		copy(dAtA[i:], m.SshTrustAlgorithm)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SshTrustAlgorithm)))
+		i--
+		dAtA[i] = 0x52
+	}
+	if len(m.SshTrustHost) > 0 {
+		i -= len(m.SshTrustHost)
+		copy(dAtA[i:], m.SshTrustHost)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SshTrustHost)))
+		i--
+		dAtA[i] = 0x4a
+	}
 	if m.ExitCode != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExitCode))
 		i--
@@ -1947,6 +2098,25 @@ func (m *TerminalFrame) SizeVT() (n int) {
 	if m.ExitCode != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.ExitCode))
 	}
+	l = len(m.SshTrustHost)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SshTrustAlgorithm)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SshTrustSha256Fingerprint)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SshTrustPublicKey)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.SshTrustAccepted {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2227,6 +2397,41 @@ func (x *TerminalFrame) MarshalProtoText() string {
 		}
 		sb.WriteString("exit_code: ")
 		sb.WriteString(strconv.FormatInt(int64(x.ExitCode), 10))
+	}
+	if x.SshTrustHost != "" {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("ssh_trust_host: ")
+		sb.WriteString(strconv.Quote(x.SshTrustHost))
+	}
+	if x.SshTrustAlgorithm != "" {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("ssh_trust_algorithm: ")
+		sb.WriteString(strconv.Quote(x.SshTrustAlgorithm))
+	}
+	if x.SshTrustSha256Fingerprint != "" {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("ssh_trust_sha256_fingerprint: ")
+		sb.WriteString(strconv.Quote(x.SshTrustSha256Fingerprint))
+	}
+	if x.SshTrustPublicKey != "" {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("ssh_trust_public_key: ")
+		sb.WriteString(strconv.Quote(x.SshTrustPublicKey))
+	}
+	if x.SshTrustAccepted != false {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("ssh_trust_accepted: ")
+		sb.WriteString(strconv.FormatBool(x.SshTrustAccepted))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -2826,6 +3031,106 @@ func (m *TerminalFrame) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SshTrustHost", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SshTrustHost = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SshTrustAlgorithm", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SshTrustAlgorithm = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SshTrustSha256Fingerprint", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SshTrustSha256Fingerprint = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SshTrustPublicKey", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SshTrustPublicKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SshTrustAccepted", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.SshTrustAccepted = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

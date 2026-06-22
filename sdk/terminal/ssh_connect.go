@@ -9,7 +9,6 @@ import (
 	"io"
 	"net"
 	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -190,24 +189,24 @@ func (r *TerminalResource) buildSshClientConfig(
 	return &ssh.ClientConfig{
 		User: endpoint.GetUsername(),
 		Auth: auth,
-		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+		HostKeyCallback: func(_ string, _ net.Addr, key ssh.PublicKey) error {
 			if s4wave_sshhost.SshHostKeyPinsMatchPublicKey(host.GetHostKeyPins(), key) {
 				return nil
 			}
 			if len(host.GetHostKeyPins()) != 0 {
-				return errors.Errorf("ssh host key for %s is not pinned", hostname)
+				return errors.Errorf("ssh host key for %s is not pinned", endpoint.GetHost())
 			}
 			pin := s4wave_sshhost.NewSshHostKeyPinFromPublicKey(
 				key,
 				time.Now(),
 				sshHostTrustAcceptedByPeerID(strm.Context()),
 			)
-			accepted, err := promptSshHostKeyTrust(ctx, strm, hostname, pin)
+			accepted, err := promptSshHostKeyTrust(ctx, strm, endpoint.GetHost(), key, pin)
 			if err != nil {
 				return err
 			}
 			if !accepted {
-				return errors.Errorf("ssh host key for %s was not trusted", hostname)
+				return errors.Errorf("ssh host key for %s was not trusted", endpoint.GetHost())
 			}
 			if err := s4wave_sshhost.RememberSshHostKeyPin(ctx, r.engine, hostObjectKey, pin); err != nil {
 				return errors.Wrap(err, "remember SSH host key")
@@ -276,18 +275,22 @@ func promptSshHostKeyTrust(
 	ctx context.Context,
 	strm SRPCTerminalResourceService_ConnectTerminalStream,
 	hostname string,
+	key ssh.PublicKey,
 	pin *s4wave_sshhost.SshHostKeyPin,
 ) (bool, error) {
-	prompt := "\r\nThe authenticity of host '" + hostname + "' can't be established.\r\n" +
-		pin.GetAlgorithm() + " key fingerprint is " + pin.GetSha256Fingerprint() + ".\r\n" +
-		"Trust this host key and continue connecting? (y/N) "
 	if err := strm.Send(&TerminalFrame{
-		Kind: TerminalFrameKind_TERMINAL_FRAME_KIND_OUTPUT,
-		Data: []byte(prompt),
+		Kind:                      TerminalFrameKind_TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_CHALLENGE,
+		SshTrustHost:              hostname,
+		SshTrustAlgorithm:         pin.GetAlgorithm(),
+		SshTrustSha256Fingerprint: pin.GetSha256Fingerprint(),
+		SshTrustPublicKey:         string(bytes.TrimSpace(ssh.MarshalAuthorizedKey(key))),
 	}); err != nil {
 		return false, err
 	}
 	for {
+		if err := ctx.Err(); err != nil {
+			return false, err
+		}
 		frame, err := strm.Recv()
 		if err != nil {
 			return false, err
@@ -296,31 +299,15 @@ func promptSshHostKeyTrust(
 			continue
 		}
 		switch frame.GetKind() {
-		case TerminalFrameKind_TERMINAL_FRAME_KIND_INPUT:
-			trimmed := strings.TrimSpace(strings.ToLower(string(frame.GetData())))
-			if trimmed == "y" || trimmed == "yes" {
-				_ = strm.Send(&TerminalFrame{
-					Kind: TerminalFrameKind_TERMINAL_FRAME_KIND_OUTPUT,
-					Data: []byte("yes\r\nHost key accepted and remembered.\r\n"),
-				})
-				return true, nil
-			}
-			if trimmed != "" {
-				_ = strm.Send(&TerminalFrame{
-					Kind: TerminalFrameKind_TERMINAL_FRAME_KIND_OUTPUT,
-					Data: []byte("\r\nHost key not trusted.\r\n"),
-				})
-				return false, nil
-			}
-		case TerminalFrameKind_TERMINAL_FRAME_KIND_RESIZE:
+		case TerminalFrameKind_TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_RESPONSE:
+			return frame.GetSshTrustAccepted(), nil
+		case TerminalFrameKind_TERMINAL_FRAME_KIND_INPUT,
+			TerminalFrameKind_TERMINAL_FRAME_KIND_RESIZE:
 			continue
 		case TerminalFrameKind_TERMINAL_FRAME_KIND_CLOSE:
 			return false, nil
 		default:
 			return false, errors.Errorf("unsupported terminal client frame kind %s while trusting SSH host key", frame.GetKind().String())
-		}
-		if err := ctx.Err(); err != nil {
-			return false, err
 		}
 	}
 }
