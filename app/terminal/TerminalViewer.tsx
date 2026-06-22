@@ -6,7 +6,7 @@ import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { LuCheck, LuTerminal, LuX } from 'react-icons/lu'
+import { LuTerminal } from 'react-icons/lu'
 import type { MessageStream } from 'starpc'
 
 import {
@@ -20,6 +20,7 @@ import {
   TerminalHandle,
   TerminalTypeID,
 } from '@s4wave/sdk/terminal/terminal.js'
+import { TerminalSshTrustPanel } from './TerminalSshTrustPanel.js'
 
 export { TerminalTypeID }
 
@@ -177,59 +178,10 @@ export function TerminalViewer({
         </div>
       )}
       {trustChallenge && (
-        <div
-          aria-label="SSH host key trust"
-          className="border-amber-300/40 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-sm dark:bg-amber-950 dark:text-amber-50"
-          role="dialog"
-        >
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="min-w-0 space-y-2">
-              <div className="font-semibold">Confirm SSH host key</div>
-              <div className="grid gap-1 text-xs md:grid-cols-[8rem_minmax(0,1fr)]">
-                <span className="text-amber-800 dark:text-amber-200">Host</span>
-                <span className="font-mono break-all">
-                  {trustChallenge.sshTrustHost || 'unknown'}
-                </span>
-                <span className="text-amber-800 dark:text-amber-200">
-                  Algorithm
-                </span>
-                <span className="font-mono break-all">
-                  {trustChallenge.sshTrustAlgorithm || 'unknown'}
-                </span>
-                <span className="text-amber-800 dark:text-amber-200">
-                  SHA256
-                </span>
-                <span className="font-mono break-all">
-                  {trustChallenge.sshTrustSha256Fingerprint || 'unknown'}
-                </span>
-                <span className="text-amber-800 dark:text-amber-200">
-                  Public key
-                </span>
-                <span className="font-mono break-all">
-                  {trustChallenge.sshTrustPublicKey || 'unknown'}
-                </span>
-              </div>
-            </div>
-            <div className="flex shrink-0 gap-2">
-              <button
-                className="inline-flex h-8 items-center gap-1.5 rounded-md bg-emerald-600 px-3 text-xs font-semibold text-white hover:bg-emerald-700"
-                onClick={() => respondToSshTrust(true)}
-                type="button"
-              >
-                <LuCheck className="size-3.5" />
-                Trust
-              </button>
-              <button
-                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-amber-300/70 px-3 text-xs font-semibold text-amber-950 hover:bg-amber-100 dark:text-amber-50 dark:hover:bg-amber-900"
-                onClick={() => respondToSshTrust(false)}
-                type="button"
-              >
-                <LuX className="size-3.5" />
-                Reject
-              </button>
-            </div>
-          </div>
-        </div>
+        <TerminalSshTrustPanel
+          challenge={trustChallenge}
+          onRespond={respondToSshTrust}
+        />
       )}
       <div
         ref={terminalHostRef}
