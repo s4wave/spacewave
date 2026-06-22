@@ -5,10 +5,6 @@ import "errors"
 // ErrCommitPersisted reports that SQL committed before the world root update failed.
 var ErrCommitPersisted = errors.New("sql/db: commit persisted before world root update failed")
 
-// ErrSqlRebaseUnsupported reports that the current build cannot replay SQL
-// statements over a divergent root.
-var ErrSqlRebaseUnsupported = errors.New("sql/db: divergent root rebase is not supported by this build")
-
 // CommitPersistedError wraps an error after the inner SQL root already committed.
 type CommitPersistedError struct {
 	Err error
