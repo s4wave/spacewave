@@ -2046,6 +2046,77 @@ describe("plugin-host-quickjs asset helpers", () => {
     expect(cache.get("v/b/be/chunks/shared-1.mjs")?.ok).toBe(true);
   });
 
+  it("does not preload frontend bundle assets into QuickJS", async () => {
+    const requests: string[] = [];
+    const manifest = JSON.stringify({
+      "spacewave-app/backend.ts": {
+        file: "spacewave-app/backend-abc123.mjs",
+        imports: ["_backend-shared.mjs"],
+      },
+      "spacewave-app/App.tsx": {
+        file: "v/b/fe/spacewave-app/App-def456.mjs",
+        css: ["v/b/fe/spacewave-app/App-def456.css"],
+      },
+      "_backend-shared.mjs": {
+        file: "chunks/backend-shared.mjs",
+      },
+    });
+    const bodies = new Map<string, string>([
+      ["/asset/notes/v/b/be/.vite/manifest.json", manifest],
+      [
+        "/asset/notes/v/b/be/spacewave-app/backend-abc123.mjs",
+        "export default function backend() {}",
+      ],
+      [
+        "/asset/notes/v/b/be/chunks/backend-shared.mjs",
+        "export const shared = true",
+      ],
+    ]);
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        requests.push(url);
+        const body = bodies.get(url);
+        if (body == null) {
+          return new Response("missing", { status: 404 });
+        }
+        return new Response(body, { status: 200 });
+      }),
+    );
+
+    const files = new Map<string, string | Uint8Array>();
+    const entryAssetPaths = collectBackendEntrypointAssetPaths(`
+      const backendEntrypoints = [
+        { importPath: "/assets/v/b/be/spacewave-app/backend-abc123.mjs" },
+      ]
+      const frontendEntrypoints = [
+        { setRenderMode: { scriptPath: "v/b/fe/spacewave-app/App-def456.mjs" } },
+      ]
+    `);
+    const loaded = await loadBackendAssets(
+      api,
+      new AbortController().signal,
+      files,
+      entryAssetPaths,
+    );
+
+    expect(entryAssetPaths).toEqual([
+      "/assets/v/b/be/spacewave-app/backend-abc123.mjs",
+    ]);
+    expect(loaded).toBe(true);
+    expect(requests).toEqual([
+      "/asset/notes/v/b/be/.vite/manifest.json",
+      "/asset/notes/v/b/be/spacewave-app/backend-abc123.mjs",
+      "/asset/notes/v/b/be/chunks/backend-shared.mjs",
+    ]);
+    expect(requests.some((url) => url.includes("/v/b/fe/"))).toBe(false);
+    expect(files.has("v/b/be/spacewave-app/backend-abc123.mjs")).toBe(true);
+    expect(files.has("v/b/be/chunks/backend-shared.mjs")).toBe(true);
+    expect(files.has("v/b/fe/spacewave-app/App-def456.mjs")).toBe(false);
+    expect(files.has("v/b/fe/spacewave-app/App-def456.css")).toBe(false);
+  });
+
   it("does not fall back to whole-manifest preload without backend entrypoints", async () => {
     const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);

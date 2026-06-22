@@ -210,6 +210,73 @@ func TestCreateEntrypointsFromViteOutputsBackendImportPath(t *testing.T) {
 	}
 }
 
+func TestCreateEntrypointsFromViteOutputsQuickJSFrontendBoundary(t *testing.T) {
+	backend, frontend := bldr_plugin_compiler_js.CreateEntrypointsFromViteOutputs(
+		[]*bldr_plugin_compiler_js.JsModule{
+			{
+				Kind:       bldr_plugin_compiler_js.JsModuleKind_JS_MODULE_KIND_BACKEND,
+				Path:       "./spacewave-app/backend.ts",
+				Entrypoint: true,
+			},
+			{
+				Kind:       bldr_plugin_compiler_js.JsModuleKind_JS_MODULE_KIND_FRONTEND,
+				Path:       "./spacewave-app/App.tsx",
+				Entrypoint: true,
+			},
+		},
+		[]*bldr_web_bundler_vite.ViteOutputMeta{
+			{
+				EntrypointPath: "spacewave-app/backend.ts",
+				Path:           "b/be/spacewave-app/backend-abc123.mjs",
+			},
+			{
+				EntrypointPath: "spacewave-app/App.tsx",
+				Path:           "b/fe/spacewave-app/App-def456.mjs",
+			},
+			{
+				EntrypointPath: "spacewave-app/App.tsx",
+				Path:           "b/fe/spacewave-app/App-def456.css",
+			},
+		},
+		nil,
+		nil,
+	)
+
+	if len(backend) != 1 {
+		t.Fatalf("expected one backend entrypoint, got %d", len(backend))
+	}
+	if len(frontend) != 1 {
+		t.Fatalf("expected one frontend entrypoint, got %d", len(frontend))
+	}
+
+	if got := backend[0].GetImportPath(); got != "/assets/v/b/be/spacewave-app/backend-abc123.mjs" {
+		t.Fatalf("unexpected backend import path: %q", got)
+	}
+	if strings.Contains(backend[0].GetImportPath(), "/v/b/fe/") {
+		t.Fatalf("backend import path must not point at frontend bundle assets: %q", backend[0].GetImportPath())
+	}
+
+	setRenderMode := frontend[0].GetSetRenderMode()
+	if setRenderMode.GetRenderMode() != web_view.RenderMode_RenderMode_REACT_COMPONENT {
+		t.Fatalf("unexpected render mode: %v", setRenderMode.GetRenderMode())
+	}
+	if got := setRenderMode.GetScriptPath(); got != "v/b/fe/spacewave-app/App-def456.mjs" {
+		t.Fatalf("unexpected frontend script path: %q", got)
+	}
+	if strings.HasPrefix(setRenderMode.GetScriptPath(), "/assets/") {
+		t.Fatalf("frontend script path must remain WebView asset metadata, got %q", setRenderMode.GetScriptPath())
+	}
+
+	links := frontend[0].GetSetHtmlLinks().GetSetLinks()
+	link := links["css-App-def456.css"]
+	if link == nil {
+		t.Fatalf("expected frontend css link in %v", links)
+	}
+	if got := link.GetHref(); got != "v/b/fe/spacewave-app/App-def456.css" {
+		t.Fatalf("unexpected frontend css href: %q", got)
+	}
+}
+
 func TestPluginCompilerJsSupportedPlatforms(t *testing.T) {
 	ctrl, err := bldr_plugin_compiler_js.NewController(nil, nil, &bldr_plugin_compiler_js.Config{})
 	if err != nil {
