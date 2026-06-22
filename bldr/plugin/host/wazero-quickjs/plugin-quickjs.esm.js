@@ -1356,18 +1356,18 @@ function newFieldList(fields, packedByDefault) {
 	return new FieldList(fields, (source) => normalizeFieldInfos(source, packedByDefault));
 }
 function isFieldSet(field, target) {
-	const localName2 = field.localName;
+	const localName = field.localName;
 	if (!target) return false;
-	if (field.repeated) return !!target[localName2]?.length;
-	if (field.oneof) return target[field.oneof.localName]?.case === localName2;
+	if (field.repeated) return !!target[localName]?.length;
+	if (field.oneof) return target[field.oneof.localName]?.case === localName;
 	switch (field.kind) {
 		case "enum":
 		case "scalar":
-			if (field.opt || field.req) return target[localName2] != null;
-			if (field.kind == "enum") return target[localName2] !== field.T.values[0].no;
-			return !isScalarZeroValue(field.T, target[localName2]);
-		case "message": return target[localName2] != null;
-		case "map": return target[localName2] != null && !!Object.keys(target[localName2]).length;
+			if (field.opt || field.req) return target[localName] != null;
+			if (field.kind == "enum") return target[localName] !== field.T.values[0].no;
+			return !isScalarZeroValue(field.T, target[localName]);
+		case "message": return target[localName] != null;
+		case "map": return target[localName] != null && !!Object.keys(target[localName]).length;
 	}
 }
 var fieldJsonName = protoCamelCase;
@@ -1394,12 +1394,12 @@ var InternalOneofInfo = class {
 		assert(field.oneof === this, `field ${field.name} not one of ${this.name}`);
 		this.fields.push(field);
 	}
-	findField(localName2) {
+	findField(localName) {
 		if (!this._lookup) {
 			this._lookup = /* @__PURE__ */ Object.create(null);
 			for (let i2 = 0; i2 < this.fields.length; i2++) this._lookup[this.fields[i2].localName] = this.fields[i2];
 		}
-		return this._lookup[localName2];
+		return this._lookup[localName];
 	}
 };
 function normalizeFieldInfos(fieldInfos, packedByDefault) {
@@ -1410,7 +1410,11 @@ function normalizeFieldInfos(fieldInfos, packedByDefault) {
 		f2.localName = localFieldName(field.name, field.oneof !== void 0);
 		f2.jsonName = field.jsonName ?? fieldJsonName(field.name);
 		f2.repeated = field.repeated ?? false;
-		if (field.kind == "scalar") f2.L = field.L ?? LongType.BIGINT;
+		if (field.kind == "scalar") {
+			f2.L = field.L ?? LongType.BIGINT;
+			f2.utf8 = field.utf8 ?? false;
+		}
+		if (field.kind == "map") f2.keyUtf8 = field.keyUtf8 ?? false;
 		f2.delimited = field.delimited ?? false;
 		f2.req = field.req ?? false;
 		f2.opt = field.opt ?? false;
@@ -1426,18 +1430,25 @@ function normalizeFieldInfos(fieldInfos, packedByDefault) {
 	}
 	return r2;
 }
+function isEnumValueTuple(value) {
+	return Array.isArray(value);
+}
 function createEnumType(typeName, values) {
 	const names = /* @__PURE__ */ Object.create(null);
 	const numbers = /* @__PURE__ */ Object.create(null);
 	const normalValues = [];
 	for (const value of values) {
-		const n2 = "localName" in value ? value : {
+		const n2 = isEnumValueTuple(value) ? {
+			no: value[0],
+			name: value[1],
+			localName: value[1]
+		} : "localName" in value ? value : {
 			...value,
 			localName: value.name
 		};
 		normalValues.push(n2);
-		names[value.name] = n2;
-		numbers[value.no] = n2;
+		names[n2.name] = n2;
+		numbers[n2.no] = n2;
 	}
 	return {
 		typeName,
@@ -1465,33 +1476,39 @@ function normalizeEnumValue(info, value) {
 	}
 	return value;
 }
+function createMessageRecord() {
+	return /* @__PURE__ */ Object.create(null);
+}
+function asMessageRecord(value) {
+	return value;
+}
 function applyPartialMessage(source, target, fields, clone = false) {
 	if (source == null || target == null) return;
-	const t2 = target, s2 = source;
+	const t2 = asMessageRecord(target), s2 = asMessageRecord(source);
 	for (const member of fields.byMember()) {
-		const localName2 = member.localName;
-		throwSanitizeKey(localName2);
-		if (!(localName2 in s2) || s2[localName2] === void 0) continue;
-		const sourceValue = s2[localName2];
+		const localName = member.localName;
+		throwSanitizeKey(localName);
+		if (!(localName in s2) || s2[localName] === void 0) continue;
+		const sourceValue = s2[localName];
 		if (sourceValue === null) {
-			delete t2[localName2];
+			delete t2[localName];
 			continue;
 		}
 		switch (member.kind) {
 			case "oneof": {
-				if (typeof sourceValue !== "object") throw new Error(`field ${localName2}: invalid oneof: must be an object with case and value`);
+				if (typeof sourceValue !== "object") throw new Error(`field ${localName}: invalid oneof: must be an object with case and value`);
 				const { case: sk, value: sv } = sourceValue;
 				const sourceField = sk != null ? member.findField(sk) : null;
-				let dv = localName2 in t2 ? t2[localName2] : void 0;
-				if (typeof dv !== "object") dv = /* @__PURE__ */ Object.create(null);
-				if (sk != null && sourceField == null) throw new Error(`field ${localName2}: invalid oneof case: ${sk}`);
+				let dv = localName in t2 ? t2[localName] : void 0;
+				if (typeof dv !== "object") dv = createMessageRecord();
+				if (sk != null && sourceField == null) throw new Error(`field ${localName}: invalid oneof case: ${sk}`);
 				dv.case = sk;
 				if (dv.case !== sk || sk == null) delete dv.value;
-				t2[localName2] = dv;
+				t2[localName] = dv;
 				if (!sourceField) break;
 				if (sourceField.kind === "message") {
 					let dest = dv.value;
-					if (typeof dest !== "object") dest = dv.value = /* @__PURE__ */ Object.create(null);
+					if (typeof dest !== "object") dest = dv.value = createMessageRecord();
 					if (sv != null) {
 						const sourceFieldMt = resolveMessageType(sourceField.T);
 						applyPartialMessage(sv, dest, sourceFieldMt.fields);
@@ -1502,39 +1519,39 @@ function applyPartialMessage(source, target, fields, clone = false) {
 			}
 			case "scalar":
 				if (member.repeated) {
-					if (!Array.isArray(sourceValue)) throw new Error(`field ${localName2}: invalid value: must be array`);
-					let dst = localName2 in t2 ? t2[localName2] : null;
-					if (dst == null || !Array.isArray(dst)) dst = t2[localName2] = [];
+					if (!Array.isArray(sourceValue)) throw new Error(`field ${localName}: invalid value: must be array`);
+					let dst = localName in t2 ? t2[localName] : null;
+					if (dst == null || !Array.isArray(dst)) dst = t2[localName] = [];
 					dst.push(...sourceValue.map((v2) => normalizeScalarValue(member.T, v2, clone)));
 					break;
 				}
-				t2[localName2] = normalizeScalarValue(member.T, sourceValue, clone);
+				t2[localName] = normalizeScalarValue(member.T, sourceValue, clone);
 				break;
 			case "enum":
-				t2[localName2] = normalizeEnumValue(member.T, sourceValue);
+				t2[localName] = normalizeEnumValue(member.T, sourceValue);
 				break;
 			case "map": {
 				if (typeof sourceValue !== "object") throw new Error(`field ${member.localName}: invalid value: must be object`);
-				let tMap = t2[localName2];
-				if (typeof tMap !== "object") tMap = t2[localName2] = /* @__PURE__ */ Object.create(null);
+				let tMap = t2[localName];
+				if (typeof tMap !== "object") tMap = t2[localName] = createMessageRecord();
 				applyPartialMap(sourceValue, tMap, member.V, clone);
 				break;
 			}
 			case "message": {
 				const mt = resolveMessageType(member.T);
 				if (member.repeated) {
-					if (!Array.isArray(sourceValue)) throw new Error(`field ${localName2}: invalid value: must be array`);
-					let tArr = t2[localName2];
-					if (!Array.isArray(tArr)) tArr = t2[localName2] = [];
+					if (!Array.isArray(sourceValue)) throw new Error(`field ${localName}: invalid value: must be array`);
+					let tArr = t2[localName];
+					if (!Array.isArray(tArr)) tArr = t2[localName] = [];
 					for (const v2 of sourceValue) if (v2 != null) if (mt.fieldWrapper) tArr.push(mt.fieldWrapper.unwrapField(mt.fieldWrapper.wrapField(v2)));
 					else tArr.push(mt.create(v2));
 					break;
 				}
-				if (mt.fieldWrapper) t2[localName2] = mt.fieldWrapper.unwrapField(mt.fieldWrapper.wrapField(sourceValue));
+				if (mt.fieldWrapper) t2[localName] = mt.fieldWrapper.unwrapField(mt.fieldWrapper.wrapField(sourceValue));
 				else {
 					if (typeof sourceValue !== "object") throw new Error(`field ${member.localName}: invalid value: must be object`);
-					let destMsg = t2[localName2];
-					if (typeof destMsg !== "object") destMsg = t2[localName2] = /* @__PURE__ */ Object.create(null);
+					let destMsg = t2[localName];
+					if (typeof destMsg !== "object") destMsg = t2[localName] = createMessageRecord();
 					applyPartialMessage(sourceValue, destMsg, mt.fields);
 				}
 				break;
@@ -1571,7 +1588,7 @@ function applyPartialMap(sourceMap, targetMap, value, clone) {
 				if (typeof v2 !== "object") throw new Error(`invalid value: must be object`);
 				let val = targetMap[k];
 				if (messageType.fieldWrapper) val = targetMap[k] = createCompleteMessage(messageType.fields);
-				else if (typeof val !== "object") val = targetMap[k] = /* @__PURE__ */ Object.create(null);
+				else if (typeof val !== "object") val = targetMap[k] = createMessageRecord();
 				applyPartialMessage(v2, val, messageType.fields);
 			}
 			break;
@@ -1843,12 +1860,14 @@ var BinaryReader = class {
 	buf;
 	view;
 	textDecoder;
-	constructor(buf, textDecoder) {
+	fatalTextDecoder;
+	constructor(buf, textDecoder, fatalTextDecoder) {
 		this.buf = buf;
 		this.len = buf.length;
 		this.pos = 0;
 		this.view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
 		this.textDecoder = textDecoder ?? new TextDecoder();
+		this.fatalTextDecoder = fatalTextDecoder;
 	}
 	/**
 	* Reads a tag - field number and wire type.
@@ -1986,8 +2005,8 @@ var BinaryReader = class {
 	/**
 	* Read a `string` field, length-delimited data converted to UTF-8 text.
 	*/
-	string() {
-		return this.textDecoder.decode(this.bytes());
+	string(verifyUtf8 = false) {
+		return (verifyUtf8 ? this.fatalTextDecoder ??= new TextDecoder("utf-8", { fatal: true }) : this.textDecoder).decode(this.bytes());
 	}
 };
 var readDefaults = {
@@ -2012,45 +2031,46 @@ function makeWriteOptions(options) {
 }
 function readField(target, reader, field, wireType, options) {
 	const { repeated } = field;
-	let { localName: localName2 } = field;
+	let { localName } = field;
 	if (field.oneof) {
 		let oneofMsg = target[field.oneof.localName];
-		if (!oneofMsg) oneofMsg = target[field.oneof.localName] = /* @__PURE__ */ Object.create(null);
+		if (!oneofMsg) oneofMsg = target[field.oneof.localName] = createMessageRecord();
 		target = oneofMsg;
-		if (target.case != localName2) delete target.value;
-		target.case = localName2;
-		localName2 = "value";
+		if (target.case != localName) delete target.value;
+		target.case = localName;
+		localName = "value";
 	}
 	switch (field.kind) {
 		case "scalar":
 		case "enum": {
 			const scalarType = field.kind == "enum" ? ScalarType.INT32 : field.T;
 			let read = readScalar;
+			const verifyUtf8 = field.kind == "scalar" && field.utf8;
 			if (field.kind == "scalar" && field.L > 0) read = readScalarLTString;
 			if (repeated) {
-				let tgtArr = target[localName2];
-				if (!Array.isArray(tgtArr)) tgtArr = target[localName2] = [];
+				let tgtArr = target[localName];
+				if (!Array.isArray(tgtArr)) tgtArr = target[localName] = [];
 				if (wireType == WireType.LengthDelimited && scalarType != ScalarType.STRING && scalarType != ScalarType.BYTES) {
 					const e2 = reader.uint32() + reader.pos;
-					while (reader.pos < e2) tgtArr.push(read(reader, scalarType));
-				} else tgtArr.push(read(reader, scalarType));
-			} else target[localName2] = read(reader, scalarType);
+					while (reader.pos < e2) tgtArr.push(read(reader, scalarType, verifyUtf8));
+				} else tgtArr.push(read(reader, scalarType, verifyUtf8));
+			} else target[localName] = read(reader, scalarType, verifyUtf8);
 			break;
 		}
 		case "message": {
 			const fieldT = field.T;
 			const messageType = fieldT instanceof Function ? fieldT() : fieldT;
 			if (repeated) {
-				let tgtArr = target[localName2];
-				if (!Array.isArray(tgtArr)) tgtArr = target[localName2] = [];
-				tgtArr.push(unwrapField(messageType.fieldWrapper, readMessageField(reader, /* @__PURE__ */ Object.create(null), messageType.fields, options, field)));
-			} else target[localName2] = unwrapField(messageType.fieldWrapper, readMessageField(reader, /* @__PURE__ */ Object.create(null), messageType.fields, options, field));
+				let tgtArr = target[localName];
+				if (!Array.isArray(tgtArr)) tgtArr = target[localName] = [];
+				tgtArr.push(unwrapField(messageType.fieldWrapper, readMessageField(reader, createMessageRecord(), messageType.fields, options, field)));
+			} else target[localName] = unwrapField(messageType.fieldWrapper, readMessageField(reader, createMessageRecord(), messageType.fields, options, field));
 			break;
 		}
 		case "map": {
 			const [mapKey, mapVal] = readMapEntry(field, reader, options);
-			if (typeof target[localName2] !== "object") target[localName2] = /* @__PURE__ */ Object.create(null);
-			target[localName2][mapKey] = mapVal;
+			if (typeof target[localName] !== "object") target[localName] = createMessageRecord();
+			target[localName][mapKey] = mapVal;
 			break;
 		}
 	}
@@ -2062,18 +2082,18 @@ function readMapEntry(field, reader, options) {
 		const [fieldNo] = reader.tag();
 		switch (fieldNo) {
 			case 1:
-				key = readScalar(reader, field.K);
+				key = readScalar(reader, field.K, field.keyUtf8);
 				break;
 			case 2:
 				switch (field.V.kind) {
 					case "scalar":
-						val = readScalar(reader, field.V.T);
+						val = readScalar(reader, field.V.T, field.V.utf8 === true);
 						break;
 					case "enum":
 						val = reader.int32();
 						break;
 					case "message":
-						val = readMessageField(reader, /* @__PURE__ */ Object.create(null), resolveMessageType(field.V.T).fields, options, void 0);
+						val = readMessageField(reader, createMessageRecord(), resolveMessageType(field.V.T).fields, options, void 0);
 						break;
 				}
 				break;
@@ -2089,14 +2109,14 @@ function readMapEntry(field, reader, options) {
 			val = field.V.T.values[0].no;
 			break;
 		case "message":
-			val = /* @__PURE__ */ Object.create(null);
+			val = createMessageRecord();
 			break;
 	}
 	return [key, val];
 }
-function readScalar(reader, type) {
+function readScalar(reader, type, verifyUtf8 = false) {
 	switch (type) {
-		case ScalarType.STRING: return reader.string();
+		case ScalarType.STRING: return reader.string(verifyUtf8);
 		case ScalarType.BOOL: return reader.bool();
 		case ScalarType.DOUBLE: return reader.double();
 		case ScalarType.FLOAT: return reader.float();
@@ -2115,8 +2135,8 @@ function readScalar(reader, type) {
 		default: throw new Error("unknown scalar type");
 	}
 }
-function readScalarLTString(reader, type) {
-	const v2 = readScalar(reader, type);
+function readScalarLTString(reader, type, verifyUtf8 = false) {
+	const v2 = readScalar(reader, type, verifyUtf8);
 	return typeof v2 == "bigint" ? v2.toString() : v2;
 }
 function readMessageField(reader, message, fields, options, field) {
@@ -2141,11 +2161,12 @@ function readMessage(message, fields, reader, lengthOrEndTagFieldNo, options, de
 }
 function writeMessage(message, fields, writer, options) {
 	for (const field of fields.byNumber()) {
-		if (!isFieldSet(field, message)) {
+		const record = message;
+		if (!isFieldSet(field, record)) {
 			if (field.req) throw new Error(`cannot encode field ${field.name} to binary: required field not set`);
 			continue;
 		}
-		const value = field.oneof ? message[field.oneof.localName].value : message[field.localName];
+		const value = field.oneof ? record[field.oneof.localName].value : record[field.localName];
 		if (value !== void 0) writeField(field, value, writer, options);
 	}
 	if (options.writeUnknownFields) writeUnknownFields(message, writer);
@@ -2391,12 +2412,13 @@ function writeMessage2(message, fields, options) {
 	let field;
 	try {
 		for (field of fields.byNumber()) {
-			if (!isFieldSet(field, message)) {
+			const record = message;
+			if (!isFieldSet(field, record)) {
 				if (field.req) throw `required field not set`;
 				if (!options.emitDefaultValues) continue;
 				if (!canEmitFieldDefaultValue(field)) continue;
 			}
-			const value = field.oneof ? message[field.oneof.localName].value : message[field.localName];
+			const value = field.oneof ? record[field.oneof.localName].value : record[field.localName];
 			const jsonValue = writeField2(field, value, options);
 			if (jsonValue !== void 0) json[options.useProtoFieldName ? field.name : field.jsonName] = jsonValue;
 		}
@@ -2408,13 +2430,13 @@ function writeMessage2(message, fields, options) {
 	return json;
 }
 function readField2(target, jsonValue, field, options) {
-	let localName2 = field.localName;
+	let localName = field.localName;
 	if (field.repeated) {
 		assert(field.kind != "map");
 		if (jsonValue === null) return;
 		if (!Array.isArray(jsonValue)) throw new Error(`cannot decode field ${field.name} from JSON: ${jsonDebugValue(jsonValue)}`);
-		let targetArray = target[localName2];
-		if (!Array.isArray(targetArray)) targetArray = target[localName2] = [];
+		let targetArray = target[localName];
+		if (!Array.isArray(targetArray)) targetArray = target[localName] = [];
 		for (const jsonItem of jsonValue) {
 			if (jsonItem === null) throw new Error(`cannot decode field ${field.name} from JSON: ${jsonDebugValue(jsonItem)}`);
 			switch (field.kind) {
@@ -2442,8 +2464,8 @@ function readField2(target, jsonValue, field, options) {
 	} else if (field.kind == "map") {
 		if (jsonValue === null) return;
 		if (typeof jsonValue != "object" || Array.isArray(jsonValue)) throw new Error(`cannot decode field ${field.name} from JSON: ${jsonDebugValue(jsonValue)}`);
-		let targetMap = target[localName2];
-		if (typeof targetMap !== "object") targetMap = target[localName2] = /* @__PURE__ */ Object.create(null);
+		let targetMap = target[localName];
+		if (typeof targetMap !== "object") targetMap = target[localName] = createMessageRecord();
 		for (const [jsonMapKey, jsonMapValue] of Object.entries(jsonValue)) {
 			if (jsonMapValue === null) throw new Error(`cannot decode field ${field.name} from JSON: map value null`);
 			let key;
@@ -2479,14 +2501,14 @@ function readField2(target, jsonValue, field, options) {
 		}
 	} else {
 		if (field.oneof) {
-			target = target[field.oneof.localName] = { case: localName2 };
-			localName2 = "value";
+			target = target[field.oneof.localName] = { case: localName };
+			localName = "value";
 		}
 		switch (field.kind) {
 			case "message": {
 				const messageType = resolveMessageType(field.T);
 				if (jsonValue === null && messageType.typeName != "google.protobuf.Value") return;
-				target[localName2] = unwrapField(messageType.fieldWrapper, messageType.fromJson(jsonValue, options));
+				target[localName] = unwrapField(messageType.fieldWrapper, messageType.fromJson(jsonValue, options));
 				break;
 			}
 			case "enum": {
@@ -2497,7 +2519,7 @@ function readField2(target, jsonValue, field, options) {
 						break;
 					case tokenIgnoredUnknownEnum: break;
 					default:
-						target[localName2] = enumValue;
+						target[localName] = enumValue;
 						break;
 				}
 				break;
@@ -2510,7 +2532,7 @@ function readField2(target, jsonValue, field, options) {
 							clearField(field, target);
 							break;
 						default:
-							target[localName2] = scalarValue;
+							target[localName] = scalarValue;
 							break;
 					}
 				} catch (e2) {
@@ -2615,22 +2637,22 @@ function readMapKey(type, json) {
 	return readScalar2(type, json, LongType.BIGINT, true)?.toString() ?? "";
 }
 function clearField(field, target) {
-	const localName2 = field.localName;
+	const localName = field.localName;
 	const implicitPresence = !field.opt && !field.req;
-	if (field.repeated) target[localName2] = [];
+	if (field.repeated) target[localName] = [];
 	else if (field.oneof) target[field.oneof.localName] = { case: void 0 };
 	else switch (field.kind) {
 		case "map":
-			target[localName2] = /* @__PURE__ */ Object.create(null);
+			target[localName] = createMessageRecord();
 			break;
 		case "enum":
-			target[localName2] = implicitPresence ? field.T.values[0].no : void 0;
+			target[localName] = implicitPresence ? field.T.values[0].no : void 0;
 			break;
 		case "scalar":
-			target[localName2] = implicitPresence ? scalarZeroValue(field.T, field.L) : void 0;
+			target[localName] = implicitPresence ? scalarZeroValue(field.T, field.L) : void 0;
 			break;
 		case "message":
-			target[localName2] = void 0;
+			target[localName] = void 0;
 			break;
 	}
 }
@@ -2743,6 +2765,7 @@ function writeEnum(type, value, enumAsInteger) {
 	if (enumAsInteger) return value;
 	return type.findNumber(value)?.name ?? value;
 }
+var emptyFieldListSource = [];
 function createMessageType(params, exts) {
 	const { fields: fieldsSource, typeName, packedByDefault, delimitedMessageEncoding, fieldWrapper } = params;
 	const fields = newFieldList(fieldsSource, packedByDefault);
@@ -2807,23 +2830,34 @@ function createMessageType(params, exts) {
 	};
 	return mt;
 }
+function createEmptyMessageType(typeName, packedByDefault) {
+	return createMessageType({
+		typeName,
+		fields: emptyFieldListSource,
+		packedByDefault
+	});
+}
 function compareMessages(fields, a2, b) {
 	if (a2 == null && b == null) return true;
 	if (a2 === b) return true;
 	if (!a2 || !b) return false;
 	return fields.byMember().every((m) => {
-		const va = a2[m.localName];
-		const vb = b[m.localName];
+		const va = asMessageRecord(a2)[m.localName];
+		const vb = asMessageRecord(b)[m.localName];
 		if (m.repeated) {
-			if ((va?.length ?? 0) !== (vb?.length ?? 0)) return false;
-			if (!va?.length) return true;
+			const vaArray = va;
+			const vbArray = vb;
+			if ((vaArray?.length ?? 0) !== (vbArray?.length ?? 0)) return false;
+			if (!vaArray?.length) return true;
 			switch (m.kind) {
 				case "message": {
 					const messageType = resolveMessageType(m.T);
-					return va.every((a3, i2) => messageType.equals(a3, vb[i2]));
+					const values = vaArray;
+					const otherValues = vbArray;
+					return values.every((a3, i2) => messageType.equals(a3, otherValues[i2]));
 				}
-				case "scalar": return va.every((a3, i2) => scalarEquals(m.T, a3, vb[i2]));
-				case "enum": return va.every((a3, i2) => scalarEquals(ScalarType.INT32, a3, vb[i2]));
+				case "scalar": return vaArray.every((a3, i2) => scalarEquals(m.T, a3, vbArray?.[i2]));
+				case "enum": return vaArray.every((a3, i2) => scalarEquals(ScalarType.INT32, a3, vbArray?.[i2]));
 			}
 			throw new Error(`repeated cannot contain ${m.kind}`);
 		}
@@ -2832,14 +2866,18 @@ function compareMessages(fields, a2, b) {
 			case "enum": return scalarEquals(ScalarType.INT32, va, vb);
 			case "scalar": return scalarEquals(m.T, va, vb);
 			case "oneof": {
-				if (va?.case !== vb?.case) return false;
-				if (va == null) return true;
-				const s2 = m.findField(va.case);
+				const oneofA = va;
+				const oneofB = vb;
+				if (oneofA?.case !== oneofB?.case) return false;
+				if (oneofA == null) return true;
+				const oneofCase = oneofA.case;
+				if (oneofCase === void 0) return true;
+				const s2 = m.findField(oneofCase);
 				if (s2 === void 0) return true;
 				switch (s2.kind) {
-					case "message": return resolveMessageType(s2.T).equals(va.value, vb.value);
-					case "enum": return scalarEquals(ScalarType.INT32, va.value, vb.value);
-					case "scalar": return scalarEquals(s2.T, va.value, vb.value);
+					case "message": return resolveMessageType(s2.T).equals(oneofA.value, oneofB?.value);
+					case "enum": return scalarEquals(ScalarType.INT32, oneofA.value, oneofB?.value);
+					case "scalar": return scalarEquals(s2.T, oneofA.value, oneofB?.value);
 				}
 				throw new Error(`oneof cannot contain ${s2.kind}`);
 			}
@@ -2864,39 +2902,39 @@ function compareMessages(fields, a2, b) {
 }
 function cloneMessage(message, fields) {
 	if (message == null) return null;
-	const clone = /* @__PURE__ */ Object.create(null);
+	const clone = createMessageRecord();
 	applyPartialMessage(message, clone, fields, true);
 	return clone;
 }
 function createCompleteMessage(fields) {
 	const message = {};
 	for (const field of fields.byMember()) {
-		const { localName: localName2, kind: fieldKind } = field;
-		throwSanitizeKey(localName2);
+		const { localName, kind: fieldKind } = field;
+		throwSanitizeKey(localName);
 		switch (fieldKind) {
 			case "oneof":
-				message[localName2] = /* @__PURE__ */ Object.create(null);
-				message[localName2].case = void 0;
+				message[localName] = createMessageRecord();
+				message[localName].case = void 0;
 				break;
 			case "scalar":
-				if (field.repeated) message[localName2] = [];
-				else message[localName2] = scalarZeroValue(field.T, LongType.BIGINT);
+				if (field.repeated) message[localName] = [];
+				else message[localName] = scalarZeroValue(field.T, LongType.BIGINT);
 				break;
 			case "enum":
-				message[localName2] = field.repeated ? [] : enumZeroValue(field.T);
+				message[localName] = field.repeated ? [] : enumZeroValue(field.T);
 				break;
 			case "message": {
 				if (field.oneof) break;
 				if (field.repeated) {
-					message[localName2] = [];
+					message[localName] = [];
 					break;
 				}
 				const messageType = resolveMessageType(field.T);
-				message[localName2] = messageType.fieldWrapper ? messageType.fieldWrapper.unwrapField(null) : createCompleteMessage(messageType.fields);
+				message[localName] = messageType.fieldWrapper ? messageType.fieldWrapper.unwrapField(null) : createCompleteMessage(messageType.fields);
 				break;
 			}
 			case "map":
-				message[localName2] = /* @__PURE__ */ Object.create(null);
+				message[localName] = createMessageRecord();
 				break;
 			default:
 		}
@@ -2915,14 +2953,6 @@ var MethodIdempotency;
 	MethodIdempotency2[MethodIdempotency2["NoSideEffects"] = 1] = "NoSideEffects";
 	MethodIdempotency2[MethodIdempotency2["Idempotent"] = 2] = "Idempotent";
 })(MethodIdempotency || (MethodIdempotency = {}));
-Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY;
-var packageName = "@aptre/protobuf-es-lite";
-var symbolInfo = (typeOnly, privateImportPath) => ({
-	typeOnly,
-	privateImportPath,
-	publicImportPath: packageName
-});
-symbolInfo(false, "./message.js"), symbolInfo(true, "./field-list.js"), symbolInfo(true, "./field.js"), symbolInfo(true, "./message-type.js"), symbolInfo(true, "./extension.js"), symbolInfo(true, "./type-registry.js"), symbolInfo(true, "./binary-format.js"), symbolInfo(true, "./binary-format.js"), symbolInfo(true, "./json.js"), symbolInfo(true, "./json.js"), symbolInfo(true, "./json.js"), symbolInfo(true, "./json.js"), symbolInfo(false, "./json.js"), symbolInfo(false, "./json.js"), symbolInfo(false, "./json.js"), symbolInfo(false, "./json.js"), symbolInfo(false, "./json.js"), symbolInfo(false, "./proto-double.js"), symbolInfo(false, "./proto-int64.js"), symbolInfo(false, "./partial.js"), symbolInfo(false, "./scalar.js"), symbolInfo(false, "./scalar.js"), symbolInfo(false, "./scalar.js"), symbolInfo(false, "./service-type.js"), symbolInfo(false, "./service-type.js"), symbolInfo(false, "./enum.js"), symbolInfo(false, "./message.js");
 var CallStart = createMessageType({
 	typeName: "srpc.CallStart",
 	fields: [
@@ -3010,6 +3040,7 @@ var Packet = createMessageType({
 	],
 	packedByDefault: true
 });
+var maxBufferedOutgoingPackets = 1;
 var CommonRPC = class {
 	sink;
 	source;
@@ -3019,6 +3050,7 @@ var CommonRPC = class {
 	service;
 	method;
 	closed;
+	writeDrainAbort = new AbortController();
 	constructor() {
 		this.sink = this._createSink();
 		this.source = this._source;
@@ -3028,6 +3060,9 @@ var CommonRPC = class {
 		return this.closed ?? false;
 	}
 	async writeCallData(data, complete, error) {
+		await this.writeCallDataPacket(data, complete, error);
+	}
+	async writeCallDataPacket(data, complete, error, writeOptions) {
 		const callData = {
 			data: data || new Uint8Array(0),
 			dataIsZero: !!data && data.length === 0,
@@ -3037,13 +3072,13 @@ var CommonRPC = class {
 		await this.writePacket({ body: {
 			case: "callData",
 			value: callData
-		} });
+		} }, writeOptions);
 	}
 	async writeCallCancel() {
 		await this.writePacket({ body: {
 			case: "callCancel",
 			value: true
-		} });
+		} }, { waitForDrain: false });
 	}
 	async writeCallDataFromSource(dataSource) {
 		try {
@@ -3053,8 +3088,16 @@ var CommonRPC = class {
 			this.close(err);
 		}
 	}
-	async writePacket(packet) {
+	async writePacket(packet, options) {
+		if (this.closed && !options?.allowClosed) throw new Error(ERR_RPC_ABORT);
 		this._source.push(packet);
+		if (options?.waitForDrain === false || this._source.readableLength <= maxBufferedOutgoingPackets) return;
+		try {
+			await this._source.onEmpty({ signal: this.writeDrainAbort.signal });
+		} catch (err) {
+			if (this.closed) throw new Error(ERR_RPC_ABORT, { cause: err });
+			throw err;
+		}
 	}
 	async handleMessage(message) {
 		return this.handlePacket(Packet.fromBinary(message));
@@ -3099,7 +3142,11 @@ var CommonRPC = class {
 	async close(err) {
 		if (this.closed) return;
 		this.closed = err ?? true;
-		if (err && err.message) await this.writeCallData(void 0, true, err.message);
+		if (err && err.message) await this.writeCallDataPacket(void 0, true, err.message, {
+			allowClosed: true,
+			waitForDrain: false
+		});
+		this.writeDrainAbort.abort();
 		this._source.end();
 		this._rpcDataSource.end(err);
 	}
@@ -3751,7 +3798,6 @@ function getIterator(obj) {
 	}
 	throw new Error("argument is not an iterator or iterable");
 }
-function setMaxListeners() {}
 var AbortError2 = class extends Error {
 	type;
 	code;
@@ -5040,7 +5086,7 @@ var AbstractStream = class {
 	}
 };
 function peekable(iterable) {
-	const [iterator, symbol4] = iterable[Symbol.asyncIterator] != null ? [iterable[Symbol.asyncIterator](), Symbol.asyncIterator] : [iterable[Symbol.iterator](), Symbol.iterator];
+	const [iterator, symbol5] = iterable[Symbol.asyncIterator] != null ? [iterable[Symbol.asyncIterator](), Symbol.asyncIterator] : [iterable[Symbol.iterator](), Symbol.iterator];
 	const queue = [];
 	return {
 		peek: () => {
@@ -5056,7 +5102,7 @@ function peekable(iterable) {
 			};
 			return iterator.next();
 		},
-		[symbol4]() {
+		[symbol5]() {
 			return this;
 		}
 	};
@@ -5367,7 +5413,7 @@ var YamuxMuxer = class {
 		this.log = this.logger.forComponent("libp2p:yamux");
 		verifyConfig(this.config);
 		this.closeController = new AbortController();
-		setMaxListeners(Infinity, this.closeController.signal);
+		this.closeController.signal;
 		this.onIncomingStream = init.onIncomingStream;
 		this.onStreamEnd = init.onStreamEnd;
 		this._streams = /* @__PURE__ */ new Map();
@@ -5494,7 +5540,6 @@ var YamuxMuxer = class {
 		this.log?.trace("muxer close reason=%s", reason);
 		if (options.signal == null) {
 			const signal = AbortSignal.timeout(CLOSE_TIMEOUT);
-			setMaxListeners(Infinity, signal);
 			options = {
 				...options,
 				signal
@@ -5922,11 +5967,7 @@ var EchoMsg = createMessageType({
 	}],
 	packedByDefault: true
 });
-var Empty = createMessageType({
-	typeName: "google.protobuf.Empty",
-	fields: [],
-	packedByDefault: true
-});
+var Empty = /* @__PURE__ */ createEmptyMessageType("google.protobuf.Empty", true);
 ({
 	typeName: "echo.Echoer",
 	methods: {
@@ -5998,6 +6039,10 @@ var Empty = createMessageType({
 		}
 	}
 }).typeName;
+var symbol4 = /* @__PURE__ */ Symbol.for("@achingbrain/uint8arraylist");
+function isUint8ArrayList4(value) {
+	return Boolean(value?.[symbol4]);
+}
 function writeCompleteChunk(os, fd, data) {
 	let offset = 0;
 	while (offset < data.length) {
@@ -6014,7 +6059,7 @@ async function writeSourceToFd(os, source, filePath) {
 	try {
 		fd = os.open(filePath, flags, mode);
 		if (fd < 0) throw new Error(`Failed to open file ${filePath}. Error code: ${fd}`);
-		for await (const chunk of source) if (isUint8ArrayList(chunk)) for (const internalBuf of chunk) writeCompleteChunk(os, fd, internalBuf);
+		for await (const chunk of source) if (isUint8ArrayList4(chunk)) for (const internalBuf of chunk) writeCompleteChunk(os, fd, internalBuf);
 		else if (chunk instanceof Uint8Array) writeCompleteChunk(os, fd, chunk);
 		else throw new Error(`Received unsupported chunk type in stream: ${typeof chunk}`);
 	} finally {
@@ -6442,6 +6487,203 @@ function UTF8Encoder(options) {
 		return bytes;
 	};
 }
+function callOrUndefined(fn, thisArg, ...args) {
+	if (typeof fn !== "function") return;
+	return fn.apply(thisArg, args);
+}
+var ReadableStreamDefaultController = class {
+	constructor(stream, underlyingSource, highWaterMark, sizeAlgorithm) {
+		this._stream = stream;
+		this._queue = [];
+		this._queueTotalSize = 0;
+		this._highWaterMark = highWaterMark;
+		this._sizeAlgorithm = sizeAlgorithm;
+		this._started = false;
+		this._closeRequested = false;
+		this._pulling = false;
+		this._pullAgain = false;
+		this._pullAlgorithm = () => Promise.resolve(callOrUndefined(underlyingSource.pull, underlyingSource, this));
+		this._cancelAlgorithm = (reason) => Promise.resolve(callOrUndefined(underlyingSource.cancel, underlyingSource, reason));
+		const startResult = callOrUndefined(underlyingSource.start, underlyingSource, this);
+		Promise.resolve(startResult).then(() => {
+			this._started = true;
+			this._callPullIfNeeded();
+		}, (err) => {
+			this._error(err);
+		});
+	}
+	get desiredSize() {
+		if (this._stream._state === "errored") return null;
+		if (this._stream._state === "closed") return 0;
+		return this._highWaterMark - this._queueTotalSize;
+	}
+	enqueue(chunk) {
+		if (this._closeRequested || this._stream._state !== "readable") throw new TypeError("cannot enqueue: stream is closing or not readable");
+		const reader = this._stream._reader;
+		if (reader && reader._readRequests.length > 0) reader._readRequests.shift().resolve({
+			value: chunk,
+			done: false
+		});
+		else {
+			let size = 1;
+			if (this._sizeAlgorithm) size = this._sizeAlgorithm(chunk);
+			this._queue.push({
+				chunk,
+				size
+			});
+			this._queueTotalSize += size;
+		}
+		this._callPullIfNeeded();
+	}
+	close() {
+		if (this._closeRequested || this._stream._state !== "readable") throw new TypeError("cannot close: stream is closing or not readable");
+		this._closeRequested = true;
+		if (this._queue.length === 0) this._closeStream();
+	}
+	error(err) {
+		this._error(err);
+	}
+	_closeStream() {
+		const stream = this._stream;
+		stream._state = "closed";
+		const reader = stream._reader;
+		if (reader) {
+			for (const request of reader._readRequests) request.resolve({
+				value: void 0,
+				done: true
+			});
+			reader._readRequests = [];
+			reader._resolveClosed();
+		}
+	}
+	_error(err) {
+		const stream = this._stream;
+		if (stream._state !== "readable") return;
+		stream._state = "errored";
+		stream._storedError = err;
+		this._queue = [];
+		this._queueTotalSize = 0;
+		const reader = stream._reader;
+		if (reader) {
+			for (const request of reader._readRequests) request.reject(err);
+			reader._readRequests = [];
+			reader._rejectClosed(err);
+		}
+	}
+	_pullChunk() {
+		const entry = this._queue.shift();
+		this._queueTotalSize -= entry.size;
+		if (this._queue.length === 0 && this._closeRequested) this._closeStream();
+		else this._callPullIfNeeded();
+		return entry.chunk;
+	}
+	_callPullIfNeeded() {
+		if (!this._shouldCallPull()) return;
+		if (this._pulling) {
+			this._pullAgain = true;
+			return;
+		}
+		this._pulling = true;
+		this._pullAlgorithm().then(() => {
+			this._pulling = false;
+			if (this._pullAgain) {
+				this._pullAgain = false;
+				this._callPullIfNeeded();
+			}
+		}, (err) => {
+			this._error(err);
+		});
+	}
+	_shouldCallPull() {
+		const stream = this._stream;
+		if (stream._state !== "readable") return false;
+		if (this._closeRequested) return false;
+		if (!this._started) return false;
+		const reader = stream._reader;
+		if (reader && reader._readRequests.length > 0) return true;
+		return this.desiredSize > 0;
+	}
+};
+var ReadableStreamDefaultReader = class {
+	constructor(stream) {
+		if (stream._reader) throw new TypeError("ReadableStream is already locked to a reader");
+		this._stream = stream;
+		this._readRequests = [];
+		stream._reader = this;
+		this._closedPromise = new Promise((resolve, reject) => {
+			this._resolveClosed = resolve;
+			this._rejectClosed = reject;
+		});
+		this._closedPromise.catch(() => {});
+		if (stream._state === "closed") this._resolveClosed();
+		else if (stream._state === "errored") this._rejectClosed(stream._storedError);
+	}
+	get closed() {
+		return this._closedPromise;
+	}
+	read() {
+		const stream = this._stream;
+		if (!stream) return Promise.reject(/* @__PURE__ */ new TypeError("reader has been released"));
+		if (stream._state === "errored") return Promise.reject(stream._storedError);
+		const controller = stream._controller;
+		if (controller._queue.length > 0) return Promise.resolve({
+			value: controller._pullChunk(),
+			done: false
+		});
+		if (stream._state === "closed") return Promise.resolve({
+			value: void 0,
+			done: true
+		});
+		return new Promise((resolve, reject) => {
+			this._readRequests.push({
+				resolve,
+				reject
+			});
+			controller._callPullIfNeeded();
+		});
+	}
+	cancel(reason) {
+		if (!this._stream) return Promise.reject(/* @__PURE__ */ new TypeError("reader has been released"));
+		return this._stream._cancel(reason);
+	}
+	releaseLock() {
+		const stream = this._stream;
+		if (!stream) return;
+		if (this._readRequests.length > 0) throw new TypeError("cannot release a reader with pending read requests");
+		if (stream._state === "readable") this._rejectClosed(/* @__PURE__ */ new TypeError("reader released while stream was readable"));
+		stream._reader = void 0;
+		this._stream = void 0;
+	}
+};
+var ReadableStream = class {
+	constructor(underlyingSource = {}, strategy = {}) {
+		this._state = "readable";
+		this._storedError = void 0;
+		this._reader = void 0;
+		const highWaterMark = strategy.highWaterMark === void 0 ? 1 : Number(strategy.highWaterMark);
+		if (Number.isNaN(highWaterMark) || highWaterMark < 0) throw new RangeError("invalid highWaterMark");
+		this._controller = new ReadableStreamDefaultController(this, underlyingSource, highWaterMark, strategy.size);
+	}
+	get locked() {
+		return this._reader !== void 0;
+	}
+	getReader() {
+		return new ReadableStreamDefaultReader(this);
+	}
+	cancel(reason) {
+		if (this._reader) return Promise.reject(/* @__PURE__ */ new TypeError("cannot cancel a locked stream"));
+		return this._cancel(reason);
+	}
+	_cancel(reason) {
+		if (this._state === "closed") return Promise.resolve();
+		if (this._state === "errored") return Promise.reject(this._storedError);
+		this._controller._queue = [];
+		this._controller._queueTotalSize = 0;
+		const result = this._controller._cancelAlgorithm(reason);
+		this._controller._closeStream();
+		return result.then(() => void 0);
+	}
+};
 var inspectPassthroughTypes = /* @__PURE__ */ new Set(["object", "symbol"]);
 function extend(origin, add) {
 	if (!add || !isObject(add)) return origin;
@@ -6671,7 +6913,7 @@ function createConsole({ logger, clearConsole, printer, formatter = (args) => fo
 		const message = "Assertion failed";
 		if (data.length === 0) data.push(message);
 		else if (typeof data[0] !== "string") data.unshift(message);
-		else data[0] = message + ": " + data[0];
+		else data[0] = "Assertion failed: " + data[0];
 		logger("assert", data);
 	};
 	consoleObj.clear = function() {
@@ -7050,6 +7292,7 @@ function applyPolyfills(to) {
 	target.AbortSignal = AbortControllerImpl.AbortSignal;
 	target.TextEncoder = TextEncoder2;
 	target.TextDecoder = TextDecoder2;
+	target.ReadableStream = ReadableStream;
 	installRetainedSchedulerPolyfills(target);
 	target.atob = atob;
 	target.btoa = btoa;
@@ -7292,64 +7535,11 @@ function retryWithAbort(abortSignal, cb, opts) {
 		abortSignal
 	}).result;
 }
-var WebRuntimeClientType_Enum = createEnumType("web.runtime.WebRuntimeClientType", [
-	{
-		no: 0,
-		name: "WebRuntimeClientType_UNKNOWN"
-	},
-	{
-		no: 1,
-		name: "WebRuntimeClientType_WEB_DOCUMENT"
-	},
-	{
-		no: 2,
-		name: "WebRuntimeClientType_SERVICE_WORKER"
-	},
-	{
-		no: 3,
-		name: "WebRuntimeClientType_WEB_WORKER"
-	}
-]);
-createEnumType("web.runtime.WebRenderer", [
-	{
-		no: 0,
-		name: "WEB_RENDERER_DEFAULT"
-	},
-	{
-		no: 1,
-		name: "WEB_RENDERER_ELECTRON"
-	},
-	{
-		no: 2,
-		name: "WEB_RENDERER_SAUCER"
-	}
-]);
-createMessageType({
-	typeName: "web.runtime.WebRuntimeHostInit",
-	fields: [{
-		no: 1,
-		name: "web_runtime_id",
-		kind: "scalar",
-		T: ScalarType.STRING
-	}],
-	packedByDefault: true
-});
-var RequestRuntimeQuitRequest = createMessageType({
-	typeName: "web.runtime.RequestRuntimeQuitRequest",
-	fields: [],
-	packedByDefault: true
-});
-var RequestRuntimeQuitResponse = createMessageType({
-	typeName: "web.runtime.RequestRuntimeQuitResponse",
-	fields: [],
-	packedByDefault: true
-});
-var WatchWebRuntimeStatusRequest = createMessageType({
-	typeName: "web.runtime.WatchWebRuntimeStatusRequest",
-	fields: [],
-	packedByDefault: true
-});
-var WebDocumentStatus = createMessageType({
+ScalarType.STRING;
+var RequestRuntimeQuitRequest = /* @__PURE__ */ createEmptyMessageType("web.runtime.RequestRuntimeQuitRequest", true);
+var RequestRuntimeQuitResponse = /* @__PURE__ */ createEmptyMessageType("web.runtime.RequestRuntimeQuitResponse", true);
+var WatchWebRuntimeStatusRequest = /* @__PURE__ */ createEmptyMessageType("web.runtime.WatchWebRuntimeStatusRequest", true);
+var WebDocumentStatus = /* @__PURE__ */ createMessageType({
 	typeName: "web.runtime.WebDocumentStatus",
 	fields: [
 		{
@@ -7373,7 +7563,7 @@ var WebDocumentStatus = createMessageType({
 	],
 	packedByDefault: true
 });
-var WebRuntimeStatus = createMessageType({
+var WebRuntimeStatus = /* @__PURE__ */ createMessageType({
 	typeName: "web.runtime.WebRuntimeStatus",
 	fields: [
 		{
@@ -7398,7 +7588,7 @@ var WebRuntimeStatus = createMessageType({
 	],
 	packedByDefault: true
 });
-var CreateWebDocumentRequest = createMessageType({
+var CreateWebDocumentRequest = /* @__PURE__ */ createMessageType({
 	typeName: "web.runtime.CreateWebDocumentRequest",
 	fields: [{
 		no: 1,
@@ -7408,7 +7598,7 @@ var CreateWebDocumentRequest = createMessageType({
 	}],
 	packedByDefault: true
 });
-var CreateWebDocumentResponse = createMessageType({
+var CreateWebDocumentResponse = /* @__PURE__ */ createMessageType({
 	typeName: "web.runtime.CreateWebDocumentResponse",
 	fields: [{
 		no: 1,
@@ -7418,7 +7608,7 @@ var CreateWebDocumentResponse = createMessageType({
 	}],
 	packedByDefault: true
 });
-var RemoveWebDocumentRequest = createMessageType({
+var RemoveWebDocumentRequest = /* @__PURE__ */ createMessageType({
 	typeName: "web.runtime.RemoveWebDocumentRequest",
 	fields: [{
 		no: 1,
@@ -7428,7 +7618,7 @@ var RemoveWebDocumentRequest = createMessageType({
 	}],
 	packedByDefault: true
 });
-var RemoveWebDocumentResponse = createMessageType({
+var RemoveWebDocumentResponse = /* @__PURE__ */ createMessageType({
 	typeName: "web.runtime.RemoveWebDocumentResponse",
 	fields: [{
 		no: 1,
@@ -7438,52 +7628,9 @@ var RemoveWebDocumentResponse = createMessageType({
 	}],
 	packedByDefault: true
 });
-var FlushIndexCacheRequest = createMessageType({
-	typeName: "web.runtime.FlushIndexCacheRequest",
-	fields: [],
-	packedByDefault: true
-});
-var FlushIndexCacheResponse = createMessageType({
-	typeName: "web.runtime.FlushIndexCacheResponse",
-	fields: [],
-	packedByDefault: true
-});
-createMessageType({
-	typeName: "web.runtime.WebRuntimeClientInit",
-	fields: [
-		{
-			no: 1,
-			name: "web_runtime_id",
-			kind: "scalar",
-			T: ScalarType.STRING
-		},
-		{
-			no: 2,
-			name: "client_uuid",
-			kind: "scalar",
-			T: ScalarType.STRING
-		},
-		{
-			no: 5,
-			name: "logical_client_id",
-			kind: "scalar",
-			T: ScalarType.STRING
-		},
-		{
-			no: 3,
-			name: "client_type",
-			kind: "enum",
-			T: WebRuntimeClientType_Enum
-		},
-		{
-			no: 4,
-			name: "disable_web_locks",
-			kind: "scalar",
-			T: ScalarType.BOOL
-		}
-	],
-	packedByDefault: true
-});
+var FlushIndexCacheRequest = /* @__PURE__ */ createEmptyMessageType("web.runtime.FlushIndexCacheRequest", true);
+var FlushIndexCacheResponse = /* @__PURE__ */ createEmptyMessageType("web.runtime.FlushIndexCacheResponse", true);
+ScalarType.STRING, ScalarType.STRING, ScalarType.STRING, ScalarType.BOOL;
 var RpcStreamInit2 = createMessageType({
 	typeName: "rpcstream.RpcStreamInit",
 	fields: [{
@@ -7895,83 +8042,28 @@ function h(n2, t2) {
 		return this.Pn.has(n3) || this.Pn.set(n3, /* @__PURE__ */ new Set()), this.Pn.get(n3);
 	}, n2;
 })());
-var WebWorkerGenerationState_Enum = createEnumType("web.document.WebWorkerGenerationState", [
-	{
-		no: 0,
-		name: "WEB_WORKER_GENERATION_STATE_UNKNOWN"
-	},
-	{
-		no: 1,
-		name: "WEB_WORKER_GENERATION_STATE_WORKER_REQUESTED"
-	},
-	{
-		no: 2,
-		name: "WEB_WORKER_GENERATION_STATE_WORKER_CREATED"
-	},
-	{
-		no: 3,
-		name: "WEB_WORKER_GENERATION_STATE_STARTUP_RUNNING"
-	},
-	{
-		no: 4,
-		name: "WEB_WORKER_GENERATION_STATE_FRONTEND_READY"
-	},
-	{
-		no: 5,
-		name: "WEB_WORKER_GENERATION_STATE_CAPABILITY_READY"
-	},
-	{
-		no: 6,
-		name: "WEB_WORKER_GENERATION_STATE_RUNNING"
-	},
-	{
-		no: 7,
-		name: "WEB_WORKER_GENERATION_STATE_NORMAL_STOP"
-	},
-	{
-		no: 8,
-		name: "WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT"
-	},
-	{
-		no: 9,
-		name: "WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE"
-	},
-	{
-		no: 10,
-		name: "WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN"
-	},
-	{
-		no: 11,
-		name: "WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET"
-	}
+var WebWorkerGenerationState_Enum = /* @__PURE__ */ createEnumType("web.document.WebWorkerGenerationState", [
+	[0, "WEB_WORKER_GENERATION_STATE_UNKNOWN"],
+	[1, "WEB_WORKER_GENERATION_STATE_WORKER_REQUESTED"],
+	[2, "WEB_WORKER_GENERATION_STATE_WORKER_CREATED"],
+	[3, "WEB_WORKER_GENERATION_STATE_STARTUP_RUNNING"],
+	[4, "WEB_WORKER_GENERATION_STATE_FRONTEND_READY"],
+	[5, "WEB_WORKER_GENERATION_STATE_CAPABILITY_READY"],
+	[6, "WEB_WORKER_GENERATION_STATE_RUNNING"],
+	[7, "WEB_WORKER_GENERATION_STATE_NORMAL_STOP"],
+	[8, "WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT"],
+	[9, "WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE"],
+	[10, "WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN"],
+	[11, "WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET"]
 ]);
-var WebWorkerType_Enum = createEnumType("web.document.WebWorkerType", [{
-	no: 0,
-	name: "WEB_WORKER_TYPE_NATIVE"
-}, {
-	no: 1,
-	name: "WEB_WORKER_TYPE_QUICKJS"
-}]);
-var WebWorkerMode_Enum = createEnumType("web.document.WebWorkerMode", [
-	{
-		no: 0,
-		name: "WORKER_MODE_DEFAULT"
-	},
-	{
-		no: 1,
-		name: "WORKER_MODE_SHARED"
-	},
-	{
-		no: 2,
-		name: "WORKER_MODE_DEDICATED"
-	}
+var WebWorkerType_Enum = /* @__PURE__ */ createEnumType("web.document.WebWorkerType", [[0, "WEB_WORKER_TYPE_NATIVE"], [1, "WEB_WORKER_TYPE_QUICKJS"]]);
+var WebWorkerMode_Enum = /* @__PURE__ */ createEnumType("web.document.WebWorkerMode", [
+	[0, "WORKER_MODE_DEFAULT"],
+	[1, "WORKER_MODE_SHARED"],
+	[2, "WORKER_MODE_DEDICATED"]
 ]);
-var WatchWebDocumentStatusRequest = createMessageType({
-	typeName: "web.document.WatchWebDocumentStatusRequest",
-	fields: [],
-	packedByDefault: true
-});
-var WebViewStatus = createMessageType({
+var WatchWebDocumentStatusRequest = /* @__PURE__ */ createEmptyMessageType("web.document.WatchWebDocumentStatusRequest", true);
+var WebViewStatus = /* @__PURE__ */ createMessageType({
 	typeName: "web.document.WebViewStatus",
 	fields: [
 		{
@@ -8001,7 +8093,7 @@ var WebViewStatus = createMessageType({
 	],
 	packedByDefault: true
 });
-var WebWorkerStatus = createMessageType({
+var WebWorkerStatus = /* @__PURE__ */ createMessageType({
 	typeName: "web.document.WebWorkerStatus",
 	fields: [
 		{
@@ -8049,7 +8141,7 @@ var WebWorkerStatus = createMessageType({
 	],
 	packedByDefault: true
 });
-var WebDocumentStatus3 = createMessageType({
+var WebDocumentStatus3 = /* @__PURE__ */ createMessageType({
 	typeName: "web.document.WebDocumentStatus",
 	fields: [
 		{
@@ -8087,7 +8179,7 @@ var WebDocumentStatus3 = createMessageType({
 	],
 	packedByDefault: true
 });
-var CreateWebViewRequest = createMessageType({
+var CreateWebViewRequest = /* @__PURE__ */ createMessageType({
 	typeName: "web.document.CreateWebViewRequest",
 	fields: [{
 		no: 1,
@@ -8097,7 +8189,7 @@ var CreateWebViewRequest = createMessageType({
 	}],
 	packedByDefault: true
 });
-var CreateWebViewResponse = createMessageType({
+var CreateWebViewResponse = /* @__PURE__ */ createMessageType({
 	typeName: "web.document.CreateWebViewResponse",
 	fields: [{
 		no: 1,
@@ -8107,7 +8199,7 @@ var CreateWebViewResponse = createMessageType({
 	}],
 	packedByDefault: true
 });
-var CreateWebWorkerRequest = createMessageType({
+var CreateWebWorkerRequest = /* @__PURE__ */ createMessageType({
 	typeName: "web.document.CreateWebWorkerRequest",
 	fields: [
 		{
@@ -8143,7 +8235,7 @@ var CreateWebWorkerRequest = createMessageType({
 	],
 	packedByDefault: true
 });
-var CreateWebWorkerResponse = createMessageType({
+var CreateWebWorkerResponse = /* @__PURE__ */ createMessageType({
 	typeName: "web.document.CreateWebWorkerResponse",
 	fields: [{
 		no: 1,
@@ -8158,7 +8250,7 @@ var CreateWebWorkerResponse = createMessageType({
 	}],
 	packedByDefault: true
 });
-var RemoveWebWorkerRequest = createMessageType({
+var RemoveWebWorkerRequest = /* @__PURE__ */ createMessageType({
 	typeName: "web.document.RemoveWebWorkerRequest",
 	fields: [{
 		no: 1,
@@ -8168,7 +8260,7 @@ var RemoveWebWorkerRequest = createMessageType({
 	}],
 	packedByDefault: true
 });
-var RemoveWebWorkerResponse = createMessageType({
+var RemoveWebWorkerResponse = /* @__PURE__ */ createMessageType({
 	typeName: "web.document.RemoveWebWorkerResponse",
 	fields: [{
 		no: 1,
@@ -8262,30 +8354,18 @@ WebViewRpc: {
 		}
 	}
 }).typeName;
-var SetRenderModeRequest = createMessageType({
+var SetRenderModeRequest = /* @__PURE__ */ createMessageType({
 	typeName: "web.view.SetRenderModeRequest",
 	fields: [
 		{
 			no: 1,
 			name: "render_mode",
 			kind: "enum",
-			T: createEnumType("web.view.RenderMode", [
-				{
-					no: 0,
-					name: "RenderMode_NONE"
-				},
-				{
-					no: 1,
-					name: "RenderMode_REACT_COMPONENT"
-				},
-				{
-					no: 2,
-					name: "RenderMode_FUNCTION"
-				},
-				{
-					no: 3,
-					name: "RenderMode_REACT_CHILDREN"
-				}
+			T: /* @__PURE__ */ createEnumType("web.view.RenderMode", [
+				[0, "RenderMode_NONE"],
+				[1, "RenderMode_REACT_COMPONENT"],
+				[2, "RenderMode_FUNCTION"],
+				[3, "RenderMode_REACT_CHILDREN"]
 			])
 		},
 		{
@@ -8309,12 +8389,8 @@ var SetRenderModeRequest = createMessageType({
 	],
 	packedByDefault: true
 });
-var SetRenderModeResponse = createMessageType({
-	typeName: "web.view.SetRenderModeResponse",
-	fields: [],
-	packedByDefault: true
-});
-var HtmlLink = createMessageType({
+var SetRenderModeResponse = /* @__PURE__ */ createEmptyMessageType("web.view.SetRenderModeResponse", true);
+var HtmlLink = /* @__PURE__ */ createMessageType({
 	typeName: "web.view.HtmlLink",
 	fields: [{
 		no: 1,
@@ -8329,7 +8405,7 @@ var HtmlLink = createMessageType({
 	}],
 	packedByDefault: true
 });
-var SetHtmlLinksRequest = createMessageType({
+var SetHtmlLinksRequest = /* @__PURE__ */ createMessageType({
 	typeName: "web.view.SetHtmlLinksRequest",
 	fields: [
 		{
@@ -8358,27 +8434,11 @@ var SetHtmlLinksRequest = createMessageType({
 	],
 	packedByDefault: true
 });
-var SetHtmlLinksResponse = createMessageType({
-	typeName: "web.view.SetHtmlLinksResponse",
-	fields: [],
-	packedByDefault: true
-});
-var ResetWebViewRequest = createMessageType({
-	typeName: "web.view.ResetWebViewRequest",
-	fields: [],
-	packedByDefault: true
-});
-var ResetWebViewResponse = createMessageType({
-	typeName: "web.view.ResetWebViewResponse",
-	fields: [],
-	packedByDefault: true
-});
-var RemoveWebViewRequest = createMessageType({
-	typeName: "web.view.RemoveWebViewRequest",
-	fields: [],
-	packedByDefault: true
-});
-var RemoveWebViewResponse = createMessageType({
+var SetHtmlLinksResponse = /* @__PURE__ */ createEmptyMessageType("web.view.SetHtmlLinksResponse", true);
+var ResetWebViewRequest = /* @__PURE__ */ createEmptyMessageType("web.view.ResetWebViewRequest", true);
+var ResetWebViewResponse = /* @__PURE__ */ createEmptyMessageType("web.view.ResetWebViewResponse", true);
+var RemoveWebViewRequest = /* @__PURE__ */ createEmptyMessageType("web.view.RemoveWebViewRequest", true);
+var RemoveWebViewResponse = /* @__PURE__ */ createMessageType({
 	typeName: "web.view.RemoveWebViewResponse",
 	fields: [{
 		no: 1,
@@ -8461,7 +8521,7 @@ navigator?.userAgentData?.platform;
 navigator?.userAgentData?.platform;
 navigator?.userAgentData?.platform;
 typeof BLDR_SAUCER !== "undefined" || typeof window !== "undefined" && window.location?.protocol;
-import.meta?.url || window.location.origin;
+import.meta.url || window.location.origin;
 function createAbortController2(parentSignal) {
 	const controller = new AbortController();
 	if (parentSignal) if (parentSignal.aborted) controller.abort();
@@ -8478,6 +8538,27 @@ var releasedResourceClient = new Proxy({ released: true }, { get(target, prop) {
 var resourceAttachClientNotFound = "client not found";
 var resourceClientInitTimeoutMS = 3e4;
 var resourceClientInitTimeoutMessage = "ResourceClient stream did not initialize before timeout";
+function withResourceClientInitTimeout(promise) {
+	return new Promise((resolve, reject) => {
+		let settled = false;
+		const timeout = setTimeout(() => {
+			if (settled) return;
+			settled = true;
+			reject(new ResourceClientError(resourceClientInitTimeoutMessage, "CONNECTION_FAILED"));
+		}, resourceClientInitTimeoutMS);
+		promise.then((value) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timeout);
+			resolve(value);
+		}).catch((error) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timeout);
+			reject(error);
+		});
+	});
+}
 var ResourceClientError = class extends Error {
 	constructor(message, code, cause) {
 		super(message);
@@ -8517,7 +8598,7 @@ function createResourceRef(id, client, onRelease) {
 	};
 	let srpcClient = null;
 	const getSrpcClient = () => {
-		if (!srpcClient) srpcClient = new Client(buildRpcStreamOpenStream(id.toString(), client.service.ResourceRpc.bind(client.service)));
+		if (!srpcClient) srpcClient = new Client(async () => withResourceClientInitTimeout(openRpcStream(id.toString(), client.service.ResourceRpc.bind(client.service), false)));
 		return srpcClient;
 	};
 	const ref = {
@@ -8699,6 +8780,7 @@ var Client2 = class {
 			controller,
 			outgoing,
 			attachIdCtr: 0,
+			closed: false,
 			muxes: /* @__PURE__ */ new Map(),
 			releaseFns: /* @__PURE__ */ new Map(),
 			pending: /* @__PURE__ */ new Map()
@@ -9094,6 +9176,8 @@ var Client2 = class {
 		const current = sess ?? this.attachSession;
 		if (!current) return;
 		if (this.attachSession === current) this.attachSession = null;
+		if (current.closed) return;
+		current.closed = true;
 		current.controller.abort();
 		current.outgoing.end();
 		for (const [, pending] of current.pending) pending.reject(/* @__PURE__ */ new Error("attach session closed"));
@@ -9118,12 +9202,8 @@ var Client2 = class {
 		this.pendingResourceReleases.clear();
 	}
 };
-var ResourceClientRequest = createMessageType({
-	typeName: "resource.ResourceClientRequest",
-	fields: [],
-	packedByDefault: true
-});
-var ResourceClientInit = createMessageType({
+var ResourceClientRequest = /* @__PURE__ */ createEmptyMessageType("resource.ResourceClientRequest", true);
+var ResourceClientInit = /* @__PURE__ */ createMessageType({
 	typeName: "resource.ResourceClientInit",
 	fields: [{
 		no: 1,
@@ -9138,7 +9218,7 @@ var ResourceClientInit = createMessageType({
 	}],
 	packedByDefault: true
 });
-var ResourceReleasedResponse = createMessageType({
+var ResourceReleasedResponse = /* @__PURE__ */ createMessageType({
 	typeName: "resource.ResourceReleasedResponse",
 	fields: [{
 		no: 1,
@@ -9148,7 +9228,7 @@ var ResourceReleasedResponse = createMessageType({
 	}],
 	packedByDefault: true
 });
-var ResourceClientResponse = createMessageType({
+var ResourceClientResponse = /* @__PURE__ */ createMessageType({
 	typeName: "resource.ResourceClientResponse",
 	fields: [
 		{
@@ -9175,7 +9255,7 @@ var ResourceClientResponse = createMessageType({
 	],
 	packedByDefault: true
 });
-var ResourceRefReleaseRequest = createMessageType({
+var ResourceRefReleaseRequest = /* @__PURE__ */ createMessageType({
 	typeName: "resource.ResourceRefReleaseRequest",
 	fields: [{
 		no: 1,
@@ -9190,12 +9270,8 @@ var ResourceRefReleaseRequest = createMessageType({
 	}],
 	packedByDefault: true
 });
-var ResourceRefReleaseResponse = createMessageType({
-	typeName: "resource.ResourceRefReleaseResponse",
-	fields: [],
-	packedByDefault: true
-});
-var ResourceAttachInit = createMessageType({
+var ResourceRefReleaseResponse = /* @__PURE__ */ createEmptyMessageType("resource.ResourceRefReleaseResponse", true);
+var ResourceAttachInit = /* @__PURE__ */ createMessageType({
 	typeName: "resource.ResourceAttachInit",
 	fields: [{
 		no: 1,
@@ -9205,7 +9281,7 @@ var ResourceAttachInit = createMessageType({
 	}],
 	packedByDefault: true
 });
-var ResourceAttachAdd = createMessageType({
+var ResourceAttachAdd = /* @__PURE__ */ createMessageType({
 	typeName: "resource.ResourceAttachAdd",
 	fields: [{
 		no: 1,
@@ -9220,7 +9296,7 @@ var ResourceAttachAdd = createMessageType({
 	}],
 	packedByDefault: true
 });
-var ResourceAttachDetach = createMessageType({
+var ResourceAttachDetach = /* @__PURE__ */ createMessageType({
 	typeName: "resource.ResourceAttachDetach",
 	fields: [{
 		no: 1,
@@ -9230,7 +9306,7 @@ var ResourceAttachDetach = createMessageType({
 	}],
 	packedByDefault: true
 });
-var ResourceAttachRequest = createMessageType({
+var ResourceAttachRequest = /* @__PURE__ */ createMessageType({
 	typeName: "resource.ResourceAttachRequest",
 	fields: [
 		{
@@ -9264,7 +9340,7 @@ var ResourceAttachRequest = createMessageType({
 	],
 	packedByDefault: true
 });
-var ResourceAttachAck = createMessageType({
+var ResourceAttachAck = /* @__PURE__ */ createMessageType({
 	typeName: "resource.ResourceAttachAck",
 	fields: [{
 		no: 1,
@@ -9274,7 +9350,7 @@ var ResourceAttachAck = createMessageType({
 	}],
 	packedByDefault: true
 });
-var ResourceAttachAddAck = createMessageType({
+var ResourceAttachAddAck = /* @__PURE__ */ createMessageType({
 	typeName: "resource.ResourceAttachAddAck",
 	fields: [
 		{
@@ -9298,7 +9374,7 @@ var ResourceAttachAddAck = createMessageType({
 	],
 	packedByDefault: true
 });
-var ResourceAttachDetachAck = createMessageType({
+var ResourceAttachDetachAck = /* @__PURE__ */ createMessageType({
 	typeName: "resource.ResourceAttachDetachAck",
 	fields: [{
 		no: 1,
@@ -9308,7 +9384,7 @@ var ResourceAttachDetachAck = createMessageType({
 	}],
 	packedByDefault: true
 });
-var ResourceAttachResponse = createMessageType({
+var ResourceAttachResponse = /* @__PURE__ */ createMessageType({
 	typeName: "resource.ResourceAttachResponse",
 	fields: [
 		{
@@ -9508,7 +9584,7 @@ var Timestamp_Wkt = {
 		return +aDate === +bDate;
 	}
 };
-var Timestamp = createMessageType({
+var Timestamp = /* @__PURE__ */ createMessageType({
 	typeName: "google.protobuf.Timestamp",
 	fields: [{
 		no: 1,
@@ -9532,25 +9608,13 @@ var Timestamp = createMessageType({
 		}
 	}
 }, Timestamp_Wkt);
-var HashType_Enum = createEnumType("hash.HashType", [
-	{
-		no: 0,
-		name: "HashType_UNKNOWN"
-	},
-	{
-		no: 1,
-		name: "HashType_SHA256"
-	},
-	{
-		no: 2,
-		name: "HashType_SHA1"
-	},
-	{
-		no: 3,
-		name: "HashType_BLAKE3"
-	}
+var HashType_Enum = /* @__PURE__ */ createEnumType("hash.HashType", [
+	[0, "HashType_UNKNOWN"],
+	[1, "HashType_SHA256"],
+	[2, "HashType_SHA1"],
+	[3, "HashType_BLAKE3"]
 ]);
-var Hash = createMessageType({
+var Hash = /* @__PURE__ */ createMessageType({
 	typeName: "hash.Hash",
 	fields: [{
 		no: 1,
@@ -9565,71 +9629,7 @@ var Hash = createMessageType({
 	}],
 	packedByDefault: true
 });
-createEnumType("block.StoreFeature", [
-	{
-		no: 0,
-		name: "STORE_FEATURE_UNKNOWN"
-	},
-	{
-		no: 1,
-		name: "STORE_FEATURE_NATIVE_BATCH_PUT"
-	},
-	{
-		no: 2,
-		name: "STORE_FEATURE_NATIVE_BATCH_EXISTS"
-	},
-	{
-		no: 4,
-		name: "STORE_FEATURE_NATIVE_BACKGROUND_PUT"
-	},
-	{
-		no: 8,
-		name: "STORE_FEATURE_NATIVE_FLUSH"
-	},
-	{
-		no: 16,
-		name: "STORE_FEATURE_NATIVE_DEFER_FLUSH"
-	}
-]);
-createEnumType("block.OverlayMode", [
-	{
-		no: 0,
-		name: "UPPER_ONLY"
-	},
-	{
-		no: 1,
-		name: "LOWER_ONLY"
-	},
-	{
-		no: 2,
-		name: "UPPER_CACHE"
-	},
-	{
-		no: 3,
-		name: "LOWER_CACHE"
-	},
-	{
-		no: 4,
-		name: "UPPER_READ_CACHE"
-	},
-	{
-		no: 5,
-		name: "LOWER_READ_CACHE"
-	},
-	{
-		no: 6,
-		name: "UPPER_WRITE_CACHE"
-	},
-	{
-		no: 7,
-		name: "LOWER_WRITE_CACHE"
-	},
-	{
-		no: 8,
-		name: "UPPER_READBACK_CACHE"
-	}
-]);
-var BlockRef = createMessageType({
+var BlockRef = /* @__PURE__ */ createMessageType({
 	typeName: "block.BlockRef",
 	fields: [{
 		no: 1,
@@ -9639,32 +9639,7 @@ var BlockRef = createMessageType({
 	}],
 	packedByDefault: true
 });
-var PutOpts = createMessageType({
-	typeName: "block.PutOpts",
-	fields: [
-		{
-			no: 1,
-			name: "hash_type",
-			kind: "enum",
-			T: HashType_Enum
-		},
-		{
-			no: 2,
-			name: "force_block_ref",
-			kind: "message",
-			T: () => BlockRef
-		},
-		{
-			no: 3,
-			name: "refs",
-			kind: "message",
-			T: () => BlockRef,
-			repeated: true
-		}
-	],
-	packedByDefault: true
-});
-var StepConfig = createMessageType({
+var StepConfig = /* @__PURE__ */ createMessageType({
 	typeName: "block.transform.StepConfig",
 	fields: [{
 		no: 1,
@@ -9679,7 +9654,7 @@ var StepConfig = createMessageType({
 	}],
 	packedByDefault: true
 });
-var Config = createMessageType({
+var Config = /* @__PURE__ */ createMessageType({
 	typeName: "block.transform.Config",
 	fields: [{
 		no: 1,
@@ -9690,110 +9665,10 @@ var Config = createMessageType({
 	}],
 	packedByDefault: true
 });
-var LookupConfig = createMessageType({
-	typeName: "bucket.LookupConfig",
-	fields: [{
-		no: 1,
-		name: "disable",
-		kind: "scalar",
-		T: ScalarType.BOOL
-	}, {
-		no: 2,
-		name: "controller",
-		kind: "message",
-		T: () => ControllerConfig
-	}],
-	packedByDefault: true
-});
-var Config2 = createMessageType({
-	typeName: "bucket.Config",
-	fields: [
-		{
-			no: 1,
-			name: "id",
-			kind: "scalar",
-			T: ScalarType.STRING
-		},
-		{
-			no: 2,
-			name: "rev",
-			kind: "scalar",
-			T: ScalarType.UINT32
-		},
-		{
-			no: 4,
-			name: "put_opts",
-			kind: "message",
-			T: () => PutOpts
-		},
-		{
-			no: 5,
-			name: "lookup",
-			kind: "message",
-			T: () => LookupConfig
-		}
-	],
-	packedByDefault: true
-});
-var BucketInfo = createMessageType({
-	typeName: "bucket.BucketInfo",
-	fields: [{
-		no: 1,
-		name: "config",
-		kind: "message",
-		T: () => Config2
-	}],
-	packedByDefault: true
-});
-createMessageType({
-	typeName: "bucket.ApplyBucketConfigResult",
-	fields: [
-		{
-			no: 1,
-			name: "volume_id",
-			kind: "scalar",
-			T: ScalarType.STRING
-		},
-		{
-			no: 2,
-			name: "bucket_id",
-			kind: "scalar",
-			T: ScalarType.STRING
-		},
-		{
-			no: 3,
-			name: "bucket_conf",
-			kind: "message",
-			T: () => Config2
-		},
-		{
-			no: 4,
-			name: "old_bucket_conf",
-			kind: "message",
-			T: () => Config2
-		},
-		{
-			no: 5,
-			name: "timestamp",
-			kind: "message",
-			T: () => Timestamp
-		},
-		{
-			no: 6,
-			name: "updated",
-			kind: "scalar",
-			T: ScalarType.BOOL
-		},
-		{
-			no: 7,
-			name: "error",
-			kind: "scalar",
-			T: ScalarType.STRING
-		}
-	],
-	packedByDefault: true
-});
-var ObjectRef = createMessageType({
+ScalarType.BOOL;
+ScalarType.STRING, ScalarType.UINT32;
+ScalarType.STRING, ScalarType.STRING, ScalarType.BOOL, ScalarType.STRING;
+var ObjectRef = /* @__PURE__ */ createMessageType({
 	typeName: "bucket.ObjectRef",
 	fields: [
 		{
@@ -9823,22 +9698,8 @@ var ObjectRef = createMessageType({
 	],
 	packedByDefault: true
 });
-createMessageType({
-	typeName: "bucket.BucketOpArgs",
-	fields: [{
-		no: 1,
-		name: "bucket_id",
-		kind: "scalar",
-		T: ScalarType.STRING
-	}, {
-		no: 2,
-		name: "volume_id",
-		kind: "scalar",
-		T: ScalarType.STRING
-	}],
-	packedByDefault: true
-});
-var ManifestMeta = createMessageType({
+ScalarType.STRING, ScalarType.STRING;
+var ManifestMeta = /* @__PURE__ */ createMessageType({
 	typeName: "bldr.manifest.ManifestMeta",
 	fields: [
 		{
@@ -9874,37 +9735,8 @@ var ManifestMeta = createMessageType({
 	],
 	packedByDefault: true
 });
-var Manifest = createMessageType({
-	typeName: "bldr.manifest.Manifest",
-	fields: [
-		{
-			no: 1,
-			name: "meta",
-			kind: "message",
-			T: () => ManifestMeta
-		},
-		{
-			no: 2,
-			name: "entrypoint",
-			kind: "scalar",
-			T: ScalarType.STRING
-		},
-		{
-			no: 3,
-			name: "dist_fs_ref",
-			kind: "message",
-			T: () => BlockRef
-		},
-		{
-			no: 4,
-			name: "assets_fs_ref",
-			kind: "message",
-			T: () => BlockRef
-		}
-	],
-	packedByDefault: true
-});
-var ManifestRef = createMessageType({
+ScalarType.STRING;
+var ManifestRef = /* @__PURE__ */ createMessageType({
 	typeName: "bldr.manifest.ManifestRef",
 	fields: [{
 		no: 1,
@@ -9919,111 +9751,9 @@ var ManifestRef = createMessageType({
 	}],
 	packedByDefault: true
 });
-createMessageType({
-	typeName: "bldr.manifest.ManifestBundle",
-	fields: [{
-		no: 1,
-		name: "manifest_refs",
-		kind: "message",
-		T: () => ManifestRef,
-		repeated: true
-	}, {
-		no: 2,
-		name: "timestamp",
-		kind: "message",
-		T: () => Timestamp
-	}],
-	packedByDefault: true
-});
-createMessageType({
-	typeName: "bldr.manifest.ManifestSnapshot",
-	fields: [{
-		no: 1,
-		name: "manifest_ref",
-		kind: "message",
-		T: () => ObjectRef
-	}, {
-		no: 2,
-		name: "manifest",
-		kind: "message",
-		T: () => Manifest
-	}],
-	packedByDefault: true
-});
-createMessageType({
-	typeName: "bldr.manifest.FetchManifestRequest",
-	fields: [
-		{
-			no: 1,
-			name: "manifest_id",
-			kind: "scalar",
-			T: ScalarType.STRING
-		},
-		{
-			no: 2,
-			name: "build_types",
-			kind: "scalar",
-			T: ScalarType.STRING,
-			repeated: true
-		},
-		{
-			no: 3,
-			name: "platform_ids",
-			kind: "scalar",
-			T: ScalarType.STRING,
-			repeated: true
-		},
-		{
-			no: 4,
-			name: "rev",
-			kind: "scalar",
-			T: ScalarType.UINT64
-		}
-	],
-	packedByDefault: true
-});
-var FetchManifestValue = createMessageType({
-	typeName: "bldr.manifest.FetchManifestValue",
-	fields: [{
-		no: 1,
-		name: "manifest_refs",
-		kind: "message",
-		T: () => ManifestRef,
-		repeated: true
-	}],
-	packedByDefault: true
-});
-createMessageType({
-	typeName: "bldr.manifest.FetchManifestResponse",
-	fields: [
-		{
-			no: 1,
-			name: "value_id",
-			kind: "scalar",
-			T: ScalarType.UINT32
-		},
-		{
-			no: 2,
-			name: "value",
-			kind: "message",
-			T: () => FetchManifestValue
-		},
-		{
-			no: 3,
-			name: "removed",
-			kind: "scalar",
-			T: ScalarType.BOOL
-		},
-		{
-			no: 4,
-			name: "idle",
-			kind: "scalar",
-			T: ScalarType.UINT32
-		}
-	],
-	packedByDefault: true
-});
-var VolumeInfo = createMessageType({
+ScalarType.STRING, ScalarType.STRING, ScalarType.STRING, ScalarType.UINT64;
+ScalarType.UINT32, ScalarType.BOOL, ScalarType.UINT32;
+var VolumeInfo = /* @__PURE__ */ createMessageType({
 	typeName: "volume.VolumeInfo",
 	fields: [
 		{
@@ -10059,76 +9789,14 @@ var VolumeInfo = createMessageType({
 	],
 	packedByDefault: true
 });
-createMessageType({
-	typeName: "volume.StorageStats",
-	fields: [{
-		no: 1,
-		name: "total_bytes",
-		kind: "scalar",
-		T: ScalarType.UINT64
-	}, {
-		no: 2,
-		name: "block_count",
-		kind: "scalar",
-		T: ScalarType.UINT64
-	}],
-	packedByDefault: true
-});
-createMessageType({
-	typeName: "volume.VolumeBucketInfo",
-	fields: [{
-		no: 1,
-		name: "bucket_info",
-		kind: "message",
-		T: () => BucketInfo
-	}, {
-		no: 2,
-		name: "volume_info",
-		kind: "message",
-		T: () => VolumeInfo
-	}],
-	packedByDefault: true
-});
-createMessageType({
-	typeName: "volume.ListBucketsRequest",
-	fields: [
-		{
-			no: 1,
-			name: "bucket_id",
-			kind: "scalar",
-			T: ScalarType.STRING
-		},
-		{
-			no: 2,
-			name: "volume_id_re",
-			kind: "scalar",
-			T: ScalarType.STRING
-		},
-		{
-			no: 3,
-			name: "volume_id_list",
-			kind: "scalar",
-			T: ScalarType.STRING,
-			repeated: true
-		}
-	],
-	packedByDefault: true
-});
-var PluginState_Enum = createEnumType("bldr.plugin.PluginState", [
-	{
-		no: 0,
-		name: "PluginState_UNKNOWN"
-	},
-	{
-		no: 1,
-		name: "PluginState_REQUESTED"
-	},
-	{
-		no: 2,
-		name: "PluginState_RUNNING"
-	}
+ScalarType.UINT64, ScalarType.UINT64;
+ScalarType.STRING, ScalarType.STRING, ScalarType.STRING;
+var PluginState_Enum = /* @__PURE__ */ createEnumType("bldr.plugin.PluginState", [
+	[0, "PluginState_UNKNOWN"],
+	[1, "PluginState_REQUESTED"],
+	[2, "PluginState_RUNNING"]
 ]);
-var PluginStatus = createMessageType({
+var PluginStatus = /* @__PURE__ */ createMessageType({
 	typeName: "bldr.plugin.PluginStatus",
 	fields: [
 		{
@@ -10170,12 +9838,8 @@ var PluginStatus = createMessageType({
 	],
 	packedByDefault: true
 });
-var GetPluginInfoRequest = createMessageType({
-	typeName: "bldr.plugin.GetPluginInfoRequest",
-	fields: [],
-	packedByDefault: true
-});
-var GetPluginInfoResponse = createMessageType({
+var GetPluginInfoRequest = /* @__PURE__ */ createEmptyMessageType("bldr.plugin.GetPluginInfoRequest", true);
+var GetPluginInfoResponse = /* @__PURE__ */ createMessageType({
 	typeName: "bldr.plugin.GetPluginInfoResponse",
 	fields: [
 		{
@@ -10199,7 +9863,7 @@ var GetPluginInfoResponse = createMessageType({
 	],
 	packedByDefault: true
 });
-var LoadPluginRequest = createMessageType({
+var LoadPluginRequest = /* @__PURE__ */ createMessageType({
 	typeName: "bldr.plugin.LoadPluginRequest",
 	fields: [{
 		no: 1,
@@ -10214,7 +9878,7 @@ var LoadPluginRequest = createMessageType({
 	}],
 	packedByDefault: true
 });
-var LoadPluginResponse = createMessageType({
+var LoadPluginResponse = /* @__PURE__ */ createMessageType({
 	typeName: "bldr.plugin.LoadPluginResponse",
 	fields: [{
 		no: 1,
@@ -10224,37 +9888,8 @@ var LoadPluginResponse = createMessageType({
 	}],
 	packedByDefault: true
 });
-var PluginMeta = createMessageType({
-	typeName: "bldr.plugin.PluginMeta",
-	fields: [
-		{
-			no: 1,
-			name: "project_id",
-			kind: "scalar",
-			T: ScalarType.STRING
-		},
-		{
-			no: 2,
-			name: "plugin_id",
-			kind: "scalar",
-			T: ScalarType.STRING
-		},
-		{
-			no: 3,
-			name: "platform_id",
-			kind: "scalar",
-			T: ScalarType.STRING
-		},
-		{
-			no: 4,
-			name: "build_type",
-			kind: "scalar",
-			T: ScalarType.STRING
-		}
-	],
-	packedByDefault: true
-});
-var PluginStartInfo = createMessageType({
+ScalarType.STRING, ScalarType.STRING, ScalarType.STRING, ScalarType.STRING;
+var PluginStartInfo = /* @__PURE__ */ createMessageType({
 	typeName: "bldr.plugin.PluginStartInfo",
 	fields: [
 		{
@@ -10276,16 +9911,6 @@ var PluginStartInfo = createMessageType({
 			T: ScalarType.STRING
 		}
 	],
-	packedByDefault: true
-});
-createMessageType({
-	typeName: "bldr.plugin.PluginContextInfo",
-	fields: [{
-		no: 1,
-		name: "plugin_meta",
-		kind: "message",
-		T: () => PluginMeta
-	}],
 	packedByDefault: true
 });
 var PluginHostDefinition = {

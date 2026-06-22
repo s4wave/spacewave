@@ -99,6 +99,28 @@ describe("applyPolyfills", () => {
     expect(signal.aborted).toBe(true);
     expect(signal.reason).toBe("stopped");
   });
+
+  it("installs a ReadableStream that round-trips through a default reader", async () => {
+    const target = buildPolyfillTarget();
+    const polyfilled = applyPolyfills(target);
+
+    expect(polyfilled.ReadableStream).toBeTypeOf("function");
+
+    const data = new Uint8Array([1, 2, 3, 4]);
+    const stream = new polyfilled.ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(data);
+        controller.close();
+      },
+    });
+    const reader = stream.getReader();
+    const first = await reader.read();
+    expect(first.done).toBe(false);
+    expect(Array.from(first.value!)).toEqual([1, 2, 3, 4]);
+    const second = await reader.read();
+    expect(second.done).toBe(true);
+    reader.releaseLock();
+  });
 });
 
 function buildSchedulerTarget(

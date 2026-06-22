@@ -11,6 +11,7 @@ import {
 } from "./polyfill-abort-controller.js";
 import { createSymbolPolyfills } from "./polyfill-symbol.js";
 import { TextEncoder, TextDecoder } from "./text-encoding.js";
+import { ReadableStream } from "./readable-stream.js";
 import { createQuickjsConsole, type Console } from "./console.js";
 import { createQuickjsPerformance, type Performance } from "./performance.js";
 import { atob, btoa } from "./base64.js";
@@ -37,6 +38,8 @@ export interface QuickjsPolyfillGlobalScope extends QuickjsGlobalScope {
   TextEncoder: typeof TextEncoder;
   // TextDecoder is the polyfilled text encoder type.
   TextDecoder: typeof TextDecoder;
+  // ReadableStream is the polyfilled default readable stream type.
+  ReadableStream: typeof ReadableStream;
 
   // console is the polyfilled console object.
   console: Console;
@@ -197,6 +200,7 @@ export function applyPolyfills(
   target.AbortSignal = AbortControllerImpl.AbortSignal;
   target.TextEncoder = TextEncoder;
   target.TextDecoder = TextDecoder;
+  target.ReadableStream = ReadableStream;
   installRetainedSchedulerPolyfills(target);
 
   target.atob = atob;
