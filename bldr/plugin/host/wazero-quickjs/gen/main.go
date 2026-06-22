@@ -12,8 +12,11 @@ import (
 // Equivalent of:
 // esbuild --tree-shaking=true --bundle --format=esm --platform=browser plugin-quickjs.ts --outfile=plugin-quickjs.esb.js
 // followed by:
-// rolldown plugin-quickjs.esb.js --file plugin-quickjs.esm.js --format esm
-// Note: Rolldown tree-shakes the esbuild output while keeping the code readable.
+// rolldown plugin-quickjs.esb.js --file plugin-quickjs.esm.js --format esm --minify
+// Note: Rolldown tree-shakes the esbuild output and minifies it with the oxc
+// minifier. Minification renames only local identifiers; installed global
+// property names (globalThis.ReadableStream, .TextEncoder, ...) are preserved,
+// so plugin code keeps resolving them.
 
 func main() {
 	log := logrus.New()
@@ -67,14 +70,15 @@ func main() {
 
 	le.Info("esbuild completed successfully")
 
-	// Run rolldown to tree-shake the output.
-	le.Info("running rolldown to tree-shake output")
+	// Run rolldown to tree-shake and minify the output with the oxc minifier.
+	le.Info("running rolldown to tree-shake and minify output")
 	rolldownCmd := exec.Command(
 		"bunx",
 		"rolldown",
 		"plugin-quickjs.esb.js",
 		"--file", "plugin-quickjs.esm.js",
 		"--format", "esm",
+		"--minify",
 	)
 
 	if err := rolldownCmd.Run(); err != nil {
