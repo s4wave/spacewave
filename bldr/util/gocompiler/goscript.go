@@ -43,7 +43,7 @@ func GoScriptCompilerCacheRootFromEnv(buildPath string) (string, error) {
 }
 
 // ResolveGoScriptCompilerCacheRoot resolves rawRoot for a Bldr build path.
-// Absolute roots are used directly; relative roots live under the .bldr state
+// Absolute roots are used directly; relative roots live under the Bldr state
 // root that owns the build path.
 func ResolveGoScriptCompilerCacheRoot(buildPath, rawRoot string) (string, error) {
 	rawRoot = strings.TrimSpace(rawRoot)
@@ -70,7 +70,7 @@ func goScriptBldrStateRootForBuildPath(buildPath string) string {
 		return ""
 	}
 	for dir := filepath.Clean(buildPath); ; dir = filepath.Dir(dir) {
-		if filepath.Base(dir) == ".bldr" {
+		if isGoScriptBldrStateRootName(filepath.Base(dir)) {
 			return dir
 		}
 		parent := filepath.Dir(dir)
@@ -78,6 +78,10 @@ func goScriptBldrStateRootForBuildPath(buildPath string) string {
 			return ""
 		}
 	}
+}
+
+func isGoScriptBldrStateRootName(name string) bool {
+	return name == ".bldr" || strings.HasPrefix(name, ".bldr-")
 }
 
 // GoListImportPath returns the import path for the package in workDir under the given build flags.

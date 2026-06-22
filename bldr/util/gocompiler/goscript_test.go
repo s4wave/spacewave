@@ -119,6 +119,20 @@ func TestGoScriptCompilerCacheRootFromEnvResolvesRelativeUnderBldrStateRoot(t *t
 	}
 }
 
+func TestGoScriptCompilerCacheRootFromEnvResolvesRelativeUnderReleaseStateRoot(t *testing.T) {
+	stateRoot := filepath.Join(t.TempDir(), ".bldr-dist")
+	buildPath := filepath.Join(stateRoot, "build", "web", "js", "wasm", "spacewave-core")
+	t.Setenv(GoScriptCompilerCacheRootEnv, filepath.Join("cache", "gs"))
+	got, err := GoScriptCompilerCacheRootFromEnv(buildPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(stateRoot, "cache", "gs")
+	if got != want {
+		t.Fatalf("cache root = %q, want %q", got, want)
+	}
+}
+
 func TestResolveGoScriptCompilerCacheRootAcceptsAbsoluteRoot(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "cache", "gs")
 	got, err := ResolveGoScriptCompilerCacheRoot(filepath.Join(t.TempDir(), "work"), root)
