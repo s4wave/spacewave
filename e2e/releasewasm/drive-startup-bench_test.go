@@ -187,32 +187,16 @@ func runBundledDriveBenchCell(t *testing.T, page playwright.Page, in bundledDriv
 func readBundledBrowser(t *testing.T, page playwright.Page, contentReadyMs int) drivebench.Browser {
 	t.Helper()
 
-	browser := drivebench.Browser{ContentReadyMs: contentReadyMs}
 	raw, err := page.Evaluate(`() => globalThis.__s4waveQuickstartTiming ?? globalThis.__s4wave_debug?.quickstartTiming ?? null`)
 	if err != nil {
 		t.Logf("read quickstart timing: %v", err)
-		return browser
+		return drivebench.Browser{ContentReadyMs: contentReadyMs}
 	}
 	timing, ok := raw.(map[string]any)
 	if !ok {
-		return browser
+		return drivebench.Browser{ContentReadyMs: contentReadyMs}
 	}
-	browser.QuickstartState, _ = timing["state"].(string)
-	browser.QuickstartProgressReadyMs = optionalBundledInt(timing, "progressReadyMs")
-	browser.QuickstartContentReadyMs = optionalBundledInt(timing, "contentReadyMs")
-	browser.QuickstartFinishedMs = optionalBundledInt(timing, "finishedMs")
-	return browser
-}
-
-// optionalBundledInt reads an optional numeric field from a Playwright eval
-// result, returning nil when the field is absent or null.
-func optionalBundledInt(m map[string]any, key string) *int {
-	v, ok := m[key].(float64)
-	if !ok {
-		return nil
-	}
-	n := int(v)
-	return &n
+	return drivebench.BrowserFromQuickstartTiming(contentReadyMs, timing)
 }
 
 // resetBundledSpaceStateKeepCache clears the origin's OPFS Space-state storage

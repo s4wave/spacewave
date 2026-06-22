@@ -12,6 +12,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 
 	"github.com/aperturerobotics/util/gitroot"
 	"github.com/pkg/errors"
@@ -50,11 +52,27 @@ type Milestones struct {
 // Browser carries the browser-side quickstart timing reported by the Drive
 // viewer, independent of the Go-side wall clock.
 type Browser struct {
-	ContentReadyMs            int    `json:"contentReadyMs"`
-	QuickstartState           string `json:"quickstartState"`
-	QuickstartProgressReadyMs *int   `json:"quickstartProgressReadyMs,omitempty"`
-	QuickstartContentReadyMs  *int   `json:"quickstartContentReadyMs,omitempty"`
-	QuickstartFinishedMs      *int   `json:"quickstartFinishedMs,omitempty"`
+	ContentReadyMs            int     `json:"contentReadyMs"`
+	QuickstartState           string  `json:"quickstartState"`
+	QuickstartProgressReadyMs *int    `json:"quickstartProgressReadyMs,omitempty"`
+	QuickstartContentReadyMs  *int    `json:"quickstartContentReadyMs,omitempty"`
+	QuickstartFinishedMs      *int    `json:"quickstartFinishedMs,omitempty"`
+	QuickstartPhases          []Phase `json:"quickstartPhases,omitempty"`
+	DriveSeedResourceCalls    int     `json:"driveSeedResourceCalls,omitempty"`
+	DriveSeedStartedMs        *int    `json:"driveSeedStartedMs,omitempty"`
+	DriveSeedFinishedMs       *int    `json:"driveSeedFinishedMs,omitempty"`
+	DriveSeedElapsedMs        *int    `json:"driveSeedElapsedMs,omitempty"`
+}
+
+// Phase is one browser-observed quickstart phase. The timestamps use the page
+// performance.now timebase, matching the quickstart timing object published by
+// the app while the bench is running.
+type Phase struct {
+	Name       string `json:"name"`
+	StartedMs  int    `json:"startedMs"`
+	FinishedMs *int   `json:"finishedMs,omitempty"`
+	ElapsedMs  *int   `json:"elapsedMs,omitempty"`
+	Error      string `json:"error,omitempty"`
 }
 
 // Bundle is the served code payload measured from the built bundle on disk: the
@@ -87,6 +105,46 @@ type Trace struct {
 	UserTasks        int    `json:"userTasks"`
 	UserRegions      int    `json:"userRegions"`
 	UserLogs         int    `json:"userLogs"`
+	Tasks            []Task `json:"tasks,omitempty"`
+}
+
+// Task is an aggregate runtime-trace task summary keyed by Go user task type.
+type Task struct {
+	Type    string `json:"type"`
+	Count   int    `json:"count"`
+	TotalUs int64  `json:"totalUs"`
+	MaxUs   int64  `json:"maxUs"`
+}
+
+// BrowserFromQuickstartTiming builds the browser timing artifact from the
+// quickstart timing object published by app/quickstart/create.ts.
+func BrowserFromQuickstartTiming(contentReadyMs int, raw map[string]any) Browser {
+	browser := Browser{ContentReadyMs: contentReadyMs}
+	if raw == nil {
+		return browser
+	}
+	browser.QuickstartState, _ = raw["state"].(string)
+	browser.QuickstartProgressReadyMs = optionalInt(raw, "progressReadyMs")
+	browser.QuickstartContentReadyMs = optionalInt(raw, "contentReadyMs")
+	browser.QuickstartFinishedMs = optionalInt(raw, "finishedMs")
+	browser.QuickstartPhases = parsePhases(raw["phases"])
+	browser.DriveSeedResourceCalls = CountDriveSeedResourceCalls(browser.QuickstartPhases)
+	setDriveSeedWindow(&browser)
+	return browser
+}
+
+// CountDriveSeedResourceCalls counts the timed Resource SDK calls that the
+// Drive quickstart seed issues after populate-space begins and before content is
+// ready. Wrapper phases such as populate-space and init-drive-unixfs are omitted
+// because their leaf transaction phases carry the actual RPC calls.
+func CountDriveSeedResourceCalls(phases []Phase) int {
+	count := 0
+	for _, phase := range phases {
+		if slices.Contains(driveSeedResourcePhaseNames, phase.Name) {
+			count++
+		}
+	}
+	return count
 }
 
 // CellDir returns the artifact directory for one bench cell under the repo-root
@@ -159,4 +217,104 @@ func WriteRun(dir string, run Run) (string, error) {
 		return "", err
 	}
 	return path, nil
+}
+
+var driveSeedResourcePhaseNames = []string{
+	"init-drive-unixfs-new-transaction",
+	"init-drive-unixfs-apply-op",
+	"init-drive-unixfs-commit",
+	"init-drive-unixfs-discard",
+	"write-drive-starter-guide-access",
+	"write-drive-starter-guide-create",
+	"write-drive-starter-guide-lookup",
+	"write-drive-starter-guide-content",
+	"create-drive-settings-get-object",
+	"create-drive-settings-new-transaction",
+	"create-drive-settings-apply-op",
+	"create-drive-settings-commit",
+	"create-drive-settings-discard",
+}
+
+func parsePhases(raw any) []Phase {
+	items, ok := raw.([]any)
+	if !ok {
+		return nil
+	}
+	phases := make([]Phase, 0, len(items))
+	for _, item := range items {
+		m, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		name, _ := m["name"].(string)
+		if name == "" {
+			continue
+		}
+		phase := Phase{
+			Name:       name,
+			StartedMs:  intValue(m["startedMs"]),
+			FinishedMs: optionalInt(m, "finishedMs"),
+			ElapsedMs:  optionalInt(m, "elapsedMs"),
+		}
+		phase.Error, _ = m["error"].(string)
+		phases = append(phases, phase)
+	}
+	return phases
+}
+
+func setDriveSeedWindow(browser *Browser) {
+	for _, phase := range browser.QuickstartPhases {
+		if phase.Name == "populate-space" {
+			browser.DriveSeedStartedMs = &phase.StartedMs
+			browser.DriveSeedFinishedMs = phase.FinishedMs
+			browser.DriveSeedElapsedMs = phase.ElapsedMs
+			return
+		}
+	}
+	var start *int
+	var finish *int
+	for _, phase := range browser.QuickstartPhases {
+		if !strings.HasPrefix(phase.Name, "init-drive-") &&
+			!strings.HasPrefix(phase.Name, "write-drive-starter-guide-") &&
+			!strings.HasPrefix(phase.Name, "create-drive-settings") {
+			continue
+		}
+		started := phase.StartedMs
+		if start == nil || started < *start {
+			start = &started
+		}
+		if phase.FinishedMs != nil && (finish == nil || *phase.FinishedMs > *finish) {
+			finished := *phase.FinishedMs
+			finish = &finished
+		}
+	}
+	browser.DriveSeedStartedMs = start
+	browser.DriveSeedFinishedMs = finish
+	if start != nil && finish != nil {
+		elapsed := *finish - *start
+		browser.DriveSeedElapsedMs = &elapsed
+	}
+}
+
+func optionalInt(m map[string]any, key string) *int {
+	switch v := m[key].(type) {
+	case float64:
+		n := int(v)
+		return &n
+	case int:
+		return &v
+	default:
+		return nil
+	}
+}
+
+func intValue(raw any) int {
+	switch v := raw.(type) {
+	case float64:
+		return int(v)
+	case int:
+		return v
+	default:
+		return 0
+	}
 }

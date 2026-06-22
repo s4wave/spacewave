@@ -173,13 +173,10 @@ func runDriveBenchCell(
 			UnixfsVisibleMs: unixfsVisibleMs,
 			ContentReadyMs:  contentReadyMs,
 		},
-		Browser: drivebench.Browser{
-			ContentReadyMs:            driveReady.ContentReadyMs,
-			QuickstartState:           driveReady.QuickstartState,
-			QuickstartProgressReadyMs: driveReady.QuickstartProgressReadyMs,
-			QuickstartContentReadyMs:  driveReady.QuickstartContentReadyMs,
-			QuickstartFinishedMs:      driveReady.QuickstartFinishedMs,
-		},
+		Browser: drivebench.BrowserFromQuickstartTiming(
+			driveReady.ContentReadyMs,
+			driveReady.QuickstartTiming,
+		),
 		ResourceConnection: summarizeResourceConnection(connTiming),
 	}
 	// ServedBundle stays nil: bundle size is a bundled-build metric the
@@ -197,7 +194,7 @@ func runDriveBenchCell(
 			t.Fatalf("write runtime.trace: %v", err)
 		}
 		tracetoolPath := filepath.Join(cellDir, "tracetool.txt")
-		summary, tasks, regions, logs := summarizeTrace(t, traceData)
+		summary, tasks, regions, logs, taskAggs := summarizeTrace(t, traceData)
 		if err := drivebench.WriteArtifact(tracetoolPath, []byte(summary)); err != nil {
 			t.Fatalf("write tracetool.txt: %v", err)
 		}
@@ -208,6 +205,7 @@ func runDriveBenchCell(
 			UserTasks:        tasks,
 			UserRegions:      regions,
 			UserLogs:         logs,
+			Tasks:            taskAggs,
 		}
 	}
 
@@ -308,7 +306,7 @@ type benchTaskAgg struct {
 // (alpha/, hydra/, provider/, bldr/) plus other, ranking task types by total
 // active duration with count as the tie-breaker. It returns the rendered text
 // and the overall task, region, and log counts.
-func summarizeTrace(t testing.TB, data []byte) (string, int, int, int) {
+func summarizeTrace(t testing.TB, data []byte) (string, int, int, int, []drivebench.Task) {
 	t.Helper()
 	reader, err := exptrace.NewReader(bytes.NewReader(data))
 	if err != nil {
@@ -378,7 +376,29 @@ func summarizeTrace(t testing.TB, data []byte) (string, int, int, int) {
 		aggFor(ot.typ).count++
 	}
 
-	return renderTraceSummary(aggByType, tasks, regions, logs), tasks, regions, logs
+	taskAggs := make([]drivebench.Task, 0, len(aggByType))
+	for _, agg := range aggByType {
+		taskAggs = append(taskAggs, drivebench.Task{
+			Type:    agg.typ,
+			Count:   agg.count,
+			TotalUs: agg.totalDur.Microseconds(),
+			MaxUs:   agg.maxDur.Microseconds(),
+		})
+	}
+	slices.SortFunc(taskAggs, func(a, c drivebench.Task) int {
+		if a.TotalUs != c.TotalUs {
+			if a.TotalUs > c.TotalUs {
+				return -1
+			}
+			return 1
+		}
+		if a.Count != c.Count {
+			return c.Count - a.Count
+		}
+		return strings.Compare(a.Type, c.Type)
+	})
+
+	return renderTraceSummary(aggByType, tasks, regions, logs), tasks, regions, logs, taskAggs
 }
 
 // renderTraceSummary formats the per-prefix ranked task breakdown for

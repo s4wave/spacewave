@@ -24,6 +24,7 @@ type DriveReadyResult struct {
 	QuickstartContentReadyMs  *int
 	QuickstartFinishedMs      *int
 	QuickstartError           string
+	QuickstartTiming          map[string]any
 }
 
 // WaitForApp waits for the real app runtime, not the prerendered shell, to be
@@ -534,6 +535,7 @@ func parseDriveReadyResult(t testing.TB, raw any) DriveReadyResult {
 		ContentReadyMs: intField(m, "contentReadyMs"),
 	}
 	if timing, ok := m["quickstartTiming"].(map[string]any); ok {
+		result.QuickstartTiming = timing
 		result.QuickstartState = stringField(timing, "state")
 		result.QuickstartProgressReadyMs = optionalIntField(timing, "progressReadyMs")
 		result.QuickstartContentReadyMs = optionalIntField(timing, "contentReadyMs")

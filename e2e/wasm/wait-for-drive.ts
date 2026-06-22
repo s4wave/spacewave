@@ -3,11 +3,21 @@ interface DriveReadyResult {
   contentReadyMs: number
   hash: string
   quickstartTiming: {
+    quickstartId?: string
     state?: string
+    startedMs?: number
     progressReadyMs?: number
     contentReadyMs?: number
     finishedMs?: number
+    elapsedMs?: number
     error?: string
+    phases?: {
+      name: string
+      startedMs: number
+      finishedMs?: number
+      elapsedMs?: number
+      error?: string
+    }[]
   } | null
 }
 
@@ -46,14 +56,23 @@ export default async function (args: {
           body: text.slice(0, 2000),
           contentReadyMs: Math.round(performance.now()),
           hash: window.location.hash,
-          quickstartTiming:
-            timing ?
-              {
+          quickstartTiming: timing
+            ? {
+                quickstartId: timing.quickstartId,
                 state: timing.state,
+                startedMs: timing.startedMs,
                 progressReadyMs: timing.progressReadyMs,
                 contentReadyMs: timing.contentReadyMs,
                 finishedMs: timing.finishedMs,
+                elapsedMs: timing.elapsedMs,
                 error: timing.error,
+                phases: timing.phases?.map((phase) => ({
+                  name: phase.name,
+                  startedMs: phase.startedMs,
+                  finishedMs: phase.finishedMs,
+                  elapsedMs: phase.elapsedMs,
+                  error: phase.error,
+                })),
               }
             : null,
         })
