@@ -106,7 +106,7 @@ jobs:
       SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Cache manifest pack
         id: manifest_pack_cache
@@ -181,7 +181,7 @@ jobs:
       SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Go
         uses: actions/setup-go@v6
@@ -249,7 +249,7 @@ jobs:
       BLDR_BUILDER_ZIG_CACHE_DIR: ${{ github.workspace }}/.tmp/zig-cache
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Cache Linux handoff part
         id: linux_handoff_cache
@@ -402,7 +402,7 @@ jobs:
       BLDR_WASM_OPT_DIAGNOSTICS_DIR: ${{ github.workspace }}/.tmp/wasm-opt-diagnostics
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Cache browser handoff part
         id: browser_handoff_cache
@@ -551,7 +551,7 @@ jobs:
       SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Cache Windows handoff part
         id: windows_handoff_cache
@@ -864,7 +864,7 @@ jobs:
       SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Cache macOS handoff part
         id: macos_handoff_cache
@@ -1080,7 +1080,7 @@ jobs:
       attestations: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
 
