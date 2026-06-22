@@ -102,6 +102,11 @@ export type RemoveWebViewFunc = (id: string) => Promise<boolean>
 // baseURL is the base URL to use for paths.
 const baseURL = import.meta?.url || window.location.origin
 const dedicatedWorkerShutdownGraceMs = 1000
+// sharedWorkerControlFallbackMs bounds how long shared-worker mode waits for the
+// ServiceWorker to reach controlling state before starting the runtime anyway.
+// A browser with a broken or unavailable SW then still loads (degraded cold
+// load) instead of hanging on /b/* imports that the SW never serves.
+const sharedWorkerControlFallbackMs = 8000
 
 function isFirefoxBrowserRuntime(): boolean {
   return /\bFirefox\//.test(globalThis.navigator?.userAgent ?? '')
@@ -1132,9 +1137,31 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         startWebRuntimeConnection()
       })
     } else {
-      startWebRuntimeWorker()
-      void this.initServiceWorker(wb, swUrl)
-      startWebRuntimeConnection()
+      // Shared-worker mode: the shared worker imports its plugin bundle and the
+      // QuickJS wasm from /b/* paths, which only resolve once the ServiceWorker
+      // is controlling this page. Starting the worker before control means those
+      // imports hit the origin, which serves the SPA index.html for unmatched
+      // paths, so the module/wasm loads fail and the runtime never comes up. Gate
+      // the start on SW control like the dedicated branch, with a bounded fallback
+      // so a browser whose SW never reaches controlling state still loads
+      // (degraded) instead of hanging forever.
+      let runtimeStarted = false
+      const startRuntimeOnce = () => {
+        if (runtimeStarted || this.closed) {
+          return
+        }
+        runtimeStarted = true
+        startWebRuntimeWorker()
+        startWebRuntimeConnection()
+      }
+      const controlFallback = globalThis.setTimeout(
+        startRuntimeOnce,
+        sharedWorkerControlFallbackMs,
+      )
+      void this.initServiceWorker(wb, swUrl, () => {
+        globalThis.clearTimeout(controlFallback)
+        startRuntimeOnce()
+      })
     }
   }
 
