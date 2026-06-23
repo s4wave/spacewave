@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	stderrors "errors"
 	"io"
+	"maps"
 	"net"
 	"os"
 	"strconv"
@@ -258,14 +259,10 @@ func run(ctx context.Context, c *config) error {
 		return runVolumeRuntimeWrite(ctx, c)
 	case "volume-runtime-verify":
 		return runVolumeRuntimeVerify(ctx, c)
-	case "volume-runtime-seed-current-v1":
-		return runVolumeRuntimeSeedCurrentV1(c)
 	case "volume-runtime-seed-incompatible":
 		return runVolumeRuntimeSeedIncompatible(c)
 	case "volume-runtime-seed-unknown":
 		return runVolumeRuntimeSeedUnknown(c)
-	case "volume-runtime-verify-current-v1-reset":
-		return runVolumeRuntimeVerifyReset(ctx, c, volume_opfs.ResetReasonCurrentV1)
 	case "volume-runtime-verify-incompatible-reset":
 		return runVolumeRuntimeVerifyReset(ctx, c, volume_opfs.ResetReasonIncompatible)
 	case "volume-runtime-verify-unknown-reset":
@@ -722,7 +719,7 @@ func largeBlockShape(c *config) (int, int) {
 func verifyLargeBlocks(ctx context.Context, c *config, e *blockshard.Engine, totalSize, entriesCount int) error {
 	baseSize := totalSize / entriesCount
 	remainder := totalSize % entriesCount
-	for i := 0; i < entriesCount; i++ {
+	for i := range entriesCount {
 		size := baseSize
 		if i < remainder {
 			size++
@@ -919,7 +916,7 @@ func publishCompactionInputSegments(
 	if err != nil {
 		return nil, nil, err
 	}
-	for i := 0; i < blockshard.DefaultL0Trigger; i++ {
+	for i := range blockshard.DefaultL0Trigger {
 		key := []byte(lockSuffix + "-key-" + strconv.Itoa(i))
 		value := bytes.Repeat([]byte{byte(i + 1)}, 48)
 		if err := shard.Publish(ctx, []segment.Entry{{Key: key, Value: value}}); err != nil {
@@ -937,7 +934,7 @@ func publishCompactionInputSegments(
 }
 
 func verifyCompactionInputValues(dir js.Value, m *blockshard.Manifest, keyPrefix string) error {
-	for i := 0; i < blockshard.DefaultL0Trigger; i++ {
+	for i := range blockshard.DefaultL0Trigger {
 		key := []byte(keyPrefix + "-key-" + strconv.Itoa(i))
 		want := bytes.Repeat([]byte{byte(i + 1)}, 48)
 		found := false
@@ -1444,7 +1441,7 @@ func describeBlockShard(c *config, shard int) string {
 	sb.WriteString(" segments=")
 	sb.WriteString(strconv.Itoa(len(m.Segments)))
 	limit := min(len(m.Segments), 8)
-	for i := 0; i < limit; i++ {
+	for i := range limit {
 		seg := m.Segments[i]
 		sb.WriteString(" ")
 		sb.WriteString(seg.Filename)
@@ -1999,19 +1996,6 @@ func waitCoordEvent(ctx context.Context, events <-chan coord.Event, afterGenerat
 	}
 }
 
-func runVolumeRuntimeSeedCurrentV1(c *config) error {
-	dir, err := openTestDirectory(c.root, []string{"volume"})
-	if err != nil {
-		return err
-	}
-	for _, name := range []string{"blocks", "meta", "gc"} {
-		if _, err := opfs.GetDirectory(dir, name, true); err != nil {
-			return errors.Wrapf(err, "create v1 %s directory", name)
-		}
-	}
-	return opfs.WriteFile(dir, "legacy-only", []byte("current-v1"))
-}
-
 func runVolumeRuntimeSeedIncompatible(c *config) error {
 	dir, err := openTestDirectory(c.root, []string{"volume"})
 	if err != nil {
@@ -2094,9 +2078,7 @@ func (h *captureLogHook) Levels() []logrus.Level {
 
 func (h *captureLogHook) Fire(entry *logrus.Entry) error {
 	data := make(logrus.Fields, len(entry.Data))
-	for key, val := range entry.Data {
-		data[key] = val
-	}
+	maps.Copy(data, entry.Data)
 	h.entries = append(h.entries, capturedLogEntry{
 		level:   entry.Level,
 		message: entry.Message,

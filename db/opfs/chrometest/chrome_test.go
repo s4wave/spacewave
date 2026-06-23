@@ -1114,29 +1114,6 @@ func TestOpfsChromeVolumeCoordinator(t *testing.T) {
 	}})
 }
 
-func TestOpfsChromeVolumeRuntimeResetsCurrentV1Root(t *testing.T) {
-	requireChromeProfile(t, chromeSmoke)
-	h := newChromeHarness(t)
-	s := h.newSession(t)
-	defer s.close(t)
-
-	root := "opfs-chrome-volume-reset-v1-" + time.Now().Format("150405.000000000")
-	s.runWorker(t, workerArgs{
-		scenario: "clear",
-		root:     root,
-	})
-	s.runWorker(t, workerArgs{
-		scenario: "volume-runtime-seed-current-v1",
-		root:     root,
-		shards:   defaultShards,
-	})
-	s.runWorker(t, workerArgs{
-		scenario: "volume-runtime-verify-current-v1-reset",
-		root:     root,
-		shards:   defaultShards,
-	})
-}
-
 func TestOpfsChromeVolumeRuntimeResetsIncompatibleRoot(t *testing.T) {
 	requireChromeProfile(t, chromeSmoke)
 	h := newChromeHarness(t)

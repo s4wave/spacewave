@@ -5,7 +5,7 @@ package volume_opfs
 import (
 	"context"
 	"encoding/json"
-	"slices"
+	"maps"
 	"sync"
 	"syscall/js"
 
@@ -32,7 +32,6 @@ type ResetReason string
 
 const (
 	ResetReasonMissing      ResetReason = "missing"
-	ResetReasonCurrentV1    ResetReason = "current-v1"
 	ResetReasonUnknown      ResetReason = "unknown"
 	ResetReasonIncompatible ResetReason = "incompatible"
 )
@@ -122,8 +121,6 @@ func openRuntimeRoot(
 	reason := ResetReasonUnknown
 	if len(names) == 0 {
 		reason = ResetReasonMissing
-	} else if hasCurrentV1Layout(names) {
-		reason = ResetReasonCurrentV1
 	}
 	return resetRuntimeRoot(le, opfsRoot, rootPath, reason, 0, names, version)
 }
@@ -200,12 +197,6 @@ func deleteRuntimeRoot(opfsRoot js.Value, rootPath string) error {
 	return nil
 }
 
-func hasCurrentV1Layout(names []string) bool {
-	return slices.Contains(names, "blocks") &&
-		slices.Contains(names, "meta") &&
-		slices.Contains(names, "gc")
-}
-
 func recordRuntimeReset(reason ResetReason) {
 	resetCounts.Lock()
 	defer resetCounts.Unlock()
@@ -226,9 +217,7 @@ func RuntimeResetCounts() map[ResetReason]uint64 {
 	resetCounts.Lock()
 	defer resetCounts.Unlock()
 	out := make(map[ResetReason]uint64, len(resetCounts.byReason))
-	for reason, count := range resetCounts.byReason {
-		out[reason] = count
-	}
+	maps.Copy(out, resetCounts.byReason)
 	return out
 }
 

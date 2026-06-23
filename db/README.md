@@ -127,8 +127,7 @@ Browser OPFS volumes use storage format version 2. During alpha, browser OPFS
 opens reset non-v2 roots automatically instead of trying to migrate or mix
 layouts. The runtime writes `.spacewave-opfs-format.json` for the clean v2 root
 and logs `reset opfs volume root for v2 format` with `root_path`, `reason`, and
-`format_version` fields when it deletes an incompatible, current-v1, or unknown
-root. Reset counts are exposed from the browser runtime by reset reason for
+`format_version` fields when it deletes an incompatible or unknown root. Reset counts are exposed from the browser runtime by reset reason for
 operator diagnostics.
 
 This policy intentionally applies only to browser OPFS volume roots. Other
