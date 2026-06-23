@@ -165,6 +165,11 @@ Components:
   - Hot reload and fast JS bundling with [esbuild] and [vite]
   - Cross-platform build and release
 
+- **[GoScript]** - Compile Go to TypeScript for the web browser
+  - Builds Go module packages into readable TypeScript modules
+  - Shares Go algorithms, data structures, and runtime code without a second implementation
+  - Powers Bldr's Go compiler mode for Spacewave web plugins and browser builds
+
 - **[SkiffOS]** - Build and run on any device (w/ Linux)
   - Supports 40+ device types
   - Cross-compiles to target any architecture
@@ -189,6 +194,7 @@ Components:
 [Forge]: ./forge
 [Auth]: ./auth
 [Identity]: ./identity
+[GoScript]: https://github.com/s4wave/goscript
 [SkiffOS]: https://github.com/skiffos/skiffos
 [esbuild]: https://esbuild.github.io/
 [vite]: https://vite.dev
