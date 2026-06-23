@@ -89,11 +89,6 @@ func (k *KvfileBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBat
 	return nil
 }
 
-// PutBlockBackground returns ErrReadOnly.
-func (k *KvfileBlock) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	return k.PutBlock(ctx, data, opts)
-}
-
 // GetBlock looks up a block in the store.
 // Returns data, found, and any unexpected error.
 func (k *KvfileBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {

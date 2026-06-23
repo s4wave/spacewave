@@ -171,6 +171,9 @@ func runPluginImportManifest(
 	if err := tx.Commit(ctx); err != nil {
 		return errors.Wrap(err, "commit manifest import")
 	}
+	if _, err := destEngine.Sync(ctx); err != nil {
+		return errors.Wrap(err, "sync manifest import")
+	}
 	for _, manifestKey := range imported {
 		os.Stdout.WriteString("imported: " + manifestKey + "\n")
 	}

@@ -180,11 +180,6 @@ func (k *KVTxBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatch
 	return err
 }
 
-// PutBlockBackground forwards to PutBlock.
-func (k *KVTxBlock) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	return k.PutBlock(ctx, data, opts)
-}
-
 // GetBlock looks up a block in the store.
 // Returns data, found, and error.
 func (k *KVTxBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
@@ -250,10 +245,6 @@ func (r *readOperation) PutBlock(context.Context, []byte, *block.PutOpts) (*bloc
 
 func (r *readOperation) PutBlockBatch(context.Context, []*block.PutBatchEntry) error {
 	return ErrReadOperationReadOnly
-}
-
-func (r *readOperation) PutBlockBackground(context.Context, []byte, *block.PutOpts) (*block.BlockRef, bool, error) {
-	return nil, false, ErrReadOperationReadOnly
 }
 
 func (r *readOperation) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {

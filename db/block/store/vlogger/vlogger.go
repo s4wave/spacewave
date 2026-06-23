@@ -84,22 +84,6 @@ func (s *VLoggerStore) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 	return s.st.PutBlockBatch(ctx, entries)
 }
 
-// PutBlockBackground writes a block at background priority.
-func (s *VLoggerStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (ref *block.BlockRef, existed bool, err error) {
-	t1 := time.Now()
-	defer func() {
-		s.le.Debugf(
-			"PutBlockBackground(len(%d)) => dur(%v) ref(%v) existed(%v) err(%v)",
-			len(data),
-			time.Since(t1).String(),
-			ref.MarshalString(),
-			existed,
-			err,
-		)
-	}()
-	return s.st.PutBlockBackground(ctx, data, opts)
-}
-
 // GetBlock gets a block with the given reference.
 // The ref should not be modified or retained by GetBlock.
 // Returns data, found, error.

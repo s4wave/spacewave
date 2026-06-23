@@ -22,7 +22,7 @@ func StoreDebPackageBlock(ctx context.Context, store DebPackageBlockWriter, deb 
 	if len(deb) == 0 {
 		return nil, errors.New("deb data is required")
 	}
-	ref, _, err := store.PutBlock(ctx, deb, nil)
+	ref, _, err := store.PutBlock(ctx, deb, &block.PutOpts{Sync: true})
 	if err != nil {
 		return nil, errors.Wrap(err, "store deb package")
 	}

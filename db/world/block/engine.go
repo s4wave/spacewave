@@ -153,13 +153,6 @@ func NewEngine(
 			// Not self-buffered (e.g. bbolt): defer behind one long-lived
 			// BufferedStore that accumulates writes in memory until Sync.
 			e.writeBlockStore = block.NewBufferedStore(ctx, rawWriteStore)
-		} else {
-			// Self-buffered (e.g. blockshard): the store owns its pending buffer
-			// and Sync fence, so route commit writes to its background intake
-			// rather than the synchronous foreground publish. This is the IC-3
-			// OPFS hot path: commits enqueue without a per-commit segment+manifest
-			// publish, and Sync fences them durable with the deferred head.
-			e.writeBlockStore = newBackgroundWriteStore(rawWriteStore)
 		}
 	}
 

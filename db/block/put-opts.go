@@ -34,6 +34,18 @@ func (o *PutOpts) SelectHashType(defHashType hash.HashType) hash.HashType {
 	return DefaultHashType
 }
 
+// PutOptsWithoutSync returns opts with Sync cleared, plus whether Sync was set.
+// Wrappers call inner stores with Sync cleared, then apply their own durability
+// boundary after wrapper-local bookkeeping.
+func PutOptsWithoutSync(opts *PutOpts) (*PutOpts, bool) {
+	if opts == nil || !opts.GetSync() {
+		return opts, false
+	}
+	out := opts.CloneVT()
+	out.Sync = false
+	return out, true
+}
+
 // MarshalString marshals the put opts to b58 string.
 func (o *PutOpts) MarshalString() string {
 	return o.MarshalB58()

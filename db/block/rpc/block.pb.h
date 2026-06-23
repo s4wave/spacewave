@@ -99,14 +99,6 @@ class GetSupportedFeaturesResponse;
 struct GetSupportedFeaturesResponseDefaultTypeInternal;
 extern GetSupportedFeaturesResponseDefaultTypeInternal _GetSupportedFeaturesResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull GetSupportedFeaturesResponse_class_data_;
-class PutBlockBackgroundRequest;
-struct PutBlockBackgroundRequestDefaultTypeInternal;
-extern PutBlockBackgroundRequestDefaultTypeInternal _PutBlockBackgroundRequest_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull PutBlockBackgroundRequest_class_data_;
-class PutBlockBackgroundResponse;
-struct PutBlockBackgroundResponseDefaultTypeInternal;
-extern PutBlockBackgroundResponseDefaultTypeInternal _PutBlockBackgroundResponse_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull PutBlockBackgroundResponse_class_data_;
 class PutBlockBatchEntry;
 struct PutBlockBatchEntryDefaultTypeInternal;
 extern PutBlockBatchEntryDefaultTypeInternal _PutBlockBatchEntry_default_instance_;
@@ -221,7 +213,7 @@ class SyncResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const SyncResponse*>(
         &_SyncResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 22;
+  static constexpr int kIndexInFileMessages = 20;
   friend void swap(SyncResponse& a, SyncResponse& b) { a.Swap(&b); }
   inline void Swap(SyncResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -427,7 +419,7 @@ class SyncRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const SyncRequest*>(
         &_SyncRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 21;
+  static constexpr int kIndexInFileMessages = 19;
   friend void swap(SyncRequest& a, SyncRequest& b) { a.Swap(&b); }
   inline void Swap(SyncRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -562,7 +554,7 @@ class RmBlockResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const RmBlockResponse*>(
         &_RmBlockResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 18;
+  static constexpr int kIndexInFileMessages = 16;
   friend void swap(RmBlockResponse& a, RmBlockResponse& b) { a.Swap(&b); }
   inline void Swap(RmBlockResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1600,7 +1592,7 @@ class GetBlockResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetBlockResponse*>(
         &_GetBlockResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 12;
+  static constexpr int kIndexInFileMessages = 10;
   friend void swap(GetBlockResponse& a, GetBlockResponse& b) { a.Swap(&b); }
   inline void Swap(GetBlockResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1824,7 +1816,7 @@ class GetBlockExistsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetBlockExistsResponse*>(
         &_GetBlockExistsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 14;
+  static constexpr int kIndexInFileMessages = 12;
   friend void swap(GetBlockExistsResponse& a, GetBlockExistsResponse& b) { a.Swap(&b); }
   inline void Swap(GetBlockExistsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2031,7 +2023,7 @@ class GetBlockExistsBatchResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetBlockExistsBatchResponse*>(
         &_GetBlockExistsBatchResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 16;
+  static constexpr int kIndexInFileMessages = 14;
   friend void swap(GetBlockExistsBatchResponse& a, GetBlockExistsBatchResponse& b) { a.Swap(&b); }
   inline void Swap(GetBlockExistsBatchResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2246,7 +2238,7 @@ class StatBlockResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const StatBlockResponse*>(
         &_StatBlockResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 20;
+  static constexpr int kIndexInFileMessages = 18;
   friend void swap(StatBlockResponse& a, StatBlockResponse& b) { a.Swap(&b); }
   inline void Swap(StatBlockResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2482,7 +2474,7 @@ class StatBlockRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const StatBlockRequest*>(
         &_StatBlockRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 19;
+  static constexpr int kIndexInFileMessages = 17;
   friend void swap(StatBlockRequest& a, StatBlockRequest& b) { a.Swap(&b); }
   inline void Swap(StatBlockRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2677,7 +2669,7 @@ class RmBlockRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RmBlockRequest*>(
         &_RmBlockRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 17;
+  static constexpr int kIndexInFileMessages = 15;
   friend void swap(RmBlockRequest& a, RmBlockRequest& b) { a.Swap(&b); }
   inline void Swap(RmBlockRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3284,230 +3276,6 @@ class PutBlockBatchEntry final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull PutBlockBatchEntry_class_data_;
 // -------------------------------------------------------------------
 
-class PutBlockBackgroundResponse final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:block.rpc.PutBlockBackgroundResponse) */ {
- public:
-  inline PutBlockBackgroundResponse() : PutBlockBackgroundResponse(nullptr) {}
-  ~PutBlockBackgroundResponse() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(PutBlockBackgroundResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(PutBlockBackgroundResponse));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR PutBlockBackgroundResponse(::google::protobuf::internal::ConstantInitialized);
-
-  inline PutBlockBackgroundResponse(const PutBlockBackgroundResponse& from) : PutBlockBackgroundResponse(nullptr, from) {}
-  inline PutBlockBackgroundResponse(PutBlockBackgroundResponse&& from) noexcept
-      : PutBlockBackgroundResponse(nullptr, ::std::move(from)) {}
-  inline PutBlockBackgroundResponse& operator=(const PutBlockBackgroundResponse& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline PutBlockBackgroundResponse& operator=(PutBlockBackgroundResponse&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const PutBlockBackgroundResponse& default_instance() {
-    return *reinterpret_cast<const PutBlockBackgroundResponse*>(
-        &_PutBlockBackgroundResponse_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 10;
-  friend void swap(PutBlockBackgroundResponse& a, PutBlockBackgroundResponse& b) { a.Swap(&b); }
-  inline void Swap(PutBlockBackgroundResponse* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(PutBlockBackgroundResponse* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  PutBlockBackgroundResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<PutBlockBackgroundResponse>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const PutBlockBackgroundResponse& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const PutBlockBackgroundResponse& from) { PutBlockBackgroundResponse::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(PutBlockBackgroundResponse* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "block.rpc.PutBlockBackgroundResponse"; }
-
-  explicit PutBlockBackgroundResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  PutBlockBackgroundResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const PutBlockBackgroundResponse& from);
-  PutBlockBackgroundResponse(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, PutBlockBackgroundResponse&& from) noexcept
-      : PutBlockBackgroundResponse(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kErrorFieldNumber = 3,
-    kRefFieldNumber = 1,
-    kExistedFieldNumber = 2,
-  };
-  // string error = 3;
-  void clear_error() ;
-  const ::std::string& error() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_error(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_error();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_error();
-  void set_allocated_error(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_error() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_error(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_error();
-
-  public:
-  // .block.BlockRef ref = 1;
-  bool has_ref() const;
-  void clear_ref() ;
-  const ::block::BlockRef& ref() const;
-  [[nodiscard]] ::block::BlockRef* PROTOBUF_NULLABLE release_ref();
-  ::block::BlockRef* PROTOBUF_NONNULL mutable_ref();
-  void set_allocated_ref(::block::BlockRef* PROTOBUF_NULLABLE value);
-  void unsafe_arena_set_allocated_ref(::block::BlockRef* PROTOBUF_NULLABLE value);
-  ::block::BlockRef* PROTOBUF_NULLABLE unsafe_arena_release_ref();
-
-  private:
-  const ::block::BlockRef& _internal_ref() const;
-  ::block::BlockRef* PROTOBUF_NONNULL _internal_mutable_ref();
-
-  public:
-  // bool existed = 2;
-  void clear_existed() ;
-  bool existed() const;
-  void set_existed(bool value);
-
-  private:
-  bool _internal_existed() const;
-  void _internal_set_existed(bool value);
-
-  public:
-  // @@protoc_insertion_point(class_scope:block.rpc.PutBlockBackgroundResponse)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 3,
-                                   1, 50,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const PutBlockBackgroundResponse& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::internal::ArenaStringPtr error_;
-    ::block::BlockRef* PROTOBUF_NULLABLE ref_;
-    bool existed_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull PutBlockBackgroundResponse_class_data_;
-// -------------------------------------------------------------------
-
 class GetBlockRequest final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:block.rpc.GetBlockRequest) */ {
  public:
@@ -3563,7 +3331,7 @@ class GetBlockRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetBlockRequest*>(
         &_GetBlockRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 11;
+  static constexpr int kIndexInFileMessages = 9;
   friend void swap(GetBlockRequest& a, GetBlockRequest& b) { a.Swap(&b); }
   inline void Swap(GetBlockRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3758,7 +3526,7 @@ class GetBlockExistsRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetBlockExistsRequest*>(
         &_GetBlockExistsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 13;
+  static constexpr int kIndexInFileMessages = 11;
   friend void swap(GetBlockExistsRequest& a, GetBlockExistsRequest& b) { a.Swap(&b); }
   inline void Swap(GetBlockExistsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3953,7 +3721,7 @@ class GetBlockExistsBatchRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetBlockExistsBatchRequest*>(
         &_GetBlockExistsBatchRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 15;
+  static constexpr int kIndexInFileMessages = 13;
   friend void swap(GetBlockExistsBatchRequest& a, GetBlockExistsBatchRequest& b) { a.Swap(&b); }
   inline void Swap(GetBlockExistsBatchRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4502,218 +4270,6 @@ class PutBlockBatchRequest final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull PutBlockBatchRequest_class_data_;
-// -------------------------------------------------------------------
-
-class PutBlockBackgroundRequest final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:block.rpc.PutBlockBackgroundRequest) */ {
- public:
-  inline PutBlockBackgroundRequest() : PutBlockBackgroundRequest(nullptr) {}
-  ~PutBlockBackgroundRequest() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(PutBlockBackgroundRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(PutBlockBackgroundRequest));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR PutBlockBackgroundRequest(::google::protobuf::internal::ConstantInitialized);
-
-  inline PutBlockBackgroundRequest(const PutBlockBackgroundRequest& from) : PutBlockBackgroundRequest(nullptr, from) {}
-  inline PutBlockBackgroundRequest(PutBlockBackgroundRequest&& from) noexcept
-      : PutBlockBackgroundRequest(nullptr, ::std::move(from)) {}
-  inline PutBlockBackgroundRequest& operator=(const PutBlockBackgroundRequest& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline PutBlockBackgroundRequest& operator=(PutBlockBackgroundRequest&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const PutBlockBackgroundRequest& default_instance() {
-    return *reinterpret_cast<const PutBlockBackgroundRequest*>(
-        &_PutBlockBackgroundRequest_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 9;
-  friend void swap(PutBlockBackgroundRequest& a, PutBlockBackgroundRequest& b) { a.Swap(&b); }
-  inline void Swap(PutBlockBackgroundRequest* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(PutBlockBackgroundRequest* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  PutBlockBackgroundRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<PutBlockBackgroundRequest>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const PutBlockBackgroundRequest& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const PutBlockBackgroundRequest& from) { PutBlockBackgroundRequest::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(PutBlockBackgroundRequest* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "block.rpc.PutBlockBackgroundRequest"; }
-
-  explicit PutBlockBackgroundRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  PutBlockBackgroundRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const PutBlockBackgroundRequest& from);
-  PutBlockBackgroundRequest(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, PutBlockBackgroundRequest&& from) noexcept
-      : PutBlockBackgroundRequest(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kDataFieldNumber = 1,
-    kPutOptsFieldNumber = 2,
-  };
-  // bytes data = 1;
-  void clear_data() ;
-  const ::std::string& data() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_data(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_data();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_data();
-  void set_allocated_data(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_data() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_data(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_data();
-
-  public:
-  // .block.PutOpts put_opts = 2;
-  bool has_put_opts() const;
-  void clear_put_opts() ;
-  const ::block::PutOpts& put_opts() const;
-  [[nodiscard]] ::block::PutOpts* PROTOBUF_NULLABLE release_put_opts();
-  ::block::PutOpts* PROTOBUF_NONNULL mutable_put_opts();
-  void set_allocated_put_opts(::block::PutOpts* PROTOBUF_NULLABLE value);
-  void unsafe_arena_set_allocated_put_opts(::block::PutOpts* PROTOBUF_NULLABLE value);
-  ::block::PutOpts* PROTOBUF_NULLABLE unsafe_arena_release_put_opts();
-
-  private:
-  const ::block::PutOpts& _internal_put_opts() const;
-  ::block::PutOpts* PROTOBUF_NONNULL _internal_mutable_put_opts();
-
-  public:
-  // @@protoc_insertion_point(class_scope:block.rpc.PutBlockBackgroundRequest)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   1, 0,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const PutBlockBackgroundRequest& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::internal::ArenaStringPtr data_;
-    ::block::PutOpts* PROTOBUF_NULLABLE put_opts_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fblock_2frpc_2fblock_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull PutBlockBackgroundRequest_class_data_;
 
 // ===================================================================
 
@@ -5506,355 +5062,6 @@ inline void PutBlockBatchResponse::set_allocated_error(::std::string* PROTOBUF_N
     _impl_.error_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:block.rpc.PutBlockBatchResponse.error)
-}
-
-// -------------------------------------------------------------------
-
-// PutBlockBackgroundRequest
-
-// bytes data = 1;
-inline void PutBlockBackgroundRequest::clear_data() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.data_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
-}
-inline const ::std::string& PutBlockBackgroundRequest::data() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:block.rpc.PutBlockBackgroundRequest.data)
-  return _internal_data();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void PutBlockBackgroundRequest::set_data(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  _impl_.data_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:block.rpc.PutBlockBackgroundRequest.data)
-}
-inline ::std::string* PROTOBUF_NONNULL PutBlockBackgroundRequest::mutable_data()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::std::string* _s = _internal_mutable_data();
-  // @@protoc_insertion_point(field_mutable:block.rpc.PutBlockBackgroundRequest.data)
-  return _s;
-}
-inline const ::std::string& PutBlockBackgroundRequest::_internal_data() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.data_.Get();
-}
-inline void PutBlockBackgroundRequest::_internal_set_data(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.data_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL PutBlockBackgroundRequest::_internal_mutable_data() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.data_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE PutBlockBackgroundRequest::release_data() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:block.rpc.PutBlockBackgroundRequest.data)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  auto* released = _impl_.data_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.data_.Set("", GetArena());
-  }
-  return released;
-}
-inline void PutBlockBackgroundRequest::set_allocated_data(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  }
-  _impl_.data_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.data_.IsDefault()) {
-    _impl_.data_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:block.rpc.PutBlockBackgroundRequest.data)
-}
-
-// .block.PutOpts put_opts = 2;
-inline bool PutBlockBackgroundRequest::has_put_opts() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
-  PROTOBUF_ASSUME(!value || _impl_.put_opts_ != nullptr);
-  return value;
-}
-inline const ::block::PutOpts& PutBlockBackgroundRequest::_internal_put_opts() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  const ::block::PutOpts* p = _impl_.put_opts_;
-  return p != nullptr ? *p : reinterpret_cast<const ::block::PutOpts&>(::block::_PutOpts_default_instance_);
-}
-inline const ::block::PutOpts& PutBlockBackgroundRequest::put_opts() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:block.rpc.PutBlockBackgroundRequest.put_opts)
-  return _internal_put_opts();
-}
-inline void PutBlockBackgroundRequest::unsafe_arena_set_allocated_put_opts(
-    ::block::PutOpts* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (GetArena() == nullptr) {
-    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.put_opts_);
-  }
-  _impl_.put_opts_ = reinterpret_cast<::block::PutOpts*>(value);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:block.rpc.PutBlockBackgroundRequest.put_opts)
-}
-inline ::block::PutOpts* PROTOBUF_NULLABLE PutBlockBackgroundRequest::release_put_opts() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::block::PutOpts* released = _impl_.put_opts_;
-  _impl_.put_opts_ = nullptr;
-  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
-    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
-    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
-    if (GetArena() == nullptr) {
-      delete old;
-    }
-  } else {
-    if (GetArena() != nullptr) {
-      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
-    }
-  }
-  return released;
-}
-inline ::block::PutOpts* PROTOBUF_NULLABLE PutBlockBackgroundRequest::unsafe_arena_release_put_opts() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:block.rpc.PutBlockBackgroundRequest.put_opts)
-
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::block::PutOpts* temp = _impl_.put_opts_;
-  _impl_.put_opts_ = nullptr;
-  return temp;
-}
-inline ::block::PutOpts* PROTOBUF_NONNULL PutBlockBackgroundRequest::_internal_mutable_put_opts() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (_impl_.put_opts_ == nullptr) {
-    auto* p = ::google::protobuf::Message::DefaultConstruct<::block::PutOpts>(GetArena());
-    _impl_.put_opts_ = reinterpret_cast<::block::PutOpts*>(p);
-  }
-  return _impl_.put_opts_;
-}
-inline ::block::PutOpts* PROTOBUF_NONNULL PutBlockBackgroundRequest::mutable_put_opts()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::block::PutOpts* _msg = _internal_mutable_put_opts();
-  // @@protoc_insertion_point(field_mutable:block.rpc.PutBlockBackgroundRequest.put_opts)
-  return _msg;
-}
-inline void PutBlockBackgroundRequest::set_allocated_put_opts(::block::PutOpts* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::Arena* message_arena = GetArena();
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (message_arena == nullptr) {
-    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.put_opts_);
-  }
-
-  if (value != nullptr) {
-    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
-    if (message_arena != submessage_arena) {
-      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
-    }
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  }
-
-  _impl_.put_opts_ = reinterpret_cast<::block::PutOpts*>(value);
-  // @@protoc_insertion_point(field_set_allocated:block.rpc.PutBlockBackgroundRequest.put_opts)
-}
-
-// -------------------------------------------------------------------
-
-// PutBlockBackgroundResponse
-
-// .block.BlockRef ref = 1;
-inline bool PutBlockBackgroundResponse::has_ref() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
-  PROTOBUF_ASSUME(!value || _impl_.ref_ != nullptr);
-  return value;
-}
-inline const ::block::BlockRef& PutBlockBackgroundResponse::_internal_ref() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  const ::block::BlockRef* p = _impl_.ref_;
-  return p != nullptr ? *p : reinterpret_cast<const ::block::BlockRef&>(::block::_BlockRef_default_instance_);
-}
-inline const ::block::BlockRef& PutBlockBackgroundResponse::ref() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:block.rpc.PutBlockBackgroundResponse.ref)
-  return _internal_ref();
-}
-inline void PutBlockBackgroundResponse::unsafe_arena_set_allocated_ref(
-    ::block::BlockRef* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (GetArena() == nullptr) {
-    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.ref_);
-  }
-  _impl_.ref_ = reinterpret_cast<::block::BlockRef*>(value);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:block.rpc.PutBlockBackgroundResponse.ref)
-}
-inline ::block::BlockRef* PROTOBUF_NULLABLE PutBlockBackgroundResponse::release_ref() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::block::BlockRef* released = _impl_.ref_;
-  _impl_.ref_ = nullptr;
-  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
-    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
-    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
-    if (GetArena() == nullptr) {
-      delete old;
-    }
-  } else {
-    if (GetArena() != nullptr) {
-      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
-    }
-  }
-  return released;
-}
-inline ::block::BlockRef* PROTOBUF_NULLABLE PutBlockBackgroundResponse::unsafe_arena_release_ref() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:block.rpc.PutBlockBackgroundResponse.ref)
-
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::block::BlockRef* temp = _impl_.ref_;
-  _impl_.ref_ = nullptr;
-  return temp;
-}
-inline ::block::BlockRef* PROTOBUF_NONNULL PutBlockBackgroundResponse::_internal_mutable_ref() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (_impl_.ref_ == nullptr) {
-    auto* p = ::google::protobuf::Message::DefaultConstruct<::block::BlockRef>(GetArena());
-    _impl_.ref_ = reinterpret_cast<::block::BlockRef*>(p);
-  }
-  return _impl_.ref_;
-}
-inline ::block::BlockRef* PROTOBUF_NONNULL PutBlockBackgroundResponse::mutable_ref()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::block::BlockRef* _msg = _internal_mutable_ref();
-  // @@protoc_insertion_point(field_mutable:block.rpc.PutBlockBackgroundResponse.ref)
-  return _msg;
-}
-inline void PutBlockBackgroundResponse::set_allocated_ref(::block::BlockRef* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::Arena* message_arena = GetArena();
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (message_arena == nullptr) {
-    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.ref_);
-  }
-
-  if (value != nullptr) {
-    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
-    if (message_arena != submessage_arena) {
-      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
-    }
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  }
-
-  _impl_.ref_ = reinterpret_cast<::block::BlockRef*>(value);
-  // @@protoc_insertion_point(field_set_allocated:block.rpc.PutBlockBackgroundResponse.ref)
-}
-
-// bool existed = 2;
-inline void PutBlockBackgroundResponse::clear_existed() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.existed_ = false;
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
-}
-inline bool PutBlockBackgroundResponse::existed() const {
-  // @@protoc_insertion_point(field_get:block.rpc.PutBlockBackgroundResponse.existed)
-  return _internal_existed();
-}
-inline void PutBlockBackgroundResponse::set_existed(bool value) {
-  _internal_set_existed(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  // @@protoc_insertion_point(field_set:block.rpc.PutBlockBackgroundResponse.existed)
-}
-inline bool PutBlockBackgroundResponse::_internal_existed() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.existed_;
-}
-inline void PutBlockBackgroundResponse::_internal_set_existed(bool value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.existed_ = value;
-}
-
-// string error = 3;
-inline void PutBlockBackgroundResponse::clear_error() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.error_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
-}
-inline const ::std::string& PutBlockBackgroundResponse::error() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:block.rpc.PutBlockBackgroundResponse.error)
-  return _internal_error();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void PutBlockBackgroundResponse::set_error(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  _impl_.error_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:block.rpc.PutBlockBackgroundResponse.error)
-}
-inline ::std::string* PROTOBUF_NONNULL PutBlockBackgroundResponse::mutable_error()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::std::string* _s = _internal_mutable_error();
-  // @@protoc_insertion_point(field_mutable:block.rpc.PutBlockBackgroundResponse.error)
-  return _s;
-}
-inline const ::std::string& PutBlockBackgroundResponse::_internal_error() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.error_.Get();
-}
-inline void PutBlockBackgroundResponse::_internal_set_error(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.error_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL PutBlockBackgroundResponse::_internal_mutable_error() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.error_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE PutBlockBackgroundResponse::release_error() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:block.rpc.PutBlockBackgroundResponse.error)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  auto* released = _impl_.error_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.error_.Set("", GetArena());
-  }
-  return released;
-}
-inline void PutBlockBackgroundResponse::set_allocated_error(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  }
-  _impl_.error_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.error_.IsDefault()) {
-    _impl_.error_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:block.rpc.PutBlockBackgroundResponse.error)
 }
 
 // -------------------------------------------------------------------

@@ -1580,7 +1580,7 @@
       "protoFiles": ["core/trace/service/config.proto"]
     },
     "github.com/s4wave/spacewave/db/block": {
-      "hash": "20203a99bca07f4f6f8748dfb9c27f289a86291f85effd119c970a922570565c",
+      "hash": "4c7a96f85400f593c894cb27525f1d6d9ee1baaf9cc6544841b6b22144226fbe",
       "generatedFiles": [
         "db/block/block.pb.cc",
         "db/block/block.pb.go",
@@ -1706,7 +1706,7 @@
       "protoFiles": ["db/block/quad/quad.proto"]
     },
     "github.com/s4wave/spacewave/db/block/rpc": {
-      "hash": "5a3d59e3c60f1c9b845b66c157b98bf12feeaa986ec8d1fcf604bc674b7f3cdb",
+      "hash": "bfdb9bb2883252f93e9e4aae899612db32bdc6dee6b08dd7c005b8aa8d582842",
       "generatedFiles": [
         "db/block/rpc/block.pb.cc",
         "db/block/rpc/block.pb.go",
@@ -4241,6 +4241,141 @@
         "sdk/space/space_srpc.pb.ts"
       ],
       "protoFiles": ["sdk/space/space.proto"]
+    },
+    "github.com/s4wave/spacewave/sdk/sql/query": {
+      "hash": "929ac43bd42d53b8c8acc1aa37425291d471cea1b765a04e2b686e0852f87b65",
+      "generatedFiles": [
+        "sdk/sql/query/query.pb.cc",
+        "sdk/sql/query/query.pb.go",
+        "sdk/sql/query/query.pb.h",
+        "sdk/sql/query/query.pb.rs",
+        "sdk/sql/query/query.pb.ts",
+        "sdk/sql/query/query_srpc.pb.cpp",
+        "sdk/sql/query/query_srpc.pb.go",
+        "sdk/sql/query/query_srpc.pb.hpp",
+        "sdk/sql/query/query_srpc.pb.rs",
+        "sdk/sql/query/query_srpc.pb.ts"
+      ],
+      "protoFiles": ["sdk/sql/query/query.proto"]
+    },
+    "github.com/s4wave/spacewave/sdk/sql/query-result": {
+      "hash": "3e59406297e6dcc9dc8b476e28225a6fd8b512a507c4a4d38ca1839f773d13d7",
+      "generatedFiles": [
+        "sdk/sql/query-result/query-result.pb.cc",
+        "sdk/sql/query-result/query-result.pb.go",
+        "sdk/sql/query-result/query-result.pb.h",
+        "sdk/sql/query-result/query-result.pb.rs",
+        "sdk/sql/query-result/query-result.pb.ts",
+        "sdk/sql/query-result/query-result_srpc.pb.cpp",
+        "sdk/sql/query-result/query-result_srpc.pb.go",
+        "sdk/sql/query-result/query-result_srpc.pb.hpp",
+        "sdk/sql/query-result/query-result_srpc.pb.rs",
+        "sdk/sql/query-result/query-result_srpc.pb.ts"
+      ],
+      "protoFiles": ["sdk/sql/query-result/query-result.proto"]
+    },
+    "github.com/s4wave/spacewave/sdk/sql/query-result/world": {
+      "hash": "df781769f7734c63fa8261678cab34fad56debe9307c519a4cd3f1363fdb3fbf",
+      "generatedFiles": [
+        "sdk/sql/query-result/world/world.pb.cc",
+        "sdk/sql/query-result/world/world.pb.go",
+        "sdk/sql/query-result/world/world.pb.h",
+        "sdk/sql/query-result/world/world.pb.rs",
+        "sdk/sql/query-result/world/world.pb.ts"
+      ],
+      "protoFiles": ["sdk/sql/query-result/world/world.proto"]
+    },
+    "github.com/s4wave/spacewave/sdk/sql/query/world": {
+      "hash": "cc3ba113358056f194d1e142562568641c2fb4b15d8b2c1f12591fc6c1f0e4d2",
+      "generatedFiles": [
+        "sdk/sql/query/world/world.pb.cc",
+        "sdk/sql/query/world/world.pb.go",
+        "sdk/sql/query/world/world.pb.h",
+        "sdk/sql/query/world/world.pb.rs",
+        "sdk/sql/query/world/world.pb.ts"
+      ],
+      "protoFiles": ["sdk/sql/query/world/world.proto"]
+    },
+    "github.com/s4wave/spacewave/sdk/sql/schema": {
+      "hash": "a29770e87d9542ff77d034ce4b8b78b58d140e6fdcd68086cdca73a3109e1c79",
+      "generatedFiles": [
+        "sdk/sql/schema/schema.pb.cc",
+        "sdk/sql/schema/schema.pb.go",
+        "sdk/sql/schema/schema.pb.h",
+        "sdk/sql/schema/schema.pb.rs",
+        "sdk/sql/schema/schema.pb.ts",
+        "sdk/sql/schema/schema_srpc.pb.cpp",
+        "sdk/sql/schema/schema_srpc.pb.go",
+        "sdk/sql/schema/schema_srpc.pb.hpp",
+        "sdk/sql/schema/schema_srpc.pb.rs",
+        "sdk/sql/schema/schema_srpc.pb.ts"
+      ],
+      "protoFiles": ["sdk/sql/schema/schema.proto"]
+    },
+    "github.com/s4wave/spacewave/sdk/sql/schema/world": {
+      "hash": "28da4df20da60dcf4a4fbb5ee24057e0ea36207f890fee24cff457491a5f4e8a",
+      "generatedFiles": [
+        "sdk/sql/schema/world/world.pb.cc",
+        "sdk/sql/schema/world/world.pb.go",
+        "sdk/sql/schema/world/world.pb.h",
+        "sdk/sql/schema/world/world.pb.rs",
+        "sdk/sql/schema/world/world.pb.ts"
+      ],
+      "protoFiles": ["sdk/sql/schema/world/world.proto"]
+    },
+    "github.com/s4wave/spacewave/sdk/sql/table-view": {
+      "hash": "ad1b6801587406e490d2bbf326b1f178c233e162c6f479324a85adcf8ab8f2ab",
+      "generatedFiles": [
+        "sdk/sql/table-view/table-view.pb.cc",
+        "sdk/sql/table-view/table-view.pb.go",
+        "sdk/sql/table-view/table-view.pb.h",
+        "sdk/sql/table-view/table-view.pb.rs",
+        "sdk/sql/table-view/table-view.pb.ts",
+        "sdk/sql/table-view/table-view_srpc.pb.cpp",
+        "sdk/sql/table-view/table-view_srpc.pb.go",
+        "sdk/sql/table-view/table-view_srpc.pb.hpp",
+        "sdk/sql/table-view/table-view_srpc.pb.rs",
+        "sdk/sql/table-view/table-view_srpc.pb.ts"
+      ],
+      "protoFiles": ["sdk/sql/table-view/table-view.proto"]
+    },
+    "github.com/s4wave/spacewave/sdk/sql/table-view/world": {
+      "hash": "7febd0f235cc34690312145508935e089b3103abfa211424ad230b5286e2dfff",
+      "generatedFiles": [
+        "sdk/sql/table-view/world/world.pb.cc",
+        "sdk/sql/table-view/world/world.pb.go",
+        "sdk/sql/table-view/world/world.pb.h",
+        "sdk/sql/table-view/world/world.pb.rs",
+        "sdk/sql/table-view/world/world.pb.ts"
+      ],
+      "protoFiles": ["sdk/sql/table-view/world/world.proto"]
+    },
+    "github.com/s4wave/spacewave/sdk/sql/workbench": {
+      "hash": "854d940d6489256a56799c508c42aa8ba819eb1b538e8e34c82cdf63b28b4597",
+      "generatedFiles": [
+        "sdk/sql/workbench/workbench.pb.cc",
+        "sdk/sql/workbench/workbench.pb.go",
+        "sdk/sql/workbench/workbench.pb.h",
+        "sdk/sql/workbench/workbench.pb.rs",
+        "sdk/sql/workbench/workbench.pb.ts",
+        "sdk/sql/workbench/workbench_srpc.pb.cpp",
+        "sdk/sql/workbench/workbench_srpc.pb.go",
+        "sdk/sql/workbench/workbench_srpc.pb.hpp",
+        "sdk/sql/workbench/workbench_srpc.pb.rs",
+        "sdk/sql/workbench/workbench_srpc.pb.ts"
+      ],
+      "protoFiles": ["sdk/sql/workbench/workbench.proto"]
+    },
+    "github.com/s4wave/spacewave/sdk/sql/workbench/world": {
+      "hash": "31944e5cc2b636b46df64a764f3d1e289db6021db9e4b1557e2d9c57c58e2792",
+      "generatedFiles": [
+        "sdk/sql/workbench/world/world.pb.cc",
+        "sdk/sql/workbench/world/world.pb.go",
+        "sdk/sql/workbench/world/world.pb.h",
+        "sdk/sql/workbench/world/world.pb.rs",
+        "sdk/sql/workbench/world/world.pb.ts"
+      ],
+      "protoFiles": ["sdk/sql/workbench/world/world.proto"]
     },
     "github.com/s4wave/spacewave/sdk/sql/world": {
       "hash": "4e92d51c8a67dca5b0c52781be527357bddd80942bb8c909503b4cd30e8246aa",

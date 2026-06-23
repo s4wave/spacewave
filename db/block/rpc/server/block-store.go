@@ -74,22 +74,6 @@ func (s *BlockStore) PutBlockBatch(
 	return resp, nil
 }
 
-// PutBlockBackground stores a block in the background.
-func (s *BlockStore) PutBlockBackground(
-	ctx context.Context,
-	req *block_rpc.PutBlockBackgroundRequest,
-) (*block_rpc.PutBlockBackgroundResponse, error) {
-	resp := &block_rpc.PutBlockBackgroundResponse{}
-	ref, existed, err := s.store.PutBlockBackground(ctx, req.GetData(), req.GetPutOpts())
-	if err != nil {
-		resp.Error = err.Error()
-		return resp, nil
-	}
-	resp.Ref = ref
-	resp.Existed = existed
-	return resp, nil
-}
-
 // GetBlock returns a block from the store.
 func (s *BlockStore) GetBlock(
 	ctx context.Context,

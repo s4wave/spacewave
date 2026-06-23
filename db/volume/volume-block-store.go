@@ -32,7 +32,15 @@ func (v *VolumeBlockStore) GetSupportedFeatures() block.StoreFeature {
 
 // PutBlock puts a block into the store.
 func (v *VolumeBlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	return v.store.PutBlock(ctx, data, opts)
+	putOpts, syncRequested := block.PutOptsWithoutSync(opts)
+	ref, existed, err := v.store.PutBlock(ctx, data, putOpts)
+	if err != nil || !syncRequested {
+		return ref, existed, err
+	}
+	if _, err := v.Sync(ctx); err != nil {
+		return ref, existed, err
+	}
+	return ref, existed, nil
 }
 
 // GetBlock gets a block with the given reference.
@@ -66,14 +74,17 @@ func (v *VolumeBlockStore) PutBlockBatch(ctx context.Context, entries []*block.P
 	return v.store.PutBlockBatch(ctx, entries)
 }
 
-// PutBlockBackground forwards background writes to the wrapped block store when supported.
-func (v *VolumeBlockStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	return v.store.PutBlockBackground(ctx, data, opts)
-}
-
-// Sync forwards the durability barrier to the wrapped block store.
+// Sync fences the decorator block store and the base volume lifecycle.
 func (v *VolumeBlockStore) Sync(ctx context.Context) (bool, error) {
-	return v.store.Sync(ctx)
+	storeFenced, err := v.store.Sync(ctx)
+	if err != nil {
+		return false, err
+	}
+	volumeFenced, err := v.Volume.Sync(ctx)
+	if err != nil {
+		return false, err
+	}
+	return storeFenced && volumeFenced, nil
 }
 
 // BeginDeferFlush forwards the GC defer-flush scope to the wrapped block store.

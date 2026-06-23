@@ -44,9 +44,6 @@ func (b *StoreRW) GetSupportedFeatures() StoreFeature {
 	if b.writeHandle != nil {
 		features := b.writeHandle.GetSupportedFeatures()
 		out |= features & StoreFeatureNativeBatchPut
-		out |= features & StoreFeatureNativeBackgroundPut
-		out |= features & StoreFeatureNativeFlush
-		out |= features & StoreFeatureNativeDeferFlush
 	}
 	if b.readHandle != nil {
 		out |= b.readHandle.GetSupportedFeatures() & StoreFeatureNativeBatchExists
@@ -113,11 +110,6 @@ func (b *StoreRW) RmBlock(ctx context.Context, ref *BlockRef) error {
 // PutBlockBatch forwards to the write handle if it supports batched writes.
 func (b *StoreRW) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) error {
 	return b.writeHandle.PutBlockBatch(ctx, entries)
-}
-
-// PutBlockBackground forwards to the write handle if it supports background writes.
-func (b *StoreRW) PutBlockBackground(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
-	return b.writeHandle.PutBlockBackground(ctx, data, opts)
 }
 
 // Sync forwards the durability barrier to the write handle.

@@ -20,7 +20,9 @@ type StoreOps interface {
 	// The returned store must be released after use. Implementations without
 	// native read-operation state may return themselves with a no-op release.
 	BeginReadOperation(ctx context.Context) (StoreOps, func(), error)
-	// PutBlock puts a block into the store.
+	// PutBlock puts a block into the store. By default this may enqueue a
+	// buffered, read-through write without waiting for durability. Set
+	// PutOpts.Sync to fence this write and all prior buffered writes before return.
 	// The ref should not be modified after return.
 	// The second return value can optionally indicate if the block already existed.
 	// If the hash type is unset, use the type from GetHashType().
@@ -28,9 +30,6 @@ type StoreOps interface {
 	// PutBlockBatch writes a batch of block operations.
 	// Implementations without native batching fall back internally.
 	PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) error
-	// PutBlockBackground writes a block at background priority.
-	// Implementations without native background priority fall back to PutBlock.
-	PutBlockBackground(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error)
 	// GetBlock gets a block with the given reference.
 	// The ref should not be modified or retained by GetBlock.
 	// Returns data, found, error.

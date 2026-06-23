@@ -34,7 +34,11 @@ func ImportManifestPack(
 	if err := importPackBlocks(ctx, ws, packBytes); err != nil {
 		return err
 	}
-	return applyManifestBundle(ctx, ws, sender, meta)
+	if err := applyManifestBundle(ctx, ws, sender, meta); err != nil {
+		return err
+	}
+	_, err := ws.Sync(ctx)
+	return err
 }
 
 func verifyPackBytes(meta *ManifestPackMetadata, packBytes []byte) error {

@@ -118,11 +118,6 @@ func (b *S3Block) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEn
 	return nil
 }
 
-// PutBlockBackground forwards to PutBlock.
-func (b *S3Block) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	return b.PutBlock(ctx, data, opts)
-}
-
 // GetBlock looks up a block in the store.
 // Returns data, found, and any unexpected error.
 func (b *S3Block) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {

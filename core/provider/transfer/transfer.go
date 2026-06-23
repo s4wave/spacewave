@@ -324,7 +324,8 @@ func (t *Transfer) copyBlocksForSpace(ctx context.Context, spaceIdx int, soRef *
 		t.setSpaceBlocksCopied(spaceIdx, copied)
 	}
 
-	return nil
+	_, err = dstBlocks.Sync(ctx)
+	return err
 }
 
 // saveCheckpoint persists the current progress if a checkpoint store is set.

@@ -26,7 +26,7 @@ type drainBatch struct {
 }
 
 // BufferedStore buffers PutBlock calls in memory and drains them explicitly on
-// Flush or when a caller must free capacity.
+// Sync or when a caller must free capacity.
 type BufferedStore struct {
 	inner StoreOps
 
@@ -70,11 +70,9 @@ func (s *BufferedStore) GetHashType() hash.HashType {
 	return s.inner.GetHashType()
 }
 
-// GetSupportedFeatures returns the native feature bitmask for the store. The
-// buffered store forwards the GC defer-flush scope to its inner store, so it
-// advertises DeferFlusher support transparently.
+// GetSupportedFeatures returns the native feature bitmask for the store.
 func (s *BufferedStore) GetSupportedFeatures() StoreFeature {
-	return s.inner.GetSupportedFeatures() | StoreFeatureNativeDeferFlush
+	return s.inner.GetSupportedFeatures()
 }
 
 // BeginReadOperation returns the buffered store for a read scope.
@@ -94,7 +92,17 @@ func (s *BufferedStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts
 	} else {
 		opts = opts.CloneVT()
 	}
+	syncRequested := opts.GetSync()
+	opts.Sync = false
 	opts.HashType = opts.SelectHashType(s.inner.GetHashType())
+	finish := func(ref *BlockRef, existed bool) (*BlockRef, bool, error) {
+		if syncRequested {
+			if _, err := s.Sync(ctx); err != nil {
+				return ref, existed, err
+			}
+		}
+		return ref, existed, nil
+	}
 
 	ref, err := BuildBlockRef(data, opts)
 	if err != nil {
@@ -121,7 +129,7 @@ func (s *BufferedStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts
 		return nil, false, drainErr
 	}
 	if existingPending != nil && !existingPending.tombstone {
-		return ref, true, nil
+		return finish(ref, true)
 	}
 
 	exists, err := s.inner.GetBlockExists(ctx, ref)
@@ -172,9 +180,9 @@ func (s *BufferedStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts
 				return nil, false, putErr
 			}
 			if alreadyExists {
-				return ref, true, nil
+				return finish(ref, true)
 			}
-			return ref, false, nil
+			return finish(ref, false)
 		}
 		_, drainTask := trace.NewTask(ctx, "hydra/block/buffered-store/enqueue/drain-capacity")
 		if err := s.drainForCapacity(ctx); err != nil {
@@ -306,12 +314,6 @@ func (s *BufferedStore) RmBlock(ctx context.Context, ref *BlockRef) error {
 			return err
 		}
 	}
-}
-
-// PutBlockBackground forwards to PutBlock. BufferedStore does not own
-// background workers.
-func (s *BufferedStore) PutBlockBackground(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
-	return s.PutBlock(ctx, data, opts)
 }
 
 // StatBlock returns metadata about a block without reading its data.

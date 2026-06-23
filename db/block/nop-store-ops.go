@@ -55,11 +55,6 @@ func (n NopStoreOps) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry
 	return nil
 }
 
-// PutBlockBackground forwards to PutBlock.
-func (n NopStoreOps) PutBlockBackground(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
-	return n.PutBlock(ctx, data, opts)
-}
-
 // GetBlock returns a missing block.
 func (NopStoreOps) GetBlock(context.Context, *BlockRef) ([]byte, bool, error) {
 	return nil, false, nil

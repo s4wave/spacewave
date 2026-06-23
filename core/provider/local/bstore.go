@@ -78,11 +78,6 @@ func (b *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 	return nil
 }
 
-// PutBlockBackground forwards background writes to the inner store.
-func (b *BlockStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	return b.store.PutBlockBackground(ctx, data, opts)
-}
-
 // GetBlock forwards to the inner store.
 func (b *BlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	return b.store.GetBlock(ctx, ref)

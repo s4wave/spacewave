@@ -3189,18 +3189,6 @@ func (d *probeDirtyTrackingStore) PutBlockBatch(ctx context.Context, entries []*
 	return nil
 }
 
-func (d *probeDirtyTrackingStore) PutBlockBackground(
-	ctx context.Context,
-	data []byte,
-	opts *block.PutOpts,
-) (*block.BlockRef, bool, error) {
-	ref, existed, err := d.store.PutBlockBackground(ctx, data, opts)
-	if err == nil && !existed {
-		err = d.markDirty(ctx, ref.GetHash(), int64(len(data)))
-	}
-	return ref, existed, err
-}
-
 func (d *probeDirtyTrackingStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	return d.store.GetBlock(ctx, ref)
 }

@@ -261,10 +261,6 @@ func (aliasRaceStore) PutBlock(_ context.Context, _ []byte, opts *PutOpts) (*Blo
 	return opts.GetForceBlockRef().Clone(), false, nil
 }
 
-func (s aliasRaceStore) PutBlockBackground(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
-	return s.PutBlock(ctx, data, opts)
-}
-
 func (s aliasRaceStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) error {
 	for _, entry := range entries {
 		if entry.Tombstone {

@@ -11,6 +11,7 @@ import {
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 
 export const protobufPackage = 'block'
 
@@ -44,33 +45,10 @@ export enum StoreFeature {
   NATIVE_BATCH_EXISTS = 2,
 
   /**
-   * STORE_FEATURE_NATIVE_BACKGROUND_PUT means PutBlockBackground actually deprioritizes writes.
-   *
-   * @generated from enum value: STORE_FEATURE_NATIVE_BACKGROUND_PUT = 4;
-   */
-  NATIVE_BACKGROUND_PUT = 4,
-
-  /**
-   * STORE_FEATURE_NATIVE_FLUSH means Flush has buffered work to publish.
-   *
-   * @generated from enum value: STORE_FEATURE_NATIVE_FLUSH = 8;
-   */
-  NATIVE_FLUSH = 8,
-
-  /**
-   * STORE_FEATURE_NATIVE_DEFER_FLUSH means BeginDeferFlush and EndDeferFlush batch flush work.
-   *
-   * @generated from enum value: STORE_FEATURE_NATIVE_DEFER_FLUSH = 16;
-   */
-  NATIVE_DEFER_FLUSH = 16,
-
-  /**
-   * STORE_FEATURE_SELF_BUFFERED means the store owns its own background write
-   * buffer and Sync barrier, so the world block engine must not wrap it in a
-   * BufferedStore. Self-buffered stores accept continuous PutBlockBackground
-   * writes, read them back through their own pending state before durability,
-   * and make them durable only at Sync. Non-self-buffered stores (native KV
-   * such as bbolt and badger) get wrapped in a deferred-mode BufferedStore.
+   * STORE_FEATURE_SELF_BUFFERED means the store has its own read-through
+   * pending buffer, so the world block engine must not wrap it in a
+   * BufferedStore. Volume remains the durability barrier owner for
+   * volume-backed stores.
    *
    * @generated from enum value: STORE_FEATURE_SELF_BUFFERED = 32;
    */
@@ -83,9 +61,6 @@ export const StoreFeature_Enum = /* @__PURE__ */ createEnumType(
     [0, 'STORE_FEATURE_UNKNOWN'],
     [1, 'STORE_FEATURE_NATIVE_BATCH_PUT'],
     [2, 'STORE_FEATURE_NATIVE_BATCH_EXISTS'],
-    [4, 'STORE_FEATURE_NATIVE_BACKGROUND_PUT'],
-    [8, 'STORE_FEATURE_NATIVE_FLUSH'],
-    [16, 'STORE_FEATURE_NATIVE_DEFER_FLUSH'],
     [32, 'STORE_FEATURE_SELF_BUFFERED'],
   ],
 )
@@ -269,6 +244,16 @@ export interface PutOpts {
    * @generated from field: repeated block.BlockRef refs = 3;
    */
   refs?: BlockRef[]
+  /**
+   * Sync requests a durability fence before PutBlock returns. When false, the
+   * store may enqueue the write and make it immediately readable through its
+   * read-through path without waiting for durability. When true, PutBlock
+   * enqueues the write, then calls the store Sync barrier so this write and all
+   * prior buffered writes for the store are durable before return.
+   *
+   * @generated from field: bool sync = 4;
+   */
+  sync?: boolean
 }
 
 export const PutOpts: MessageType<PutOpts> = /* @__PURE__ */ createMessageType({
@@ -277,6 +262,7 @@ export const PutOpts: MessageType<PutOpts> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'hash_type', kind: 'enum', T: HashType_Enum },
     { no: 2, name: 'force_block_ref', kind: 'message', T: () => BlockRef },
     { no: 3, name: 'refs', kind: 'message', T: () => BlockRef, repeated: true },
+    { no: 4, name: 'sync', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

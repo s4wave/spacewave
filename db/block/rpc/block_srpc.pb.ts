@@ -13,8 +13,6 @@ import {
   GetHashTypeResponse,
   GetSupportedFeaturesRequest,
   GetSupportedFeaturesResponse,
-  PutBlockBackgroundRequest,
-  PutBlockBackgroundResponse,
   PutBlockBatchRequest,
   PutBlockBatchResponse,
   PutBlockRequest,
@@ -79,17 +77,6 @@ export const BlockStoreDefinition = {
       name: 'PutBlockBatch',
       I: PutBlockBatchRequest,
       O: PutBlockBatchResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * PutBlockBackground requests to put a block in the background.
-     *
-     * @generated from rpc block.rpc.BlockStore.PutBlockBackground
-     */
-    PutBlockBackground: {
-      name: 'PutBlockBackground',
-      I: PutBlockBackgroundRequest,
-      O: PutBlockBackgroundResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -211,16 +198,6 @@ export interface BlockStore {
   ): Promise<PutBlockBatchResponse>
 
   /**
-   * PutBlockBackground requests to put a block in the background.
-   *
-   * @generated from rpc block.rpc.BlockStore.PutBlockBackground
-   */
-  PutBlockBackground(
-    request: PutBlockBackgroundRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<PutBlockBackgroundResponse>
-
-  /**
    * GetBlock requests to lookup a block from the store.
    *
    * @generated from rpc block.rpc.BlockStore.GetBlock
@@ -293,7 +270,6 @@ export class BlockStoreClient implements BlockStore {
     this.GetSupportedFeatures = this.GetSupportedFeatures.bind(this)
     this.PutBlock = this.PutBlock.bind(this)
     this.PutBlockBatch = this.PutBlockBatch.bind(this)
-    this.PutBlockBackground = this.PutBlockBackground.bind(this)
     this.GetBlock = this.GetBlock.bind(this)
     this.GetBlockExists = this.GetBlockExists.bind(this)
     this.GetBlockExistsBatch = this.GetBlockExistsBatch.bind(this)
@@ -375,25 +351,6 @@ export class BlockStoreClient implements BlockStore {
       abortSignal || undefined,
     )
     return PutBlockBatchResponse.fromBinary(result)
-  }
-
-  /**
-   * PutBlockBackground requests to put a block in the background.
-   *
-   * @generated from rpc block.rpc.BlockStore.PutBlockBackground
-   */
-  async PutBlockBackground(
-    request: PutBlockBackgroundRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<PutBlockBackgroundResponse> {
-    const requestMsg = PutBlockBackgroundRequest.create(request)
-    const result = await this.rpc.request(
-      this.service,
-      BlockStoreDefinition.methods.PutBlockBackground.name,
-      PutBlockBackgroundRequest.toBinary(requestMsg),
-      abortSignal || undefined,
-    )
-    return PutBlockBackgroundResponse.fromBinary(result)
   }
 
   /**

@@ -28,7 +28,9 @@ func (s *BlockStore) GetHashType() hash.HashType {
 	return s.hashType
 }
 
-// PutBlock puts a block into the store.
+// PutBlock enqueues a block into the shard engine. The write is readable
+// through the engine pending buffer before it is durable; PutOpts.Sync fences
+// the engine after enqueue.
 func (s *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	if len(data) == 0 {
 		return nil, false, block.ErrEmptyBlock
@@ -39,7 +41,17 @@ func (s *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 	} else {
 		opts = opts.CloneVT()
 	}
+	syncRequested := opts.GetSync()
+	opts.Sync = false
 	opts.HashType = opts.SelectHashType(s.hashType)
+	finish := func(ref *block.BlockRef, existed bool) (*block.BlockRef, bool, error) {
+		if syncRequested {
+			if err := s.engine.Sync(ctx); err != nil {
+				return ref, existed, err
+			}
+		}
+		return ref, existed, nil
+	}
 
 	ref, err := block.BuildBlockRef(data, opts)
 	if err != nil {
@@ -64,17 +76,16 @@ func (s *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 		return nil, false, err
 	}
 	if found {
-		return ref, true, nil
+		return finish(ref, true)
 	}
 
-	// Write to shard engine.
-	if err := s.engine.Put(ctx, []segment.Entry{{
+	if err := s.engine.PutBackground(ctx, []segment.Entry{{
 		Key:   []byte(key),
 		Value: data,
 	}}); err != nil {
 		return nil, false, err
 	}
-	return ref, false, nil
+	return finish(ref, false)
 }
 
 // PutBlockBatch writes multiple blocks as one lower-layer engine batch.
@@ -106,51 +117,6 @@ func (s *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 	err := s.engine.Put(putCtx, batch)
 	putTask.End()
 	return err
-}
-
-// PutBlockBackground writes a single block at background priority.
-func (s *BlockStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	if len(data) == 0 {
-		return nil, false, block.ErrEmptyBlock
-	}
-
-	if opts == nil {
-		opts = &block.PutOpts{}
-	} else {
-		opts = opts.CloneVT()
-	}
-	opts.HashType = opts.SelectHashType(s.hashType)
-
-	ref, err := block.BuildBlockRef(data, opts)
-	if err != nil {
-		return nil, false, err
-	}
-	if forceRef := opts.GetForceBlockRef(); !forceRef.GetEmpty() {
-		if !ref.EqualsRef(forceRef) {
-			return ref, false, block.ErrBlockRefMismatch
-		}
-	}
-
-	key, err := encodeRef(ref)
-	if err != nil {
-		return nil, false, err
-	}
-
-	found, err := s.engine.GetExists([]byte(key))
-	if err != nil {
-		return nil, false, err
-	}
-	if found {
-		return ref, true, nil
-	}
-
-	if err := s.engine.PutBackground(ctx, []segment.Entry{{
-		Key:   []byte(key),
-		Value: data,
-	}}); err != nil {
-		return nil, false, err
-	}
-	return ref, false, nil
 }
 
 // GetBlock gets a block by reference.
@@ -235,11 +201,9 @@ func (s *BlockStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block
 
 // GetSupportedFeatures returns the native feature bitmask for the store. The
 // engine owns a read-through pending map and an actor-FIFO Sync barrier, so the
-// store is self-buffered (the world block engine must not wrap it) and its
-// background put deprioritizes writes natively.
+// store is self-buffered and the world block engine must not wrap it.
 func (s *BlockStore) GetSupportedFeatures() block.StoreFeature {
 	return block.StoreFeatureSelfBuffered |
-		block.StoreFeatureNativeBackgroundPut |
 		block.StoreFeatureNativeBatchPut |
 		block.StoreFeatureNativeBatchExists
 }

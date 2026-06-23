@@ -176,14 +176,6 @@ func (s *sdkBucketLookupStore) GetBlockExistsBatch(ctx context.Context, refs []*
 	return found, nil
 }
 
-func (s *sdkBucketLookupStore) PutBlockBackground(
-	ctx context.Context,
-	data []byte,
-	opts *block.PutOpts,
-) (*block.BlockRef, bool, error) {
-	return s.PutBlock(ctx, data, opts)
-}
-
 func (s *sdkBucketLookupStore) GetBlock(
 	ctx context.Context,
 	ref *block.BlockRef,

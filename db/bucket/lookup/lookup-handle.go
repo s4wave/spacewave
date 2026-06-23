@@ -92,11 +92,6 @@ func (l *lookupBucket) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 	return nil
 }
 
-// PutBlockBackground forwards to PutBlock.
-func (l *lookupBucket) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	return l.PutBlock(ctx, data, opts)
-}
-
 // GetBlock gets a block with a cid reference.
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.

@@ -20,7 +20,6 @@ type overlayBatchTestStore struct {
 	putCalls         int
 	rmCalls          int
 	batchCalls       int
-	backgroundCalls  int
 	existsBatchCalls int
 	putNotify        chan struct{}
 }
@@ -28,8 +27,7 @@ type overlayBatchTestStore struct {
 type overlayNilOptsTestStore struct {
 	block.StoreOps
 
-	putOpts        []*block.PutOpts
-	backgroundOpts []*block.PutOpts
+	putOpts []*block.PutOpts
 }
 
 func newOverlayBatchTestStore() *overlayBatchTestStore {
@@ -75,11 +73,6 @@ func (s *overlayBatchTestStore) PutBlockBatch(ctx context.Context, entries []*bl
 	return s.StoreOps.PutBlockBatch(ctx, entries)
 }
 
-func (s *overlayBatchTestStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	s.backgroundCalls++
-	return s.StoreOps.PutBlockBackground(ctx, data, opts)
-}
-
 func (s *overlayBatchTestStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	s.existsBatchCalls++
 	return s.StoreOps.GetBlockExistsBatch(ctx, refs)
@@ -88,11 +81,6 @@ func (s *overlayBatchTestStore) GetBlockExistsBatch(ctx context.Context, refs []
 func (s *overlayNilOptsTestStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	s.putOpts = append(s.putOpts, opts)
 	return s.StoreOps.PutBlock(ctx, data, opts)
-}
-
-func (s *overlayNilOptsTestStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	s.backgroundOpts = append(s.backgroundOpts, opts)
-	return s.StoreOps.PutBlockBackground(ctx, data, opts)
 }
 
 func TestStoreOverlayPutBlockBatchForwards(t *testing.T) {
@@ -137,7 +125,7 @@ func TestStoreOverlayCachePutHandlesNilOpts(t *testing.T) {
 	}
 }
 
-func TestStoreOverlayPutBlockBackgroundForwards(t *testing.T) {
+func TestStoreOverlayPutBlockForwards(t *testing.T) {
 	ctx := context.Background()
 	lower := newOverlayBatchTestStore()
 	upper := newOverlayBatchTestStore()
@@ -145,36 +133,12 @@ func TestStoreOverlayPutBlockBackgroundForwards(t *testing.T) {
 	data := []byte("hello")
 	ref := mustBuildBlockRef(t, data)
 
-	if _, _, err := overlay.PutBlockBackground(ctx, data, &block.PutOpts{ForceBlockRef: ref}); err != nil {
+	if _, _, err := overlay.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref}); err != nil {
 		t.Fatal(err.Error())
 	}
 
-	if upper.backgroundCalls != 1 {
-		t.Fatalf("expected upper background call, got %d", upper.backgroundCalls)
-	}
-	if upper.putCalls != 0 {
-		t.Fatalf("expected no foreground fallback PutBlock calls, got %d", upper.putCalls)
-	}
-}
-
-func TestStoreOverlayCacheBackgroundPutHandlesNilOpts(t *testing.T) {
-	ctx := context.Background()
-	lower := newOverlayNilOptsTestStore()
-	upper := newOverlayNilOptsTestStore()
-	overlay := block.NewOverlay(ctx, nil, lower, upper, block.OverlayMode_UPPER_CACHE, 0, nil)
-
-	ref, _, err := overlay.PutBlockBackground(ctx, []byte("hello"), nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if len(lower.backgroundOpts) != 1 || lower.backgroundOpts[0] != nil {
-		t.Fatalf("expected primary background put to receive original nil opts")
-	}
-	if len(upper.backgroundOpts) != 1 {
-		t.Fatalf("expected secondary background put to receive forced-ref opts")
-	}
-	if !upper.backgroundOpts[0].GetForceBlockRef().EqualsRef(ref) {
-		t.Fatalf("expected secondary background put force ref to match primary ref")
+	if upper.putCalls != 1 {
+		t.Fatalf("expected one upper put call, got %d", upper.putCalls)
 	}
 }
 

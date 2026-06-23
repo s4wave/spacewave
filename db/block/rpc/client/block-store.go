@@ -57,10 +57,7 @@ func (v *BlockStore) GetSupportedFeatures() block.StoreFeature {
 		}
 		features := resp.GetFeatures()
 		if v.readOnly {
-			features &^= block.StoreFeatureNativeBatchPut |
-				block.StoreFeatureNativeBackgroundPut |
-				block.StoreFeatureNativeFlush |
-				block.StoreFeatureNativeDeferFlush
+			features &^= block.StoreFeatureNativeBatchPut
 		}
 		v.supportedFeatures = features
 	})
@@ -118,28 +115,6 @@ func (v *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 		return errors.New(errStr)
 	}
 	return nil
-}
-
-// PutBlockBackground requests a remote background write.
-func (v *BlockStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	if v.readOnly {
-		return nil, false, block_store.ErrReadOnly
-	}
-	resp, err := v.client.PutBlockBackground(ctx, &block_rpc.PutBlockBackgroundRequest{
-		Data:    data,
-		PutOpts: opts,
-	})
-	if err != nil {
-		return nil, false, err
-	}
-	if errStr := resp.GetError(); errStr != "" {
-		return nil, false, errors.New(errStr)
-	}
-	addedRef := resp.GetRef()
-	if err := addedRef.Validate(false); err != nil {
-		return nil, false, err
-	}
-	return addedRef, resp.GetExisted(), nil
 }
 
 // GetBlock gets a block with a cid reference.

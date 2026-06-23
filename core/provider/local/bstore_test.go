@@ -16,7 +16,7 @@ import (
 type batchForwardTestStore struct {
 	block_store.Store
 	putBlockBatchHits int
-	backgroundHits    int
+	putBlockHits      int
 	existsBatchHits   int
 }
 
@@ -37,9 +37,9 @@ func (s *batchForwardTestStore) PutBlockBatch(ctx context.Context, entries []*bl
 	return s.Store.PutBlockBatch(ctx, entries)
 }
 
-func (s *batchForwardTestStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	s.backgroundHits++
-	return s.Store.PutBlockBackground(ctx, data, opts)
+func (s *batchForwardTestStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	s.putBlockHits++
+	return s.Store.PutBlock(ctx, data, opts)
 }
 
 func (s *batchForwardTestStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
@@ -52,7 +52,7 @@ var (
 	_ block.StoreOps    = ((*batchForwardTestStore)(nil))
 )
 
-func TestBlockStoreForwardsBatchAndBackground(t *testing.T) {
+func TestBlockStoreForwardsNativeOperations(t *testing.T) {
 	ctx := context.Background()
 	inner := newBatchForwardTestStore()
 	store := &BlockStore{store: inner}
@@ -69,11 +69,11 @@ func TestBlockStoreForwardsBatchAndBackground(t *testing.T) {
 		t.Fatalf("expected 1 PutBlockBatch call, got %d", inner.putBlockBatchHits)
 	}
 
-	if _, _, err := store.PutBlockBackground(ctx, []byte("hello"), nil); err != nil {
-		t.Fatalf("PutBlockBackground failed: %v", err)
+	if _, _, err := store.PutBlock(ctx, []byte("hello"), nil); err != nil {
+		t.Fatalf("PutBlock failed: %v", err)
 	}
-	if inner.backgroundHits != 1 {
-		t.Fatalf("expected 1 PutBlockBackground call, got %d", inner.backgroundHits)
+	if inner.putBlockHits != 1 {
+		t.Fatalf("expected 1 PutBlock call, got %d", inner.putBlockHits)
 	}
 
 	if _, err := store.GetBlockExistsBatch(ctx, []*block.BlockRef{batchRef}); err != nil {

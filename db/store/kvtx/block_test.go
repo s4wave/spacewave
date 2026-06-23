@@ -17,7 +17,6 @@ type kvtxBlockTestStore struct {
 	putCalls         int
 	rmCalls          int
 	batchCalls       int
-	backgroundCalls  int
 	existsBatchCalls int
 	beginCalls       int
 	endCalls         int
@@ -47,11 +46,6 @@ func (s *kvtxBlockTestStore) RmBlock(ctx context.Context, ref *block.BlockRef) e
 func (s *kvtxBlockTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
 	s.batchCalls++
 	return s.StoreOps.PutBlockBatch(ctx, entries)
-}
-
-func (s *kvtxBlockTestStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	s.backgroundCalls++
-	return s.StoreOps.PutBlockBackground(ctx, data, opts)
 }
 
 func (s *kvtxBlockTestStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
@@ -85,11 +79,11 @@ func TestKVTxForwardsBlockStoreExtensions(t *testing.T) {
 		t.Fatalf("expected one batch call and no per-entry fallback, got batch=%d put=%d", inner.batchCalls, inner.putCalls)
 	}
 
-	if _, _, err := k.PutBlockBackground(ctx, []byte("hello"), &block.PutOpts{ForceBlockRef: ref}); err != nil {
+	if _, _, err := k.PutBlock(ctx, []byte("hello"), &block.PutOpts{ForceBlockRef: ref}); err != nil {
 		t.Fatal(err.Error())
 	}
-	if inner.backgroundCalls != 1 || inner.putCalls != 0 {
-		t.Fatalf("expected one background call and no foreground fallback, got background=%d put=%d", inner.backgroundCalls, inner.putCalls)
+	if inner.putCalls != 1 {
+		t.Fatalf("expected one put call, got %d", inner.putCalls)
 	}
 
 	if _, err := k.GetBlockExistsBatch(ctx, []*block.BlockRef{ref}); err != nil {

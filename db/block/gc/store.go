@@ -134,7 +134,7 @@ func (g *GCStoreOps) GetHashType() hash.HashType {
 
 // GetSupportedFeatures returns the native feature bitmask for the store.
 func (g *GCStoreOps) GetSupportedFeatures() block.StoreFeature {
-	return g.store.GetSupportedFeatures() | block.StoreFeatureNativeDeferFlush
+	return g.store.GetSupportedFeatures()
 }
 
 // GetRefGraph returns the underlying ref graph.
@@ -171,14 +171,24 @@ func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/store/put-block")
 	defer task.End()
 
+	putOpts, syncRequested := block.PutOptsWithoutSync(opts)
+	finish := func(ref *block.BlockRef, existed bool) (*block.BlockRef, bool, error) {
+		if syncRequested {
+			if _, err := g.Sync(ctx); err != nil {
+				return ref, existed, err
+			}
+		}
+		return ref, existed, nil
+	}
+
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/block-gc/store/put-block/store-put-block")
-	ref, existed, err := g.store.PutBlock(taskCtx, data, opts)
+	ref, existed, err := g.store.PutBlock(taskCtx, data, putOpts)
 	subtask.End()
 	if err != nil {
 		return nil, false, err
 	}
 	if storeTrackingDisabled(ctx) {
-		return ref, existed, nil
+		return finish(ref, existed)
 	}
 	if !existed && ref != nil && !ref.GetEmpty() {
 		_, subtask = trace.NewTask(ctx, "hydra/block-gc/store/put-block/buffer-pending-unref")
@@ -189,43 +199,13 @@ func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 		subtask.End()
 	}
 	var refs []*block.BlockRef
-	if opts != nil {
-		refs = opts.GetRefs()
+	if putOpts != nil {
+		refs = putOpts.GetRefs()
 	}
 	if ref != nil && !ref.GetEmpty() && len(refs) != 0 {
 		g.bufferBlockRefs(ref, refs)
 	}
-	return ref, existed, nil
-}
-
-// PutBlockBackground puts a block at background priority when the inner
-// store supports it. Falls back to regular PutBlock otherwise. Used by
-// GC operations to avoid competing with foreground commit writes.
-func (g *GCStoreOps) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	ctx, task := trace.NewTask(ctx, "hydra/block-gc/store/put-block-background")
-	defer task.End()
-
-	ref, existed, err := g.store.PutBlockBackground(ctx, data, opts)
-	if err != nil {
-		return nil, false, err
-	}
-	if storeTrackingDisabled(ctx) {
-		return ref, existed, nil
-	}
-	if !existed && ref != nil && !ref.GetEmpty() {
-		iri := BlockIRI(ref)
-		g.mu.Lock()
-		g.pendingUnref = append(g.pendingUnref, iri)
-		g.mu.Unlock()
-	}
-	var refs []*block.BlockRef
-	if opts != nil {
-		refs = opts.GetRefs()
-	}
-	if ref != nil && !ref.GetEmpty() && len(refs) != 0 {
-		g.bufferBlockRefs(ref, refs)
-	}
-	return ref, existed, nil
+	return finish(ref, existed)
 }
 
 // PutBlockBatch writes a batch of blocks through the inner store and buffers

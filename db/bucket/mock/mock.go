@@ -70,11 +70,6 @@ func (b *mockBucket) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 	return b.store.PutBlockBatch(ctx, entries)
 }
 
-// PutBlockBackground forwards to the inner store.
-func (b *mockBucket) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	return b.store.PutBlockBackground(ctx, data, opts)
-}
-
 // GetBlock forwards to the inner store.
 func (b *mockBucket) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	return b.store.GetBlock(ctx, ref)

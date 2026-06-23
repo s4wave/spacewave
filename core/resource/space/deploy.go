@@ -118,6 +118,10 @@ func (r *SpaceResource) DeployManifest(strm s4wave_space.SRPCSpaceResourceServic
 		r.le.WithError(err).Warn("deploy manifest: commit failed")
 		return sendDeployResult(strm, err.Error())
 	}
+	if _, err := engine.Sync(ctx); err != nil {
+		r.le.WithError(err).Warn("deploy manifest: sync failed")
+		return sendDeployResult(strm, err.Error())
+	}
 
 	r.le.Infof("deploy manifest complete: manifest=%s key=%s", manifestID, objectKey)
 	return sendDeployResult(strm, "")
@@ -332,11 +336,6 @@ func (s *streamStoreOps) PutBlockBatch(_ context.Context, entries []*block.PutBa
 		return nil
 	}
 	return block_store.ErrReadOnly
-}
-
-// PutBlockBackground is not used on the source side.
-func (s *streamStoreOps) PutBlockBackground(_ context.Context, _ []byte, _ *block.PutOpts) (*block.BlockRef, bool, error) {
-	return nil, false, block_store.ErrReadOnly
 }
 
 // StatBlock returns metadata about a block without reading its data.

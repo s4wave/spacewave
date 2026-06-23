@@ -18,9 +18,6 @@ service BlockStore {
   // PutBlockBatch requests to put blocks into the store as a batch.
   rpc PutBlockBatch(PutBlockBatchRequest) returns (PutBlockBatchResponse);
 
-  // PutBlockBackground requests to put a block in the background.
-  rpc PutBlockBackground(PutBlockBackgroundRequest) returns (PutBlockBackgroundResponse);
-
   // GetBlock requests to lookup a block from the store.
   rpc GetBlock(GetBlockRequest) returns (GetBlockResponse);
 
@@ -101,24 +98,6 @@ message PutBlockBatchRequest {
 message PutBlockBatchResponse {
   // Error is any error adding blocks to the store.
   string error = 1;
-}
-
-// PutBlockBackgroundRequest requests to put a block in the background.
-message PutBlockBackgroundRequest {
-  // Data is the data to put into the store.
-  bytes data = 1;
-  // PutOpts are any options when putting the block into the store.
-  .block.PutOpts put_opts = 2;
-}
-
-// PutBlockBackgroundResponse is the response to a background put.
-message PutBlockBackgroundResponse {
-  // Ref is the reference of the added block.
-  .block.BlockRef ref = 1;
-  // Existed indicates the block already existed.
-  bool existed = 2;
-  // Error is any error adding the block to the store.
-  string error = 3;
 }
 
 // GetBlockRequest requests to get a block from the store.

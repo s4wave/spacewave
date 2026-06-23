@@ -184,11 +184,6 @@ func (b *HTTPBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatch
 	return nil
 }
 
-// PutBlockBackground forwards to PutBlock.
-func (b *HTTPBlock) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	return b.PutBlock(ctx, data, opts)
-}
-
 // GetBlock looks up a block in the store.
 // Returns data, found, and any unexpected error.
 func (b *HTTPBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {

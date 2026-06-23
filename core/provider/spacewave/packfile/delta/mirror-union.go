@@ -60,11 +60,6 @@ func (m *MirrorUnion) PutBlockBatch(_ context.Context, entries []*block.PutBatch
 	return block_store.ErrReadOnly
 }
 
-// PutBlockBackground rejects background writes against the mirror.
-func (m *MirrorUnion) PutBlockBackground(_ context.Context, _ []byte, _ *block.PutOpts) (*block.BlockRef, bool, error) {
-	return nil, false, block_store.ErrReadOnly
-}
-
 // GetBlock returns the first hit across the union of packs.
 func (m *MirrorUnion) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	for _, s := range m.stores {

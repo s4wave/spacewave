@@ -120,7 +120,10 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 				// buffered-but-undrained blocks (ErrNotFound).
 				deferred := e.engine.deferDurability && e.engine.writeCoordinator == nil
 				if !deferred {
-					commitErr = e.engine.validateRootRefLocked(ctx, nextRootRef)
+					_, commitErr = e.engine.writeBlockStore.Sync(ctx)
+					if commitErr == nil {
+						commitErr = e.engine.validateRootRefLocked(ctx, nextRootRef)
+					}
 					if errors.Is(commitErr, block.ErrNotFound) {
 						commitErr = fmt.Errorf("validate committed root: %w", coord.ErrStaleGeneration)
 					}

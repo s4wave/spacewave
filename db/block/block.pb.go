@@ -28,18 +28,10 @@ const (
 	StoreFeature_STORE_FEATURE_NATIVE_BATCH_PUT StoreFeature = 1
 	// STORE_FEATURE_NATIVE_BATCH_EXISTS means GetBlockExistsBatch is implemented natively.
 	StoreFeature_STORE_FEATURE_NATIVE_BATCH_EXISTS StoreFeature = 2
-	// STORE_FEATURE_NATIVE_BACKGROUND_PUT means PutBlockBackground actually deprioritizes writes.
-	StoreFeature_STORE_FEATURE_NATIVE_BACKGROUND_PUT StoreFeature = 4
-	// STORE_FEATURE_NATIVE_FLUSH means Flush has buffered work to publish.
-	StoreFeature_STORE_FEATURE_NATIVE_FLUSH StoreFeature = 8
-	// STORE_FEATURE_NATIVE_DEFER_FLUSH means BeginDeferFlush and EndDeferFlush batch flush work.
-	StoreFeature_STORE_FEATURE_NATIVE_DEFER_FLUSH StoreFeature = 16
-	// STORE_FEATURE_SELF_BUFFERED means the store owns its own background write
-	// buffer and Sync barrier, so the world block engine must not wrap it in a
-	// BufferedStore. Self-buffered stores accept continuous PutBlockBackground
-	// writes, read them back through their own pending state before durability,
-	// and make them durable only at Sync. Non-self-buffered stores (native KV
-	// such as bbolt and badger) get wrapped in a deferred-mode BufferedStore.
+	// STORE_FEATURE_SELF_BUFFERED means the store has its own read-through
+	// pending buffer, so the world block engine must not wrap it in a
+	// BufferedStore. Volume remains the durability barrier owner for
+	// volume-backed stores.
 	StoreFeature_STORE_FEATURE_SELF_BUFFERED StoreFeature = 32
 )
 
@@ -49,19 +41,13 @@ var (
 		0:  "STORE_FEATURE_UNKNOWN",
 		1:  "STORE_FEATURE_NATIVE_BATCH_PUT",
 		2:  "STORE_FEATURE_NATIVE_BATCH_EXISTS",
-		4:  "STORE_FEATURE_NATIVE_BACKGROUND_PUT",
-		8:  "STORE_FEATURE_NATIVE_FLUSH",
-		16: "STORE_FEATURE_NATIVE_DEFER_FLUSH",
 		32: "STORE_FEATURE_SELF_BUFFERED",
 	}
 	StoreFeature_value = map[string]int32{
-		"STORE_FEATURE_UNKNOWN":               0,
-		"STORE_FEATURE_NATIVE_BATCH_PUT":      1,
-		"STORE_FEATURE_NATIVE_BATCH_EXISTS":   2,
-		"STORE_FEATURE_NATIVE_BACKGROUND_PUT": 4,
-		"STORE_FEATURE_NATIVE_FLUSH":          8,
-		"STORE_FEATURE_NATIVE_DEFER_FLUSH":    16,
-		"STORE_FEATURE_SELF_BUFFERED":         32,
+		"STORE_FEATURE_UNKNOWN":             0,
+		"STORE_FEATURE_NATIVE_BATCH_PUT":    1,
+		"STORE_FEATURE_NATIVE_BATCH_EXISTS": 2,
+		"STORE_FEATURE_SELF_BUFFERED":       32,
 	}
 )
 
@@ -219,6 +205,12 @@ type PutOpts struct {
 	// GC-aware stores consume these refs as part of the put. Stores that do not
 	// participate in GC ignore this field.
 	Refs []*BlockRef `protobuf:"bytes,3,rep,name=refs,proto3" json:"refs,omitempty"`
+	// Sync requests a durability fence before PutBlock returns. When false, the
+	// store may enqueue the write and make it immediately readable through its
+	// read-through path without waiting for durability. When true, PutBlock
+	// enqueues the write, then calls the store Sync barrier so this write and all
+	// prior buffered writes for the store are durable before return.
+	Sync bool `protobuf:"varint,4,opt,name=sync,proto3" json:"sync,omitempty"`
 }
 
 func (x *PutOpts) Reset() {
@@ -248,6 +240,13 @@ func (x *PutOpts) GetRefs() []*BlockRef {
 	return nil
 }
 
+func (x *PutOpts) GetSync() bool {
+	if x != nil {
+		return x.Sync
+	}
+	return false
+}
+
 func (m *BlockRef) CloneVT() *BlockRef {
 	if m == nil {
 		return (*BlockRef)(nil)
@@ -273,6 +272,7 @@ func (m *PutOpts) CloneVT() *PutOpts {
 	r := new(PutOpts)
 	r.HashType = m.HashType
 	r.ForceBlockRef = m.ForceBlockRef.CloneVT()
+	r.Sync = m.Sync
 	if rhs := m.Refs; rhs != nil {
 		r.Refs = make([]*BlockRef, len(rhs))
 		for k, v := range rhs {
@@ -337,6 +337,9 @@ func (this *PutOpts) EqualVT(that *PutOpts) bool {
 				return false
 			}
 		}
+	}
+	if this.Sync != that.Sync {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -458,6 +461,11 @@ func (x *PutOpts) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.Sync || s.HasField("sync") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sync")
+		s.WriteBool(x.Sync)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -503,6 +511,9 @@ func (x *PutOpts) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Refs = append(x.Refs, v)
 			})
+		case "sync":
+			s.AddField("sync")
+			x.Sync = s.ReadBool()
 		}
 	})
 }
@@ -585,6 +596,16 @@ func (m *PutOpts) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Sync {
+		i--
+		if m.Sync {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
 	if len(m.Refs) > 0 {
 		for iNdEx := len(m.Refs) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Refs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -647,6 +668,9 @@ func (m *PutOpts) SizeVT() (n int) {
 			l = e.SizeVT()
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
+	}
+	if m.Sync {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -713,6 +737,13 @@ func (x *PutOpts) MarshalProtoText() string {
 			}
 		}
 		sb.WriteString("]")
+	}
+	if x.Sync != false {
+		if sb.Len() > 9 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("sync: ")
+		sb.WriteString(strconv.FormatBool(x.Sync))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -878,6 +909,18 @@ func (m *PutOpts) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sync", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Sync = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

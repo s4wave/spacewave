@@ -49,13 +49,6 @@ func (c *testBlockStoreClient) PutBlockBatch(
 	return &block_rpc.PutBlockBatchResponse{}, nil
 }
 
-func (c *testBlockStoreClient) PutBlockBackground(
-	context.Context,
-	*block_rpc.PutBlockBackgroundRequest,
-) (*block_rpc.PutBlockBackgroundResponse, error) {
-	return &block_rpc.PutBlockBackgroundResponse{}, nil
-}
-
 func (c *testBlockStoreClient) GetBlock(
 	context.Context,
 	*block_rpc.GetBlockRequest,
@@ -101,19 +94,18 @@ func (c *testBlockStoreClient) Sync(
 func TestBlockStoreGetSupportedFeaturesMasksReadOnlyWrites(t *testing.T) {
 	remote := block.StoreFeatureNativeBatchPut |
 		block.StoreFeatureNativeBatchExists |
-		block.StoreFeatureNativeBackgroundPut |
-		block.StoreFeatureNativeFlush |
-		block.StoreFeatureNativeDeferFlush
+		block.StoreFeatureSelfBuffered
 	client := &testBlockStoreClient{features: remote}
 	store := NewBlockStore(client, 0, true)
 
+	expected := block.StoreFeatureNativeBatchExists | block.StoreFeatureSelfBuffered
 	got := store.GetSupportedFeatures()
-	if got != block.StoreFeatureNativeBatchExists {
-		t.Fatalf("expected only read feature on read-only client, got %v", got)
+	if got != expected {
+		t.Fatalf("expected read-safe features on read-only client, got %v", got)
 	}
 
 	got = store.GetSupportedFeatures()
-	if got != block.StoreFeatureNativeBatchExists {
+	if got != expected {
 		t.Fatalf("expected cached read-only feature set, got %v", got)
 	}
 	if client.featureCalls != 1 {

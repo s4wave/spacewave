@@ -75,29 +75,6 @@ pub struct PutBlockBatchResponse {
     #[prost(string, tag="1")]
     pub error: ::prost::alloc::string::String,
 }
-/// PutBlockBackgroundRequest requests to put a block in the background.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct PutBlockBackgroundRequest {
-    /// Data is the data to put into the store.
-    #[prost(bytes="vec", tag="1")]
-    pub data: ::prost::alloc::vec::Vec<u8>,
-    /// PutOpts are any options when putting the block into the store.
-    #[prost(message, optional, tag="2")]
-    pub put_opts: ::core::option::Option<super::PutOpts>,
-}
-/// PutBlockBackgroundResponse is the response to a background put.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct PutBlockBackgroundResponse {
-    /// Ref is the reference of the added block.
-    #[prost(message, optional, tag="1")]
-    pub r#ref: ::core::option::Option<super::BlockRef>,
-    /// Existed indicates the block already existed.
-    #[prost(bool, tag="2")]
-    pub existed: bool,
-    /// Error is any error adding the block to the store.
-    #[prost(string, tag="3")]
-    pub error: ::prost::alloc::string::String,
-}
 /// GetBlockRequest requests to get a block from the store.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetBlockRequest {

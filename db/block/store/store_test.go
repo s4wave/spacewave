@@ -18,7 +18,6 @@ type wrapperBatchTestStore struct {
 	putCalls         int
 	rmCalls          int
 	batchCalls       int
-	backgroundCalls  int
 	existsBatchCalls int
 	freshenCalls     int
 }
@@ -49,11 +48,6 @@ func (s *wrapperBatchTestStore) PutBlockBatch(ctx context.Context, entries []*bl
 	return s.StoreOps.PutBlockBatch(ctx, entries)
 }
 
-func (s *wrapperBatchTestStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	s.backgroundCalls++
-	return s.StoreOps.PutBlockBackground(ctx, data, opts)
-}
-
 func (s *wrapperBatchTestStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	s.existsBatchCalls++
 	return s.StoreOps.GetBlockExistsBatch(ctx, refs)
@@ -68,7 +62,7 @@ func (s *wrapperBatchTestStore) EnsureDecodedBlockCacheFresh(ctx context.Context
 	return nil
 }
 
-func TestStoreForwardsBatchAndBackground(t *testing.T) {
+func TestStoreForwardsNativeOperations(t *testing.T) {
 	ctx := context.Background()
 	inner := newWrapperBatchTestStore()
 	store := block_store.NewStore("test", inner)
@@ -82,11 +76,11 @@ func TestStoreForwardsBatchAndBackground(t *testing.T) {
 		t.Fatalf("expected one batch call and no per-entry fallback, got batch=%d put=%d", inner.batchCalls, inner.putCalls)
 	}
 
-	if _, _, err := store.PutBlockBackground(ctx, data, &block.PutOpts{ForceBlockRef: ref}); err != nil {
+	if _, _, err := store.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref}); err != nil {
 		t.Fatal(err.Error())
 	}
-	if inner.backgroundCalls != 1 || inner.putCalls != 0 {
-		t.Fatalf("expected one background call and no foreground fallback, got background=%d put=%d", inner.backgroundCalls, inner.putCalls)
+	if inner.putCalls != 1 {
+		t.Fatalf("expected one put call, got %d", inner.putCalls)
 	}
 
 	if _, err := store.GetBlockExistsBatch(ctx, []*block.BlockRef{ref}); err != nil {

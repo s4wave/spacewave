@@ -28,6 +28,13 @@ pub struct PutOpts {
     /// participate in GC ignore this field.
     #[prost(message, repeated, tag="3")]
     pub refs: ::prost::alloc::vec::Vec<BlockRef>,
+    /// Sync requests a durability fence before PutBlock returns. When false, the
+    /// store may enqueue the write and make it immediately readable through its
+    /// read-through path without waiting for durability. When true, PutBlock
+    /// enqueues the write, then calls the store Sync barrier so this write and all
+    /// prior buffered writes for the store are durable before return.
+    #[prost(bool, tag="4")]
+    pub sync: bool,
 }
 /// StoreFeature is a bitmask of native block store capabilities.
 /// Each non-zero enum value is a single bit and values are combined with
@@ -41,18 +48,10 @@ pub enum StoreFeature {
     NativeBatchPut = 1,
     /// STORE_FEATURE_NATIVE_BATCH_EXISTS means GetBlockExistsBatch is implemented natively.
     NativeBatchExists = 2,
-    /// STORE_FEATURE_NATIVE_BACKGROUND_PUT means PutBlockBackground actually deprioritizes writes.
-    NativeBackgroundPut = 4,
-    /// STORE_FEATURE_NATIVE_FLUSH means Flush has buffered work to publish.
-    NativeFlush = 8,
-    /// STORE_FEATURE_NATIVE_DEFER_FLUSH means BeginDeferFlush and EndDeferFlush batch flush work.
-    NativeDeferFlush = 16,
-    /// STORE_FEATURE_SELF_BUFFERED means the store owns its own background write
-    /// buffer and Sync barrier, so the world block engine must not wrap it in a
-    /// BufferedStore. Self-buffered stores accept continuous PutBlockBackground
-    /// writes, read them back through their own pending state before durability,
-    /// and make them durable only at Sync. Non-self-buffered stores (native KV
-    /// such as bbolt and badger) get wrapped in a deferred-mode BufferedStore.
+    /// STORE_FEATURE_SELF_BUFFERED means the store has its own read-through
+    /// pending buffer, so the world block engine must not wrap it in a
+    /// BufferedStore. Volume remains the durability barrier owner for
+    /// volume-backed stores.
     SelfBuffered = 32,
 }
 impl StoreFeature {
@@ -65,9 +64,6 @@ impl StoreFeature {
             Self::Unknown => "STORE_FEATURE_UNKNOWN",
             Self::NativeBatchPut => "STORE_FEATURE_NATIVE_BATCH_PUT",
             Self::NativeBatchExists => "STORE_FEATURE_NATIVE_BATCH_EXISTS",
-            Self::NativeBackgroundPut => "STORE_FEATURE_NATIVE_BACKGROUND_PUT",
-            Self::NativeFlush => "STORE_FEATURE_NATIVE_FLUSH",
-            Self::NativeDeferFlush => "STORE_FEATURE_NATIVE_DEFER_FLUSH",
             Self::SelfBuffered => "STORE_FEATURE_SELF_BUFFERED",
         }
     }
@@ -77,9 +73,6 @@ impl StoreFeature {
             "STORE_FEATURE_UNKNOWN" => Some(Self::Unknown),
             "STORE_FEATURE_NATIVE_BATCH_PUT" => Some(Self::NativeBatchPut),
             "STORE_FEATURE_NATIVE_BATCH_EXISTS" => Some(Self::NativeBatchExists),
-            "STORE_FEATURE_NATIVE_BACKGROUND_PUT" => Some(Self::NativeBackgroundPut),
-            "STORE_FEATURE_NATIVE_FLUSH" => Some(Self::NativeFlush),
-            "STORE_FEATURE_NATIVE_DEFER_FLUSH" => Some(Self::NativeDeferFlush),
             "STORE_FEATURE_SELF_BUFFERED" => Some(Self::SelfBuffered),
             _ => None,
         }

@@ -80,11 +80,6 @@ func (s *store) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntr
 	return s.ops.PutBlockBatch(ctx, entries)
 }
 
-// PutBlockBackground forwards background writes to the inner StoreOps.
-func (s *store) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	return s.ops.PutBlockBackground(ctx, data, opts)
-}
-
 // GetBlock forwards to the inner StoreOps.
 func (s *store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	return s.ops.GetBlock(ctx, ref)

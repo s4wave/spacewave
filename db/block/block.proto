@@ -26,6 +26,12 @@ message PutOpts {
   // GC-aware stores consume these refs as part of the put. Stores that do not
   // participate in GC ignore this field.
   repeated BlockRef refs = 3;
+  // Sync requests a durability fence before PutBlock returns. When false, the
+  // store may enqueue the write and make it immediately readable through its
+  // read-through path without waiting for durability. When true, PutBlock
+  // enqueues the write, then calls the store Sync barrier so this write and all
+  // prior buffered writes for the store are durable before return.
+  bool sync = 4;
 }
 
 // StoreFeature is a bitmask of native block store capabilities.
@@ -38,18 +44,12 @@ enum StoreFeature {
   STORE_FEATURE_NATIVE_BATCH_PUT = 1;
   // STORE_FEATURE_NATIVE_BATCH_EXISTS means GetBlockExistsBatch is implemented natively.
   STORE_FEATURE_NATIVE_BATCH_EXISTS = 2;
-  // STORE_FEATURE_NATIVE_BACKGROUND_PUT means PutBlockBackground actually deprioritizes writes.
-  STORE_FEATURE_NATIVE_BACKGROUND_PUT = 4;
-  // STORE_FEATURE_NATIVE_FLUSH means Flush has buffered work to publish.
-  STORE_FEATURE_NATIVE_FLUSH = 8;
-  // STORE_FEATURE_NATIVE_DEFER_FLUSH means BeginDeferFlush and EndDeferFlush batch flush work.
-  STORE_FEATURE_NATIVE_DEFER_FLUSH = 16;
-  // STORE_FEATURE_SELF_BUFFERED means the store owns its own background write
-  // buffer and Sync barrier, so the world block engine must not wrap it in a
-  // BufferedStore. Self-buffered stores accept continuous PutBlockBackground
-  // writes, read them back through their own pending state before durability,
-  // and make them durable only at Sync. Non-self-buffered stores (native KV
-  // such as bbolt and badger) get wrapped in a deferred-mode BufferedStore.
+  reserved 4, 8, 16;
+  reserved "STORE_FEATURE_NATIVE_BACKGROUND_PUT", "STORE_FEATURE_NATIVE_FLUSH", "STORE_FEATURE_NATIVE_DEFER_FLUSH";
+  // STORE_FEATURE_SELF_BUFFERED means the store has its own read-through
+  // pending buffer, so the world block engine must not wrap it in a
+  // BufferedStore. Volume remains the durability barrier owner for
+  // volume-backed stores.
   STORE_FEATURE_SELF_BUFFERED = 32;
 }
 

@@ -2481,14 +2481,6 @@ func (s *countingBlockStore) PutBlockBatch(ctx context.Context, entries []*block
 	return s.store.PutBlockBatch(ctx, entries)
 }
 
-func (s *countingBlockStore) PutBlockBackground(
-	ctx context.Context,
-	data []byte,
-	opts *block.PutOpts,
-) (*block.BlockRef, bool, error) {
-	return s.store.PutBlockBackground(ctx, data, opts)
-}
-
 func (s *countingBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	s.gets.Add(1)
 	return s.store.GetBlock(ctx, ref)

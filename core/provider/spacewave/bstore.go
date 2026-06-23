@@ -117,11 +117,6 @@ func (b *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 	return nil
 }
 
-// PutBlockBackground forwards background writes to the inner store.
-func (b *BlockStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	return b.store.PutBlockBackground(ctx, data, opts)
-}
-
 // GetBlock forwards to the inner store.
 func (b *BlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	return b.store.GetBlock(ctx, ref)
@@ -521,15 +516,6 @@ func (d *dirtyTrackingStore) PutBlockBatch(ctx context.Context, entries []*block
 		}
 	}
 	return nil
-}
-
-// PutBlockBackground writes a block using the inner background path.
-func (d *dirtyTrackingStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	ref, existed, err := d.store.PutBlockBackground(ctx, data, opts)
-	if err == nil && !existed && d.markDirty != nil {
-		d.markDirty(ctx, ref.GetHash(), int64(len(data)))
-	}
-	return ref, existed, err
 }
 
 // GetBlock gets a block by reference.

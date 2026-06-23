@@ -314,12 +314,18 @@ func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 
 // PutBlock forwards block writes to the embedded store.
 func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	ref, exists, err := v.Store.PutBlock(ctx, data, opts)
+	putOpts, syncRequested := block.PutOptsWithoutSync(opts)
+	ref, exists, err := v.Store.PutBlock(ctx, data, putOpts)
 	if err != nil {
 		return nil, exists, err
 	}
 	if ref != nil && !exists {
 		v.broadcastStorageStatsChanged()
+	}
+	if syncRequested {
+		if _, err := v.Sync(ctx); err != nil {
+			return ref, exists, err
+		}
 	}
 	return ref, exists, nil
 }
@@ -327,18 +333,6 @@ func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts)
 // GetBlockExistsBatch forwards batched existence probes to the embedded store when supported.
 func (v *Volume) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	return v.Store.GetBlockExistsBatch(ctx, refs)
-}
-
-// PutBlockBackground forwards background writes to the embedded store when supported.
-func (v *Volume) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	ref, exists, err := v.Store.PutBlockBackground(ctx, data, opts)
-	if err != nil {
-		return nil, exists, err
-	}
-	if ref != nil && !exists {
-		v.broadcastStorageStatsChanged()
-	}
-	return ref, exists, nil
 }
 
 // RmBlock forwards block deletion to the embedded store.

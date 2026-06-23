@@ -86,9 +86,6 @@ enum StoreFeature : int {
   STORE_FEATURE_UNKNOWN = 0,
   STORE_FEATURE_NATIVE_BATCH_PUT = 1,
   STORE_FEATURE_NATIVE_BATCH_EXISTS = 2,
-  STORE_FEATURE_NATIVE_BACKGROUND_PUT = 4,
-  STORE_FEATURE_NATIVE_FLUSH = 8,
-  STORE_FEATURE_NATIVE_DEFER_FLUSH = 16,
   STORE_FEATURE_SELF_BUFFERED = 32,
   StoreFeature_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
@@ -102,7 +99,7 @@ inline constexpr StoreFeature StoreFeature_MIN =
 inline constexpr StoreFeature StoreFeature_MAX =
     static_cast<StoreFeature>(32);
 inline bool StoreFeature_IsValid(int value) {
-  return 0 <= value && value <= 32 && ((4295033111u >> value) & 1) != 0;
+  return 0 <= value && value <= 32 && ((4294967303u >> value) & 1) != 0;
 }
 inline constexpr int StoreFeature_ARRAYSIZE = 32 + 1;
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL StoreFeature_descriptor();
@@ -507,6 +504,7 @@ class PutOpts final : public ::google::protobuf::Message
     kRefsFieldNumber = 3,
     kForceBlockRefFieldNumber = 2,
     kHashTypeFieldNumber = 1,
+    kSyncFieldNumber = 4,
   };
   // repeated .block.BlockRef refs = 3;
   int refs_size() const;
@@ -550,11 +548,21 @@ class PutOpts final : public ::google::protobuf::Message
   void _internal_set_hash_type(::hash::HashType value);
 
   public:
+  // bool sync = 4;
+  void clear_sync() ;
+  bool sync() const;
+  void set_sync(bool value);
+
+  private:
+  bool _internal_sync() const;
+  void _internal_set_sync(bool value);
+
+  public:
   // @@protoc_insertion_point(class_scope:block.PutOpts)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 3,
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
                                    2, 0,
                                    2>
       _table_;
@@ -579,6 +587,7 @@ class PutOpts final : public ::google::protobuf::Message
     ::google::protobuf::RepeatedPtrField< ::block::BlockRef > refs_;
     ::block::BlockRef* PROTOBUF_NULLABLE force_block_ref_;
     int hash_type_;
+    bool sync_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -878,6 +887,31 @@ inline ::google::protobuf::RepeatedPtrField<::block::BlockRef>* PROTOBUF_NONNULL
 PutOpts::_internal_mutable_refs() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.refs_;
+}
+
+// bool sync = 4;
+inline void PutOpts::clear_sync() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.sync_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline bool PutOpts::sync() const {
+  // @@protoc_insertion_point(field_get:block.PutOpts.sync)
+  return _internal_sync();
+}
+inline void PutOpts::set_sync(bool value) {
+  _internal_set_sync(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:block.PutOpts.sync)
+}
+inline bool PutOpts::_internal_sync() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.sync_;
+}
+inline void PutOpts::_internal_set_sync(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.sync_ = value;
 }
 
 #ifdef __GNUC__

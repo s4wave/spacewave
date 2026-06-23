@@ -181,7 +181,7 @@ func CopyValueToBucket(
 		}
 		err = handle.AccessStorage(ctx, nil, func(bls *bucket_lookup.Cursor) error {
 			var berr error
-			outputRef, _, berr = bls.PutBlock(ctx, rootBlockData, nil)
+			outputRef, _, berr = bls.PutBlock(ctx, rootBlockData, &block.PutOpts{Sync: true})
 			return berr
 		})
 		if err != nil {

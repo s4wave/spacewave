@@ -43,6 +43,10 @@ type Volume interface {
 	// Returns total bytes and block count from the underlying storage backend.
 	GetStorageStats(ctx context.Context) (*StorageStats, error)
 
+	// Sync is the volume-owned durability barrier. StoreOps.Sync callers still
+	// fence durability through this method when the store is a Volume.
+	Sync(ctx context.Context) (bool, error)
+
 	// Store indicates the volume is a hydra store.
 	store.Store
 

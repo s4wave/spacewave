@@ -77,11 +77,6 @@ func (k *KVTx) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry
 	return k.blk.PutBlockBatch(ctx, entries)
 }
 
-// PutBlockBackground forwards background writes to the underlying block store when supported.
-func (k *KVTx) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	return k.blk.PutBlockBackground(ctx, data, opts)
-}
-
 // Sync forwards the durability barrier to the underlying block store.
 func (k *KVTx) Sync(ctx context.Context) (bool, error) {
 	return k.blk.Sync(ctx)

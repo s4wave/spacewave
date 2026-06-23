@@ -234,73 +234,6 @@ func (x *PutBlockBatchResponse) GetError() string {
 	return ""
 }
 
-// PutBlockBackgroundRequest requests to put a block in the background.
-type PutBlockBackgroundRequest struct {
-	unknownFields []byte
-	// Data is the data to put into the store.
-	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
-	// PutOpts are any options when putting the block into the store.
-	PutOpts *block.PutOpts `protobuf:"bytes,2,opt,name=put_opts,json=putOpts,proto3" json:"putOpts,omitempty"`
-}
-
-func (x *PutBlockBackgroundRequest) Reset() {
-	*x = PutBlockBackgroundRequest{}
-}
-
-func (*PutBlockBackgroundRequest) ProtoMessage() {}
-
-func (x *PutBlockBackgroundRequest) GetData() []byte {
-	if x != nil {
-		return x.Data
-	}
-	return nil
-}
-
-func (x *PutBlockBackgroundRequest) GetPutOpts() *block.PutOpts {
-	if x != nil {
-		return x.PutOpts
-	}
-	return nil
-}
-
-// PutBlockBackgroundResponse is the response to a background put.
-type PutBlockBackgroundResponse struct {
-	unknownFields []byte
-	// Ref is the reference of the added block.
-	Ref *block.BlockRef `protobuf:"bytes,1,opt,name=ref,proto3" json:"ref,omitempty"`
-	// Existed indicates the block already existed.
-	Existed bool `protobuf:"varint,2,opt,name=existed,proto3" json:"existed,omitempty"`
-	// Error is any error adding the block to the store.
-	Error string `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
-}
-
-func (x *PutBlockBackgroundResponse) Reset() {
-	*x = PutBlockBackgroundResponse{}
-}
-
-func (*PutBlockBackgroundResponse) ProtoMessage() {}
-
-func (x *PutBlockBackgroundResponse) GetRef() *block.BlockRef {
-	if x != nil {
-		return x.Ref
-	}
-	return nil
-}
-
-func (x *PutBlockBackgroundResponse) GetExisted() bool {
-	if x != nil {
-		return x.Existed
-	}
-	return false
-}
-
-func (x *PutBlockBackgroundResponse) GetError() string {
-	if x != nil {
-		return x.Error
-	}
-	return ""
-}
-
 // GetBlockRequest requests to get a block from the store.
 type GetBlockRequest struct {
 	unknownFields []byte
@@ -672,11 +605,9 @@ func (m *PutBlockRequest) CloneVT() *PutBlockRequest {
 		return (*PutBlockRequest)(nil)
 	}
 	r := new(PutBlockRequest)
+	r.PutOpts = m.PutOpts.CloneVT()
 	if rhs := m.Data; rhs != nil {
 		r.Data = slices.Clone(rhs)
-	}
-	if rhs := m.PutOpts; rhs != nil {
-		r.PutOpts = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -693,11 +624,9 @@ func (m *PutBlockResponse) CloneVT() *PutBlockResponse {
 		return (*PutBlockResponse)(nil)
 	}
 	r := new(PutBlockResponse)
+	r.Ref = m.Ref.CloneVT()
 	r.Existed = m.Existed
 	r.Error = m.Error
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -713,10 +642,8 @@ func (m *PutBlockBatchEntry) CloneVT() *PutBlockBatchEntry {
 		return (*PutBlockBatchEntry)(nil)
 	}
 	r := new(PutBlockBatchEntry)
+	r.Ref = m.Ref.CloneVT()
 	r.Tombstone = m.Tombstone
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
 	if rhs := m.Data; rhs != nil {
 		r.Data = slices.Clone(rhs)
 	}
@@ -773,55 +700,12 @@ func (m *PutBlockBatchResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *PutBlockBackgroundRequest) CloneVT() *PutBlockBackgroundRequest {
-	if m == nil {
-		return (*PutBlockBackgroundRequest)(nil)
-	}
-	r := new(PutBlockBackgroundRequest)
-	if rhs := m.Data; rhs != nil {
-		r.Data = slices.Clone(rhs)
-	}
-	if rhs := m.PutOpts; rhs != nil {
-		r.PutOpts = rhs.CloneVT()
-	}
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *PutBlockBackgroundRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *PutBlockBackgroundResponse) CloneVT() *PutBlockBackgroundResponse {
-	if m == nil {
-		return (*PutBlockBackgroundResponse)(nil)
-	}
-	r := new(PutBlockBackgroundResponse)
-	r.Existed = m.Existed
-	r.Error = m.Error
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *PutBlockBackgroundResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
 func (m *GetBlockRequest) CloneVT() *GetBlockRequest {
 	if m == nil {
 		return (*GetBlockRequest)(nil)
 	}
 	r := new(GetBlockRequest)
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
+	r.Ref = m.Ref.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -857,9 +741,7 @@ func (m *GetBlockExistsRequest) CloneVT() *GetBlockExistsRequest {
 		return (*GetBlockExistsRequest)(nil)
 	}
 	r := new(GetBlockExistsRequest)
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
+	r.Ref = m.Ref.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -932,9 +814,7 @@ func (m *RmBlockRequest) CloneVT() *RmBlockRequest {
 		return (*RmBlockRequest)(nil)
 	}
 	r := new(RmBlockRequest)
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
+	r.Ref = m.Ref.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -966,9 +846,7 @@ func (m *StatBlockRequest) CloneVT() *StatBlockRequest {
 		return (*StatBlockRequest)(nil)
 	}
 	r := new(StatBlockRequest)
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
+	r.Ref = m.Ref.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -984,12 +862,10 @@ func (m *StatBlockResponse) CloneVT() *StatBlockResponse {
 		return (*StatBlockResponse)(nil)
 	}
 	r := new(StatBlockResponse)
+	r.Ref = m.Ref.CloneVT()
 	r.Size = m.Size
 	r.Exists = m.Exists
 	r.Error = m.Error
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1246,55 +1122,6 @@ func (this *PutBlockBatchResponse) EqualVT(that *PutBlockBatchResponse) bool {
 
 func (this *PutBlockBatchResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*PutBlockBatchResponse)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *PutBlockBackgroundRequest) EqualVT(that *PutBlockBackgroundRequest) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if string(this.Data) != string(that.Data) {
-		return false
-	}
-	if !this.PutOpts.EqualVT(that.PutOpts) {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *PutBlockBackgroundRequest) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*PutBlockBackgroundRequest)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *PutBlockBackgroundResponse) EqualVT(that *PutBlockBackgroundResponse) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if !this.Ref.EqualVT(that.Ref) {
-		return false
-	}
-	if this.Existed != that.Existed {
-		return false
-	}
-	if this.Error != that.Error {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *PutBlockBackgroundResponse) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*PutBlockBackgroundResponse)
 	if !ok {
 		return false
 	}
@@ -2035,122 +1862,6 @@ func (x *PutBlockBatchResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the PutBlockBatchResponse from JSON.
 func (x *PutBlockBatchResponse) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the PutBlockBackgroundRequest message to JSON.
-func (x *PutBlockBackgroundRequest) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if len(x.Data) > 0 || s.HasField("data") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("data")
-		s.WriteBytes(x.Data)
-	}
-	if x.PutOpts != nil || s.HasField("putOpts") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("putOpts")
-		x.PutOpts.MarshalProtoJSON(s.WithField("putOpts"))
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the PutBlockBackgroundRequest to JSON.
-func (x *PutBlockBackgroundRequest) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the PutBlockBackgroundRequest message from JSON.
-func (x *PutBlockBackgroundRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "data":
-			s.AddField("data")
-			x.Data = s.ReadBytes()
-		case "put_opts", "putOpts":
-			if s.ReadNil() {
-				x.PutOpts = nil
-				return
-			}
-			x.PutOpts = &block.PutOpts{}
-			x.PutOpts.UnmarshalProtoJSON(s.WithField("put_opts", true))
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the PutBlockBackgroundRequest from JSON.
-func (x *PutBlockBackgroundRequest) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the PutBlockBackgroundResponse message to JSON.
-func (x *PutBlockBackgroundResponse) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Ref != nil || s.HasField("ref") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("ref")
-		x.Ref.MarshalProtoJSON(s.WithField("ref"))
-	}
-	if x.Existed || s.HasField("existed") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("existed")
-		s.WriteBool(x.Existed)
-	}
-	if x.Error != "" || s.HasField("error") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("error")
-		s.WriteString(x.Error)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the PutBlockBackgroundResponse to JSON.
-func (x *PutBlockBackgroundResponse) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the PutBlockBackgroundResponse message from JSON.
-func (x *PutBlockBackgroundResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "ref":
-			if s.ReadNil() {
-				x.Ref = nil
-				return
-			}
-			x.Ref = &block.BlockRef{}
-			x.Ref.UnmarshalProtoJSON(s.WithField("ref", true))
-		case "existed":
-			s.AddField("existed")
-			x.Existed = s.ReadBool()
-		case "error":
-			s.AddField("error")
-			x.Error = s.ReadString()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the PutBlockBackgroundResponse from JSON.
-func (x *PutBlockBackgroundResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -3164,116 +2875,6 @@ func (m *PutBlockBatchResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
-func (m *PutBlockBackgroundRequest) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *PutBlockBackgroundRequest) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *PutBlockBackgroundRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if m.PutOpts != nil {
-		size, err := m.PutOpts.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.Data) > 0 {
-		i -= len(m.Data)
-		copy(dAtA[i:], m.Data)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Data)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *PutBlockBackgroundResponse) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *PutBlockBackgroundResponse) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *PutBlockBackgroundResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if len(m.Error) > 0 {
-		i -= len(m.Error)
-		copy(dAtA[i:], m.Error)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Error)))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if m.Existed {
-		i--
-		if m.Existed {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x10
-	}
-	if m.Ref != nil {
-		size, err := m.Ref.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *GetBlockRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -3981,45 +3582,6 @@ func (m *PutBlockBatchResponse) SizeVT() (n int) {
 	return n
 }
 
-func (m *PutBlockBackgroundRequest) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Data)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	if m.PutOpts != nil {
-		l = m.PutOpts.SizeVT()
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *PutBlockBackgroundResponse) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.Ref != nil {
-		l = m.Ref.SizeVT()
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	if m.Existed {
-		n += 2
-	}
-	l = len(m.Error)
-	if l > 0 {
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
 func (m *GetBlockRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4427,65 +3989,6 @@ func (x *PutBlockBatchResponse) MarshalProtoText() string {
 }
 
 func (x *PutBlockBatchResponse) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *PutBlockBackgroundRequest) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("PutBlockBackgroundRequest {")
-	if len(x.Data) != 0 {
-		if sb.Len() > 27 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("data: ")
-		sb.WriteString("\"")
-		sb.WriteString(base64.StdEncoding.EncodeToString(x.Data))
-		sb.WriteString("\"")
-	}
-	if x.PutOpts != nil {
-		if sb.Len() > 27 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("put_opts: ")
-		sb.WriteString(x.PutOpts.MarshalProtoText())
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *PutBlockBackgroundRequest) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *PutBlockBackgroundResponse) MarshalProtoText() string {
-	var sb strings.Builder
-	sb.WriteString("PutBlockBackgroundResponse {")
-	if x.Ref != nil {
-		if sb.Len() > 28 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("ref: ")
-		sb.WriteString(x.Ref.MarshalProtoText())
-	}
-	if x.Existed != false {
-		if sb.Len() > 28 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("existed: ")
-		sb.WriteString(strconv.FormatBool(x.Existed))
-	}
-	if x.Error != "" {
-		if sb.Len() > 28 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("error: ")
-		sb.WriteString(strconv.Quote(x.Error))
-	}
-	sb.WriteString("}")
-	return sb.String()
-}
-
-func (x *PutBlockBackgroundResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -5393,208 +4896,6 @@ func (m *PutBlockBatchResponse) UnmarshalVT(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
-			}
-			var stringLen uint64
-			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Error = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *PutBlockBackgroundRequest) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: PutBlockBackgroundRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: PutBlockBackgroundRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
-			}
-			var byteLen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			byteLen = int(_v)
-			if err != nil {
-				return err
-			}
-			if byteLen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Data = append(m.Data[:0], dAtA[iNdEx:postIndex]...)
-			if m.Data == nil {
-				m.Data = []byte{}
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PutOpts", wireType)
-			}
-			var msglen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			msglen = int(_v)
-			if err != nil {
-				return err
-			}
-			if msglen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.PutOpts == nil {
-				m.PutOpts = &block.PutOpts{}
-			}
-			if err := m.PutOpts.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *PutBlockBackgroundResponse) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: PutBlockBackgroundResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: PutBlockBackgroundResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Ref", wireType)
-			}
-			var msglen int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			msglen = int(_v)
-			if err != nil {
-				return err
-			}
-			if msglen < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Ref == nil {
-				m.Ref = &block.BlockRef{}
-			}
-			if err := m.Ref.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Existed", wireType)
-			}
-			var v int
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			v = int(_v)
-			if err != nil {
-				return err
-			}
-			m.Existed = bool(v != 0)
-		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
 			}

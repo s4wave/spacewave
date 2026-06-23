@@ -203,6 +203,7 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 			opts.HashType = ht
 		}
 	}
+	putOpts, syncRequested := block.PutOptsWithoutSync(opts)
 
 	// store will hash the data, route through GCStoreOps if available.
 	// Bucket writes do not have a later commit hook, so bucket-level GC
@@ -214,7 +215,7 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 	)
 	if b.gcOps != nil {
 		taskCtx, subtask := trace.NewTask(ctx, "hydra/volume/bucket-handle/put-block/gc-put-block")
-		br, existed, err = b.gcOps.PutBlock(taskCtx, data, opts)
+		br, existed, err = b.gcOps.PutBlock(taskCtx, data, putOpts)
 		subtask.End()
 		if err != nil {
 			return nil, false, err
@@ -227,11 +228,16 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 		subtask.End()
 	} else {
 		taskCtx, subtask := trace.NewTask(ctx, "hydra/volume/bucket-handle/put-block/volume-put-block")
-		br, existed, err = b.v.PutBlock(taskCtx, data, opts)
+		br, existed, err = b.v.PutBlock(taskCtx, data, putOpts)
 		subtask.End()
 	}
 	if err != nil {
 		return nil, false, err
+	}
+	if syncRequested {
+		if _, err := b.Sync(ctx); err != nil {
+			return br, existed, err
+		}
 	}
 
 	return br, existed, nil
@@ -293,13 +299,13 @@ func (b *bucketHandle) GetSupportedFeatures() block.StoreFeature {
 		return block.StoreFeature_STORE_FEATURE_UNKNOWN
 	}
 	if b.readOps != nil {
-		return b.readOps.GetSupportedFeatures() | block.StoreFeatureNativeDeferFlush
+		return b.readOps.GetSupportedFeatures()
 	}
 	features := b.v.GetSupportedFeatures()
 	if b.gcOps != nil {
 		features = b.gcOps.GetSupportedFeatures()
 	}
-	return features | block.StoreFeatureNativeDeferFlush
+	return features
 }
 
 // BeginReadOperation opens a read scope for the bucket's volume reads.
@@ -423,17 +429,9 @@ func (b *bucketHandle) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return nil
 }
 
-// PutBlockBackground writes a block at background priority.
-func (b *bucketHandle) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	return b.PutBlock(ctx, data, opts)
-}
-
 // Sync makes bucket-level GC writes durable, then fences the volume.
 func (b *bucketHandle) Sync(ctx context.Context) (bool, error) {
 	if b.gcOps != nil {
-		if _, err := b.gcOps.Sync(ctx); err != nil {
-			return false, err
-		}
 		if err := b.gcOps.FlushPending(ctx); err != nil {
 			return false, err
 		}

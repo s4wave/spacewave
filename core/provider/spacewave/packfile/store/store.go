@@ -496,11 +496,6 @@ func (s *PackfileStore) PutBlockBatch(_ context.Context, entries []*block.PutBat
 	return block_store.ErrReadOnly
 }
 
-// PutBlockBackground is not supported on a read-only store.
-func (s *PackfileStore) PutBlockBackground(_ context.Context, _ []byte, _ *block.PutOpts) (*block.BlockRef, bool, error) {
-	return nil, false, block_store.ErrReadOnly
-}
-
 // RmBlock is not supported on a read-only store.
 func (s *PackfileStore) RmBlock(_ context.Context, _ *block.BlockRef) error {
 	return block_store.ErrReadOnly

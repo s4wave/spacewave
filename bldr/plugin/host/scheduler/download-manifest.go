@@ -78,6 +78,9 @@ func (t *pluginInstance) execDownloadManifest(
 					return errors.Wrap(err, "store local manifest ref")
 				}
 			}
+			if _, err := ws.Sync(ctx); err != nil {
+				return errors.Wrap(err, "sync local manifest blocks")
+			}
 			le.Info("manifest download complete")
 			return nil
 		})

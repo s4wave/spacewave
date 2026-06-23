@@ -364,16 +364,6 @@ func (s *releaseCDNFallbackWritebackStore) PutBlockBatch(
 	return err
 }
 
-func (s *releaseCDNFallbackWritebackStore) PutBlockBackground(
-	ctx context.Context,
-	data []byte,
-	opts *block.PutOpts,
-) (*block.BlockRef, bool, error) {
-	ref, existed, err := s.StoreOps.PutBlockBackground(ctx, data, opts)
-	s.notifyPut(err)
-	return ref, existed, err
-}
-
 func (s *releaseCDNFallbackWritebackStore) notifyPut(err error) {
 	if err != nil {
 		return

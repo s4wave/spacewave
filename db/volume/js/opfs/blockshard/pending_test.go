@@ -10,11 +10,11 @@ import (
 	"github.com/s4wave/spacewave/db/volume/js/opfs/segment"
 )
 
-// TestBackgroundWriteReadsBackBeforePublish proves the continuous-write path: a
-// background write returns before it is published, reads back from the engine
+// TestDefaultWriteReadsBackBeforePublish proves the continuous-write path: a
+// default write returns before it is published, reads back from the engine
 // buffer while still unpublished (generation unchanged), and Sync fences it so
 // the buffer fully drains and the value persists in the manifest.
-func TestBackgroundWriteReadsBackBeforePublish(t *testing.T) {
+func TestDefaultWriteReadsBackBeforePublish(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 1
 	settings.AsyncIO = true
@@ -22,7 +22,7 @@ func TestBackgroundWriteReadsBackBeforePublish(t *testing.T) {
 	defer cleanup()
 
 	store := NewBlockStore(e, block.DefaultHashType)
-	ref, existed, err := store.PutBlockBackground(context.Background(), []byte("buffered"), nil)
+	ref, existed, err := store.PutBlock(context.Background(), []byte("buffered"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

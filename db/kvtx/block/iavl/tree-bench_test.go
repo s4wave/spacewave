@@ -131,18 +131,6 @@ func (s *benchBlockStore) PutBlockBatch(ctx context.Context, entries []*block.Pu
 	return nil
 }
 
-func (s *benchBlockStore) PutBlockBackground(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	ref, found, err := s.inner.PutBlockBackground(ctx, data, opts)
-	if err == nil {
-		s.putBlocks.Add(1)
-		s.putBytes.Add(int64(len(data)))
-		if opts != nil {
-			s.putRefs.Add(int64(len(opts.Refs)))
-		}
-	}
-	return ref, found, err
-}
-
 func (s *benchBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	data, found, err := s.inner.GetBlock(ctx, ref)
 	if err == nil {
