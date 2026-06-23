@@ -921,6 +921,15 @@ const maxCoalesceRounds = 16
 // background requests from starving under sustained foreground load.
 const bgStarvationLimit = 4
 
+// bgCoalesceTargetEntries is the per-shard pending depth a background-only
+// publish cycle accumulates toward before flushing. A serial PutBackground feed
+// wakes the actor once per block, so without coalescing the actor publishes one
+// or two entries per cycle; draining toward this depth batches the feed into far
+// fewer publishes. The target stays well below the full in-flight buffer because
+// an oversized segment write costs more than the fixed per-publish lock and
+// manifest tax it saves.
+const bgCoalesceTargetEntries = 32
+
 // runActor is the per-shard write actor goroutine.
 // Pipeline model: publish immediately on first entry, accumulate the queue
 // behind running I/O, and batch whatever arrived during publish as the next
@@ -935,7 +944,10 @@ const bgStarvationLimit = 4
 // Coalescing: after the first request, the actor yields and drains repeatedly
 // until no new requests arrive or maxCoalesceRounds is reached. This collapses
 // commit-burst traffic into fewer, larger publishes without adding latency to
-// singleton puts.
+// singleton puts. A background-only cycle additionally accumulates toward
+// bgCoalesceTargetEntries before flushing, so a serial PutBackground feed
+// batches into deep publishes instead of one per block; foreground and barrier
+// cycles never wait on depth.
 func (e *Engine) runActor(ctx context.Context, actor *shardActor) {
 	defer e.wg.Done()
 	shardIdx := actor.shardIdx
@@ -974,34 +986,43 @@ func (e *Engine) runActor(ctx context.Context, actor *shardActor) {
 		// Drain foreground channel (always first priority).
 		e.drainCh(fgCh, &reqs)
 
-		// A Sync barrier must fence earlier background writes too, so force a
-		// background drain for this cycle when one is queued.
+		// Classify the cycle. A foreground write's publish latency must be
+		// protected; a Sync barrier must fence earlier background writes now; a
+		// background-only cycle has neither constraint and may coalesce deeply.
 		barrierPresent := hasBarrier(reqs)
+		cycleHasForeground := hasForeground(reqs)
+		backgroundOnly := !barrierPresent && !cycleHasForeground
 
-		// Drain background channel when foreground is empty, the starvation
-		// limit is reached, or a barrier must fence pending background work.
+		// Drain the background channel into this cycle when the cycle is
+		// background-only (a serial PutBackground feed coalesces instead of
+		// waking the actor per block), when sustained foreground has starved
+		// background, or when a barrier must fence pending background writes.
 		hasBg := len(bgCh) > 0
-		hasFg := len(reqs) > 0
-		drainBg := hasBg && (!hasFg || fgOnly >= bgStarvationLimit || barrierPresent)
+		drainBg := backgroundOnly || (hasBg && (fgOnly >= bgStarvationLimit || barrierPresent))
 		if drainBg {
 			e.drainCh(bgCh, &reqs)
 			fgOnly = 0
-		} else if hasFg && !hasBg {
+		} else if cycleHasForeground && !hasBg {
 			fgOnly++
 		}
 
-		// Coalescing yield-drain loop: repeat yield+drain until no new
-		// requests arrive or maxCoalesceRounds is reached. Singleton puts
-		// (nothing queued after first round) publish immediately.
-		// Only drain the background channel during coalescing when the
-		// starvation/empty condition was met for this cycle, otherwise
-		// background entries would inflate foreground publish latency.
+		// Coalescing yield-drain loop: repeat yield+drain until no new requests
+		// arrive or maxCoalesceRounds is reached. Singleton puts (nothing queued
+		// after the first round) publish immediately. A background-only cycle
+		// keeps draining until the shard buffer reaches bgCoalesceTargetEntries,
+		// letting a serial producer fill the buffer before the publish; the
+		// background channel is drained only when the background-only,
+		// starvation, or barrier condition was met for this cycle, so background
+		// entries cannot inflate foreground publish latency.
 		for range maxCoalesceRounds {
 			runtime.Gosched()
 			prevLen := len(reqs)
 			e.drainCh(fgCh, &reqs)
 			if drainBg {
 				e.drainCh(bgCh, &reqs)
+			}
+			if backgroundOnly && e.pending[shardIdx].length() >= bgCoalesceTargetEntries {
+				break
 			}
 			if len(reqs) == prevLen {
 				break
@@ -1013,12 +1034,7 @@ func (e *Engine) runActor(ctx context.Context, actor *shardActor) {
 		// carries no entry, and a write already published by an earlier
 		// coalesced cycle is no longer buffered, so an empty snapshot means the
 		// fence is already satisfied: reply without an empty publish.
-		hasForegroundReq := false
-		for i := range reqs {
-			if !reqs[i].barrier && !reqs[i].background {
-				hasForegroundReq = true
-			}
-		}
+		hasForegroundReq := hasForeground(reqs)
 
 		snapshot, snapshotSeqs := e.pending[shardIdx].snapshot()
 		if len(snapshot) == 0 {
@@ -1107,6 +1123,18 @@ func (e *Engine) runCompactReq(ctx context.Context, shardIdx int, shard *Shard) 
 func hasBarrier(reqs []writeReq) bool {
 	for i := range reqs {
 		if reqs[i].barrier {
+			return true
+		}
+	}
+	return false
+}
+
+// hasForeground reports whether any request in reqs is a foreground write, whose
+// publish latency the actor must protect. A background write or a Sync barrier is
+// not a foreground write.
+func hasForeground(reqs []writeReq) bool {
+	for i := range reqs {
+		if !reqs[i].barrier && !reqs[i].background {
 			return true
 		}
 	}
