@@ -1948,6 +1948,14 @@ func runVolumeCoordinatorBroadcast(ctx context.Context, c *config) error {
 	if _, _, err := vol.PutBlock(ctx, []byte("volume-coord-broadcast"), nil); err != nil {
 		return errors.Wrap(err, "put broadcast block")
 	}
+	// PutBlock is async by default: its blockshard publish, which fires the
+	// cross-worker BroadcastChannel wakeup the watcher waits for, is deferred.
+	// A cross-worker coordinator change is observable only once fenced at the
+	// volume commit boundary, so Sync here as a production writer would before
+	// the watcher can rely on seeing the advanced generation.
+	if _, err := vol.Sync(ctx); err != nil {
+		return errors.Wrap(err, "sync broadcast")
+	}
 	return nil
 }
 
