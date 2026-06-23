@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"slices"
 	"sync"
+	"sync/atomic"
 
 	trace "github.com/s4wave/spacewave/db/traceutil"
 
@@ -292,6 +293,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	reachable := make(map[int64]transactionReachableNode, 1)
 	_, subtask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/mark-reachable")
 	{
+		var reachableEdges int
 		nodStack := []graph.Node{writeRoot}
 		for len(nodStack) != 0 {
 			nn := nodStack[len(nodStack)-1]
@@ -311,11 +313,13 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 					nodStack = append(nodStack, to)
 				}
 			}
+			reachableEdges += len(fromNodes)
 			reachable[nn.ID()] = transactionReachableNode{
 				from:       fromNodes,
 				encodeDone: make(chan struct{}),
 			}
 		}
+		trace.Logf(ctx, "hydra/block/transaction/write-at-root/reachable", "nodes=%d edges=%d", len(reachable), reachableEdges)
 	}
 	subtask.End()
 
@@ -328,6 +332,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	if err != nil {
 		return nil, nil, err
 	}
+	trace.Logf(ctx, "hydra/block/transaction/write-at-root/topo", "nodes=%d", len(nods))
 
 	// hashType is the hash type we will use to build BlockRefs
 	hashType := t.putOpts.GetHashType()
@@ -365,6 +370,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 				unreachableNodes = append(unreachableNodes, bn)
 			}
 		}
+		trace.Logf(ctx, "hydra/block/transaction/write-at-root/unreachable", "nodes=%d", len(unreachableNodes))
 		subtask.End()
 	}
 
@@ -375,6 +381,9 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	// concurrently marshal + transform + hash blocks.
 	// after hashing: write the updated BlockRef to parent blocks.
 	// push the marshalled blocks to the block write queue.
+	var dirtyNodes int
+	var encodedBlocks atomic.Int64
+	var putBlocks atomic.Int64
 	_, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/schedule-workers")
 	for _, v := range slices.Backward(nods) {
 		nod := v
@@ -416,6 +425,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 			}()
 			continue
 		}
+		dirtyNodes++
 
 		encodeQueue.Enqueue(func() {
 			defer close(reachableNod.encodeDone)
@@ -461,6 +471,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 						handleErr(err)
 						return
 					}
+					encodedBlocks.Add(1)
 
 					// use an empty BlockRef to represent empty blocks
 					if len(dat) == 0 {
@@ -495,6 +506,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 
 						writeQueue.Enqueue(func() {
 							writeCtx, writeTask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/put-block")
+							putBlocks.Add(1)
 							// ensure that the wrote ref == the expected.
 							wroteRef, _, err := writeStore.PutBlock(writeCtx, dat, putOpts)
 							writeTask.End()
@@ -562,6 +574,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 			mtx.Unlock()
 		})
 	}
+	trace.Logf(ctx, "hydra/block/transaction/write-at-root/dirty", "nodes=%d reachable=%d", dirtyNodes, len(reachable))
 	subtask.End()
 
 	// wait for all tasks to complete
@@ -577,9 +590,12 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	if err != nil {
 		return nil, nil, err
 	}
+	trace.Logf(ctx, "hydra/block/transaction/write-at-root/write-shape", "encoded_blocks=%d put_blocks=%d", encodedBlocks.Load(), putBlocks.Load())
 	if buffered != nil {
 		taskCtx, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/drain-write-store")
+		buffered.logPendingShape(taskCtx, "hydra/block/transaction/write-at-root/drain-write-store/before")
 		err = buffered.drainAll(taskCtx)
+		buffered.logPendingShape(taskCtx, "hydra/block/transaction/write-at-root/drain-write-store/after")
 		subtask.End()
 		if err != nil {
 			return nil, nil, err

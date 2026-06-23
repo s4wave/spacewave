@@ -518,6 +518,24 @@ build("release-web-e2e-dist",
         ),
     },
 )
+build("release-web-e2e-tinygo-core",
+    manifests=["spacewave-core"],
+    targets=["browser"],
+    manifestOverrides={
+        "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_TINYGO"),
+    },
+)
+build("release-web-e2e-tinygo-assets",
+    manifests=[
+        "spacewave-launcher",
+        "spacewave-core", "spacewave-web", "spacewave-app", "web",
+    ],
+    targets=["browser"],
+    manifestOverrides={
+        "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_TINYGO"),
+        "spacewave-launcher": e2e_release_wasm_launcher_config(),
+    },
+)
 build("release-web-tinygo",
     manifests=BROWSER_RELEASE_MANIFESTS,
     targets=["browser"],

@@ -440,6 +440,14 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	if len(unrefs) == 0 && len(refs) == 0 && len(ununrefs) == 0 {
 		return nil
 	}
+	trace.Logf(
+		ctx,
+		"hydra/block-gc/store/flush-pending/pending",
+		"unrefs=%d refs=%d ununrefs=%d",
+		len(unrefs),
+		len(refs),
+		len(ununrefs),
+	)
 
 	parent := g.parentIRI
 	if parent == "" {
@@ -458,27 +466,46 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	for _, iri := range ununrefs {
 		removes = append(removes, RefEdge{Subject: parent, Object: iri})
 	}
+	preNormalizeAdds := len(adds)
+	preNormalizeRemoves := len(removes)
+	_, normalizeTask := trace.NewTask(ctx, "hydra/block-gc/store/flush-pending/normalize")
 	adds, removes = normalizeRefEdges(adds, removes)
+	normalizeTask.End()
+	trace.Logf(
+		ctx,
+		"hydra/block-gc/store/flush-pending/normalized",
+		"adds_before=%d removes_before=%d adds_after=%d removes_after=%d",
+		preNormalizeAdds,
+		preNormalizeRemoves,
+		len(adds),
+		len(removes),
+	)
 	if len(adds) == 0 && len(removes) == 0 {
 		return nil
 	}
 
 	if g.wal != nil {
-		if err := g.wal.Append(ctx, adds, removes); err != nil {
+		walCtx, walTask := trace.NewTask(ctx, "hydra/block-gc/store/flush-pending/wal-append")
+		if err := g.wal.Append(walCtx, adds, removes); err != nil {
+			walTask.End()
 			if ctx.Err() != nil {
 				return context.Canceled
 			}
 			return errors.Wrap(err, "flush WAL append")
 		}
+		walTask.End()
 		return nil
 	}
 
-	if err := g.refGraph.ApplyRefBatch(ctx, adds, removes); err != nil {
+	batchCtx, batchTask := trace.NewTask(ctx, "hydra/block-gc/store/flush-pending/apply-ref-batch")
+	if err := g.refGraph.ApplyRefBatch(batchCtx, adds, removes); err != nil {
+		batchTask.End()
 		if ctx.Err() != nil {
 			return context.Canceled
 		}
 		return errors.Wrap(err, "flush ref batch")
 	}
+	batchTask.End()
 	return nil
 }
 

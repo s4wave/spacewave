@@ -70,6 +70,7 @@ func (rg *RefGraph) AddRef(ctx context.Context, subject, object string) error {
 	ctx = disableStoreTracking(ctx)
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/add-ref")
 	defer task.End()
+	trace.Log(ctx, "hydra/block-gc/refgraph/add-ref/shape", "edges=1")
 
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/block-gc/refgraph/add-ref/build-quad")
 	q := quad.Make(quad.IRI(subject), quad.IRI(PredGCRef), quad.IRI(object), nil)
@@ -95,13 +96,23 @@ func (rg *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) 
 	ctx = disableStoreTracking(ctx)
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/apply-ref-batch")
 	defer task.End()
+	trace.Logf(
+		ctx,
+		"hydra/block-gc/refgraph/apply-ref-batch/shape",
+		"adds=%d removes=%d limit=%d",
+		len(adds),
+		len(removes),
+		refGraphApplyBatchLimit,
+	)
 
 	if len(adds) == 0 && len(removes) == 0 {
 		return nil
 	}
 
+	chunks := 0
 	for len(adds) != 0 {
 		n := min(len(adds), refGraphApplyBatchLimit)
+		chunks++
 		if err := rg.applyRefBatch(ctx, adds[:n], nil); err != nil {
 			return err
 		}
@@ -109,15 +120,21 @@ func (rg *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) 
 	}
 	for len(removes) != 0 {
 		n := min(len(removes), refGraphApplyBatchLimit)
+		chunks++
 		if err := rg.applyRefBatch(ctx, nil, removes[:n]); err != nil {
 			return err
 		}
 		removes = removes[n:]
 	}
+	trace.Logf(ctx, "hydra/block-gc/refgraph/apply-ref-batch/chunks", "chunks=%d", chunks)
 	return nil
 }
 
 func (rg *RefGraph) applyRefBatch(ctx context.Context, adds, removes []RefEdge) error {
+	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/apply-ref-batch/apply-transaction")
+	defer task.End()
+	trace.Logf(ctx, "hydra/block-gc/refgraph/apply-ref-batch/apply-transaction/shape", "adds=%d removes=%d", len(adds), len(removes))
+
 	n := len(adds) + len(removes)
 	tx := graph.NewTransactionN(n)
 	for _, e := range adds {

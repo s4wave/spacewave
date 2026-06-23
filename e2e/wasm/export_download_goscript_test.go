@@ -71,6 +71,30 @@ func TestGoScriptProjectedExportDownloadBrowserParity(t *testing.T) {
 		t.Fatalf("single-file download body mismatch: %q", string(fileDownload))
 	}
 
+	spacedFileURL := projectedExportPluginPathPrefix + "/fs/" + buildProjectedObjectContentPath(
+		scenario.GetSessionIndex(),
+		scenario.GetSpaceID(),
+		seed.objectKey,
+		seed.spacedFileName,
+	) + "?inline=1"
+	spacedProbe := probeDownloadURL(t, page, spacedFileURL)
+	if spacedProbe.status != 200 {
+		t.Fatalf(
+			"inline spaced-file fetch %s status=%d content-type=%q content-disposition=%q body=%q",
+			spacedFileURL,
+			spacedProbe.status,
+			spacedProbe.contentType,
+			spacedProbe.contentDisposition,
+			string(spacedProbe.body),
+		)
+	}
+	if string(spacedProbe.body) != "row7 spaced mp4\n" {
+		t.Fatalf("inline spaced-file body mismatch: %q", string(spacedProbe.body))
+	}
+	if spacedProbe.contentDisposition != "" {
+		t.Fatalf("inline spaced-file content-disposition = %q, want empty", spacedProbe.contentDisposition)
+	}
+
 	wholeSpaceZip := readZipEntries(t, downloadViaAnchor(
 		t,
 		page,
@@ -112,9 +136,10 @@ func TestGoScriptProjectedExportDownloadBrowserParity(t *testing.T) {
 }
 
 type projectedExportSeed struct {
-	objectKey string
-	fileName  string
-	dirName   string
+	objectKey      string
+	fileName       string
+	spacedFileName string
+	dirName        string
 }
 
 func seedGoScriptProjectedExportFixtures(t testing.TB, page playwright.Page) projectedExportSeed {
@@ -202,11 +227,20 @@ func seedGoScriptProjectedExportFixtures(t testing.TB, page playwright.Page) pro
 			step = 'write-fixtures'
 			const suffix = String(Date.now()) + '-' + Math.random().toString(36).slice(2, 8)
 			const fileName = 'row7-file-' + suffix + '.txt'
+			const spacedFileName = 'what is this-' + suffix + '.mp4'
 			const dirName = 'row7-dir-' + suffix
 			await rootHandle.uploadFile(
 				fileName,
 				17n,
 				streamFromText('row7 single file\n'),
+				0o644,
+				undefined,
+				abort,
+			)
+			await rootHandle.uploadFile(
+				spacedFileName,
+				16n,
+				streamFromText('row7 spaced mp4\n'),
 				0o644,
 				undefined,
 				abort,
@@ -234,12 +268,14 @@ func seedGoScriptProjectedExportFixtures(t testing.TB, page playwright.Page) pro
 				abort,
 			)
 			await expectText(rootHandle, fileName, 'row7 single file\n', abort)
+			await expectText(rootHandle, spacedFileName, 'row7 spaced mp4\n', abort)
 			await expectText(rootHandle, dirName + '/alpha.txt', 'row7 dir alpha\n', abort)
 			await expectText(rootHandle, dirName + '/nested/beta.txt', 'row7 dir beta\n', abort)
 
 			return {
 				objectKey: unixfsObjectKey,
 				fileName,
+				spacedFileName,
 				dirName,
 			}
 		} catch (err) {
@@ -268,14 +304,16 @@ func seedGoScriptProjectedExportFixtures(t testing.TB, page playwright.Page) pro
 		t.Fatalf("projected export seed returned no object key: %#v", result)
 	}
 	fileName := stringField(result, "fileName")
+	spacedFileName := stringField(result, "spacedFileName")
 	dirName := stringField(result, "dirName")
-	if fileName == "" || dirName == "" {
+	if fileName == "" || spacedFileName == "" || dirName == "" {
 		t.Fatalf("projected export seed returned incomplete fixture names: %#v", result)
 	}
 	return projectedExportSeed{
-		objectKey: objectKey,
-		fileName:  fileName,
-		dirName:   dirName,
+		objectKey:      objectKey,
+		fileName:       fileName,
+		spacedFileName: spacedFileName,
+		dirName:        dirName,
 	}
 }
 

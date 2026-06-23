@@ -263,7 +263,7 @@ func buildReleaseWeb(ctx context.Context, repoRoot string) error {
 		return errors.Wrap(err, "apply release wasm TinyGo compiler env")
 	}
 	if compiler == releaseWasmCompilerTinyGo {
-		return runBun(ctx, repoRoot, "run", "bldr", "--", "--state-path=.bldr-dist", "--build-type=release", "build", "-b", "release-web-e2e-tinygo")
+		return runBun(ctx, repoRoot, "run", "build:release:web:e2e:tinygo")
 	}
 	return runBun(ctx, repoRoot, "run", releaseWasmBuildScript())
 }

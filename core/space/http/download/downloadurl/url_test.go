@@ -17,3 +17,13 @@ func TestParseGitRepoMetadataPath(t *testing.T) {
 		t.Fatalf("projectedPath: got %q", req.ProjectedPath)
 	}
 }
+
+func TestParseDecodesProjectedFileSegments(t *testing.T) {
+	req, err := Parse("/fs/u/1/so/space-download/-/files/-/what%20is%20this.mp4")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if req.ProjectedPath != "u/1/so/space-download/-/files/-/what is this.mp4" {
+		t.Fatalf("projectedPath: got %q", req.ProjectedPath)
+	}
+}

@@ -136,6 +136,7 @@ jobs:
             echo "sha=${GITHUB_SHA}"
             echo "compiler=tinygo"
             echo "build_script=build:release:web:e2e:tinygo"
+            echo "build_sequence=core,assets,dist"
             echo "BLDR_TINYGO_PROFILE=${BLDR_TINYGO_PROFILE}"
             echo "BLDR_TINYGO_GC=${BLDR_TINYGO_GC}"
             go version

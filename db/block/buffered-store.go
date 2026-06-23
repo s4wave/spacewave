@@ -395,6 +395,18 @@ func (s *BufferedStore) drainAll(ctx context.Context) error {
 	}
 }
 
+func (s *BufferedStore) logPendingShape(ctx context.Context, category string) {
+	var pending int
+	var queued int
+	var pendingBytes int
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		pending = len(s.pending)
+		queued = len(s.queue)
+		pendingBytes = s.pendingBytes
+	})
+	trace.Logf(ctx, category, "pending=%d queued=%d bytes=%d", pending, queued, pendingBytes)
+}
+
 func (s *BufferedStore) drainNextBatch(ctx context.Context) (bool, error) {
 	var batch *drainBatch
 	var drainErr error
