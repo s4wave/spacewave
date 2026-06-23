@@ -3,8 +3,6 @@
 package browser_storage
 
 import (
-	"runtime"
-
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
@@ -43,7 +41,7 @@ func (s *OpfsStorage) BuildVolumeConfig(id string, baseVolCtrlConf *volume_contr
 	return &volume_opfs.Config{
 		RootPath:                 rootPath,
 		LockPrefix:               rootPath,
-		AsyncIo:                  runtime.Compiler == "tinygo",
+		AsyncIo:                  true,
 		BlockShardCount:          blockshard.DefaultShardCount,
 		BlockCompactionTrigger:   8,
 		BlockMaxSegmentDataBytes: blockshard.DefaultMaxSegmentDataBytes,

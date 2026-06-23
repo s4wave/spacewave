@@ -3,7 +3,6 @@
 package browser_storage
 
 import (
-	"runtime"
 	"testing"
 
 	volume_opfs "github.com/s4wave/spacewave/db/volume/js/opfs"
@@ -21,8 +20,8 @@ func TestOpfsStorageBuildsV2RuntimeConfig(t *testing.T) {
 	if !ok {
 		t.Fatalf("BuildVolumeConfig returned %T, want *volume_opfs.Config", conf)
 	}
-	if got, want := opfsConf.GetAsyncIo(), runtime.Compiler == "tinygo"; got != want {
-		t.Fatalf("AsyncIo = %v, want %v", got, want)
+	if !opfsConf.GetAsyncIo() {
+		t.Fatal("AsyncIo = false, want true")
 	}
 	if got, want := opfsConf.GetRootPath(), "prefix/state"; got != want {
 		t.Fatalf("RootPath = %q, want %q", got, want)
