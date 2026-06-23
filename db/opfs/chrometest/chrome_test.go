@@ -122,6 +122,65 @@ func TestOpfsChromeConcurrentBlockReadersWriters(t *testing.T) {
 	})
 }
 
+// TestOpfsChromeMaterializeFanout measures how the block feed pattern changes
+// first-run manifest materialization cost. The production scheduler feeds
+// bucket_lookup.CopyObjectToBucket at maxConcurrency=1 (one foreground-awaited
+// PutBlock per block), so each block becomes its own OPFS Publish with the full
+// Web Lock + sync-access-handle + manifest-write tax. This drives identical
+// blocks through the real blockshard engine three ways and logs write-only time
+// and the Publish-count proxy so the serial vs coalesced gap is measured, not
+// asserted by a flaky ratio.
+func TestOpfsChromeMaterializeFanout(t *testing.T) {
+	requireChromeProfile(t, chromeStress)
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	blocks := envIntDefault(t, "OPFS_MATERIALIZE_BLOCKS", 512)
+	concurrency := envIntDefault(t, "OPFS_MATERIALIZE_CONCURRENCY", 16)
+	batchSize := envIntDefault(t, "OPFS_MATERIALIZE_BATCH", 64)
+
+	modes := []struct {
+		scenario string
+		batch    int
+	}{
+		{"materialize-fanout-serial", 1},
+		{"materialize-fanout-concurrent", concurrency},
+		{"materialize-fanout-batched", batchSize},
+	}
+
+	type row struct {
+		scenario   string
+		durationMS int
+		writeMS    int
+		publishGen int
+	}
+	rows := make([]row, 0, len(modes))
+	for _, m := range modes {
+		root := "opfs-chrome-materialize-" + time.Now().Format("150405.000000000")
+		s.runWorker(t, workerArgs{scenario: "clear", root: root})
+		res := s.runWorker(t, workerArgs{
+			scenario:   m.scenario,
+			root:       root,
+			iterations: blocks,
+			batch:      m.batch,
+			shards:     defaultShards,
+		})
+		rows = append(rows, row{m.scenario, res.durationMS, res.writeMS, res.publishGen})
+		t.Logf("materialize-fanout scenario=%s blocks=%d batch=%d writeMs=%d durationMs=%d publishGen=%d",
+			m.scenario, blocks, m.batch, res.writeMS, res.durationMS, res.publishGen)
+	}
+
+	serial := rows[0]
+	for _, r := range rows[1:] {
+		if r.writeMS > 0 && serial.writeMS > 0 {
+			t.Logf("materialize-fanout %s vs serial: writeMs %d -> %d (%.2fx faster), publishGen %d -> %d",
+				r.scenario, serial.writeMS, r.writeMS,
+				float64(serial.writeMS)/float64(r.writeMS), serial.publishGen, r.publishGen)
+		}
+	}
+}
+
 func TestOpfsChromeConcurrentMetaWriters(t *testing.T) {
 	requireChromeProfile(t, chromeStress)
 	h := newChromeHarness(t)
@@ -1903,6 +1962,9 @@ func decodeWorkerResults(raw any) ([]workerResult, error) {
 				m,
 				"durationMs",
 			),
+			writeMS:    intField(m, "writeMs"),
+			blocks:     intField(m, "blocks"),
+			publishGen: intField(m, "publishGen"),
 		}
 	}
 	return results, nil
@@ -1969,6 +2031,9 @@ type workerResult struct {
 	ok         bool
 	err        string
 	durationMS int
+	writeMS    int
+	blocks     int
+	publishGen int
 }
 
 const indexHTML = `<!doctype html>

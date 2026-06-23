@@ -190,6 +190,12 @@ func run(ctx context.Context, c *config) error {
 		return runLargeBlockBatch(ctx, c)
 	case "large-block-verify":
 		return runLargeBlockVerify(ctx, c)
+	case "materialize-fanout-serial":
+		return runMaterializeFanout(ctx, c, fanoutSerial)
+	case "materialize-fanout-concurrent":
+		return runMaterializeFanout(ctx, c, fanoutConcurrent)
+	case "materialize-fanout-batched":
+		return runMaterializeFanout(ctx, c, fanoutBatched)
 	case "block-corrupt-compaction":
 		return runBlockCorruptCompaction(ctx, c)
 	case "block-zero-size-compaction":
@@ -1223,6 +1229,163 @@ func openBlockEngine(ctx context.Context, c *config) (*blockshard.Engine, func()
 		return nil, nil, err
 	}
 	return e, e.Close, nil
+}
+
+// materializeBlockBytes is the per-block payload for the manifest materialization
+// fanout benchmark. Small blocks make the per-Publish fixed cost (Web Lock
+// acquire, sync access handle open/flush/close, double-buffered manifest write)
+// dominate, which is the regime first-run plugin manifest materialization hits:
+// the world Manifest DAG is hundreds of small UnixFS and metadata blocks.
+const materializeBlockBytes = 16 * 1024
+
+type fanoutMode int
+
+const (
+	fanoutSerial fanoutMode = iota
+	fanoutConcurrent
+	fanoutBatched
+)
+
+// runMaterializeFanout writes c.iterations content-addressed blocks into the
+// production OPFS blockshard engine and records how the block feed pattern
+// changes total write time and the number of OPFS Publish cycles.
+//
+// fanoutSerial mirrors the production manifest copy loop: the scheduler runs
+// bucket_lookup.CopyObjectToBucket at maxConcurrency=1, one PutBlock per block,
+// each foreground-awaited, so every block becomes its own Publish and pays the
+// full fixed tax. fanoutConcurrent issues single-block puts from c.batch
+// goroutines so the shard write actor coalesces concurrently queued puts into
+// far fewer Publishes. fanoutBatched groups c.batch blocks per Put. All three
+// write identical blocks; only the feed pattern differs.
+func runMaterializeFanout(ctx context.Context, c *config, mode fanoutMode) error {
+	blocks := c.iterations
+	if blocks <= 0 {
+		blocks = 512
+	}
+	entries := make([]segment.Entry, blocks)
+	for i := range entries {
+		entries[i] = segment.Entry{
+			Key:   materializeBlockKey(i),
+			Value: deterministicLargeBytes(materializeBlockBytes, i),
+		}
+	}
+
+	e, release, err := openBlockEngine(ctx, c)
+	if err != nil {
+		return err
+	}
+	defer release()
+
+	postProgress(c, "materialize-write-start", 0, blocks)
+	start := time.Now()
+	switch mode {
+	case fanoutSerial:
+		for i := range entries {
+			if err := e.Put(ctx, entries[i:i+1]); err != nil {
+				return errors.Wrapf(err, "serial put block %d", i)
+			}
+		}
+	case fanoutConcurrent:
+		if err := putEntriesConcurrent(ctx, e, entries, c.batch); err != nil {
+			return err
+		}
+	case fanoutBatched:
+		if err := putEntriesBatched(ctx, e, entries, c.batch); err != nil {
+			return err
+		}
+	}
+	writeDur := time.Since(start)
+	postProgress(c, "materialize-write-complete", blocks, blocks)
+
+	benchExtra = map[string]int64{
+		"writeMs":    writeDur.Milliseconds(),
+		"blocks":     int64(blocks),
+		"publishGen": sumManifestGenerations(c),
+	}
+	return nil
+}
+
+// putEntriesConcurrent writes single-block puts from concurrency goroutines.
+// Each goroutine blocks on its own OPFS publish promise; while one awaits, the
+// Go scheduler runs the others, so multiple blocks queue into a shard before its
+// actor publishes and the actor coalesces them into one Publish.
+func putEntriesConcurrent(ctx context.Context, e *blockshard.Engine, entries []segment.Entry, concurrency int) error {
+	if concurrency <= 0 {
+		concurrency = 16
+	}
+	idx := make(chan int, len(entries))
+	for i := range entries {
+		idx <- i
+	}
+	close(idx)
+
+	var mu sync.Mutex
+	var firstErr error
+	var wg sync.WaitGroup
+	for w := 0; w < concurrency; w++ {
+		wg.Go(func() {
+			for i := range idx {
+				if err := e.Put(ctx, entries[i:i+1]); err != nil {
+					mu.Lock()
+					if firstErr == nil {
+						firstErr = errors.Wrapf(err, "concurrent put block %d", i)
+					}
+					mu.Unlock()
+					return
+				}
+			}
+		})
+	}
+	wg.Wait()
+	return firstErr
+}
+
+// putEntriesBatched writes batch blocks per Put call, the explicit-batching
+// alternative to raising walk concurrency.
+func putEntriesBatched(ctx context.Context, e *blockshard.Engine, entries []segment.Entry, batch int) error {
+	if batch <= 0 {
+		batch = 64
+	}
+	for start := 0; start < len(entries); start += batch {
+		end := min(start+batch, len(entries))
+		if err := e.Put(ctx, entries[start:end]); err != nil {
+			return errors.Wrapf(err, "batched put blocks %d..%d", start, end)
+		}
+	}
+	return nil
+}
+
+func materializeBlockKey(entry int) []byte {
+	return []byte("materialize/" + zeroPad(entry, 6))
+}
+
+// sumManifestGenerations sums the blockshard manifest generation across shards
+// as a proxy for the number of OPFS Publish cycles performed: each publish
+// advances the shard's manifest generation.
+func sumManifestGenerations(c *config) int64 {
+	shardCount := c.shards
+	if shardCount <= 0 {
+		shardCount = blockshard.DefaultShardCount
+	}
+	var total int64
+	for shardID := 0; shardID < shardCount; shardID++ {
+		dir, err := openTestDirectory(c.root, []string{"blocks", "shard-" + zeroPad(shardID, 2)})
+		if err != nil {
+			continue
+		}
+		a, err := opfs.ReadFile(dir, "manifest-a")
+		if err != nil && !opfs.IsNotFound(err) {
+			continue
+		}
+		b, err := opfs.ReadFile(dir, "manifest-b")
+		if err != nil && !opfs.IsNotFound(err) {
+			continue
+		}
+		if m := blockshard.PickManifest(a, b); m != nil {
+			total += int64(m.Generation)
+		}
+	}
+	return total
 }
 
 func describeBlockShard(c *config, shard int) string {
@@ -4047,6 +4210,10 @@ func postProgress(c *config, phase string, values ...int) {
 	js.Global().Call("postMessage", obj)
 }
 
+// benchExtra carries optional benchmark metrics (writeMs, blocks, publishGen)
+// from a scenario into the single worker result object.
+var benchExtra map[string]int64
+
 func postResult(c *config, dur time.Duration, err error) {
 	obj := js.Global().Get("Object").New()
 	obj.Set("kind", "result")
@@ -4055,6 +4222,9 @@ func postResult(c *config, dur time.Duration, err error) {
 		obj.Set("worker", c.worker)
 	}
 	obj.Set("durationMs", dur.Milliseconds())
+	for k, v := range benchExtra {
+		obj.Set(k, v)
+	}
 	if err != nil {
 		obj.Set("ok", false)
 		obj.Set("error", err.Error())
