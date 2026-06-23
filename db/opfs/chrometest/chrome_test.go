@@ -123,13 +123,16 @@ func TestOpfsChromeConcurrentBlockReadersWriters(t *testing.T) {
 }
 
 // TestOpfsChromeMaterializeFanout measures how the block feed pattern changes
-// first-run manifest materialization cost. The production scheduler feeds
+// first-run manifest materialization cost. The pre-refactor scheduler fed
 // bucket_lookup.CopyObjectToBucket at maxConcurrency=1 (one foreground-awaited
-// PutBlock per block), so each block becomes its own OPFS Publish with the full
+// PutBlock per block), so each block became its own OPFS Publish with the full
 // Web Lock + sync-access-handle + manifest-write tax. This drives identical
-// blocks through the real blockshard engine three ways and logs write-only time
+// blocks through the real blockshard engine four ways and logs write-only time
 // and the Publish-count proxy so the serial vs coalesced gap is measured, not
-// asserted by a flaky ratio.
+// asserted by a flaky ratio. The async-serial mode is the landed async-default
+// BlockStore.PutBlock feed: a strictly serial PutBackground walk fenced by one
+// Sync, the path the storage refactor put on the default so a one-at-a-time copy
+// loop coalesces partially even without caller concurrency or batching.
 func TestOpfsChromeMaterializeFanout(t *testing.T) {
 	requireChromeProfile(t, chromeStress)
 	h := newChromeHarness(t)
@@ -147,6 +150,7 @@ func TestOpfsChromeMaterializeFanout(t *testing.T) {
 		{"materialize-fanout-serial", 1},
 		{"materialize-fanout-concurrent", concurrency},
 		{"materialize-fanout-batched", batchSize},
+		{"materialize-fanout-async-serial", 1},
 	}
 
 	type row struct {

@@ -196,6 +196,8 @@ func run(ctx context.Context, c *config) error {
 		return runMaterializeFanout(ctx, c, fanoutConcurrent)
 	case "materialize-fanout-batched":
 		return runMaterializeFanout(ctx, c, fanoutBatched)
+	case "materialize-fanout-async-serial":
+		return runMaterializeFanout(ctx, c, fanoutAsyncSerial)
 	case "block-corrupt-compaction":
 		return runBlockCorruptCompaction(ctx, c)
 	case "block-zero-size-compaction":
@@ -1244,19 +1246,22 @@ const (
 	fanoutSerial fanoutMode = iota
 	fanoutConcurrent
 	fanoutBatched
+	fanoutAsyncSerial
 )
 
 // runMaterializeFanout writes c.iterations content-addressed blocks into the
 // production OPFS blockshard engine and records how the block feed pattern
 // changes total write time and the number of OPFS Publish cycles.
 //
-// fanoutSerial mirrors the production manifest copy loop: the scheduler runs
-// bucket_lookup.CopyObjectToBucket at maxConcurrency=1, one PutBlock per block,
-// each foreground-awaited, so every block becomes its own Publish and pays the
-// full fixed tax. fanoutConcurrent issues single-block puts from c.batch
-// goroutines so the shard write actor coalesces concurrently queued puts into
-// far fewer Publishes. fanoutBatched groups c.batch blocks per Put. All three
-// write identical blocks; only the feed pattern differs.
+// fanoutSerial mirrors the pre-refactor manifest copy loop: a foreground-awaited
+// Put per block, so every block becomes its own Publish and pays the full fixed
+// tax. fanoutConcurrent issues single-block puts from c.batch goroutines so the
+// shard write actor coalesces concurrently queued puts into far fewer Publishes.
+// fanoutBatched groups c.batch blocks per Put. fanoutAsyncSerial mirrors the
+// landed async-default BlockStore.PutBlock path: a strictly serial one-block-at-
+// a-time PutBackground feed (no caller concurrency or batching) fenced by a
+// single Sync, so the actor coalesces whatever piles up behind the in-flight
+// publish. All four write identical blocks; only the feed pattern differs.
 func runMaterializeFanout(ctx context.Context, c *config, mode fanoutMode) error {
 	blocks := c.iterations
 	if blocks <= 0 {
@@ -1291,6 +1296,10 @@ func runMaterializeFanout(ctx context.Context, c *config, mode fanoutMode) error
 		}
 	case fanoutBatched:
 		if err := putEntriesBatched(ctx, e, entries, c.batch); err != nil {
+			return err
+		}
+	case fanoutAsyncSerial:
+		if err := putEntriesAsyncSerial(ctx, e, entries); err != nil {
 			return err
 		}
 	}
@@ -1351,6 +1360,28 @@ func putEntriesBatched(ctx context.Context, e *blockshard.Engine, entries []segm
 		if err := e.Put(ctx, entries[start:end]); err != nil {
 			return errors.Wrapf(err, "batched put blocks %d..%d", start, end)
 		}
+	}
+	return nil
+}
+
+// putEntriesAsyncSerial writes single-block PutBackground enqueues one at a time
+// with no caller concurrency or batching, then fences once with Sync. This is
+// the landed async-default BlockStore.PutBlock feed: the enqueue returns before
+// the publish, so blocks pile up behind the shard's in-flight publish and the
+// write actor coalesces whatever accumulated into one Publish. A single serial
+// producer fills the pending buffer only shallowly, so the coalescing is partial
+// (measured ~1.1-1.8x fewer Publishes than the serial Put path, weaker as the
+// block count grows) rather than the order-of-magnitude collapse of a batched or
+// concurrent feed; the trailing Sync still removes the per-block durability fence
+// the serial Put path pays, which is the larger share of the write-time win.
+func putEntriesAsyncSerial(ctx context.Context, e *blockshard.Engine, entries []segment.Entry) error {
+	for i := range entries {
+		if err := e.PutBackground(ctx, entries[i:i+1]); err != nil {
+			return errors.Wrapf(err, "async-serial put block %d", i)
+		}
+	}
+	if err := e.Sync(ctx); err != nil {
+		return errors.Wrap(err, "async-serial sync")
 	}
 	return nil
 }
