@@ -17,7 +17,13 @@ import (
 	"syscall/js"
 	"time"
 
+	cbconfig "github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/configset"
+	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
+	csp "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/aperturerobotics/controllerbus/controller/loader"
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/starpc/echo"
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -29,11 +35,18 @@ import (
 	resource_unixfs "github.com/s4wave/spacewave/core/resource/unixfs"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/blob"
 	block_gc_wal "github.com/s4wave/spacewave/db/block/gc/wal"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
+	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/coord"
+	"github.com/s4wave/spacewave/db/core"
 	"github.com/s4wave/spacewave/db/kvtx"
+	node_controller "github.com/s4wave/spacewave/db/node/controller"
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/opfs/filelock"
@@ -293,6 +306,8 @@ func run(ctx context.Context, c *config) error {
 		return runWorldCloudOverlayResourceLargeUnixFSUpload(ctx, c)
 	case "world-cloud-sync-resource-large-unixfs-upload":
 		return runWorldCloudSyncResourceLargeUnixFSUpload(ctx, c)
+	case "copy-walk-wrapper-concurrency":
+		return runCopyWalkWrapperConcurrency(ctx, c)
 	default:
 		return errors.Errorf("unknown scenario %q", c.scenario)
 	}
@@ -3100,6 +3115,248 @@ func openControllerBucket(
 		releaseBucket()
 		return cleanup()
 	}, nil
+}
+
+// runCopyWalkWrapperConcurrency probes whether the production
+// AccessWorldState -> FollowRef -> lookup Handle -> CopyObjectToBucket ->
+// WalkObjectBlocks wrapper deadlocks at a raised maxConcurrency on real OPFS
+// under native Go-WASM, with the GoScript compiler held out of the loop. A prior
+// bench drove the raw OPFS engine at concurrency 16 directly and stayed healthy;
+// this exercises the full wrapper path the production download-manifest copy
+// uses, including the real concurrent-lookup Handle that resolves the
+// cross-bucket source ref.
+//
+// It stands up a real controllerbus over the OPFS volume with the
+// concurrent-lookup controller (so cross-bucket FollowRef resolves through the
+// production Handle), builds a wide source-object block DAG in a bucket distinct
+// from the dest world root (CopyObjectToBucket no-ops when src and dest share a
+// bucket), then runs the production nested-access copy pattern twice over fresh
+// equivalent source objects: first at maxConcurrency=1 (control, must pass),
+// then at c.batch (the suspect, default 16). c.iterations is the source input
+// byte count; the JC chunker fans it into hundreds of leaf blocks.
+func runCopyWalkWrapperConcurrency(ctx context.Context, c *config) (retErr error) {
+	inputBytes := c.iterations
+	if inputBytes <= 0 {
+		inputBytes = 64 * 1024
+	}
+	suspectConc := c.batch
+	if suspectConc <= 0 {
+		suspectConc = 16
+	}
+
+	le := logrus.NewEntry(logrus.New())
+
+	// Real bus stack over the OPFS volume so cross-bucket FollowRef resolves
+	// through the production concurrent-lookup Handle, matching download-manifest.
+	b, sr, err := core.NewCoreBus(ctx, le)
+	if err != nil {
+		return errors.Wrap(err, "construct core bus")
+	}
+	sr.AddFactory(volume_opfs.NewFactory(b))
+
+	_, _, csRef, err := loader.WaitExecControllerRunning(
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(&configset_controller.Config{}),
+		nil,
+	)
+	if err != nil {
+		return errors.Wrap(err, "load configset controller")
+	}
+	defer csRef.Release()
+
+	// Node controller owns per-bucket lookup loading: it reacts to applied
+	// bucket configs and loads the concurrent-lookup controller that resolves
+	// BuildBucketLookup. Without it FollowRef waits forever for the lookup Handle.
+	_, _, nodeRef, err := loader.WaitExecControllerRunning(
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(&node_controller.Config{}),
+		nil,
+	)
+	if err != nil {
+		return errors.Wrap(err, "load node controller")
+	}
+	defer nodeRef.Release()
+
+	volDV, _, volRef, err := loader.WaitExecControllerRunning(
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(newOPFSConfig(c)),
+		nil,
+	)
+	if err != nil {
+		return errors.Wrap(err, "load opfs volume controller")
+	}
+	defer volRef.Release()
+	vol, err := volDV.(volume.Controller).GetVolume(ctx)
+	if err != nil {
+		return errors.Wrap(err, "get opfs volume")
+	}
+	volID := vol.GetID()
+
+	// Bucket config carrying the concurrent-lookup controller so each bucket
+	// resolves through the same Handle the production world path uses. Single
+	// node, so the default NONE not-found behavior (no remote lookup wait).
+	lookupConf := node_controller.BuildDefaultLookupConfig()
+	lookupCC, err := csp.NewControllerConfig(configset.NewControllerConfig(1, lookupConf), false)
+	if err != nil {
+		return errors.Wrap(err, "encode lookup controller config")
+	}
+
+	worldBucketID := c.root + "/world"
+	sourceBucketID := c.root + "/source"
+	for _, bucketID := range []string{worldBucketID, sourceBucketID} {
+		if _, err := bucket.ExApplyBucketConfig(ctx, b, bucket.NewApplyBucketConfigToVolume(
+			&bucket.Config{
+				Id:     bucketID,
+				Rev:    1,
+				Lookup: &bucket.LookupConfig{Controller: lookupCC},
+			},
+			volID,
+		)); err != nil {
+			return errors.Wrapf(err, "apply bucket config %s", bucketID)
+		}
+	}
+
+	sfs := transform_all.BuildFactorySet()
+
+	// Shared transform conf (chksum+gzip) so stored bytes hash consistently with
+	// their object refs across both buckets; CopyObjectToBucket's forced-ref
+	// writes require the source stored representation to match its ref.
+	transformConf, err := block_transform.NewConfig([]cbconfig.Config{
+		&transform_chksum.Config{},
+		&transform_gzip.Config{},
+	})
+	if err != nil {
+		return errors.Wrap(err, "build transform config")
+	}
+
+	// Dest world cursor + world state (root bucket), bus-backed.
+	worldCursor, _, err := bucket_lookup.BuildEmptyCursor(ctx, b, le, sfs, worldBucketID, volID, transformConf, nil)
+	if err != nil {
+		return errors.Wrap(err, "build world cursor")
+	}
+	defer worldCursor.Release()
+
+	ws, err := world_block.BuildWorldStateFromCursor(
+		ctx,
+		le,
+		true,
+		worldCursor,
+		world.NewWorldStorageFromCursor(worldCursor),
+		space_world_ops.LookupWorldOp,
+		false,
+	)
+	if err != nil {
+		return errors.Wrap(err, "build world state")
+	}
+	defer ws.Discard()
+
+	// Source cursor for building wide DAGs in a distinct bucket, bus-backed.
+	sourceCursor, _, err := bucket_lookup.BuildEmptyCursor(ctx, b, le, sfs, sourceBucketID, volID, transformConf, nil)
+	if err != nil {
+		return errors.Wrap(err, "build source cursor")
+	}
+	defer sourceCursor.Release()
+	sourceAccess := world.NewAccessWorldStateFunc(sourceCursor)
+
+	// Small-chunk recipe forces a wide chunked DAG: ChunkIndex -> many Chunk ->
+	// many ByteSlice leaves, so WalkObjectBlocks has real fan-out to schedule.
+	blobOpts := &blob.BuildBlobOpts{
+		RawHighWaterMark: 1,
+		ChunkerArgs: &blob.ChunkerArgs{
+			ChunkerType: blob.ChunkerType_ChunkerType_JC,
+			JcArgs: &blob.JcArgs{
+				ChunkingMinSize:    64,
+				ChunkingTargetSize: 128,
+				ChunkingMaxSize:    256,
+			},
+		},
+	}
+
+	buildSource := func(salt int) (*bucket.ObjectRef, error) {
+		return world.AccessObject(ctx, sourceAccess, nil, func(bcs *block.Cursor) error {
+			_, err := blob.BuildBlob(
+				ctx,
+				int64(inputBytes),
+				newDeterministicLargeReader(inputBytes, salt),
+				bcs,
+				blobOpts,
+			)
+			return err
+		})
+	}
+
+	runs := []struct {
+		label string
+		conc  int
+	}{
+		{label: "control", conc: 1},
+		{label: "suspect", conc: suspectConc},
+	}
+	for i, r := range runs {
+		postProgress(c, "copy-walk-source-build-start", i, r.conc)
+		srcObjRef, err := buildSource(i + 1)
+		if err != nil {
+			return errors.Wrapf(err, "build source DAG (%s)", r.label)
+		}
+		postProgress(c, "copy-walk-source-build-complete", i, r.conc)
+
+		postProgress(c, "copy-walk-copy-start", i, r.conc)
+		if err := runCopyWalkWrapperCopy(ctx, le, ws, srcObjRef, r.conc, r.label); err != nil {
+			return errors.Wrapf(err, "%s copy at concurrency %d", r.label, r.conc)
+		}
+		postProgress(c, "copy-walk-copy-complete", i, r.conc)
+	}
+
+	benchExtra = map[string]int64{
+		"inputBytes":  int64(inputBytes),
+		"controlConc": 1,
+		"suspectConc": int64(suspectConc),
+	}
+	return nil
+}
+
+// runCopyWalkWrapperCopy runs one wrapper copy mirroring the production
+// nested-access shape: dest world bucket, then source bucket via cross-bucket
+// FollowRef, then CopyObjectToBucket + Sync. A concurrency regression in the
+// wrapper surfaces as the copy never returning, which the chrome harness context
+// deadline turns into a test failure.
+func runCopyWalkWrapperCopy(
+	ctx context.Context,
+	le *logrus.Entry,
+	ws world.WorldState,
+	srcObjRef *bucket.ObjectRef,
+	maxConcurrency int,
+	label string,
+) error {
+	return ws.AccessWorldState(ctx, nil, func(dest *bucket_lookup.Cursor) error {
+		return ws.AccessWorldState(ctx, srcObjRef, func(src *bucket_lookup.Cursor) error {
+			le.Infof(
+				"copy-walk-wrapper %s: copying DAG bucket %s -> %s at concurrency %d",
+				label,
+				src.GetOpArgs().GetBucketId(),
+				dest.GetOpArgs().GetBucketId(),
+				maxConcurrency,
+			)
+			if _, err := bucket_lookup.CopyObjectToBucket(
+				ctx,
+				dest,
+				src,
+				blob.NewBlobBlock,
+				maxConcurrency,
+				false,
+				nil,
+			); err != nil {
+				return errors.Wrap(err, "copy object to bucket")
+			}
+			if _, err := ws.Sync(ctx); err != nil {
+				return errors.Wrap(err, "sync copied blocks")
+			}
+			return nil
+		})
+	})
 }
 
 func openControllerCloudOverlayBucket(

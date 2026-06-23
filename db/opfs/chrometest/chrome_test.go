@@ -185,6 +185,40 @@ func TestOpfsChromeMaterializeFanout(t *testing.T) {
 	}
 }
 
+// TestOpfsChromeCopyWalkWrapperConcurrency probes whether the production
+// AccessWorldState -> CopyObjectToBucket -> WalkObjectBlocks wrapper deadlocks
+// at a raised maxConcurrency on real OPFS under native Go-WASM, isolating a
+// wrapper bug from a GoScript-scheduler bug (the GoScript compiler is held out
+// of this path). It runs the copy-walk-wrapper-concurrency scenario, which
+// builds a wide source DAG in a bucket distinct from the dest world root, then
+// copies it via the production nested-access pattern twice over fresh source
+// objects: first at maxConcurrency=1 (control) and then at the suspect
+// concurrency (default 16). A wrapper deadlock at the raised concurrency would
+// hang the copy, which the chrome harness context deadline turns into a test
+// failure. Pass concurrency via OPFS_COPYWALK_CONCURRENCY and source input bytes
+// via OPFS_COPYWALK_BLOCKS.
+func TestOpfsChromeCopyWalkWrapperConcurrency(t *testing.T) {
+	requireChromeProfile(t, chromeStress)
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	concurrency := envIntDefault(t, "OPFS_COPYWALK_CONCURRENCY", 16)
+	inputBytes := envIntDefault(t, "OPFS_COPYWALK_BLOCKS", 64*1024)
+
+	root := "opfs-chrome-copywalk-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{scenario: "clear", root: root})
+	res := s.runWorker(t, workerArgs{
+		scenario:   "copy-walk-wrapper-concurrency",
+		root:       root,
+		iterations: inputBytes,
+		batch:      concurrency,
+		shards:     defaultShards,
+	})
+	t.Logf("copy-walk-wrapper concurrency=%d inputBytes=%d durationMs=%d",
+		concurrency, inputBytes, res.durationMS)
+}
+
 func TestOpfsChromeConcurrentMetaWriters(t *testing.T) {
 	requireChromeProfile(t, chromeStress)
 	h := newChromeHarness(t)
