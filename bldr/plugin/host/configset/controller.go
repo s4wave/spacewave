@@ -90,7 +90,41 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 }
 
 func isWebRuntimeClientClosed(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "WebRuntimeClientInstance closed:")
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	if strings.Contains(msg, "WebRuntimeClientInstance closed:") {
+		return true
+	}
+	const clientPrefix = "WebRuntimeClient: "
+	clientIdx := strings.Index(msg, clientPrefix)
+	if clientIdx < 0 {
+		return false
+	}
+	msg = msg[clientIdx+len(clientPrefix):]
+
+	const generationMarker = ": runtime client generation "
+	generationIdx := strings.Index(msg, generationMarker)
+	if generationIdx < 0 {
+		return false
+	}
+	generation := msg[generationIdx+len(generationMarker):]
+
+	const normalCloseSuffix = " closed: normal-close"
+	if !strings.HasSuffix(generation, normalCloseSuffix) {
+		return false
+	}
+	generation = strings.TrimSuffix(generation, normalCloseSuffix)
+	if generation == "" {
+		return false
+	}
+	for _, r := range generation {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // _ is a type assertion
