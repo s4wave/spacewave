@@ -26,14 +26,29 @@ vi.mock('../fetch/fetch.js', async (importOriginal) => {
   }
 })
 
+type FakeCachePutFailure = (
+  cacheName: string,
+  request: Request,
+  response: Response,
+) => Error | undefined
+
 class FakeCache {
   private readonly entries = new Map<string, Response>()
+
+  public constructor(
+    private readonly name: string,
+    private readonly failPut?: FakeCachePutFailure,
+  ) {}
 
   public async match(request: Request): Promise<Response | undefined> {
     return this.entries.get(request.url)?.clone()
   }
 
   public async put(request: Request, response: Response): Promise<void> {
+    const error = this.failPut?.(this.name, request, response)
+    if (error) {
+      throw error
+    }
     this.entries.set(request.url, response.clone())
   }
 }
@@ -41,12 +56,14 @@ class FakeCache {
 class FakeCacheStorage {
   private readonly caches = new Map<string, FakeCache>()
 
+  public constructor(private readonly failPut?: FakeCachePutFailure) {}
+
   public async open(name: string): Promise<FakeCache> {
     const existing = this.caches.get(name)
     if (existing) {
       return existing
     }
-    const cache = new FakeCache()
+    const cache = new FakeCache(name, this.failPut)
     this.caches.set(name, cache)
     return cache
   }
@@ -92,6 +109,12 @@ function newDeferred<T>(): Deferred<T> {
     resolve = r
   })
   return { promise, resolve }
+}
+
+function newCachePutError(): Error {
+  const error = new Error('Cache.put() encountered a network error')
+  error.name = 'NetworkError'
+  return error
 }
 
 function buildFetchEvent(url: string): FetchEventHarness {
@@ -147,6 +170,15 @@ function buildMessageEvent(data: unknown): ExtendableMessageEvent {
     },
     waitUntil: vi.fn(),
   } as unknown as ExtendableMessageEvent
+}
+
+function buildTestClients(): Clients {
+  return {
+    claim: () => Promise.resolve(),
+    get: () => Promise.resolve(undefined),
+    matchAll: () => Promise.resolve([]),
+    openWindow: () => Promise.resolve(null),
+  }
 }
 
 function buildFetchOnlyEvent(
@@ -242,6 +274,60 @@ describe('service worker browser release requests', () => {
     expect(await response.json()).toEqual(freshRelease)
     expect(waitUntilPromises).toHaveLength(1)
     await waitUntilPromises[0]
+  })
+
+  it('does not promote a browser release when generation cache writes fail', async () => {
+    const caches = new FakeCacheStorage((cacheName) => {
+      if (cacheName.startsWith('bldr-generation-')) {
+        return newCachePutError()
+      }
+      return undefined
+    })
+    vi.stubGlobal('caches', caches)
+    const release = buildRelease('gen-b')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify(release), { status: 200 }),
+    )
+    vi.mocked(fetch).mockImplementation(() =>
+      Promise.resolve(new Response('asset', { status: 200 })),
+    )
+    const { ev, waitUntilPromises } = buildFetchEvent(
+      'https://example.test/browser-release.json',
+    )
+
+    const response = await handleBrowserReleaseRequest(ev)
+
+    expect(await response.json()).toEqual(release)
+    expect(waitUntilPromises).toHaveLength(1)
+    await expect(waitUntilPromises[0]).resolves.toBeUndefined()
+
+    const cache = await caches.open('bldr-control')
+    const stateResponse = await cache.match(
+      new Request(
+        new URL('/__bldr/browser-release-state.json', self.location.href),
+      ),
+    )
+    if (!stateResponse) {
+      throw new Error('browser release state was not written')
+    }
+    await expect(stateResponse.json()).resolves.toMatchObject({
+      discovered: {
+        generationId: 'gen-b',
+      },
+      staged: null,
+      promotedCurrent: null,
+    })
+    expect(warn).toHaveBeenCalledWith(
+      'ServiceWorker: %s: cache write failed: operation=%s cache=%s%s%s url=%s: %s',
+      expect.any(String),
+      'stage browser release',
+      'bldr-generation-gen-b',
+      ' generation=gen-b',
+      '',
+      expect.any(String),
+      'Cache.put() encountered a network error',
+    )
   })
 
   it('returns the cached manifest when the network misses the budget', async () => {
@@ -1004,6 +1090,57 @@ describe('service worker fetch release cache routing', () => {
     expect(proxyFetch).not.toHaveBeenCalled()
   })
 
+  it('keeps static plugin asset fetches successful when cache writes fail', async () => {
+    const caches = new FakeCacheStorage((cacheName) => {
+      if (cacheName.startsWith('bldr-generation-')) {
+        return newCachePutError()
+      }
+      return undefined
+    })
+    vi.stubGlobal('caches', caches)
+    await writeBrowserReleaseState(caches, {
+      ...createEmptyBrowserReleaseState(),
+      promotedCurrent: buildRelease('gen-a'),
+    })
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const body = 'export const App2 = () => null\n'
+    vi.mocked(proxyFetch).mockResolvedValue(
+      new Response(body, {
+        status: 200,
+        headers: { 'Content-Type': 'application/javascript' },
+      }),
+    )
+
+    const warm = buildClientFetchEvent(
+      '/b/pa/spacewave-app/v/b/fe/app/App2.mjs',
+      'client-a',
+    )
+    const response = await swFetch(warm.ev)
+
+    expect(response.status).toBe(200)
+    expect(await response.text()).toBe(body)
+    await expect(Promise.all(warm.waitUntilPromises)).resolves.toEqual([
+      undefined,
+    ])
+    const cache = await caches.open('bldr-generation-gen-a')
+    const cached = await cache.match(
+      new Request(
+        new URL('/b/pa/spacewave-app/v/b/fe/app/App2.mjs', self.location.href),
+      ),
+    )
+    expect(cached).toBeUndefined()
+    expect(warn).toHaveBeenCalledWith(
+      'ServiceWorker: %s: cache write failed: operation=%s cache=%s%s%s url=%s: %s',
+      expect.any(String),
+      'cache static plugin asset',
+      'bldr-generation-gen-a',
+      ' generation=gen-a',
+      '',
+      expect.any(String),
+      'Cache.put() encountered a network error',
+    )
+  })
+
   it('falls back to the cached static plugin asset when a mid-handover runtime fetch fails', async () => {
     const caches = globalThis.caches as unknown as FakeCacheStorage
     await writeBrowserReleaseState(caches, {
@@ -1017,7 +1154,10 @@ describe('service worker fetch release cache routing', () => {
         headers: { 'Content-Type': 'application/javascript' },
       }),
     )
-    const warm = buildClientFetchEvent('/b/pd/spacewave-app/backend.mjs', 'client-a')
+    const warm = buildClientFetchEvent(
+      '/b/pd/spacewave-app/backend.mjs',
+      'client-a',
+    )
     expect((await swFetch(warm.ev)).status).toBe(200)
     await Promise.all(warm.waitUntilPromises)
 
@@ -1059,7 +1199,7 @@ describe('service worker messages', () => {
       .mockReturnValueOnce(firstSync.promise)
       .mockReturnValueOnce(secondSync.promise)
     const deps = {
-      clients: {} as Clients,
+      clients: buildTestClients(),
       fetchTracker: {
         abortClient: vi.fn(),
       },
@@ -1097,6 +1237,46 @@ describe('service worker messages', () => {
     await vi.mocked(rearmedEv.waitUntil).mock.calls[0][0]
   })
 
+  it('owns bldrSyncManifest sync failures inside waitUntil', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const syncLatestBrowserRelease = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('cache write failed'))
+      .mockResolvedValueOnce(createEmptyBrowserReleaseState())
+    const deps = {
+      clients: buildTestClients(),
+      fetchTracker: {
+        abortClient: vi.fn(),
+      },
+      webDocumentTracker: {
+        handleWebDocumentMessage: vi.fn(),
+      },
+      syncLatestBrowserRelease,
+      refreshBrowserIndexCache: vi.fn(),
+      handleCrossTabMessage: vi.fn(),
+    }
+
+    const firstEv = buildMessageEvent({ bldrSyncManifest: true })
+    handleServiceWorkerMessage(firstEv, deps)
+
+    expect(firstEv.waitUntil).toHaveBeenCalledWith(expect.any(Promise))
+    await expect(
+      vi.mocked(firstEv.waitUntil).mock.calls[0][0],
+    ).resolves.toBeUndefined()
+    expect(warn).toHaveBeenCalledWith(
+      'ServiceWorker: %s: browser release sync failed: %s',
+      expect.any(String),
+      'cache write failed',
+    )
+
+    const secondEv = buildMessageEvent({ bldrSyncManifest: true })
+    handleServiceWorkerMessage(secondEv, deps)
+
+    expect(syncLatestBrowserRelease).toHaveBeenCalledTimes(2)
+    expect(secondEv.waitUntil).toHaveBeenCalledWith(expect.any(Promise))
+    await vi.mocked(secondEv.waitUntil).mock.calls[0][0]
+  })
+
   it('refreshes the runtime browser index cache from a message', async () => {
     vi.stubGlobal('BLDR_DEBUG', false)
     vi.stubGlobal('caches', new FakeCacheStorage())
@@ -1104,7 +1284,7 @@ describe('service worker messages', () => {
       new Response('runtime index', { status: 200 }),
     )
     const deps = {
-      clients: {} as Clients,
+      clients: buildTestClients(),
       fetchTracker: {
         abortClient: vi.fn(),
       },
@@ -1143,7 +1323,7 @@ describe('service worker messages', () => {
 
   it('aborts outstanding fetch waiters when a client says goodbye', () => {
     const deps = {
-      clients: {} as Clients,
+      clients: buildTestClients(),
       fetchTracker: {
         abortClient: vi.fn(),
       },

@@ -167,8 +167,15 @@ export function resetServiceWorkerTestState(): void {
   firstWebDocumentMessageMarked = false
 }
 
-let browserReleaseSyncInFlight: Promise<BrowserReleaseState> | null = null
+let browserReleaseSyncInFlight: Promise<void> | null = null
 let firstWebDocumentMessageMarked = false
+
+interface CacheWriteContext {
+  cacheName: string
+  operation: string
+  generationId?: string
+  controlRowKind?: BrowserControlCacheRowKind
+}
 
 const browserControlCacheRows: Record<
   BrowserControlCacheRowKind,
@@ -248,6 +255,34 @@ async function getControlCache(): Promise<Cache> {
   return cache
 }
 
+async function putCacheResponse(
+  cache: Cache,
+  request: Request,
+  response: Response,
+  context: CacheWriteContext,
+): Promise<boolean> {
+  try {
+    await cache.put(request, response)
+    return true
+  } catch (error) {
+    const generation = context.generationId
+      ? ` generation=${context.generationId}`
+      : ''
+    const row = context.controlRowKind ? ` row=${context.controlRowKind}` : ''
+    console.warn(
+      'ServiceWorker: %s: cache write failed: operation=%s cache=%s%s%s url=%s: %s',
+      serviceWorkerId,
+      context.operation,
+      context.cacheName,
+      generation,
+      row,
+      request.url,
+      castToError(error, 'unknown error').message,
+    )
+    return false
+  }
+}
+
 function buildJsonResponse(method: string, value: unknown): Response {
   const response = new Response(
     method === 'HEAD' ? null : JSON.stringify(value),
@@ -294,13 +329,17 @@ async function readCachedJson<T>(
 async function writeCachedJson(
   row: BrowserControlCacheRow,
   value: unknown,
-): Promise<void> {
+): Promise<boolean> {
   const request = buildControlCacheRequest(row)
   if (!canCacheRequest(request)) {
-    return
+    return true
   }
   const cache = await getControlCache()
-  await cache.put(request, buildJsonResponse('GET', value))
+  return putCacheResponse(cache, request, buildJsonResponse('GET', value), {
+    cacheName: row.cacheName,
+    operation: 'write control JSON',
+    controlRowKind: row.kind,
+  })
 }
 
 async function loadBrowserReleaseState(): Promise<BrowserReleaseState> {
@@ -318,8 +357,8 @@ async function loadBrowserReleaseState(): Promise<BrowserReleaseState> {
 
 async function saveBrowserReleaseState(
   state: BrowserReleaseState,
-): Promise<void> {
-  await writeCachedJson(
+): Promise<boolean> {
+  return writeCachedJson(
     getBrowserControlCacheRow('browser-release-state'),
     state,
   )
@@ -357,7 +396,11 @@ async function cacheStableBootAsset(): Promise<void> {
     return
   }
   const cache = await getControlCache()
-  await cache.put(request, response.clone())
+  await putCacheResponse(cache, request, response.clone(), {
+    cacheName: controlCacheName,
+    operation: 'refresh stable boot asset',
+    controlRowKind: 'stable-boot-asset',
+  })
 }
 
 async function fetchLatestBrowserRelease(): Promise<BrowserReleaseDescriptor | null> {
@@ -390,9 +433,8 @@ async function fetchLatestBrowserRelease(): Promise<BrowserReleaseDescriptor | n
 async function stageBrowserRelease(
   release: BrowserReleaseDescriptor,
 ): Promise<boolean> {
-  const cache = await caches.open(
-    buildGenerationCacheName(release.generationId),
-  )
+  const cacheName = buildGenerationCacheName(release.generationId)
+  const cache = await caches.open(cacheName)
   for (const path of buildReleaseCachePaths(release)) {
     const request = buildCacheRequest(path)
     if (!canCacheRequest(request)) {
@@ -427,7 +469,15 @@ async function stageBrowserRelease(
       )
       return false
     }
-    await cache.put(request, response.clone())
+    if (
+      !(await putCacheResponse(cache, request, response.clone(), {
+        cacheName,
+        operation: 'stage browser release',
+        generationId: release.generationId,
+      }))
+    ) {
+      return false
+    }
   }
   for (const path of buildReleaseCachePaths(release)) {
     const cached = await cache.match(buildCacheRequest(path))
@@ -483,16 +533,24 @@ async function syncLatestBrowserRelease(
     return state
   }
 
-  state = { ...state, discovered: release }
-  await saveBrowserReleaseState(state)
+  const discoveredState = { ...state, discovered: release }
+  if (!(await saveBrowserReleaseState(discoveredState))) {
+    await pruneReleaseCaches(state)
+    return state
+  }
+  state = discoveredState
 
   if (!(await stageBrowserRelease(release))) {
     await pruneReleaseCaches(state)
     return state
   }
 
-  state = promoteBrowserRelease(state, release)
-  await saveBrowserReleaseState(state)
+  const promotedState = promoteBrowserRelease(state, release)
+  if (!(await saveBrowserReleaseState(promotedState))) {
+    await pruneReleaseCaches(state)
+    return state
+  }
+  state = promotedState
   await pruneReleaseCaches(state)
   if (
     previousPromotedRelease &&
@@ -505,6 +563,21 @@ async function syncLatestBrowserRelease(
     )
   }
   return state
+}
+
+function runBrowserReleaseSync(
+  promise: Promise<BrowserReleaseState>,
+): Promise<void> {
+  return promise.then(
+    () => undefined,
+    (error) => {
+      console.warn(
+        'ServiceWorker: %s: browser release sync failed: %s',
+        serviceWorkerId,
+        castToError(error, 'unknown error').message,
+      )
+    },
+  )
 }
 
 async function matchStableBootAsset(
@@ -563,11 +636,14 @@ async function cacheBrowserIndexResponse(response: Response): Promise<void> {
     return
   }
   const cache = await getControlCache()
-  const request = buildControlCacheRequest(
-    getBrowserControlCacheRow('browser-index'),
-  )
+  const row = getBrowserControlCacheRow('browser-index')
+  const request = buildControlCacheRequest(row)
   if (canCacheRequest(request)) {
-    await cache.put(request, response.clone())
+    await putCacheResponse(cache, request, response.clone(), {
+      cacheName: row.cacheName,
+      operation: 'cache browser index response',
+      controlRowKind: row.kind,
+    })
   }
 }
 
@@ -575,14 +651,17 @@ async function cacheRootNavigationResponse(response: Response): Promise<void> {
   if (!response.ok) {
     return
   }
-  const request = buildControlCacheRequest(
-    getBrowserControlCacheRow('root-document'),
-  )
+  const row = getBrowserControlCacheRow('root-document')
+  const request = buildControlCacheRequest(row)
   if (!canCacheRequest(request)) {
     return
   }
   const cache = await getControlCache()
-  await cache.put(request, response.clone())
+  await putCacheResponse(cache, request, response.clone(), {
+    cacheName: row.cacheName,
+    operation: 'cache root navigation response',
+    controlRowKind: row.kind,
+  })
 }
 
 // refreshBrowserIndexCache fetches and stores the runtime browser shell.
@@ -707,10 +786,13 @@ async function cacheStaticPluginAsset(
   if (!canCacheRequest(cacheRequest)) {
     return
   }
-  const cache = await caches.open(
-    buildGenerationCacheName(release.generationId),
-  )
-  await cache.put(cacheRequest, response)
+  const cacheName = buildGenerationCacheName(release.generationId)
+  const cache = await caches.open(cacheName)
+  await putCacheResponse(cache, cacheRequest, response, {
+    cacheName,
+    operation: 'cache static plugin asset',
+    generationId: release.generationId,
+  })
 }
 
 // matchStaticPluginAsset returns a static plugin asset cached for the current
@@ -757,25 +839,29 @@ export async function handleBrowserReleaseRequest(
     ])
     if (raceWinner !== browserReleaseNetworkRaceTimedOut) {
       if (raceWinner) {
-        ev.waitUntil(syncLatestBrowserRelease(raceWinner))
+        ev.waitUntil(
+          runBrowserReleaseSync(syncLatestBrowserRelease(raceWinner)),
+        )
         return buildJsonResponse(request.method, raceWinner)
       }
-      ev.waitUntil(syncLatestBrowserRelease())
+      ev.waitUntil(runBrowserReleaseSync(syncLatestBrowserRelease()))
       return buildJsonResponse(request.method, state.promotedCurrent)
     }
     ev.waitUntil(
-      latestReleasePromise.then((lateRelease) => {
-        if (lateRelease) {
-          console.info(
-            'ServiceWorker: %s: browser release manifest fetch missed %dms budget: latency=%dms',
-            serviceWorkerId,
-            browserReleaseNetworkRaceTimeoutMs,
-            Math.round(performance.now() - startTime),
-          )
-          return syncLatestBrowserRelease(lateRelease)
-        }
-        return syncLatestBrowserRelease()
-      }),
+      runBrowserReleaseSync(
+        latestReleasePromise.then((lateRelease) => {
+          if (lateRelease) {
+            console.info(
+              'ServiceWorker: %s: browser release manifest fetch missed %dms budget: latency=%dms',
+              serviceWorkerId,
+              browserReleaseNetworkRaceTimeoutMs,
+              Math.round(performance.now() - startTime),
+            )
+            return syncLatestBrowserRelease(lateRelease)
+          }
+          return syncLatestBrowserRelease()
+        }),
+      ),
     )
     return buildJsonResponse(request.method, state.promotedCurrent)
   }
@@ -789,7 +875,7 @@ export async function handleBrowserReleaseRequest(
     throw new Error('browser release manifest unavailable')
   }
 
-  ev.waitUntil(syncLatestBrowserRelease(latestRelease))
+  ev.waitUntil(runBrowserReleaseSync(syncLatestBrowserRelease(latestRelease)))
   return buildJsonResponse(request.method, latestRelease)
 }
 
@@ -857,7 +943,7 @@ async function swActivate() {
 
   await self.clients.claim()
   await getControlCache()
-  await syncLatestBrowserRelease()
+  await runBrowserReleaseSync(syncLatestBrowserRelease())
   markStartupBoundary('service-worker.activate-ready', {
     source: 'service-worker',
     serviceWorkerId,
@@ -873,7 +959,9 @@ export function handleServiceWorkerMessage(
     if (browserReleaseSyncInFlight) {
       return
     }
-    const syncPromise = deps.syncLatestBrowserRelease().finally(() => {
+    const syncPromise = runBrowserReleaseSync(
+      deps.syncLatestBrowserRelease(),
+    ).finally(() => {
       if (browserReleaseSyncInFlight === syncPromise) {
         browserReleaseSyncInFlight = null
       }
