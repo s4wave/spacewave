@@ -15,6 +15,7 @@ type VLoggerStore struct {
 	txInc atomic.Uint64
 }
 
+// NewVLogger constructs a new VLoggerStore wrapping store.
 func NewVLogger(le *logrus.Entry, store kvtx.Store) *VLoggerStore {
 	return &VLoggerStore{le: le, Store: store}
 }

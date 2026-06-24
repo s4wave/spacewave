@@ -20,6 +20,7 @@ type Tx struct {
 	discardOnce sync.Once
 }
 
+// NewTx constructs a new verbose logger Tx wrapping tx.
 func NewTx(le *logrus.Entry, tx kvtx.Tx) *Tx {
 	return &Tx{
 		Tx: tx,

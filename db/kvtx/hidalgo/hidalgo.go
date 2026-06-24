@@ -36,6 +36,7 @@ func (k *KV) View(ctx context.Context, fn func(tx kv.Tx) error) error {
 	return kv.View(ctx, k, fn)
 }
 
+// Update creates a write transaction that commits when fn returns nil.
 func (k *KV) Update(ctx context.Context, fn func(tx kv.Tx) error) error {
 	return kv.Update(ctx, k, fn)
 }

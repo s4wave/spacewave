@@ -16,6 +16,7 @@ type BlockTx struct {
 	btx kvtx.BlockTx
 }
 
+// NewBlockTx constructs a new verbose logger BlockTx wrapping tx.
 func NewBlockTx(le *logrus.Entry, tx kvtx.BlockTx) *BlockTx {
 	return &BlockTx{
 		Tx:  NewTx(le, tx),

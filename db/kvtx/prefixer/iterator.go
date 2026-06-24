@@ -72,10 +72,9 @@ func (i *Iterator) Seek(k []byte) error {
 	if len(k) == 0 {
 		// special case: seek to beginning or end
 		return i.it.Seek(nil)
-	} else {
-		// prepend prefix
-		return i.it.Seek(bytes.Join([][]byte{i.t.prefix, k}, nil))
 	}
+	// prepend prefix
+	return i.it.Seek(bytes.Join([][]byte{i.t.prefix, k}, nil))
 }
 
 // Close closes the iterator.

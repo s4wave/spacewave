@@ -10,7 +10,6 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/kvtx"
-	// kvtx_iterator "github.com/s4wave/spacewave/db/kvtx/iterator"
 )
 
 // Tx is an iavl k/v transaction.
@@ -636,7 +635,7 @@ func (t *Tx) removeFromNode(
 	return bcs, nil, removedCursor, removedNode, nil
 }
 
-// calcNodeHeightAndSize calcluates a node's height and size.
+// calcNodeHeightAndSize calculates a node's height and size.
 func (t *Tx) calcNodeHeightAndSize(ctx context.Context, nod *Node, bcs *block.Cursor) error {
 	leftNod, _, rightNod, _, err := t.loadNodeChildren(ctx, nod, bcs)
 	if err != nil {
@@ -664,7 +663,7 @@ func (t *Tx) loadNodeChildren(
 	return leftNod, leftCs, rightNod, rightCs, nil
 }
 
-// calcNodeBalance calcluates a node's balance
+// calcNodeBalance calculates a node's balance.
 func (t *Tx) calcNodeBalance(ctx context.Context, nod *Node, bcs *block.Cursor) (int, error) {
 	leftNod, _, err := nod.FollowLeft(ctx, bcs)
 	if err != nil {
