@@ -44,11 +44,6 @@ type remotePeerState struct {
 	sendQueue []*block.BlockRef
 }
 
-// incomingStream holds a stored incoming stream pending processing.
-type incomingStream struct {
-	ms link.MountedStream
-}
-
 // Controller is the pub-sub DEX controller.
 type Controller struct {
 	le *logrus.Entry
@@ -59,7 +54,7 @@ type Controller struct {
 	// All below guarded by bcast.
 	wantRefs    map[string]*block.BlockRef
 	remotePeers map[peer.ID]*remotePeerState
-	incoming    map[sessionKey]*incomingStream
+	incoming    map[sessionKey]link.MountedStream
 	nextNonce   uint64
 
 	// peerID is set during Execute.
@@ -80,7 +75,7 @@ func NewController(le *logrus.Entry, b bus.Bus, cc *Config) (*Controller, error)
 		cc:          cc,
 		wantRefs:    make(map[string]*block.BlockRef),
 		remotePeers: make(map[peer.ID]*remotePeerState),
-		incoming:    make(map[sessionKey]*incomingStream),
+		incoming:    make(map[sessionKey]link.MountedStream),
 	}
 	c.incomingKeyed = keyed.NewKeyed(
 		c.buildIncomingRoutine,
@@ -233,7 +228,7 @@ func (c *Controller) HandleMountedStream(
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		c.nextNonce++
 		key = sessionKey{PeerID: from, Nonce: c.nextNonce}
-		c.incoming[key] = &incomingStream{ms: ms}
+		c.incoming[key] = ms
 	})
 	c.incomingKeyed.SetKey(key, true)
 	return nil

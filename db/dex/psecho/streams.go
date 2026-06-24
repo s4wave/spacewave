@@ -80,16 +80,15 @@ func (c *Controller) buildIncomingRoutine(key sessionKey) (keyed.Routine, struct
 
 // runIncomingStream handles an incoming sync stream.
 func (c *Controller) runIncomingStream(ctx context.Context, key sessionKey) error {
-	var inc *incomingStream
+	var ms link.MountedStream
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		inc = c.incoming[key]
+		ms = c.incoming[key]
 		delete(c.incoming, key)
 	})
-	if inc == nil {
+	if ms == nil {
 		return nil
 	}
 
-	ms := inc.ms
 	le := c.le.WithField("remote-peer", key.PeerID.String()).WithField("direction", "incoming")
 
 	// Hold the link open while processing.

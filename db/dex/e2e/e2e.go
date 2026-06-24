@@ -34,7 +34,7 @@ import (
 // PrepareTestbedFunc prepares a testbed and returns some configs to start.
 type PrepareTestbedFunc func(t *testbed.Testbed, bc *bucket.Config) ([]config.Config, error)
 
-// PrepareBucketConfigFunc prepares the bucket configuration
+// PrepareBucketConfigFunc prepares the bucket configuration.
 type PrepareBucketConfigFunc func(bc *bucket.Config) error
 
 // TestMultiNodeDEX tests a multi-node data exchange.
