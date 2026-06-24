@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/fs"
 	"slices"
-	"sort"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -756,7 +755,7 @@ func (o *DotGitFSCursorOps) readRefKindDir() ([]unixfs.FSCursorDirent, error) {
 	for name := range seen {
 		names = append(names, name)
 	}
-	sort.Strings(names)
+	slices.Sort(names)
 	ents := make([]unixfs.FSCursorDirent, 0, len(names))
 	for _, name := range names {
 		info := seen[name]
@@ -802,7 +801,7 @@ func dotGitObjectPrefixDirents(children []*dotGitNode, hashes []plumbing.Hash) [
 		seen[name] = struct{}{}
 		names = append(names, name)
 	}
-	sort.Strings(names)
+	slices.Sort(names)
 	ents := make([]unixfs.FSCursorDirent, 0, len(names))
 	for _, name := range names {
 		ents = append(ents, &gitDirent{name: name, isDir: true})
@@ -830,7 +829,7 @@ func dotGitObjectSuffixDirents(prefix string, hashes []plumbing.Hash) []unixfs.F
 			names = append(names, hashStr[2:])
 		}
 	}
-	sort.Strings(names)
+	slices.Sort(names)
 	ents := make([]unixfs.FSCursorDirent, 0, len(names))
 	for _, name := range names {
 		ents = append(ents, &gitDirent{name: name, isFile: true})
@@ -944,7 +943,7 @@ func dotGitPackedRefsContent(refStorer interface {
 	if err != nil {
 		return nil, err
 	}
-	sort.Strings(lines)
+	slices.Sort(lines)
 	var buf bytes.Buffer
 	buf.WriteString("# pack-refs with: peeled fully-peeled sorted \n")
 	for _, line := range lines {
