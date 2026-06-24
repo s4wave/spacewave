@@ -276,21 +276,6 @@ func validateAptArchitecture(value string) error {
 	return nil
 }
 
-func validateAptIndexPathField(name, value string) error {
-	if value == "" {
-		return errors.Wrapf(ErrInvalidAptPackageIndexMetadata, "%s is required", name)
-	}
-	if value == "." || value == ".." {
-		return errors.Wrapf(ErrInvalidAptPackageIndexMetadata, "%s is a path segment", name)
-	}
-	for _, r := range value {
-		if r <= ' ' || r > '~' || r == '/' {
-			return errors.Wrapf(ErrInvalidAptPackageIndexMetadata, "%s contains invalid filename character", name)
-		}
-	}
-	return nil
-}
-
 func writePackagesListField(buf *bytes.Buffer, name string, values []string) {
 	if len(values) == 0 {
 		return
