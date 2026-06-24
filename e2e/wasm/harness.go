@@ -88,8 +88,6 @@ type Harness struct {
 	cloudEndpointClose func()
 }
 
-// Boot starts the full wasm app lifecycle: builds the devtool bus, syncs
-// dist sources, loads and optionally mutates the project config, starts the
 // resolveHeadless determines whether the browser should run headless.
 // If explicitly set via WithHeadless, that value wins. Otherwise,
 // headless is the default unless E2E_WASM_HEADLESS=false or
@@ -112,6 +110,8 @@ func resolveBrowserName(explicit string) string {
 	return "chromium"
 }
 
+// Boot starts the full wasm app lifecycle: builds the devtool bus, syncs
+// dist sources, loads and optionally mutates the project config, starts the
 // project controller (which compiles plugin manifests), builds the web
 // entrypoint and runtime.wasm, and serves the app over HTTP.
 //

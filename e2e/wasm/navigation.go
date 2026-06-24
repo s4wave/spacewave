@@ -3,7 +3,6 @@
 package wasm
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 	"testing"
@@ -633,7 +632,7 @@ func formatOptionalMs(v *int) string {
 	if v == nil {
 		return "<missing>"
 	}
-	return fmt.Sprintf("%dms", *v)
+	return strconv.Itoa(*v) + "ms"
 }
 
 func containsAll(s string, subs ...string) bool {

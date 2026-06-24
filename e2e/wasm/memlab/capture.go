@@ -4,6 +4,7 @@ package memlab
 
 import (
 	"path/filepath"
+	"slices"
 
 	"github.com/pkg/errors"
 	"github.com/playwright-community/playwright-go"
@@ -19,10 +20,10 @@ type SnapshotSet struct {
 	Snapshots map[string]string
 }
 
-// Labels returns the snapshot labels in insertion order.
-// Use Snapshots map for path lookup.
+// SnapshotLabels returns the snapshot labels in insertion order.
+// Use the Snapshots map for path lookup.
 func (s *SnapshotSet) SnapshotLabels() []string {
-	return append([]string(nil), s.Labels...)
+	return slices.Clone(s.Labels)
 }
 
 // Path returns the snapshot file path for a label.

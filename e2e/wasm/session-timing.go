@@ -3,6 +3,7 @@
 package wasm
 
 import (
+	"slices"
 	"time"
 
 	"github.com/s4wave/spacewave/net/peer"
@@ -122,7 +123,7 @@ func (s *TestSession) ResourceConnectionTiming() ResourceConnectionTiming {
 	defer s.timingMu.Unlock()
 
 	out := s.resourceTiming
-	out.PeerWaits = append([]PeerWaitTiming(nil), s.resourceTiming.PeerWaits...)
-	out.Attempts = append([]ResourceConnectionAttemptTiming(nil), s.resourceTiming.Attempts...)
+	out.PeerWaits = slices.Clone(s.resourceTiming.PeerWaits)
+	out.Attempts = slices.Clone(s.resourceTiming.Attempts)
 	return out
 }

@@ -306,7 +306,7 @@ func (s *TestSession) removeWorker(w playwright.Worker) {
 func (s *TestSession) Workers() []playwright.Worker {
 	s.workersMu.Lock()
 	defer s.workersMu.Unlock()
-	return append([]playwright.Worker(nil), s.workers...)
+	return slices.Clone(s.workers)
 }
 
 func (s *TestSession) clearWorkers() {
