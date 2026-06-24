@@ -31,10 +31,6 @@ type canvasWatchSnapshot struct {
 	err   error
 }
 
-type canvasReleasableObjectState interface {
-	Release()
-}
-
 // NewCanvasResource creates a new CanvasResource.
 func NewCanvasResource(ws world.WorldState, engine world.Engine, objKey string, state *CanvasState) *CanvasResource {
 	if state == nil {
@@ -228,9 +224,9 @@ func (r *CanvasResource) watchCanvasWorld(ctx context.Context) error {
 			return world.ErrObjectNotFound
 		}
 		state, err := func() (*CanvasState, error) {
-			if rel, ok := objState.(canvasReleasableObjectState); ok {
-				defer rel.Release()
-			}
+			// Release the object-state handle before the WaitSeqno block below
+			// so the read scope does not span the wait.
+			defer world.ReleaseObjectState(objState)
 			return r.readCanvasWorldState(ctx, objState)
 		}()
 		if err != nil {
