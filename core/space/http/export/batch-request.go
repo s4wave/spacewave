@@ -7,7 +7,7 @@ import (
 	"encoding/base64"
 	"io"
 	"path"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -73,7 +73,7 @@ func normalizeBatchPaths(relPaths []string) ([]string, error) {
 		seen[cleanPath] = struct{}{}
 		normalized = append(normalized, cleanPath)
 	}
-	sort.Strings(normalized)
+	slices.Sort(normalized)
 	return normalized, nil
 }
 

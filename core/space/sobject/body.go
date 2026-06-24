@@ -6,7 +6,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// spaceBody implements space.SpaceSharedObjectBody
+// spaceBody implements space.SpaceSharedObjectBody.
 type spaceBody struct {
 	ref         *sobject.SharedObjectRef
 	engineID    string

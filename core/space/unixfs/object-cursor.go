@@ -4,7 +4,7 @@ package space_unixfs
 
 import (
 	"context"
-	"sort"
+	"slices"
 	"strings"
 
 	git_world "github.com/s4wave/spacewave/db/git/world"
@@ -46,7 +46,7 @@ func listProjectedObjects(ctx context.Context, ws world.WorldState) ([]string, e
 		}
 		projected = append(projected, md.ObjectKey)
 	}
-	sort.Strings(projected)
+	slices.Sort(projected)
 	return projected, nil
 }
 
@@ -94,7 +94,7 @@ func buildProjectedDirents(children map[string]*projectedChild) []*projectedDire
 	for name := range children {
 		names = append(names, name)
 	}
-	sort.Strings(names)
+	slices.Sort(names)
 
 	dirents := make([]*projectedDirent, 0, len(names))
 	for _, name := range names {
