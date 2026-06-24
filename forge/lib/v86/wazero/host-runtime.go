@@ -8,10 +8,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/forge/lib/v86/wazero/usernet"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
-
-	"github.com/s4wave/spacewave/forge/lib/v86/wazero/usernet"
 )
 
 const (

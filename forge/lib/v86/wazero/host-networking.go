@@ -5,9 +5,8 @@ import (
 	"net"
 	"net/netip"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/s4wave/spacewave/forge/lib/v86/wazero/usernet"
+	"github.com/sirupsen/logrus"
 )
 
 // defaultGuestMAC is the guest NIC address used when NetworkConfig leaves

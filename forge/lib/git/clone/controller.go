@@ -9,15 +9,14 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/go-git/go-git/v6/plumbing/protocol/packp/sideband"
 	transport_ssh "github.com/go-git/go-git/v6/plumbing/transport/ssh"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
+	"github.com/sirupsen/logrus"
 	git_urls "github.com/whilp/git-urls"
 	"golang.org/x/crypto/ssh"
-
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 // Version is the version of the controller implementation.

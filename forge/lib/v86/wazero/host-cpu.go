@@ -102,7 +102,7 @@ func (h *HostRuntime) createMemory(ctx context.Context, opts HostBootOptions) er
 		minimumSize = defaultMinimumMemorySize
 	}
 	if len(opts.Initrd) != 0 {
-		minimumSize = maxU32(minimumSize, initrdAddress+uint32(len(opts.Initrd)))
+		minimumSize = max(minimumSize, initrdAddress+uint32(len(opts.Initrd)))
 	}
 	if size < minimumSize {
 		size = minimumSize

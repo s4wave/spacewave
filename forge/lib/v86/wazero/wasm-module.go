@@ -17,17 +17,17 @@ func buildSharedModule(imports *wasmExternImports, opts HostRuntimeOptions) ([]b
 	}
 	memoryMin := uint32(0)
 	for _, memory := range imports.Memories {
-		memoryMin = maxU32(memoryMin, memory.Limits.Min)
+		memoryMin = max(memoryMin, memory.Limits.Min)
 	}
 	if len(imports.Memories) != 0 {
-		memoryMin = maxU32(memoryMin, defaultInitialMemoryPages)
+		memoryMin = max(memoryMin, defaultInitialMemoryPages)
 	}
 	if opts.InitialMemoryPages != 0 {
-		memoryMin = maxU32(memoryMin, opts.InitialMemoryPages)
+		memoryMin = max(memoryMin, opts.InitialMemoryPages)
 	}
 	tableMin := uint32(0)
 	for _, table := range imports.Tables {
-		tableMin = maxU32(tableMin, table.Limits.Min)
+		tableMin = max(tableMin, table.Limits.Min)
 	}
 
 	var sections [][]byte
@@ -214,11 +214,4 @@ func appendU32(out []byte, value uint32) []byte {
 			return out
 		}
 	}
-}
-
-func maxU32(a, b uint32) uint32 {
-	if a > b {
-		return a
-	}
-	return b
 }
