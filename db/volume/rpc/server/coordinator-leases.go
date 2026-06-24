@@ -2,7 +2,7 @@ package volume_rpc_server
 
 import (
 	"context"
-	"fmt"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
@@ -22,7 +22,7 @@ func newCoordinatorLeases() *coordinatorLeases {
 }
 
 func (l *coordinatorLeases) add(lease coord.WriteLease) string {
-	id := fmt.Sprintf("lease-%d", l.nextID.Add(1))
+	id := "lease-" + strconv.FormatUint(l.nextID.Add(1), 10)
 
 	l.mu.Lock()
 	l.leases[id] = lease

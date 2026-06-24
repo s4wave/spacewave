@@ -1,6 +1,8 @@
 package volume_rpc
 
 import (
+	"bytes"
+
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/coord"
 )
@@ -66,7 +68,7 @@ func NewCoordinatorEvent(event coord.Event) *CoordinatorEvent {
 		WantLock:         event.WantLock,
 		Unlocked:         event.Unlocked,
 		RootChanged:      cloneObjectRef(event.RootChanged),
-		KeyPrefixChanged: cloneBytes(event.KeyPrefixChanged),
+		KeyPrefixChanged: bytes.Clone(event.KeyPrefixChanged),
 		FallbackReason:   string(event.FallbackReason),
 	}
 }
@@ -84,7 +86,7 @@ func (x *CoordinatorEvent) ToCoordEvent() coord.Event {
 		WantLock:         x.GetWantLock(),
 		Unlocked:         x.GetUnlocked(),
 		RootChanged:      cloneObjectRef(x.GetRootChanged()),
-		KeyPrefixChanged: cloneBytes(x.GetKeyPrefixChanged()),
+		KeyPrefixChanged: bytes.Clone(x.GetKeyPrefixChanged()),
 		FallbackReason:   coord.FallbackReason(x.GetFallbackReason()),
 	}
 }
@@ -120,13 +122,4 @@ func cloneObjectRef(ref *bucket.ObjectRef) *bucket.ObjectRef {
 		return nil
 	}
 	return ref.CloneVT()
-}
-
-func cloneBytes(in []byte) []byte {
-	if in == nil {
-		return nil
-	}
-	out := make([]byte, len(in))
-	copy(out, in)
-	return out
 }
