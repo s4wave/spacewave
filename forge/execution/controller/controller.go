@@ -201,13 +201,12 @@ func (c *Controller) ProcessState(
 	}
 
 	// lookup the peer on the bus (wait for it to exist)
-	exPeer, _, peerRef, err := peer.GetPeerWithID(ctx, c.bus, peerID, false, nil)
+	_, _, peerRef, err := peer.GetPeerWithID(ctx, c.bus, peerID, false, nil)
 	if err != nil {
 		c.execRoutine.SetState(nil)
 		return false, err
 	}
 	defer peerRef.Release()
-	_ = exPeer
 
 	// promote pending -> running
 	if currState == forge_execution.State_ExecutionState_PENDING {
@@ -217,9 +216,6 @@ func (c *Controller) ProcessState(
 			peerID.String(),
 		)
 		txd := execution_transaction.NewTxStart(peerID)
-		if err != nil {
-			return false, err
-		}
 		_, _, err = obj.ApplyObjectOp(ctx, txd, peerID)
 		if err != nil {
 			return false, err

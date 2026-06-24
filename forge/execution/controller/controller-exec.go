@@ -204,13 +204,11 @@ func (c *Controller) processExec(
 			inputsMap,
 			execCtrlHandle,
 		)
+	} else if !c.conf.GetAllowNonExecController() {
+		_ = ctrl.Close()
+		return ErrNotExecController
 	} else {
-		if !c.conf.GetAllowNonExecController() {
-			_ = ctrl.Close()
-			return ErrNotExecController
-		} else {
-			le.Debug("controller does not implement exec-controller interface")
-		}
+		le.Debug("controller does not implement exec-controller interface")
 	}
 	if ctx.Err() != nil {
 		// note: ignore err if context was canceled
