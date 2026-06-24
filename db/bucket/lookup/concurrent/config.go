@@ -13,7 +13,7 @@ import (
 // ConfigID is the id attached to the config objects.
 var ConfigID = ControllerID
 
-// This is a cursory validation to see if the values "look correct."
+// Validate does cursory validation of the config to see if the values "look correct."
 func (c *Config) Validate() error {
 	if err := c.GetBucketConf().Validate(); err != nil {
 		return err

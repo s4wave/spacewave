@@ -101,13 +101,6 @@ func (c *Config) ResolveToProto(ctx context.Context, b bus.Bus) (*bucket.Config,
 			if err != nil {
 				return nil, errors.Wrap(err, "lookup controller resolve")
 			}
-			/*
-				lc, ok := lookupConf.GetConfig().(lookup.Config)
-				if !ok {
-					confID := lookupConf.GetConfig().GetConfigID()
-					return nil, errors.Errorf("config does not implement lookup config: %s", confID)
-				}
-			*/
 			bc.Lookup.Controller, err = configset_proto.NewControllerConfig(lookupConf, false)
 			if err != nil {
 				return nil, errors.Wrap(err, "lookup controller resolve")

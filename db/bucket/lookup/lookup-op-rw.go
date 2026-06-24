@@ -40,6 +40,8 @@ func StartBucketRWOperation(
 	if volID := args.GetVolumeId(); volID != "" {
 		bhv, _, bhvRef, err := bucket.ExBuildBucketAPI(ctx, b, false, args.GetBucketId(), volID, nil)
 		if err != nil {
+			// release the lookup handle ref acquired above before returning.
+			rel()
 			return nil, nil, err
 		}
 		if !bhv.GetExists() {

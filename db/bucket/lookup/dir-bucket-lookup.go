@@ -25,7 +25,7 @@ type BuildBucketLookupValue = Handle
 
 // buildBucketLookup implements BuildBucketLookup
 type buildBucketLookup struct {
-	bucketID, volumeID string
+	bucketID string
 }
 
 // NewBuildBucketLookup constructs a new BuildBucketLookup directive.
@@ -81,11 +81,6 @@ func (d *buildBucketLookup) GetValueOptions() directive.ValueOptions {
 // BuildBucketLookupBucketIDRe returns the bucket ID constraint.
 func (d *buildBucketLookup) BuildBucketLookupBucketID() string {
 	return d.bucketID
-}
-
-// BuildBucketLookupVolumeID returns the volume ID constraint.
-func (d *buildBucketLookup) BuildBucketLookupVolumeID() string {
-	return d.volumeID
 }
 
 // IsEquivalent checks if the other directive is equivalent. If two

@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 )
 
-// Factory constructs a example reconciler
+// Factory constructs a concurrent lookup controller.
 type Factory struct {
 	// bus is the controller bus
 	bus bus.Bus
