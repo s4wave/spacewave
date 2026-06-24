@@ -18,12 +18,12 @@ func NewReadWriteCloser(
 	return &ReadWriteCloser{reader: reader, writer: writer}
 }
 
-// Read implements io.Reader
+// Read implements io.Reader.
 func (r *ReadWriteCloser) Read(p []byte) (n int, err error) {
 	return r.reader.Read(p)
 }
 
-// Write implements io.Writer
+// Write implements io.Writer.
 func (r *ReadWriteCloser) Write(p []byte) (n int, err error) {
 	return r.writer.Write(p)
 }

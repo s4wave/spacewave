@@ -176,7 +176,7 @@ func (p *Conn) Close() error {
 	return p.rwc.Close()
 }
 
-// getArenaBuf returns a buf from the packet arena with at least the given size
+// getArenaBuf returns a buf from the packet arena with at least the given size.
 func (p *Conn) getArenaBuf(size int) []byte {
 	var buf []byte
 	bufp := p.ar.Get()
