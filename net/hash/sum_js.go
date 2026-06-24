@@ -3,8 +3,7 @@
 package hash
 
 import (
-	// We include sha1 for git support.
-	"crypto/sha1" //nolint:gosec
+	"crypto/sha1" //nolint:gosec // Git object storage requires SHA-1.
 	"crypto/sha256"
 	"runtime"
 	"sync"
