@@ -75,7 +75,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	)
 }
 
-// Execute executes the forwarding controller.
+// Execute runs the controller; the static address map needs no execution loop.
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {

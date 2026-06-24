@@ -41,8 +41,6 @@ func (t *Factory) Construct(
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
 	cc := conf.(*Config)
-
-	// Construct the controller.
 	return NewController(cc)
 }
 
