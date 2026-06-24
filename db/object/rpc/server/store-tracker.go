@@ -8,7 +8,7 @@ import (
 	rpc_kvtx_server "github.com/s4wave/spacewave/db/kvtx/rpc/server"
 )
 
-// kvtxStoreTracker tracks a kvtx.Store
+// kvtxStoreTracker tracks a kvtx.Store.
 type kvtxStoreTracker struct {
 	// s is the parent store
 	s *ObjectStore
@@ -36,7 +36,7 @@ func (s *ObjectStore) kvtxStoreTrackerExited(key string, routine keyed.Routine, 
 	}
 }
 
-// execute executes the proxy volume tracker.
+// execute executes the proxy object store tracker.
 func (t *kvtxStoreTracker) execute(ctx context.Context) error {
 	objectStoreID := t.objectStoreID
 	sctx, sctxCancel := context.WithCancel(ctx)
