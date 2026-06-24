@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -11,10 +11,10 @@ import (
 	floodsub_controller "github.com/s4wave/spacewave/net/pubsub/floodsub/controller"
 )
 
-// pubsubFactories contains the static compiled-in pubsub factories
+// pubsubFactories contains the static compiled-in pubsub factories.
 var pubsubFactories [](func(b bus.Bus) controller.Factory)
 
-// pubsubProviders contains the static compiled-in pubsub provider presets
+// pubsubProviders contains the static compiled-in pubsub provider presets.
 var pubsubProviders = map[string](func(args *DaemonArgs) (config.Config, error)){
 	"floodsub": func(args *DaemonArgs) (config.Config, error) {
 		return &floodsub_controller.Config{
@@ -23,7 +23,7 @@ var pubsubProviders = map[string](func(args *DaemonArgs) (config.Config, error))
 	},
 }
 
-// buildPubsubUsage returns the pubsub usage string
+// buildPubsubUsage returns the pubsub usage string.
 func buildPubsubUsage() string {
 	var strb strings.Builder
 	_, _ = strb.WriteString("if set, will configure pubsub from options: [")
@@ -31,7 +31,7 @@ func buildPubsubUsage() string {
 	for k := range pubsubProviders {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
+	slices.Sort(keys)
 	for i, k := range keys {
 		strb.WriteString(k)
 		if i != len(keys)-1 {

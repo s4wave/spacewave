@@ -16,7 +16,7 @@ import (
 	pubsub_api "github.com/s4wave/spacewave/net/pubsub/api"
 )
 
-// publishTimeout is the timeout to wait for ack of publish
+// publishTimeout is the timeout to wait for ack of publish.
 var publishTimeout = time.Second * 30
 
 // RunSubscribe runs the subscription command.
@@ -127,14 +127,6 @@ func (a *ClientArgs) RunSubscribe(_ *cli.Context) error {
 			}
 			return err
 		case msg := <-recvCh:
-			/*
-				if msg.GetSubscriptionStatus().GetError() != "" {
-					if err != context.Canceled && err != io.EOF {
-						os.Stderr.WriteString(err.Error())
-						os.Stderr.WriteString("\n")
-					}
-				}
-			*/
 			if msg.GetSubscriptionStatus().GetSubscribed() {
 				os.Stdout.WriteString("sub ")
 				os.Stdout.WriteString(a.SubscribeConf.GetChannelId())
