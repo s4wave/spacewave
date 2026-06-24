@@ -2,13 +2,13 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/core"
 	"github.com/s4wave/spacewave/net/keypem/keyfile"
 	"github.com/s4wave/spacewave/net/peer"
@@ -145,7 +145,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 		nil,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to start websocket transport: %w", err)
+		return errors.Wrap(err, "failed to start websocket transport")
 	}
 	defer wsRef.Release()
 
@@ -163,7 +163,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 		nil,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to start signaling client: %w", err)
+		return errors.Wrap(err, "failed to start signaling client")
 	}
 	defer signalingRef.Release()
 
@@ -190,7 +190,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 		nil,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to start webrtc transport: %w", err)
+		return errors.Wrap(err, "failed to start webrtc transport")
 	}
 	defer webrtcRef.Release()
 
@@ -206,7 +206,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 		nil,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to start stream forwarding: %w", err)
+		return errors.Wrap(err, "failed to start stream forwarding")
 	}
 	defer forwardRef.Release()
 
