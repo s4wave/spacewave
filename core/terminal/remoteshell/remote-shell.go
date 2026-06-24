@@ -263,10 +263,14 @@ func waitRemoteShellProcess(
 	errCh chan<- error,
 ) {
 	exitCode, err := proc.Wait()
+	exitErr := ""
+	if err != nil {
+		exitErr = err.Error()
+	}
 	if serr := session.SendMsg(&s4wave_terminal.TerminalFrame{
 		Kind:     s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_EXIT,
 		ExitCode: int32(exitCode),
-		Error:    errorString(err),
+		Error:    exitErr,
 	}); serr != nil {
 		errCh <- serr
 		return
@@ -407,13 +411,6 @@ func (p *ptyRemoteShellProcess) Wait() (int, error) {
 		return exitErr.ExitCode(), err
 	}
 	return -1, err
-}
-
-func errorString(err error) string {
-	if err == nil {
-		return ""
-	}
-	return err.Error()
 }
 
 // _ is a type assertion
