@@ -42,11 +42,11 @@ type ClientArgs struct {
 	// BifrostConf is the controller-bus configuration.
 	BifrostConf bifrost_cli.ClientArgs
 
-	// le is the logger entry
+	// le is the logger entry.
 	le *logrus.Entry
-	// ctx is the context
+	// ctx is the context.
 	ctx context.Context
-	// client is the client instance
+	// client is the client instance.
 	client api.HydraDaemonClient
 
 	// DialAddr is the address to dial.
@@ -343,7 +343,7 @@ func (a *ClientArgs) SetLogger(le *logrus.Entry) {
 	a.le = le
 }
 
-// GetLogger returns the log entry
+// GetLogger returns the log entry.
 func (a *ClientArgs) GetLogger() *logrus.Entry {
 	if le := a.le; le != nil {
 		return le

@@ -103,11 +103,9 @@ func (a *ClientArgs) RunPutObject(_ *cli.Context) error {
 	req := &a.ObjectStoreOpReq
 	req.Data = dat
 	req.Op = api.ObjectStoreOp_ObjectStoreOp_PUT_KEY
-	resp, err := c.ObjectStoreOp(ctx, req)
-	if err != nil {
+	if _, err := c.ObjectStoreOp(ctx, req); err != nil {
 		return err
 	}
-	_ = resp
 	return nil
 }
 
