@@ -107,7 +107,8 @@ func NewSimulator(
 }
 
 // pushPeer creates and starts a peer in the simulator.
-// expects caller to hold lock on mtx
+// Called only during NewSimulator construction before the Simulator is shared,
+// so it does not take mtx.
 func (s *Simulator) pushPeer(peer *graph.Peer) (*Peer, error) {
 	p, err := newPeer(s.ctx, s.le, peer, s.verbose)
 	if err != nil {

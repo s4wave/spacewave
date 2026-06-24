@@ -50,9 +50,8 @@ func newPeer(ctx context.Context, le *logrus.Entry, gp *graph.Peer, verbose bool
 	}
 
 	np := &Peer{
-		graphPeer: gp,
-		le:        le.WithField("sim-peer", gp.ID()),
-		// WithField("sim-peer", gp.GetPeerID().String()).
+		graphPeer:     gp,
+		le:            le.WithField("sim-peer", gp.ID()),
 		staticPeerMap: make(map[string]*dialer.DialerOpts),
 	}
 
@@ -63,7 +62,7 @@ func newPeer(ctx context.Context, le *logrus.Entry, gp *graph.Peer, verbose bool
 	var err error
 	np.testbed, err = testbed.NewTestbed(
 		np.ctx,
-		np.le, // np.le,
+		np.le,
 		testbed.TestbedOpts{PrivKey: gp.GetPeerPriv()},
 	)
 	if err != nil {
