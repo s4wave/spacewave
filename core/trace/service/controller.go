@@ -47,11 +47,6 @@ func NewFactory(b bus.Bus) controller.Factory {
 	)
 }
 
-// Execute executes the controller.
-func (c *Controller) Execute(ctx context.Context) error {
-	return nil
-}
-
 // HandleDirective asks if the handler can resolve the directive.
 func (c *Controller) HandleDirective(
 	ctx context.Context,
