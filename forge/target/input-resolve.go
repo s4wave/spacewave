@@ -2,7 +2,8 @@ package forge_target
 
 import (
 	"context"
-	"sort"
+	"slices"
+	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/pkg/errors"
@@ -85,8 +86,8 @@ func ResolveInputMap(
 			unresolved = append(unresolved, inp)
 		}
 	}
-	sort.Slice(unresolved, func(i, j int) bool {
-		return unresolved[i].GetName() < unresolved[j].GetName()
+	slices.SortFunc(unresolved, func(a, b *Input) int {
+		return strings.Compare(a.GetName(), b.GetName())
 	})
 
 	return im, unresolved, relAll, nil

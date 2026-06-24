@@ -1,11 +1,14 @@
 package forge_target
 
-import "sort"
+import (
+	"slices"
+	"strings"
+)
 
 // SortInputs sorts the inputs slice by name.
 func SortInputs(inps []*Input) {
-	sort.Slice(inps, func(i, j int) bool {
-		return inps[i].GetName() < inps[j].GetName()
+	slices.SortFunc(inps, func(a, b *Input) int {
+		return strings.Compare(a.GetName(), b.GetName())
 	})
 }
 
