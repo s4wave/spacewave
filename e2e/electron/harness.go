@@ -220,6 +220,8 @@ func (h *Harness) ControlEndpoint() string {
 // SetDesktopState projects a desktop runtime fixture through the Electron-main
 // e2e control surface.
 func (h *Harness) SetDesktopState(ctx context.Context, state any) error {
+	// encoding/json: the fixture is an arbitrary any projected over the e2e
+	// control HTTP surface; no proto type or fastjson struct encoder fits.
 	body, err := json.Marshal(state)
 	if err != nil {
 		return errors.Wrap(err, "marshal desktop runtime state")
