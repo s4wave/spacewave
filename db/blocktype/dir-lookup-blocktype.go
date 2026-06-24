@@ -42,7 +42,7 @@ func ExLookupBlockType(
 	return av.GetValue(), avRef, nil
 }
 
-// lookupBlockType implements LookupBlockType
+// lookupBlockType implements LookupBlockType.
 type lookupBlockType struct {
 	blockTypeID string
 }

@@ -15,7 +15,7 @@ type BlockType interface {
 	MatchesBlockType(b block.Block) bool
 }
 
-// blockType implements BlockType
+// blockType implements BlockType.
 type blockType[T block.Block] struct {
 	typeID      string
 	constructor func() T
