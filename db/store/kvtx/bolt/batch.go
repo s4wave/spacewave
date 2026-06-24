@@ -4,6 +4,7 @@ package store_kvtx_bolt
 
 import (
 	"context"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -163,9 +164,7 @@ func (t *batchTx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 		return nil, false, nil
 	}
 	// Value is only valid during tx, clone it.
-	out := make([]byte, len(value))
-	copy(out, value)
-	return out, true, nil
+	return slices.Clone(value), true, nil
 }
 
 // Size returns the number of keys in the store.

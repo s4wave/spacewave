@@ -29,7 +29,7 @@ type Tx struct {
 	cache *kvtx_txcache.TXCache
 }
 
-// NewTx constructs a new badger transaction.
+// newTx constructs a new redis transaction.
 func (s *Store) newTx(conn redis.Conn, write bool) *Tx {
 	return &Tx{
 		s:     s,

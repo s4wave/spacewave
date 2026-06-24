@@ -116,7 +116,7 @@ func (i *Iterator) Seek(k []byte) error {
 			i.key, i.val = i.bkt.Last()
 		} else {
 			i.key, i.val = i.bkt.Seek(k)
-			if i.reverse && bytes.Compare(i.key, k) > 0 {
+			if bytes.Compare(i.key, k) > 0 {
 				i.key, i.val = i.bkt.Prev()
 			}
 		}

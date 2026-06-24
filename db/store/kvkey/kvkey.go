@@ -55,7 +55,7 @@ func (k *KVKey) GetBucketConfigFullPrefix() []byte {
 	}, nil)
 }
 
-// GetBucketConfigKey returns the key for the given id
+// GetBucketConfigKey returns the key for the given id.
 func (k *KVKey) GetBucketConfigKey(id string) []byte {
 	return bytes.Join([][]byte{
 		k.conf.GetPrefix(),
