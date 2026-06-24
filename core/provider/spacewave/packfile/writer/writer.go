@@ -58,7 +58,7 @@ func PackBlocks(w io.Writer, iter BlockIterator) (*PackResult, error) {
 			return nil, errors.Wrap(err, "writing block to kvfile")
 		}
 		bf.Add(key)
-		keys = append(keys, append([]byte(nil), key...))
+		keys = append(keys, bytes.Clone(key))
 		count++
 	}
 
