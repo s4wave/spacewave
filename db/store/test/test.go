@@ -12,10 +12,7 @@ import (
 
 // TestAll runs all tests.
 func TestAll(ctx context.Context, ktx store.Store) error {
-	if err := TestObjectStore(ctx, ktx); err != nil {
-		return err
-	}
-	return nil
+	return TestObjectStore(ctx, ktx)
 }
 
 // WithVLogger attaches a vlogger to the object store.
