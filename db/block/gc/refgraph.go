@@ -6,8 +6,6 @@ import (
 	"maps"
 	"sync"
 
-	trace "github.com/s4wave/spacewave/db/traceutil"
-
 	"github.com/aperturerobotics/cayley"
 	"github.com/aperturerobotics/cayley/graph"
 	cayley_kv "github.com/aperturerobotics/cayley/graph/kv"
@@ -19,6 +17,7 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_cayley "github.com/s4wave/spacewave/db/kvtx/cayley"
 	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 )
 
 // RefGraph is a unified reference graph for garbage collection backed by Cayley.

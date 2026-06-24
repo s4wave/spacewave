@@ -4,9 +4,8 @@ import (
 	"context"
 	"time"
 
-	trace "github.com/s4wave/spacewave/db/traceutil"
-
 	"github.com/pkg/errors"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 )
 
 // ManagerConfig holds the configuration for a GC manager.

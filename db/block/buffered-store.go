@@ -5,10 +5,9 @@ import (
 	"context"
 	"slices"
 
-	trace "github.com/s4wave/spacewave/db/traceutil"
-
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/csync"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/net/hash"
 )
 

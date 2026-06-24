@@ -7,10 +7,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	trace "github.com/s4wave/spacewave/db/traceutil"
-
 	"github.com/aperturerobotics/util/conc"
 	"github.com/pkg/errors"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/net/hash"
 	"gonum.org/v1/gonum/graph"
@@ -18,11 +17,9 @@ import (
 )
 
 // maxWriteConcurrency is the maximum concurrency for PutBlock calls.
-// NOTE: this may be configurable or dynamic in future.
 var maxWriteConcurrency = runtime.GOMAXPROCS(0)
 
 // maxEncodeConcurrency is the maximum concurrency for hashing & marshaling blocks.
-// NOTE: this may be configurable or dynamic in future.
 var maxEncodeConcurrency = maxWriteConcurrency
 
 type transactionReachableNode struct {
