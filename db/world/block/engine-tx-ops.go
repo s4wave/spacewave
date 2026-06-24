@@ -2,10 +2,9 @@ package world_block
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -215,7 +214,7 @@ func (e *EngineTx) performOp(ctx context.Context, cb func(tx *Tx) error) error {
 		err := cb(e.writeTx)
 		if e.lease != nil && isCoordinatedWriteSnapshotError(err) {
 			e.Discard()
-			return fmt.Errorf("coordinated write snapshot: %w: %v", coord.ErrStaleGeneration, err)
+			return errors.Wrapf(coord.ErrStaleGeneration, "coordinated write snapshot: %v", err)
 		}
 		return err
 	}

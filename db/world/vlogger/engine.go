@@ -37,11 +37,6 @@ func (e *Engine) NewTransaction(ctx context.Context, write bool) (world.Tx, erro
 		le.WithError(err).Warnf("NewTransaction(%v) errored", write)
 		return nil, err
 	}
-	/*
-		defer func() {
-			le.Debugf("NewTransaction(%v)", write)
-		}()
-	*/
 	return NewTx(le, tx), nil
 }
 

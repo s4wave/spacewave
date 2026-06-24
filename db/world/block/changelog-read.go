@@ -2,6 +2,7 @@ package world_block
 
 import (
 	"context"
+	"slices"
 
 	"github.com/s4wave/spacewave/db/block"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -91,7 +92,7 @@ func readWorldChangeBatch(
 ) ([]*WorldChange, error) {
 	var chunks [][]*WorldChange
 	for batch != nil && !batch.IsEmpty() {
-		chunks = append(chunks, append([]*WorldChange(nil), batch.GetChanges()...))
+		chunks = append(chunks, slices.Clone(batch.GetChanges()))
 		if batch.GetPrevRef().GetEmpty() {
 			break
 		}

@@ -43,16 +43,6 @@ func (c *Config) Validate() error {
 		return errors.Wrap(err, "state_transform_conf")
 	}
 
-	/*
-		if c.GetVolumeId() == "" || c.GetObjectStoreId() == "" {
-			if !hasInitRef || initRef.GetBucketId() == "" {
-				return errors.New(
-					"world engine requires a init ref with a bucket id if the volume id or object store id are not set",
-				)
-			}
-		}
-	*/
-
 	return nil
 }
 
@@ -67,4 +57,5 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 	return config.EqualsConfig[*Config](c, other)
 }
 
+// _ is a type assertion
 var _ config.Config = ((*Config)(nil))

@@ -34,7 +34,6 @@ func LookupMockWorldOp(ctx context.Context, opTypeID string) (world.Operation, e
 }
 
 // _ is a type assertion
-
 var _ world.LookupOp = LookupMockWorldOp
 
 // Validate performs cursory checks on the op.

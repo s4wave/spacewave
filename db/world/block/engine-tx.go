@@ -2,15 +2,13 @@ package world_block
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"sync/atomic"
 
-	trace "github.com/s4wave/spacewave/db/traceutil"
-
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/coord"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 )
@@ -76,7 +74,7 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	nroot, commitErr := e.writeTx.CommitBlockTransaction(taskCtx)
 	subtask.End()
 	if commitLease != nil && isCoordinatedWriteSnapshotError(commitErr) {
-		commitErr = fmt.Errorf("commit world blocks: %w", coord.ErrStaleGeneration)
+		commitErr = errors.Wrap(coord.ErrStaleGeneration, "commit world blocks")
 	}
 	if commitErr == nil && commitLease != nil {
 		if _, err := commitLease.Refresh(ctx); err != nil {
@@ -125,7 +123,7 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 						commitErr = e.engine.validateRootRefLocked(ctx, nextRootRef)
 					}
 					if errors.Is(commitErr, block.ErrNotFound) {
-						commitErr = fmt.Errorf("validate committed root: %w", coord.ErrStaleGeneration)
+						commitErr = errors.Wrap(coord.ErrStaleGeneration, "validate committed root")
 					}
 					if commitErr == nil && e.engine.commitFn != nil {
 						commitErr = e.engine.commitFn(ctx, e.baseHeadRef, nextRootRef.Clone())
