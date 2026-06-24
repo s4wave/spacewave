@@ -2,7 +2,7 @@ package identity_world
 
 import (
 	"context"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/aperturerobotics/cayley"
@@ -131,7 +131,7 @@ func CollectAllKeypairs(ctx context.Context, w world.WorldState) ([]*identity.Ke
 	if err != nil {
 		return nil, nil, err
 	}
-	sort.Strings(objKeys)
+	slices.Sort(objKeys)
 
 	// collect list
 	list, err := LookupKeypairs(ctx, w, objKeys)

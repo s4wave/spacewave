@@ -2,7 +2,7 @@ package identity_world
 
 import (
 	"context"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/aperturerobotics/cayley/quad"
@@ -131,7 +131,7 @@ func CollectAllEntities(ctx context.Context, w world.WorldState) ([]*identity.En
 	if err != nil {
 		return nil, nil, err
 	}
-	sort.Strings(objKeys)
+	slices.Sort(objKeys)
 
 	// collect entity list
 	entityList, err := LookupEntities(ctx, w, objKeys)

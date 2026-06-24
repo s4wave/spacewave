@@ -2,7 +2,7 @@ package identity_world
 
 import (
 	"context"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -115,7 +115,7 @@ func CollectAllDomainInfos(ctx context.Context, w world.WorldState) ([]*identity
 	if err != nil {
 		return nil, nil, err
 	}
-	sort.Strings(objKeys)
+	slices.Sort(objKeys)
 
 	// collect list
 	list, err := LookupDomainInfos(ctx, w, objKeys)
