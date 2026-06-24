@@ -121,11 +121,7 @@ func (c *wsSignalingCtrl) Execute(ctx context.Context) error {
 		defer c.mtx.Unlock()
 
 		if reset {
-			for k, lr := range c.refs {
-				lr.dirRef.Release()
-				lr.peerRef.Release()
-				delete(c.refs, k)
-			}
+			c.releaseAllRefsLocked()
 		}
 
 		if pid == "" {
@@ -159,14 +155,20 @@ func (c *wsSignalingCtrl) Execute(ctx context.Context) error {
 
 	c.client.ClearContext()
 	c.mtx.Lock()
+	c.releaseAllRefsLocked()
+	c.mtx.Unlock()
+
+	return ctx.Err()
+}
+
+// releaseAllRefsLocked releases every listen reference and empties the map.
+// The caller must hold c.mtx.
+func (c *wsSignalingCtrl) releaseAllRefsLocked() {
 	for k, lr := range c.refs {
 		lr.dirRef.Release()
 		lr.peerRef.Release()
 		delete(c.refs, k)
 	}
-	c.mtx.Unlock()
-
-	return ctx.Err()
 }
 
 // runWebSocketPing pings the websocket until the context is canceled.
