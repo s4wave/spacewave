@@ -47,12 +47,9 @@ func NewPoolAlloc() (allocFn AllocFn, relBuf func(b []byte)) {
 			return out[:n]
 		}, func(b []byte) {
 			if cap(b) != 0 {
-				// scrub entire buffer
+				// scrub entire buffer before returning it to the pool
 				b = b[:cap(b)]
-				// compiler optimizes to memset
-				for i := 0; i < len(b); i++ {
-					b[i] = 0
-				}
+				clear(b)
 				pool.Put(&b)
 			}
 		}
