@@ -81,9 +81,9 @@ func (k *KvfileBlock) PutBlock(ctx context.Context, data []byte, opts *block.Put
 	return nil, false, block_store.ErrReadOnly
 }
 
-// PutBlockBatch returns ErrReadOnly for write entries.
+// PutBlockBatch returns ErrReadOnly when any write entries are supplied.
 func (k *KvfileBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	for range entries {
+	if len(entries) != 0 {
 		return block_store.ErrReadOnly
 	}
 	return nil

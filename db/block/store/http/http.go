@@ -113,6 +113,7 @@ func (b *HTTPBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 	if err != nil {
 		return nil, false, err
 	}
+	defer resp.Body.Close()
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, false, err
@@ -121,9 +122,8 @@ func (b *HTTPBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 		if len(respBody) != 0 {
 			errStr := string(respBody)
 			return nil, false, errors.New(errStr)
-		} else {
-			return nil, false, errors.Errorf("server returned error %v", resp.StatusCode)
 		}
+		return nil, false, errors.Errorf("server returned error %v", resp.StatusCode)
 	}
 
 	// handle 404 not found
@@ -203,6 +203,7 @@ func (b *HTTPBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, 
 	if err != nil {
 		return nil, false, err
 	}
+	defer resp.Body.Close()
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, false, err
@@ -265,6 +266,7 @@ func (b *HTTPBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bo
 	if err != nil {
 		return false, err
 	}
+	defer resp.Body.Close()
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return false, err
@@ -337,6 +339,7 @@ func (b *HTTPBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err

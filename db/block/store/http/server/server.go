@@ -65,7 +65,7 @@ func (h *HTTPBlockServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	pathPts := strings.Split(opPath, "/")
 	parseRef := func(refStr string) *block.BlockRef {
 		ref := &block.BlockRef{}
-		err := ref.ParseFromB58(pathPts[1])
+		err := ref.ParseFromB58(refStr)
 		if err == nil {
 			// expect a non-nil ref
 			err = ref.Validate(false)

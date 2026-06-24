@@ -116,7 +116,7 @@ func (w *Writer) nextSequenceLocked() (uint64, error) {
 	return seq + 1, nil
 }
 
-// formatFilename produces a WAL filename: <zero-padded seq>-<ulid>.wal
+// formatFilename produces a WAL filename of the form <zero-padded seq>-<ulid>.wal.
 func formatFilename(seq uint64) string {
 	s := strconv.FormatUint(seq, 10)
 	pad := max(seqDigits-len(s), 0)
