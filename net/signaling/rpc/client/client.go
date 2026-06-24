@@ -372,7 +372,7 @@ type clientPeerTracker struct {
 	outSent bool
 	// outAcked indicates out was acked.
 	outAcked bool
-	// outClear indicates we should try to cancel sending out.
+	// outCancel indicates we should try to cancel sending out.
 	outCancel bool
 	// recv contains the next message to receive.
 	recv *signaling_rpc.SessionMsg
@@ -388,7 +388,6 @@ func (c *Client) newPeerTracker(peerIDStr string) (keyed.Routine, *clientPeerTra
 		return nil, nil
 	}
 
-	// localPeerIDStr := c.peerID.String()
 	le := c.le.WithField("remote-peer-id", peerIDStr)
 	sess := &clientPeerTracker{
 		c:      c,
