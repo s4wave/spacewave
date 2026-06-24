@@ -7,7 +7,7 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 )
 
-// buildBucketLookupResolver resolves node.BuildBucketLookup
+// buildBucketLookupResolver resolves node.BuildBucketLookup.
 type buildBucketLookupResolver struct {
 	c *Controller
 	d bucket_lookup.BuildBucketLookup

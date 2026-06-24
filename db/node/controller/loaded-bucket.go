@@ -194,12 +194,12 @@ func (b *loadedBucket) GetLookup(ctx context.Context) (bucket_lookup.Lookup, err
 	return b.lookupCtr.WaitValue(ctx, nil)
 }
 
-// clearLookup removes the lookup from the lookupCh
+// clearLookup clears the current lookup value.
 func (b *loadedBucket) clearLookup() {
 	b.lookupCtr.SetValue(nil)
 }
 
-// pushLookup pushes the lookup to the lookupCh
+// pushLookup sets the current lookup value.
 func (b *loadedBucket) pushLookup(l bucket_lookup.Lookup) {
 	b.lookupCtr.SetValue(l)
 }

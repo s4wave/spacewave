@@ -13,7 +13,7 @@ type bucketLookupHandle struct {
 	s *loadedBucketState
 }
 
-// newBucketLookupHandle builds a new bucketLookupHandle
+// newBucketLookupHandle builds a new bucketLookupHandle.
 func newBucketLookupHandle(b *loadedBucket, s *loadedBucketState) *bucketLookupHandle {
 	return &bucketLookupHandle{b: b, s: s}
 }
