@@ -7,7 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/rpcstream"
-	srpc "github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 )

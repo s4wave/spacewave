@@ -97,7 +97,7 @@ func (d *lookupRpcService) Validate() error {
 	return nil
 }
 
-// GetValueLookupRpcServiceOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *lookupRpcService) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{
 		// UnrefDisposeDur is the duration to wait to dispose a directive after all
@@ -149,7 +149,7 @@ func (d *lookupRpcService) GetName() string {
 	return "LookupRpcService"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (d *lookupRpcService) GetDebugVals() directive.DebugValues {

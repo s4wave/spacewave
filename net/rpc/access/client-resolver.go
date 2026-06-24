@@ -1,7 +1,7 @@
 package bifrost_rpc_access
 
 import (
-	context "context"
+	"context"
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/directive"
