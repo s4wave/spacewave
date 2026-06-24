@@ -81,4 +81,5 @@ func (w *watch) send(event coord.Event) {
 	}
 }
 
+// _ is a type assertion
 var _ coord.Watch = (*watch)(nil)

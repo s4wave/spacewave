@@ -2,7 +2,10 @@ package inmem
 
 import "sync"
 
-var volumeCoordinators sync.Map
+var (
+	volumeCoordinatorsMu sync.Mutex
+	volumeCoordinators   = map[string]*Coordinator{}
+)
 
 // ForVolume returns the process-local coordinator for a Volume id.
 func ForVolume(volumeID string) *Coordinator {
@@ -10,6 +13,12 @@ func ForVolume(volumeID string) *Coordinator {
 		return NewCoordinator()
 	}
 
-	actual, _ := volumeCoordinators.LoadOrStore(volumeID, NewCoordinator())
-	return actual.(*Coordinator)
+	volumeCoordinatorsMu.Lock()
+	defer volumeCoordinatorsMu.Unlock()
+	coordinator := volumeCoordinators[volumeID]
+	if coordinator == nil {
+		coordinator = NewCoordinator()
+		volumeCoordinators[volumeID] = coordinator
+	}
+	return coordinator
 }

@@ -74,4 +74,5 @@ func (c *UnsupportedCoordinator) WaitAcquireWriteLease(ctx context.Context, scop
 	return nil, ErrUnsupported
 }
 
+// _ is a type assertion
 var _ Coordinator = (*UnsupportedCoordinator)(nil)

@@ -39,4 +39,5 @@ func (w *watch) sendLocked(event coord.Event) {
 	}
 }
 
+// _ is a type assertion
 var _ coord.Watch = (*watch)(nil)

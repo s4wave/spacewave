@@ -160,4 +160,5 @@ func (c *Coordinator) getScopeLocked(scope coord.Scope) *scopeState {
 	return state
 }
 
+// _ is a type assertion
 var _ coord.Coordinator = (*Coordinator)(nil)

@@ -125,4 +125,5 @@ func (c *Coordinator) generation(ctx context.Context) (uint64, error) {
 	return c.meta.RefreshGenerationContext(ctx)
 }
 
+// _ is a type assertion
 var _ coord.Coordinator = (*Coordinator)(nil)

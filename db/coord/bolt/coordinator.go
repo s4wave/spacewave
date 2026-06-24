@@ -137,6 +137,8 @@ func (c *Coordinator) safeGeneration() (generation uint64, ok bool) {
 	if c == nil || c.db == nil {
 		return 0, false
 	}
+	// CommitCounter panics on a closed or unopened bbolt DB; treat that
+	// foreign panic as an unavailable generation rather than a crash.
 	defer func() {
 		if recover() != nil {
 			generation = 0
@@ -146,4 +148,5 @@ func (c *Coordinator) safeGeneration() (generation uint64, ok bool) {
 	return c.db.CommitCounter(), true
 }
 
+// _ is a type assertion
 var _ coord.Coordinator = (*Coordinator)(nil)

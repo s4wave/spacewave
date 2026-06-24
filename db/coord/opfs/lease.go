@@ -56,4 +56,5 @@ func (l *lease) Release(ctx context.Context) error {
 	return err
 }
 
+// _ is a type assertion
 var _ coord.WriteLease = (*lease)(nil)
