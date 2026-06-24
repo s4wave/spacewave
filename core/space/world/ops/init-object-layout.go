@@ -110,14 +110,13 @@ func (o *InitObjectLayoutOp) ApplyWorldOp(
 	}
 
 	// Create the object with the layout body
-	objState, _, err := world.CreateWorldObject(ctx, worldHandle, objKey, func(bcs *block.Cursor) error {
+	_, _, err = world.CreateWorldObject(ctx, worldHandle, objKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(layout, true)
 		return nil
 	})
 	if err != nil {
 		return false, err
 	}
-	_ = objState
 
 	// Set the object type
 	if err := world_types.SetObjectType(ctx, worldHandle, objKey, s4wave_layout_world.ObjectLayoutTypeID); err != nil {
