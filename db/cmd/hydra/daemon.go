@@ -197,7 +197,6 @@ func runDaemon(c *cli.Context) error {
 			_ = prof.ListenProf(le, daemonFlags.ProfListen)
 		}()
 	}
-	_ = d
 
 	<-ctx.Done()
 	return nil
