@@ -109,7 +109,7 @@ func (p *peer) GetPubKey() crypto.PubKey {
 }
 
 // GetPrivKey returns the private key.
-// May be empty if peer private key is unavailable.
+// Returns ErrNoPrivKey if the private key is unavailable.
 func (p *peer) GetPrivKey(ctx context.Context) (crypto.PrivKey, error) {
 	if p.privKey == nil {
 		return nil, ErrNoPrivKey
