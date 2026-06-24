@@ -4,7 +4,6 @@ import (
 	"context"
 	"maps"
 	"slices"
-	"sort"
 	"strings"
 
 	"github.com/aperturerobotics/util/broadcast"
@@ -113,6 +112,6 @@ func (s *StateAtomStoreIndex) buildStoreIDsSnapshot(
 	for storeID := range trackedStoreIDs {
 		storeIDs = append(storeIDs, storeID)
 	}
-	sort.Strings(storeIDs)
+	slices.Sort(storeIDs)
 	return storeIDs, nil
 }
