@@ -97,8 +97,7 @@ func (t *Transformer) DecodeBlock(data []byte) ([]byte, error) {
 	}
 
 	var err error
-	for _, v := range slices.Backward(t.steps) {
-		s := v
+	for _, s := range slices.Backward(t.steps) {
 		data, err = s.DecodeBlock(data)
 		if err != nil {
 			return nil, err

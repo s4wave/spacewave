@@ -65,7 +65,7 @@ func (c *StepConfig) MarshalProtoJSON(s *json.MarshalState) {
 				return
 			}
 		} else {
-			// Base58 encoded string
+			// Base64 raw-std encoded string
 			s.WriteString(base64.RawStdEncoding.EncodeToString(c.Config))
 		}
 	}
@@ -97,7 +97,7 @@ func (c *StepConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				var err error
 				c.Config, err = base64.RawStdEncoding.DecodeString(s.ReadString())
 				if err != nil {
-					s.SetError(errors.Wrap(err, "unmarshal config value as base58 string"))
+					s.SetError(errors.Wrap(err, "unmarshal config value as base64 string"))
 					return
 				}
 			case jsoniter.ObjectValue:
