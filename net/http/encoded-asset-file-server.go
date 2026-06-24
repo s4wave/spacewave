@@ -1,13 +1,14 @@
 package bifrost_http
 
 import (
-	"errors"
 	"io/fs"
 	"mime"
 	"net/http"
 	"path"
 	"strconv"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 const encodedAssetVary = "Accept-Encoding"
