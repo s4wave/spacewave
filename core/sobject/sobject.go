@@ -410,7 +410,6 @@ func (i *SOOperationInner) ParsePeerID() (peer.ID, error) {
 	return parsePeerIDField(i.GetPeerId())
 }
 
-// Validate performs cursory checks on the SORoot.
 // updateAccountNonce updates the account nonce if the new nonce is higher.
 func (r *SORoot) updateAccountNonce(peerID string, nonce uint64) {
 	for i, accNonce := range r.AccountNonces {

@@ -22,7 +22,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Config configures a World Graph engine bound to a block graph and controlled by a Shared Object.
+// Controller drives a World Graph engine bound to a block graph and controlled by a Shared Object.
 // Uses MountSharedObject to mount and access the shared object and block store.
 // Stores the HEAD reference in the Shared Object.
 type Controller struct {

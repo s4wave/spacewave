@@ -1,8 +1,7 @@
 package sobject_world_engine
 
 import (
-	"errors"
-
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 )
 

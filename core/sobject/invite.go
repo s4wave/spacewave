@@ -15,12 +15,11 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// CreateSOInviteOp creates an invite on the shared object and returns the
-// signed SOInviteMessage for out-of-band distribution.
+// BuildSOInviteMessage builds and signs the SOInviteMessage for out-of-band
+// distribution along with the on-chain SOInvite metadata.
 //
-// Generates a random 32-byte token, SHA256 hashes it for on-chain storage,
-// builds and signs the SOInviteMessage, then stores the invite metadata in
-// SOState.invites via a signed config chain entry.
+// Generates a random 32-byte token and SHA256 hashes it for on-chain storage.
+// The returned SOInvite is stored separately via a signed config chain entry.
 func BuildSOInviteMessage(
 	sharedObjectID string,
 	ownerPrivKey crypto.PrivKey,
