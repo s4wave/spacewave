@@ -19,6 +19,7 @@ import (
 	"encoding/asn1"
 	"io"
 	"math/big"
+	"slices"
 	"time"
 
 	"github.com/pkg/errors"
@@ -151,12 +152,12 @@ func PubKeyFromCertChain(chain []*x509.Certificate) (crypto.PubKey, error) {
 	var found bool
 	var keyExt pkix.Extension
 	for _, ext := range cert.Extensions {
-		if extensionIDEqual(ext.Id, extensionID) {
+		if slices.Equal(ext.Id, extensionID) {
 			keyExt = ext
 			found = true
 			for idx, oident := range cert.UnhandledCriticalExtensions {
 				if oident.Equal(ext.Id) {
-					cert.UnhandledCriticalExtensions = append(cert.UnhandledCriticalExtensions[:idx], cert.UnhandledCriticalExtensions[idx+1:]...)
+					cert.UnhandledCriticalExtensions = slices.Delete(cert.UnhandledCriticalExtensions, idx, idx+1)
 					break
 				}
 			}
