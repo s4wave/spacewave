@@ -17,18 +17,3 @@ func newPassState(objKey string, pass *forge_pass.Pass) *passState {
 		pass:   pass,
 	}
 }
-
-/*
-// checkChanged checks if the two states are different.
-func (s *passState) checkChanged(ot *passState) bool {
-	switch {
-	case ot.objKey != s.objKey:
-	case (s.pass == nil || ot.pass == nil) && (s.pass != ot.pass):
-	case s.pass.GetPassState() != ot.pass.GetPassState():
-	case !s.pass.GetResult().Equals(ot.pass.GetResult()):
-	default:
-		return false
-	}
-	return true
-}
-*/
