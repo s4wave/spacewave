@@ -32,20 +32,23 @@ const (
 	releaseWasmPrerenderDistEnv = "E2E_RELEASE_WASM_PRERENDER_DIST_DIR"
 )
 
+// browserReleaseDescriptor is parsed field-by-field from browser-release.json
+// via fastjson in browserRelease; it is never marshaled or unmarshaled by
+// encoding/json, so it carries no struct tags.
 type browserReleaseDescriptor struct {
-	SchemaVersion        int                       `json:"schemaVersion"`
-	GenerationID         string                    `json:"generationId"`
-	ShellAssets          browserReleaseShellAssets `json:"shellAssets"`
-	PrerenderedRoutes    []string                  `json:"prerenderedRoutes"`
-	RequiredStaticAssets []string                  `json:"requiredStaticAssets"`
+	SchemaVersion        int
+	GenerationID         string
+	ShellAssets          browserReleaseShellAssets
+	PrerenderedRoutes    []string
+	RequiredStaticAssets []string
 }
 
 type browserReleaseShellAssets struct {
-	Entrypoint    string   `json:"entrypoint"`
-	ServiceWorker string   `json:"serviceWorker"`
-	SharedWorker  string   `json:"sharedWorker"`
-	Wasm          string   `json:"wasm"`
-	CSS           []string `json:"css"`
+	Entrypoint    string
+	ServiceWorker string
+	SharedWorker  string
+	Wasm          string
+	CSS           []string
 }
 
 type harness struct {
