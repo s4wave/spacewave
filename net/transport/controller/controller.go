@@ -208,7 +208,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	execCtx, execCtxCancel := context.WithCancel(ctx)
 	defer execCtxCancel()
 
-	// set hadles
+	// set handles
 	c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		c.execCtx = execCtx
 		c.peerID = localPeerID

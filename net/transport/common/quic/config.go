@@ -48,7 +48,7 @@ func BuildQuicConfig(opts *Opts) *quic.Config {
 
 // BuildIncomingTlsConf builds the tls config for incoming conns.
 //
-// rpeer can be empty to indicate accepting any remote peer
+// rpeer can be empty to indicate accepting any remote peer.
 func BuildIncomingTlsConf(identity *p2ptls.Identity, rpeer peer.ID) *tls.Config {
 	var tlsConf tls.Config
 	tlsConf.NextProtos = []string{Alpn}

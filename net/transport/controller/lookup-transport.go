@@ -10,7 +10,6 @@ import (
 // lookupTransportResolver resolves lookupTransport directives
 type lookupTransportResolver struct {
 	c   *Controller
-	ctx context.Context
 	dir transport.LookupTransport
 }
 
@@ -50,7 +49,7 @@ func checkLookupMatchesTpt(dir transport.LookupTransport, tpt transport.Transpor
 }
 
 // resolveLookupTransport returns a resolver for looking up a transport.
-func (c *Controller) resolveLookupTransport(ctx context.Context, dir transport.LookupTransport) ([]directive.Resolver, error) {
+func (c *Controller) resolveLookupTransport(_ context.Context, dir transport.LookupTransport) ([]directive.Resolver, error) {
 	// Try to skip this if it doesn't match this transport and we can lock.
 	// Otherwise return a resolver and check later.
 	var skip bool
@@ -64,7 +63,6 @@ func (c *Controller) resolveLookupTransport(ctx context.Context, dir transport.L
 	// Return resolver.
 	return directive.Resolvers(&lookupTransportResolver{
 		c:   c,
-		ctx: ctx,
 		dir: dir,
 	}), nil
 }

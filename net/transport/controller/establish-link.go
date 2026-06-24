@@ -11,8 +11,6 @@ import (
 // establishLinkResolver resolves establishLink directives
 type establishLinkResolver struct {
 	c   *Controller
-	ctx context.Context
-	di  directive.Instance
 	dir link.EstablishLinkWithPeer
 }
 
@@ -108,8 +106,8 @@ func (o *establishLinkResolver) Resolve(ctx context.Context, handler directive.R
 // resolveEstablishLink returns a resolver for opening a stream.
 // Negotiates the protocol ID as well.
 func (c *Controller) resolveEstablishLink(
-	ctx context.Context,
-	di directive.Instance,
+	_ context.Context,
+	_ directive.Instance,
 	dir link.EstablishLinkWithPeer,
 ) ([]directive.Resolver, error) {
 	if len(dir.EstablishLinkTargetPeerId()) == 0 {
@@ -131,8 +129,6 @@ func (c *Controller) resolveEstablishLink(
 	// Return resolver.
 	return directive.Resolvers(&establishLinkResolver{
 		c:   c,
-		ctx: ctx,
-		di:  di,
 		dir: dir,
 	}), nil
 }

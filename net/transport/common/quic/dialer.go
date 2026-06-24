@@ -7,7 +7,7 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// Dialer represents a ongoing attempt to dial an address
+// Dialer represents an ongoing attempt to dial an address.
 type Dialer struct {
 	// t is the transport
 	t *Transport

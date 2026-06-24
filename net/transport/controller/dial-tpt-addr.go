@@ -11,8 +11,6 @@ import (
 // dialTptAddrResolver resolves DialTptAddr directives
 type dialTptAddrResolver struct {
 	c   *Controller
-	ctx context.Context
-	di  directive.Instance
 	dir tptaddr.DialTptAddr
 }
 
@@ -79,8 +77,8 @@ func (o *dialTptAddrResolver) Resolve(ctx context.Context, handler directive.Res
 
 // resolveDialTptAddr returns a resolver for dialing a transport address.
 func (c *Controller) resolveDialTptAddr(
-	ctx context.Context,
-	di directive.Instance,
+	_ context.Context,
+	_ directive.Instance,
 	dir tptaddr.DialTptAddr,
 ) ([]directive.Resolver, error) {
 	srcPeerID := dir.DialTptAddrSourcePeerId()
@@ -105,8 +103,6 @@ func (c *Controller) resolveDialTptAddr(
 	// Return resolver.
 	return directive.Resolvers(&dialTptAddrResolver{
 		c:   c,
-		ctx: ctx,
-		di:  di,
 		dir: dir,
 	}), nil
 }

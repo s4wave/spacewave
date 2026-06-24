@@ -110,7 +110,7 @@ func (l *Link) GetRemotePeer() peer.ID {
 	return l.remotePeerID
 }
 
-// GetRemotePeerPubKey returns the remote peer public key
+// GetRemotePeerPubKey returns the remote peer public key.
 func (l *Link) GetRemotePeerPubKey() crypto.PublicKey {
 	return l.remotePubKey
 }
