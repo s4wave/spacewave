@@ -5,6 +5,7 @@ package blockshard
 import (
 	"encoding/binary"
 	"hash/crc32"
+	"slices"
 
 	"github.com/pkg/errors"
 )
@@ -351,8 +352,8 @@ func decodeRetiredSegmentMeta(
 }
 
 func cloneSegmentMeta(s SegmentMeta) SegmentMeta {
-	s.MinKey = append([]byte{}, s.MinKey...)
-	s.MaxKey = append([]byte{}, s.MaxKey...)
+	s.MinKey = slices.Clone(s.MinKey)
+	s.MaxKey = slices.Clone(s.MaxKey)
 	return s
 }
 

@@ -4,6 +4,7 @@ package metashard
 
 import (
 	"io"
+	"slices"
 	"syscall/js"
 
 	"github.com/pkg/errors"
@@ -194,7 +195,7 @@ func (p *OpfsPager) PersistFreelist() (pagestore.PageID, error) {
 		return pagestore.InvalidPage, errors.New("page size too small for freelist")
 	}
 
-	freed := append([]pagestore.PageID(nil), p.freed...)
+	freed := slices.Clone(p.freed)
 	pageCount := (len(freed) + capacity - 1) / capacity
 	pages := make([]pagestore.PageID, pageCount)
 	for i := range pages {
