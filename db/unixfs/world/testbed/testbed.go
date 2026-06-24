@@ -33,7 +33,7 @@ func BuildTestbed(
 
 // InitTestbed inits the testbed with a new fs.
 //
-// if watchWorldChanges is nil the fs will be read-only
+// if watchWorldChanges is false the fs will be read-only
 func InitTestbed(
 	tb *world_testbed.Testbed,
 	objKey string,
