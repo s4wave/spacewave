@@ -33,9 +33,6 @@ func (c *Controller) ProcessState(
 	_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
 		var berr error
 		workerState, berr = forge_worker.UnmarshalWorker(ctx, bcs)
-		if berr != nil {
-			return berr
-		}
 		return berr
 	})
 	if err != nil {
@@ -49,8 +46,6 @@ func (c *Controller) ProcessState(
 
 	// peerID may be empty here
 	workerName, peerID := workerState.GetName(), c.peerID
-	_ = workerName
-	_ = peerID
 
 	// lookup all keypair associated with the Worker.
 	workerKeypairs, workerKeypairKeys, err := forge_worker.CollectWorkerKeypairs(ctx, ws, objKey)

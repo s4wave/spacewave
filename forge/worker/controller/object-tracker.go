@@ -84,11 +84,7 @@ func (t *objectTracker) execute(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		if prevVal != "" {
-			objType = prevVal
-		} else {
-			objType = ""
-		}
+		objType = prevVal
 
 		// Sync object type to the controller if needed
 		if err := t.applyObjectType(ctx, objType); err != nil {
@@ -201,11 +197,7 @@ func (t *objectTracker) processState(
 
 // pushObjType pushes the object info from processState.
 func (t *objectTracker) pushObjType(objType string) {
-	if objType != "" {
-		t.objTypeCtr.SetValue(objType)
-	} else {
-		t.objTypeCtr.SetValue("")
-	}
+	t.objTypeCtr.SetValue(objType)
 }
 
 // _ is a type assertion
