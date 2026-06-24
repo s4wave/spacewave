@@ -2,6 +2,7 @@ package unixfs_access
 
 import (
 	"context"
+	"slices"
 	"sync"
 
 	"github.com/s4wave/spacewave/db/unixfs"
@@ -38,7 +39,7 @@ func (r *RotatingAccess) AccessUnixFS(ctx context.Context, released func()) (*un
 func (r *RotatingAccess) SetCurrent(fn AccessUnixFSFunc) {
 	r.mtx.Lock()
 	r.current = fn
-	waiters := append([]func(){}, r.waiters...)
+	waiters := slices.Clone(r.waiters)
 	r.waiters = nil
 	r.mtx.Unlock()
 

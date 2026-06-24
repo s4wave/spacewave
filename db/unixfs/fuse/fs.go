@@ -6,12 +6,11 @@ package fuse
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/db/unixfs"
-	"github.com/sirupsen/logrus"
-
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 	_ "bazil.org/fuse/fs/fstestutil"
+	"github.com/s4wave/spacewave/db/unixfs"
+	"github.com/sirupsen/logrus"
 )
 
 // refBlockSize is the fake block size used for Block counts.

@@ -198,7 +198,8 @@ func (b *BatchFSWriter) AddDir(
 
 	// Eagerly create the pendingDir slot keyed by the child path so any
 	// subsequent child entry lands under a dir we know was explicitly
-	// declared (see iter 9 intermediate-parent guard).
+	// declared, guarding against intermediate parents that never had an
+	// explicit AddDir.
 	childPath := make([]string, 0, len(parentPath)+1)
 	childPath = append(childPath, parentPath...)
 	childPath = append(childPath, name)
@@ -330,7 +331,7 @@ func (b *BatchFSWriter) sortedPendingDirs() []*pendingDir {
 // mergePendingDir merges accumulated entries into the FSTree node at
 // pd.parentPath. Does not recurse; each pending child whose own accumulated
 // entries live in another pendingDir is handled in a separate mergePendingDir
-// invocation (iter 6).
+// invocation.
 func (b *BatchFSWriter) mergePendingDir(
 	ctx context.Context,
 	root *unixfs_block.FSTree,
@@ -386,7 +387,8 @@ func (b *BatchFSWriter) mergePendingDir(
 				// Pass nil ts so Remove does not bump the parent
 				// directory's ModTime. The per-op path leaves the parent
 				// untouched on a file-content overwrite (billy OpenFile +
-				// Write path), and IC-1 requires byte-identical root refs.
+				// Write path), and the batch commit must produce a root ref
+				// byte-identical to that per-op path.
 				deleteResolvedDirSubtree(resolvedDirs, childPath)
 				if _, err := dir.Remove([]string{e.name}, nil); err != nil {
 					return err
@@ -570,11 +572,7 @@ func (b *BatchFSWriter) pendingDirFor(parentPath []string) *pendingDir {
 	if ok {
 		return pd
 	}
-	var stored []string
-	if len(parentPath) != 0 {
-		stored = append(stored, parentPath...)
-	}
-	pd = &pendingDir{parentPath: stored}
+	pd = &pendingDir{parentPath: slices.Clone(parentPath)}
 	b.pending[key] = pd
 	return pd
 }

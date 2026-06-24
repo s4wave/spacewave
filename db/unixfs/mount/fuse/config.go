@@ -46,7 +46,7 @@ func (c *Config) SetMountPath(npath string) {
 	}
 }
 
-// BuildMountOptions builds the fuse mount options.
+// BuildFuseMountOptions builds the fuse mount options.
 func (c *Config) BuildFuseMountOptions() []fuse.MountOption {
 	mountOpts := []fuse.MountOption{
 		bfuse.DefaultPermissions(),

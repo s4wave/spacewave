@@ -259,7 +259,7 @@ func (h *FSHandle) ReadAt(ctx context.Context, offset int64, data []byte) (int64
 	return read, err
 }
 
-// Write writes to an offset in a file node synchronously.
+// WriteAt writes to an offset in a file node synchronously.
 // The change will be fully written to the file before returning.
 // If this isn't a file node, returns ErrNotFile.
 func (h *FSHandle) WriteAt(ctx context.Context, offset int64, data []byte, ts time.Time) error {

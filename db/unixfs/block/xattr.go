@@ -1,6 +1,9 @@
 package unixfs_block
 
-import "sort"
+import (
+	"cmp"
+	"slices"
+)
 
 // GetXattrValue returns the value of the named xattr, or nil if not found.
 func (n *FSNode) GetXattrValue(name string) []byte {
@@ -21,8 +24,8 @@ func (n *FSNode) SetXattr(name string, value []byte) {
 		}
 	}
 	n.Xattrs = append(n.Xattrs, &FSXattr{Name: name, Value: value})
-	sort.Slice(n.Xattrs, func(i, j int) bool {
-		return n.Xattrs[i].GetName() < n.Xattrs[j].GetName()
+	slices.SortFunc(n.Xattrs, func(a, b *FSXattr) int {
+		return cmp.Compare(a.GetName(), b.GetName())
 	})
 }
 

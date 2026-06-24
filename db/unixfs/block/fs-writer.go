@@ -60,7 +60,7 @@ func (f *FSWriter) SetModTimestamp(ctx context.Context, paths [][]string, mtime 
 	return SetModTimestamp(f.fsTree, paths, tts)
 }
 
-// Write writes data to an offset in an inode (usually a file).
+// WriteAt writes data to an offset in an inode (usually a file).
 func (f *FSWriter) WriteAt(ctx context.Context, path []string, offset int64, data []byte, ts time.Time) error {
 	tts := ToTimestamp(ts, true)
 	return WriteAt(ctx, f.fsTree, nil, path, offset, int64(len(data)), bytes.NewReader(data), tts)

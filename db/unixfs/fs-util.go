@@ -55,7 +55,7 @@ func ReaddirAllToFileInfo(ctx context.Context, skip, limit uint64, h *FSHandle) 
 	return out, nil
 }
 
-// ReaddirAllToFSDirEntry calls readdir and generates FSDirEntry objects.
+// ReaddirAllToDirEntries calls readdir and generates fs.DirEntry objects.
 // If skip is set, skips N entries.
 // If limit is set, limits output to N entries.
 func ReaddirAllToDirEntries(ctx context.Context, skip, limit uint64, h *FSHandle) ([]fs.DirEntry, error) {

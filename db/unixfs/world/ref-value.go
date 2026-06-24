@@ -4,7 +4,7 @@ import (
 	b58 "github.com/mr-tron/base58/base58"
 )
 
-// UnmarshalFromKey unmarshals the ref value from a key.
+// UnmarshalRefValueFromKey unmarshals the ref value from a key.
 func UnmarshalRefValueFromKey(key string) (*RefValue, error) {
 	v := &RefValue{}
 	if len(key) == 0 {
