@@ -23,7 +23,7 @@ func SecretFactory(
 	ctx context.Context,
 	le *logrus.Entry,
 	b bus.Bus,
-	engine world.Engine,
+	_ world.Engine,
 	ws world.WorldState,
 	objectKey string,
 ) (srpc.Invoker, func(), error) {
@@ -47,6 +47,5 @@ func SecretFactory(
 	}
 
 	resource := s4wave_secret.NewSecretResource(le, b, ws, objectKey)
-	_ = engine
 	return resource.GetMux(), func() {}, nil
 }
