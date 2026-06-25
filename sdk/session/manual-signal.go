@@ -19,7 +19,7 @@ import (
 )
 
 // manualSignalDataChannelID is the datachannel label for QUIC-over-WebRTC.
-var manualSignalDataChannelID = "bifrost-quic"
+const manualSignalDataChannelID = "bifrost-quic"
 
 // ManualSignalTransport manages a WebRTC peer connection for manual SDP
 // exchange. Unlike the bifrost WebRTC transport which uses trickle ICE via a
