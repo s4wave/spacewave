@@ -36,31 +36,29 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           GITHUB_SHA_VALUE: ${{ github.sha }}
           GITHUB_REF_VALUE: ${{ github.ref }}
-          GITHUB_SERVER_URL_VALUE: ${{ github.server_url }}
+          GITHUB_API_URL_VALUE: ${{ github.api_url }}
           GITHUB_REPOSITORY_VALUE: ${{ github.repository }}
           GITHUB_TOKEN_VALUE: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          PR_HEAD_REPO_CLONE_URL: ${{ github.event.pull_request.head.repo.clone_url }}
-          PR_HEAD_REPO_FULL_NAME: ${{ github.event.pull_request.head.repo.full_name }}
         run: |
           set -euo pipefail
 
-          ls_remote_head() {
-            git -c "http.extraheader=AUTHORIZATION: bearer $GITHUB_TOKEN_VALUE" ls-remote "$1" "$2" | awk '{print $1}'
+          github_api() {
+            curl -fsSL \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $GITHUB_TOKEN_VALUE" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL_VALUE$1"
           }
 
           case "$EVENT_NAME" in
           pull_request)
-            remote_url="$PR_HEAD_REPO_CLONE_URL"
-            if [ "$PR_HEAD_REPO_FULL_NAME" = "$GITHUB_REPOSITORY_VALUE" ]; then
-              remote_url="$GITHUB_SERVER_URL_VALUE/$GITHUB_REPOSITORY_VALUE.git"
-            fi
-            latest="$(ls_remote_head "$remote_url" "refs/heads/$PR_HEAD_REF")"
+            latest="$(github_api "/repos/$GITHUB_REPOSITORY_VALUE/pulls/$PR_NUMBER" | jq -r '.head.sha')"
             expected="$PR_HEAD_SHA"
             ;;
           push)
-            latest="$(ls_remote_head "$GITHUB_SERVER_URL_VALUE/$GITHUB_REPOSITORY_VALUE.git" "$GITHUB_REF_VALUE")"
+            latest="$(github_api "/repos/$GITHUB_REPOSITORY_VALUE/git/ref/${GITHUB_REF_VALUE#refs/}" | jq -r '.object.sha')"
             expected="$GITHUB_SHA_VALUE"
             ;;
           *)
