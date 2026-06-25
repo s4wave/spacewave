@@ -179,6 +179,11 @@ func runDriveBenchCell(
 		),
 		ResourceConnection: summarizeResourceConnection(connTiming),
 	}
+	if raw, err := page.Evaluate(drivebench.StartupMarksScript); err != nil {
+		t.Logf("read startup marks (%s): %v", in.cell, err)
+	} else {
+		run.Browser.StartupMarks = drivebench.ParseStartupMarks(raw)
+	}
 	// ServedBundle stays nil: bundle size is a bundled-build metric the
 	// releasewasm bench measures from the built production bundle on disk. The
 	// unbundled dev build serves an unbundled module graph with no single bundle,

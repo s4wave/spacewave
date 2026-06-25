@@ -166,6 +166,7 @@ func runBundledDriveBenchCell(t *testing.T, page playwright.Page, in bundledDriv
 		Browser:      readBundledBrowser(t, page, contentReadyValue),
 		ServedBundle: bundle,
 	}
+	run.Browser.StartupMarks = readBundledStartupMarks(t, page)
 	t.Logf("bundled served bundle (%s): totalBytes=%d wasmBytes=%d fileCount=%d",
 		in.cell, bundle.TotalBytes, bundle.WasmBytes, bundle.FileCount)
 
@@ -179,6 +180,21 @@ func runBundledDriveBenchCell(t *testing.T, page playwright.Page, in bundledDriv
 	}
 	t.Logf("bundled drive bench cell %s written to %s (live=%dms route=%dms unixfs=%dms content=%dms)",
 		in.cell, runPath, liveAppMs, routeAcceptedMs, unixfsVisibleMs, contentReadyValue)
+}
+
+// readBundledStartupMarks reads the page startup-mark timeline emitted by
+// markStartupBoundary so the bundled pre-quickstart gap can be attributed to the
+// marks that bracket it. A read failure logs and yields no marks rather than
+// failing the cell, since the marks are diagnostic, not a pass criterion.
+func readBundledStartupMarks(t *testing.T, page playwright.Page) []drivebench.StartupMark {
+	t.Helper()
+
+	raw, err := page.Evaluate(drivebench.StartupMarksScript)
+	if err != nil {
+		t.Logf("read startup marks: %v", err)
+		return nil
+	}
+	return drivebench.ParseStartupMarks(raw)
 }
 
 // readBundledBrowser reads the browser-side quickstart timing reported by the

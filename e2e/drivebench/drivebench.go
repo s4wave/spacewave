@@ -62,6 +62,8 @@ type Browser struct {
 	DriveSeedStartedMs        *int    `json:"driveSeedStartedMs,omitempty"`
 	DriveSeedFinishedMs       *int    `json:"driveSeedFinishedMs,omitempty"`
 	DriveSeedElapsedMs        *int    `json:"driveSeedElapsedMs,omitempty"`
+
+	StartupMarks []StartupMark `json:"startupMarks,omitempty"`
 }
 
 // Phase is one browser-observed quickstart phase. The timestamps use the page
@@ -74,6 +76,41 @@ type Phase struct {
 	ElapsedMs  *int   `json:"elapsedMs,omitempty"`
 	Error      string `json:"error,omitempty"`
 }
+
+// StartupMark is one startup-boundary mark observed on the page performance
+// timeline, emitted by markStartupBoundary. StartMs is the mark's
+// performance.now time in milliseconds from navigation start, so marks share
+// the timebase of the bundled milestones and quickstart phases. The
+// pre-quickstart startup gap is attributed by reading the interval between
+// adjacent marks: the gap belongs to whichever mark transition spans it.
+type StartupMark struct {
+	Label    string `json:"label"`
+	Sequence int    `json:"sequence,omitempty"`
+	StartMs  int    `json:"startMs"`
+	Phase    string `json:"phase,omitempty"`
+	Mode     string `json:"mode,omitempty"`
+	Source   string `json:"source,omitempty"`
+}
+
+// StartupMarksScript reads the page startup-mark timeline into a JSON-able
+// array ordered by performance.now start time. Each entry carries the mark
+// label, its start time in milliseconds from navigation start, and the boundary
+// detail markStartupBoundary stored on the performance mark (sequence, phase,
+// mode, source). Both Drive benches evaluate it on the page after content-ready
+// so the captured marks span the full boot-to-content window.
+const StartupMarksScript = `() => {
+  const prefix = 'spacewave.startup.'
+  return performance.getEntriesByType('mark')
+    .filter((m) => m.name.startsWith(prefix))
+    .map((m) => ({
+      label: m.name.slice(prefix.length),
+      startMs: Math.round(m.startTime),
+      sequence: m.detail?.sequence ?? 0,
+      phase: m.detail?.phase ?? null,
+      mode: m.detail?.mode ?? null,
+      source: m.detail?.source ?? null,
+    }))
+}`
 
 // Bundle is the served code payload measured from the built bundle on disk: the
 // total JavaScript-plus-WASM module bytes, the WASM subtotal, and the module
@@ -231,6 +268,38 @@ var driveSeedResourcePhaseNames = []string{
 	"create-drive-settings-apply-op",
 	"create-drive-settings-commit",
 	"create-drive-settings-discard",
+}
+
+// ParseStartupMarks parses the page startup-mark timeline captured with
+// StartupMarksScript. Marks arrive ordered by performance.now start time; the
+// parser preserves that order so the pre-quickstart gap reads as the interval
+// between adjacent marks. Entries without a label are skipped.
+func ParseStartupMarks(raw any) []StartupMark {
+	items, ok := raw.([]any)
+	if !ok {
+		return nil
+	}
+	marks := make([]StartupMark, 0, len(items))
+	for _, item := range items {
+		m, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		label, _ := m["label"].(string)
+		if label == "" {
+			continue
+		}
+		mark := StartupMark{
+			Label:    label,
+			Sequence: intValue(m["sequence"]),
+			StartMs:  intValue(m["startMs"]),
+		}
+		mark.Phase, _ = m["phase"].(string)
+		mark.Mode, _ = m["mode"].(string)
+		mark.Source, _ = m["source"].(string)
+		marks = append(marks, mark)
+	}
+	return marks
 }
 
 func parsePhases(raw any) []Phase {
