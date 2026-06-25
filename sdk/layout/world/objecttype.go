@@ -35,17 +35,13 @@ func ObjectLayoutFactory(
 	ws world.WorldState,
 	objectKey string,
 ) (srpc.Invoker, func(), error) {
-	// Engine is required for write operations
 	if engine == nil {
 		return nil, nil, ErrEngineRequired
 	}
-
-	// WorldState is required for reading initial state
 	if ws == nil {
 		return nil, nil, objecttype.ErrWorldStateRequired
 	}
 
-	// Get the object from the world state
 	objState, found, err := ws.GetObject(ctx, objectKey)
 	if err != nil {
 		return nil, nil, err
@@ -54,7 +50,6 @@ func ObjectLayoutFactory(
 		return nil, nil, world.ErrObjectNotFound
 	}
 
-	// Read the ObjectLayout from the object body
 	var layout *ObjectLayout
 	_, _, err = world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
 		var err error
@@ -65,7 +60,6 @@ func ObjectLayoutFactory(
 		return nil, nil, err
 	}
 
-	// Create a watchable container for the layout model
 	stateCtr := ccontainer.NewCContainer(layout.GetLayoutModel())
 
 	// setLayout updates the layout model in the world using a write transaction
@@ -73,7 +67,6 @@ func ObjectLayoutFactory(
 		ctx, task := trace.NewTask(ctx, "alpha/layout/set-layout")
 		defer task.End()
 
-		// Create a write transaction
 		var wtx world.Tx
 		{
 			taskCtx, task := trace.NewTask(ctx, "alpha/layout/set-layout/new-transaction")
@@ -85,7 +78,6 @@ func ObjectLayoutFactory(
 			}
 		}
 
-		// Get the object from the write transaction
 		var writeState world.ObjectState
 		var found bool
 		{
@@ -103,7 +95,6 @@ func ObjectLayoutFactory(
 			return world.ErrObjectNotFound
 		}
 
-		// Update via AccessObjectState
 		{
 			taskCtx, task := trace.NewTask(ctx, "alpha/layout/set-layout/mutate-object")
 			_, _, err := world.AccessObjectState(taskCtx, writeState, true, func(bcs *block.Cursor) error {
@@ -119,7 +110,6 @@ func ObjectLayoutFactory(
 			}
 		}
 
-		// Commit the transaction
 		{
 			taskCtx, task := trace.NewTask(ctx, "alpha/layout/set-layout/commit")
 			err := wtx.Commit(taskCtx)
@@ -129,7 +119,6 @@ func ObjectLayoutFactory(
 			}
 		}
 
-		// Update the local state container
 		{
 			_, task := trace.NewTask(ctx, "alpha/layout/set-layout/publish-local-state")
 			stateCtr.SetValue(model.CloneVT())
@@ -149,16 +138,13 @@ func ObjectLayoutFactory(
 			return &s4wave_layout.NavigateTabResponse{}, nil
 		}
 
-		// Get current model
 		currentModel := stateCtr.GetValue()
 		if currentModel == nil {
 			return &s4wave_layout.NavigateTabResponse{}, nil
 		}
 
-		// Clone the model for modification
 		updatedModel := currentModel.CloneVT()
 
-		// Find the tab by ID and update its path
 		var tabFound bool
 		var walkErr error
 		{
@@ -172,7 +158,6 @@ func ObjectLayoutFactory(
 					return true
 				}
 
-				// Found the tab - unmarshal its data
 				var tabData ObjectLayoutTab
 				if len(tabDef.GetData()) > 0 {
 					if err := tabData.UnmarshalVT(tabDef.GetData()); err != nil {
@@ -181,11 +166,10 @@ func ObjectLayoutFactory(
 					}
 				}
 
-				// Update the path using CleanupPath to handle relative paths
+				// CleanupPath resolves newPath relative to the tab's current path.
 				currentPath := tabData.GetPath()
 				tabData.Path = resource_layout.CleanupPath(currentPath, newPath)
 
-				// Marshal back to data
 				data, err := tabData.MarshalVT()
 				if err != nil {
 					walkErr = err
@@ -205,7 +189,6 @@ func ObjectLayoutFactory(
 			return &s4wave_layout.NavigateTabResponse{}, nil
 		}
 
-		// Use setLayout to persist the change
 		if err := setLayout(ctx, updatedModel); err != nil {
 			return nil, err
 		}
@@ -247,7 +230,6 @@ func ObjectLayoutFactory(
 		return &s4wave_layout.ReplaceTabResponse{}, nil
 	}
 
-	// Create the LayoutResource
 	layoutResource := resource_layout.NewLayoutResource(stateCtr, setLayout, navigateTab)
 	layoutResource.SetReplaceTabFunc(replaceTab)
 
