@@ -124,7 +124,7 @@ func (o *CreateSshHostOp) buildSshHost() *SshHost {
 	return &SshHost{
 		Label:       strings.TrimSpace(o.GetLabel()),
 		Endpoint:    NormalizeSshHostEndpoint(o.GetEndpoint()),
-		Credentials: cloneSshHostCredentialRefs(o.GetCredentials()),
+		Credentials: o.GetCredentials().CloneVT(),
 		HostKeyPins: cloneSshHostKeyPins(o.GetHostKeyPins()),
 		LastStatus: &SshHostStatus{
 			State:      SshHostProbeState_SSH_HOST_PROBE_STATE_UNKNOWN,
@@ -134,13 +134,6 @@ func (o *CreateSshHostOp) buildSshHost() *SshHost {
 		CreatedAt: ts,
 		UpdatedAt: ts,
 	}
-}
-
-func cloneSshHostCredentialRefs(refs *SshHostCredentialRefs) *SshHostCredentialRefs {
-	if refs == nil {
-		return nil
-	}
-	return refs.CloneVT()
 }
 
 func cloneSshHostKeyPins(pins []*SshHostKeyPin) []*SshHostKeyPin {
