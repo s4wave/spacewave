@@ -22,10 +22,22 @@ if [ -n "$go_files" ]; then
 	printf "%s\n" "$go_files" | xargs gofmt -w
 	printf "%s\n" "$go_files" | xargs git add
 
-	go_pkgs=$(printf "%s\n" "$go_files" | xargs -n1 dirname | sort -u | sed 's#^#./#')
-	go test -run '^$' $go_pkgs
+	go_pkg_dirs=$(printf "%s\n" "$go_files" | xargs -n1 dirname | sort -u | sed 's#^\.$#.#; s#^\./##; s#^#./#')
+	GOFLAGS="-mod=mod -tags=purego" go list -f '{{.ImportPath}}' $go_pkg_dirs >/dev/null
+
+	go_fix_before=$(git diff -- $go_pkg_dirs)
+	GOFLAGS="-mod=mod -tags=purego" go fix $go_pkg_dirs
+	go_fix_after=$(git diff -- $go_pkg_dirs)
+	if [ "$go_fix_before" != "$go_fix_after" ]; then
+		printf "go fix changed files in staged Go package(s); review and stage them before committing:\n" >&2
+		git diff --name-only -- $go_pkg_dirs >&2
+		exit 1
+	fi
+
+	GOFLAGS="-mod=mod -tags=purego" go test -run '^$' $go_pkg_dirs
+	bun run go:aptre -- lint $go_pkg_dirs
 fi
 
-if printf "%s\n" "$files" | grep -Eq '^(go\.mod|go\.sum)$'; then
-	go test -run '^$' ./...
+if printf "%s\n" "$files" | grep -Eq '^go\.mod$'; then
+	.githooks/check-go-mod-ref-pins
 fi

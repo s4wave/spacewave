@@ -1,0 +1,157 @@
+#!/bin/sh
+set -eu
+
+go_mod_file=${GO_MOD_REF_PINS_FILE:-}
+tmp_files=
+
+cleanup() {
+	for file in $tmp_files; do
+		rm -f "$file"
+	done
+}
+trap cleanup EXIT
+trap 'cleanup; exit 1' HUP TERM
+trap 'cleanup; exit 130' INT
+
+make_tmp() {
+	tmp_file=$(mktemp)
+	tmp_files="$tmp_files $tmp_file"
+}
+
+if [ -z "$go_mod_file" ]; then
+	make_tmp
+	go_mod_file=$tmp_file
+	git show :go.mod >"$go_mod_file"
+fi
+
+make_tmp
+pins=$tmp_file
+make_tmp
+outdated=$tmp_file
+make_tmp
+errors=$tmp_file
+
+awk '
+function trim(s) {
+	sub(/^[[:space:]]+/, "", s)
+	sub(/[[:space:]]+$/, "", s)
+	return s
+}
+
+function emit(kind, old, module, version, ref) {
+	if (module == "" || version == "" || ref == "" || ref == "indirect") {
+		return
+	}
+	if (module ~ /^(\.\/|\.\.\/|\/)/) {
+		return
+	}
+	printf "%s\t%s\t%s\t%s\t%s\n", kind, old, module, version, ref
+}
+
+{
+	line = trim($0)
+	if (line == "" || line ~ /^\/\//) {
+		next
+	}
+
+	if (line ~ /^require[[:space:]]*\($/) {
+		block = "require"
+		next
+	}
+	if (line ~ /^replace[[:space:]]*\($/) {
+		block = "replace"
+		next
+	}
+	if (line == ")") {
+		block = ""
+		next
+	}
+
+	kind = block
+	if (line ~ /^require[[:space:]]+/) {
+		kind = "require"
+		sub(/^require[[:space:]]+/, "", line)
+	} else if (line ~ /^replace[[:space:]]+/) {
+		kind = "replace"
+		sub(/^replace[[:space:]]+/, "", line)
+	}
+	if (kind != "require" && kind != "replace") {
+		next
+	}
+	if (line !~ /[[:space:]]\/\/[[:space:]]*[^[:space:]]+[[:space:]]*$/) {
+		next
+	}
+
+	ref = line
+	sub(/^.*[[:space:]]\/\/[[:space:]]*/, "", ref)
+	ref = trim(ref)
+	sub(/[[:space:]]*\/\/[[:space:]]*[^[:space:]]+[[:space:]]*$/, "", line)
+	line = trim(line)
+
+	if (kind == "require") {
+		n = split(line, fields, /[[:space:]]+/)
+		if (n >= 2) {
+			emit(kind, fields[1], fields[1], fields[2], ref)
+		}
+		next
+	}
+
+	arrow = index(line, "=>")
+	if (arrow == 0) {
+		next
+	}
+	old = trim(substr(line, 1, arrow - 1))
+	replacement = trim(substr(line, arrow + 2))
+	n = split(old, old_fields, /[[:space:]]+/)
+	n = split(replacement, fields, /[[:space:]]+/)
+	if (n >= 2) {
+		emit(kind, old_fields[1], fields[1], fields[2], ref)
+	}
+}
+' "$go_mod_file" >"$pins"
+
+while IFS='	' read -r kind old module version ref; do
+	[ -n "$module" ] || continue
+	if ! resolved=$(go list -m -mod=readonly -f '{{.Version}}' "$module@$ref" 2>&1); then
+		err=$(printf "%s" "$resolved" | tr '\n' ' ')
+		printf "%s\t%s\t%s\t%s\n" "$module" "$ref" "$version" "$err" >>"$errors"
+		continue
+	fi
+	if [ "$version" != "$resolved" ]; then
+		printf "%s\t%s\t%s\t%s\t%s\t%s\n" "$kind" "$old" "$module" "$version" "$ref" "$resolved" >>"$outdated"
+	fi
+done <"$pins"
+
+if [ -s "$errors" ]; then
+	printf "go.mod annotated module refs could not be resolved:\n" >&2
+	while IFS='	' read -r module ref version err; do
+		printf "  %s@%s (currently %s): %s\n" "$module" "$ref" "$version" "$err" >&2
+	done <"$errors"
+	exit 1
+fi
+
+if [ ! -s "$outdated" ]; then
+	exit 0
+fi
+
+printf "go.mod annotated module refs are out of date:\n" >&2
+go_get_args=
+replace_args=
+while IFS='	' read -r kind old module version ref resolved; do
+	if [ "$kind" = "replace" ]; then
+		printf "  %s => %s: %s; %s resolves to %s\n" "$old" "$module" "$version" "$ref" "$resolved" >&2
+		replace_args="$replace_args -replace=$old=$module@$resolved"
+	else
+		printf "  %s: %s; %s resolves to %s\n" "$module" "$version" "$ref" "$resolved" >&2
+		go_get_args="$go_get_args $module@$ref"
+	fi
+done <"$outdated"
+
+printf "\nUpdate them before committing:\n" >&2
+if [ -n "$go_get_args" ]; then
+	printf "  go get%s\n" "$go_get_args" >&2
+fi
+if [ -n "$replace_args" ]; then
+	printf "  go mod edit%s\n" "$replace_args" >&2
+fi
+exit 1
