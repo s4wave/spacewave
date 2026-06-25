@@ -3,6 +3,7 @@
 package webrtc_test
 
 import (
+	"context"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -144,18 +145,26 @@ func TestTransportReconnect(t *testing.T) {
 	}
 	defer esRef.Release()
 
+	// connectivityProbeTimeout bounds one TestConnectivity probe. A probe over a
+	// not-yet-reestablished link blocks in ExecWaitValue on the establish
+	// directive until its context is done; without a per-probe bound the probe
+	// inherits the whole-test context and blocks for the entire test timeout, so
+	// the retry loop never re-probes to catch the moment recovery completes.
+	const connectivityProbeTimeout = 5 * time.Second
 	waitConnectivity := func(stage string, timeout time.Duration) {
 		t.Helper()
 		deadline := time.NewTimer(timeout)
 		defer deadline.Stop()
 		var lastErr error
 		for {
-			if err := simulate.TestConnectivity(ctx, px0, px2); err == nil {
+			probeCtx, cancelProbe := context.WithTimeout(ctx, connectivityProbeTimeout)
+			err := simulate.TestConnectivity(probeCtx, px0, px2)
+			cancelProbe()
+			if err == nil {
 				le.Infof("connectivity ok: %s", stage)
 				return
-			} else {
-				lastErr = err
 			}
+			lastErr = err
 			select {
 			case <-ctx.Done():
 				t.Fatalf("%s: context done: %v", stage, ctx.Err())
