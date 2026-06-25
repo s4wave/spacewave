@@ -104,13 +104,23 @@ describe('goTsResolver', () => {
     )
   })
 
-  it('resolves external app @go imports from the dist vendor tree', async () => {
+  it('prefers app root vendor and falls back to the Bldr dist vendor tree', async () => {
     const sourceRoot = await mkdtemp(join(tmpdir(), 'go-ts-source-'))
     const distRoot = await mkdtemp(join(tmpdir(), 'go-ts-dist-'))
     try {
       await writeFile(
         join(sourceRoot, 'go.mod'),
         'module github.com/example/app\n\ngo 1.26\n',
+      )
+      const appVendorDir = join(
+        sourceRoot,
+        'vendor',
+        'github.com/aperturerobotics/glados/sdk/projection',
+      )
+      await mkdir(appVendorDir, { recursive: true })
+      await writeFile(
+        join(appVendorDir, 'projection.pb.ts'),
+        'export const projection = 1',
       )
       const vendorDir = join(
         distRoot,
@@ -125,20 +135,25 @@ describe('goTsResolver', () => {
         source: string,
         importer?: string,
       ) => Promise<string | null>
-      const result = await resolveId(
+      const appResult = await resolveId(
+        '@go/github.com/aperturerobotics/glados/sdk/projection/projection.pb.js',
+      )
+      expect(appResult).toBe(join(appVendorDir, 'projection.pb.ts'))
+
+      const fallbackResult = await resolveId(
         '@go/github.com/aperturerobotics/util/pipesock/pipesock.js',
       )
-      expect(result).toBe(join(vendorDir, 'pipesock.ts'))
+      expect(fallbackResult).toBe(join(vendorDir, 'pipesock.ts'))
 
       const vendorRelativeResult = await resolveId(
-        'vendor/github.com/aperturerobotics/util/pipesock/pipesock.js',
+        'vendor/github.com/aperturerobotics/glados/sdk/projection/projection.pb.js',
       )
-      expect(vendorRelativeResult).toBe(join(vendorDir, 'pipesock.ts'))
+      expect(vendorRelativeResult).toBe(join(appVendorDir, 'projection.pb.ts'))
 
       const aliases = buildGoAliases(sourceRoot, distRoot)
       const vendorAlias = aliases[aliases.length - 1]
       expect(String(vendorAlias.find)).toBe(String(/^@go\/(.*)$/))
-      expect(vendorAlias.replacement).toBe(join(distRoot, 'vendor', '$1'))
+      expect(vendorAlias.replacement).toBe(join(sourceRoot, 'vendor', '$1'))
     } finally {
       await rm(sourceRoot, { recursive: true, force: true })
       await rm(distRoot, { recursive: true, force: true })

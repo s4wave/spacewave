@@ -18,37 +18,48 @@ function readLocalModuleSync(projectRoot: string): string | null {
   return match ? match[1] : null
 }
 
-function resolveGoImportPath(
+function vendorRoots(projectRoot: string, distRoot: string): string[] {
+  const appVendorRoot = resolve(projectRoot, 'vendor')
+  const distVendorRoot = resolve(distRoot, 'vendor')
+  if (appVendorRoot === distVendorRoot) {
+    return [appVendorRoot]
+  }
+  return [appVendorRoot, distVendorRoot]
+}
+
+function resolveGoImportPaths(
   projectRoot: string,
   distRoot: string,
   localModule: string | null,
   source: string,
-): string | null {
+): string[] | null {
   if (!source.startsWith('@go/')) {
     return null
   }
 
   const importPath = source.slice('@go/'.length)
   if (localModule && importPath.startsWith(localModule + '/')) {
-    return resolve(projectRoot, importPath.slice(localModule.length + 1))
+    return [resolve(projectRoot, importPath.slice(localModule.length + 1))]
   }
 
-  return resolve(distRoot, 'vendor', importPath)
+  return vendorRoots(projectRoot, distRoot).map((root) => resolve(root, importPath))
 }
 
-function resolveSourcePath(
+function resolveSourcePaths(
+  projectRoot: string,
   distRoot: string,
   source: string,
   importer?: string,
-): string | null {
+): string[] | null {
   if (source.startsWith('@go/')) {
     return null
   }
   if (source.startsWith('vendor/')) {
-    return resolve(distRoot, source)
+    const importPath = source.slice('vendor/'.length)
+    return vendorRoots(projectRoot, distRoot).map((root) => resolve(root, importPath))
   }
   if (isAbsolute(source)) {
-    return source
+    return [source]
   }
   if (!source.startsWith('.')) {
     return null
@@ -57,16 +68,16 @@ function resolveSourcePath(
     return null
   }
 
-  return resolve(dirname(importer), source)
+  return [resolve(dirname(importer), source)]
 }
 
 // buildGoAliases builds Vite aliases for vendored and monorepo-local @go
 // imports. The local module path is read from projectRoot/go.mod so the same
 // helper works for any repo consuming bldr; @go/<module>/* maps to project
-// source while every other @go/* falls back to distRoot/vendor.
+// source while every other @go/* resolves through the app root vendor tree.
 export function buildGoAliases(
   projectRoot: string,
-  distRoot = projectRoot,
+  _distRoot = projectRoot,
 ): Alias[] {
   const aliases: Alias[] = []
   const localModule = readLocalModuleSync(projectRoot)
@@ -79,7 +90,7 @@ export function buildGoAliases(
   }
   aliases.push({
     find: /^@go\/(.*)$/,
-    replacement: resolve(distRoot, 'vendor', '$1'),
+    replacement: resolve(projectRoot, 'vendor', '$1'),
   })
   return aliases
 }
@@ -109,24 +120,30 @@ export function goTsResolver(
         return null
       }
 
-      const sourcePath =
-        resolveGoImportPath(projectRoot, distRoot, localModule, source) ??
-        resolveSourcePath(distRoot, source, importer)
-      if (!sourcePath) {
+      const sourcePaths =
+        resolveGoImportPaths(projectRoot, distRoot, localModule, source) ??
+        resolveSourcePaths(projectRoot, distRoot, source, importer)
+      if (!sourcePaths) {
         return null
       }
 
-      const tsPath = resolve(projectRoot, sourcePath).replace(/\.js$/, '.ts')
+      for (const sourcePath of sourcePaths) {
+        const tsPath = resolve(projectRoot, sourcePath).replace(/\.js$/, '.ts')
 
-      let cached = tsPathCache.get(tsPath)
-      if (!cached) {
-        cached = access(tsPath).then(
-          () => tsPath,
-          () => null,
-        )
-        tsPathCache.set(tsPath, cached)
+        let cached = tsPathCache.get(tsPath)
+        if (!cached) {
+          cached = access(tsPath).then(
+            () => tsPath,
+            () => null,
+          )
+          tsPathCache.set(tsPath, cached)
+        }
+        const resolved = await cached
+        if (resolved) {
+          return resolved
+        }
       }
-      return cached
+      return null
     },
   }
 }
