@@ -40,6 +40,12 @@ var (
 	opfsHelperOps    = map[int]chan opfsHelperResult{}
 )
 
+var (
+	rootMu     sync.Mutex
+	rootHandle js.Value
+	rootCached bool
+)
+
 // BrowserDriver owns browser OPFS operations and error classification.
 type BrowserDriver struct{}
 
@@ -200,11 +206,30 @@ func GetRoot() (js.Value, error) {
 }
 
 // GetRoot returns the OPFS root FileSystemDirectoryHandle.
-func (BrowserDriver) GetRoot() (js.Value, error) {
+// The root is a stable per-origin singleton, so it is resolved once per worker
+// and cached. Repeated mounts and controller restarts reuse the cached handle
+// instead of issuing fresh navigator.storage.getDirectory() calls, which a
+// restart cascade would otherwise drive into the browser's "too many calls"
+// rate limit.
+func (d BrowserDriver) GetRoot() (js.Value, error) {
+	rootMu.Lock()
+	defer rootMu.Unlock()
+	if rootCached {
+		return rootHandle, nil
+	}
+	handle, err := d.getRootUncached()
+	if err != nil {
+		return handle, err
+	}
+	rootHandle = handle
+	rootCached = true
+	return rootHandle, nil
+}
+
+func (BrowserDriver) getRootUncached() (js.Value, error) {
 	if jsutil.UseTinyGoHelpers() {
 		return getRootWithTinyGoImport()
 	}
-
 	storage := js.Global().Get("navigator").Get("storage")
 	promise := jsutil.Call(storage, "getDirectory")
 	return AwaitPromise(promise)
@@ -879,9 +904,19 @@ func SyncAvailable() bool {
 }
 
 // SyncAvailable returns true if sync access handles are available.
-// Sync access handles are only available in DedicatedWorker contexts.
+// createSyncAccessHandle is [Exposed=DedicatedWorker], so sync handles are only
+// usable in a DedicatedWorker global scope. Probing the method alone is not
+// enough: a non-conforming SharedWorker or main-thread context that exposes the
+// method as a throwing stub would otherwise select the sync path and crash. Gate
+// on the actual DedicatedWorker global scope so SharedWorker and main-thread
+// contexts always fall back to async OPFS.
 func (BrowserDriver) SyncAvailable() bool {
-	fileHandleCtor := js.Global().Get("FileSystemFileHandle")
+	global := js.Global()
+	ctorName := global.Get("constructor").Get("name")
+	if ctorName.Type() != js.TypeString || ctorName.String() != "DedicatedWorkerGlobalScope" {
+		return false
+	}
+	fileHandleCtor := global.Get("FileSystemFileHandle")
 	if fileHandleCtor.IsUndefined() || fileHandleCtor.IsNull() {
 		return false
 	}
@@ -890,7 +925,7 @@ func (BrowserDriver) SyncAvailable() bool {
 		return false
 	}
 	method := proto.Get("createSyncAccessHandle")
-	return !method.IsUndefined() && !method.IsNull() && method.Type() == js.TypeFunction
+	return method.Type() == js.TypeFunction
 }
 
 // PreferSyncAccessHandles reports whether OPFS owners should use sync access

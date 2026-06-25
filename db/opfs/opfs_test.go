@@ -5,8 +5,53 @@ package opfs
 import (
 	"io"
 	"slices"
+	"syscall/js"
 	"testing"
 )
+
+// TestSyncAvailableDedicatedWorkerGate verifies SyncAvailable gates on the
+// DedicatedWorker global scope, not merely on the presence of the
+// createSyncAccessHandle method. A non-conforming SharedWorker or main-thread
+// context that exposes the method as a stub must still report sync as
+// unavailable so the storage owner falls back to async OPFS.
+func TestSyncAvailableDedicatedWorkerGate(t *testing.T) {
+	global := js.Global()
+
+	origCtor := global.Get("constructor")
+	origFileHandle := global.Get("FileSystemFileHandle")
+	t.Cleanup(func() {
+		global.Set("constructor", origCtor)
+		global.Set("FileSystemFileHandle", origFileHandle)
+	})
+
+	// Install a FileSystemFileHandle whose prototype exposes the method, so the
+	// only remaining gate under test is the global-scope constructor name.
+	method := js.FuncOf(func(this js.Value, args []js.Value) any { return nil })
+	t.Cleanup(method.Release)
+	proto := js.Global().Get("Object").Call("create", js.Null())
+	proto.Set("createSyncAccessHandle", method)
+	fileHandleCtor := js.Global().Get("Object").Call("create", js.Null())
+	fileHandleCtor.Set("prototype", proto)
+	global.Set("FileSystemFileHandle", fileHandleCtor)
+
+	// Non-DedicatedWorker scope: method present but the gate must reject it.
+	global.Set("constructor", map[string]any{"name": "SharedWorkerGlobalScope"})
+	if DefaultDriver.SyncAvailable() {
+		t.Fatal("SyncAvailable() = true in SharedWorker scope, want false")
+	}
+
+	// DedicatedWorker scope with the method present: the gate must accept it.
+	global.Set("constructor", map[string]any{"name": "DedicatedWorkerGlobalScope"})
+	if !DefaultDriver.SyncAvailable() {
+		t.Fatal("SyncAvailable() = false in DedicatedWorker scope with method, want true")
+	}
+
+	// DedicatedWorker scope but no method: must reject.
+	global.Set("FileSystemFileHandle", js.Undefined())
+	if DefaultDriver.SyncAvailable() {
+		t.Fatal("SyncAvailable() = true with no FileSystemFileHandle, want false")
+	}
+}
 
 func TestBrowserDriverReadWriteListDeleteClassify(t *testing.T) {
 	root, err := DefaultDriver.GetRoot()
