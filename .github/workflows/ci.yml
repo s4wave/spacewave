@@ -7,17 +7,82 @@ on:
     branches: ['master']
   workflow_dispatch:
 
+# Queue CI by branch/PR instead of canceling older runs. Canceling makes older
+# commits show failed/canceled CI even when the newer HEAD is the only commit we
+# care about. The head-check job below lets a queued run skip the expensive test
+# matrix when it finally starts and discovers that it is no longer branch or PR
+# HEAD. If this policy does not work out, drop this concurrency block, delete
+# head-check, and remove the head-check needs/if gates below; the fallback should
+# be GitHub's default behavior, where every CI run starts and all CI executes for
+# every commit.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
+  queue: max
 
 permissions:
   contents: read
 
 jobs:
+  head-check:
+    name: Check current HEAD
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.head.outputs.should_run }}
+    steps:
+      - name: Check whether this CI run is still current
+        id: head
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          GITHUB_SHA_VALUE: ${{ github.sha }}
+          GITHUB_REF_VALUE: ${{ github.ref }}
+          GITHUB_SERVER_URL_VALUE: ${{ github.server_url }}
+          GITHUB_REPOSITORY_VALUE: ${{ github.repository }}
+          GITHUB_TOKEN_VALUE: ${{ github.token }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_HEAD_REPO_CLONE_URL: ${{ github.event.pull_request.head.repo.clone_url }}
+          PR_HEAD_REPO_FULL_NAME: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          set -euo pipefail
+
+          ls_remote_head() {
+            git -c "http.extraheader=AUTHORIZATION: bearer $GITHUB_TOKEN_VALUE" ls-remote "$1" "$2" | awk '{print $1}'
+          }
+
+          case "$EVENT_NAME" in
+          pull_request)
+            remote_url="$PR_HEAD_REPO_CLONE_URL"
+            if [ "$PR_HEAD_REPO_FULL_NAME" = "$GITHUB_REPOSITORY_VALUE" ]; then
+              remote_url="$GITHUB_SERVER_URL_VALUE/$GITHUB_REPOSITORY_VALUE.git"
+            fi
+            latest="$(ls_remote_head "$remote_url" "refs/heads/$PR_HEAD_REF")"
+            expected="$PR_HEAD_SHA"
+            ;;
+          push)
+            latest="$(ls_remote_head "$GITHUB_SERVER_URL_VALUE/$GITHUB_REPOSITORY_VALUE.git" "$GITHUB_REF_VALUE")"
+            expected="$GITHUB_SHA_VALUE"
+            ;;
+          *)
+            latest="$GITHUB_SHA_VALUE"
+            expected="$GITHUB_SHA_VALUE"
+            ;;
+          esac
+
+          if [ "$latest" = "$expected" ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            echo "CI run is current at $expected."
+            exit 0
+          fi
+
+          echo "should_run=false" >> "$GITHUB_OUTPUT"
+          echo "Skipping stale CI run for $expected; latest HEAD is ${latest:-unknown}."
+
   member-ci:
     name: CI (${{ matrix.member.name }})
     runs-on: ubuntu-latest
+    needs: head-check
+    if: ${{ needs.head-check.outputs.should_run == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -131,6 +196,8 @@ jobs:
   licenses:
     name: Licenses
     runs-on: ubuntu-latest
+    needs: head-check
+    if: ${{ needs.head-check.outputs.should_run == 'true' }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -201,6 +268,8 @@ jobs:
   e2e-go:
     name: E2E (${{ matrix.suite.name }})
     runs-on: ubuntu-latest
+    needs: head-check
+    if: ${{ needs.head-check.outputs.should_run == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -267,6 +336,8 @@ jobs:
   e2e-wasm:
     name: E2E (wasm / ${{ matrix.slice.name }})
     runs-on: ubuntu-latest
+    needs: head-check
+    if: ${{ needs.head-check.outputs.should_run == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -319,8 +390,10 @@ jobs:
   e2e-wasm-complete:
     name: E2E (wasm)
     runs-on: ubuntu-latest
-    needs: e2e-wasm
-    if: ${{ always() }}
+    needs:
+      - head-check
+      - e2e-wasm
+    if: ${{ always() && needs.head-check.outputs.should_run == 'true' }}
     timeout-minutes: 5
     steps:
       - name: Check wasm E2E slices
@@ -334,6 +407,8 @@ jobs:
   e2e-playwright:
     name: E2E (${{ matrix.suite.name }})
     runs-on: ubuntu-latest
+    needs: head-check
+    if: ${{ needs.head-check.outputs.should_run == 'true' }}
     strategy:
       fail-fast: false
       matrix:
