@@ -6,8 +6,8 @@ import (
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	"github.com/s4wave/spacewave/core/changelog"
 	"github.com/s4wave/spacewave/core/provider"
-	session "github.com/s4wave/spacewave/core/session"
-	hash "github.com/s4wave/spacewave/net/hash"
+	"github.com/s4wave/spacewave/core/session"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // Root is the top-level entrypoint for accessing resources on the SDK.
