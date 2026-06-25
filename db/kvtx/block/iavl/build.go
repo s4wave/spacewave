@@ -10,7 +10,7 @@ import (
 // pairs. The iterator must yield entries in ascending key order.
 //
 // Each value BlockRef points to an already-written block in storage. The ref is
-// set directly on the leaf node's ValueRef proto field — no graph edge is
+// set directly on the leaf node's ValueRef proto field, no graph edge is
 // created for it, since the block is already persisted.
 //
 // Returns a Transaction containing all tree nodes and a cursor to the root.
