@@ -295,6 +295,7 @@
     "html5-qrcode": "^2.3.8",
     "lexical": "^0.45.0",
     "markdown-to-jsx": "^9.8.2",
+    "orga": "4.7.1",
     "qrcode": "^1.5.4",
     "quickjs-wasi-reactor": "0.15.1",
     "react": "^19.2.7",
@@ -317,5 +318,8 @@
   },
   "overrides": {
     "@aptre/protobuf-es-lite": "1.1.0"
+  },
+  "patchedDependencies": {
+    "orga@4.7.1": "patches/orga@4.7.1.patch"
   }
 }
