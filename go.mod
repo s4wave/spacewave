@@ -20,6 +20,8 @@ replace (
 	github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 // aperture-2
 )
 
+require github.com/s4wave/goscript v0.2.8-0.20260625070328-a7bde5765820 // master
+
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/bbolt v0.0.0-20260617204204-71b28cbadcb4 // master
@@ -70,7 +72,6 @@ require (
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/pion/logging v0.2.4
 	github.com/pion/transport/v4 v4.0.2
-	github.com/s4wave/goscript v0.2.7-0.20260623235631-7aae8ca6a73b
 	go.starlark.net v0.0.0-20260613233743-8ba36ccb83fb
 	golang.org/x/exp v0.0.0-20260611194520-c48552f49976
 	gonum.org/v1/gonum v0.17.0
