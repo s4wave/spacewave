@@ -4,7 +4,6 @@ import (
 	"context"
 	stderrors "errors"
 	"slices"
-	"sort"
 	"strings"
 	"time"
 
@@ -206,8 +205,8 @@ func (r *GitWorktreeResource) statusSnapshot(ctx context.Context) (*s4wave_git.W
 				})
 			}
 
-			sort.Slice(resp.Entries, func(i, j int) bool {
-				return resp.Entries[i].GetFilePath() < resp.Entries[j].GetFilePath()
+			slices.SortFunc(resp.Entries, func(a, b *s4wave_git.StatusEntry) int {
+				return strings.Compare(a.GetFilePath(), b.GetFilePath())
 			})
 
 			return nil
