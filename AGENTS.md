@@ -1,930 +1,471 @@
-## Spacewave Agent Guide
+# Spacewave Agent Guide
 
-This file contains rules specific to `repos/spacewave`. Follow the shared
-company AGENTS rules first, then apply these Spacewave-specific rules.
+This file is the repository-local alignment layer for `repos/spacewave`.
+
+This file assumes any broader workspace `AGENTS.md` that applies to the session
+has already been read before this repository-local guide. When this is the only
+guide available, read it with `README.md`, `DESIGN.md`, `package.json`,
+`go.mod`, and the files near the target code before editing.
+
+## Skill-Style Entry Contract
+
+- Keep following the broader workspace rulebook when one is in force; this file
+  only adds Spacewave-specific alignment.
+- If the broader workspace provides private workflow, vocabulary, planning,
+  design, or review authority, use those owners before substantial design or
+  code instead of redefining them here.
+- When this is the only guide in force, build a short read list from
+  `README.md`, `DESIGN.md`, this file, nearby code, package scripts, tests, and
+  the subsystem README when present.
+- State the work surface and proof event before editing. For behavior-changing
+  work, name the owner, invariant, falsifier, proof command, and adjacent risk.
+- Ask before branch changes, commits, pushes, releases, live-service mutation,
+  credentials, destructive cleanup, public API changes, durable data breaks, or
+  behavior changes that materially affect lifecycle, concurrency, persistence,
+  sync, latency, or user-visible behavior.
+- Preserve concurrent work. Treat dirty files you did not edit as user/agent
+  work; inspect before depending on them and never revert them unless asked.
+- Keep private planning state, notes, phase numbers, and internal workflow
+  references out of Spacewave code, comments, commits, and PRs.
+
+## Product Model
+
+Spacewave is a local-first Go and TypeScript application framework for
+peer-to-peer collaborative apps on Hydra and Bifrost. The shared substrate is
+Spaces, SharedObjects, storage/sync, Spacewave Cloud, PluginHost, and Bldr
+plugin loading; focused apps and plugins are front doors over that substrate.
+
+Runtime reach must not fork the product model:
+
+- Go owns SDK/core semantics and native runtime paths.
+- Browser Go plugins target `web/js/wasm` through Bldr/TinyGo and run in
+  browser workers.
+- TypeScript plugins target `js` through WebWorker, QuickJS, and browser
+  QuickJS paths.
+- GoScript is a selected-package Go-to-TypeScript compiler for browser builds
+  and staging gates, not a guarantee that every Go package has GoScript parity.
+- Every Bldr plugin has its own bus. Cross-plugin behavior uses explicit
+  RPC/resource/plugin-host boundaries; do not assume directives cross buses.
+- A frontend `entrypoint=True` JS plugin can still render its root WebView
+  across separate `-core`/`-web`/`-app` plugins. Use the existing
+  `-core`/`-web`/`-app` layout for app/plugin structure questions.
+
+Spacewave is alpha with real users. Clean breaks are preferred inside the repo,
+but never silently break durable local state, cloud state, database migrations,
+wire/storage formats, or user-owned data. Surface the reset/migrate/compat
+choice first.
+
+## Owner-Level Defaults
+
+- Fix the owner of the invariant, state machine, lifecycle, resource, cache,
+  storage, wire format, or UI data flow. Do not add caller-side guards that
+  reconstruct owner state.
+- Prefer the simplest complete design, not the smallest diff. Delete
+  speculative code and shallow helpers; keep necessary owner rewrites.
+- No fixed-interval polling for state. Owners expose waits, watches,
+  broadcasts, conditions, event streams, or context-aware blocking calls.
+- No fire-and-forget goroutines from callbacks, handlers, WebSocket frames, or
+  hot paths. Use `util/routine`, `util/keyed`, `util/refcount`, and
+  `broadcast.Broadcast` under an owning lifecycle context.
+- Do not add dead-code fallback paths for impossible conditions. If construction
+  guarantees a field, enforce construction and let violations fail at the owner.
+- Comments record durable invariants, contracts, boundaries, algorithms, or
+  historical failures only. Do not narrate the code or the session.
+- Docs describe the current system in present-state wording, not migration
+  history, plan phases, or temporary implementation notes.
 
 ## Repository Basics
 
 - Work from the repository root unless a command explicitly belongs in a
   subdirectory.
-- Keep Spacewave source edits inside this repository. Company workflow files
-  such as `~/company/notes/`, `glossary.org`, and `hotlinks.org` remain governed
-  by the shared company AGENTS rules.
-- Do not assume `bldr setup` needs to be run manually. Bldr runs setup
-  automatically for almost any operation.
-- Do not manually copy files to `.bldr/src/` or sync source files there.
-  `.bldr/src/` is managed by `bldr setup` and regenerated automatically. Edit
-  source files in their original locations only.
-- Do not assume Tailwind utility pixel sizes such as `h-4` or `h-16`; they
-  depend on `var(--spacing)`.
-- Styling uses Tailwind v4 with theme variables in `web/style/app.css`.
-- Do not add dead-code fallback paths for impossible conditions. If a field is
-  guaranteed non-nil by construction, do not add defensive nil branches in
-  methods. These fallbacks mask bugs and rot into false invariants.
-- Docs describe the current system, not the migration path. Use direct
-  present-state wording in docs, design notes, and tracker summaries.
-- Keep this file general-purpose. `AGENTS.md` should capture repository rules,
-  recurring patterns, and architectural invariants, not task-specific plans or
-  implementation notes.
-- Do not push to the `release` branch unless the user explicitly asks. When
-  explicitly asked to push, push commits to `master`; fast-forwarding `release`
-  to `master` happens only on explicit request. `release` must always equal
-  `master` after any update, with no merge commits.
+- Use `rg` for search, `bun` for JS/TS scripts, `uv` for Python, and repo-local
+  commands with explicit working directories.
+- Use `bun run ...`, not `npm`, `yarn`, `pnpm`, or bare package binaries.
+- Do not assume `bldr setup` needs a manual run. Bldr runs setup automatically
+  for most operations; run `bun run setup` only to repair stale `.bldr` exports
+  or module resolution.
+- Do not edit, copy into, or sync files under `.bldr/src/`; it is generated.
+  Edit source files in their original locations.
+- Keep large command output under `.tmp/` when needed, then inspect a short
+  summary or tail. Do not commit `.tmp/`.
+- Do not use sleep loops for readiness, locks, files, ports, pids, or results.
+  Prefer one blocking command with a real timeout, or an event-backed background
+  run whose completion is reported once.
+- Do not add new prototypes in this repo unless explicitly asked and the target
+  runtime cannot be exercised elsewhere. Production tests do not live in
+  prototype directories.
 
-## Go Modules And Vendoring
+## Git, Branches, And Releases
 
-- Temporary local `replace` directives may use absolute paths so commands keep
-  working when run from subdirectories. Do not commit local `replace` paths;
-  before landing, publish the replaced repo or update to a real module version,
-  remove the local `replace`, then tidy and vendor.
-- After any `go.mod` change, including dependencies, replace directives, or
-  version bumps, run:
+- Do not commit, push, or create/switch branches unless explicitly asked.
+- Default branch is `master`. Feature branches use `feat/<name>`; fixes use
+  `fix/<name>`.
+- If asked to commit, use DCO sign-off and conventional lowercase imperative
+  subjects, for example `fix(db): bound opfs root lookup`.
+- Never mention private plans/scopes/phases or test-passing summaries in commit
+  messages or PRs. Name the product/code change.
+- Do not push to `release` unless explicitly asked. When asked to push ordinary
+  work, push `master`. Fast-forwarding `release` to `master` is a separate
+  explicit release action; no merge commits.
+- Before any discard or restore, inspect `git status --short` and the exact
+  path diff. Reverse only hunks you authored.
 
-  ```bash
-  go mod tidy && go mod vendor
-  ```
+## Dependencies And Vendoring
 
-- Keep `vendor/` synchronized with `go.mod`.
+- Avoid new dependencies for shallow helpers or adapter glue. Prefer stdlib,
+  existing repo packages, generated codecs, and owner-local code.
+- Before adding an external dependency, check maintenance, license, API shape,
+  and why existing code is not the right owner. Ask before continuing if the
+  dependency is stale, low-trust, or changes the public surface.
+- Temporary local `replace` directives may use absolute paths for local proof,
+  but must not be committed. Before landing, publish the replaced repo or use a
+  real module version, then remove the local replace.
+- After any `go.mod` change, run `go mod tidy && go mod vendor`.
+- Never edit `vendor/` or the module cache directly. Patch dependencies in a
+  fork or upstream, then update `go.mod` and regenerate vendor.
+
+## Go Rules
+
+- Read `style/principles.org` and `style/go.org` when available. If they are
+  not available, derive the same rules from the local code: one owner per
+  invariant, scannable file contracts, lifecycle-owned concurrency, earned
+  abstractions.
+- Package/type structure matters more than helper fragmentation. Inline helpers
+  that only name local shape checks; extract helpers only for real invariants,
+  lifecycle transitions, domain operations, or shared mechanics.
+- `cmd/...` packages are adapters for flags, terminal formatting, process
+  setup, and calls into domain packages. Durable state transitions, graph or
+  storage mutations, runner scheduling, daemon policy, lifecycle recovery, and
+  reusable validation belong in owner packages.
+- One exported struct per `.go` file when practical, named after the struct.
+  File layout: imports, exported type, constructor, getters, `Execute(ctx)` if
+  present, other context methods, non-context work, private helpers,
+  compile-time assertions.
+- Imports have two groups: stdlib then external, one blank line between groups.
+- Doc comments start with the identifier and end with a period.
+- Prefer getters over cross-struct field chains.
+- Use `gopls rename` for symbol renames; do not manual find/replace
+  identifiers.
+- Avoid `fmt`, stdlib `log`, package-global loggers, `encoding/json`,
+  `reflect`, `sync.Map`, `interface{}` maps, and `panic` for control flow.
+  Use `strconv`, `github.com/pkg/errors`, explicit `*logrus.Entry` plumbing,
+  generated codecs, typed maps, and explicit owner APIs.
+- Log through a plumbed `le *logrus.Entry`; logrus entry methods are nil-safe,
+  so do not add defensive nil checks around them.
+- Prefer `slices`/`maps` helpers over `sort` unless implementing
+  `sort.Interface` or using a legacy API.
+- Check new objects for `Release()` or `Close()` and bind cleanup immediately.
+- Never discard directive refs with `_`; capture and release refs from
+  ControllerBus calls.
+- Go filenames use `-`, not `_`, except build tags and `_test.go`.
+- Build throwaway binaries through repo scripts or an ignored path. Do not put
+  generated binaries in source directories unless a repo script owns that path.
+
+## TypeScript, React, And UI
+
+- Follow `DESIGN.md` for visual language. Styling uses Tailwind v4 theme
+  variables in `web/style/app.css`; do not assume utility pixel sizes such as
+  `h-4` or `h-16`.
+- Avoid CSS gradients unless an existing design pattern requires one.
+- Use `cn()` for conditional classes; do not interpolate class strings.
+- Import hooks directly (`useMemo`, not `React.useMemo`), prefer
+  `useCallback`/`useMemo`, and merge related `useState` values or use a
+  reducer.
+- Function declarations for React components. One exported component per file,
+  PascalCase filename, co-located tests as `ComponentName.test.tsx`.
+- Import paths use `.js` suffixes, even when importing `.ts` or `.tsx` files.
+- Import groups: React/external, internal aliases, local/relative, separated by
+  blank lines.
+- Use `using` declarations for fixed lexical SDK/resources. Cleanup stacks are
+  only for dynamic resource sets.
+- Raw `useEffect` plus `useState` is not the async data pattern. Use
+  `useResource`, `useStreamingResource`, `useMappedResource`,
+  `useWatchStateRpc`, `useGetValueRpc`, `useSetValueRpc`,
+  `useRetryWithAbort`, `useAbortSignalEffect`, or local app hooks such as
+  `useRootResource` and `useStateAtomResource`.
+- Raw `useEffect` is only for DOM side effects that load no async data and call
+  no RPCs.
+- React Doctor suppressions are architecture smells. Split components, move
+  async/state into hooks/resources, or use SDK/resource primitives before
+  suppressing; suppress narrowly with the owner reason.
+- Prefer icon libraries in this order: `react-icons/lu`, `react-icons/ri`,
+  `react-icons/pi`, `react-icons/rx`. Keep related components on one icon
+  family when possible.
+- Use Vite static asset imports for images; do not use
+  `new URL(..., import.meta.url).href`.
+
+## Frontend State And Routing
+
+- Components inside the session tree use React contexts, not global URL
+  parsing. Use `useSessionIndex`, `usePath`, router context,
+  `useSessionNavigate`, and relative navigation.
+- Do not reconstruct `/u/${sessionIndex}/...` paths. `SessionIndexContext` and
+  `SessionRouteContext` are set by `AppSession`; session indexes are 1-based.
+- TypeScript frontend code must not implement crypto, make direct cloud HTTP
+  requests, or open raw cloud WebSockets. Add Go RPCs through the Resource SDK
+  when the UI needs crypto, HTTP, or WebSocket behavior.
+- Persist reload-surviving UI state with `@s4wave/web/state/persist.tsx`.
+  Viewer components scope under the provided `['objectViewer', objectKey]`
+  namespace with one domain prefix; do not include `objectKey` again and do not
+  use an empty namespace.
+- `BottomBarLevel` props must be stable. Wrap button renderers in
+  `useCallback`, overlay elements in `useMemo`, and pass keys when rendered
+  content should update.
+
+## Package Boundaries
+
+- `web/` is the plugin-importable component and SDK surface: UI primitives,
+  hooks, SDK wrappers, ObjectViewer framework, and reusable utilities.
+- `app/` is Spacewave application code: viewers, pages, session management,
+  shell, window chrome, loading screens, and quickstarts.
+- Plugins import from `@s4wave/web/`, never `@s4wave/app/`. `app/` may import
+  from both.
+- When adding plugin-importable files under `web/`, update the nearest
+  `index.ts` barrel so `spacewave-web` exposes the API.
+- Singleton library APIs must be imported through `web/` re-exports when shared
+  across bundles. Example: import `toast` from `@s4wave/web/ui/toaster.js`, not
+  directly from `sonner`.
+- Object viewers are registered in `app/viewers.tsx` and injected into
+  `web/object/` through `ViewerRegistryProvider`.
+- Create a separate plugin under `plugin/` when a module has large dependencies
+  that would bloat the main bundle. Merge lightweight viewers/services into
+  `spacewave-app` with static registrations.
 
 ## Bldr Build And Runtime
 
-### Code Signing
+- Bldr setup output is generated. Do not edit `.bldr/src/` or hand-copy files
+  there.
+- Controller factories are normally registered through `bldr.yaml` `configSet`
+  entries and package scans, not production `AddFactory` calls. Direct
+  `AddFactory` belongs in tests.
+- `bldr/util/gocompiler` owns platform signing hooks. Preserve the env-var
+  contract for macOS and Windows signing, and keep signing a no-op when signing
+  credentials are unset.
+- `bldr/util/logfile` owns file logging. Preserve `--log-file`,
+  `BLDR_LOG_FILE`, console-vs-file level separation, auto-default logs for dev
+  and distribution entrypoints, and retention pruning.
+- Bldr `webPkgs` in `bldr.yaml` are shared at runtime through `/b/pkg/...`.
+  With `exclude: true`, another plugin must provide the package or runtime URLs
+  will 404.
+- When adding TypeScript that must be bundled for Electron or browser
+  entrypoints, update the relevant `//go:embed` `DistSources` in `dist.go`.
 
-Bldr's Go compiler (`bldr/util/gocompiler`) signs produced binaries when
-platform-appropriate signing env vars are set. The signing hook runs after
-`go build` and before any wasm post-processing. It is a no-op when the relevant
-identity/profile env vars are unset.
-
-macOS signing env:
-
-| Env var | Meaning |
-| --- | --- |
-| `BLDR_MACOS_SIGN_IDENTITY` | codesign identity. Unset means skip signing. |
-| `BLDR_MACOS_SIGN_ENTITLEMENTS` | Optional path to an entitlements plist. |
-| `BLDR_MACOS_SIGN_OPTIONS` | Comma-separated codesign `--options` values. Defaults to `runtime`. |
-
-When set and `GOOS=darwin`, bldr runs:
-
-```bash
-codesign --force --sign "$IDENTITY" --options "$OPTIONS" [--entitlements "$ENTS"] <binary>
-codesign --verify --strict <binary>
-```
-
-Windows signing env:
-
-| Env var | Meaning |
-| --- | --- |
-| `BLDR_WINDOWS_SIGN_PROFILE` | Trusted Signing certificate profile name. Unset means skip signing. |
-| `BLDR_WINDOWS_SIGN_ACCOUNT` | Trusted Signing signing-account name. Required when profile is set. |
-| `BLDR_WINDOWS_SIGN_ENDPOINT` | Regional endpoint URL. Defaults to `https://wus.codesigning.azure.net/`. |
-| `BLDR_WINDOWS_SIGN_DESCRIPTION` | Authenticode signature description. Defaults to `Spacewave`. |
-
-When set and `GOOS=windows`, bldr shells out to `pwsh` and
-`Invoke-TrustedSigning`. The machine or CI job must have the `TrustedSigning`
-PowerShell module installed and Azure credentials available through
-`DefaultAzureCredential` (`az login` locally or `azure/login` in CI). A non-zero
-signing or verification exit fails the build.
-
-### File Logging
-
-Bldr supports file-based logging through the `--log-file` flag and
-`BLDR_LOG_FILE` environment variable. Implementation lives in
-`bldr/util/logfile/`.
-
-```bash
-bldr --log-file 'level=DEBUG;format=json;path=.bldr/logs/{ts}.log' start web
-BLDR_LOG_FILE='level=WARN;path=.bldr/logs/warn.log' bldr start web
-bldr --log-file '.bldr/logs/{ts}.log' start web
-BLDR_LOG_FILE=none bldr start web
-```
-
-The short form is a path only and defaults to `level=DEBUG;format=text`. In dev
-mode (`--build-type dev`), file logging is auto-enabled with
-`level=DEBUG;path=.bldr/logs/{ts}.log`.
-
-Distribution and CLI entrypoints auto-enable a DEBUG text log file when
-`BLDR_LOG_FILE` is unset or blank. The path is `<storageRoot>/logs/{ts}.log`,
-where `<storageRoot>` is the same directory the binary uses for state, such as
-`~/.spacewave/`. The file stays at DEBUG level regardless of console verbosity.
-
-| Env var | Effect |
-| --- | --- |
-| `BLDR_LOG_FILE=<spec>` | User-specified spec wins; auto-default does not fire. |
-| `BLDR_LOG_FILE=none` | Disables file logging entirely. |
-| `BLDR_LOG_FILE` unset or blank | Auto-default fires at `<storageRoot>/logs/{ts}.log`. |
-| `<PROJECT>_LOG_LEVEL` | Overrides the console level only. |
-| `BLDR_LOG_LEVEL` | Console-level override checked after `<PROJECT>_LOG_LEVEL`. |
-| `<PROJECT>_LOG_RETENTION_DAYS` | Overrides retention; default is `7` days. |
-
-Old `*.log` files in the same directory are pruned at startup before the new
-file is created. Pruning failures emit a warning and never abort startup.
-`EnsureLoggerLevel` decouples console and file levels by raising the underlying
-logger to DEBUG and routing console output through a level-filtered hook.
-
-For `spacewave-cli`, the daemon child process inherits the parent CLI
-environment, so `BLDR_LOG_FILE`, `BLDR_LOG_LEVEL`, `SPACEWAVE_LOG_LEVEL`,
-`SPACEWAVE_LOG_RETENTION_DAYS`, `SPACEWAVE_DATA_DIR`, and `BLDR_STATE_PATH` set
-on `spacewave-cli start` reach the spawned daemon.
-
-### TinyGo Browser/WASM Boundaries
-
-Browser TinyGo code is sensitive to `syscall/js` calls from hot paths, resumed
-callbacks, and large heap states. Keep the browser boundary JS-owned.
+## TinyGo, WASM, And Browser APIs
 
 - Treat `syscall/js.Value.Call`, `Invoke`, `New`, `String`, and `js.FuncOf` as
-  integration boundaries, not utility calls. Do not add them inside large-byte
-  paths, OPFS writes/listing, Web Locks, MessagePort send/close,
-  ResourceAttach, or StarPC packet pumps without an owner-level reason and a
-  browser test.
-- Prefer JS-owned helpers for browser APIs. JavaScript should perform method
-  dispatch, Promise chaining, object construction, typed-array allocation, Web
-  Lock orchestration, and JS exception classification. Go should pass
-  primitives or existing JS values, then transfer bytes with `js.CopyBytesToJS`
-  or `js.CopyBytesToGo`.
-- Never block inside a JavaScript-to-Go callback such as a `js.FuncOf` handler.
-  If the callback needs to wait on Go work, copy or retain only the JS values it
-  needs, start a goroutine, return to JavaScript immediately, and report
-  completion through the owning Promise, callback, stream, or message port.
-- Do not pass raw wasm-memory pointer/length pairs to helper JavaScript for
-  long-lived or large data. Do not make helper JavaScript call back into TinyGo
-  exports to recover pointer/length metadata while a `syscall/js` call is
-  active.
-- Bound heap pressure before crossing browser APIs. Large uploads, block
-  shards, SSTables, and RPC packets should stream or chunk at the owning
-  storage or transport layer instead of constructing one giant Go buffer and
-  converting it through `syscall/js`.
-- When Chrome reports `RuntimeError: unreachable`, `Offset is outside the
-  bounds of the DataView`, `syscall/js.valueCall`, `valueInvoke`, `valueNew`,
-  `valuePrepareString`, or a `js.FuncOf` frame, trace the exact Go
-  `syscall/js` boundary first. Do not patch downstream callers such as UI
-  enablement, resource release, or command state unless they own the failing
-  boundary.
-- Verification for this area needs a real browser path with both small and
-  large payloads. A direct OPFS/helper test is not enough when production also
-  crosses blockshard, ResourceAttach, Web Locks, MessagePort, or runtime stream
-  code.
+  integration boundaries, not utilities.
+- Keep browser API orchestration JS-owned: method dispatch, Promise chaining,
+  object construction, typed-array allocation, Web Locks, MessagePort handling,
+  and JS exception classification.
+- Go should pass primitives or existing JS values and transfer bytes with
+  `js.CopyBytesToJS` / `js.CopyBytesToGo`.
+- Never block inside a JavaScript-to-Go callback. Copy or retain the needed
+  values, start owner-lifecycle Go work, return to JS immediately, and report
+  completion through the owning Promise, callback, stream, or port.
+- Do not pass raw wasm-memory pointer/length pairs to helper JS for long-lived
+  or large data.
+- Bound heap pressure before crossing browser APIs; stream or chunk large
+  uploads, block shards, SSTables, and RPC packets at the storage/transport
+  owner.
+- If Chrome reports `RuntimeError: unreachable`, DataView bounds failures, or
+  `syscall/js.value*` frames, trace the exact `syscall/js` boundary first.
+- Browser/WASM verification needs a real browser path when production crosses
+  OPFS, ResourceAttach, Web Locks, MessagePort, blockshard, or runtime streams.
 
-## RPC, Cache, And Resource Lifecycles
+## RPC, Resources, Watches, And Cloud State
 
-### Plugin, RPC, And Directive Namespaces
-
-- Before wiring a controller to another runtime component, identify which
-  process/plugin owns each side and which RPC, resource, or directive namespace
-  the call travels through.
-- Controllerbus directives are local to the bus in that process/plugin. Do not
-  assume a directive emitted by `spacewave-core` can be handled by controllers in
-  the `web` plugin, Electron main, or another plugin process.
-- Cross-plugin behavior must use an explicit RPC/resource boundary such as
-  `plugin/<id>/...`, `plugin-host/...`, or a Resources SDK surface. If the path
-  crosses plugin boundaries, name the owning plugin/process at each hop before
-  implementing.
-
-### Streaming State
-
-- SDK RPCs that return mutable state must be server-streaming `Watch*` RPCs, not
-  unary `Get*` RPCs.
-- The UI uses `useStreamingResource` for server-pushed updates.
-- Any state that can change from the CLI, another tab, or a background process
-  must be reactive.
-- Unary RPCs are appropriate only for immutable values such as session refs and
-  peer IDs, or for one-shot actions such as create, delete, and set.
-- If you are adding a `Get*` RPC that returns mutable state, make it a `Watch*`
-  RPC.
-
-### Proto3 Bool Fields In TypeScript
-
-Proto3 omits default values from the wire format. `protobuf-es-lite` leaves
-omitted bool fields as `undefined` after deserialization.
-
-- Check proto bools with `field ?? false` or `!!field`.
-- Do not use `field === undefined` to detect "not yet loaded".
-- For loading state, check whether the containing message is `null`.
-
-Example: `useStreamingResource` returns `value: null` before the first emission
-and `value: {}` after emitting `{setupRequired: false}`. Check `value` for null,
-not `value.setupRequired` for undefined.
-
-### Resource IDs
-
-RPCs that return `resource_id` values allocate server-side resources with cleanup
-callbacks.
-
-- Wrap returned IDs with `resourceRef.createRef(id)` to create a
-  `ClientResourceRef`.
-- Release refs when the caller is done with them.
-- In a fixed async scope, bind each wrapped ref to its own `using` declaration.
-- Use cleanup stacks only for dynamic or cross-helper lifetimes.
-- Never discard resource IDs with `void resourceId`.
-- Do not add `Unregister*` or `Remove*` RPCs for resources that already use
-  resource-based lifecycle. Release the resource instead.
-
-### useResource Released-Resource Retry
-
-`useResource(...)` retries by default when the loaded value is an SDK `Resource`
-and the client emits `server-released` for that resource ID.
-
-- Use `retryOnReleasedResource: false` only when server release is expected and
-  terminal.
-- For composite or non-`Resource` return values, pass
-  `retryOnReleasedResource: { getResourceIds: ... }`.
-
-### Cloud-Backed Mutable State
-
-- Never make redundant cloud HTTP requests.
-- Account state such as keypairs, account info, and thresholds must be fetched
-  once when the session mounts and cached locally in the Go provider's
-  ObjectStore.
-- Go Watch loops such as `WatchAccountInfo` and `WatchAuthMethods` serve cached
-  data to the UI through local SRPC.
-- Cloud data is refetched only when invalidated by a hash change in the
-  session/register response or by a Session DO WebSocket notify message.
-- Multiple React components subscribing to the same Watch stream must share one
-  Go-side stream.
-- Mutable cloud-backed UI state must use this shape:
+- SDK RPCs returning mutable state are server-streaming `Watch*` RPCs, not
+  unary `Get*` RPCs. Unary RPCs are for immutable values or one-shot actions.
+- The UI uses `useStreamingResource` or watch hooks for server-pushed state.
+  Any state changed by CLI, another tab, or a background process must be
+  reactive.
+- Proto3 bool fields can deserialize to `undefined` in TypeScript. Use
+  `field ?? false` or `!!field`; loading state checks the containing message
+  for `null`.
+- RPCs returning `resource_id` allocate server resources. Wrap IDs with
+  `resourceRef.createRef(id)`, bind fixed lifetimes with `using`, and release
+  refs. Never discard resource IDs with `void`.
+- Do not add `Unregister*`/`Remove*` RPCs for resource lifecycle that is already
+  owned by resource release.
+- `useResource(...)` retries on `server-released` resources by default. Disable
+  only when server release is expected and terminal; composite returns must
+  expose resource IDs through `getResourceIds`.
+- Mutable cloud-backed UI state follows:
 
   ```text
   UI -> SRPC/watch -> Go cache/tracker state -> cloud sync machinery
   ```
 
-- The UI must not trigger cloud fetches just to render current state.
-- If a screen needs mutable cloud-backed state, first add or reuse a Go cache
-  owner such as `ProviderAccount`, a session tracker, or a per-SO tracker.
-- Known-gated owner-only cloud calls must check cached subscription/lifecycle
-  state on the client and short-circuit locally when the account is inactive,
-  read-only, or dormant.
-
-### Watch Ownership
-
-- Own mutable watches at container boundaries.
-- Expose mutable state to the UI through Watch RPCs and subscribe at the nearest
-  route/container, such as `SessionContainer`, `SpaceContainer`, or an org
-  container.
-- Pass watched snapshots down through React context.
-- Do not start separate mutable watches or fetches in leaf components.
-- Batch related low-churn state into one combined watch per screen/domain.
-- Do not create one giant watch that couples unrelated high-churn state.
-
-### Resource Wrapper State
-
-Do not attach shared mutable or persistent state to per-client Resource wrappers.
-Resource handles returned by `Mount*` and `Access*` RPCs are client-specific
-wrappers and may be recreated multiple times for the same underlying session,
-account, or object.
-
-Shared state owners such as caches, broadcasts, refcounts, and object-store
-managers must live on shared domain objects or shared registries keyed by stable
-identity. Resource wrappers should forward into the shared owner.
-
-## Backend Patterns
-
-### Controller Registration
-
-Controllers are almost never registered by calling `AddFactory` directly in Go
-production code. Register controllers through `bldr.yaml` configSet entries:
-
-1. Add the controller's Go package to `goPkgs` in the manifest builder config.
-2. Add a `configSet` entry with the controller's `ConfigID` and config fields.
-3. At build time, the Go compiler scans `goPkgs` for `NewFactory` and
-   `BuildFactories` functions and generates a `plugin.go` with a `Factories`
-   array.
-4. At runtime, the plugin registers all factories and deserializes
-   `config-set.bin`, matching each `id` to a factory's `ConfigID`.
-
-Direct `AddFactory` calls belong in tests, such as `core/e2e/e2e_test.go`.
-
-### JSON
-
-- Do not use `encoding/json` in production Go code, and do not add dependencies
-  that pull it in for JSON convenience helpers. Binary size matters in normal
-  builds, not only TinyGo/WASM builds.
-- Do not use `reflect` in production Go code. Reflection-heavy helpers are a
-  binary-size smell; prefer typed code, generated codecs, or explicit parser
-  logic.
-- For proto messages, use generated `MarshalJSON`/`UnmarshalJSON` or
-  `MarshalProtoJSON`/`UnmarshalProtoJSON` from `protobuf-go-lite/json`.
-- For non-proto HTTP request/response structs, use
-  `aperturerobotics/fastjson`.
-- For raw JSON validation, slicing, passthrough, or structural edits, use
-  `json-iterator-lite`, `protobuf-go-lite/json`, or `fastjson`. Do not use
-  `gabs` or other wrappers around `encoding/json`.
-- Cloud API endpoints define proto messages in
-  `core/provider/spacewave/api/api.proto` and use the generated binary codec
-  (`MarshalVT` / `UnmarshalVT`) on both sides. Do NOT use `MarshalJSON` /
-  `UnmarshalJSON` or `MarshalProtoJSON` / `UnmarshalProtoJSON` for the cloud
-  surface. See the "Cloud HTTP Client" rules below.
-- For raw JSON passthrough, use a `string` proto field for opaque JSON strings,
-  or `[]byte` plus fastjson for non-proto raw JSON handling.
-
-### Cloud HTTP Client
-
-All HTTP traffic to `repos/spacewave-cloud` goes through
-`core/provider/spacewave/client.go`. The approved helpers for cloud calls are:
-
-- `doPostBinary(ctx, path, reqProto)` for POST requests with proto-binary
-  bodies and proto-binary responses
-- `doGetBinary(ctx, path)` for GET requests returning proto-binary responses
-- `doDelete(ctx, path)` for DELETE requests
-- `doPostStream(ctx, path, reqProto)` for streaming responses (sync pull, etc.)
-- `doMultiSig(ctx, path, action)` for multi-sig action requests; the response
-  unmarshals into `MultiSigActionResponse`
-
-Required behaviour for any cloud call:
-
-- request body is `proto.MarshalVT(value)` with `Content-Type:
-  application/octet-stream`
-- response body is parsed with `proto.UnmarshalVT(value)`
-- every cloud endpoint has both a request proto and a response proto in
-  `core/provider/spacewave/api/`, including pure acks (typed-but-empty
-  messages)
-
-Streaming binary responses are an exception to the proto-binary response
-rule. Routes that stream bulk bytes from the cloud (packfile downloads,
-release artifact downloads, R2 object passthrough, anything where the
-cloud streams from R2) carry a raw byte stream as their wire contract,
-not a proto schema. Read these via `doPostStream` / a streaming GET helper
-and consume the response body with `io.Copy` into the destination
-sink rather than buffering the full body and decoding a proto.
-
-Forbidden in cloud client code:
-
-- `doPostJSON` (removed; previous proto-JSON helper)
-- `aperturerobotics/fastjson` for cloud requests or responses
-- `MarshalJSON` / `UnmarshalJSON` / `MarshalProtoJSON` / `UnmarshalProtoJSON`
-  on proto types crossing the spacewave <-> cloud boundary
-- hand-rolled JSON request bodies, hand-parsed JSON response bodies
-
-WebSocket frames received from the cloud on the spacewave <-> cloud boundary
-are
-binary frames carrying a per-endpoint envelope proto with a oneof body case
-(`WsAuthSessionServerFrame`, `WsBillingCheckoutServerFrame`). Parse with
-`UnmarshalVT` and switch on the oneof. Do NOT call `UnmarshalJSON` on cloud
-WS frames.
-
-### HTTP Response Bodies
-
-In Go HTTP client code, drain unread response body bytes to `io.Discard` before
-closing the body. This preserves keep-alive connection reuse.
-
-If the code reads the full body with `io.ReadAll`, `readResponseBody`, or a
-streaming copy to EOF, close the body normally.
-
-### No Fire-And-Forget Goroutines
-
-Never spawn a goroutine from a callback, event handler, WebSocket frame handler,
-or other hot path using `context.Background()` for detached background work.
-
-Use `util/routine.RoutineContainer`, or `StateRoutineContainer` when work should
-run only in a particular state. The owning long-lived component owns the
-lifecycle context and cancels it on close. The callback triggers the routine; it
-does not run the work itself.
-
-Pattern:
-
-1. Add a lifecycle `ctx context.Context` and `ctxCancel context.CancelFunc` to
-   the owner. Cancel it in the close path.
-2. Construct a `routine.RoutineContainer`.
-3. Call `SetRoutine` with the function that performs the work. The routine
-   receives the derived context from `SetContext`.
-4. Call `SetContext(o.ctx, true)` once to wire lifecycle.
-5. In callback paths, call `RestartRoutine()`.
-6. In the close path, call `ClearContext()` and then cancel the lifecycle
-   context.
-
-```go
-type Owner struct {
-	ctx       context.Context
-	ctxCancel context.CancelFunc
-	refresh   *routine.RoutineContainer
-	release   func()
-}
-
-func NewOwner(le *logrus.Entry) *Owner {
-	ctx, cancel := context.WithCancel(context.Background())
-	return &Owner{ctx: ctx, ctxCancel: cancel}
-}
-
-func (o *Owner) wireRefresh(bs *blockStore, so *sharedObject) {
-	o.refresh = routine.NewRoutineContainerWithLogger(o.le)
-	o.refresh.SetRoutine(func(ctx context.Context) error {
-		bs.Invalidate()
-		return so.RefreshSnapshot(ctx)
-	})
-	o.refresh.SetContext(o.ctx, true)
-
-	o.release = provider.RegisterCallback(func(id string) {
-		if id != targetID {
-			return
-		}
-		o.refresh.RestartRoutine()
-	})
-}
-
-func (o *Owner) Close() {
-	if o.release != nil {
-		o.release()
-	}
-	if o.refresh != nil {
-		o.refresh.ClearContext()
-	}
-	o.ctxCancel()
-}
-```
-
-This rule applies to every case where anonymous goroutines with
-`context.Background()` look convenient. Use lifecycle-scoped primitives from
-`util/`, including `routine`, `keyed`, `refcount`, and `broadcast`.
-
-### RefCount For Shared Background Goroutines
-
-When multiple RPC subscribers need to share one background goroutine, such as a
-WebSocket connection, use `refcount.RefCount` from `util/refcount`.
-
-Pattern:
-
-1. Store shared state behind a `broadcast.Broadcast`.
-2. Create a `refcount.RefCount[struct{}]` whose resolver is the background
-   goroutine.
-3. Each RPC subscriber calls `AddRef`, waits on the broadcast for state changes,
-   and calls `Release` when done.
-4. Call `SetContext` with the parent lifecycle context.
-
-```go
-type parent struct {
-	statusBcast broadcast.Broadcast
-	status      string
-	ticket      string
-	statusRc    *refcount.RefCount[struct{}]
-}
-
-func (p *parent) resolveStatusWatcher(
-	ctx context.Context,
-	released func(),
-) (struct{}, func(), error) {
-	var ticket string
-	p.statusBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		ticket = p.ticket
-	})
-	if ticket == "" {
-		return struct{}{}, nil, errors.New("no ticket")
-	}
-
-	err := p.runWatcher(ctx, ticket)
-	return struct{}{}, nil, err
-}
-
-func (s *Resource) WatchStatus(
-	req *WatchReq,
-	strm WatchStream,
-) error {
-	ctx := strm.Context()
-	parent := s.getParent()
-
-	ref := parent.statusRc.AddRef(nil)
-	defer ref.Release()
-
-	var prev string
-	for {
-		var ch <-chan struct{}
-		var status string
-		parent.statusBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			ch = getWaitCh()
-			status = parent.status
-		})
-		if status != prev {
-			if err := strm.Send(&Resp{Status: status}); err != nil {
-				return err
-			}
-			prev = status
-		}
-		if isTerminal(status) {
-			return nil
-		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ch:
-		}
-	}
-}
-```
-
-Use `KeyedRefCount` from `util/keyed` when multiple independent goroutines are
-keyed by ID.
-
-## Data Model And Identifier Rules
-
-### SharedObject And Block Store IDs
-
-SharedObject IDs are ULIDs: 26 lowercase Crockford base32 characters. The block
-store ID for a SharedObject-backed block store equals the SharedObject ULID
-verbatim.
-
-- `SobjectBlockStoreID(soID)` in `core/provider/local/id.go` and
-  `core/provider/spacewave/sobject.go` returns `soID` directly. Use the helper
-  for call-site clarity.
-- Never prefix a SharedObject ULID to form a block store ID.
-- Do not introduce translation helpers like `cloudResourceID(bstoreID)` or
-  `soIDFromBstoreID(bstoreID)`.
-- On the cloud side, the `bstoreId` URL parameter equals `soID`.
-- The same rule applies to other ULID-keyed resources: store the ULID verbatim.
-  Use separate ID columns or typed wrappers for disambiguation.
-
-### Volume IDs
-
-When calling `volume.ExBuildObjectStoreAPI`, the `volumeID` parameter must be
-the mounted volume's ID from `vol.GetID()`, never a raw `StorageVolumeID()`
-string.
-
-The bldr plugin host proxies volumes through an RPC layer that changes volume
-IDs. A proxy volume on the plugin bus has the bolt volume ID, such as
-`hydra/volume/bolt/12D3KooW...`, not the original storage volume ID, such as
-`p/local/{accountID}`. Any `ExBuildObjectStoreAPI` call using a raw storage
-volume ID can hang because alias matching does not find the proxy volume.
-
-Correct:
-
-```go
-volume.ExBuildObjectStoreAPI(ctx, bus, false, objStoreID, vol.GetID(), cancel)
-```
-
-Wrong:
-
-```go
-volume.ExBuildObjectStoreAPI(ctx, bus, false, objStoreID, StorageVolumeID(provID, accountID), cancel)
-```
-
-External code that needs to mount an ObjectStore must obtain the volume
-reference from the appropriate provider account. Do not reconstruct the ID from
-parts.
-
-## Package Boundaries
-
-### web/ And app/
-
-`web/` is the plugin-importable component library. Put code in `web/` only if
-plugins import it or reasonably would: UI primitives, hooks, SDK wrappers,
-ObjectViewer framework, and reusable utilities such as `useForgeBlockData`.
-
-`app/` is application-specific code: object type viewers, pages, session
-management, shell components, window chrome, loading screens, and quickstart
-flows.
-
-- Plugins import from `@s4wave/web/` only.
-- Plugins must never import from `@s4wave/app/`.
-- `app/` may import from both `@s4wave/web/` and `@s4wave/app/`.
-- When adding plugin-importable files under `web/`, update the nearest
-  `index.ts` barrel so `@s4wave/web` exposes the new API through the package
-  entrypoint that `spacewave-web` bundles. Prefer plugin imports from these
-  barrels, such as `@s4wave/web/contexts/index.js`, over direct file subpaths
-  unless the direct subpath is intentionally configured as its own web package
-  entrypoint.
-- Verify boundary violations with:
-
-  ```bash
-  rg "from '@s4wave/app/" web/
-  ```
-
-  Exclude `web/test/helpers.tsx` when evaluating results.
-
-### Singleton Library Imports
-
-Singleton library APIs must be imported through `web/` re-exports. The bldr
-build produces separate bundles for `spacewave-app` and `spacewave-web`.
-Libraries that rely on shared global singleton state can be duplicated across
-bundles when imported directly from both.
-
-Example: import `toast` from `@s4wave/web/ui/toaster.js`, not from `sonner`
-directly.
-
-### Viewer Registry
-
-Object type viewers are registered statically in `app/viewers.tsx` and injected
-into the `web/object/` ObjectViewer framework through `ViewerRegistryProvider`
-from `web/hooks/useViewerRegistry.tsx`.
-
-The app wraps its root with this provider. The framework reads viewers from
-`useViewerRegistry()` so `web/` stays free of `app/` imports.
-
-### Separate Plugins
-
-Create a separate plugin under `plugin/` when a module has large dependencies
-that would bloat the main bundle, such as Lexical or v86.
-
-Merge lightweight viewers and services into `spacewave-app` with static
-registrations in `app/viewers.tsx` and `sdk/`. The notes and VM plugins stay
-separate.
-
-## Frontend And UI Rules
-
-### Session Routing
-
-Components inside the session tree use React contexts instead of parsing URLs.
-
-- Use `useSessionIndex()` from `web/contexts/` to get the session index.
-- Use `usePath()` / router context for the active panel route. Do not derive
-  in-panel navigation or query params from `window.location.hash` or
-  `getAppPath()`: in split/grid mode the global hash is the encoded shell route
-  (`#/g/...`), not the active panel's `/u/<idx>/...` route.
-- Use relative navigation such as `./free` and `../setup` for subtree-local
-  moves.
-- Use `useSessionNavigate()` for session-root navigation such as `join`,
-  `so/${spaceId}`, and dashboard root.
-- Do not reconstruct `/u/${sessionIndex}/...` strings or depend on nested
-  `../..` path math.
-- `SessionIndexContext` and `SessionRouteContext` are set by `AppSession`.
-- Prefer context over URL parsing for other session-scoped state as well.
-
-Session indexes start at 1. The `mountSessionByIdx` Resource SDK call uses
-1-based indexes. In `AppSession.tsx`, `parseInt(param ?? '') || null` producing
-`null` for index 0 is correct.
-
-### Frontend Network And Crypto
-
-TypeScript frontend code must use Go RPCs for crypto, HTTP, and WebSocket
-operations.
-
-- Do not implement cryptographic operations in TypeScript.
-- Do not make direct cloud HTTP requests in TypeScript.
-- Do not open raw WebSocket connections in TypeScript.
-- Use the Go WASM runtime through in-process StarPC RPCs in the Resource SDK.
-- If an RPC does not exist, add one to the proto and implement it in Go.
-
-### Persisting UI State
-
-Use `@s4wave/web/state/persist.tsx` for UI state that should survive reloads,
-such as view modes, collapsed sections, and scroll positions.
-
-```tsx
-import { useStateAtom, useStateNamespace } from '@s4wave/web/state/persist.js'
-
-function Viewer() {
-	const gitNs = useStateNamespace(['git'])
-	const [viewMode, setViewMode] = useStateAtom<'files' | 'readme' | 'log'>(
-		gitNs,
-		'viewMode',
-		'files',
-	)
-}
-```
-
-`SpaceObjectContainer` provides a parent namespace
-`['objectViewer', objectKey]`. Viewer components scope beneath it with one
-domain prefix:
-
-- `useStateNamespace(['git'])` produces
-  `['objectViewer', objectKey, 'git']`.
-- `useStateNamespace(['canvas'])` produces
-  `['objectViewer', objectKey, 'canvas']`.
-
-Do not include `objectKey` in the viewer namespace. Do not use an empty
-namespace because it collides with other viewer state at the same level.
-
-### Bottom Bar Registration
-
-- `BottomBarLevel` props must be stable.
-- Wrap `button` renderers in `useCallback`.
-- Wrap `overlay` elements in `useMemo`.
-- Pass `buttonKey` and `overlayKey` whenever rendered content should update.
-- Keys should encode the data that drives the UI, such as selected names,
-  object IDs, or open state.
-- `overlay` is read lazily by the root. Update memoized data and bump the key so
-  `SessionFrame` re-renders with fresh content.
-- Do not return raw `resource_id` values or inline JSX that depends on stale
-  closures inside `BottomBarLevel`.
-
-### Image Imports
-
-Use Vite static asset imports for images:
-
-```tsx
-import gridPattern from '../images/patterns/grid.png'
-```
-
-The imported value is a resolved URL string at build time. Do not use
-`new URL(..., import.meta.url).href` for image assets.
-
-### Icon Library
-
-Prioritize React icon libraries in this order:
-
-1. `react-icons/lu` (Lucide)
-2. `react-icons/ri` (Remix Icon)
-3. `react-icons/pi` (Phosphor)
-4. `react-icons/rx` (Radix UI)
-
-Use consistent icon families within related components. Use other icon families
-only when these libraries lack a suitable icon. Prefer filled variants where
-they match surrounding icons.
-
-Common mappings:
-
-- Chevrons: `LuChevronDown`, `LuChevronRight`, `LuChevronLeft`, `LuChevronUp`
-- Arrows: `LuArrowLeft`, `LuArrowRight`, `LuArrowUp`, `LuArrowDown`
-- UI actions: `LuSearch`, `LuPlus`, `LuMenu`, `LuX`, `LuCopy`
-- Files: `LuFolder`, `LuFile`, `LuHome`, `LuHardDrive`
-- Media: `LuPlay`, `LuPause`, `LuSkipForward`, `LuSkipBack`
-
-### UX Heuristics
-
-Keep these UX laws in mind when working on UI. If you encounter a violation and
-the fix is outside the current task, flag it before changing scope.
-
-Heuristics:
-
-- Aesthetic-Usability Effect
-- Fitt's Law
-- Goal-Gradient Effect
-- Hick's Law
-- Jakob's Law
-- Miller's Law
-- Parkinson's Law
-
-Principles:
-
-- Doherty Threshold
-- Occam's Razor
-- Pareto Principle
-- Postel's Law
-- Tesler's Law
-
-Gestalt:
-
-- Law of Common Region
-- Law of Proximity
-- Law of Pragnanz
-- Law of Similarity
-- Law of Uniform Connectedness
-
-Cognitive biases:
-
-- Peak-End Rule
-- Serial Position Effect
-- Von Restorff Effect
-- Zeigarnik Effect
-
-## Proto And Generated Sources
-
-### Proto Imports
-
-Proto files use Go-style import paths based on Go module names from `go.mod`.
-This module is `github.com/s4wave/spacewave`.
-
-Local proto files reference each other with the full Go module path:
-
-```protobuf
-import "github.com/s4wave/spacewave/core/session/session.proto";
-import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
-```
-
-External proto files use their external Go module path:
-
-```protobuf
-import "github.com/aperturerobotics/controllerbus/bus/bus.proto";
-import "github.com/aperturerobotics/starpc/srpc/srpc.proto";
-```
-
-Package naming:
-
-- `sdk/` proto files use the full `s4wave.` prefix, such as
-  `package s4wave.space;`.
-- `core/` proto files use shortened package names without the prefix, such as
-  `package space.world;`.
-- When `sdk/` files reference types from `core/` packages, use leading-dot fully
-  qualified references such as `.space.world.WorldContents`.
-
-### Dist Sources
-
-When adding TypeScript files that need to be bundled for Electron or browser
-entrypoints, add them to the `//go:embed` directives in `dist.go`.
-
-`DistSources` contains TypeScript sources used by esbuild during the build. If a
-new `.pb.ts` file or TypeScript module is imported by files in `web/electron/`
-or `web/entrypoint/`, it must be explicitly embedded.
-
-## Testing And Build Commands
-
-### Test Structure
-
-Choose the narrowest tier that covers the behavior.
-
-- Unit tests (`*.test.ts`) run with `vitest run` in the `happy-dom`
-  environment. Co-locate them with the module under test and use them for pure
-  logic, data structures, parsers, protocol helpers, and ring buffers.
-- Browser tests (`*.browser.test.ts`, `*.e2e.test.ts`) run in vitest browser
-  mode with the Playwright provider and headless Chromium. Use them for real
-  browser APIs such as SharedArrayBuffer, Atomics, OPFS, BroadcastChannel, Web
-  Locks, and service workers.
-- E2E tests (`e2e/*.spec.ts`) run with `bun run test:e2e`, using Playwright
-  directly. The Playwright config starts the dev server with
-  `bun run start:web:wasm`. Use these for full application lifecycle coverage:
-  page loads, WASM boot, plugin rendering, and console-error checks.
-- Release E2E tests (`web/entrypoint/browser/*.e2e.spec.ts`) run with
-  `bun run test:release:web`, which builds a release web bundle before testing
-  the static output.
-- Go tests (`*_test.go`) run with `go test ./...` and belong beside the Go
-  package they cover.
-- Do not use prototype directories for production tests. If the company
-  prototype exception explicitly allows a temporary target-repo probe, keep its
-  Playwright config and static fixtures isolated from normal vitest projects
-  and from `bun run test:e2e`.
-
-Quick choice:
-
-- New utility function or data structure: unit test.
-- New browser API integration: browser test.
-- New user-visible feature or startup path: E2E test.
-- New Go package or compiler behavior: Go test.
-
-### Preferred Test Commands
-
-Run all tests with abbreviated output:
+- Account state is fetched once when the session mounts, cached in the Go
+  provider/ObjectStore, served to UI by Go Watch loops, and invalidated by hash
+  changes or Session DO WebSocket notifications. Do not trigger redundant cloud
+  HTTP requests from React render paths.
+- Multiple React subscribers to the same Watch stream share one Go-side stream.
+- Own mutable watches at route/container boundaries and pass snapshots through
+  context. Do not start separate leaf-component watches for the same state.
+- Do not attach shared mutable/persistent state to per-client Resource wrappers.
+  Shared state lives on stable domain owners or registries keyed by stable
+  identity; wrappers forward to those owners.
+
+## Cloud HTTP And Wire Formats
+
+- All HTTP traffic to `repos/spacewave-cloud` goes through
+  `core/provider/spacewave/client.go`.
+- Cloud API request and response bodies use proto-binary
+  `MarshalVT`/`UnmarshalVT` with `Content-Type: application/octet-stream`.
+  Every endpoint has typed request/response protos, including empty acks.
+- Approved helpers include `doPostBinary`, `doGetBinary`, `doDelete`,
+  `doPostStream`, and `doMultiSig`. Do not resurrect JSON helpers.
+- Streaming bulk routes, such as packfiles, release artifacts, and R2
+  passthrough, carry raw byte streams. Consume them with streaming copies, not
+  full buffering into proto decode.
+- Forbidden on the Spacewave <-> Cloud boundary: `doPostJSON`, `fastjson`,
+  proto JSON methods, hand-rolled JSON bodies, and hand-parsed JSON responses.
+- WebSocket frames from Cloud are binary envelope protos with oneof bodies.
+  Parse with `UnmarshalVT` and switch on the oneof.
+- In Go HTTP clients, drain unread response bodies to `io.Discard` before
+  closing unless the full body has already been read or streamed to EOF.
+
+## Data Model And IDs
+
+- SharedObject IDs are lowercase ULIDs. A SharedObject-backed block store ID is
+  the SharedObject ULID verbatim.
+- Use `SobjectBlockStoreID(soID)` for clarity, but do not prefix or translate
+  SharedObject IDs. Cloud `bstoreId` URL params equal `soID`.
+- Other ULID-keyed resources also store the ULID verbatim; use separate typed
+  columns/wrappers for disambiguation.
+- When calling `volume.ExBuildObjectStoreAPI`, pass the mounted volume's
+  `vol.GetID()`, never a reconstructed `StorageVolumeID(...)`. Plugin-host
+  proxy volumes change IDs; reconstructing raw IDs can hang alias matching.
+- When identifiers share a wire shape but mean different domain roles, encode
+  the distinction in the owner library API with semantic helpers. Callers choose
+  by meaning, not byte shape.
+
+## Protobufs And Generated Sources
+
+- Proto imports use Go module paths from `go.mod`, for example
+  `github.com/s4wave/spacewave/core/session/session.proto`.
+- `sdk/` proto packages use the full `s4wave.` prefix. `core/` protos use
+  shorter package names. Cross-package type references use leading-dot fully
+  qualified names.
+- After changing `.proto`, stage the `.proto` files first if using `aptre`,
+  then run `bun run gen`. Use `bun run gen:force` only when a forced rebuild is
+  actually needed.
+- Never hand-edit generated `*.pb.go`, `*.pb.ts`, `*.pb.gs.ts`, `*.pb.cc`, or
+  `*.pb.h`; change the source proto and regenerate.
+- Follow existing SDK/resource naming before inventing shapes. Use
+  `sdk/world/world.proto` and `sdk/world/` as the reference for resource
+  service naming, `MethodRequest`/`MethodResponse`, resource-id access, Go SDK
+  wrappers, TS Resource wrappers, and generated exports.
+- Block-backed state should be a clean block DAG under the owning World object.
+  Make a separate World object only for independent identity, graph
+  relationships, permissions, lifecycle, or cross-owner references.
+- Block DAG field comments state key encoding and value type.
+- Parse stable external payloads into typed proto fields. Raw JSON/wire payloads
+  are optional debugging evidence, not the primary model.
+- Reuse common proto enums and owner types. Do not duplicate generated enum
+  values as handwritten constants.
+- Add RPCs to the existing resource service when they operate on that service's
+  state or security boundary. New services/packages need independent lifecycle
+  or domain identity.
+- Never hand-roll protobuf wire parsing or proto JSON; use generated codecs.
+
+## Storage, Concurrency, And Controllers
+
+- `BeginReadOperation`, `NewTransaction(false)`, bucket cursors, GC wrappers,
+  projection hydration, and resource read scopes are lock-owning transaction
+  boundaries.
+- Never open a second read transaction on the same bbolt/kvtx-backed store
+  while holding the first. During mmap growth this can deadlock the process.
+- When layering wrappers, wrap the already-scoped store or add an owner API for
+  the scoped wrapper; do not call an ordinary `BeginReadOperation` while already
+  holding the underlying read scope.
+- `broadcast.Broadcast` is the preferred shared-state mutex plus wait channel;
+  name the field `bcast`. Read state and obtain the wait channel inside one
+  `HoldLock`.
+- Preferred util primitives:
+  - shared state and waiters: `broadcast.Broadcast`
+  - one goroutine per dynamic key: `keyed.Keyed`
+  - ref-counted goroutine per key: `keyed.KeyedRefCount`
+  - shared background resource: `refcount.RefCount`
+  - single retrying goroutine: `routine.RoutineContainer`
+  - state-gated goroutine: `routine.StateRoutineContainer`
+  - watchable current value: `ccontainer.CContainer` plus broadcast
+- The `ctx` passed to a controller `Execute()` is the controller lifecycle
+  context. If the only work is wiring lifecycle-gated subsystems, hand them
+  `ctx` and return nil; do not block just to keep `Execute()` alive.
+- Do not `defer cancel()` or `defer ClearContext()` in an `Execute()` that
+  returns after wiring subsystems. Cleanup tied to removal belongs in `Close()`.
+- Do not store `context.Context` as a controller field unless it is a documented
+  long-lived transport lifecycle context.
+- Returning an error from `Execute()` restarts `Execute()` with backoff; it does
+  not reconstruct the controller.
+
+## Directive Patterns
+
+- Name resolvers descriptively, store the directive on the resolver, use
+  pointer receivers, and return resolver pointers.
+- Use `directive.NewValueResolver` for static values,
+  `directive.NewFuncResolver` for simple async/watch logic, and custom resolver
+  types only for complex state.
+- Watch loop shape: `ClearValues`; snapshot via `HoldLock(getWaitCh)`;
+  compute/emit outside the lock; `MarkIdle(true)`; select on `waitCh` or
+  `ctx.Done()`.
+- In `HandleDirective`, do not filter on ephemeral state.
+- Never call `AddValue` inside `bcast.HoldLock`; it can deadlock.
+- Each directive gets an `Ex{DirectiveName}` helper wrapping
+  `bus.ExecWaitValue`. Prefer `Ex` helpers over direct `ExecWaitValue`.
+
+## Testing And Verification
+
+Choose the narrowest tier that proves the changed behavior:
+
+- JS unit tests: `*.test.ts` with Vitest/happy-dom for pure logic.
+- Browser tests: `*.browser.test.ts` / `*.e2e.test.ts` in vitest browser mode
+  for real browser APIs such as OPFS, BroadcastChannel, Web Locks, SharedArray
+  Buffer, and workers.
+- Playwright app E2E: use the relevant package script in `package.json` for
+  full app lifecycle, WASM boot, plugin rendering, and console checks
+  (`test:browser`, `test:go:e2e:*`, or a release lane).
+- Release web E2E: `bun run test:release:web` for static release output.
+- Go tests: `go test ./...`, scoped to the package when the change is narrow.
+
+Common commands:
 
 ```bash
 bun testcheck
-```
-
-This runs JS unit tests, browser E2E tests, and Go tests, showing only a summary
-unless something fails.
-
-For full verbose output:
-
-```bash
 bun run test
-```
-
-Use `bun run test` or `bun testcheck`, not `bun test`. `bun test` invokes Bun's
-built-in test runner instead of package scripts.
-
-### Linting And Typechecking
-
-After code changes, verify with the relevant subset of:
-
-```bash
+bun run check
 bun run typecheck
 bun run lint
 go build ./...
+go test ./...
 ```
 
-### Rebuilding .bldr
+Use `bun run test` or `bun testcheck`, not `bun test`; bare `bun test` invokes
+Bun's built-in runner instead of package scripts.
 
-If `.bldr` has stale exports or module resolution errors, rebuild it with:
+Prefer `testbed.Default(ctx)` and real in-memory stack components over mocks.
+Mock only the explicit boundary under test.
 
-```bash
-bun run setup
-```
+E2E WASM rules:
 
-### Testbed Over Mocks
+- Never call `h.Navigate()` in `e2e/wasm`; it reloads the page and destroys the
+  WASM process, workers, and WebSockets. Use client-side history routing.
+- `e2e/wasm` suites are opt-in with `ENABLE_E2E_WASM=true`. New packages need
+  the same `TestMain` gate before booting the harness.
+- Use `core/resource/testbed/testbed_e2e_test.go` as the reference for Resource
+  SDK end-to-end tests.
 
-Prefer the `testbed` package and real in-memory running versions of the stack
-over mocks.
+After docs-only edits, run at least `git diff --check -- <files>`. After code
+edits, run the focused tests plus formatting/lint/typecheck/build commands that
+cover the touched owner.
 
-Use `testbed.Default(ctx)` for a fully wired bus with volume, logger, and static
-resolver. Add real controller factories to the static resolver rather than
-mocking interfaces.
+## Public Docs And Links
 
-### E2E WASM Tests
-
-Never call `h.Navigate()` in `e2e/wasm/` tests. `Navigate` calls Playwright
-`page.Goto()`, which triggers a full HTTP page reload and destroys the WASM
-process, plugin workers, and WebSocket connections.
-
-Use client-side routing that preserves the WASM process:
-
-```go
-page.Evaluate(`() => {
-	window.history.pushState({}, '', '/target/route')
-	window.dispatchEvent(new PopStateEvent('popstate'))
-}`)
-```
-
-The `nonavigate` linter at `lint/nonavigate/` enforces this rule. Build the
-custom linter binary with `golangci-lint custom` using `.custom-gcl.yml`.
-
-Use `core/resource/testbed/testbed_e2e_test.go` as the example for adding an
-end-to-end test of a Resource SDK implementation.
-
-`e2e/wasm` suites are opt-in. Set `ENABLE_E2E_WASM=true` before running
-`go test` against `e2e/wasm` packages. New `e2e/wasm` packages need the same
-`TestMain` gate before booting the harness.
-
-### Debugging E2E Test Timeouts
-
-When `core/e2e` tests time out, the issue is often a TypeScript test failure
-that does not propagate cleanly. Debug with:
-
-```bash
-cd core && timeout 35 go test -timeout=30s -v -run TestSpacewaveCoreE2E ./e2e/... 2>&1 | grep -E "panic|ERROR|test failed|test completed"
-```
-
-Common causes:
-
-- Proto validation errors. TypeScript tests must populate required proto fields
-  such as `timestamp`.
-- Missing service implementations. Check whether an unimplemented RPC is being
-  called.
-- Directive imbalance. Compare added and removed directives to find stuck
-  lookups.
-
-TypeScript proto mapping:
-
-- `google.protobuf.Timestamp` maps to `Date`; use `new Date()` to populate it.
+- Public GitHub docs must link only to public repositories and public docs.
+- Do not leak local absolute paths, private planning files, or internal
+  plan/scope/review state into public docs, code comments, commits, or PRs.
+- Keep this guide general-purpose. It captures repository rules, recurring
+  patterns, and architectural invariants, not task-specific plans or historical
+  work notes.
