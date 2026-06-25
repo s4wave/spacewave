@@ -69,7 +69,7 @@ func NewOpfs(
 		ShardCount:          int(conf.GetBlockShardCount()),
 		BloomFPR:            conf.GetBlockBloomFpr(),
 		CompactionTrigger:   int(conf.GetBlockCompactionTrigger()),
-		AsyncIO:             conf.GetAsyncIo(),
+		SyncIO:              conf.GetSyncIo(),
 		MaxSegmentDataBytes: int(conf.GetBlockMaxSegmentDataBytes()),
 	}
 	blkEngine, err := blockshard.NewEngineWithSettings(ctx, blocksDir, lockPrefix+"/blocks", blockSettings)

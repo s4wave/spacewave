@@ -2581,7 +2581,7 @@
       "protoFiles": ["db/volume/js/indexeddb/indexeddb.proto"]
     },
     "github.com/s4wave/spacewave/db/volume/js/opfs": {
-      "hash": "19fa133e333928ff0d0448082681457486057058120cac4a5417307ee3132470",
+      "hash": "f4c073f32ba06b9aa971f1ef5684fb95da0e66ee472541c0e12474b4417bb8ca",
       "generatedFiles": [
         "db/volume/js/opfs/opfs.pb.cc",
         "db/volume/js/opfs/opfs.pb.go",
@@ -3889,7 +3889,7 @@
       "protoFiles": ["sdk/debug/debug.proto"]
     },
     "github.com/s4wave/spacewave/sdk/debugdb": {
-      "hash": "021bc5a39349e8c184d0794be9f0f912181fc15248f60fe9267fa5ca9e6de19d",
+      "hash": "db72c24d6b91dd4c052ad2671551e07b1dfbb29e4f64dfc16d83fef1850e8770",
       "generatedFiles": [
         "sdk/debugdb/debugdb.pb.cc",
         "sdk/debugdb/debugdb.pb.go",

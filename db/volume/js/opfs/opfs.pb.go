@@ -52,11 +52,10 @@ type Config struct {
 	BlockCompactionTrigger uint32 `protobuf:"varint,12,opt,name=block_compaction_trigger,json=blockCompactionTrigger,proto3" json:"blockCompactionTrigger,omitempty"`
 	// PageSize is the metadata page size in bytes.
 	PageSize uint32 `protobuf:"varint,13,opt,name=page_size,json=pageSize,proto3" json:"pageSize,omitempty"`
-	// AsyncIo forces using the async OPFS API instead of the sync API.
-	// When enabled, writes yield the Go thread via AwaitPromise, allowing
-	// other goroutines to continue encoding and enqueuing while I/O is
-	// in flight.
-	AsyncIo bool `protobuf:"varint,14,opt,name=async_io,json=asyncIo,proto3" json:"asyncIo,omitempty"`
+	// SyncIo forces using the sync OPFS API instead of the async API.
+	// The default is async OPFS writes so write actors can yield the Go thread via
+	// AwaitPromise while I/O is in flight.
+	SyncIo bool `protobuf:"varint,14,opt,name=sync_io,json=syncIo,proto3" json:"syncIo,omitempty"`
 	// BlockMaxSegmentDataBytes bounds one block SSTable segment's data bytes.
 	BlockMaxSegmentDataBytes uint32 `protobuf:"varint,15,opt,name=block_max_segment_data_bytes,json=blockMaxSegmentDataBytes,proto3" json:"blockMaxSegmentDataBytes,omitempty"`
 	// DriverMode selects the browser OPFS driver ABI.
@@ -167,9 +166,9 @@ func (x *Config) GetPageSize() uint32 {
 	return 0
 }
 
-func (x *Config) GetAsyncIo() bool {
+func (x *Config) GetSyncIo() bool {
 	if x != nil {
-		return x.AsyncIo
+		return x.SyncIo
 	}
 	return false
 }
@@ -209,22 +208,28 @@ func (m *Config) CloneVT() *Config {
 	r := new(Config)
 	r.RootPath = m.RootPath
 	r.LockPrefix = m.LockPrefix
-	r.KvKeyOpts = m.KvKeyOpts.CloneVT()
 	r.NoGenerateKey = m.NoGenerateKey
 	r.NoWriteKey = m.NoWriteKey
 	r.Verbose = m.Verbose
-	r.VolumeConfig = m.VolumeConfig.CloneVT()
-	r.StoreConfig = m.StoreConfig.CloneVT()
 	r.BlockShardCount = m.BlockShardCount
 	r.MetaShardCount = m.MetaShardCount
 	r.BlockBloomFpr = m.BlockBloomFpr
 	r.BlockCompactionTrigger = m.BlockCompactionTrigger
 	r.PageSize = m.PageSize
-	r.AsyncIo = m.AsyncIo
+	r.SyncIo = m.SyncIo
 	r.BlockMaxSegmentDataBytes = m.BlockMaxSegmentDataBytes
 	r.DriverMode = m.DriverMode
 	r.StorageFormatVersion = m.StorageFormatVersion
 	r.ResetPolicy = m.ResetPolicy
+	if rhs := m.KvKeyOpts; rhs != nil {
+		r.KvKeyOpts = rhs.CloneVT()
+	}
+	if rhs := m.VolumeConfig; rhs != nil {
+		r.VolumeConfig = rhs.CloneVT()
+	}
+	if rhs := m.StoreConfig; rhs != nil {
+		r.StoreConfig = rhs.CloneVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -280,7 +285,7 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.PageSize != that.PageSize {
 		return false
 	}
-	if this.AsyncIo != that.AsyncIo {
+	if this.SyncIo != that.SyncIo {
 		return false
 	}
 	if this.BlockMaxSegmentDataBytes != that.BlockMaxSegmentDataBytes {
@@ -379,10 +384,10 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("pageSize")
 		s.WriteUint32(x.PageSize)
 	}
-	if x.AsyncIo || s.HasField("asyncIo") {
+	if x.SyncIo || s.HasField("syncIo") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("asyncIo")
-		s.WriteBool(x.AsyncIo)
+		s.WriteObjectField("syncIo")
+		s.WriteBool(x.SyncIo)
 	}
 	if x.BlockMaxSegmentDataBytes != 0 || s.HasField("blockMaxSegmentDataBytes") {
 		s.WriteMoreIf(&wroteField)
@@ -472,9 +477,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "page_size", "pageSize":
 			s.AddField("page_size")
 			x.PageSize = s.ReadUint32()
-		case "async_io", "asyncIo":
-			s.AddField("async_io")
-			x.AsyncIo = s.ReadBool()
+		case "sync_io", "syncIo":
+			s.AddField("sync_io")
+			x.SyncIo = s.ReadBool()
 		case "block_max_segment_data_bytes", "blockMaxSegmentDataBytes":
 			s.AddField("block_max_segment_data_bytes")
 			x.BlockMaxSegmentDataBytes = s.ReadUint32()
@@ -556,9 +561,9 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x78
 	}
-	if m.AsyncIo {
+	if m.SyncIo {
 		i--
-		if m.AsyncIo {
+		if m.SyncIo {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
@@ -719,7 +724,7 @@ func (m *Config) SizeVT() (n int) {
 	if m.PageSize != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.PageSize))
 	}
-	if m.AsyncIo {
+	if m.SyncIo {
 		n += 2
 	}
 	if m.BlockMaxSegmentDataBytes != 0 {
@@ -834,12 +839,12 @@ func (x *Config) MarshalProtoText() string {
 		sb.WriteString("page_size: ")
 		sb.WriteString(strconv.FormatUint(uint64(x.PageSize), 10))
 	}
-	if x.AsyncIo != false {
+	if x.SyncIo != false {
 		if sb.Len() > 8 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("async_io: ")
-		sb.WriteString(strconv.FormatBool(x.AsyncIo))
+		sb.WriteString("sync_io: ")
+		sb.WriteString(strconv.FormatBool(x.SyncIo))
 	}
 	if x.BlockMaxSegmentDataBytes != 0 {
 		if sb.Len() > 8 {
@@ -1111,7 +1116,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 		case 14:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AsyncIo", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field SyncIo", wireType)
 			}
 			var v int
 			var _v uint64
@@ -1120,7 +1125,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			m.AsyncIo = bool(v != 0)
+			m.SyncIo = bool(v != 0)
 		case 15:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field BlockMaxSegmentDataBytes", wireType)

@@ -17,7 +17,6 @@ import (
 func TestSyncBarrierFencesPriorWrites(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 1
-	settings.AsyncIO = true
 	e, cleanup := newTestEngineWithSettings(t, "test-blockshard-sync-fence", "test-blockshard-sync-fence", settings)
 	defer cleanup()
 
@@ -54,7 +53,6 @@ func TestSyncBarrierFencesPriorWrites(t *testing.T) {
 func TestSyncOnIdleShardEmitsNoEmptyPublish(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 1
-	settings.AsyncIO = true
 	e, cleanup := newTestEngineWithSettings(t, "test-blockshard-sync-idle", "test-blockshard-sync-idle", settings)
 	defer cleanup()
 
@@ -82,7 +80,6 @@ func TestSyncOnIdleShardEmitsNoEmptyPublish(t *testing.T) {
 func TestSyncFencesAllShards(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 4
-	settings.AsyncIO = true
 	e, cleanup := newTestEngineWithSettings(t, "test-blockshard-sync-all-shards", "test-blockshard-sync-all-shards", settings)
 	defer cleanup()
 

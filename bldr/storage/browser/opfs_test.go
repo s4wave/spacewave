@@ -20,8 +20,8 @@ func TestOpfsStorageBuildsV2RuntimeConfig(t *testing.T) {
 	if !ok {
 		t.Fatalf("BuildVolumeConfig returned %T, want *volume_opfs.Config", conf)
 	}
-	if !opfsConf.GetAsyncIo() {
-		t.Fatal("AsyncIo = false, want true")
+	if opfsConf.GetSyncIo() {
+		t.Fatal("SyncIo = true, want false")
 	}
 	if got, want := opfsConf.GetRootPath(), "prefix/state"; got != want {
 		t.Fatalf("RootPath = %q, want %q", got, want)

@@ -81,7 +81,7 @@ func (r *BenchmarkRunner) Run(ctx context.Context) {
 	// Blockshard suites: direct engine benchmarks.
 	engine, engineCleanup, err := createBlockshardEngine(ctx, &blockshard.Settings{
 		ShardCount: int(r.info.GetBlockShardCount()),
-		AsyncIO:    r.info.GetAsyncIo(),
+		SyncIO:     r.info.GetSyncIo(),
 	})
 	if err != nil {
 		r.le.WithError(err).Warn("benchmark: failed to create blockshard engine")
@@ -174,7 +174,7 @@ func (r *BenchmarkRunner) allocateVolume(ctx context.Context) (*volume_opfs.Opfs
 		RootPath:        rootPath,
 		BlockShardCount: r.info.GetBlockShardCount(),
 		PageSize:        r.info.GetPageSize(),
-		AsyncIo:         r.info.GetAsyncIo(),
+		SyncIo:          r.info.GetSyncIo(),
 	}
 
 	le := r.le.WithField("volume", rootPath)

@@ -236,7 +236,6 @@ func TestSingletonPutDoesNotWaitForFlushAge(t *testing.T) {
 func TestAsyncIOWriteAndRead(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 1
-	settings.AsyncIO = true
 
 	e, cleanup := newTestEngineWithSettings(
 		t,
@@ -265,7 +264,6 @@ func TestAsyncIOWriteAndRead(t *testing.T) {
 func TestAsyncIOConsecutivePutsDoNotWriteManifestGenerationPointer(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 1
-	settings.AsyncIO = true
 
 	e, cleanup := newTestEngineWithSettings(
 		t,
@@ -324,7 +322,6 @@ func TestWriteFileDataAsyncReplacesWholeFile(t *testing.T) {
 
 	settings := DefaultSettings()
 	settings.ShardCount = 1
-	settings.AsyncIO = true
 	shard, err := NewShard(0, dir, dirName, settings)
 	if err != nil {
 		t.Fatal(err)
@@ -450,7 +447,6 @@ func TestShardCachesSegmentFiles(t *testing.T) {
 func TestPublishSplitsLargeBatchBySegmentDataLimit(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 1
-	settings.AsyncIO = true
 	settings.CompactionTrigger = 64
 	settings.MaxSegmentDataBytes = 128
 	e, cleanup := newTestEngineWithSettings(t, "test-blockshard-publish-split", "test-blockshard-publish-split", settings)
@@ -483,7 +479,6 @@ func TestPublishSplitsLargeBatchBySegmentDataLimit(t *testing.T) {
 func TestForegroundPutDoesNotRunInlineCompaction(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 1
-	settings.AsyncIO = true
 	settings.CompactionTrigger = 2
 	e, cleanup := newTestEngineWithSettings(
 		t,
@@ -519,7 +514,6 @@ func TestForegroundPutDoesNotRunInlineCompaction(t *testing.T) {
 func TestCompactOnceCompactsForegroundSegments(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 1
-	settings.AsyncIO = true
 	settings.CompactionTrigger = 2
 	e, cleanup := newTestEngineWithSettings(
 		t,
@@ -572,7 +566,6 @@ func TestCompactOnceCompactsForegroundSegments(t *testing.T) {
 func TestCompactOnceHonorsCanceledContext(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 1
-	settings.AsyncIO = true
 	settings.CompactionTrigger = 2
 	e, cleanup := newTestEngineWithSettings(
 		t,
@@ -627,7 +620,6 @@ func TestAcquirePublishLockContextCancelsWhileWaiting(t *testing.T) {
 func TestBlockStoreFlushDoesNotCompactForegroundSegments(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 1
-	settings.AsyncIO = true
 	settings.CompactionTrigger = 2
 	e, cleanup := newTestEngineWithSettings(
 		t,
@@ -662,7 +654,6 @@ func TestBlockStoreFlushDoesNotCompactForegroundSegments(t *testing.T) {
 func TestBackgroundPutCanRunInlineCompaction(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 1
-	settings.AsyncIO = true
 	settings.CompactionTrigger = 2
 	e, cleanup := newTestEngineWithSettings(
 		t,
@@ -702,7 +693,6 @@ func TestBackgroundPutCanRunInlineCompaction(t *testing.T) {
 func TestCompactionSplitsLargeOutputBySegmentDataLimit(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 1
-	settings.AsyncIO = true
 	settings.CompactionTrigger = 3
 	settings.MaxSegmentDataBytes = 128
 	e, cleanup := newTestEngineWithSettings(t, "test-blockshard-compaction-split", "test-blockshard-compaction-split", settings)
@@ -807,7 +797,6 @@ func TestBlockStoreGetBlockExists(t *testing.T) {
 func TestBlockStoreStatBlockUsesValueLessLookup(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 1
-	settings.AsyncIO = true
 	e, cleanup := newTestEngineWithSettings(
 		t,
 		"test-blockshard-store-stat-value-less",
@@ -852,7 +841,6 @@ func TestBlockStoreStatBlockUsesValueLessLookup(t *testing.T) {
 func TestBlockStoreDuplicatePutUsesExistenceOnlyLookup(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 1
-	settings.AsyncIO = true
 	e, cleanup := newTestEngineWithSettings(
 		t,
 		"test-blockshard-store-duplicate-exists-only",
@@ -891,7 +879,6 @@ func TestBlockStoreDuplicatePutUsesExistenceOnlyLookup(t *testing.T) {
 func TestBlockshardRejectsOversizedEntryValue(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 1
-	settings.AsyncIO = true
 	settings.MaxEntryValueBytes = 64
 	e, cleanup := newTestEngineWithSettings(
 		t,
@@ -967,31 +954,31 @@ func TestBlockStoreGetBlockExistsBatch(t *testing.T) {
 func TestWritePolicy(t *testing.T) {
 	tests := []struct {
 		name      string
-		asyncIO   bool
+		syncIO    bool
 		filename  string
 		wantAsync bool
 	}{
 		{
-			name:      "force-async-segment",
-			asyncIO:   true,
+			name:      "default-async-segment",
+			syncIO:    false,
 			filename:  "seg-000001.sst",
 			wantAsync: true,
 		},
 		{
-			name:      "force-async-manifest",
-			asyncIO:   true,
+			name:      "default-async-manifest",
+			syncIO:    false,
 			filename:  manifestSlotA,
 			wantAsync: true,
 		},
 		{
-			name:      "default-manifest",
-			asyncIO:   false,
+			name:      "sync-config-manifest",
+			syncIO:    true,
 			filename:  manifestSlotA,
 			wantAsync: true,
 		},
 		{
-			name:      "default-segment",
-			asyncIO:   false,
+			name:      "sync-config-segment",
+			syncIO:    true,
 			filename:  "seg-000001.sst",
 			wantAsync: !opfs.SyncAvailable(),
 		},
@@ -999,7 +986,7 @@ func TestWritePolicy(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &Shard{asyncIO: tt.asyncIO}
+			s := &Shard{syncIO: tt.syncIO}
 			if got := s.shouldUseAsyncWrite(tt.filename); got != tt.wantAsync {
 				t.Fatalf("shouldUseAsyncWrite(%q) = %v, want %v", tt.filename, got, tt.wantAsync)
 			}
@@ -1011,7 +998,6 @@ func TestAsyncIOPutComparison(t *testing.T) {
 	ctx := context.Background()
 	asyncSettings := DefaultSettings()
 	asyncSettings.ShardCount = 4
-	asyncSettings.AsyncIO = true
 
 	if !opfs.SyncAvailable() {
 		asyncSingle := measureSinglePutLatency(t, ctx, "test-blockshard-compare-async-single", asyncSettings, 24)
@@ -1035,6 +1021,7 @@ func TestAsyncIOPutComparison(t *testing.T) {
 
 	syncSettings := DefaultSettings()
 	syncSettings.ShardCount = 4
+	syncSettings.SyncIO = true
 
 	syncSingle := measureSinglePutLatency(t, ctx, "test-blockshard-compare-sync-single", syncSettings, 24)
 	asyncSingle := measureSinglePutLatency(t, ctx, "test-blockshard-compare-async-single", asyncSettings, 24)
@@ -1442,7 +1429,6 @@ func BenchmarkBlockshardPutBatchMatrix(b *testing.B) {
 			name := "shards-" + strconv.Itoa(shardCount) + "/compact-" + strconv.Itoa(compactionTrigger)
 			b.Run(name, func(b *testing.B) {
 				settings := DefaultSettings()
-				settings.AsyncIO = true
 				settings.ShardCount = shardCount
 				settings.CompactionTrigger = compactionTrigger
 

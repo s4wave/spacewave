@@ -100,14 +100,13 @@ export interface Config {
    */
   pageSize?: number
   /**
-   * AsyncIo forces using the async OPFS API instead of the sync API.
-   * When enabled, writes yield the Go thread via AwaitPromise, allowing
-   * other goroutines to continue encoding and enqueuing while I/O is
-   * in flight.
+   * SyncIo forces using the sync OPFS API instead of the async API.
+   * The default is async OPFS writes so write actors can yield the Go thread via
+   * AwaitPromise while I/O is in flight.
    *
-   * @generated from field: bool async_io = 14;
+   * @generated from field: bool sync_io = 14;
    */
-  asyncIo?: boolean
+  syncIo?: boolean
   /**
    * BlockMaxSegmentDataBytes bounds one block SSTable segment's data bytes.
    *
@@ -158,7 +157,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: ScalarType.UINT32,
     },
     { no: 13, name: 'page_size', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 14, name: 'async_io', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 14, name: 'sync_io', kind: 'scalar', T: ScalarType.BOOL },
     {
       no: 15,
       name: 'block_max_segment_data_bytes',

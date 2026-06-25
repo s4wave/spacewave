@@ -29,9 +29,9 @@ pub struct StorageInfo {
     /// PageSize is the metadata page size in bytes.
     #[prost(uint32, tag="5")]
     pub page_size: u32,
-    /// AsyncIo is true if the async OPFS API is enabled.
+    /// SyncIo is true if sync OPFS I/O is enabled.
     #[prost(bool, tag="6")]
-    pub async_io: bool,
+    pub sync_io: bool,
     /// Goos is the Go runtime GOOS value.
     #[prost(string, tag="7")]
     pub goos: ::prost::alloc::string::String,
@@ -70,9 +70,9 @@ pub struct BenchmarkConfig {
     /// IncludeWorldSuite enables the world transaction benchmark suite.
     #[prost(bool, tag="3")]
     pub include_world_suite: bool,
-    /// AsyncIo runs the benchmark against OPFS async file writes.
+    /// SyncIo runs the benchmark against OPFS sync file writes.
     #[prost(bool, tag="4")]
-    pub async_io: bool,
+    pub sync_io: bool,
 }
 /// WatchProgressRequest is the request type for WatchProgress.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]

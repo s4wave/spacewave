@@ -105,11 +105,11 @@ func isWebRuntimeClientClosed(err error) bool {
 	msg = msg[clientIdx+len(clientPrefix):]
 
 	const generationMarker = ": runtime client generation "
-	generationIdx := strings.Index(msg, generationMarker)
-	if generationIdx < 0 {
+	_, after, ok := strings.Cut(msg, generationMarker)
+	if !ok {
 		return false
 	}
-	generation := msg[generationIdx+len(generationMarker):]
+	generation := after
 
 	const normalCloseSuffix = " closed: normal-close"
 	if !strings.HasSuffix(generation, normalCloseSuffix) {

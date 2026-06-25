@@ -770,7 +770,6 @@ func verifyLargeBlockPublishLocks(ctx context.Context, c *config) error {
 	}
 	settings := blockshard.DefaultSettings()
 	settings.ShardCount = shardCount
-	settings.AsyncIO = true
 	for shardID := 0; shardID < shardCount; shardID++ {
 		dir, err := openTestDirectory(c.root, []string{"blocks", "shard-" + zeroPad(shardID, 2)})
 		if err != nil {
@@ -1237,7 +1236,6 @@ func openBlockEngine(ctx context.Context, c *config) (*blockshard.Engine, func()
 	}
 	settings := blockshard.DefaultSettings()
 	settings.ShardCount = c.shards
-	settings.AsyncIO = true
 	e, err := blockshard.NewEngineWithSettings(ctx, dir, c.root+"/blocks", settings)
 	if err != nil {
 		return nil, nil, err
@@ -4078,7 +4076,6 @@ func newOPFSConfig(c *config) *volume_opfs.Config {
 		LockPrefix:      c.root + "/volume",
 		StoreConfig:     &store_kvtx.Config{},
 		BlockShardCount: uint32(c.shards),
-		AsyncIo:         true,
 		ResetPolicy:     "automatic",
 	}
 }

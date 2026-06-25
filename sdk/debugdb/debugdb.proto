@@ -34,8 +34,8 @@ message StorageInfo {
   uint32 block_flush_max_age_millis = 4;
   // PageSize is the metadata page size in bytes.
   uint32 page_size = 5;
-  // AsyncIo is true if the async OPFS API is enabled.
-  bool async_io = 6;
+  // SyncIo is true if sync OPFS I/O is enabled.
+  bool sync_io = 6;
   // Goos is the Go runtime GOOS value.
   string goos = 7;
   // Goarch is the Go runtime GOARCH value.
@@ -66,8 +66,8 @@ message BenchmarkConfig {
   repeated uint32 block_sizes = 2;
   // IncludeWorldSuite enables the world transaction benchmark suite.
   bool include_world_suite = 3;
-  // AsyncIo runs the benchmark against OPFS async file writes.
-  bool async_io = 4;
+  // SyncIo runs the benchmark against OPFS sync file writes.
+  bool sync_io = 4;
 }
 
 // WatchProgressRequest is the request type for WatchProgress.

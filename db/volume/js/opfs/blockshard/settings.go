@@ -23,7 +23,7 @@ type Settings struct {
 	ShardCount          int
 	BloomFPR            float64
 	CompactionTrigger   int
-	AsyncIO             bool
+	SyncIO              bool
 	MaxSegmentDataBytes int
 	MaxEntryValueBytes  int
 }

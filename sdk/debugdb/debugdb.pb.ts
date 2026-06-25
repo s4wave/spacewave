@@ -62,11 +62,11 @@ export interface StorageInfo {
    */
   pageSize?: number
   /**
-   * AsyncIo is true if the async OPFS API is enabled.
+   * SyncIo is true if sync OPFS I/O is enabled.
    *
-   * @generated from field: bool async_io = 6;
+   * @generated from field: bool sync_io = 6;
    */
-  asyncIo?: boolean
+  syncIo?: boolean
   /**
    * Goos is the Go runtime GOOS value.
    *
@@ -111,7 +111,7 @@ export const StorageInfo: MessageType<StorageInfo> =
         T: ScalarType.UINT32,
       },
       { no: 5, name: 'page_size', kind: 'scalar', T: ScalarType.UINT32 },
-      { no: 6, name: 'async_io', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 6, name: 'sync_io', kind: 'scalar', T: ScalarType.BOOL },
       { no: 7, name: 'goos', kind: 'scalar', T: ScalarType.STRING },
       { no: 8, name: 'goarch', kind: 'scalar', T: ScalarType.STRING },
       { no: 9, name: 'user_agent', kind: 'scalar', T: ScalarType.STRING },
@@ -169,11 +169,11 @@ export interface BenchmarkConfig {
    */
   includeWorldSuite?: boolean
   /**
-   * AsyncIo runs the benchmark against OPFS async file writes.
+   * SyncIo runs the benchmark against OPFS sync file writes.
    *
-   * @generated from field: bool async_io = 4;
+   * @generated from field: bool sync_io = 4;
    */
-  asyncIo?: boolean
+  syncIo?: boolean
 }
 
 export const BenchmarkConfig: MessageType<BenchmarkConfig> =
@@ -194,7 +194,7 @@ export const BenchmarkConfig: MessageType<BenchmarkConfig> =
         kind: 'scalar',
         T: ScalarType.BOOL,
       },
-      { no: 4, name: 'async_io', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 4, name: 'sync_io', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

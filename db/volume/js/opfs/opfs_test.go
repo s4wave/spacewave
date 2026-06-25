@@ -78,7 +78,6 @@ func TestOpfsVolumeMaintenanceCompactsBlockshard(t *testing.T) {
 		StoreConfig:            &store_kvtx.Config{},
 		BlockShardCount:        1,
 		BlockCompactionTrigger: 2,
-		AsyncIo:                true,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -139,9 +138,7 @@ func loadTestBlockshardManifest(t testing.TB, rootPath string) *blockshard.Manif
 	if err != nil {
 		t.Fatal(err)
 	}
-	shard, err := blockshard.NewShard(0, shardDir, rootPath+"/blocks", &blockshard.Settings{
-		AsyncIO: true,
-	})
+	shard, err := blockshard.NewShard(0, shardDir, rootPath+"/blocks", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

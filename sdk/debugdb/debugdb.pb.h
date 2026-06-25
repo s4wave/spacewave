@@ -668,7 +668,7 @@ class StorageInfo final : public ::google::protobuf::Message
     kBlockFlushThresholdFieldNumber = 3,
     kBlockFlushMaxAgeMillisFieldNumber = 4,
     kPageSizeFieldNumber = 5,
-    kAsyncIoFieldNumber = 6,
+    kSyncIoFieldNumber = 6,
   };
   // string volume_type = 1;
   void clear_volume_type() ;
@@ -770,14 +770,14 @@ class StorageInfo final : public ::google::protobuf::Message
   void _internal_set_page_size(::uint32_t value);
 
   public:
-  // bool async_io = 6;
-  void clear_async_io() ;
-  bool async_io() const;
-  void set_async_io(bool value);
+  // bool sync_io = 6;
+  void clear_sync_io() ;
+  bool sync_io() const;
+  void set_sync_io(bool value);
 
   private:
-  bool _internal_async_io() const;
-  void _internal_set_async_io(bool value);
+  bool _internal_sync_io() const;
+  void _internal_set_sync_io(bool value);
 
   public:
   // @@protoc_insertion_point(class_scope:s4wave.debugdb.StorageInfo)
@@ -814,7 +814,7 @@ class StorageInfo final : public ::google::protobuf::Message
     ::uint32_t block_flush_threshold_;
     ::uint32_t block_flush_max_age_millis_;
     ::uint32_t page_size_;
-    bool async_io_;
+    bool sync_io_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1731,7 +1731,7 @@ class BenchmarkConfig final : public ::google::protobuf::Message
     kBlockSizesFieldNumber = 2,
     kDurationSecondsFieldNumber = 1,
     kIncludeWorldSuiteFieldNumber = 3,
-    kAsyncIoFieldNumber = 4,
+    kSyncIoFieldNumber = 4,
   };
   // repeated uint32 block_sizes = 2;
   int block_sizes_size() const;
@@ -1771,14 +1771,14 @@ class BenchmarkConfig final : public ::google::protobuf::Message
   void _internal_set_include_world_suite(bool value);
 
   public:
-  // bool async_io = 4;
-  void clear_async_io() ;
-  bool async_io() const;
-  void set_async_io(bool value);
+  // bool sync_io = 4;
+  void clear_sync_io() ;
+  bool sync_io() const;
+  void set_sync_io(bool value);
 
   private:
-  bool _internal_async_io() const;
-  void _internal_set_async_io(bool value);
+  bool _internal_sync_io() const;
+  void _internal_set_sync_io(bool value);
 
   public:
   // @@protoc_insertion_point(class_scope:s4wave.debugdb.BenchmarkConfig)
@@ -1811,7 +1811,7 @@ class BenchmarkConfig final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _block_sizes_cached_byte_size_;
     ::uint32_t duration_seconds_;
     bool include_world_suite_;
-    bool async_io_;
+    bool sync_io_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -3162,29 +3162,29 @@ inline void StorageInfo::_internal_set_page_size(::uint32_t value) {
   _impl_.page_size_ = value;
 }
 
-// bool async_io = 6;
-inline void StorageInfo::clear_async_io() {
+// bool sync_io = 6;
+inline void StorageInfo::clear_sync_io() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.async_io_ = false;
+  _impl_.sync_io_ = false;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000100U);
 }
-inline bool StorageInfo::async_io() const {
-  // @@protoc_insertion_point(field_get:s4wave.debugdb.StorageInfo.async_io)
-  return _internal_async_io();
+inline bool StorageInfo::sync_io() const {
+  // @@protoc_insertion_point(field_get:s4wave.debugdb.StorageInfo.sync_io)
+  return _internal_sync_io();
 }
-inline void StorageInfo::set_async_io(bool value) {
-  _internal_set_async_io(value);
+inline void StorageInfo::set_sync_io(bool value) {
+  _internal_set_sync_io(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000100U);
-  // @@protoc_insertion_point(field_set:s4wave.debugdb.StorageInfo.async_io)
+  // @@protoc_insertion_point(field_set:s4wave.debugdb.StorageInfo.sync_io)
 }
-inline bool StorageInfo::_internal_async_io() const {
+inline bool StorageInfo::_internal_sync_io() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.async_io_;
+  return _impl_.sync_io_;
 }
-inline void StorageInfo::_internal_set_async_io(bool value) {
+inline void StorageInfo::_internal_set_sync_io(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.async_io_ = value;
+  _impl_.sync_io_ = value;
 }
 
 // string goos = 7;
@@ -3618,29 +3618,29 @@ inline void BenchmarkConfig::_internal_set_include_world_suite(bool value) {
   _impl_.include_world_suite_ = value;
 }
 
-// bool async_io = 4;
-inline void BenchmarkConfig::clear_async_io() {
+// bool sync_io = 4;
+inline void BenchmarkConfig::clear_sync_io() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.async_io_ = false;
+  _impl_.sync_io_ = false;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000008U);
 }
-inline bool BenchmarkConfig::async_io() const {
-  // @@protoc_insertion_point(field_get:s4wave.debugdb.BenchmarkConfig.async_io)
-  return _internal_async_io();
+inline bool BenchmarkConfig::sync_io() const {
+  // @@protoc_insertion_point(field_get:s4wave.debugdb.BenchmarkConfig.sync_io)
+  return _internal_sync_io();
 }
-inline void BenchmarkConfig::set_async_io(bool value) {
-  _internal_set_async_io(value);
+inline void BenchmarkConfig::set_sync_io(bool value) {
+  _internal_set_sync_io(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  // @@protoc_insertion_point(field_set:s4wave.debugdb.BenchmarkConfig.async_io)
+  // @@protoc_insertion_point(field_set:s4wave.debugdb.BenchmarkConfig.sync_io)
 }
-inline bool BenchmarkConfig::_internal_async_io() const {
+inline bool BenchmarkConfig::_internal_sync_io() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.async_io_;
+  return _impl_.sync_io_;
 }
-inline void BenchmarkConfig::_internal_set_async_io(bool value) {
+inline void BenchmarkConfig::_internal_set_sync_io(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.async_io_ = value;
+  _impl_.sync_io_ = value;
 }
 
 // -------------------------------------------------------------------

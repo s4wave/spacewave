@@ -45,12 +45,11 @@ pub struct Config {
     /// PageSize is the metadata page size in bytes.
     #[prost(uint32, tag="13")]
     pub page_size: u32,
-    /// AsyncIo forces using the async OPFS API instead of the sync API.
-    /// When enabled, writes yield the Go thread via AwaitPromise, allowing
-    /// other goroutines to continue encoding and enqueuing while I/O is
-    /// in flight.
+    /// SyncIo forces using the sync OPFS API instead of the async API.
+    /// The default is async OPFS writes so write actors can yield the Go thread via
+    /// AwaitPromise while I/O is in flight.
     #[prost(bool, tag="14")]
-    pub async_io: bool,
+    pub sync_io: bool,
     /// BlockMaxSegmentDataBytes bounds one block SSTable segment's data bytes.
     #[prost(uint32, tag="15")]
     pub block_max_segment_data_bytes: u32,

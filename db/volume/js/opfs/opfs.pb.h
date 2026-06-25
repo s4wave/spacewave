@@ -230,7 +230,7 @@ class Config final : public ::google::protobuf::Message
     kNoGenerateKeyFieldNumber = 4,
     kNoWriteKeyFieldNumber = 5,
     kVerboseFieldNumber = 6,
-    kAsyncIoFieldNumber = 14,
+    kSyncIoFieldNumber = 14,
     kBlockShardCountFieldNumber = 9,
     kBlockBloomFprFieldNumber = 11,
     kMetaShardCountFieldNumber = 10,
@@ -374,14 +374,14 @@ class Config final : public ::google::protobuf::Message
   void _internal_set_verbose(bool value);
 
   public:
-  // bool async_io = 14;
-  void clear_async_io() ;
-  bool async_io() const;
-  void set_async_io(bool value);
+  // bool sync_io = 14;
+  void clear_sync_io() ;
+  bool sync_io() const;
+  void set_sync_io(bool value);
 
   private:
-  bool _internal_async_io() const;
-  void _internal_set_async_io(bool value);
+  bool _internal_sync_io() const;
+  void _internal_set_sync_io(bool value);
 
   public:
   // uint32 block_shard_count = 9;
@@ -490,7 +490,7 @@ class Config final : public ::google::protobuf::Message
     bool no_generate_key_;
     bool no_write_key_;
     bool verbose_;
-    bool async_io_;
+    bool sync_io_;
     ::uint32_t block_shard_count_;
     double block_bloom_fpr_;
     ::uint32_t meta_shard_count_;
@@ -1131,29 +1131,29 @@ inline void Config::_internal_set_page_size(::uint32_t value) {
   _impl_.page_size_ = value;
 }
 
-// bool async_io = 14;
-inline void Config::clear_async_io() {
+// bool sync_io = 14;
+inline void Config::clear_sync_io() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.async_io_ = false;
+  _impl_.sync_io_ = false;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000400U);
 }
-inline bool Config::async_io() const {
-  // @@protoc_insertion_point(field_get:volume.opfs.Config.async_io)
-  return _internal_async_io();
+inline bool Config::sync_io() const {
+  // @@protoc_insertion_point(field_get:volume.opfs.Config.sync_io)
+  return _internal_sync_io();
 }
-inline void Config::set_async_io(bool value) {
-  _internal_set_async_io(value);
+inline void Config::set_sync_io(bool value) {
+  _internal_set_sync_io(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000400U);
-  // @@protoc_insertion_point(field_set:volume.opfs.Config.async_io)
+  // @@protoc_insertion_point(field_set:volume.opfs.Config.sync_io)
 }
-inline bool Config::_internal_async_io() const {
+inline bool Config::_internal_sync_io() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.async_io_;
+  return _impl_.sync_io_;
 }
-inline void Config::_internal_set_async_io(bool value) {
+inline void Config::_internal_set_sync_io(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.async_io_ = value;
+  _impl_.sync_io_ = value;
 }
 
 // uint32 block_max_segment_data_bytes = 15;

@@ -100,7 +100,7 @@ inline constexpr StorageInfo::Impl_::Impl_(
         block_flush_threshold_{0u},
         block_flush_max_age_millis_{0u},
         page_size_{0u},
-        async_io_{false} {}
+        sync_io_{false} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR StorageInfo::StorageInfo(::_pbi::ConstantInitialized)
@@ -227,7 +227,7 @@ inline constexpr BenchmarkConfig::Impl_::Impl_(
         _block_sizes_cached_byte_size_{0},
         duration_seconds_{0u},
         include_world_suite_{false},
-        async_io_{false} {}
+        sync_io_{false} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR BenchmarkConfig::BenchmarkConfig(::_pbi::ConstantInitialized)
@@ -403,7 +403,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::debugdb::StorageInfo, _impl_.block_flush_threshold_),
         PROTOBUF_FIELD_OFFSET(::s4wave::debugdb::StorageInfo, _impl_.block_flush_max_age_millis_),
         PROTOBUF_FIELD_OFFSET(::s4wave::debugdb::StorageInfo, _impl_.page_size_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::debugdb::StorageInfo, _impl_.async_io_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::debugdb::StorageInfo, _impl_.sync_io_),
         PROTOBUF_FIELD_OFFSET(::s4wave::debugdb::StorageInfo, _impl_.goos_),
         PROTOBUF_FIELD_OFFSET(::s4wave::debugdb::StorageInfo, _impl_.goarch_),
         PROTOBUF_FIELD_OFFSET(::s4wave::debugdb::StorageInfo, _impl_.user_agent_),
@@ -432,7 +432,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::debugdb::BenchmarkConfig, _impl_.duration_seconds_),
         PROTOBUF_FIELD_OFFSET(::s4wave::debugdb::BenchmarkConfig, _impl_.block_sizes_),
         PROTOBUF_FIELD_OFFSET(::s4wave::debugdb::BenchmarkConfig, _impl_.include_world_suite_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::debugdb::BenchmarkConfig, _impl_.async_io_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::debugdb::BenchmarkConfig, _impl_.sync_io_),
         1,
         0,
         2,
@@ -539,55 +539,55 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fd
     "b/debugdb.proto\022\016s4wave.debugdb\"\027\n\025GetSt"
     "orageInfoRequest\"C\n\026GetStorageInfoRespon"
     "se\022)\n\004info\030\001 \001(\0132\033.s4wave.debugdb.Storag"
-    "eInfo\"\327\001\n\013StorageInfo\022\023\n\013volume_type\030\001 \001"
+    "eInfo\"\326\001\n\013StorageInfo\022\023\n\013volume_type\030\001 \001"
     "(\t\022\031\n\021block_shard_count\030\002 \001(\r\022\035\n\025block_f"
     "lush_threshold\030\003 \001(\r\022\"\n\032block_flush_max_"
-    "age_millis\030\004 \001(\r\022\021\n\tpage_size\030\005 \001(\r\022\020\n\010a"
-    "sync_io\030\006 \001(\010\022\014\n\004goos\030\007 \001(\t\022\016\n\006goarch\030\010 "
-    "\001(\t\022\022\n\nuser_agent\030\t \001(\t\"H\n\025StartBenchmar"
-    "kRequest\022/\n\006config\030\001 \001(\0132\037.s4wave.debugd"
-    "b.BenchmarkConfig\"-\n\026StartBenchmarkRespo"
-    "nse\022\023\n\013resource_id\030\001 \001(\r\"o\n\017BenchmarkCon"
-    "fig\022\030\n\020duration_seconds\030\001 \001(\r\022\023\n\013block_s"
-    "izes\030\002 \003(\r\022\033\n\023include_world_suite\030\003 \001(\010\022"
-    "\020\n\010async_io\030\004 \001(\010\"\026\n\024WatchProgressReques"
-    "t\"\222\001\n\025WatchProgressResponse\022\022\n\nsuite_nam"
-    "e\030\001 \001(\t\022\023\n\013suite_index\030\002 \001(\r\022\023\n\013suite_co"
-    "unt\030\003 \001(\r\022\030\n\020percent_complete\030\004 \001(\r\022\023\n\013m"
-    "etric_name\030\005 \001(\t\022\014\n\004done\030\006 \001(\010\"\023\n\021GetRes"
-    "ultsRequest\"G\n\022GetResultsResponse\0221\n\007res"
-    "ults\030\001 \001(\0132 .s4wave.debugdb.BenchmarkRes"
-    "ults\"\335\001\n\020BenchmarkResults\022)\n\004info\030\001 \001(\0132"
-    "\033.s4wave.debugdb.StorageInfo\022/\n\006config\030\002"
-    " \001(\0132\037.s4wave.debugdb.BenchmarkConfig\022.\n"
-    "\006suites\030\003 \003(\0132\036.s4wave.debugdb.Benchmark"
-    "Suite\022\036\n\026start_time_unix_millis\030\004 \001(\004\022\035\n"
-    "\025total_duration_millis\030\005 \001(\004\"P\n\016Benchmar"
-    "kSuite\022\014\n\004name\030\001 \001(\t\0220\n\007metrics\030\002 \003(\0132\037."
-    "s4wave.debugdb.BenchmarkMetric\"\237\001\n\017Bench"
-    "markMetric\022\014\n\004name\030\001 \001(\t\022\014\n\004unit\030\002 \001(\t\022\r"
-    "\n\005count\030\003 \001(\004\022\020\n\010total_ms\030\004 \001(\001\022\016\n\006min_m"
-    "s\030\005 \001(\001\022\016\n\006p50_ms\030\006 \001(\001\022\016\n\006p99_ms\030\007 \001(\001\022"
-    "\016\n\006max_ms\030\010 \001(\001\022\017\n\007samples\030\t \003(\0012\332\001\n\026Deb"
-    "ugDbResourceService\022_\n\016GetStorageInfo\022%."
-    "s4wave.debugdb.GetStorageInfoRequest\032&.s"
-    "4wave.debugdb.GetStorageInfoResponse\022_\n\016"
-    "StartBenchmark\022%.s4wave.debugdb.StartBen"
-    "chmarkRequest\032&.s4wave.debugdb.StartBenc"
-    "hmarkResponse2\316\001\n\027DebugDbBenchmarkServic"
-    "e\022^\n\rWatchProgress\022$.s4wave.debugdb.Watc"
-    "hProgressRequest\032%.s4wave.debugdb.WatchP"
-    "rogressResponse0\001\022S\n\nGetResults\022!.s4wave"
-    ".debugdb.GetResultsRequest\032\".s4wave.debu"
-    "gdb.GetResultsResponseB8Z6github.com/s4w"
-    "ave/spacewave/sdk/debugdb;s4wave_debugdb"
-    "b\006proto3"
+    "age_millis\030\004 \001(\r\022\021\n\tpage_size\030\005 \001(\r\022\017\n\007s"
+    "ync_io\030\006 \001(\010\022\014\n\004goos\030\007 \001(\t\022\016\n\006goarch\030\010 \001"
+    "(\t\022\022\n\nuser_agent\030\t \001(\t\"H\n\025StartBenchmark"
+    "Request\022/\n\006config\030\001 \001(\0132\037.s4wave.debugdb"
+    ".BenchmarkConfig\"-\n\026StartBenchmarkRespon"
+    "se\022\023\n\013resource_id\030\001 \001(\r\"n\n\017BenchmarkConf"
+    "ig\022\030\n\020duration_seconds\030\001 \001(\r\022\023\n\013block_si"
+    "zes\030\002 \003(\r\022\033\n\023include_world_suite\030\003 \001(\010\022\017"
+    "\n\007sync_io\030\004 \001(\010\"\026\n\024WatchProgressRequest\""
+    "\222\001\n\025WatchProgressResponse\022\022\n\nsuite_name\030"
+    "\001 \001(\t\022\023\n\013suite_index\030\002 \001(\r\022\023\n\013suite_coun"
+    "t\030\003 \001(\r\022\030\n\020percent_complete\030\004 \001(\r\022\023\n\013met"
+    "ric_name\030\005 \001(\t\022\014\n\004done\030\006 \001(\010\"\023\n\021GetResul"
+    "tsRequest\"G\n\022GetResultsResponse\0221\n\007resul"
+    "ts\030\001 \001(\0132 .s4wave.debugdb.BenchmarkResul"
+    "ts\"\335\001\n\020BenchmarkResults\022)\n\004info\030\001 \001(\0132\033."
+    "s4wave.debugdb.StorageInfo\022/\n\006config\030\002 \001"
+    "(\0132\037.s4wave.debugdb.BenchmarkConfig\022.\n\006s"
+    "uites\030\003 \003(\0132\036.s4wave.debugdb.BenchmarkSu"
+    "ite\022\036\n\026start_time_unix_millis\030\004 \001(\004\022\035\n\025t"
+    "otal_duration_millis\030\005 \001(\004\"P\n\016BenchmarkS"
+    "uite\022\014\n\004name\030\001 \001(\t\0220\n\007metrics\030\002 \003(\0132\037.s4"
+    "wave.debugdb.BenchmarkMetric\"\237\001\n\017Benchma"
+    "rkMetric\022\014\n\004name\030\001 \001(\t\022\014\n\004unit\030\002 \001(\t\022\r\n\005"
+    "count\030\003 \001(\004\022\020\n\010total_ms\030\004 \001(\001\022\016\n\006min_ms\030"
+    "\005 \001(\001\022\016\n\006p50_ms\030\006 \001(\001\022\016\n\006p99_ms\030\007 \001(\001\022\016\n"
+    "\006max_ms\030\010 \001(\001\022\017\n\007samples\030\t \003(\0012\332\001\n\026Debug"
+    "DbResourceService\022_\n\016GetStorageInfo\022%.s4"
+    "wave.debugdb.GetStorageInfoRequest\032&.s4w"
+    "ave.debugdb.GetStorageInfoResponse\022_\n\016St"
+    "artBenchmark\022%.s4wave.debugdb.StartBench"
+    "markRequest\032&.s4wave.debugdb.StartBenchm"
+    "arkResponse2\316\001\n\027DebugDbBenchmarkService\022"
+    "^\n\rWatchProgress\022$.s4wave.debugdb.WatchP"
+    "rogressRequest\032%.s4wave.debugdb.WatchPro"
+    "gressResponse0\001\022S\n\nGetResults\022!.s4wave.d"
+    "ebugdb.GetResultsRequest\032\".s4wave.debugd"
+    "b.GetResultsResponseB8Z6github.com/s4wav"
+    "e/spacewave/sdk/debugdb;s4wave_debugdbb\006"
+    "proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdebugdb_2fdebugdb_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdebugdb_2fdebugdb_2eproto = {
     false,
     false,
-    1848,
+    1846,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdebugdb_2fdebugdb_2eproto,
     "github.com/s4wave/spacewave/sdk/debugdb/debugdb.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fdebugdb_2fdebugdb_2eproto_once,
@@ -1029,9 +1029,9 @@ StorageInfo::StorageInfo(
                offsetof(Impl_, block_shard_count_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, block_shard_count_),
-           offsetof(Impl_, async_io_) -
+           offsetof(Impl_, sync_io_) -
                offsetof(Impl_, block_shard_count_) +
-               sizeof(Impl_::async_io_));
+               sizeof(Impl_::sync_io_));
 
   // @@protoc_insertion_point(copy_constructor:s4wave.debugdb.StorageInfo)
 }
@@ -1049,9 +1049,9 @@ inline void StorageInfo::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, block_shard_count_),
            0,
-           offsetof(Impl_, async_io_) -
+           offsetof(Impl_, sync_io_) -
                offsetof(Impl_, block_shard_count_) +
-               sizeof(Impl_::async_io_));
+               sizeof(Impl_::sync_io_));
 }
 StorageInfo::~StorageInfo() {
   // @@protoc_insertion_point(destructor:s4wave.debugdb.StorageInfo)
@@ -1154,10 +1154,10 @@ StorageInfo::_table_ = {
     {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(StorageInfo, _impl_.page_size_), 7>(),
      {40, 7, 0,
       PROTOBUF_FIELD_OFFSET(StorageInfo, _impl_.page_size_)}},
-    // bool async_io = 6;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(StorageInfo, _impl_.async_io_), 8>(),
+    // bool sync_io = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(StorageInfo, _impl_.sync_io_), 8>(),
      {48, 8, 0,
-      PROTOBUF_FIELD_OFFSET(StorageInfo, _impl_.async_io_)}},
+      PROTOBUF_FIELD_OFFSET(StorageInfo, _impl_.sync_io_)}},
     // string goos = 7;
     {::_pbi::TcParser::FastUS1,
      {58, 1, 0,
@@ -1189,8 +1189,8 @@ StorageInfo::_table_ = {
     {PROTOBUF_FIELD_OFFSET(StorageInfo, _impl_.block_flush_max_age_millis_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // uint32 page_size = 5;
     {PROTOBUF_FIELD_OFFSET(StorageInfo, _impl_.page_size_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
-    // bool async_io = 6;
-    {PROTOBUF_FIELD_OFFSET(StorageInfo, _impl_.async_io_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // bool sync_io = 6;
+    {PROTOBUF_FIELD_OFFSET(StorageInfo, _impl_.sync_io_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string goos = 7;
     {PROTOBUF_FIELD_OFFSET(StorageInfo, _impl_.goos_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string goarch = 8;
@@ -1235,7 +1235,7 @@ PROTOBUF_NOINLINE void StorageInfo::Clear() {
         reinterpret_cast<char*>(&_impl_.page_size_) -
         reinterpret_cast<char*>(&_impl_.block_shard_count_)) + sizeof(_impl_.page_size_));
   }
-  _impl_.async_io_ = false;
+  _impl_.sync_io_ = false;
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -1305,12 +1305,12 @@ PROTOBUF_NOINLINE void StorageInfo::Clear() {
     }
   }
 
-  // bool async_io = 6;
+  // bool sync_io = 6;
   if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-    if (this_._internal_async_io() != 0) {
+    if (this_._internal_sync_io() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
-          6, this_._internal_async_io(), target);
+          6, this_._internal_sync_io(), target);
     }
   }
 
@@ -1428,9 +1428,9 @@ PROTOBUF_NOINLINE void StorageInfo::Clear() {
     }
   }
    {
-    // bool async_io = 6;
+    // bool sync_io = 6;
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-      if (this_._internal_async_io() != 0) {
+      if (this_._internal_sync_io() != 0) {
         total_size += 2;
       }
     }
@@ -1512,8 +1512,8 @@ void StorageInfo::MergeImpl(::google::protobuf::MessageLite& to_msg,
     }
   }
   if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-    if (from._internal_async_io() != 0) {
-      _this->_impl_.async_io_ = from._impl_.async_io_;
+    if (from._internal_sync_io() != 0) {
+      _this->_impl_.sync_io_ = from._impl_.sync_io_;
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -1540,8 +1540,8 @@ void StorageInfo::InternalSwap(StorageInfo* PROTOBUF_RESTRICT PROTOBUF_NONNULL o
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.goarch_, &other->_impl_.goarch_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.user_agent_, &other->_impl_.user_agent_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(StorageInfo, _impl_.async_io_)
-      + sizeof(StorageInfo::_impl_.async_io_)
+      PROTOBUF_FIELD_OFFSET(StorageInfo, _impl_.sync_io_)
+      + sizeof(StorageInfo::_impl_.sync_io_)
       - PROTOBUF_FIELD_OFFSET(StorageInfo, _impl_.block_shard_count_)>(
           reinterpret_cast<char*>(&_impl_.block_shard_count_),
           reinterpret_cast<char*>(&other->_impl_.block_shard_count_));
@@ -2114,9 +2114,9 @@ BenchmarkConfig::BenchmarkConfig(
                offsetof(Impl_, duration_seconds_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, duration_seconds_),
-           offsetof(Impl_, async_io_) -
+           offsetof(Impl_, sync_io_) -
                offsetof(Impl_, duration_seconds_) +
-               sizeof(Impl_::async_io_));
+               sizeof(Impl_::sync_io_));
 
   // @@protoc_insertion_point(copy_constructor:s4wave.debugdb.BenchmarkConfig)
 }
@@ -2132,9 +2132,9 @@ inline void BenchmarkConfig::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, duration_seconds_),
            0,
-           offsetof(Impl_, async_io_) -
+           offsetof(Impl_, sync_io_) -
                offsetof(Impl_, duration_seconds_) +
-               sizeof(Impl_::async_io_));
+               sizeof(Impl_::sync_io_));
 }
 BenchmarkConfig::~BenchmarkConfig() {
   // @@protoc_insertion_point(destructor:s4wave.debugdb.BenchmarkConfig)
@@ -2224,10 +2224,10 @@ BenchmarkConfig::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::debugdb::BenchmarkConfig>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // bool async_io = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(BenchmarkConfig, _impl_.async_io_), 3>(),
+    // bool sync_io = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(BenchmarkConfig, _impl_.sync_io_), 3>(),
      {32, 3, 0,
-      PROTOBUF_FIELD_OFFSET(BenchmarkConfig, _impl_.async_io_)}},
+      PROTOBUF_FIELD_OFFSET(BenchmarkConfig, _impl_.sync_io_)}},
     // uint32 duration_seconds = 1;
     {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(BenchmarkConfig, _impl_.duration_seconds_), 1>(),
      {8, 1, 0,
@@ -2249,8 +2249,8 @@ BenchmarkConfig::_table_ = {
     {PROTOBUF_FIELD_OFFSET(BenchmarkConfig, _impl_.block_sizes_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kPackedUInt32)},
     // bool include_world_suite = 3;
     {PROTOBUF_FIELD_OFFSET(BenchmarkConfig, _impl_.include_world_suite_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
-    // bool async_io = 4;
-    {PROTOBUF_FIELD_OFFSET(BenchmarkConfig, _impl_.async_io_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // bool sync_io = 4;
+    {PROTOBUF_FIELD_OFFSET(BenchmarkConfig, _impl_.sync_io_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
   }},
   // no aux_entries
   {{
@@ -2269,8 +2269,8 @@ PROTOBUF_NOINLINE void BenchmarkConfig::Clear() {
   }
   if (BatchCheckHasBit(cached_has_bits, 0x0000000eU)) {
     ::memset(&_impl_.duration_seconds_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.async_io_) -
-        reinterpret_cast<char*>(&_impl_.duration_seconds_)) + sizeof(_impl_.async_io_));
+        reinterpret_cast<char*>(&_impl_.sync_io_) -
+        reinterpret_cast<char*>(&_impl_.duration_seconds_)) + sizeof(_impl_.sync_io_));
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -2324,12 +2324,12 @@ PROTOBUF_NOINLINE void BenchmarkConfig::Clear() {
     }
   }
 
-  // bool async_io = 4;
+  // bool sync_io = 4;
   if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-    if (this_._internal_async_io() != 0) {
+    if (this_._internal_sync_io() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
-          4, this_._internal_async_io(), target);
+          4, this_._internal_sync_io(), target);
     }
   }
 
@@ -2379,9 +2379,9 @@ PROTOBUF_NOINLINE void BenchmarkConfig::Clear() {
         total_size += 2;
       }
     }
-    // bool async_io = 4;
+    // bool sync_io = 4;
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      if (this_._internal_async_io() != 0) {
+      if (this_._internal_sync_io() != 0) {
         total_size += 2;
       }
     }
@@ -2419,8 +2419,8 @@ void BenchmarkConfig::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      if (from._internal_async_io() != 0) {
-        _this->_impl_.async_io_ = from._impl_.async_io_;
+      if (from._internal_sync_io() != 0) {
+        _this->_impl_.sync_io_ = from._impl_.sync_io_;
       }
     }
   }
@@ -2443,8 +2443,8 @@ void BenchmarkConfig::InternalSwap(BenchmarkConfig* PROTOBUF_RESTRICT PROTOBUF_N
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   _impl_.block_sizes_.InternalSwap(&other->_impl_.block_sizes_);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(BenchmarkConfig, _impl_.async_io_)
-      + sizeof(BenchmarkConfig::_impl_.async_io_)
+      PROTOBUF_FIELD_OFFSET(BenchmarkConfig, _impl_.sync_io_)
+      + sizeof(BenchmarkConfig::_impl_.sync_io_)
       - PROTOBUF_FIELD_OFFSET(BenchmarkConfig, _impl_.duration_seconds_)>(
           reinterpret_cast<char*>(&_impl_.duration_seconds_),
           reinterpret_cast<char*>(&other->_impl_.duration_seconds_));

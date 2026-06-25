@@ -52,7 +52,7 @@ func (r *DebugDbResource) StartBenchmark(
 ) (*s4wave_debugdb.StartBenchmarkResponse, error) {
 	info := &s4wave_debugdb.StorageInfo{
 		VolumeType: "hydra/volume/opfs",
-		AsyncIo:    req.GetConfig().GetAsyncIo(),
+		SyncIo:     req.GetConfig().GetSyncIo(),
 		Goos:       runtime.GOOS,
 		Goarch:     runtime.GOARCH,
 	}

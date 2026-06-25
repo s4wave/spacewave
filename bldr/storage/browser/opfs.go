@@ -41,7 +41,6 @@ func (s *OpfsStorage) BuildVolumeConfig(id string, baseVolCtrlConf *volume_contr
 	return &volume_opfs.Config{
 		RootPath:                 rootPath,
 		LockPrefix:               rootPath,
-		AsyncIo:                  true,
 		BlockShardCount:          blockshard.DefaultShardCount,
 		BlockCompactionTrigger:   8,
 		BlockMaxSegmentDataBytes: blockshard.DefaultMaxSegmentDataBytes,

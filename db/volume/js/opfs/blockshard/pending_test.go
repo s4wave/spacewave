@@ -17,7 +17,6 @@ import (
 func TestDefaultWriteReadsBackBeforePublish(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 1
-	settings.AsyncIO = true
 	e, cleanup := newTestEngineWithSettings(t, "test-blockshard-pending-raw", "test-blockshard-pending-raw", settings)
 	defer cleanup()
 
@@ -77,7 +76,6 @@ func TestDefaultWriteReadsBackBeforePublish(t *testing.T) {
 func TestPendingTombstoneShadowsPublishedValue(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 1
-	settings.AsyncIO = true
 	e, cleanup := newTestEngineWithSettings(t, "test-blockshard-pending-tombstone", "test-blockshard-pending-tombstone", settings)
 	defer cleanup()
 

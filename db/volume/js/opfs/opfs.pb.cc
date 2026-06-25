@@ -50,7 +50,7 @@ inline constexpr Config::Impl_::Impl_(
         no_generate_key_{false},
         no_write_key_{false},
         verbose_{false},
-        async_io_{false},
+        sync_io_{false},
         block_shard_count_{0u},
         block_bloom_fpr_{0},
         meta_shard_count_{0u},
@@ -103,7 +103,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.block_bloom_fpr_),
         PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.block_compaction_trigger_),
         PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.page_size_),
-        PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.async_io_),
+        PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.sync_io_),
         PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.block_max_segment_data_bytes_),
         PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.driver_mode_),
         PROTOBUF_FIELD_OFFSET(::volume::opfs::Config, _impl_.storage_format_version_),
@@ -143,7 +143,7 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvo
     "y.proto\0324github.com/s4wave/spacewave/db/"
     "store/kvtx/kvtx.proto\032Agithub.com/s4wave"
     "/spacewave/db/volume/controller/controll"
-    "er.proto\"\374\003\n\006Config\022\021\n\troot_path\030\001 \001(\t\022\023"
+    "er.proto\"\373\003\n\006Config\022\021\n\troot_path\030\001 \001(\t\022\023"
     "\n\013lock_prefix\030\002 \001(\t\022(\n\013kv_key_opts\030\003 \001(\013"
     "2\023.store.kvkey.Config\022\027\n\017no_generate_key"
     "\030\004 \001(\010\022\024\n\014no_write_key\030\005 \001(\010\022\017\n\007verbose\030"
@@ -152,11 +152,11 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvo
     "store.kvtx.Config\022\031\n\021block_shard_count\030\t"
     " \001(\r\022\030\n\020meta_shard_count\030\n \001(\r\022\027\n\017block_"
     "bloom_fpr\030\013 \001(\001\022 \n\030block_compaction_trig"
-    "ger\030\014 \001(\r\022\021\n\tpage_size\030\r \001(\r\022\020\n\010async_io"
-    "\030\016 \001(\010\022$\n\034block_max_segment_data_bytes\030\017"
-    " \001(\r\022\023\n\013driver_mode\030\020 \001(\t\022\036\n\026storage_for"
-    "mat_version\030\021 \001(\r\022\024\n\014reset_policy\030\022 \001(\tb"
-    "\006proto3"
+    "ger\030\014 \001(\r\022\021\n\tpage_size\030\r \001(\r\022\017\n\007sync_io\030"
+    "\016 \001(\010\022$\n\034block_max_segment_data_bytes\030\017 "
+    "\001(\r\022\023\n\013driver_mode\030\020 \001(\t\022\036\n\026storage_form"
+    "at_version\030\021 \001(\r\022\024\n\014reset_policy\030\022 \001(\tb\006"
+    "proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fjs_2fopfs_2fopfs_2eproto_deps[3] = {
@@ -168,7 +168,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fjs_2fopfs_2fopfs_2eproto = {
     false,
     false,
-    767,
+    766,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fjs_2fopfs_2fopfs_2eproto,
     "github.com/s4wave/spacewave/db/volume/js/opfs/opfs.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2fjs_2fopfs_2fopfs_2eproto_once,
@@ -418,10 +418,10 @@ Config::_table_ = {
     {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.page_size_), 15>(),
      {104, 15, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.page_size_)}},
-    // bool async_io = 14;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.async_io_), 10>(),
+    // bool sync_io = 14;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.sync_io_), 10>(),
      {112, 10, 0,
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.async_io_)}},
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.sync_io_)}},
     // uint32 block_max_segment_data_bytes = 15;
     {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Config, _impl_.block_max_segment_data_bytes_), 16>(),
      {120, 16, 0,
@@ -480,8 +480,8 @@ Config::_table_ = {
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_compaction_trigger_), _Internal::kHasBitsOffset + 14, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // uint32 page_size = 13;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.page_size_), _Internal::kHasBitsOffset + 15, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
-    // bool async_io = 14;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.async_io_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // bool sync_io = 14;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.sync_io_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // uint32 block_max_segment_data_bytes = 15;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.block_max_segment_data_bytes_), _Internal::kHasBitsOffset + 16, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // string driver_mode = 16;
@@ -686,12 +686,12 @@ PROTOBUF_NOINLINE void Config::Clear() {
     }
   }
 
-  // bool async_io = 14;
+  // bool sync_io = 14;
   if (CheckHasBit(cached_has_bits, 0x00000400U)) {
-    if (this_._internal_async_io() != 0) {
+    if (this_._internal_sync_io() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
-          14, this_._internal_async_io(), target);
+          14, this_._internal_sync_io(), target);
     }
   }
 
@@ -822,9 +822,9 @@ PROTOBUF_NOINLINE void Config::Clear() {
         total_size += 2;
       }
     }
-    // bool async_io = 14;
+    // bool sync_io = 14;
     if (CheckHasBit(cached_has_bits, 0x00000400U)) {
-      if (this_._internal_async_io() != 0) {
+      if (this_._internal_sync_io() != 0) {
         total_size += 2;
       }
     }
@@ -977,8 +977,8 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000400U)) {
-      if (from._internal_async_io() != 0) {
-        _this->_impl_.async_io_ = from._impl_.async_io_;
+      if (from._internal_sync_io() != 0) {
+        _this->_impl_.sync_io_ = from._impl_.sync_io_;
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000800U)) {

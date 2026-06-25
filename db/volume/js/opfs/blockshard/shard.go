@@ -29,8 +29,8 @@ type Shard struct {
 	id         int
 	dir        js.Value
 	lockPrefix string
-	// asyncIO forces async OPFS writes for all shard files.
-	asyncIO bool
+	// syncIO enables sync access handles for segment writes when available.
+	syncIO bool
 
 	mu                  sync.Mutex
 	manifest            *Manifest
@@ -52,7 +52,7 @@ func NewShard(id int, dir js.Value, lockPrefix string, settings *Settings) (*Sha
 		id:                  id,
 		dir:                 dir,
 		lockPrefix:          lockPrefix,
-		asyncIO:             settings.AsyncIO,
+		syncIO:              settings.SyncIO,
 		nowFn:               time.Now,
 		bloomFPR:            settings.BloomFPR,
 		maxSegmentDataBytes: settings.MaxSegmentDataBytes,
@@ -272,15 +272,15 @@ func (s *Shard) writeManifest(ctx context.Context, m *Manifest) error {
 }
 
 // writeFileData writes data to a file in the shard directory.
-// By default, immutable segment files use sync access handles when available
-// while manifest writes stay async. asyncIO forces the all-async behavior.
+// By default writes use async OPFS. syncIO enables sync access handles for
+// immutable segment files when available, while manifest writes stay async.
 func (s *Shard) writeFileData(ctx context.Context, name string, data []byte) error {
 	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/write-file-data")
 	defer task.End()
 
 	taskName := "hydra/opfs-blockshard/shard/write-file-data/select-sync"
-	if s.asyncIO {
-		taskName = "hydra/opfs-blockshard/shard/write-file-data/select-async/forced-config"
+	if !s.syncIO {
+		taskName = "hydra/opfs-blockshard/shard/write-file-data/select-async/default-config"
 	} else if !opfs.PreferSyncAccessHandles() {
 		taskName = "hydra/opfs-blockshard/shard/write-file-data/select-async/sync-not-preferred"
 	} else if !isSegmentFilename(name) {
@@ -328,7 +328,7 @@ func (s *Shard) writeFileData(ctx context.Context, name string, data []byte) err
 }
 
 func (s *Shard) shouldUseAsyncWrite(name string) bool {
-	if s.asyncIO {
+	if !s.syncIO {
 		return true
 	}
 	if !opfs.PreferSyncAccessHandles() {

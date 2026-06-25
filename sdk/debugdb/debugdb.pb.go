@@ -61,8 +61,8 @@ type StorageInfo struct {
 	BlockFlushMaxAgeMillis uint32 `protobuf:"varint,4,opt,name=block_flush_max_age_millis,json=blockFlushMaxAgeMillis,proto3" json:"blockFlushMaxAgeMillis,omitempty"`
 	// PageSize is the metadata page size in bytes.
 	PageSize uint32 `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"pageSize,omitempty"`
-	// AsyncIo is true if the async OPFS API is enabled.
-	AsyncIo bool `protobuf:"varint,6,opt,name=async_io,json=asyncIo,proto3" json:"asyncIo,omitempty"`
+	// SyncIo is true if sync OPFS I/O is enabled.
+	SyncIo bool `protobuf:"varint,6,opt,name=sync_io,json=syncIo,proto3" json:"syncIo,omitempty"`
 	// Goos is the Go runtime GOOS value.
 	Goos string `protobuf:"bytes,7,opt,name=goos,proto3" json:"goos,omitempty"`
 	// Goarch is the Go runtime GOARCH value.
@@ -112,9 +112,9 @@ func (x *StorageInfo) GetPageSize() uint32 {
 	return 0
 }
 
-func (x *StorageInfo) GetAsyncIo() bool {
+func (x *StorageInfo) GetSyncIo() bool {
 	if x != nil {
-		return x.AsyncIo
+		return x.SyncIo
 	}
 	return false
 }
@@ -191,8 +191,8 @@ type BenchmarkConfig struct {
 	BlockSizes []uint32 `protobuf:"varint,2,rep,packed,name=block_sizes,json=blockSizes,proto3" json:"blockSizes,omitempty"`
 	// IncludeWorldSuite enables the world transaction benchmark suite.
 	IncludeWorldSuite bool `protobuf:"varint,3,opt,name=include_world_suite,json=includeWorldSuite,proto3" json:"includeWorldSuite,omitempty"`
-	// AsyncIo runs the benchmark against OPFS async file writes.
-	AsyncIo bool `protobuf:"varint,4,opt,name=async_io,json=asyncIo,proto3" json:"asyncIo,omitempty"`
+	// SyncIo runs the benchmark against OPFS sync file writes.
+	SyncIo bool `protobuf:"varint,4,opt,name=sync_io,json=syncIo,proto3" json:"syncIo,omitempty"`
 }
 
 func (x *BenchmarkConfig) Reset() {
@@ -222,9 +222,9 @@ func (x *BenchmarkConfig) GetIncludeWorldSuite() bool {
 	return false
 }
 
-func (x *BenchmarkConfig) GetAsyncIo() bool {
+func (x *BenchmarkConfig) GetSyncIo() bool {
 	if x != nil {
-		return x.AsyncIo
+		return x.SyncIo
 	}
 	return false
 }
@@ -555,7 +555,7 @@ func (m *StorageInfo) CloneVT() *StorageInfo {
 	r.BlockFlushThreshold = m.BlockFlushThreshold
 	r.BlockFlushMaxAgeMillis = m.BlockFlushMaxAgeMillis
 	r.PageSize = m.PageSize
-	r.AsyncIo = m.AsyncIo
+	r.SyncIo = m.SyncIo
 	r.Goos = m.Goos
 	r.Goarch = m.Goarch
 	r.UserAgent = m.UserAgent
@@ -608,7 +608,7 @@ func (m *BenchmarkConfig) CloneVT() *BenchmarkConfig {
 	r := new(BenchmarkConfig)
 	r.DurationSeconds = m.DurationSeconds
 	r.IncludeWorldSuite = m.IncludeWorldSuite
-	r.AsyncIo = m.AsyncIo
+	r.SyncIo = m.SyncIo
 	if rhs := m.BlockSizes; rhs != nil {
 		r.BlockSizes = slices.Clone(rhs)
 	}
@@ -820,7 +820,7 @@ func (this *StorageInfo) EqualVT(that *StorageInfo) bool {
 	if this.PageSize != that.PageSize {
 		return false
 	}
-	if this.AsyncIo != that.AsyncIo {
+	if this.SyncIo != that.SyncIo {
 		return false
 	}
 	if this.Goos != that.Goos {
@@ -904,7 +904,7 @@ func (this *BenchmarkConfig) EqualVT(that *BenchmarkConfig) bool {
 	if this.IncludeWorldSuite != that.IncludeWorldSuite {
 		return false
 	}
-	if this.AsyncIo != that.AsyncIo {
+	if this.SyncIo != that.SyncIo {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1249,10 +1249,10 @@ func (x *StorageInfo) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("pageSize")
 		s.WriteUint32(x.PageSize)
 	}
-	if x.AsyncIo || s.HasField("asyncIo") {
+	if x.SyncIo || s.HasField("syncIo") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("asyncIo")
-		s.WriteBool(x.AsyncIo)
+		s.WriteObjectField("syncIo")
+		s.WriteBool(x.SyncIo)
 	}
 	if x.Goos != "" || s.HasField("goos") {
 		s.WriteMoreIf(&wroteField)
@@ -1301,9 +1301,9 @@ func (x *StorageInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "page_size", "pageSize":
 			s.AddField("page_size")
 			x.PageSize = s.ReadUint32()
-		case "async_io", "asyncIo":
-			s.AddField("async_io")
-			x.AsyncIo = s.ReadBool()
+		case "sync_io", "syncIo":
+			s.AddField("sync_io")
+			x.SyncIo = s.ReadBool()
 		case "goos":
 			s.AddField("goos")
 			x.Goos = s.ReadString()
@@ -1433,10 +1433,10 @@ func (x *BenchmarkConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("includeWorldSuite")
 		s.WriteBool(x.IncludeWorldSuite)
 	}
-	if x.AsyncIo || s.HasField("asyncIo") {
+	if x.SyncIo || s.HasField("syncIo") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("asyncIo")
-		s.WriteBool(x.AsyncIo)
+		s.WriteObjectField("syncIo")
+		s.WriteBool(x.SyncIo)
 	}
 	s.WriteObjectEnd()
 }
@@ -1468,9 +1468,9 @@ func (x *BenchmarkConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "include_world_suite", "includeWorldSuite":
 			s.AddField("include_world_suite")
 			x.IncludeWorldSuite = s.ReadBool()
-		case "async_io", "asyncIo":
-			s.AddField("async_io")
-			x.AsyncIo = s.ReadBool()
+		case "sync_io", "syncIo":
+			s.AddField("sync_io")
+			x.SyncIo = s.ReadBool()
 		}
 	})
 }
@@ -2079,9 +2079,9 @@ func (m *StorageInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x3a
 	}
-	if m.AsyncIo {
+	if m.SyncIo {
 		i--
-		if m.AsyncIo {
+		if m.SyncIo {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
@@ -2230,9 +2230,9 @@ func (m *BenchmarkConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.AsyncIo {
+	if m.SyncIo {
 		i--
-		if m.AsyncIo {
+		if m.SyncIo {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
@@ -2724,7 +2724,7 @@ func (m *StorageInfo) SizeVT() (n int) {
 	if m.PageSize != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.PageSize))
 	}
-	if m.AsyncIo {
+	if m.SyncIo {
 		n += 2
 	}
 	l = len(m.Goos)
@@ -2789,7 +2789,7 @@ func (m *BenchmarkConfig) SizeVT() (n int) {
 	if m.IncludeWorldSuite {
 		n += 2
 	}
-	if m.AsyncIo {
+	if m.SyncIo {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -3016,12 +3016,12 @@ func (x *StorageInfo) MarshalProtoText() string {
 		sb.WriteString("page_size: ")
 		sb.WriteString(strconv.FormatUint(uint64(x.PageSize), 10))
 	}
-	if x.AsyncIo != false {
+	if x.SyncIo != false {
 		if sb.Len() > 13 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("async_io: ")
-		sb.WriteString(strconv.FormatBool(x.AsyncIo))
+		sb.WriteString("sync_io: ")
+		sb.WriteString(strconv.FormatBool(x.SyncIo))
 	}
 	if x.Goos != "" {
 		if sb.Len() > 13 {
@@ -3118,12 +3118,12 @@ func (x *BenchmarkConfig) MarshalProtoText() string {
 		sb.WriteString("include_world_suite: ")
 		sb.WriteString(strconv.FormatBool(x.IncludeWorldSuite))
 	}
-	if x.AsyncIo != false {
+	if x.SyncIo != false {
 		if sb.Len() > 17 {
 			sb.WriteString(" ")
 		}
-		sb.WriteString("async_io: ")
-		sb.WriteString(strconv.FormatBool(x.AsyncIo))
+		sb.WriteString("sync_io: ")
+		sb.WriteString(strconv.FormatBool(x.SyncIo))
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -3591,7 +3591,7 @@ func (m *StorageInfo) UnmarshalVT(dAtA []byte) error {
 			}
 		case 6:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AsyncIo", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field SyncIo", wireType)
 			}
 			var v int
 			var _v uint64
@@ -3600,7 +3600,7 @@ func (m *StorageInfo) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			m.AsyncIo = bool(v != 0)
+			m.SyncIo = bool(v != 0)
 		case 7:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Goos", wireType)
@@ -3904,7 +3904,7 @@ func (m *BenchmarkConfig) UnmarshalVT(dAtA []byte) error {
 			m.IncludeWorldSuite = bool(v != 0)
 		case 4:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AsyncIo", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field SyncIo", wireType)
 			}
 			var v int
 			var _v uint64
@@ -3913,7 +3913,7 @@ func (m *BenchmarkConfig) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			m.AsyncIo = bool(v != 0)
+			m.SyncIo = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

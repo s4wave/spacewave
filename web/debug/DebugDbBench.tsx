@@ -152,7 +152,7 @@ function ResultsDisplay({ results }: { results: BenchmarkResults }) {
         <div className="text-text-muted text-xs">
           {suites.length} suites,{' '}
           {results.totalDurationMillis?.toString() ?? '0'}ms total, mode{' '}
-          {info?.asyncIo ? 'async' : 'sync'}
+          {info?.syncIo ? 'sync' : 'async'}
         </div>
         <button
           onClick={downloadResults}
@@ -217,8 +217,8 @@ function StorageInfoPanel({ info }: { info: StorageInfo }) {
             </span>
           </>
         ) : null}
-        <span className="text-text-muted">Async I/O</span>
-        <span className="text-text-primary">{info.asyncIo ? 'on' : 'off'}</span>
+        <span className="text-text-muted">Sync I/O</span>
+        <span className="text-text-primary">{info.syncIo ? 'on' : 'off'}</span>
       </div>
     </div>
   )
@@ -256,7 +256,7 @@ function ProgressBar({ progress }: { progress: WatchProgressResponse }) {
 function BenchmarkPanel({ debugDb }: { debugDb: Resource<DebugDb> }) {
   const [duration, setDuration] = useState(10)
   const [includeWorld, setIncludeWorld] = useState(false)
-  const [asyncIo, setAsyncIo] = useState(false)
+  const [syncIo, setSyncIo] = useState(false)
   const [running, setRunning] = useState(false)
   const [progress, setProgress] = useState<WatchProgressResponse | null>(null)
   const [results, setResults] = useState<BenchmarkResults | null>(null)
@@ -275,7 +275,7 @@ function BenchmarkPanel({ debugDb }: { debugDb: Resource<DebugDb> }) {
       using bench = await db.startBenchmark({
         durationSeconds: duration,
         includeWorldSuite: includeWorld,
-        asyncIo,
+        syncIo,
       })
 
       // Watch progress in the background.
@@ -292,7 +292,7 @@ function BenchmarkPanel({ debugDb }: { debugDb: Resource<DebugDb> }) {
     } finally {
       setRunning(false)
     }
-  }, [debugDb.value, duration, includeWorld, asyncIo])
+  }, [debugDb.value, duration, includeWorld, syncIo])
 
   return (
     <div className="flex flex-col gap-6">
@@ -332,11 +332,11 @@ function BenchmarkPanel({ debugDb }: { debugDb: Resource<DebugDb> }) {
           <label className="flex items-center gap-2 text-xs">
             <input
               type="checkbox"
-              checked={asyncIo}
-              onChange={(e) => setAsyncIo(e.target.checked)}
+              checked={syncIo}
+              onChange={(e) => setSyncIo(e.target.checked)}
               disabled={running}
             />
-            <span className="text-text-muted">Async I/O</span>
+            <span className="text-text-muted">Sync I/O</span>
           </label>
           <button
             onClick={() => {
