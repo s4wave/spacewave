@@ -478,6 +478,7 @@ func (c *Controller) BuildManifest(
 	}
 	buildOptions.Write = true
 	buildOptions.NodePaths = []string{distDepsNodeModules}
+	entrypoint_browser_bundle.ApplyRuntimeDistDepsResolver(&buildOptions, distDepsDir)
 
 	buildOptions.Plugins = append(buildOptions.Plugins,
 		bldr_esbuild_build.GoVendorTsResolverPlugin(builderConf.GetSourcePath(), builderConf.GetDistSourcePath()),
