@@ -16,6 +16,7 @@ import (
 	vardef "github.com/s4wave/spacewave/bldr/plugin/vardef"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/mod/modfile"
 	"golang.org/x/tools/imports"
 )
 
@@ -58,6 +59,7 @@ func NewModuleCompiler(
 // if devInfoFile is empty, the values of the go variable defs are hardcoded into init().
 // if devInfoFile is set, the file will be written at that path.
 func (m *ModuleCompiler) GenerateModule(
+	ctx context.Context,
 	analysis *Analysis,
 	pluginMeta *bldr_plugin.PluginMeta,
 	configSetBinary []byte,
@@ -71,6 +73,9 @@ func (m *ModuleCompiler) GenerateModule(
 	loadedModules := analysis.GetImportedModules()
 	if len(loadedModules) == 0 {
 		return nil, errors.New("must load at least one module")
+	}
+	if err := m.writeModuleFiles(analysis); err != nil {
+		return nil, err
 	}
 
 	// Create the embedded config set file, if necessary.
@@ -122,8 +127,112 @@ func (m *ModuleCompiler) GenerateModule(
 	if err := os.WriteFile(outPluginCodeFilePath, pluginCodeData, 0o644); err != nil {
 		return nil, err
 	}
+	if err := gocompiler.RunGoModTidy(ctx, m.le, m.pluginCodegenPath); err != nil {
+		return nil, err
+	}
 
 	return pluginDevInfo, nil
+}
+
+func (m *ModuleCompiler) writeModuleFiles(analysis *Analysis) error {
+	sourceGoModPath := filepath.Join(analysis.workDir, "go.mod")
+	sourceGoModData, err := os.ReadFile(sourceGoModPath)
+	if err != nil {
+		return errors.Wrapf(err, "read source go.mod at %s", sourceGoModPath)
+	}
+	modFile, err := modfile.Parse(sourceGoModPath, sourceGoModData, nil)
+	if err != nil {
+		return err
+	}
+	if err := absolutizeModuleReplaces(modFile, analysis.workDir); err != nil {
+		return err
+	}
+	sourceModulePath := modFile.Module.Mod.Path
+	pluginModulePath, err := generatedPluginModulePath(m.pluginGoModule)
+	if err != nil {
+		return err
+	}
+	if err := modFile.AddModuleStmt(pluginModulePath); err != nil {
+		return err
+	}
+	if err := modFile.AddRequire(sourceModulePath, "v0.0.0"); err != nil {
+		return err
+	}
+	sourceModuleDir, err := filepath.Abs(analysis.workDir)
+	if err != nil {
+		return err
+	}
+	if err := modFile.AddReplace(sourceModulePath, "", sourceModuleDir, ""); err != nil {
+		return err
+	}
+	modFile.Cleanup()
+	pluginGoModData, err := modFile.Format()
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(m.pluginCodegenPath, "go.mod"), pluginGoModData, 0o644); err != nil {
+		return err
+	}
+
+	sourceGoSumPath := filepath.Join(analysis.workDir, "go.sum")
+	sourceGoSumData, err := os.ReadFile(sourceGoSumPath)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return errors.Wrapf(err, "read source go.sum at %s", sourceGoSumPath)
+	}
+	return os.WriteFile(filepath.Join(m.pluginCodegenPath, "go.sum"), sourceGoSumData, 0o644)
+}
+
+func absolutizeModuleReplaces(modFile *modfile.File, sourceDir string) error {
+	absSourceDir, err := filepath.Abs(sourceDir)
+	if err != nil {
+		return err
+	}
+	for _, replace := range modFile.Replace {
+		if replace.New.Version != "" {
+			continue
+		}
+		replacePath := replace.New.Path
+		if filepath.IsAbs(replacePath) {
+			continue
+		}
+		if !strings.HasPrefix(replacePath, ".") {
+			continue
+		}
+		absReplacePath := filepath.Clean(filepath.Join(absSourceDir, replacePath))
+		replace.New.Path = absReplacePath
+		if replace.Syntax != nil && len(replace.Syntax.Token) > 0 {
+			replace.Syntax.Token[len(replace.Syntax.Token)-1] = absReplacePath
+		}
+	}
+	return nil
+}
+
+func generatedPluginModulePath(moduleID string) (string, error) {
+	moduleID = strings.TrimSpace(moduleID)
+	if moduleID == "" {
+		return "", errors.New("plugin module id cannot be empty")
+	}
+	var b strings.Builder
+	for _, r := range strings.ToLower(moduleID) {
+		switch {
+		case r >= 'a' && r <= 'z':
+			b.WriteRune(r)
+		case r >= '0' && r <= '9':
+			b.WriteRune(r)
+		case r == '-' || r == '_':
+			b.WriteRune(r)
+		default:
+			b.WriteRune('-')
+		}
+	}
+	slug := strings.Trim(b.String(), "-_")
+	if slug == "" {
+		return "", errors.Errorf("plugin module id %q has no path characters", moduleID)
+	}
+	return "github.com/s4wave/spacewave/bldr/plugin/generated/" + slug, nil
 }
 
 // CompilePlugin compiles the plugin to outFile.
