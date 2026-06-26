@@ -5,11 +5,10 @@ import (
 	"context"
 	"sync"
 
-	trace "github.com/s4wave/spacewave/db/traceutil"
-
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/kvtx"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 )
 
 // Tx is an iavl k/v transaction.
