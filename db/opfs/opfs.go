@@ -59,6 +59,10 @@ const (
 	ErrorKindUnknown ErrorKind = iota
 	ErrorKindNotFound
 	ErrorKindNoModificationAllowed
+	// ErrorKindSecurity is a DOMException SecurityError: the browser denied
+	// access to OPFS for this profile. On root acquisition this is a terminal
+	// storage-capability denial, not a transient failure.
+	ErrorKindSecurity
 )
 
 // JSError represents a JavaScript error or DOMException.
@@ -82,6 +86,11 @@ func IsNotFound(err error) bool {
 	return DefaultDriver.ClassifyError(err) == ErrorKindNotFound
 }
 
+// IsSecurity checks if an error is a "SecurityError" DOMException.
+func IsSecurity(err error) bool {
+	return DefaultDriver.ClassifyError(err) == ErrorKindSecurity
+}
+
 // ClassifyError classifies an OPFS/browser error.
 func ClassifyError(err error) ErrorKind {
 	return DefaultDriver.ClassifyError(err)
@@ -98,6 +107,8 @@ func (BrowserDriver) ClassifyError(err error) ErrorKind {
 		return ErrorKindNotFound
 	case "NoModificationAllowedError":
 		return ErrorKindNoModificationAllowed
+	case "SecurityError":
+		return ErrorKindSecurity
 	default:
 		return ErrorKindUnknown
 	}
@@ -207,10 +218,11 @@ func GetRoot() (js.Value, error) {
 
 // GetRoot returns the OPFS root FileSystemDirectoryHandle.
 // The root is a stable per-origin singleton, so it is resolved once per worker
-// and cached. Repeated mounts and controller restarts reuse the cached handle
-// instead of issuing fresh navigator.storage.getDirectory() calls, which a
-// restart cascade would otherwise drive into the browser's "too many calls"
-// rate limit.
+// and cached: repeated mounts reuse the cached handle instead of issuing fresh
+// navigator.storage.getDirectory() calls. The cache stores only after a
+// successful acquisition, so a first-call denial (e.g. a SecurityError from a
+// wedged OPFS bucket) is never cached and propagates to the caller, which
+// classifies it as a terminal storage-capability error.
 func (d BrowserDriver) GetRoot() (js.Value, error) {
 	rootMu.Lock()
 	defer rootMu.Unlock()

@@ -3,6 +3,7 @@ package volume_controller
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -41,6 +42,15 @@ type Controller struct {
 	// bucketHandles contains open bucket handles
 	// key: bucket id
 	bucketHandles *keyed.KeyedRefCount[string, *bucketHandleTracker]
+
+	// terminalMtx guards terminalErr and terminalDone.
+	terminalMtx sync.Mutex
+	// terminalErr records a permanent (non-retryable) construction failure.
+	// Once set, the controller has stopped restarting and GetVolume returns
+	// this error instead of waiting for a volume that can never be constructed.
+	terminalErr error
+	// terminalDone is closed once terminalErr is set.
+	terminalDone chan struct{}
 }
 
 // volumeCtxPair is a volume and ctx pair.
@@ -68,7 +78,8 @@ func NewController(
 		controllerInfo: info,
 		ctor:           ctor,
 
-		volume: ccontainer.NewCContainer[*volumeCtxPair](nil),
+		volume:       ccontainer.NewCContainer[*volumeCtxPair](nil),
+		terminalDone: make(chan struct{}),
 	}
 	ctrl.bucketHandles = keyed.NewKeyedRefCount(ctrl.newBucketHandleTracker)
 	return ctrl
@@ -84,6 +95,16 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// Construct the volume.
 	v, err := c.ctor(volCtx, c.le)
 	if err != nil {
+		if volume.IsPermanent(err) {
+			// The volume cannot be constructed in this environment (for example,
+			// the browser denied OPFS root for this profile). Retrying cannot
+			// succeed, so record the condition, surface one actionable
+			// diagnostic, and return nil to stop the controllerbus restart loop
+			// instead of looping the same denial forever.
+			c.le.WithError(err).Error("volume unavailable: permanent storage error, not retrying")
+			c.setTerminal(err)
+			return nil
+		}
 		return err
 	}
 	defer v.Close()
@@ -230,10 +251,53 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	return c.controllerInfo
 }
 
+// setTerminal records a permanent construction failure and wakes GetVolume
+// waiters. The first error wins; later calls are ignored.
+func (c *Controller) setTerminal(err error) {
+	c.terminalMtx.Lock()
+	defer c.terminalMtx.Unlock()
+	if c.terminalErr != nil {
+		return
+	}
+	c.terminalErr = err
+	close(c.terminalDone)
+}
+
+// getTerminal returns the recorded permanent construction failure, or nil.
+func (c *Controller) getTerminal() error {
+	c.terminalMtx.Lock()
+	defer c.terminalMtx.Unlock()
+	return c.terminalErr
+}
+
 // GetVolume returns the controlled volume.
-// This may wait for the volume to be ready.
+// This may wait for the volume to be ready. If construction failed permanently
+// (for example, the browser denied OPFS storage for this profile), it returns
+// that error instead of waiting for a volume that can never be constructed.
 func (c *Controller) GetVolume(ctx context.Context) (volume.Volume, error) {
-	rv, err := c.volume.WaitValue(ctx, nil)
+	if vb := c.volume.GetValue(); vb != nil && vb.vol != nil {
+		return vb.vol, nil
+	}
+	if err := c.getTerminal(); err != nil {
+		return nil, err
+	}
+
+	// Race the volume becoming ready against a permanent construction failure.
+	errCh := make(chan error, 1)
+	stop := make(chan struct{})
+	defer close(stop)
+	go func() {
+		select {
+		case <-stop:
+		case <-c.terminalDone:
+			select {
+			case errCh <- c.getTerminal():
+			case <-stop:
+			}
+		}
+	}()
+
+	rv, err := c.volume.WaitValue(ctx, errCh)
 	if err != nil {
 		return nil, err
 	}
