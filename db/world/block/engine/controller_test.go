@@ -2,9 +2,13 @@ package world_block_engine
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"testing"
 
+	bdberrors "github.com/aperturerobotics/bbolt/errors"
 	"github.com/s4wave/spacewave/db/coord"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,6 +29,27 @@ func TestControllerCoordinatorSupported(t *testing.T) {
 	}
 	if ctrl.coordinatorSupported(ctx, fakeCoordinator{err: coord.ErrUnsupported}, scope) {
 		t.Fatal("errored coordinator reported true")
+	}
+}
+
+func TestRefreshHeadFromCoordinatorEventIgnoresClosedStore(t *testing.T) {
+	log := logrus.New()
+	hook := &entriesHook{}
+	log.AddHook(hook)
+	ctrl := &Controller{le: logrus.NewEntry(log)}
+
+	ctrl.refreshHeadFromCoordinatorEvent(context.Background(), closedHeadStore{}, nil, coord.Event{
+		Generation: 1,
+	})
+
+	for _, entry := range hook.entries {
+		if entry.Message == "world head refresh failed" ||
+			strings.Contains(entry.Message, bdberrors.ErrDatabaseNotOpen.Error()) {
+			t.Fatalf("closed head store produced warning: level=%s message=%q data=%v", entry.Level, entry.Message, entry.Data)
+		}
+		if err, ok := entry.Data[logrus.ErrorKey].(error); ok && errors.Is(err, bdberrors.ErrDatabaseNotOpen) {
+			t.Fatalf("closed head store error was logged: level=%s message=%q data=%v", entry.Level, entry.Message, entry.Data)
+		}
 	}
 }
 
@@ -57,3 +82,22 @@ func (fakeCoordinator) WaitAcquireWriteLease(context.Context, coord.Scope) (coor
 }
 
 var _ coord.Coordinator = fakeCoordinator{}
+
+type closedHeadStore struct{}
+
+func (closedHeadStore) NewTransaction(context.Context, bool) (kvtx.Tx, error) {
+	return nil, bdberrors.ErrDatabaseNotOpen
+}
+
+type entriesHook struct {
+	entries []*logrus.Entry
+}
+
+func (h *entriesHook) Levels() []logrus.Level {
+	return logrus.AllLevels
+}
+
+func (h *entriesHook) Fire(entry *logrus.Entry) error {
+	h.entries = append(h.entries, entry)
+	return nil
+}

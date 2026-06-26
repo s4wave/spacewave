@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	bdberrors "github.com/aperturerobotics/bbolt/errors"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/object"
@@ -83,7 +84,7 @@ func (c *Controller) refreshHeadFromCoordinatorEvent(
 ) {
 	headRef, err := c.refreshDurableHeadRef(stateStore)(ctx)
 	if err != nil {
-		if ctx.Err() == nil {
+		if ctx.Err() == nil && !isClosedHeadStoreError(err) {
 			c.le.WithError(err).WithField("generation", event.Generation).Warn("world head refresh failed")
 		}
 		return
@@ -94,6 +95,11 @@ func (c *Controller) refreshHeadFromCoordinatorEvent(
 	if err := engine.AdoptRootRefFromWatch(ctx, headRef); err != nil && ctx.Err() == nil {
 		c.le.WithError(err).WithField("generation", event.Generation).Warn("world head adoption failed")
 	}
+}
+
+func isClosedHeadStoreError(err error) bool {
+	return errors.Is(err, object.ErrObjectStoreClosed) ||
+		errors.Is(err, bdberrors.ErrDatabaseNotOpen)
 }
 
 func (c *Controller) refreshDurableHeadRef(stateStore object.ObjectStore) func(context.Context) (*bucket.ObjectRef, error) {
