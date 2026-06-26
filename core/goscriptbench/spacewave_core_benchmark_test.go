@@ -4,12 +4,18 @@ package goscriptbench
 
 import (
 	"bytes"
-	"fmt"
+	"crypto/sha256"
+	"encoding/hex"
+	"hash"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/pkg/errors"
 )
 
 const profileHarnessTest = `package profile
@@ -40,7 +46,6 @@ func TestSpacewaveCoreCompile(t *testing.T) {
 		Dir:            spacewaveDir,
 		OutputPath:     out,
 		BuildFlags:     []string{"-tags=goscript,skip_e2e,purego"},
-		OverrideDirs:   []string{filepath.Join(spacewaveDir, "gs")},
 		AllDependencies: true,
 	}, nil, nil)
 	if err != nil {
@@ -68,6 +73,14 @@ func TestSpacewaveCoreCompile(t *testing.T) {
 }
 `
 
+type runMode int
+
+const (
+	runUntraced runMode = iota
+	runProfiled
+	runTraced
+)
+
 func TestSpacewaveCoreGoScriptProfileHarness(t *testing.T) {
 	root := mustRepoRoot(t)
 	profileDir := filepath.Join(root, ".tmp", "goscript-profile-bench", "test")
@@ -78,7 +91,116 @@ func TestSpacewaveCoreGoScriptProfileHarness(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	runProfileHarness(t, root, profileDir, filepath.Join(profileDir, "out"), false)
+	runProfileHarness(t, root, profileDir, filepath.Join(profileDir, "out"), runUntraced)
+}
+
+func TestGoTestArgsRunMode(t *testing.T) {
+	profileDir := filepath.Join("profiles")
+	cases := []struct {
+		name string
+		mode runMode
+		want []string
+	}{
+		{
+			name: "untraced",
+			mode: runUntraced,
+			want: []string{"test", "-run", "^TestSpacewaveCoreCompile$", "-count=1", "-timeout=15m", "."},
+		},
+		{
+			name: "profiled",
+			mode: runProfiled,
+			want: []string{
+				"test", "-run", "^TestSpacewaveCoreCompile$", "-count=1", "-timeout=15m",
+				"-cpuprofile", filepath.Join(profileDir, "cpu.pprof"),
+				"-memprofile", filepath.Join(profileDir, "mem.pprof"),
+				".",
+			},
+		},
+		{
+			name: "traced",
+			mode: runTraced,
+			want: []string{
+				"test", "-run", "^TestSpacewaveCoreCompile$", "-count=1", "-timeout=15m",
+				"-cpuprofile", filepath.Join(profileDir, "cpu.pprof"),
+				"-memprofile", filepath.Join(profileDir, "mem.pprof"),
+				"-trace", filepath.Join(profileDir, "trace.out"),
+				".",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := goTestArgs(profileDir, tc.mode)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !slices.Equal(got, tc.want) {
+				t.Fatalf("args mismatch\n got: %q\nwant: %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestOutputStatsTreeHashDeterministic(t *testing.T) {
+	first := t.TempDir()
+	writeOutputFile(t, first, "b/out.ts", "beta")
+	writeOutputFile(t, first, "a/out.ts", "alpha")
+
+	second := t.TempDir()
+	writeOutputFile(t, second, "a/out.ts", "alpha")
+	writeOutputFile(t, second, "b/out.ts", "beta")
+
+	files, bytes, hash, err := outputStats(first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if files != 2 {
+		t.Fatalf("files = %d, want 2", files)
+	}
+	if bytes != int64(len("alpha")+len("beta")) {
+		t.Fatalf("bytes = %d, want %d", bytes, len("alpha")+len("beta"))
+	}
+	_, _, sameHash, err := outputStats(second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hash != sameHash {
+		t.Fatalf("hash differs for identical trees: %s != %s", hash, sameHash)
+	}
+
+	h := sha256.New()
+	writeHashPart(h, []byte("a/out.ts"))
+	writeHashPart(h, []byte("alpha"))
+	writeHashPart(h, []byte("b/out.ts"))
+	writeHashPart(h, []byte("beta"))
+	want := hex.EncodeToString(h.Sum(nil))
+	if hash != want {
+		t.Fatalf("hash = %s, want %s", hash, want)
+	}
+
+	renamed := t.TempDir()
+	writeOutputFile(t, renamed, "a/out.ts", "alpha")
+	writeOutputFile(t, renamed, "c/out.ts", "beta")
+	_, _, renamedHash, err := outputStats(renamed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if renamedHash == hash {
+		t.Fatal("hash did not include relative paths")
+	}
+}
+
+func writeOutputFile(tb testing.TB, root string, rel string, content string) {
+	tb.Helper()
+
+	path := filepath.Join(root, filepath.FromSlash(rel))
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		tb.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		tb.Fatal(err)
+	}
 }
 
 func BenchmarkSpacewaveCoreGoScriptCompile(b *testing.B) {
@@ -90,7 +212,7 @@ func BenchmarkSpacewaveCoreGoScriptCompile(b *testing.B) {
 
 	var lastOut string
 	for i := 0; i < b.N; i++ {
-		runDir := filepath.Join(profileRoot, fmt.Sprintf("bench-%d", i))
+		runDir := filepath.Join(profileRoot, "bench-"+strconv.Itoa(i))
 		if err := os.RemoveAll(runDir); err != nil {
 			b.Fatal(err)
 		}
@@ -98,22 +220,23 @@ func BenchmarkSpacewaveCoreGoScriptCompile(b *testing.B) {
 			b.Fatal(err)
 		}
 		out := filepath.Join(runDir, "out")
-		runProfileHarness(b, root, runDir, out, true)
+		runProfileHarness(b, root, runDir, out, runUntraced)
 		lastOut = out
 	}
 
 	b.StopTimer()
 	if lastOut != "" {
-		files, bytes, err := outputStats(lastOut)
+		files, bytes, treeHash, err := outputStats(lastOut)
 		if err != nil {
 			b.Fatal(err)
 		}
 		b.ReportMetric(float64(files), "files/op")
 		b.ReportMetric(float64(bytes)/(1024*1024), "MiB/op")
+		b.Logf("tree_hash=%s", treeHash)
 	}
 }
 
-func runProfileHarness(tb testing.TB, root string, profileDir string, outputDir string, profile bool) {
+func runProfileHarness(tb testing.TB, root string, profileDir string, outputDir string, mode runMode) {
 	tb.Helper()
 
 	harnessDir := tb.TempDir()
@@ -142,14 +265,10 @@ func runProfileHarness(tb testing.TB, root string, profileDir string, outputDir 
 		tb.Fatal(err)
 	}
 
-	args := []string{"test", "-run", "^TestSpacewaveCoreCompile$", "-count=1", "-timeout=15m"}
-	if profile {
-		args = append(args,
-			"-cpuprofile", filepath.Join(profileDir, "cpu.pprof"),
-			"-memprofile", filepath.Join(profileDir, "mem.pprof"),
-		)
+	args, err := goTestArgs(profileDir, mode)
+	if err != nil {
+		tb.Fatal(err)
 	}
-	args = append(args, ".")
 
 	cmd := exec.Command("go", args...)
 	cmd.Dir = harnessDir
@@ -172,6 +291,27 @@ func runProfileHarness(tb testing.TB, root string, profileDir string, outputDir 
 	}
 }
 
+func goTestArgs(profileDir string, mode runMode) ([]string, error) {
+	args := []string{"test", "-run", "^TestSpacewaveCoreCompile$", "-count=1", "-timeout=15m"}
+	switch mode {
+	case runUntraced:
+	case runProfiled:
+		args = append(args,
+			"-cpuprofile", filepath.Join(profileDir, "cpu.pprof"),
+			"-memprofile", filepath.Join(profileDir, "mem.pprof"),
+		)
+	case runTraced:
+		args = append(args,
+			"-cpuprofile", filepath.Join(profileDir, "cpu.pprof"),
+			"-memprofile", filepath.Join(profileDir, "mem.pprof"),
+			"-trace", filepath.Join(profileDir, "trace.out"),
+		)
+	default:
+		return nil, errors.Errorf("unknown run mode: %d", mode)
+	}
+	return append(args, "."), nil
+}
+
 func mustRepoRoot(tb testing.TB) string {
 	tb.Helper()
 	dir, err := os.Getwd()
@@ -190,13 +330,14 @@ func mustRepoRoot(tb testing.TB) string {
 	}
 }
 
-func outputStats(root string) (int, int64, error) {
+func outputStats(root string) (int, int64, string, error) {
 	if strings.TrimSpace(root) == "" {
-		return 0, 0, fmt.Errorf("empty output root")
+		return 0, 0, "", errors.New("empty output root")
 	}
 
 	var files int
 	var bytes int64
+	hash := sha256.New()
 	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -208,12 +349,29 @@ func outputStats(root string) (int, int64, error) {
 		if err != nil {
 			return err
 		}
+		rel, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
 		files++
 		bytes += info.Size()
+		writeHashPart(hash, []byte(filepath.ToSlash(rel)))
+		writeHashPart(hash, content)
 		return nil
 	})
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, "", err
 	}
-	return files, bytes, nil
+	return files, bytes, hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+func writeHashPart(h hash.Hash, data []byte) {
+	_, _ = h.Write(strconv.AppendInt(nil, int64(len(data)), 10))
+	_, _ = h.Write([]byte{0})
+	_, _ = h.Write(data)
+	_, _ = h.Write([]byte{0})
 }
