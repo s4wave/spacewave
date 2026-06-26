@@ -27,6 +27,7 @@ const v86RuntimeV86fsServicePrefix = "vm/v86-runtime/v86fs/"
 
 // v86Resource implements PersistentExecutionService for a VmV86 object.
 type v86Resource struct {
+	le          *logrus.Entry
 	objectKey   string
 	ws          world.WorldState
 	b           bus.Bus
@@ -34,8 +35,8 @@ type v86Resource struct {
 }
 
 // newV86Resource constructs a new v86Resource.
-func newV86Resource(objectKey string, ws world.WorldState, b bus.Bus, v86fsServer unixfs_v86fs.SRPCV86FsServiceServer) *v86Resource {
-	return &v86Resource{objectKey: objectKey, ws: ws, b: b, v86fsServer: v86fsServer}
+func newV86Resource(le *logrus.Entry, objectKey string, ws world.WorldState, b bus.Bus, v86fsServer unixfs_v86fs.SRPCV86FsServiceServer) *v86Resource {
+	return &v86Resource{le: le, objectKey: objectKey, ws: ws, b: b, v86fsServer: v86fsServer}
 }
 
 // Execute implements SRPCPersistentExecutionServiceServer.
@@ -235,7 +236,7 @@ func (r *v86Resource) exposeV86fsToRuntimePlugin(ctx context.Context, pluginID s
 	}
 	pluginServerID := bldr_plugin.PluginServerID(pluginID, "")
 	workerServerID := "web-worker/" + bldr_plugin.PluginServerID(pluginID, r.objectKey)
-	logrus.WithFields(logrus.Fields{
+	r.le.WithFields(logrus.Fields{
 		"object-key":       r.objectKey,
 		"plugin-id":        pluginID,
 		"service-prefix":   servicePrefix,
@@ -249,7 +250,7 @@ func (r *v86Resource) exposeV86fsToRuntimePlugin(ctx context.Context, pluginID s
 			"v86fs route for VmV86 runtime plugin",
 		),
 		func(ctx context.Context, released func()) (srpc.Invoker, func(), error) {
-			return v86fsRuntimeRouteInvoker{inv: mux}, nil, nil
+			return v86fsRuntimeRouteInvoker{le: r.le, inv: mux}, nil, nil
 		},
 		[]string{servicePrefix},
 		true,
@@ -262,7 +263,7 @@ func (r *v86Resource) exposeV86fsToRuntimePlugin(ctx context.Context, pluginID s
 		return nil, err
 	}
 	return func() {
-		logrus.WithFields(logrus.Fields{
+		r.le.WithFields(logrus.Fields{
 			"object-key":     r.objectKey,
 			"service-prefix": servicePrefix,
 		}).Debug("v86fs runtime route releasing")
@@ -271,12 +272,13 @@ func (r *v86Resource) exposeV86fsToRuntimePlugin(ctx context.Context, pluginID s
 }
 
 type v86fsRuntimeRouteInvoker struct {
+	le  *logrus.Entry
 	inv srpc.Invoker
 }
 
 func (i v86fsRuntimeRouteInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
 	ok, err := i.inv.InvokeMethod(serviceID, methodID, strm)
-	logrus.WithError(err).
+	i.le.WithError(err).
 		WithField("service-id", serviceID).
 		WithField("method-id", methodID).
 		WithField("ok", ok).
@@ -289,7 +291,7 @@ func (i v86fsRuntimeRouteInvoker) InvokeMethod(serviceID, methodID string, strm 
 // failure here is treated as an ERROR state for the handler.
 func (r *v86Resource) verifyBootMounts(ctx context.Context) error {
 	for _, mountName := range []string{"", "wasm", "seabios", "vgabios", "kernel"} {
-		fsh, err := resolveV86Mount(ctx, r.ws, r.objectKey, mountName)
+		fsh, err := resolveV86Mount(ctx, r.le, r.ws, r.objectKey, mountName)
 		if err != nil {
 			displayName := mountName
 			if displayName == "" {

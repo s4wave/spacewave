@@ -21,7 +21,7 @@ import (
 // Supported mount names: ""/rootfs (rootfs), "kernel", "seabios", "vgabios",
 // "wasm". The per-VM bios override (if present) covers both seabios and
 // vgabios until a per-asset override is added.
-func resolveV86Mount(ctx context.Context, ws world.WorldState, objectKey, name string) (*unixfs.FSHandle, error) {
+func resolveV86Mount(ctx context.Context, le *logrus.Entry, ws world.WorldState, objectKey, name string) (*unixfs.FSHandle, error) {
 	var overridePred, imagePred quad.IRI
 	switch name {
 	case "", "rootfs":
@@ -48,7 +48,7 @@ func resolveV86Mount(ctx context.Context, ws world.WorldState, objectKey, name s
 		return nil, err
 	}
 	if ok {
-		return openFSHandleForObject(ctx, ws, targetKey)
+		return openFSHandleForObject(ctx, le, ws, targetKey)
 	}
 
 	imageKey, ok, err := lookupSingleEdge(ctx, ws, objectKey, string(s4wave_vm.PredV86Image))
@@ -65,7 +65,7 @@ func resolveV86Mount(ctx context.Context, ws world.WorldState, objectKey, name s
 	if !ok {
 		return nil, errors.Errorf("v86 image %s has no %s edge", imageKey, imagePred)
 	}
-	return openFSHandleForObject(ctx, ws, assetKey)
+	return openFSHandleForObject(ctx, le, ws, assetKey)
 }
 
 // lookupSingleEdge returns the target object key of the first graph quad
@@ -90,12 +90,11 @@ func lookupSingleEdge(ctx context.Context, ws world.WorldState, subject, pred st
 }
 
 // openFSHandleForObject opens a read-only FSHandle for a UnixFS world object.
-func openFSHandleForObject(ctx context.Context, ws world.WorldState, objectKey string) (*unixfs.FSHandle, error) {
+func openFSHandleForObject(ctx context.Context, le *logrus.Entry, ws world.WorldState, objectKey string) (*unixfs.FSHandle, error) {
 	fsType, _, err := unixfs_world.LookupFsType(ctx, ws, objectKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "lookup fs type")
 	}
-	le := logrus.NewEntry(logrus.StandardLogger())
 	fsCursor := unixfs_world.NewFSCursor(le, ws, objectKey, fsType, nil, false)
 	fsh, err := unixfs.NewFSHandle(fsCursor)
 	if err != nil {

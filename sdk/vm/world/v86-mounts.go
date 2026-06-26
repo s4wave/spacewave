@@ -13,6 +13,7 @@ import (
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_vm "github.com/s4wave/spacewave/sdk/vm"
+	"github.com/sirupsen/logrus"
 )
 
 // homeMountPath is the guest filesystem path at which the auto-provisioned
@@ -30,6 +31,7 @@ const homeMountPath = "/home"
 // a no-op in that case.
 func registerV86ConfigMounts(
 	ctx context.Context,
+	le *logrus.Entry,
 	ws world.WorldState,
 	objectKey string,
 	srv *unixfs_v86fs.Server,
@@ -83,7 +85,7 @@ func registerV86ConfigMounts(
 		if name == "" {
 			continue
 		}
-		handle, err := openFSHandleForObject(ctx, ws, objKey)
+		handle, err := openFSHandleForObject(ctx, le, ws, objKey)
 		if err != nil {
 			cleanup()
 			return nil, errors.Wrapf(err, "open v86 mount %q -> %s", path, objKey)

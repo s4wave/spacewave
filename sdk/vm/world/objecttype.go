@@ -57,18 +57,18 @@ func vmV86Factory(
 
 	// Create v86fs server with mount resolver that resolves graph edges to FSHandle.
 	v86fsServer := unixfs_v86fs.NewServer(func(ctx context.Context, name string) (*unixfs.FSHandle, error) {
-		return resolveV86Mount(ctx, resourceWS, objectKey, name)
+		return resolveV86Mount(ctx, le, resourceWS, objectKey, name)
 	})
 
 	// Pre-populate the v86fs dynamic mount table from V86Config.Mounts so the
 	// guest learns about workspace/home/etc. mounts via MOUNT_NOTIFY frames
 	// when the v86fs session joins.
-	mountCleanup, err := registerV86ConfigMounts(ctx, resourceWS, objectKey, v86fsServer)
+	mountCleanup, err := registerV86ConfigMounts(ctx, le, resourceWS, objectKey, v86fsServer)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	resource := newV86Resource(objectKey, resourceWS, b, v86fsServer)
+	resource := newV86Resource(le, objectKey, resourceWS, b, v86fsServer)
 	mux := resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		if err := s4wave_process.SRPCRegisterPersistentExecutionService(mux, resource); err != nil {
 			return err
