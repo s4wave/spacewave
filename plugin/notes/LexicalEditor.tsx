@@ -16,7 +16,11 @@ import { LinkNode, AutoLinkNode } from '@lexical/link'
 import { ListNode, ListItemNode } from '@lexical/list'
 import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode'
 import { TableNode, TableCellNode, TableRowNode } from '@lexical/table'
-import { $convertFromMarkdownString, TRANSFORMERS } from '@lexical/markdown'
+import {
+  $convertFromMarkdownString,
+  $convertToMarkdownString,
+  TRANSFORMERS,
+} from '@lexical/markdown'
 import type { Transformer } from '@lexical/markdown'
 
 import editorTheme from './editor/theme.js'
@@ -24,6 +28,7 @@ import {
   SpacewaveEmbedNode,
   SPACEWAVE_EMBED_TRANSFORMER,
 } from './editor/SpacewaveEmbedNode.js'
+import { OrgPassthroughNode } from './editor/OrgPassthroughNode.js'
 import ToolbarPlugin from './editor/ToolbarPlugin.js'
 import FloatingToolbarPlugin from './editor/FloatingToolbarPlugin.js'
 import SlashCommandPlugin from './editor/SlashCommandPlugin.js'
@@ -31,6 +36,7 @@ import TabIndentPlugin from './editor/TabIndentPlugin.js'
 import CodeHighlightPlugin from './editor/CodeHighlightPlugin.js'
 import SavePlugin from './editor/SavePlugin.js'
 import EditorCommandsPlugin from './editor/EditorCommandsPlugin.js'
+import { $convertFromOrgString, $convertToOrgString } from './org/lexical.js'
 
 // validateLinkUrl rejects dangerous URL schemes (javascript:, data:, vbscript:).
 function validateLinkUrl(url: string): boolean {
@@ -63,23 +69,32 @@ const EDITOR_NODES = [
   ListItemNode,
   HorizontalRuleNode,
   SpacewaveEmbedNode,
+  OrgPassthroughNode,
   TableNode,
   TableCellNode,
   TableRowNode,
 ]
 
+export type NoteEditorFormat = 'markdown' | 'org'
+
 interface LexicalEditorProps {
-  markdown: string
-  onSave: (markdown: string) => void
+  content: string
+  format: NoteEditorFormat
+  onSave: (content: string) => void
   composerKey?: string
 }
 
-// LexicalEditor is the WYSIWYG markdown editor using Lexical.
-// Markdown is the source of truth: flash-imported on mount, flash-exported on save.
-function LexicalEditor({ markdown, onSave, composerKey }: LexicalEditorProps) {
-  // Remount the composer when markdown source changes externally.
+// LexicalEditor is the WYSIWYG note editor using Lexical.
+// The source file text is imported on mount and exported on save.
+function LexicalEditor({
+  content,
+  format,
+  onSave,
+  composerKey,
+}: LexicalEditorProps) {
+  // Remount the composer when the source changes externally.
   // The key ensures a fresh Lexical instance.
-  const key = composerKey ?? markdown
+  const key = composerKey ?? `${format}:${content}`
 
   const handleSave = useCallback(
     (body: string) => {
@@ -88,6 +103,12 @@ function LexicalEditor({ markdown, onSave, composerKey }: LexicalEditorProps) {
     [onSave],
   )
 
+  const exportContent = useCallback(() => {
+    return format === 'org'
+      ? $convertToOrgString()
+      : $convertToMarkdownString(ALL_TRANSFORMERS, undefined, true)
+  }, [format])
+
   const initialConfig = useMemo(
     () => ({
       namespace: 'SpacewaveNotes',
@@ -95,10 +116,14 @@ function LexicalEditor({ markdown, onSave, composerKey }: LexicalEditorProps) {
       theme: editorTheme,
       onError: (error: Error) => console.error('[LexicalEditor]', error),
       editorState: () => {
-        $convertFromMarkdownString(markdown, ALL_TRANSFORMERS, undefined, true)
+        if (format === 'org') {
+          $convertFromOrgString(content)
+          return
+        }
+        $convertFromMarkdownString(content, ALL_TRANSFORMERS, undefined, true)
       },
     }),
-    [markdown],
+    [content, format],
   )
 
   return (
@@ -117,13 +142,15 @@ function LexicalEditor({ markdown, onSave, composerKey }: LexicalEditorProps) {
         <LinkPlugin validateUrl={validateLinkUrl} />
         <TablePlugin />
         <HorizontalRulePlugin />
-        <MarkdownShortcutPlugin transformers={ALL_TRANSFORMERS} />
+        {format === 'markdown' && (
+          <MarkdownShortcutPlugin transformers={ALL_TRANSFORMERS} />
+        )}
         <TabIndentPlugin />
         <CodeHighlightPlugin />
         <FloatingToolbarPlugin />
         <SlashCommandPlugin />
         <EditorCommandsPlugin />
-        <SavePlugin transformers={ALL_TRANSFORMERS} onSave={handleSave} />
+        <SavePlugin exportString={exportContent} onSave={handleSave} />
       </div>
     </LexicalComposer>
   )

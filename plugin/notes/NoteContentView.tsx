@@ -13,7 +13,8 @@ import { LuCode, LuPenLine } from 'react-icons/lu'
 
 import { parseNote, reassembleNote } from './frontmatter.js'
 import FrontmatterDisplay from './FrontmatterDisplay.js'
-import LexicalEditor from './LexicalEditor.js'
+import LexicalEditor, { type NoteEditorFormat } from './LexicalEditor.js'
+import { reassembleOrgMetadata, splitOrgMetadata } from './org/org.js'
 
 interface NoteContentViewProps {
   worldState: Resource<IWorldState>
@@ -42,6 +43,9 @@ function NoteContentView({
     const base = parsed.path
     return base ? `${base}/${noteName}` : noteName
   }, [parsed.path, noteName])
+  const noteFormat: NoteEditorFormat = noteName.toLowerCase().endsWith('.org')
+    ? 'org'
+    : 'markdown'
 
   const rootHandle = useUnixFSRootHandle(worldState, parsed.objectKey)
   const fileHandle = useUnixFSHandle(rootHandle, filePath)
@@ -57,17 +61,26 @@ function NoteContentView({
   } | null>(null)
   const skipNextSourceBlurSave = useRef(false)
   const content =
-    savedContent?.filePath === filePath ?
-      savedContent.content
-    : (textResource.value ?? '')
+    savedContent?.filePath === filePath
+      ? savedContent.content
+      : (textResource.value ?? '')
 
-  // Parse frontmatter from file content.
+  // Parse format-specific metadata from file content.
   const parsedNote = useMemo(() => {
-    if (!content) return null
+    if (!content || noteFormat !== 'markdown') return null
     return parseNote(content)
-  }, [content])
+  }, [content, noteFormat])
+  const orgNote = useMemo(() => {
+    if (noteFormat !== 'org') return null
+    return splitOrgMetadata(content)
+  }, [content, noteFormat])
 
-  const rawFrontmatter = parsedNote?.rawFrontmatter ?? ''
+  const rawMetadata =
+    noteFormat === 'org'
+      ? (orgNote?.metadata ?? '')
+      : (parsedNote?.rawFrontmatter ?? '')
+  const editorContent =
+    noteFormat === 'org' ? (orgNote?.body ?? '') : (parsedNote?.body ?? '')
 
   const writeFile = useCallback(
     async (content: string) => {
@@ -93,15 +106,18 @@ function NoteContentView({
     [fileHandle.value, filePath, onContentSaved],
   )
 
-  // WYSIWYG save: re-assemble frontmatter + exported body, then write.
+  // WYSIWYG save: re-assemble format metadata + exported body, then write.
   const handleWysiwygSave = useCallback(
     (body: string) => {
-      const full = reassembleNote(rawFrontmatter, body)
+      const full =
+        noteFormat === 'org'
+          ? reassembleOrgMetadata(rawMetadata, body)
+          : reassembleNote(rawMetadata, body)
       void writeFile(full).catch(() => {
         // writeFile already surfaced the error in component state.
       })
     },
-    [rawFrontmatter, writeFile],
+    [noteFormat, rawMetadata, writeFile],
   )
 
   // Source mode blur: write the raw content.
@@ -179,7 +195,10 @@ function NoteContentView({
     <div className="flex h-full flex-col" data-testid="notes-content-view">
       <div className="border-border flex items-center justify-between border-b px-3 py-1.5">
         <span className="text-xs font-medium">
-          {noteName.split('/').pop()?.replace(/\.md$/, '') ?? noteName}
+          {noteName
+            .split('/')
+            .pop()
+            ?.replace(/\.(md|org)$/i, '') ?? noteName}
         </span>
         <button
           type="button"
@@ -223,7 +242,7 @@ function NoteContentView({
         </div>
       ) : (
         <>
-          {parsedNote && (
+          {noteFormat === 'markdown' && parsedNote && (
             <FrontmatterDisplay
               frontmatter={parsedNote.frontmatter}
               onTagClick={onFilterTag}
@@ -232,7 +251,8 @@ function NoteContentView({
           )}
           <div className="flex flex-1 flex-col overflow-hidden">
             <LexicalEditor
-              markdown={parsedNote?.body ?? ''}
+              content={editorContent}
+              format={noteFormat}
               onSave={handleWysiwygSave}
             />
           </div>

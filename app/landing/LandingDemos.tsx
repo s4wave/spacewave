@@ -613,7 +613,8 @@ export function NotesLandingDemo() {
           <div className="bg-background/60 h-[28rem] min-h-0 overflow-hidden">
             <LexicalEditor
               composerKey={selectedId}
-              markdown={selectedNote.body}
+              content={selectedNote.body}
+              format="markdown"
               onSave={handleSave}
             />
           </div>

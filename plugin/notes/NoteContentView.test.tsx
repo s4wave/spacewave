@@ -37,13 +37,19 @@ vi.mock('@s4wave/sdk/space/object-uri.js', () => ({
 
 vi.mock('./LexicalEditor.js', () => ({
   default: ({
-    markdown,
+    content,
+    format,
     onSave,
   }: {
-    markdown: string
-    onSave: (md: string) => void
+    content: string
+    format: string
+    onSave: (content: string) => void
   }) => (
-    <div data-testid="lexical-editor" data-markdown={markdown}>
+    <div
+      data-testid="lexical-editor"
+      data-content={content}
+      data-format={format}
+    >
       <button type="button" onClick={() => onSave('saved-content')}>
         mock-save
       </button>
@@ -165,9 +171,10 @@ describe('NoteContentView', () => {
     )
     const editor = screen.getByTestId('lexical-editor')
     expect(editor).toBeDefined()
-    expect(editor.getAttribute('data-markdown')).toBe(
+    expect(editor.getAttribute('data-content')).toBe(
       '# Hello World\n\nSome content here.',
     )
+    expect(editor.getAttribute('data-format')).toBe('markdown')
     // Title should strip .md extension.
     expect(screen.getByText('hello')).toBeDefined()
     // Should show Source button in WYSIWYG mode.
@@ -194,6 +201,53 @@ describe('NoteContentView', () => {
     const fm = screen.getByTestId('frontmatter-display')
     expect(fm).toBeDefined()
     expect(fm.textContent).toContain('alpha,beta')
+  })
+
+  it('opens Org metadata outside Lexical and saves through the shared writer', async () => {
+    const orgContent =
+      '#+TITLE: Org Note\n#+SETUPFILE: ../../setup.org\n\n* TODO Heading\n:PROPERTIES:\n:CUSTOM_ID: h\n:END:\n'
+    const writeAt = vi.fn(() => Promise.resolve(0n))
+    const truncate = vi.fn(() => Promise.resolve())
+    vi.mocked(useUnixFSHandle).mockReturnValue({
+      value: { writeAt, truncate } as never,
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    })
+    vi.mocked(useUnixFSHandleTextContent).mockReturnValue({
+      value: orgContent,
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    })
+
+    render(
+      <NoteContentView
+        worldState={mockWorldState as never}
+        sourceRef="obj-key/-/docs"
+        noteName="note.org"
+        editing={false}
+        onToggleEdit={vi.fn()}
+      />,
+    )
+
+    const editor = screen.getByTestId('lexical-editor')
+    expect(editor.getAttribute('data-format')).toBe('org')
+    expect(editor.getAttribute('data-content')).toBe(
+      '* TODO Heading\n:PROPERTIES:\n:CUSTOM_ID: h\n:END:\n',
+    )
+    expect(screen.queryByTestId('frontmatter-display')).toBeNull()
+    expect(screen.getByText('note')).toBeDefined()
+
+    const expectedContent =
+      '#+TITLE: Org Note\n#+SETUPFILE: ../../setup.org\n\nsaved-content'
+    const expectedEncoded = new TextEncoder().encode(expectedContent)
+
+    fireEvent.click(screen.getByText('mock-save'))
+
+    await waitFor(() => expect(writeAt).toHaveBeenCalledOnce())
+    expect(writeAt).toHaveBeenCalledWith(0n, expectedEncoded)
+    expect(truncate).toHaveBeenCalledWith(BigInt(expectedEncoded.byteLength))
   })
 
   it('renders textarea in source mode', () => {

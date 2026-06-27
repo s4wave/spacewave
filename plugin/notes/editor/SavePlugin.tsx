@@ -1,17 +1,15 @@
 import { useEffect, useEffectEvent, useRef } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import { $convertToMarkdownString } from '@lexical/markdown'
-import type { Transformer } from '@lexical/markdown'
 
 interface SavePluginProps {
-  transformers: Transformer[]
-  onSave: (markdown: string) => void
+  exportString: () => string
+  onSave: (content: string) => void
   debounceMs?: number
 }
 
-// SavePlugin exports markdown from Lexical state on debounce and blur.
+// SavePlugin exports text from Lexical state on debounce and blur.
 function SavePlugin({
-  transformers,
+  exportString,
   onSave,
   debounceMs = 2000,
 }: SavePluginProps) {
@@ -21,10 +19,10 @@ function SavePlugin({
 
   const doExport = useEffectEvent(() => {
     editor.getEditorState().read(() => {
-      const md = $convertToMarkdownString(transformers, undefined, true)
-      if (md !== lastExported.current) {
-        lastExported.current = md
-        onSave(md)
+      const content = exportString()
+      if (content !== lastExported.current) {
+        lastExported.current = content
+        onSave(content)
       }
     })
   })

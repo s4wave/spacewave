@@ -3,8 +3,11 @@ import { describe, expect, it } from 'vitest'
 import {
   type OrgNode,
   findFirstOrgNode,
+  getOrgBridgeSegments,
   parseOrg,
+  reassembleOrgMetadata,
   serializeOrg,
+  splitOrgMetadata,
   updateOrgBlock,
   updateOrgHeading,
 } from './org.js'
@@ -57,6 +60,45 @@ describe('parseOrg and serializeOrg', () => {
     for (const source of setupFiles) {
       expect(serializeOrg(parseOrg(source))).toBe(source)
     }
+  })
+
+  it('splits and reassembles leading keyword metadata byte-for-byte', () => {
+    const source =
+      '#+TITLE: Split Proof\n#+SETUPFILE: ../../setup.org\n\n* Body\n'
+
+    const split = splitOrgMetadata(source)
+
+    expect(split.metadata).toBe(
+      '#+TITLE: Split Proof\n#+SETUPFILE: ../../setup.org\n\n',
+    )
+    expect(split.body).toBe('* Body\n')
+    expect(reassembleOrgMetadata(split.metadata, split.body)).toBe(source)
+  })
+
+  it('classifies bridge segments without turning passthrough into editor grammar', () => {
+    const document = parseOrg(hardOrg)
+    const segments = getOrgBridgeSegments(document)
+
+    expect(
+      segments.some(
+        (segment) =>
+          segment.kind === 'modeled' && segment.modeledKind === 'headline',
+      ),
+    ).toBe(true)
+    expect(
+      segments.some(
+        (segment) =>
+          segment.kind === 'passthrough' &&
+          segment.source.includes(':PROPERTIES:'),
+      ),
+    ).toBe(true)
+    expect(
+      segments.some(
+        (segment) =>
+          segment.kind === 'passthrough' &&
+          segment.source.includes('CLOCK: [2026-06-25 Thu 10:00]'),
+      ),
+    ).toBe(true)
   })
 
   it('models the corpus-floor org constructs with source spans', () => {
