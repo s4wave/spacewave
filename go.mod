@@ -28,7 +28,7 @@ require (
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.14.1-0.20260604043655-9ed25e8f78ac // latest
 	github.com/aperturerobotics/cli v1.1.0 // latest
-	github.com/aperturerobotics/common v0.34.0 // latest
+	github.com/aperturerobotics/common v0.34.1 // latest
 	github.com/aperturerobotics/controllerbus v0.53.5-0.20260620224135-5f6015d2a8b0 // latest
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
