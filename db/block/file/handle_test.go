@@ -11,6 +11,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
+	"github.com/s4wave/spacewave/db/block/byteslice"
+	"github.com/s4wave/spacewave/db/block/traverse"
 	bucket_mock "github.com/s4wave/spacewave/db/bucket/mock"
 )
 
@@ -92,6 +94,101 @@ func TestInlineRootBlobReader(t *testing.T) {
 	}
 	if !bytes.Equal(ob, testBuf) {
 		t.Fatal("test buffer mismatch")
+	}
+}
+
+func TestRangeBlobGenericTraversal(t *testing.T) {
+	ctx := context.Background()
+	bkt := bucket_mock.NewMockBucket("test-range-blob-generic-traversal", nil)
+	btx, bcs := block.NewTransaction(bkt, nil, nil, nil)
+	testBuf := []byte("test data testing")
+	rootFile := &File{
+		TotalSize: uint64(len(testBuf)),
+		Ranges: []*Range{{
+			Start:  0,
+			Length: uint64(len(testBuf)),
+		}},
+	}
+	bcs.SetBlock(rootFile, true)
+	rangeSet := NewRangeSet(&rootFile.Ranges, bcs.FollowSubBlock(4))
+	_, r1cs := rangeSet.Get(0)
+	r1cs = r1cs.FollowRef(4, nil)
+	_, err := blob.BuildBlob(ctx, int64(len(testBuf)), bytes.NewReader(testBuf), r1cs, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	_, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
+	fi, err := block.UnmarshalBlock[*File](ctx, bcs, NewFileBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	var sawRangeBlob bool
+	err = traverse.Visit(ctx, fi, bcs, func(loc *traverse.Location) error {
+		if loc.Parent == nil {
+			return nil
+		}
+		if _, ok := loc.Parent.Block.(*Range); !ok || loc.ParentRefID != 4 {
+			return nil
+		}
+		switch loc.Block.(type) {
+		case *blob.Blob:
+			sawRangeBlob = true
+		case *byteslice.ByteSlice:
+			t.Fatalf("range ref traversed as byteslice")
+		}
+		return nil
+	}, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !sawRangeBlob {
+		t.Fatalf("generic traversal did not visit range ref as blob")
+	}
+
+	rdr := NewHandle(ctx, bcs, fi)
+	defer rdr.Close()
+	ob, err := io.ReadAll(rdr)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !bytes.Equal(ob, testBuf) {
+		t.Fatal("test buffer mismatch")
+	}
+}
+
+func TestRangeSparseGenericTraversal(t *testing.T) {
+	ctx := context.Background()
+	bkt := bucket_mock.NewMockBucket("test-range-sparse-generic-traversal", nil)
+	_, bcs := block.NewTransaction(bkt, nil, nil, nil)
+	rootFile := &File{
+		TotalSize: 4,
+		Ranges: []*Range{{
+			Start:  0,
+			Length: 4,
+		}},
+	}
+	bcs.SetBlock(rootFile, true)
+	rangeSet := NewRangeSet(&rootFile.Ranges, bcs.FollowSubBlock(4))
+	rangeSet.Get(0)
+	fi := rootFile
+
+	err := traverse.Visit(ctx, fi, bcs, func(loc *traverse.Location) error {
+		if loc.Parent == nil {
+			return nil
+		}
+		if _, ok := loc.Parent.Block.(*Range); ok && loc.ParentRefID == 4 {
+			t.Fatalf("generic traversal followed sparse empty range ref")
+		}
+		return nil
+	}, false)
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 }
 

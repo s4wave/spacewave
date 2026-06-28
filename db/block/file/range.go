@@ -2,7 +2,7 @@ package file
 
 import (
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/block/byteslice"
+	"github.com/s4wave/spacewave/db/block/blob"
 )
 
 // IsNil checks if the object is nil.
@@ -50,7 +50,7 @@ func (r *Range) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 func (r *Range) GetBlockRefCtor(id uint32) block.Ctor {
 	switch id {
 	case 4:
-		return byteslice.NewByteSliceBlock
+		return blob.NewBlobBlock
 	}
 	return nil
 }
