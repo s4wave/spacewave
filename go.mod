@@ -9,9 +9,9 @@ replace (
 	github.com/dgraph-io/badger/v4 => github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac // main
 	github.com/dgraph-io/ristretto/v2 => github.com/aperturerobotics/ristretto/v2 v2.0.0-20260619193556-b7aa4f19bce9 // main
 	// aperture: use ext-engines forks
-	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260620031438-1487aad3dad2 // aperture-5
+	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260621171526-1e2167d387d8 // aperture-7
 	github.com/dolthub/jsonpath => github.com/aperturerobotics/jsonpath v0.1.5-0.20260620020844-bd6430df1008
-	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20260620015210-7020baa15de7 // aperture
+	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20260628002426-ab1c68c3a83d // aperture-7
 	github.com/go-git/go-git/v6 => github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260620031345-da32192f9c83
 	github.com/pion/webrtc/v4 => github.com/aperturerobotics/pion-webrtc/v4 v4.2.16-0.20260620023100-dab2ab5b7c65
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.5-0.20260430110313-9c892333814d
@@ -20,22 +20,22 @@ replace (
 	github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 // aperture-2
 )
 
-require github.com/s4wave/goscript v0.2.8-0.20260625073237-d9e027b60d8d // master
+require github.com/s4wave/goscript v0.2.9-0.20260628100304-f76c91a0414c // master
 
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/bbolt v0.0.0-20260617204204-71b28cbadcb4 // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
-	github.com/aperturerobotics/cayley v0.14.1-0.20260604043655-9ed25e8f78ac // latest
+	github.com/aperturerobotics/cayley v0.14.1-0.20260604043655-9ed25e8f78ac // master
 	github.com/aperturerobotics/cli v1.1.0 // latest
 	github.com/aperturerobotics/common v0.34.1 // latest
-	github.com/aperturerobotics/controllerbus v0.53.5-0.20260620224135-5f6015d2a8b0 // latest
+	github.com/aperturerobotics/controllerbus v0.53.5-0.20260620224135-5f6015d2a8b0 // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 	github.com/aperturerobotics/fastjson v0.1.2-0.20260619070337-5d150feb5e98
 	github.com/aperturerobotics/fsnotify v1.9.1-0.20260506231828-931cb4bf1761 // master
 	github.com/aperturerobotics/go-brotli-decoder v1.2.2
-	github.com/aperturerobotics/go-indexeddb v0.2.3 // master
+	github.com/aperturerobotics/go-indexeddb v0.2.4-0.20260329113533-333005693662 // master
 	github.com/aperturerobotics/go-kvfile v0.10.1-0.20260423183349-fcbaa93292c0 // master
 	github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5
 	github.com/aperturerobotics/go-multibase v0.4.0 // indirect
@@ -47,10 +47,10 @@ require (
 	github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
-	github.com/aperturerobotics/protobuf-go-lite v0.14.0 // master
+	github.com/aperturerobotics/protobuf-go-lite v0.14.1-0.20260604021409-f936dca845a2 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
 	github.com/aperturerobotics/starpc v0.49.18 // latest
-	github.com/aperturerobotics/util v1.34.10-0.20260610174257-740fe32c1ea1 // latest
+	github.com/aperturerobotics/util v1.34.10-0.20260610174257-740fe32c1ea1 // master
 )
 
 require (
@@ -64,7 +64,7 @@ require (
 	golang.org/x/sync v0.21.0
 	golang.org/x/sys v0.46.0
 	golang.org/x/term v0.44.0
-	golang.org/x/tools v0.46.0 // latest
+	golang.org/x/tools v0.47.0 // latest
 )
 
 require (
@@ -92,8 +92,8 @@ require (
 	github.com/emirpasic/gods v1.18.1
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-billy/v6 v6.0.0-alpha.1.0.20260519112248-0095b064a6c6 // main
-	github.com/go-git/go-git/v6 v6.0.0-alpha.4 // main
+	github.com/go-git/go-billy/v6 v6.0.0-alpha.1.0.20260616215428-695a78d87393 // main
+	github.com/go-git/go-git/v6 v6.0.0-alpha.4.0.20260626111302-34fa78dd321e // main
 	github.com/goccy/go-json v0.10.6
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.6.0
@@ -187,7 +187,7 @@ require (
 	go.opentelemetry.io/otel v1.41.0 // indirect
 	go.opentelemetry.io/otel/trace v1.41.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/telemetry v0.0.0-20260610154732-fb80ec83bdd9 // indirect
+	golang.org/x/telemetry v0.0.0-20260625142307-59b4966ccb57 // indirect
 	golang.org/x/text v0.38.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
