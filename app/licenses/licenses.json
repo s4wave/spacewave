@@ -1012,7 +1012,7 @@
     },
     {
       "name": "github.com/aperturerobotics/go-indexeddb",
-      "version": "v0.2.3",
+      "version": "v0.2.4-0.20260329113533-333005693662",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/go-indexeddb"
@@ -1083,7 +1083,7 @@
     },
     {
       "name": "github.com/aperturerobotics/protobuf-go-lite",
-      "version": "v0.14.0",
+      "version": "v0.14.1-0.20260604021409-f936dca845a2",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/protobuf-go-lite",
@@ -1240,7 +1240,7 @@
     },
     {
       "name": "github.com/go-git/go-billy/v6",
-      "version": "v6.0.0-alpha.1.0.20260519112248-0095b064a6c6",
+      "version": "v6.0.0-alpha.1.0.20260616215428-695a78d87393",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/go-git/go-billy",
@@ -1684,7 +1684,7 @@
     },
     {
       "name": "github.com/s4wave/goscript",
-      "version": "v0.2.8-0.20260625073237-d9e027b60d8d",
+      "version": "v0.2.9-0.20260628100304-f76c91a0414c",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/s4wave/goscript",
@@ -1914,7 +1914,7 @@
     },
     {
       "name": "golang.org/x/tools",
-      "version": "v0.46.0",
+      "version": "v0.47.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/tools",
