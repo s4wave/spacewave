@@ -114,8 +114,9 @@ describe('PluginWorker startup shutdown', () => {
     ).toHaveLength(1)
   })
 
-  test('installs OPFS bridge global before starting Config A plugins', async () => {
-    const global = new FakeDedicatedWorkerGlobal()
+  test('installs OPFS bridge global when hosted in a SharedWorker under config C', async () => {
+    vi.stubGlobal('SharedWorkerGlobalScope', FakeSharedWorkerGlobalScope)
+    const global = new FakeSharedWorkerGlobal()
     vi.stubGlobal('navigator', {})
     const opfsChannel = new MessageChannel()
     const refreshedOpfsChannel = new MessageChannel()
@@ -138,7 +139,7 @@ describe('PluginWorker startup shutdown', () => {
       })
     })
     const worker = new PluginWorker(
-      global as unknown as DedicatedWorkerGlobalScope,
+      global as unknown as SharedWorkerGlobalScope,
       startPlugin,
       null,
     )
@@ -151,14 +152,18 @@ describe('PluginWorker startup shutdown', () => {
       .mockResolvedValueOnce(opfsChannel.port1)
       .mockResolvedValueOnce(refreshedOpfsChannel.port1)
 
-    global.dispatchMessage({
+    // A cross-origin-isolated config C page still hosts the Go runtime in a
+    // SharedWorker, where direct OPFS is denied, so the bridge must activate.
+    const initChannel = new MessageChannel()
+    global.dispatchConnect(initChannel.port2)
+    initChannel.port1.postMessage({
       initData: new TextEncoder().encode(btoa('{}')),
       workerCommsDetect: {
-        config: 'A',
+        config: 'C',
         caps: {
-          crossOriginIsolated: false,
-          sabAvailable: false,
-          opfsAvailable: false,
+          crossOriginIsolated: true,
+          sabAvailable: true,
+          opfsAvailable: true,
           webLocksAvailable: true,
           broadcastChannelAvailable: true,
         },
@@ -214,7 +219,77 @@ describe('PluginWorker startup shutdown', () => {
     delete globals.__spacewaveOpfsBridgePort
     delete globals.__spacewaveInstallOpfsRemoteDriver
   })
+
+  test('does not install an OPFS bridge in a DedicatedWorker host even under config A', async () => {
+    const global = new FakeDedicatedWorkerGlobal()
+    vi.stubGlobal('navigator', {})
+    const globals = globalThis as typeof globalThis & {
+      __spacewaveOpfsBridgePort?: { close: () => void }
+      __spacewaveInstallOpfsRemoteDriver?: (port: unknown) => boolean
+    }
+    const installRemoteDriver = vi.fn()
+    globals.__spacewaveInstallOpfsRemoteDriver = installRemoteDriver
+    const startPlugin = vi.fn()
+    const started = new Promise<void>((resolve) => {
+      startPlugin.mockImplementation(async () => {
+        resolve()
+      })
+    })
+    const worker = new PluginWorker(
+      global as unknown as DedicatedWorkerGlobalScope,
+      startPlugin,
+      null,
+    )
+    vi.spyOn(worker.webDocumentTracker, 'waitConn').mockResolvedValue(undefined)
+    vi.spyOn(
+      worker.webDocumentTracker,
+      'requestWebRtcBridge',
+    ).mockResolvedValue(null)
+    const requestOpfsWorker = vi.spyOn(
+      worker.webDocumentTracker,
+      'requestOpfsWorker',
+    )
+
+    global.dispatchMessage({
+      initData: new TextEncoder().encode(btoa('{}')),
+      workerCommsDetect: {
+        config: 'A',
+        caps: {
+          crossOriginIsolated: false,
+          sabAvailable: false,
+          opfsAvailable: false,
+          webLocksAvailable: true,
+          broadcastChannelAvailable: true,
+        },
+      },
+    })
+
+    await started
+
+    expect(requestOpfsWorker).not.toHaveBeenCalled()
+    expect(globals.__spacewaveOpfsBridgePort).toBeUndefined()
+    expect(installRemoteDriver).not.toHaveBeenCalled()
+    delete globals.__spacewaveInstallOpfsRemoteDriver
+  })
 })
+
+class FakeSharedWorkerGlobalScope {}
+
+class FakeSharedWorkerGlobal extends FakeSharedWorkerGlobalScope {
+  public readonly name = 'plugin/spacewave-core?s=/b/pd/core.mjs&t=wasm&p=1'
+  public readonly close = vi.fn()
+  private connectHandler?: (ev: MessageEvent) => void
+
+  public addEventListener(type: string, handler: EventListener): void {
+    if (type === 'connect') {
+      this.connectHandler = handler as (ev: MessageEvent) => void
+    }
+  }
+
+  public dispatchConnect(port: MessagePort): void {
+    this.connectHandler?.({ ports: [port] } as unknown as MessageEvent)
+  }
+}
 
 class FakeDedicatedWorkerGlobal {
   public readonly name = 'plugin/spacewave-core?s=/b/pd/core.mjs&t=wasm&p=1'

@@ -63,13 +63,11 @@ func TestGoScriptSharedWorkerOPFSProbe(t *testing.T) {
 				path: mark.detail?.path ?? null,
 			}))
 		const opfsBridgeMarks = marks
-			.filter((mark) =>
-				mark.label === 'worker.opfs-bridge-ready' ||
-				mark.label === 'worker.opfs-bridge-refreshed')
+			.filter((mark) => mark.label === 'runtime.opfs-bridge-ready')
 			.map((mark) => ({
 				workerId: mark.detail?.workerId ?? null,
-				shared: mark.detail?.shared ?? null,
-				workerType: mark.detail?.workerType ?? null,
+				documentId: mark.detail?.documentId ?? null,
+				runtimeId: mark.detail?.runtimeId ?? null,
 				enabled: mark.detail?.enabled ?? null,
 			}))
 		return {
@@ -86,8 +84,13 @@ func TestGoScriptSharedWorkerOPFSProbe(t *testing.T) {
 	if !ok {
 		t.Fatalf("unexpected topology result %T: %#v", topologyRaw, topologyRaw)
 	}
+	// The runtime-worker OPFS bridge only activates when the engine runtime runs
+	// in a SharedWorker, which is the staging/production topology and the only
+	// scope that hits the OPFS getDirectory SecurityError. The shared harness
+	// defaults to dedicated workers, so skip unless booted with
+	// E2E_WASM_WORKER_MODE=shared rather than hard-failing on the wrong topology.
 	if got, _ := topology["runtimeMode"].(string); got != "shared-worker" {
-		t.Fatalf("runtime worker mode = %q, want shared-worker; topology=%#v", got, topology)
+		t.Skipf("runtime worker mode = %q, want shared-worker; run with E2E_WASM_WORKER_MODE=shared to exercise the runtime OPFS bridge; topology=%#v", got, topology)
 	}
 	if got, _ := topology["crossOriginIsolated"].(bool); !got {
 		t.Fatalf("page crossOriginIsolated = false; topology=%#v", topology)
@@ -107,7 +110,7 @@ func TestGoScriptSharedWorkerOPFSProbe(t *testing.T) {
 		}
 	}
 	if !opfsBridgeReady {
-		t.Fatalf("no enabled OPFS bridge mark observed; topology=%#v", topology)
+		t.Fatalf("no enabled runtime.opfs-bridge-ready mark observed; the engine runtime SharedWorker did not broker an OPFS DedicatedWorker; topology=%#v", topology)
 	}
 
 	probeRaw, err := page.Evaluate(`async () => {

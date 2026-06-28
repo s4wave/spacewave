@@ -3,6 +3,7 @@ import { HandleStreamFunc } from 'starpc'
 import { WebDocumentTracker } from '../bldr/web-document-tracker.js'
 import { timeoutPromise } from '../bldr/timeout.js'
 import type { WorkerCommsDetectResult } from '../bldr/worker-comms-detect.js'
+import { setOpfsBridgePort } from './opfs-bridge-client.js'
 import {
   buildWebWorkerLockName,
   ClientToWebDocument,
@@ -13,100 +14,6 @@ import { PluginStartInfo } from '../../plugin/plugin.pb.js'
 import { installWebRTCShim, setBridgePort } from './wasm/webrtc-bridge.js'
 
 export const PLUGIN_STARTUP_FAILURE_SHUTDOWN_DELAY_MS = 5000
-
-const opfsBridgePortGlobal = '__spacewaveOpfsBridgePort'
-
-type OpfsRequestID = number
-
-type OpfsBridgeGlobal = typeof globalThis & {
-  __spacewaveOpfsBridgePort?: OpfsBridgeClient
-  __spacewaveInstallOpfsRemoteDriver?: (client: OpfsBridgeClient) => boolean
-}
-
-type OpfsBridgeResponse = {
-  id?: OpfsRequestID
-  ok?: boolean
-  result?: unknown
-  error?: { name?: string; message?: string }
-}
-
-class OpfsBridgeClient {
-  private readonly pending = new Map<
-    OpfsRequestID,
-    { resolve: (value: unknown) => void; reject: (reason?: unknown) => void }
-  >()
-
-  private nextID = 0
-
-  public constructor(private readonly port: MessagePort) {
-    port.addEventListener(
-      'message',
-      (event: MessageEvent<OpfsBridgeResponse>) => {
-        this.receive(event.data)
-      },
-    )
-    port.start()
-  }
-
-  public request(
-    op: string,
-    args: unknown,
-    transfer?: Transferable[],
-  ): Promise<unknown> {
-    const id = ++this.nextID
-    return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject })
-      this.port.postMessage({ id, op, args }, transfer ?? [])
-    })
-  }
-
-  public close(): void {
-    this.port.close()
-    for (const { reject } of this.pending.values()) {
-      reject(new DOMException('OPFS bridge closed', 'AbortError'))
-    }
-    this.pending.clear()
-  }
-
-  private receive(response: OpfsBridgeResponse): void {
-    if (typeof response.id !== 'number') {
-      return
-    }
-    const pending = this.pending.get(response.id)
-    if (!pending) {
-      return
-    }
-    this.pending.delete(response.id)
-    if (response.ok === false) {
-      pending.reject(remoteError(response.error))
-      return
-    }
-    pending.resolve(response.result)
-  }
-}
-
-function remoteError(error: OpfsBridgeResponse['error']): Error {
-  const err = new Error(error?.message ?? 'OPFS bridge request failed')
-  err.name = error?.name ?? 'Error'
-  return err
-}
-
-function setOpfsBridgePort(port: MessagePort): OpfsBridgeClient {
-  const globals = globalThis as OpfsBridgeGlobal
-  const previous = globals[opfsBridgePortGlobal]
-  const client = new OpfsBridgeClient(port)
-  previous?.close()
-  globals[opfsBridgePortGlobal] = client
-  globals.__spacewaveInstallOpfsRemoteDriver?.(client)
-  return client
-}
-
-function shouldRequestOpfsBridge(
-  workerCommsDetect?: WorkerCommsDetectResult,
-): boolean {
-  const config = workerCommsDetect?.config
-  return config === 'A' || config === 'F'
-}
 
 export function waitPluginStartupFailureShutdownDelay(): Promise<void> {
   return timeoutPromise(PLUGIN_STARTUP_FAILURE_SHUTDOWN_DELAY_MS)
@@ -346,7 +253,13 @@ export class PluginWorker {
       enabled: !!bridgePort,
     })
 
-    this.shouldMaintainOpfsBridge = shouldRequestOpfsBridge(workerCommsDetect)
+    // A SharedWorker scope cannot call navigator.storage.getDirectory(): Chrome
+    // throws SecurityError on OPFS root acquisition from a SharedWorker. The Go
+    // runtime hosted here must therefore route every File System Access op
+    // through a dedicated OPFS bridge worker whenever it runs in a SharedWorker,
+    // independent of the A/B/C/F worker-comms transport config. A DedicatedWorker
+    // host reaches OPFS directly and needs no bridge.
+    this.shouldMaintainOpfsBridge = this.isSharedWorker
     if (this.shouldMaintainOpfsBridge) {
       await this.requestAndInstallOpfsBridge('worker.opfs-bridge-ready')
     } else {

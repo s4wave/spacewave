@@ -721,6 +721,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   private readonly sabPairBroker = new SabPairBroker()
   // opfsWorkers tracks active OPFS protocol workers keyed by requester worker ID.
   private opfsWorkers = new Map<string, Worker>()
+  // runtimeOpfsBrokerPort is this document's broker channel to the engine runtime
+  // SharedWorker for OPFS bridge requests. Only set in shared-runtime mode.
+  private runtimeOpfsBrokerPort?: MessagePort
   // webRuntimeClient is the client for the WebRuntime.
   private readonly webRuntimeClient: WebRuntimeClient | SaucerRuntimeClient
   // webDocumentHost is the RPC interface to the WebDocumentHost via the WebRuntime.
@@ -1082,7 +1085,17 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         })
         this.worker = new SharedWorker(runtimeJsURL, workerOptions)
         this.webRuntimePort = this.worker.port!
-        this.webRuntimePort.postMessage(initMsg)
+        // A SharedWorker runtime cannot call navigator.storage.getDirectory()
+        // (Chrome SecurityError). Hand it a broker port so it can request a
+        // DedicatedWorker OPFS bridge from this document before starting Go.
+        const opfsBrokerChannel = new MessageChannel()
+        this.runtimeOpfsBrokerPort = opfsBrokerChannel.port1
+        this.runtimeOpfsBrokerPort.onmessage = (ev) => {
+          this.onRuntimeOpfsBrokerMessage(opfsBrokerChannel.port1, ev)
+        }
+        this.runtimeOpfsBrokerPort.start()
+        initMsg.opfsBrokerPort = opfsBrokerChannel.port2
+        this.webRuntimePort.postMessage(initMsg, [opfsBrokerChannel.port2])
         markStartupBoundary('runtime.worker-created', {
           source: 'browser',
           documentId: this.webDocumentUuid,
@@ -1534,6 +1547,19 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       worker.terminate()
     }
     this.opfsWorkers.clear()
+    if (this.runtimeOpfsBrokerPort) {
+      try {
+        this.runtimeOpfsBrokerPort.postMessage({
+          from: this.webDocumentUuid,
+          close: true,
+        } satisfies WebDocumentToClient)
+      } catch {
+        // The runtime worker is already gone.
+      }
+      this.runtimeOpfsBrokerPort.onmessage = null
+      this.runtimeOpfsBrokerPort.close()
+      this.runtimeOpfsBrokerPort = undefined
+    }
 
     // Notify the cross-tab broker that this tab is closing.
     navigator.serviceWorker?.controller?.postMessage({ crossTab: 'goodbye' })
@@ -2401,8 +2427,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
   }
 
-  // handleOpenOpfsWorker creates a raw DedicatedWorker OPFS bridge and sends its
-  // client MessagePort back to the requesting worker in event.ports.
+  // handleOpenOpfsWorker creates a raw DedicatedWorker OPFS bridge for a plugin
+  // worker and sends its client MessagePort back over the plugin's port.
   private async handleOpenOpfsWorker(from: string) {
     const requester = this.webWorkers[from]
     if (!requester?.port) {
@@ -2412,13 +2438,42 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       return
     }
 
-    this.closeOpfsWorker(from)
+    try {
+      const clientPort = await this.openOpfsBridgeWorker(from, () => {
+        this.sendOpfsWorkerClosed(from)
+      })
+      if (!clientPort) {
+        return
+      }
+      this.sendOpenOpfsWorkerAck(from, { from: this.webDocumentUuid }, clientPort)
+      console.log(`WebDocument: OPFS worker opened for ${from}`)
+    } catch (err) {
+      this.sendOpenOpfsWorkerError(
+        from,
+        err instanceof Error ? err.message : String(err),
+      )
+    }
+  }
+
+  // openOpfsBridgeWorker creates a DedicatedWorker OPFS bridge keyed by
+  // requesterId, waits for it to report ready, and returns the client
+  // MessagePort. After startup, a worker error tears the worker down and invokes
+  // onWorkerDied so the requester can re-host (the dead worker leaves the
+  // transferred client port with no owner, hanging in-flight bridge requests).
+  // Returns null when a concurrent request already superseded this worker (the
+  // superseding request owns the response). Throws when the worker fails to
+  // start.
+  private async openOpfsBridgeWorker(
+    requesterId: string,
+    onWorkerDied: () => void,
+  ): Promise<MessagePort | null> {
+    this.closeOpfsWorker(requesterId)
 
     let opfsWorker: Worker | undefined
     let clientPort: MessagePort | undefined
     try {
       const worker = new Worker(buildOpfsWorkerURL(this.opfsWorkerPath), {
-        name: `${from}-opfs`,
+        name: `${requesterId}-opfs`,
         type: 'module',
       })
       opfsWorker = worker
@@ -2428,7 +2483,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
             ? `\n${ev.error.stack}`
             : ''
         console.error(
-          `opfs worker ${from}: error: ${ev.message} at ${ev.filename}:${ev.lineno}:${ev.colno}${stack}`,
+          `opfs worker ${requesterId}: error: ${ev.message} at ${ev.filename}:${ev.lineno}:${ev.colno}${stack}`,
         )
       }
       worker.onerror = reportWorkerError
@@ -2437,7 +2492,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       const ready = new Promise<void>((resolve, reject) => {
         const timeout = globalThis.setTimeout(() => {
           cleanup()
-          reject(new Error(`OPFS worker ${from} did not become ready`))
+          reject(new Error(`OPFS worker ${requesterId} did not become ready`))
         }, opfsWorkerStartupTimeoutMs)
         function cleanup() {
           globalThis.clearTimeout(timeout)
@@ -2453,12 +2508,14 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         worker.onerror = (ev: ErrorEvent) => {
           reportWorkerError(ev)
           cleanup()
-          reject(new Error(ev.message || `OPFS worker ${from} failed to start`))
+          reject(
+            new Error(ev.message || `OPFS worker ${requesterId} failed to start`),
+          )
         }
         clientPort?.addEventListener('message', onMessage)
         clientPort?.start()
       })
-      this.opfsWorkers.set(from, worker)
+      this.opfsWorkers.set(requesterId, worker)
       worker.postMessage(
         {
           from: this.webDocumentUuid,
@@ -2467,33 +2524,25 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         [workerPort],
       )
       await ready
-      if (this.opfsWorkers.get(from) !== worker) {
+      if (this.opfsWorkers.get(requesterId) !== worker) {
         clientPort.close()
-        return
+        return null
       }
-      // A post-startup OPFS worker error leaves the transferred client port
-      // with no live owner, so the requester's in-flight bridge requests would
-      // hang. Tear the dead worker down and tell the requester to re-host the
-      // bridge, which closes the stale client (rejecting those requests) and
-      // installs a fresh worker. Guard on identity so a worker already replaced
-      // by a re-host does not trigger a second teardown.
+      // A post-startup OPFS worker error leaves the transferred client port with
+      // no live owner. Tear the dead worker down and notify the requester to
+      // re-host. Guard on identity so a worker already replaced by a re-host does
+      // not trigger a second teardown.
       worker.onerror = (ev: ErrorEvent) => {
         reportWorkerError(ev)
-        if (this.opfsWorkers.get(from) !== worker) {
+        if (this.opfsWorkers.get(requesterId) !== worker) {
           return
         }
-        this.closeOpfsWorker(from)
-        this.sendOpfsWorkerClosed(from)
+        this.closeOpfsWorker(requesterId)
+        onWorkerDied()
       }
-      this.sendOpenOpfsWorkerAck(
-        from,
-        {
-          from: this.webDocumentUuid,
-        },
-        clientPort,
-      )
+      const readyPort = clientPort
       clientPort = undefined
-      console.log(`WebDocument: OPFS worker opened for ${from}`)
+      return readyPort
     } catch (err) {
       if (clientPort) {
         clientPort.close()
@@ -2501,11 +2550,78 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       if (opfsWorker) {
         opfsWorker.terminate()
       }
-      this.opfsWorkers.delete(from)
-      this.sendOpenOpfsWorkerError(
-        from,
-        err instanceof Error ? err.message : String(err),
-      )
+      this.opfsWorkers.delete(requesterId)
+      throw err
+    }
+  }
+
+  // onRuntimeOpfsBrokerMessage serves OPFS bridge requests from the engine
+  // runtime SharedWorker over the broker port. Unlike the plugin path, the
+  // requester is the runtime worker (not a registered WebWorker), so the ack and
+  // worker-death notice ride the broker port directly.
+  private onRuntimeOpfsBrokerMessage(
+    brokerPort: MessagePort,
+    event: MessageEvent<ClientToWebDocument>,
+  ) {
+    const data = event.data
+    if (!data || !data.from || !data.openOpfsWorker) {
+      return
+    }
+    const requesterId = data.from
+    void this.serveRuntimeOpfsRequest(requesterId, brokerPort)
+  }
+
+  private async serveRuntimeOpfsRequest(
+    requesterId: string,
+    brokerPort: MessagePort,
+  ) {
+    const postAck = (ack: OpenOpfsWorkerAck, port?: MessagePort): boolean => {
+      const msg = {
+        from: this.webDocumentUuid,
+        openOpfsWorkerAck: ack,
+      } satisfies WebDocumentToClient
+      try {
+        brokerPort.postMessage(msg, port ? [port] : [])
+        return true
+      } catch {
+        port?.close()
+        return false
+      }
+    }
+    try {
+      const clientPort = await this.openOpfsBridgeWorker(requesterId, () => {
+        try {
+          brokerPort.postMessage({
+            from: this.webDocumentUuid,
+            opfsWorkerClosed: true,
+          } satisfies WebDocumentToClient)
+        } catch {
+          // The runtime worker or this document is already gone.
+        }
+      })
+      if (!clientPort) {
+        return
+      }
+      if (!postAck({ from: this.webDocumentUuid }, clientPort)) {
+        // The broker port closed before the runtime received the bridge port, so
+        // it never got a usable OPFS worker. Tear down the worker we just created
+        // instead of leaking it, and do not emit a false readiness mark.
+        this.closeOpfsWorker(requesterId)
+        return
+      }
+      markStartupBoundary('runtime.opfs-bridge-ready', {
+        source: 'browser',
+        documentId: this.webDocumentUuid,
+        runtimeId: this.webRuntimeId,
+        workerId: requesterId,
+        enabled: true,
+      })
+      console.log(`WebDocument: runtime OPFS worker opened for ${requesterId}`)
+    } catch (err) {
+      postAck({
+        from: this.webDocumentUuid,
+        error: err instanceof Error ? err.message : String(err),
+      })
     }
   }
 

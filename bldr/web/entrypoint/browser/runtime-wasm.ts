@@ -13,6 +13,7 @@ import {
   GoWasmProcess,
   loadWebAssemblyModule,
 } from '../../runtime/wasm/go-process.js'
+import { RuntimeOpfsBridge } from './runtime-opfs-bridge.js'
 
 // Detect whether we are running as a SharedWorker or a dedicated Worker.
 // SharedWorker receives connections via the 'connect' event.
@@ -122,6 +123,13 @@ async function startGoRuntime(
   startGoRpcStreams()
 }
 
+// runtimeOpfsBridge brokers a DedicatedWorker OPFS bridge when the runtime runs
+// in a SharedWorker, which cannot call navigator.storage.getDirectory(). A
+// dedicated Worker reaches OPFS directly and needs no bridge.
+const runtimeOpfsBridge = isSharedWorker
+  ? new RuntimeOpfsBridge(self.name)
+  : null
+
 // handlePortMessage processes a message from a WebDocument on a communication port.
 let runtimeStarted = false
 function handlePortMessage(msgEvent: MessageEvent) {
@@ -145,9 +153,36 @@ function handlePortMessage(msgEvent: MessageEvent) {
     Object.keys(msg),
   )
 
+  if (runtimeOpfsBridge && msg.opfsBrokerPort) {
+    runtimeOpfsBridge.addWebDocument(msg.from, msg.opfsBrokerPort)
+  }
+
   if (msg.initWebRuntime?.webRuntimeId && !runtimeStarted) {
-    runtimeStarted = true
-    startGoRuntime(msg.initWebRuntime.webRuntimeId, msg.initWebRuntime.env)
+    const { webRuntimeId, env } = msg.initWebRuntime
+    void (async () => {
+      // Install the OPFS bridge before the Go process starts so
+      // RemoteDriver.GetRoot() finds the global port during volume mount. In a
+      // SharedWorker the runtime cannot call getDirectory() itself, so it must
+      // not start Go without the bridge (that crashes on the original OPFS
+      // SecurityError). ensureBridge() retries across live documents; if none
+      // can host yet, defer startup (leave runtimeStarted false) so a later
+      // document's init drives it instead of wedging on a transient first-tab
+      // failure. startGoRuntime is itself idempotent, and runtimeStarted flips
+      // only after the bridge precondition holds.
+      if (runtimeOpfsBridge && !(await runtimeOpfsBridge.ensureBridge())) {
+        console.warn(
+          'runtime-wasm: OPFS bridge unavailable; deferring Go start until a document can host OPFS',
+        )
+        return
+      }
+      if (runtimeStarted) {
+        return
+      }
+      runtimeStarted = true
+      await startGoRuntime(webRuntimeId, env)
+    })().catch((err) => {
+      console.warn('runtime-wasm: error running web runtime', err)
+    })
   }
 
   const clientPort = msg.connectWebRuntime?.port ?? msgEvent.ports?.[0]

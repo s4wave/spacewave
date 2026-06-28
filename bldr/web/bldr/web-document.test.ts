@@ -38,8 +38,10 @@ type TestWebDocument = {
   }
   scheduleResumeReadySeed(): void
   onVisibilityChange(hidden: boolean): void
+  webDocumentUuid: string
   onWebWorkerMessage(workerID: string, event: MessageEvent): void
   onWebDocumentClientMessage(event: MessageEvent): void
+  onRuntimeOpfsBrokerMessage(brokerPort: MessagePort, event: MessageEvent): void
   refreshPluginSingletonLock(): void
   releasePluginSingletonLock(): void
   buildWebDocumentStatusSnapshot(): Promise<unknown>
@@ -942,6 +944,95 @@ describe('WebDocument plugin generation state', () => {
     await doc.removeWebWorker({ id: 'worker-1' })
 
     expect(workers[0].terminate).toHaveBeenCalledOnce()
+  })
+
+  it('serves the engine runtime OPFS bridge over the broker port and marks ready', async () => {
+    const workers = installFakeDedicatedWorker()
+    const brokerPost = vi.fn()
+    const brokerPort = {
+      postMessage: brokerPost,
+    } as unknown as MessagePort
+    const doc = buildTestWebDocument()
+
+    doc.onRuntimeOpfsBrokerMessage(brokerPort, {
+      data: {
+        from: 'runtime-worker-1',
+        openOpfsWorker: true,
+      },
+    } as MessageEvent)
+
+    expect(workers).toHaveLength(1)
+    expect(String(workers[0].url)).toContain('opfs-worker')
+
+    const initCall = workers[0].postMessage.mock.calls[0]
+    if (!initCall) {
+      throw new Error('expected an OPFS initPort postMessage')
+    }
+    const [readyPort] = initCall[1] as [MessagePort]
+    readyPort.postMessage({ opfsWorkerReady: true })
+
+    await vi.waitFor(() => {
+      expect(brokerPost).toHaveBeenCalledWith(
+        {
+          from: 'document-1',
+          openOpfsWorkerAck: {
+            from: 'document-1',
+          },
+        },
+        [expect.any(Object)],
+      )
+    })
+    expect(globalThis.__swStartupMarks?.map((mark) => mark.label)).toContain(
+      'runtime.opfs-bridge-ready',
+    )
+
+    // The transferred port must be a live conduit to the OPFS worker end, not a
+    // dead or wrong port: a message from the worker end (readyPort) is delivered
+    // on the port handed to the runtime.
+    const ackCall = brokerPost.mock.calls.find(
+      (call) => (call[0] as WebDocumentToClient).openOpfsWorkerAck,
+    )
+    if (!ackCall) {
+      throw new Error('expected an openOpfsWorkerAck')
+    }
+    const [bridgePort] = ackCall[1] as [MessagePort]
+    const delivered = new Promise<unknown>((resolve) => {
+      bridgePort.onmessage = (ev: MessageEvent) => resolve(ev.data)
+      bridgePort.start()
+    })
+    readyPort.postMessage({ id: 7, ok: true, result: 'root' })
+    expect(await delivered).toEqual({ id: 7, ok: true, result: 'root' })
+  })
+
+  it('tears down the runtime OPFS worker and skips the ready mark when the ack transfer fails', async () => {
+    const workers = installFakeDedicatedWorker()
+    const brokerPort = {
+      postMessage: vi.fn(() => {
+        throw new Error('broker port closed')
+      }),
+    } as unknown as MessagePort
+    const doc = buildTestWebDocument()
+
+    doc.onRuntimeOpfsBrokerMessage(brokerPort, {
+      data: {
+        from: 'runtime-worker-1',
+        openOpfsWorker: true,
+      },
+    } as MessageEvent)
+
+    const initCall = workers[0].postMessage.mock.calls[0]
+    if (!initCall) {
+      throw new Error('expected an OPFS initPort postMessage')
+    }
+    const [readyPort] = initCall[1] as [MessagePort]
+    readyPort.postMessage({ opfsWorkerReady: true })
+
+    await vi.waitFor(() => {
+      expect(workers[0].terminate).toHaveBeenCalledOnce()
+    })
+    expect(doc.opfsWorkers.has('runtime-worker-1')).toBe(false)
+    const labels = (globalThis.__swStartupMarks ?? []).map((mark) => mark.label)
+    expect(labels).not.toContain('runtime.opfs-bridge-ready')
   })
 
   it('includes generation state and failure classification in status snapshots', async () => {

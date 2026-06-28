@@ -75,6 +75,12 @@ export interface WebDocumentToWebRuntime {
     init: Uint8Array // WebRuntimeClientInit
     port: MessagePort
   }
+  // opfsBrokerPort is a MessagePort to the WebDocument for brokering a
+  // DedicatedWorker OPFS bridge. Sent only when the runtime runs in a
+  // SharedWorker (which cannot call navigator.storage.getDirectory()). The
+  // runtime worker speaks ClientToWebDocument / WebDocumentToClient OPFS
+  // messages over it. The port is transferred in event.ports.
+  opfsBrokerPort?: MessagePort
 }
 
 // ClientToWebDocument is a message sent from ServiceWorker to WebDocument.
