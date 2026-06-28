@@ -61,6 +61,12 @@ func (s *Session) DeleteSpace(ctx context.Context, sharedObjectID string) (*Dele
 	return s.service.DeleteSpace(ctx, &DeleteSpaceRequest{SharedObjectId: sharedObjectID})
 }
 
+// DeleteAccount deletes the provider account for a session index, removing its
+// sessions and deleting the volume backing store.
+func (s *Session) DeleteAccount(ctx context.Context, sessionIdx uint32) (*DeleteAccountResponse, error) {
+	return s.service.DeleteAccount(ctx, &DeleteAccountRequest{SessionIdx: sessionIdx})
+}
+
 // RenameSpace updates a space display name.
 func (s *Session) RenameSpace(ctx context.Context, sharedObjectID, displayName string) (*RenameSpaceResponse, error) {
 	return s.service.RenameSpace(ctx, &RenameSpaceRequest{

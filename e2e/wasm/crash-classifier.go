@@ -25,7 +25,7 @@ func (r *CrashReport) AddMessage(msg string) {
 	if strings.Contains(lower, "fatal error:") || strings.Contains(lower, "runtime.throw") {
 		r.GoFatalStackTrace = append(r.GoFatalStackTrace, msg)
 	}
-	if strings.Contains(lower, "page error:") {
+	if strings.Contains(lower, "page error:") && !isBenignTeardownAbort(lower) {
 		r.PageErrors = append(r.PageErrors, msg)
 	}
 	if strings.Contains(lower, "uncaught rangeerror") ||
@@ -38,6 +38,25 @@ func (r *CrashReport) AddMessage(msg string) {
 	if strings.Contains(lower, "worker ") && strings.Contains(lower, " error:") {
 		r.WorkerErrors = append(r.WorkerErrors, msg)
 	}
+}
+
+// isBenignTeardownAbort reports whether a page-error line is the document
+// cancelling its own in-flight resource-release RPCs during a normal close.
+// On a page reload the runtime client closes with normal-close and
+// releaseAllResources aborts the pending release calls, which surfaces as an
+// uncaught ERR_RPC_ABORT. This teardown abort appears only when the worker
+// outlives the document (Config A/F shared worker), so it is benign and must
+// not be classified as a crash.
+//
+// The two-token match is precise rather than coarse: releaseAllResources is the
+// runtime client's teardown-only resource-release method, so an ERR_RPC_ABORT
+// raised inside its frame is by construction the close race (a pending release
+// call cancelled because the client is closing), not a product fault. A real
+// crash surfaces with a different error code or outside the release path, which
+// this guard leaves untouched. The argument is already lowercased.
+func isBenignTeardownAbort(lower string) bool {
+	return strings.Contains(lower, "err_rpc_abort") &&
+		strings.Contains(lower, "releaseallresources")
 }
 
 // HasExitedGoLoop returns true once the same exited-Go symptom repeats enough
