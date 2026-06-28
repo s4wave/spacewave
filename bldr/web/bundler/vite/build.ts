@@ -120,26 +120,22 @@ function collectReferencedFiles(
   manifest: ViteManifest,
   seen = new Set<string>(),
   cssFiles = new Set<string>(),
-  assetFiles = new Set<string>(),
-): { cssFiles: Set<string>; assetFiles: Set<string> } {
-  if (seen.has(entryKey)) return { cssFiles, assetFiles }
+): { cssFiles: Set<string> } {
+  if (seen.has(entryKey)) return { cssFiles }
   seen.add(entryKey)
 
   const entry = manifest[entryKey]
-  if (!entry) return { cssFiles, assetFiles }
+  if (!entry) return { cssFiles }
 
   // Collect CSS files
   entry.css?.forEach((c) => cssFiles.add(c))
 
-  // Collect asset files
-  entry.assets?.forEach((a) => assetFiles.add(a))
-
   // Recursively collect from imports
   entry.imports?.forEach((imp) =>
-    collectReferencedFiles(imp, manifest, seen, cssFiles, assetFiles),
+    collectReferencedFiles(imp, manifest, seen, cssFiles),
   )
 
-  return { cssFiles, assetFiles }
+  return { cssFiles }
 }
 
 async function readManifest(outDir: string): Promise<ViteManifest | null> {
@@ -375,7 +371,9 @@ export async function analyzeManifest(
     }
   }
 
-  // Associate CSS files with entrypoints using the manifest
+  // Associate CSS files with entrypoints using manifest data. Non-CSS Vite
+  // assets are copied from the output directory, but they must not share the
+  // entrypoint metadata path: JS assets there replace the real React entrypoint.
   for (const [key, value] of Object.entries(manifest)) {
     if (!value.isEntry) continue
 

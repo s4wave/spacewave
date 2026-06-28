@@ -14,6 +14,100 @@ import { installWebRTCShim, setBridgePort } from './wasm/webrtc-bridge.js'
 
 export const PLUGIN_STARTUP_FAILURE_SHUTDOWN_DELAY_MS = 5000
 
+const opfsBridgePortGlobal = '__spacewaveOpfsBridgePort'
+
+type OpfsRequestID = number
+
+type OpfsBridgeGlobal = typeof globalThis & {
+  __spacewaveOpfsBridgePort?: OpfsBridgeClient
+  __spacewaveInstallOpfsRemoteDriver?: (client: OpfsBridgeClient) => boolean
+}
+
+type OpfsBridgeResponse = {
+  id?: OpfsRequestID
+  ok?: boolean
+  result?: unknown
+  error?: { name?: string; message?: string }
+}
+
+class OpfsBridgeClient {
+  private readonly pending = new Map<
+    OpfsRequestID,
+    { resolve: (value: unknown) => void; reject: (reason?: unknown) => void }
+  >()
+
+  private nextID = 0
+
+  public constructor(private readonly port: MessagePort) {
+    port.addEventListener(
+      'message',
+      (event: MessageEvent<OpfsBridgeResponse>) => {
+        this.receive(event.data)
+      },
+    )
+    port.start()
+  }
+
+  public request(
+    op: string,
+    args: unknown,
+    transfer?: Transferable[],
+  ): Promise<unknown> {
+    const id = ++this.nextID
+    return new Promise((resolve, reject) => {
+      this.pending.set(id, { resolve, reject })
+      this.port.postMessage({ id, op, args }, transfer ?? [])
+    })
+  }
+
+  public close(): void {
+    this.port.close()
+    for (const { reject } of this.pending.values()) {
+      reject(new DOMException('OPFS bridge closed', 'AbortError'))
+    }
+    this.pending.clear()
+  }
+
+  private receive(response: OpfsBridgeResponse): void {
+    if (typeof response.id !== 'number') {
+      return
+    }
+    const pending = this.pending.get(response.id)
+    if (!pending) {
+      return
+    }
+    this.pending.delete(response.id)
+    if (response.ok === false) {
+      pending.reject(remoteError(response.error))
+      return
+    }
+    pending.resolve(response.result)
+  }
+}
+
+function remoteError(error: OpfsBridgeResponse['error']): Error {
+  const err = new Error(error?.message ?? 'OPFS bridge request failed')
+  err.name = error?.name ?? 'Error'
+  return err
+}
+
+function setOpfsBridgePort(port: MessagePort): OpfsBridgeClient {
+  const globals = globalThis as OpfsBridgeGlobal
+  const previous = globals[opfsBridgePortGlobal]
+  const client = new OpfsBridgeClient(port)
+  previous?.close()
+  globals[opfsBridgePortGlobal] = client
+  globals.__spacewaveInstallOpfsRemoteDriver?.(client)
+  return client
+}
+
+function shouldRequestOpfsBridge(
+  workerCommsDetect?: WorkerCommsDetectResult,
+): boolean {
+  const config = workerCommsDetect?.config
+  return config === 'A' || config === 'F'
+}
+
 export function waitPluginStartupFailureShutdownDelay(): Promise<void> {
   return timeoutPromise(PLUGIN_STARTUP_FAILURE_SHUTDOWN_DELAY_MS)
 }
@@ -76,6 +170,10 @@ export class PluginWorker {
   private failureCloseReported?: boolean
   // shuttingDown records that worker shutdown has already started.
   private shuttingDown?: boolean
+  // shouldMaintainOpfsBridge records that this worker needs a dedicated OPFS bridge.
+  private shouldMaintainOpfsBridge?: boolean
+  // opfsBridgeRefresh tracks an in-flight OPFS bridge replacement.
+  private opfsBridgeRefresh?: Promise<void>
   // onSnapshotNow is called when the WebDocument requests an urgent snapshot.
   public onSnapshotNow?: SnapshotNowCallback
 
@@ -92,6 +190,9 @@ export class PluginWorker {
       WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER,
       this.onWebDocumentsExhausted.bind(this),
       handleIncomingStream,
+      null,
+      undefined,
+      this.refreshOpfsBridge.bind(this),
     )
     this.armWorkerLock()
 
@@ -245,6 +346,13 @@ export class PluginWorker {
       enabled: !!bridgePort,
     })
 
+    this.shouldMaintainOpfsBridge = shouldRequestOpfsBridge(workerCommsDetect)
+    if (this.shouldMaintainOpfsBridge) {
+      await this.requestAndInstallOpfsBridge('worker.opfs-bridge-ready')
+    } else {
+      this.notifyStartupMark('worker.opfs-bridge-ready', { enabled: false })
+    }
+
     this.notifyStartupMark('plugin.entrypoint-start')
     await this.startPlugin({
       startInfo,
@@ -253,6 +361,48 @@ export class PluginWorker {
     })
     this.notifyStartupMark('plugin.entrypoint-ready')
     this.pluginStarted = true
+  }
+
+  private async requestAndInstallOpfsBridge(label: string): Promise<boolean> {
+    // Publish the bridge port to the WASM global and swap any running remote
+    // driver onto it. Readiness and OPFS failure semantics are owned by the Go
+    // RemoteDriver.GetRoot() call during volume mount and the volume
+    // controller's terminal path, so the worker does not run its own getRoot
+    // handshake here.
+    const opfsPort = await this.webDocumentTracker.requestOpfsWorker()
+    if (opfsPort) {
+      setOpfsBridgePort(opfsPort)
+    }
+    this.notifyStartupMark(label, {
+      enabled: !!opfsPort,
+    })
+    return !!opfsPort
+  }
+
+  // refreshOpfsBridge re-hosts the OPFS bridge after the host WebDocument was
+  // removed or its bridge worker died. Swapping the port closes the prior
+  // OpfsBridgeClient, which rejects in-flight Go requests, and installs a fresh
+  // worker; the volume controller remounts on the resulting stale-handle error.
+  private refreshOpfsBridge() {
+    if (!this.shouldMaintainOpfsBridge || this.shuttingDown) {
+      return
+    }
+    if (this.opfsBridgeRefresh) {
+      return
+    }
+    this.opfsBridgeRefresh = this.requestAndInstallOpfsBridge(
+      'worker.opfs-bridge-refreshed',
+    )
+      .then(() => undefined)
+      .catch((err: unknown) => {
+        console.warn(
+          `PluginWorker: ${this.workerId}: OPFS bridge refresh failed:`,
+          err,
+        )
+      })
+      .finally(() => {
+        this.opfsBridgeRefresh = undefined
+      })
   }
 
   // notifyFrontendReady notifies connected web documents that frontend setup completed.

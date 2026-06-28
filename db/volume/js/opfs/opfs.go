@@ -50,6 +50,8 @@ func NewOpfs(
 		lockPrefix = rootPath
 	}
 
+	opfs.InstallRemoteDriverFromGlobal()
+
 	opfsRoot, err := opfs.GetRoot()
 	if err != nil {
 		err = errors.Wrap(err, "opfs GetRoot")

@@ -279,6 +279,66 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
       expect(entryA!.outputs.css).toContain('assets/B-hash456.css')
     })
 
+    it('should not classify Vite-emitted JS assets as entrypoint CSS', async () => {
+      const manifest = {
+        'A.tsx': {
+          file: 'assets/A-hash123.mjs',
+          isEntry: true,
+          src: 'A.tsx',
+          imports: ['B.tsx'],
+        },
+        'B.tsx': {
+          file: 'assets/B-hash456.mjs',
+          assets: ['assets/opfs-worker-hash.js'],
+        },
+      }
+
+      await fs.writeFile(
+        path.join(distDir, '.vite/manifest.json'),
+        JSON.stringify(manifest, null, 2),
+      )
+
+      const outputChunks: (Rollup.OutputChunk | Rollup.OutputAsset)[] = [
+        {
+          type: 'chunk',
+          fileName: 'assets/A-hash123.mjs',
+          name: 'A',
+          facadeModuleId: path.join(testDir, 'A.tsx'),
+          moduleIds: [path.join(testDir, 'A.tsx'), path.join(testDir, 'B.tsx')],
+          code: '',
+          dynamicImports: [],
+          exports: [],
+          implicitlyLoadedBefore: [],
+          importedBindings: {},
+          imports: [],
+          isDynamicEntry: false,
+          isEntry: true,
+          isImplicitEntry: false,
+          map: null,
+          modules: {},
+          referencedFiles: [],
+          sourcemapFileName: null,
+          preliminaryFileName: 'assets/A-hash123.mjs',
+        } as unknown as Rollup.OutputChunk,
+        {
+          type: 'asset',
+          fileName: 'assets/opfs-worker-hash.js',
+          name: 'opfs-worker.js',
+          source: '',
+          needsCodeReference: false,
+        } as unknown as Rollup.OutputAsset,
+      ]
+
+      const analysis = await analyzeManifest(distDir, outputChunks, testDir)
+
+      const entryA = analysis.entrypointOutputs.find(
+        (e) => e.entrypoint === 'A.tsx',
+      )
+
+      expect(entryA).toBeDefined()
+      expect(entryA!.outputs.css).not.toContain('assets/opfs-worker-hash.js')
+    })
+
     it('should ignore synthetic vite external module ids', async () => {
       const manifest = {
         'A.tsx': {

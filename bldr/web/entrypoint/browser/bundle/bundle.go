@@ -32,6 +32,8 @@ type BrowserBundleResult struct {
 	ServiceWorkerFilename string
 	// SharedWorkerFilename is the output filename of the shared worker.
 	SharedWorkerFilename string
+	// OpfsWorkerFilename is the output filename of the OPFS protocol worker.
+	OpfsWorkerFilename string
 	// CSSPaths contains CSS output file paths relative to the build dir.
 	CSSPaths []string
 }
@@ -43,6 +45,7 @@ type BuildManifest struct {
 	ServiceWorker string   `json:"serviceWorker"`
 	SharedWorker  string   `json:"sharedWorker"`
 	Wasm          string   `json:"wasm,omitempty"`
+	OpfsWorker    string   `json:"opfsWorker,omitempty"`
 	CSS           []string `json:"css"`
 	AutoStart     bool     `json:"autoStart,omitempty"`
 }
@@ -62,6 +65,9 @@ func WriteBuildManifest(dir string, manifest *BuildManifest) error {
 	obj.Set("sharedWorker", a.NewString(manifest.SharedWorker))
 	if manifest.Wasm != "" {
 		obj.Set("wasm", a.NewString(manifest.Wasm))
+	}
+	if manifest.OpfsWorker != "" {
+		obj.Set("opfsWorker", a.NewString(manifest.OpfsWorker))
 	}
 	css := a.NewArray()
 	for _, path := range manifest.CSS {
@@ -87,6 +93,9 @@ func writeBrowserReleaseManifest(dir string, manifest *BuildManifest) error {
 	shellAssets.Set("sharedWorker", a.NewString(manifest.SharedWorker))
 	if manifest.Wasm != "" {
 		shellAssets.Set("wasm", a.NewString(manifest.Wasm))
+	}
+	if manifest.OpfsWorker != "" {
+		shellAssets.Set("opfsWorker", a.NewString(manifest.OpfsWorker))
 	}
 	css := a.NewArray()
 	for _, path := range manifest.CSS {
@@ -679,6 +688,53 @@ func BuildSharedWorkerBundleWithRuntimeDeps(le *logrus.Entry, bldrDistRoot, buil
 	return "", errors.New("shared worker build produced no .mjs output")
 }
 
+// OpfsWorkerBuildOpts creates the BuildOpts for the OPFS protocol worker.
+func OpfsWorkerBuildOpts(bldrDistRoot string, minify, sourcemaps, hash bool) esbuild.BuildOptions {
+	return OpfsWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, "", minify, sourcemaps, hash)
+}
+
+func OpfsWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, buildPkgsDir string, minify, sourcemaps, hash bool) esbuild.BuildOptions {
+	baseConfig := BrowserBuildOpts(bldrDistRoot, minify, sourcemaps)
+	ApplyRuntimeDistDepsResolver(&baseConfig, buildPkgsDir)
+	if hash {
+		baseConfig.EntryNames = "opfs-worker-[hash]"
+	} else {
+		baseConfig.EntryNames = "opfs-worker"
+	}
+	baseConfig.EntryPoints = []string{"web/bldr/opfs-worker.ts"}
+	baseConfig.EntryPointsAdvanced = nil
+	return baseConfig
+}
+
+// BuildOpfsWorkerBundle builds the OPFS protocol worker bundle.
+//
+// Returns the filename of the OPFS worker output file (including the hash).
+func BuildOpfsWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, sourcemaps, devMode bool) (string, error) {
+	return BuildOpfsWorkerBundleWithRuntimeDeps(le, bldrDistRoot, buildDir, "", minify, sourcemaps, devMode)
+}
+
+func BuildOpfsWorkerBundleWithRuntimeDeps(le *logrus.Entry, bldrDistRoot, buildDir, buildPkgsDir string, minify, sourcemaps, devMode bool) (string, error) {
+	le.Debug("generating OPFS worker bundle")
+
+	opfsWorkerOpts := OpfsWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, buildPkgsDir, minify, sourcemaps, !devMode)
+	opfsWorkerOpts.Outdir = buildDir
+	opfsWorkerOpts.Write = true
+	if sourcemaps {
+		opfsWorkerOpts.Sourcemap = esbuild.SourceMapInline
+	}
+	opfsWorkerOpts.Define["BLDR_DEBUG"] = strconv.FormatBool(devMode)
+	result := esbuild.Build(opfsWorkerOpts)
+	if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
+		return "", err
+	}
+	for _, f := range result.OutputFiles {
+		if strings.HasSuffix(f.Path, ".mjs") {
+			return filepath.Base(f.Path), nil
+		}
+	}
+	return "", errors.New("OPFS worker build produced no .mjs output")
+}
+
 // BuildRendererIndex builds the web renderer index.html.
 //
 // importMap contains the web pkg import map entries (from BuildWebPkgsBundle).
@@ -709,6 +765,7 @@ func BuildRendererBundle(
 	runtimeJsPath,
 	runtimeSwPath,
 	runtimeShwPath,
+	runtimeOpfsWorkerPath,
 	webStartupSrcPath,
 	entrypointHash string,
 	minify,
@@ -753,6 +810,9 @@ func BuildRendererBundle(
 
 	if runtimeShwPath != "" {
 		rendererBuildOpts.Define["BLDR_SHW_JS"] = strconv.Quote(runtimeShwPath)
+	}
+	if runtimeOpfsWorkerPath != "" {
+		rendererBuildOpts.Define["BLDR_OPFS_WORKER_JS"] = strconv.Quote(runtimeOpfsWorkerPath)
 	}
 
 	distSourcesDirToSourcesRoot, err := filepath.Rel(bldrDistRoot, sourcesRoot)
@@ -840,10 +900,18 @@ func BuildBrowserBundle(
 		return nil, err
 	}
 
+	// OPFS protocol worker
+	opfsWorkerFilename, err := BuildOpfsWorkerBundleWithRuntimeDeps(le, bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode)
+	if err != nil {
+		return nil, err
+	}
+
 	// replace the filename in runtimeSwPath with the sw filename
 	runtimeSwPath = filepath.Join(filepath.Dir(runtimeSwPath), swFilename)
 	// replace the filename in runtimeShwPath with the shw filename
 	runtimeShwPath = filepath.Join(filepath.Dir(runtimeShwPath), shwFilename)
+	// place the OPFS worker beside sw.mjs/shw.mjs at the build root
+	runtimeOpfsWorkerPath := filepath.Join(filepath.Dir(runtimeShwPath), opfsWorkerFilename)
 
 	// web pkgs
 	// use platform for linux -> node.js (react and react-dom don't care.)
@@ -868,7 +936,7 @@ func BuildBrowserBundle(
 	}
 
 	// renderer bundle
-	cssPaths, err := BuildRendererBundle(le, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, webStartupSrcPath, entrypointHash, minify, sourcemaps, forceDedicatedWorkers, forceMessagePortWorkerComms, devMode, webPkgImportMap)
+	cssPaths, err := BuildRendererBundle(le, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, runtimeOpfsWorkerPath, webStartupSrcPath, entrypointHash, minify, sourcemaps, forceDedicatedWorkers, forceMessagePortWorkerComms, devMode, webPkgImportMap)
 	if err != nil {
 		return nil, err
 	}
@@ -888,6 +956,7 @@ func BuildBrowserBundle(
 		ServiceWorkerFilename: swFilename,
 		SharedWorkerFilename:  shwFilename,
 		CSSPaths:              cssPaths,
+		OpfsWorkerFilename:    opfsWorkerFilename,
 	}, nil
 }
 

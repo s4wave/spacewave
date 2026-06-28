@@ -3,6 +3,7 @@ export interface BrowserReleaseShellAssets {
   entrypoint: string
   serviceWorker: string
   sharedWorker: string
+  opfsWorker?: string
   wasm?: string
   css: string[]
 }
@@ -92,6 +93,7 @@ export function buildReleaseCachePaths(
   addPath(release.shellAssets.entrypoint)
   addPath(release.shellAssets.serviceWorker)
   addPath(release.shellAssets.sharedWorker)
+  addPath(release.shellAssets.opfsWorker)
   addPath(release.shellAssets.wasm)
   for (const path of release.shellAssets.css) {
     addPath(path)

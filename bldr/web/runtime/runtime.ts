@@ -95,6 +95,9 @@ export interface ClientToWebDocument {
   openSabPair?: OpenSabPairRequest
   // closeSabPair releases same-tab SAB pair metadata after a stream closes.
   closeSabPair?: CloseSabPairRequest
+  // openOpfsWorker requests a same-tab DedicatedWorker OPFS bridge.
+  // The WebDocument returns OpenOpfsWorkerAck and the bridge MessagePort in event.ports.
+  openOpfsWorker?: true
   // close indicates the client is closed.
   close?: true
   // failureReason indicates close was caused by a worker runtime failure.
@@ -161,6 +164,16 @@ export interface ConnectWebRtcBridgeAck {
   bridgePort: MessagePort
 }
 
+// OpenOpfsWorkerAck is sent from WebDocument to worker with the OPFS bridge port.
+// The MessagePort is transferred in event.ports[0] so Electron/raw MessagePort
+// paths do not depend on cloning the port inside event.data.
+export interface OpenOpfsWorkerAck {
+  // from is the identifier of the WebDocument.
+  from: string
+  // error reports that the WebDocument could not open the OPFS worker.
+  error?: string
+}
+
 // WebDocumentToWorker is a message sent from the WebDocument to the ServiceWorker, Worker, or SharedWorker.
 export interface WebDocumentToWorker {
   // from is the identifier of the WebDocument
@@ -199,6 +212,12 @@ export interface WebDocumentToClient {
   sabPairClosed?: SabPairClosed
   // openSabPairAck returns this worker's endpoint for an openSabPair request.
   openSabPairAck?: OpenSabPairAck
+  // openOpfsWorkerAck returns the DedicatedWorker OPFS bridge port in event.ports.
+  openOpfsWorkerAck?: OpenOpfsWorkerAck
+  // opfsWorkerClosed notifies the requester that its OPFS bridge worker died
+  // after startup. The requester re-hosts the bridge so the stale client is
+  // closed (rejecting in-flight requests) and a fresh worker is installed.
+  opfsWorkerClosed?: true
 }
 
 // ServiceWorkerToWebDocument is a message sent from the ServiceWorker to a WebDocument.

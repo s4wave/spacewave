@@ -269,6 +269,7 @@ func TestWriteBuildManifestIncludesServiceWorker(t *testing.T) {
 		Entrypoint:    "entrypoint/abc123/entrypoint.mjs",
 		ServiceWorker: "sw-deadbeef.mjs",
 		SharedWorker:  "shw-beadfeed.mjs",
+		OpfsWorker:    "opfs-worker-c0ffee.mjs",
 		Wasm:          "entrypoint/abc123/runtime.wasm",
 		CSS:           []string{"static/app.css"},
 	}
@@ -296,6 +297,9 @@ func TestWriteBuildManifestIncludesServiceWorker(t *testing.T) {
 		t.Fatalf("unexpected wasm: %q", got)
 	}
 
+	if got := string(v.GetStringBytes("opfsWorker")); got != manifest.OpfsWorker {
+		t.Fatalf("unexpected opfsWorker: %q", got)
+	}
 	data, err = os.ReadFile(filepath.Join(dir, "browser-release.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -315,6 +319,9 @@ func TestWriteBuildManifestIncludesServiceWorker(t *testing.T) {
 	}
 	if got := string(v.GetStringBytes("shellAssets", "wasm")); got != manifest.Wasm {
 		t.Fatalf("unexpected release wasm: %q", got)
+	}
+	if got := string(v.GetStringBytes("shellAssets", "opfsWorker")); got != manifest.OpfsWorker {
+		t.Fatalf("unexpected release opfsWorker: %q", got)
 	}
 }
 

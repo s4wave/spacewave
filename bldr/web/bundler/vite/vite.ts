@@ -518,6 +518,7 @@ async function buildWebPkg(
       customLogger: createSilentViteLogger(),
       logLevel: 'warn',
       mode: isRelease ? 'production' : 'development',
+      base: './',
 
       // Explicitly define process.env.NODE_ENV so Rolldown replaces it
       // correctly in CJS conditional entries (e.g. react's index.js).

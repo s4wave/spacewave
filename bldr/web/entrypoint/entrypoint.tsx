@@ -57,6 +57,12 @@ if (typeof BLDR_SHW_JS === 'string') {
   webDocumentOpts.sharedWorkerPath = BLDR_SHW_JS
 }
 
+// BLDR_OPFS_WORKER_JS is an injected variable with the path to the OPFS worker.
+declare const BLDR_OPFS_WORKER_JS: string | undefined
+if (typeof BLDR_OPFS_WORKER_JS === 'string') {
+  webDocumentOpts.opfsWorkerPath = BLDR_OPFS_WORKER_JS
+}
+
 // BLDR_FORCE_DEDICATED_WORKERS is an injected variable to force dedicated workers.
 declare const BLDR_FORCE_DEDICATED_WORKERS: boolean | undefined
 if (

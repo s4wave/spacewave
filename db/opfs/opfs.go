@@ -46,11 +46,55 @@ var (
 	rootCached bool
 )
 
-// BrowserDriver owns browser OPFS operations and error classification.
+// Driver owns browser OPFS operations and the objects opened from them.
+type Driver interface {
+	asyncFileDriver
+	writeStreamDriver
+
+	ClassifyError(error) ErrorKind
+	GetRoot() (js.Value, error)
+	GetDirectory(parent js.Value, name string, create bool) (js.Value, error)
+	GetDirectoryPath(parent js.Value, path []string, create bool) (js.Value, error)
+	OpenAsyncFile(dir js.Value, name string) (*AsyncFile, error)
+	CreateAsyncFile(dir js.Value, name string) (*AsyncFile, error)
+	WriteFile(dir js.Value, name string, data []byte) error
+	CreateWriteStream(dir js.Value, name string) (*WriteStream, error)
+	ReadFile(dir js.Value, name string) ([]byte, error)
+	DeleteEntry(dir js.Value, name string, recursive bool) error
+	ListDirectory(dir js.Value) ([]string, error)
+	FileExists(dir js.Value, name string) (bool, error)
+	DirExists(dir js.Value, name string) (bool, error)
+	SyncAvailable() bool
+	PreferSyncAccessHandles() bool
+	OpenSyncFile(dir js.Value, name string) (*SyncFile, error)
+	CreateSyncFile(dir js.Value, name string) (*SyncFile, error)
+	CreateSyncFileContext(ctx context.Context, dir js.Value, name string) (*SyncFile, error)
+	NewBroadcastChannel(name string) (js.Value, error)
+	SendBroadcastChannel(channel js.Value, msg BroadcastMessage) error
+	CloseBroadcastChannel(channel js.Value) error
+	AcquireWebLock(ctx context.Context, name string, exclusive bool) (*WebLockResult, error)
+	AcquireWebLockIfAvailable(ctx context.Context, name string, exclusive bool) (*WebLockResult, error)
+}
+
+type asyncFileDriver interface {
+	readAsyncFileAt(f *AsyncFile, p []byte, off int64) (int, error)
+	writeAsyncFileAt(ctx context.Context, f *AsyncFile, p []byte, off int64) (int, error)
+	sizeAsyncFile(f *AsyncFile) (int64, error)
+	truncateAsyncFile(f *AsyncFile, size int64) error
+	closeAsyncFile(f *AsyncFile) error
+}
+
+type writeStreamDriver interface {
+	writeStream(w *WriteStream, p []byte) (int, error)
+	closeWriteStream(w *WriteStream) error
+	abortWriteStream(w *WriteStream) error
+}
+
+// BrowserDriver owns local browser OPFS operations and error classification.
 type BrowserDriver struct{}
 
-// DefaultDriver is the process-local browser OPFS driver.
-var DefaultDriver BrowserDriver
+// DefaultDriver selects the process-local browser OPFS driver by default.
+var DefaultDriver Driver = BrowserDriver{}
 
 // ErrorKind classifies browser OPFS failures into storage-owner outcomes.
 type ErrorKind int
@@ -296,7 +340,7 @@ func OpenAsyncFile(dir js.Value, name string) (*AsyncFile, error) {
 
 // OpenAsyncFile opens an existing file with async OPFS APIs.
 // Works in any context (SharedWorker, DedicatedWorker, main thread).
-func (BrowserDriver) OpenAsyncFile(dir js.Value, name string) (*AsyncFile, error) {
+func (d BrowserDriver) OpenAsyncFile(dir js.Value, name string) (*AsyncFile, error) {
 	if jsutil.UseTinyGoHelpers() {
 		return openAsyncFileWithTinyGoImport(dir, name, false)
 	}
@@ -305,7 +349,7 @@ func (BrowserDriver) OpenAsyncFile(dir js.Value, name string) (*AsyncFile, error
 	if err != nil {
 		return nil, err
 	}
-	return &AsyncFile{name: name, handle: fileHandle}, nil
+	return &AsyncFile{driver: d, name: name, handle: fileHandle}, nil
 }
 
 // CreateAsyncFile opens or creates a file with async OPFS APIs.
@@ -316,7 +360,7 @@ func CreateAsyncFile(dir js.Value, name string) (*AsyncFile, error) {
 
 // CreateAsyncFile opens or creates a file with async OPFS APIs.
 // Works in any context (SharedWorker, DedicatedWorker, main thread).
-func (BrowserDriver) CreateAsyncFile(dir js.Value, name string) (*AsyncFile, error) {
+func (d BrowserDriver) CreateAsyncFile(dir js.Value, name string) (*AsyncFile, error) {
 	if jsutil.UseTinyGoHelpers() {
 		return openAsyncFileWithTinyGoImport(dir, name, true)
 	}
@@ -327,24 +371,40 @@ func (BrowserDriver) CreateAsyncFile(dir js.Value, name string) (*AsyncFile, err
 	if err != nil {
 		return nil, errors.Wrap(err, "getFileHandle")
 	}
-	return &AsyncFile{name: name, handle: fileHandle}, nil
+	return &AsyncFile{driver: d, name: name, handle: fileHandle}, nil
 }
 
-// AsyncFile wraps an async FileSystemFileHandle as an fs.File.
-// Uses getFile()/slice() for reads and createWritable() for writes.
+// AsyncFile wraps a driver-owned async OPFS file as an fs.File.
+// BrowserDriver uses FileSystemFileHandle; RemoteDriver uses handle tokens.
 // Works in any context (SharedWorker, DedicatedWorker, main thread).
 type AsyncFile struct {
+	driver asyncFileDriver
 	name   string
-	handle js.Value // FileSystemFileHandle
+	handle js.Value // FileSystemFileHandle or RemoteDriver handle token
 	pos    int64
 }
 
 // WriteStream owns one overwrite writable session for streaming file output.
 type WriteStream struct {
+	driver   writeStreamDriver
 	name     string
 	writable js.Value
 	tinyGoID int
 	pos      int64
+}
+
+func (f *AsyncFile) owner() asyncFileDriver {
+	if f.driver != nil {
+		return f.driver
+	}
+	return BrowserDriver{}
+}
+
+func (w *WriteStream) owner() writeStreamDriver {
+	if w.driver != nil {
+		return w.driver
+	}
+	return BrowserDriver{}
 }
 
 // Read reads up to len(p) bytes from the current position.
@@ -357,6 +417,10 @@ func (f *AsyncFile) Read(p []byte) (int, error) {
 // ReadAt reads len(p) bytes from the file starting at byte offset off.
 // Uses File.slice() for range reads without loading the entire file.
 func (f *AsyncFile) ReadAt(p []byte, off int64) (int, error) {
+	return f.owner().readAsyncFileAt(f, p, off)
+}
+
+func (BrowserDriver) readAsyncFileAt(f *AsyncFile, p []byte, off int64) (int, error) {
 	if jsutil.UseTinyGoHelpers() {
 		return f.readAtWithTinyGoImport(p, off)
 	}
@@ -411,6 +475,10 @@ func (f *AsyncFile) WriteAt(p []byte, off int64) (int, error) {
 // empty and close() truncates the source file to the highest-written offset,
 // destroying any other content.
 func (f *AsyncFile) WriteAtContext(ctx context.Context, p []byte, off int64) (int, error) {
+	return f.owner().writeAsyncFileAt(ctx, f, p, off)
+}
+
+func (BrowserDriver) writeAsyncFileAt(ctx context.Context, f *AsyncFile, p []byte, off int64) (int, error) {
 	ctx, task := trace.NewTask(ctx, "hydra/opfs/async-file/write-at")
 	defer task.End()
 
@@ -525,17 +593,21 @@ func (f *AsyncFile) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		f.pos += offset
 	case io.SeekEnd:
-		file, err := AwaitPromise(jsutil.Call(f.handle, "getFile"))
+		size, err := f.Size()
 		if err != nil {
-			return f.pos, errors.Wrap(err, "getFile")
+			return f.pos, err
 		}
-		f.pos = int64(file.Get("size").Int()) + offset
+		f.pos = size + offset
 	}
 	return f.pos, nil
 }
 
 // Size returns the file size in bytes.
 func (f *AsyncFile) Size() (int64, error) {
+	return f.owner().sizeAsyncFile(f)
+}
+
+func (BrowserDriver) sizeAsyncFile(f *AsyncFile) (int64, error) {
 	if jsutil.UseTinyGoHelpers() {
 		return f.sizeWithTinyGoImport()
 	}
@@ -553,6 +625,10 @@ func (f *AsyncFile) Size() (int64, error) {
 // preserved when growing or shrinking; otherwise the draft would start empty
 // and close() would replace the source file with a sparse zero-filled blob.
 func (f *AsyncFile) Truncate(size int64) error {
+	return f.owner().truncateAsyncFile(f, size)
+}
+
+func (BrowserDriver) truncateAsyncFile(f *AsyncFile, size int64) error {
 	if jsutil.UseTinyGoHelpers() {
 		return f.truncateWithTinyGoImport(size)
 	}
@@ -583,8 +659,12 @@ func (f *AsyncFile) Stat() (fs.FileInfo, error) {
 	return &syncFileInfo{name: f.name, size: size}, nil
 }
 
-// Close is a no-op for async files (no persistent handle to release).
+// Close releases driver-owned async file state.
 func (f *AsyncFile) Close() error {
+	return f.owner().closeAsyncFile(f)
+}
+
+func (BrowserDriver) closeAsyncFile(f *AsyncFile) error {
 	return nil
 }
 
@@ -605,12 +685,12 @@ func WriteFile(dir js.Value, name string, data []byte) error {
 }
 
 // WriteFile creates or overwrites a file in the given directory.
-func (BrowserDriver) WriteFile(dir js.Value, name string, data []byte) error {
+func (d BrowserDriver) WriteFile(dir js.Value, name string, data []byte) error {
 	if jsutil.UseTinyGoHelpers() {
 		return writeFileWithTinyGoImport(dir, name, data)
 	}
 	if len(data) > browserDriverFileChunkSize {
-		return writeFileChunked(dir, name, data)
+		return d.writeFileChunked(dir, name, data)
 	}
 
 	opts := jsutil.NewObject()
@@ -643,7 +723,7 @@ func CreateWriteStream(dir js.Value, name string) (*WriteStream, error) {
 }
 
 // CreateWriteStream creates or replaces a file and opens one streaming writer.
-func (BrowserDriver) CreateWriteStream(dir js.Value, name string) (*WriteStream, error) {
+func (d BrowserDriver) CreateWriteStream(dir js.Value, name string) (*WriteStream, error) {
 	if jsutil.UseTinyGoHelpers() {
 		return createWriteStreamWithTinyGoImport(dir, name)
 	}
@@ -658,11 +738,15 @@ func (BrowserDriver) CreateWriteStream(dir js.Value, name string) (*WriteStream,
 	if err != nil {
 		return nil, err
 	}
-	return &WriteStream{name: name, writable: writable}, nil
+	return &WriteStream{driver: d, name: name, writable: writable}, nil
 }
 
 // Write appends p to the stream's current offset.
 func (w *WriteStream) Write(p []byte) (int, error) {
+	return w.owner().writeStream(w, p)
+}
+
+func (BrowserDriver) writeStream(w *WriteStream, p []byte) (int, error) {
 	if jsutil.UseTinyGoHelpers() {
 		return w.writeWithTinyGoImport(p)
 	}
@@ -678,6 +762,10 @@ func (w *WriteStream) Write(p []byte) (int, error) {
 
 // Close commits the writable session.
 func (w *WriteStream) Close() error {
+	return w.owner().closeWriteStream(w)
+}
+
+func (BrowserDriver) closeWriteStream(w *WriteStream) error {
 	if jsutil.UseTinyGoHelpers() {
 		return w.closeWithTinyGoImport()
 	}
@@ -689,6 +777,10 @@ func (w *WriteStream) Close() error {
 
 // Abort discards the writable session.
 func (w *WriteStream) Abort() error {
+	return w.owner().abortWriteStream(w)
+}
+
+func (BrowserDriver) abortWriteStream(w *WriteStream) error {
 	if jsutil.UseTinyGoHelpers() {
 		return w.abortWithTinyGoImport()
 	}
@@ -736,8 +828,8 @@ func (d BrowserDriver) ReadFile(dir js.Value, name string) ([]byte, error) {
 	return buf, nil
 }
 
-func writeFileChunked(dir js.Value, name string, data []byte) error {
-	f, err := CreateAsyncFile(dir, name)
+func (d BrowserDriver) writeFileChunked(dir js.Value, name string, data []byte) error {
+	f, err := d.CreateAsyncFile(dir, name)
 	if err != nil {
 		return err
 	}
@@ -900,6 +992,18 @@ func (d BrowserDriver) FileExists(dir js.Value, name string) (bool, error) {
 	}
 
 	_, err := AwaitPromise(jsutil.Call(dir, "getFileHandle", name))
+	if err != nil {
+		if d.ClassifyError(err) == ErrorKindNotFound {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+// DirExists checks if a subdirectory exists in the given directory.
+func (d BrowserDriver) DirExists(dir js.Value, name string) (bool, error) {
+	_, err := d.GetDirectory(dir, name, false)
 	if err != nil {
 		if d.ClassifyError(err) == ErrorKindNotFound {
 			return false, nil
@@ -1211,12 +1315,5 @@ var (
 
 // DirExists checks if a subdirectory exists in the given directory.
 func DirExists(dir js.Value, name string) (bool, error) {
-	_, err := GetDirectory(dir, name, false)
-	if err != nil {
-		if IsNotFound(err) {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
+	return DefaultDriver.DirExists(dir, name)
 }

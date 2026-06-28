@@ -157,6 +157,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 
 	// entrypoint is located under /entrypoint/pkgs/@aperture/bldr
 	entrypointToRootPrefix := "../../../../"
+	forceMessagePortWorkerComms := !forceDedicatedWorkers
 
 	// run esbuild to compile the web entrypoint
 	le.Info("building web wasm entrypoint")
@@ -178,7 +179,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		!minifyEntrypoint,
 		devMode,
 		forceDedicatedWorkers,
-		false,
+		forceMessagePortWorkerComms,
 	)
 	if err != nil {
 		return err
@@ -346,6 +347,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		Entrypoint:    bundleResult.EntrypointPath,
 		ServiceWorker: bundleResult.ServiceWorkerFilename,
 		SharedWorker:  bundleResult.SharedWorkerFilename,
+		OpfsWorker:    bundleResult.OpfsWorkerFilename,
 		Wasm:          "entrypoint/runtime.wasm",
 		CSS:           bundleResult.CSSPaths,
 	}

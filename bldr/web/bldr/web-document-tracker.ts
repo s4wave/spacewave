@@ -5,6 +5,7 @@ import {
   buildWebDocumentLockName,
   ClientToWebDocument,
   ConnectWebRuntimeAck,
+  OpenOpfsWorkerAck,
   SabPairEndpointDescriptor,
   WebDocumentToClient,
   WebDocumentToWorker,
@@ -34,6 +35,12 @@ interface SabPairOpenWaiter {
 }
 
 interface WebRtcBridgeOpenWaiter {
+  webDocumentId: string
+  resolve: (port: MessagePort) => void
+  reject: (err: Error) => void
+}
+
+interface OpfsWorkerOpenWaiter {
   webDocumentId: string
   resolve: (port: MessagePort) => void
   reject: (err: Error) => void
@@ -78,6 +85,9 @@ export class WebDocumentTracker {
   private sabPairOpenWaiters = new Map<string, SabPairOpenWaiter>()
   private sabPairEndpoints = new Map<string, SabPairEndpointDescriptor>()
   private webRtcBridgeOpenWaiters: WebRtcBridgeOpenWaiter[] = []
+  private opfsWorkerOpenWaiters: OpfsWorkerOpenWaiter[] = []
+  // opfsWorkerHostId is the WebDocument currently hosting the OPFS bridge worker.
+  private opfsWorkerHostId?: string
 
   constructor(
     clientUuid: string,
@@ -88,6 +98,11 @@ export class WebDocumentTracker {
       | (() => Promise<void> | void)
       | null,
     logicalClientId?: string,
+    // onOpfsBridgeLost fires when the WebDocument hosting the OPFS bridge worker
+    // is removed, or the broker reports that worker died. The owner re-hosts the
+    // bridge. Removing a non-host WebDocument does not fire it, so an unrelated
+    // tab close never invalidates a healthy mounted volume's handles.
+    private readonly onOpfsBridgeLost?: (() => Promise<void> | void) | null,
   ) {
     this.clientUuid = clientUuid
     this.clientType = clientType
@@ -192,6 +207,15 @@ export class WebDocumentTracker {
         return
       }
 
+      if (data.openOpfsWorkerAck) {
+        this.handleOpenOpfsWorkerAck(
+          webDocumentId,
+          data.openOpfsWorkerAck,
+          ev.ports?.[0],
+        )
+        return
+      }
+
       if (data.sabPairEndpoint) {
         this.sabPairEndpoints.set(
           data.sabPairEndpoint.pairId,
@@ -201,6 +225,11 @@ export class WebDocumentTracker {
 
       if (data.sabPairClosed) {
         this.sabPairEndpoints.delete(data.sabPairClosed.pairId)
+      }
+
+      if (data.opfsWorkerClosed) {
+        this.opfsWorkerHostId = undefined
+        void this.onOpfsBridgeLost?.()
       }
     }
 
@@ -239,6 +268,7 @@ export class WebDocumentTracker {
     this.rejectAllResumeReadyWaiters(err)
     this.rejectAllSabPairWaiters(err)
     this.rejectAllWebRtcBridgeWaiters(err)
+    this.rejectAllOpfsWorkerWaiters(err)
   }
 
   // postMessage posts a message to all connected web documents.
@@ -407,6 +437,36 @@ export class WebDocumentTracker {
         docPort.postMessage(msg)
       } catch (err) {
         this.removeWebRtcBridgeWaiter(waiter)
+        reject(err instanceof Error ? err : new Error(String(err)))
+      }
+    })
+  }
+
+  // requestOpfsWorker requests a DedicatedWorker OPFS bridge from the first
+  // available WebDocument. The returned MessagePort speaks the raw OPFS protocol.
+  public async requestOpfsWorker(): Promise<MessagePort | null> {
+    const webDocumentIds = Object.keys(this.webDocuments)
+    if (!webDocumentIds.length) return null
+
+    const docId = this.lastWebDocumentId ?? webDocumentIds[0]
+    const docPort = this.webDocuments[docId]
+    if (!docPort) return null
+
+    return new Promise<MessagePort | null>((resolve, reject) => {
+      const waiter: OpfsWorkerOpenWaiter = {
+        webDocumentId: docId,
+        resolve,
+        reject,
+      }
+      this.opfsWorkerOpenWaiters.push(waiter)
+      const msg: ClientToWebDocument = {
+        from: this.clientUuid,
+        openOpfsWorker: true,
+      }
+      try {
+        docPort.postMessage(msg)
+      } catch (err) {
+        this.removeOpfsWorkerWaiter(waiter)
         reject(err instanceof Error ? err : new Error(String(err)))
       }
     })
@@ -674,6 +734,7 @@ export class WebDocumentTracker {
     this.webDocumentResumeReadyIds.delete(webDocumentId)
     this.rejectSabPairWaitersForWebDocument(webDocumentId, closeErr)
     this.rejectWebRtcBridgeWaitersForWebDocument(webDocumentId, closeErr)
+    this.rejectOpfsWorkerWaitersForWebDocument(webDocumentId, closeErr)
     this.rejectResumeReadyWaiters(
       webDocumentId,
       new Error(
@@ -701,6 +762,24 @@ export class WebDocumentTracker {
       this.lastWebDocumentIdx = nextWebDocumentId
         ? remainingWebDocumentIds.indexOf(nextWebDocumentId)
         : 0
+    }
+
+    // Re-host the OPFS bridge only when the document that hosted it is the one
+    // removed. Removing any other document leaves the bridge worker and its
+    // handle id space intact, so a mounted volume keeps its cached handles
+    // instead of breaking with "remote OPFS handle is stale" on the next op.
+    if (
+      remainingWebDocumentIds.length &&
+      this.opfsWorkerHostId === webDocumentId &&
+      this.onOpfsBridgeLost
+    ) {
+      this.opfsWorkerHostId = undefined
+      Promise.resolve(this.onOpfsBridgeLost()).catch((err: unknown) => {
+        console.error(
+          `WebDocumentTracker: ${this.clientUuid}: error re-hosting OPFS bridge after host removal:`,
+          err,
+        )
+      })
     }
 
     if (!remainingWebDocumentIds.length) {
@@ -814,6 +893,64 @@ export class WebDocumentTracker {
   private rejectAllSabPairWaiters(err: Error) {
     const waiters = Array.from(this.sabPairOpenWaiters.values())
     this.sabPairOpenWaiters.clear()
+    for (const waiter of waiters) {
+      waiter.reject(err)
+    }
+  }
+
+  private handleOpenOpfsWorkerAck(
+    webDocumentId: string,
+    ack: OpenOpfsWorkerAck,
+    port?: MessagePort,
+  ): void {
+    const waiterIdx = this.opfsWorkerOpenWaiters.findIndex(
+      (waiter) => waiter.webDocumentId === webDocumentId,
+    )
+    if (waiterIdx === -1) {
+      port?.close()
+      return
+    }
+    const waiter = this.opfsWorkerOpenWaiters.splice(waiterIdx, 1)[0]
+    if (!waiter) {
+      port?.close()
+      return
+    }
+    if (ack.error) {
+      port?.close()
+      waiter.reject(new Error(ack.error))
+      return
+    }
+    if (!port) {
+      waiter.reject(new Error('OPFS worker open ack missing port'))
+      return
+    }
+    this.opfsWorkerHostId = webDocumentId
+    waiter.resolve(port)
+  }
+
+  private removeOpfsWorkerWaiter(waiter: OpfsWorkerOpenWaiter) {
+    const idx = this.opfsWorkerOpenWaiters.indexOf(waiter)
+    if (idx !== -1) {
+      this.opfsWorkerOpenWaiters.splice(idx, 1)
+    }
+  }
+
+  private rejectOpfsWorkerWaitersForWebDocument(
+    webDocumentId: string,
+    err: Error,
+  ) {
+    const waiters = this.opfsWorkerOpenWaiters
+    this.opfsWorkerOpenWaiters = waiters.filter((waiter) => {
+      if (waiter.webDocumentId !== webDocumentId) {
+        return true
+      }
+      waiter.reject(err)
+      return false
+    })
+  }
+
+  private rejectAllOpfsWorkerWaiters(err: Error) {
+    const waiters = this.opfsWorkerOpenWaiters.splice(0)
     for (const waiter of waiters) {
       waiter.reject(err)
     }

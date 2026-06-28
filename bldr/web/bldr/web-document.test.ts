@@ -29,6 +29,7 @@ type TestWebDocument = {
   singletonAbort?: AbortController
   sabPairBroker: SabPairBroker
   webrtcBridgeEndpoints: Map<string, unknown>
+  opfsWorkers: Map<string, { terminate: ReturnType<typeof vi.fn> }>
   firstWorkerReadyMarked: boolean
   notifyWebWorkerUpdated: ReturnType<typeof vi.fn>
   webStatusStream: {
@@ -50,6 +51,7 @@ type TestWebDocument = {
     waitConn?: () => Promise<unknown>
   }
   sharedWorkerPath: string
+  opfsWorkerPath: string
   forceDedicatedWorkers: boolean
   firstWorkerCreationMarked: boolean
   workerCommsDetect: Promise<{
@@ -77,6 +79,7 @@ function buildTestWebDocument(hidden = false): TestWebDocument {
     singletonAbort: undefined,
     sabPairBroker: new SabPairBroker(),
     webrtcBridgeEndpoints: new Map(),
+    opfsWorkers: new Map(),
     firstWorkerReadyMarked: false,
     notifyWebWorkerUpdated: vi.fn(),
     webStatusStream: {
@@ -85,6 +88,7 @@ function buildTestWebDocument(hidden = false): TestWebDocument {
     },
     eventHandlers: {},
     sharedWorkerPath: '/shw.mjs',
+    opfsWorkerPath: '/opfs-worker.mjs',
     forceDedicatedWorkers: true,
     firstWorkerCreationMarked: false,
     workerCommsDetect: Promise.resolve({
@@ -888,6 +892,55 @@ describe('WebDocument plugin generation state', () => {
     await replacement
 
     expect(workers).toHaveLength(2)
+    expect(workers[0].terminate).toHaveBeenCalledOnce()
+  })
+
+  it('opens and terminates OPFS bridge workers with the requester lifecycle', async () => {
+    const workers = installFakeDedicatedWorker()
+    const requesterPort = {
+      postMessage: vi.fn(),
+    } as unknown as MessagePort
+    const doc = buildTestWebDocument()
+    doc.webWorkers = {
+      'worker-1': buildTestWorker(requesterPort),
+    }
+
+    doc.onWebDocumentClientMessage({
+      data: {
+        from: 'worker-1',
+        openOpfsWorker: true,
+      },
+    } as MessageEvent)
+
+    expect(workers).toHaveLength(1)
+    expect(String(workers[0].url)).toContain('opfs-worker')
+    expect(workers[0].postMessage).toHaveBeenCalledWith(
+      {
+        from: 'document-1',
+        initPort: expect.any(Object),
+      },
+      [expect.any(Object)],
+    )
+    const initCall = workers[0].postMessage.mock.calls[0]
+    if (!initCall) {
+      throw new Error('expected an OPFS initPort postMessage')
+    }
+    const [readyPort] = initCall[1] as [MessagePort]
+    readyPort.postMessage({ opfsWorkerReady: true })
+    await vi.waitFor(() => {
+      expect(requesterPort.postMessage).toHaveBeenCalledWith(
+        {
+          from: 'document-1',
+          openOpfsWorkerAck: {
+            from: 'document-1',
+          },
+        },
+        [expect.any(Object)],
+      )
+    })
+
+    await doc.removeWebWorker({ id: 'worker-1' })
+
     expect(workers[0].terminate).toHaveBeenCalledOnce()
   })
 

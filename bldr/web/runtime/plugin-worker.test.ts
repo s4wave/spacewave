@@ -113,6 +113,107 @@ describe('PluginWorker startup shutdown', () => {
       postMessage.mock.calls.filter(([msg]) => msg.failureReason),
     ).toHaveLength(1)
   })
+
+  test('installs OPFS bridge global before starting Config A plugins', async () => {
+    const global = new FakeDedicatedWorkerGlobal()
+    vi.stubGlobal('navigator', {})
+    const opfsChannel = new MessageChannel()
+    const refreshedOpfsChannel = new MessageChannel()
+    const installRemoteDriver = vi.fn()
+    const globals = globalThis as typeof globalThis & {
+      __spacewaveOpfsBridgePort?: {
+        request: (op: string, args: unknown) => Promise<unknown>
+        close: () => void
+      }
+      __spacewaveInstallOpfsRemoteDriver?: (port: {
+        request: (op: string, args: unknown) => Promise<unknown>
+        close: () => void
+      }) => boolean
+    }
+    globals.__spacewaveInstallOpfsRemoteDriver = installRemoteDriver
+    const startPlugin = vi.fn()
+    const started = new Promise<void>((resolve) => {
+      startPlugin.mockImplementation(async () => {
+        resolve()
+      })
+    })
+    const worker = new PluginWorker(
+      global as unknown as DedicatedWorkerGlobalScope,
+      startPlugin,
+      null,
+    )
+    vi.spyOn(worker.webDocumentTracker, 'waitConn').mockResolvedValue(undefined)
+    vi.spyOn(
+      worker.webDocumentTracker,
+      'requestWebRtcBridge',
+    ).mockResolvedValue(null)
+    vi.spyOn(worker.webDocumentTracker, 'requestOpfsWorker')
+      .mockResolvedValueOnce(opfsChannel.port1)
+      .mockResolvedValueOnce(refreshedOpfsChannel.port1)
+
+    global.dispatchMessage({
+      initData: new TextEncoder().encode(btoa('{}')),
+      workerCommsDetect: {
+        config: 'A',
+        caps: {
+          crossOriginIsolated: false,
+          sabAvailable: false,
+          opfsAvailable: false,
+          webLocksAvailable: true,
+          broadcastChannelAvailable: true,
+        },
+      },
+    })
+
+    await started
+
+    expect(worker.webDocumentTracker.requestOpfsWorker).toHaveBeenCalledOnce()
+    const opfsBridge = globals.__spacewaveOpfsBridgePort
+    expect(opfsBridge).toBeDefined()
+    expect(opfsBridge).not.toBe(opfsChannel.port1)
+    expect(installRemoteDriver.mock.calls[0]?.[0]).toBe(opfsBridge)
+
+    const nextRequest = new Promise<MessageEvent<unknown>>((resolve) => {
+      opfsChannel.port2.addEventListener(
+        'message',
+        (event) => resolve(event as MessageEvent<unknown>),
+        { once: true },
+      )
+      opfsChannel.port2.start()
+    })
+    const getRoot = opfsBridge!.request('getRoot', { ready: true })
+    const request = await nextRequest
+    expect(request.data).toMatchObject({ op: 'getRoot', args: { ready: true } })
+    opfsChannel.port2.postMessage({
+      id: (request.data as { id: number }).id,
+      ok: true,
+      result: { id: 1 },
+    })
+    await expect(getRoot).resolves.toEqual({ id: 1 })
+
+    ;(
+      worker as unknown as {
+        refreshOpfsBridge: () => void
+      }
+    ).refreshOpfsBridge()
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(worker.webDocumentTracker.requestOpfsWorker).toHaveBeenCalledTimes(2)
+    const refreshedBridge = globals.__spacewaveOpfsBridgePort
+    expect(refreshedBridge).toBeDefined()
+    expect(refreshedBridge).not.toBe(refreshedOpfsChannel.port1)
+    expect(refreshedBridge).not.toBe(opfsBridge)
+    expect(installRemoteDriver.mock.calls[1]?.[0]).toBe(refreshedBridge)
+    opfsBridge?.close()
+    refreshedBridge?.close()
+    opfsChannel.port1.close()
+    opfsChannel.port2.close()
+    refreshedOpfsChannel.port1.close()
+    refreshedOpfsChannel.port2.close()
+    delete globals.__spacewaveOpfsBridgePort
+    delete globals.__spacewaveInstallOpfsRemoteDriver
+  })
 })
 
 class FakeDedicatedWorkerGlobal {

@@ -290,6 +290,7 @@ func writeWebWsBuildManifest(entrypointDir string, bundleResult *entrypoint_brow
 		Entrypoint:    bundleResult.EntrypointPath,
 		ServiceWorker: bundleResult.ServiceWorkerFilename,
 		SharedWorker:  bundleResult.SharedWorkerFilename,
+		OpfsWorker:    bundleResult.OpfsWorkerFilename,
 		// The websocket dev runtime has no runtime.wasm. boot.mjs still
 		// preloads the shellAssets.wasm path, so point it at the runtime asset
 		// that this server actually serves.

@@ -597,6 +597,71 @@ describe('WebDocumentTracker resume-ready gate', () => {
     documentPort.close()
   })
 
+  it('returns OPFS worker bridge port from the WebDocument ack', async () => {
+    const tracker = buildTracker()
+    const documentPort = attachWebDocument(tracker)
+    const openMsg = new Promise<ClientToWebDocument>((resolve) => {
+      documentPort.onmessage = (ev) => {
+        resolve(ev.data)
+      }
+      documentPort.start()
+    })
+
+    const bridgePort = tracker.requestOpfsWorker()
+    const msg = await openMsg
+    expect(msg.openOpfsWorker).toBe(true)
+
+    const { port1, port2 } = new MessageChannel()
+    documentPort.postMessage(
+      {
+        from: 'document-1',
+        openOpfsWorkerAck: {
+          from: 'document-1',
+        },
+      },
+      [port2],
+    )
+
+    const resolvedPort = await bridgePort
+    expect(resolvedPort).not.toBeNull()
+    const portMessage = new Promise<unknown>((resolve) => {
+      port1.onmessage = (ev) => {
+        resolve(ev.data)
+      }
+      port1.start()
+    })
+    resolvedPort?.postMessage({ ok: true })
+    await expect(portMessage).resolves.toEqual({ ok: true })
+
+    tracker.close()
+    documentPort.close()
+    port1.close()
+    resolvedPort?.close()
+  })
+
+  it('keeps OPFS worker open pending until the WebDocument closes', async () => {
+    vi.useFakeTimers()
+    const tracker = buildTracker()
+    const documentPort = attachWebDocument(tracker)
+
+    const bridgePort = tracker.requestOpfsWorker()
+    const isSettled = markSettled(bridgePort)
+
+    await vi.advanceTimersByTimeAsync(5000)
+
+    expect(isSettled()).toBe(false)
+
+    documentPort.postMessage({
+      from: 'document-1',
+      close: true,
+    })
+    await vi.advanceTimersByTimeAsync(0)
+
+    await expect(bridgePort).rejects.toThrow('WebDocument document-1 closed')
+    tracker.close()
+    documentPort.close()
+  })
+
   it('keeps exhausted shutdown rejections attached to the reconnect promise', async () => {
     const onWebDocumentsExhausted = vi.fn(async () => {
       tracker.close()
@@ -671,5 +736,81 @@ describe('WebDocumentTracker runtime fetch relay wait', () => {
     tracker.close()
 
     await expect(waitPromise).resolves.toBe(false)
+  })
+})
+
+describe('WebDocumentTracker OPFS bridge host lifecycle', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+
+  function buildOpfsBridgeTracker(
+    onOpfsBridgeLost: () => void,
+  ): WebDocumentTracker {
+    return new WebDocumentTracker(
+      'tracker-client',
+      WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER,
+      vi.fn().mockResolvedValue(undefined),
+      null,
+      null,
+      undefined,
+      onOpfsBridgeLost,
+    )
+  }
+
+  async function hostOpfsWorker(
+    tracker: WebDocumentTracker,
+    documentPort: MessagePort,
+    webDocumentId: string,
+  ): Promise<void> {
+    const opfsReq = tracker.requestOpfsWorker()
+    const { port1: bridgePort } = new MessageChannel()
+    documentPort.postMessage(
+      { from: webDocumentId, openOpfsWorkerAck: { from: webDocumentId } },
+      [bridgePort],
+    )
+    await opfsReq
+  }
+
+  const tick = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+  it('re-hosts the bridge only when the OPFS host document is removed', async () => {
+    const onLost = vi.fn()
+    const tracker = buildOpfsBridgeTracker(onLost)
+    const hostPort = attachWebDocument(tracker, 'host')
+    await hostOpfsWorker(tracker, hostPort, 'host')
+    const survivorA = attachWebDocument(tracker, 'survivor-a')
+    const survivorB = attachWebDocument(tracker, 'survivor-b')
+
+    survivorA.postMessage({ from: 'survivor-a', close: true })
+    await tick()
+    await tick()
+    expect(onLost).not.toHaveBeenCalled()
+
+    hostPort.postMessage({ from: 'host', close: true })
+    await tick()
+    await tick()
+    expect(onLost).toHaveBeenCalledTimes(1)
+
+    tracker.close()
+    hostPort.close()
+    survivorA.close()
+    survivorB.close()
+  })
+
+  it('re-hosts the bridge when the broker reports the OPFS worker died', async () => {
+    const onLost = vi.fn()
+    const tracker = buildOpfsBridgeTracker(onLost)
+    const hostPort = attachWebDocument(tracker, 'host')
+    await hostOpfsWorker(tracker, hostPort, 'host')
+
+    hostPort.postMessage({ from: 'host', opfsWorkerClosed: true })
+    await tick()
+    await tick()
+    expect(onLost).toHaveBeenCalledTimes(1)
+
+    tracker.close()
+    hostPort.close()
   })
 })

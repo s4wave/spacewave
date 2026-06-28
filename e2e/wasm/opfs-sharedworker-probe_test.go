@@ -62,10 +62,21 @@ func TestGoScriptSharedWorkerOPFSProbe(t *testing.T) {
 				workerMode: mark.detail?.workerMode ?? null,
 				path: mark.detail?.path ?? null,
 			}))
+		const opfsBridgeMarks = marks
+			.filter((mark) =>
+				mark.label === 'worker.opfs-bridge-ready' ||
+				mark.label === 'worker.opfs-bridge-refreshed')
+			.map((mark) => ({
+				workerId: mark.detail?.workerId ?? null,
+				shared: mark.detail?.shared ?? null,
+				workerType: mark.detail?.workerType ?? null,
+				enabled: mark.detail?.enabled ?? null,
+			}))
 		return {
 			crossOriginIsolated: !!globalThis.crossOriginIsolated,
 			runtimeMode,
 			pluginDispatches,
+			opfsBridgeMarks,
 		}
 	}`, nil)
 	if err != nil {
@@ -81,23 +92,22 @@ func TestGoScriptSharedWorkerOPFSProbe(t *testing.T) {
 	if got, _ := topology["crossOriginIsolated"].(bool); !got {
 		t.Fatalf("page crossOriginIsolated = false; topology=%#v", topology)
 	}
-	pluginDedicated := false
-	if dispatches, ok := topology["pluginDispatches"].([]any); ok {
-		for _, item := range dispatches {
-			dispatch, ok := item.(map[string]any)
+	opfsBridgeReady := false
+	if marks, ok := topology["opfsBridgeMarks"].([]any); ok {
+		for _, item := range marks {
+			mark, ok := item.(map[string]any)
 			if !ok {
 				continue
 			}
-			shared, _ := dispatch["shared"].(bool)
-			detectConfig, _ := dispatch["detectConfig"].(string)
-			if !shared && (detectConfig == "B" || detectConfig == "C") {
-				pluginDedicated = true
+			enabled, _ := mark["enabled"].(bool)
+			if enabled {
+				opfsBridgeReady = true
 				break
 			}
 		}
 	}
-	if !pluginDedicated {
-		t.Fatalf("no DedicatedWorker plugin dispatch observed; topology=%#v", topology)
+	if !opfsBridgeReady {
+		t.Fatalf("no enabled OPFS bridge mark observed; topology=%#v", topology)
 	}
 
 	probeRaw, err := page.Evaluate(`async () => {
