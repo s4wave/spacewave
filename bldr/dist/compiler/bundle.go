@@ -377,10 +377,10 @@ func BuildDistBundle(
 		// entrypoint is located under /entrypoint/{hash}/pkgs/@aptre/bldr
 		entrypointToRootPrefix := "../../../../../"
 
-		// GoScript and TinyGo browser bundles use the conservative MessagePort
-		// transport. The SAB/OPFS worker transport can strand startup RPCs after
-		// the quickstart frame is ready, leaving the browser stuck before content.
-		forceMessagePortWorkerComms := enableTinygo || useGoScript
+		// TinyGo release bundles use the conservative MessagePort transport.
+		// The SAB/OPFS worker transport can strand startup RPCs after the
+		// quickstart frame is ready, leaving the browser stuck before content.
+		forceMessagePortWorkerComms := enableTinygo
 
 		runtimeWorkerName := "runtime-wasm.mjs"
 		if useGoScript {
