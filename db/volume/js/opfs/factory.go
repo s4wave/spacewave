@@ -60,7 +60,13 @@ func (t *Factory) Construct(
 			ctx context.Context,
 			le *logrus.Entry,
 		) (volume.Volume, error) {
-			return NewOpfs(ctx, le, cc)
+			vol, err := NewOpfs(ctx, le, cc)
+			if err != nil {
+				return nil, err
+			}
+			// Wrap so a bridge-port swap (a fresh OPFS worker) remounts the
+			// volume and rebuilds its stale handle tree from a new GetRoot.
+			return newBridgeRemountVolume(vol), nil
 		},
 	), nil
 }

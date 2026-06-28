@@ -5,9 +5,9 @@ package opfs
 import (
 	"context"
 	"io"
-	"sync"
 	"syscall/js"
 
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/opfs/jsutil"
 )
@@ -27,8 +27,12 @@ const (
 type RemoteDriver struct {
 	port js.Value
 
-	mu      sync.Mutex
+	// bcast is the single mutex guarding port, handles, and swapGen. It also
+	// wakes WaitSwap waiters when the bridge port is swapped for a fresh OPFS
+	// worker so the mounted volume can remount and rebuild its stale handles.
+	bcast   broadcast.Broadcast
 	handles map[int]remoteDriverHandle
+	swapGen uint64
 
 	installFunc      js.Func
 	installFuncReady bool
@@ -82,18 +86,66 @@ func (d *RemoteDriver) installPort(port js.Value) bool {
 		return false
 	}
 
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	// A swapped port is a fresh OPFS worker with its own handle id space, so the
-	// cached directory/file/stream tokens are stale and must be dropped. In-flight
-	// requests await the previous OpfsBridgeClient promise, which that client
-	// rejects when it is closed during the swap.
-	if remotePortUsable(d.port) && d.port.Equal(port) {
-		return true
-	}
-	d.port = port
-	d.handles = make(map[int]remoteDriverHandle)
+	d.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// A swapped port is a fresh OPFS worker with its own handle id space, so
+		// the cached directory/file/stream tokens are stale and must be dropped.
+		// In-flight requests await the previous OpfsBridgeClient promise, which
+		// that client rejects when it is closed during the swap.
+		if remotePortUsable(d.port) && d.port.Equal(port) {
+			return
+		}
+		// Replacing an existing usable port is a swap: bump the generation and
+		// wake WaitSwap so the mounted volume remounts and rebuilds its handle
+		// tree from a fresh GetRoot. Every cached handle from the root down
+		// references the dead worker, and the volume cannot reopen them in place
+		// because it does not own the directory chain. The first install (no
+		// prior port) is not a swap and must not trigger a remount.
+		swapped := remotePortUsable(d.port)
+		d.port = port
+		d.handles = make(map[int]remoteDriverHandle)
+		if swapped {
+			d.swapGen++
+			broadcast()
+		}
+	})
 	return true
+}
+
+// WaitSwap blocks until the bridge port is swapped for a fresh OPFS worker, or
+// ctx is done. A swap invalidates every cached handle, so the mounted volume
+// uses this to drive a remount from a fresh GetRoot.
+func (d *RemoteDriver) WaitSwap(ctx context.Context) error {
+	var startGen uint64
+	d.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		startGen = d.swapGen
+	})
+	for {
+		var changed bool
+		var waitCh <-chan struct{}
+		d.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			changed = d.swapGen != startGen
+			waitCh = getWaitCh()
+		})
+		if changed {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-waitCh:
+		}
+	}
+}
+
+// WaitBridgeSwap blocks until the active driver's bridge port is swapped for a
+// fresh OPFS worker, or ctx is done. The local browser driver has no bridge to
+// swap, so it blocks until ctx is done.
+func WaitBridgeSwap(ctx context.Context) error {
+	if d, ok := DefaultDriver.(*RemoteDriver); ok {
+		return d.WaitSwap(ctx)
+	}
+	<-ctx.Done()
+	return ctx.Err()
 }
 
 func (d *RemoteDriver) installGlobalSetter() {
@@ -485,9 +537,10 @@ func (d *RemoteDriver) callTransfer(op string, args js.Value, transfer ...js.Val
 	if port := js.Global().Get(opfsBridgePortGlobal); remotePortUsable(port) {
 		d.installPort(port)
 	}
-	d.mu.Lock()
-	port := d.port
-	d.mu.Unlock()
+	var port js.Value
+	d.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		port = d.port
+	})
 	if !remotePortUsable(port) {
 		return js.Undefined(), &remoteTransportError{op: op, message: "bridge port unavailable"}
 	}
@@ -542,12 +595,12 @@ func (d *RemoteDriver) newHandle(result js.Value, kind string) (js.Value, error)
 	if err != nil {
 		return js.Undefined(), err
 	}
-	d.mu.Lock()
-	if d.handles == nil {
-		d.handles = make(map[int]remoteDriverHandle)
-	}
-	d.handles[id] = remoteDriverHandle{kind: kind}
-	d.mu.Unlock()
+	d.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if d.handles == nil {
+			d.handles = make(map[int]remoteDriverHandle)
+		}
+		d.handles[id] = remoteDriverHandle{kind: kind}
+	})
 
 	handle := jsutil.NewObject()
 	handle.Set(remoteHandleIDField, id)
@@ -567,9 +620,11 @@ func (d *RemoteDriver) handleID(handle js.Value, kind string) (int, error) {
 		return 0, &remoteTransportError{message: "remote OPFS handle missing id"}
 	}
 	id := idValue.Int()
-	d.mu.Lock()
-	h, ok := d.handles[id]
-	d.mu.Unlock()
+	var h remoteDriverHandle
+	var ok bool
+	d.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		h, ok = d.handles[id]
+	})
 	if !ok {
 		return 0, &remoteTransportError{message: "remote OPFS handle is stale"}
 	}
@@ -580,9 +635,9 @@ func (d *RemoteDriver) handleID(handle js.Value, kind string) (int, error) {
 }
 
 func (d *RemoteDriver) removeHandle(id int) {
-	d.mu.Lock()
-	delete(d.handles, id)
-	d.mu.Unlock()
+	d.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		delete(d.handles, id)
+	})
 }
 
 func remoteArgs(fields ...any) js.Value {
