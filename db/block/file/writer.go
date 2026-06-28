@@ -14,7 +14,6 @@ import (
 )
 
 // Writer is a handle that can write to a handle.
-// TODO: drop any ranges which are fully occluded by new ranges.
 type Writer struct {
 	*Handle
 
@@ -180,6 +179,7 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 						w.root.TotalSize = lastRangeEnd
 					}
 					rcs.MarkDirty()
+					w.compactOccludedRanges()
 					w.clearReadState()
 
 					if err := w.moveRangeToRootBlob(); err != nil {
@@ -220,6 +220,7 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 
 	size := bblob.GetTotalSize()
 	w.sortRanges()
+	w.compactOccludedRanges()
 	w.clearReadState()
 
 	oldSize := w.root.GetTotalSize()
@@ -261,6 +262,7 @@ func (w *Writer) WriteBlob(index, size uint64, ref *block.BlockRef) error {
 	_, rcs := w.rangeSet.Get(rlen)
 	rcs.ClearRef(4)
 	w.sortRanges() // TODO: faster sorted insert
+	w.compactOccludedRanges()
 
 	oldSize := w.root.GetTotalSize()
 	nextSize := index + size
@@ -436,6 +438,7 @@ func (w *Writer) moveRootBlobToRange() error {
 	w.root.RootBlob = nil
 
 	w.sortRanges()
+	w.compactOccludedRanges()
 	w.clearReadState()
 	return nil
 }
@@ -483,6 +486,60 @@ func (w *Writer) moveRangeToRootBlob() error {
 func (w *Writer) sortRanges() {
 	hrs := NewHandleRangeSlice(w.Handle)
 	sort.Sort(hrs)
+}
+
+func (w *Writer) compactOccludedRanges() {
+	ranges := w.root.GetRanges()
+	if len(ranges) <= 1 {
+		return
+	}
+
+	for i := len(ranges) - 1; i >= 0; i-- {
+		if rangeCoveredByHigherNonce(ranges, i) {
+			w.deleteRange(i)
+			ranges = w.root.GetRanges()
+		}
+	}
+}
+
+func (w *Writer) deleteRange(idx int) {
+	ranges := w.root.GetRanges()
+	lastIdx := len(ranges) - 1
+	for i := idx; i < lastIdx; i++ {
+		w.rangeSet.Swap(i, i+1)
+	}
+	w.root.Ranges[lastIdx] = nil
+	w.root.Ranges = w.root.Ranges[:lastIdx]
+	w.rangeSet.GetCursor().ClearRef(uint32(lastIdx)) //nolint:gosec
+	w.bcs.MarkDirty()
+}
+
+func rangeCoveredByHigherNonce(ranges []*Range, idx int) bool {
+	rng := ranges[idx]
+	start := rng.GetStart()
+	end := start + rng.GetLength()
+	coveredEnd := start
+	for {
+		var advanced bool
+		for i, other := range ranges {
+			if i == idx || other.GetNonce() <= rng.GetNonce() {
+				continue
+			}
+			otherStart := other.GetStart()
+			otherEnd := otherStart + other.GetLength()
+			if otherStart > coveredEnd || otherEnd <= coveredEnd {
+				continue
+			}
+			coveredEnd = otherEnd
+			advanced = true
+			if coveredEnd >= end {
+				return true
+			}
+		}
+		if !advanced {
+			return false
+		}
+	}
 }
 
 // _ is a type assertion

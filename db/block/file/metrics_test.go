@@ -220,6 +220,7 @@ func countChunkFetches(snapshot metricStoreSnapshot, chunks []*blob.Chunk) int {
 	}
 	return fetches
 }
+
 func countRangeBlobRefs(ranges []*Range) int {
 	var count int
 	for _, rng := range ranges {
@@ -228,6 +229,30 @@ func countRangeBlobRefs(ranges []*Range) int {
 		}
 	}
 	return count
+}
+
+func syntheticFlatChunkBlob(t *testing.T, chunkCount int, chunkSize uint64) *blob.Blob {
+	t.Helper()
+	ref, err := block.BuildBlockRef([]byte("synthetic-flat-chunk"), &block.PutOpts{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	chunks := make([]*blob.Chunk, 0, chunkCount)
+	var start uint64
+	for range chunkCount {
+		chunks = append(chunks, blob.NewChunk(ref, chunkSize, start))
+		start += chunkSize
+	}
+	return &blob.Blob{
+		BlobType:  blob.BlobType_BlobType_CHUNKED,
+		TotalSize: start,
+		ChunkIndex: &blob.ChunkIndex{
+			Chunks: chunks,
+			ChunkerArgs: &blob.ChunkerArgs{
+				ChunkerType: blob.ChunkerType_ChunkerType_JC,
+			},
+		},
+	}
 }
 
 func readFileBytes(t *testing.T, ctx context.Context, bcs *block.Cursor, root *File) []byte {
@@ -369,6 +394,7 @@ func TestFileMetricRandomOverwrite(t *testing.T) {
 	body := bytes.Repeat([]byte("random-overwrite-base-"), 384)
 	store := newMetricCountingStore()
 	btx, bcs, root := buildMetricRootWithStore(t, ctx, body, store, nil)
+	expected := append([]byte(nil), body...)
 	writes := []struct {
 		offset int
 		data   []byte
@@ -382,6 +408,7 @@ func TestFileMetricRandomOverwrite(t *testing.T) {
 	defer fh.Close()
 	fw := NewWriter(fh, btx, nil)
 	for _, write := range writes {
+		copy(expected[write.offset:], write.data)
 		if err := fw.WriteFrom(uint64(write.offset), int64(len(write.data)), bytes.NewReader(write.data)); err != nil {
 			t.Fatal(err.Error())
 		}
@@ -401,16 +428,137 @@ func TestFileMetricRandomOverwrite(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	openLatency := time.Since(openStarted)
+	openStats := store.snapshot()
+	store.reset()
+	if got := readFileBytes(t, ctx, readBcs, root); !bytes.Equal(got, expected) {
+		t.Fatal("random overwrite readback changed after compaction")
+	}
 
 	occluded := countFullyOccludedRanges(root.GetRanges())
 	overlapDepth := maxOverlapDepth(root.GetRanges())
 	lookupScan := lookupScanLength(root.GetRanges(), 128)
-	if len(root.GetRanges()) <= 1 || occluded == 0 || overlapDepth <= 1 {
-		t.Fatalf("random overwrite workload did not produce measurable range pressure: ranges=%d occluded=%d overlap_depth=%d", len(root.GetRanges()), occluded, overlapDepth)
+	uncompactedRangeCount := 1 + len(writes)
+	if len(root.GetRanges()) >= uncompactedRangeCount || occluded != 0 || overlapDepth <= 1 {
+		t.Fatalf("random overwrite compaction did not reduce stale range pressure: ranges=%d uncompacted_ranges=%d occluded=%d overlap_depth=%d", len(root.GetRanges()), uncompactedRangeCount, occluded, overlapDepth)
+	}
+	_ = bcs
+	t.Logf("metric workload=random-overwrite range_count=%d uncompacted_range_count=%d fully_occluded_range_count=%d stale_reachable_refs=%d overlap_depth=%d lookup_scan_length=%d logical_bytes=%d root_open_latency_ns=%d publish_latency_ns=%d root_fetches=%d fetched_bytes=%d", len(root.GetRanges()), uncompactedRangeCount, occluded, occluded, overlapDepth, lookupScan, root.GetTotalSize(), openLatency.Nanoseconds(), publishLatency.Nanoseconds(), openStats.getCalls, openStats.getBytes)
+}
+
+func TestFileRangeCompactionPreservesSparseZeroOverwrite(t *testing.T) {
+	ctx := context.Background()
+	body := []byte("0123456789abcdef")
+	btx, bcs, root := buildMetricRoot(t, ctx, "range-compaction-sparse-zero", body)
+	fh := NewHandle(ctx, bcs, root)
+	defer fh.Close()
+	fw := NewWriter(fh, btx, nil)
+	if err := fw.WriteFrom(4, 4, bytes.NewReader([]byte("DATA"))); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := fw.WriteBlob(4, 4, nil); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, readBcs := block.NewTransaction(btx.GetStoreOps(), nil, rootRef, nil)
+	readRoot, err := block.UnmarshalBlock[*File](ctx, readBcs, NewFileBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	got := readFileBytes(t, ctx, readBcs, readRoot)
+	want := append([]byte(nil), body...)
+	for i := range want[4:8] {
+		want[4+i] = 0
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatalf("sparse zero overwrite readback mismatch\n got: %v\nwant: %v", got, want)
+	}
+	if len(readRoot.GetRanges()) != 2 {
+		t.Fatalf("expected compacted root range and sparse zero range, got %d ranges", len(readRoot.GetRanges()))
+	}
+	if countFullyOccludedRanges(readRoot.GetRanges()) != 0 {
+		t.Fatalf("expected no fully occluded ranges after compaction, got %d", countFullyOccludedRanges(readRoot.GetRanges()))
+	}
+	if refs := countRangeBlobRefs(readRoot.GetRanges()); refs != 1 {
+		t.Fatalf("expected stale concrete overwrite ref to be dropped, got %d range blob refs", refs)
+	}
+}
+
+func TestFileMetricOverlappingRangeReadback(t *testing.T) {
+	ctx := context.Background()
+	store := newMetricCountingStore()
+	body := bytes.Repeat([]byte("b"), 32)
+	btx, bcs, root := buildMetricRootWithStore(t, ctx, body, store, nil)
+	fh := NewHandle(ctx, bcs, root)
+	defer fh.Close()
+	fw := NewWriter(fh, btx, metricBlobOpts())
+	if err := fw.WriteFrom(8, 20, bytes.NewReader(bytes.Repeat([]byte("l"), 20))); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := fw.WriteFrom(14, 2, bytes.NewReader([]byte("xx"))); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := fw.WriteFrom(12, 4, bytes.NewReader([]byte("HIGH"))); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := fw.WriteBlob(20, 4, nil); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	publishStarted := time.Now()
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	publishLatency := time.Since(publishStarted)
+
+	store.reset()
+	openStarted := time.Now()
+	_, readBcs := block.NewTransaction(store, nil, rootRef, nil)
+	readRoot, err := block.UnmarshalBlock[*File](ctx, readBcs, NewFileBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	openLatency := time.Since(openStarted)
+	openStats := store.snapshot()
+	store.reset()
+
+	rdr := NewHandle(ctx, readBcs, readRoot)
+	defer rdr.Close()
+	if _, seekErr := rdr.Seek(12, io.SeekStart); seekErr != nil {
+		t.Fatal(seekErr.Error())
+	}
+	got := make([]byte, 20)
+	readStarted := time.Now()
+	n, err := rdr.Read(got)
+	readLatency := time.Since(readStarted)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if n != len(got) {
+		t.Fatalf("overlap metric read returned %d bytes, expected %d", n, len(got))
+	}
+	want := append([]byte("HIGH"), bytes.Repeat([]byte("l"), 4)...)
+	want = append(want, 0, 0, 0, 0)
+	want = append(want, bytes.Repeat([]byte("l"), 4)...)
+	want = append(want, bytes.Repeat([]byte("b"), 4)...)
+	if !bytes.Equal(got, want) {
+		t.Fatal("overlap metric readback mismatch")
+	}
+
+	ranges := readRoot.GetRanges()
+	rangeCount := len(ranges)
+	occluded := countFullyOccludedRanges(ranges)
+	overlapDepth := maxOverlapDepth(ranges)
+	lookupScan := lookupScanLength(ranges, 14)
+	if rangeCount <= 1 || occluded != 0 || overlapDepth <= 1 {
+		t.Fatalf("overlap workload compaction did not preserve visible overlap without stale ranges: ranges=%d occluded=%d overlap_depth=%d", rangeCount, occluded, overlapDepth)
 	}
 	stats := store.snapshot()
-	_ = bcs
-	t.Logf("metric workload=random-overwrite range_count=%d fully_occluded_range_count=%d stale_reachable_refs=%d overlap_depth=%d lookup_scan_length=%d logical_bytes=%d root_open_latency_ns=%d publish_latency_ns=%d root_fetches=%d fetched_bytes=%d", len(root.GetRanges()), occluded, occluded, overlapDepth, lookupScan, root.GetTotalSize(), openLatency.Nanoseconds(), publishLatency.Nanoseconds(), stats.getCalls, stats.getBytes)
+	t.Logf("metric workload=overlap-readback-corrected range_count=%d fully_occluded_range_count=%d stale_reachable_refs=%d overlap_depth=%d lookup_scan_length=%d read_latency_ns=%d read_latency_by_range_count_ns=%d logical_bytes=%d root_open_latency_ns=%d publish_latency_ns=%d root_open_fetches=%d root_open_fetched_bytes=%d read_fetches=%d read_fetched_bytes=%d", rangeCount, occluded, occluded, overlapDepth, lookupScan, readLatency.Nanoseconds(), readLatency.Nanoseconds()/int64(max(rangeCount, 1)), readRoot.GetTotalSize(), openLatency.Nanoseconds(), publishLatency.Nanoseconds(), openStats.getCalls, openStats.getBytes, stats.getCalls, stats.getBytes)
 }
 
 func TestFileMetricMostlyUnchangedFullRewrite(t *testing.T) {
@@ -507,25 +655,32 @@ func TestFileMetricSequentialOpenDownload(t *testing.T) {
 
 func TestFileMetricChunkMetadataOverhead(t *testing.T) {
 	ctx := context.Background()
-	for _, size := range []int{1024, 4096, 8192} {
+	const chunkSize = uint64(1024)
+	for _, chunkCount := range []int{4096, 40960} {
 		store := newMetricCountingStore()
-		body := bytes.Repeat([]byte("m"), size)
-		btx, _, root := buildMetricRootWithStore(t, ctx, body, store, nil)
-		chunks := root.GetRootBlob().GetChunkIndex().GetChunks()
-		metadataBytes, err := root.GetRootBlob().MarshalBlock()
+		rootBlob := syntheticFlatChunkBlob(t, chunkCount, chunkSize)
+		root := &File{
+			TotalSize: rootBlob.GetTotalSize(),
+			RootBlob:  rootBlob,
+		}
+		metadataBytes, err := rootBlob.MarshalBlock()
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		if len(chunks) == 0 || len(metadataBytes) == 0 {
-			t.Fatalf("missing metadata for size %d", size)
+		appendedBlob := syntheticFlatChunkBlob(t, chunkCount+1, chunkSize)
+		appendedMetadataBytes, err := appendedBlob.MarshalBlock()
+		if err != nil {
+			t.Fatal(err.Error())
 		}
-		publishStarted := time.Now()
+		btx, bcs := block.NewTransaction(store, nil, nil, nil)
+		bcs.SetBlock(root, true)
+		writeStarted := time.Now()
 		if _, _, err := btx.Write(ctx, true); err != nil {
 			t.Fatal(err.Error())
 		}
-		publishLatency := time.Since(publishStarted)
+		rootWriteLatency := time.Since(writeStarted)
 		stats := store.snapshot()
-		t.Logf("metric workload=chunk-metadata-overhead file_bytes=%d chunk_count=%d serialized_metadata_bytes=%d metadata_rewrite_bytes_per_append=%d root_write_latency_ns=%d store_puts=%d put_bytes=%d", size, len(chunks), len(metadataBytes), len(metadataBytes), publishLatency.Nanoseconds(), stats.putCalls, stats.putBytes)
+		t.Logf("metric workload=chunk-metadata-overhead file_class=synthetic-flat chunk_class=target-%d file_bytes=%d chunk_count=%d serialized_metadata_bytes=%d metadata_rewrite_bytes_per_append=%d metadata_rewrite_bytes_per_publish=%d root_write_latency_ns=%d store_puts=%d put_bytes=%d", chunkCount, rootBlob.GetTotalSize(), len(rootBlob.GetChunkIndex().GetChunks()), len(metadataBytes), len(appendedMetadataBytes), len(metadataBytes), rootWriteLatency.Nanoseconds(), stats.putCalls, stats.putBytes)
 	}
 }
 

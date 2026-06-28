@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"io/fs"
-	"path"
 	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
@@ -146,14 +145,6 @@ func (r *FSHandleResource) joinHandlePath(relPath string) []string {
 		next = append(next, part)
 	}
 	return next
-}
-
-// getDisplayPath returns the current handle path in slash-separated form.
-func (r *FSHandleResource) getDisplayPath() string {
-	if len(r.path) == 0 {
-		return "."
-	}
-	return path.Join(r.path...)
 }
 
 // reloadHandle reloads the current handle from world state at r.path.

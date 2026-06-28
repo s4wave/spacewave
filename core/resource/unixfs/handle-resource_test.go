@@ -50,6 +50,16 @@ func (r *uploadMetricRecorder) totalBytes(stage string) int {
 	return total
 }
 
+func (r *uploadMetricRecorder) countStage(stage string) int {
+	var count int
+	for _, metric := range r.metrics {
+		if metric.Stage == stage {
+			count++
+		}
+	}
+	return count
+}
+
 type uploadTreeMetricStream struct {
 	ctx      context.Context
 	messages []*s4wave_unixfs.HandleUploadTreeRequest
@@ -87,6 +97,25 @@ func (s *uploadTreeMetricStream) RecvTo(out *s4wave_unixfs.HandleUploadTreeReque
 	}
 	*out = *msg
 	return nil
+}
+
+func assertUploadTreeCounters(
+	t *testing.T,
+	resp *s4wave_unixfs.HandleUploadTreeResponse,
+	bytesWritten int64,
+	filesWritten int64,
+	directoriesWritten int64,
+) {
+	t.Helper()
+	if resp.GetBytesWritten() != bytesWritten {
+		t.Fatalf("bytes_written = %d, want %d", resp.GetBytesWritten(), bytesWritten)
+	}
+	if resp.GetFilesWritten() != filesWritten {
+		t.Fatalf("files_written = %d, want %d", resp.GetFilesWritten(), filesWritten)
+	}
+	if resp.GetDirectoriesWritten() != directoriesWritten {
+		t.Fatalf("directories_written = %d, want %d", resp.GetDirectoriesWritten(), directoriesWritten)
+	}
 }
 
 func setupFSHandleResourceClient(
@@ -458,15 +487,7 @@ func TestFSHandleResourceUploadTreeNested(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resp.GetBytesWritten() != 8 {
-		t.Fatalf("bytes_written = %d, want %d", resp.GetBytesWritten(), 8)
-	}
-	if resp.GetFilesWritten() != 2 {
-		t.Fatalf("files_written = %d, want %d", resp.GetFilesWritten(), 2)
-	}
-	if resp.GetDirectoriesWritten() != 1 {
-		t.Fatalf("directories_written = %d, want %d", resp.GetDirectoriesWritten(), 1)
-	}
+	assertUploadTreeCounters(t, resp, 8, 2, 1)
 
 	childResp, err := rootSvc.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{
 		Path: "nested/child.txt",
@@ -562,15 +583,7 @@ func TestFSHandleResourceUploadTreeMetrics(t *testing.T) {
 	if rootResource.GetHandle() != rootHandle {
 		defer rootResource.GetHandle().Release()
 	}
-	if resp.GetBytesWritten() != 5 {
-		t.Fatalf("bytes_written = %d, want %d", resp.GetBytesWritten(), 5)
-	}
-	if resp.GetFilesWritten() != 1 {
-		t.Fatalf("files_written = %d, want %d", resp.GetFilesWritten(), 1)
-	}
-	if resp.GetDirectoriesWritten() != 1 {
-		t.Fatalf("directories_written = %d, want %d", resp.GetDirectoriesWritten(), 1)
-	}
+	assertUploadTreeCounters(t, resp, 5, 1, 1)
 
 	wantStages := []string{
 		"receive-directory",
@@ -585,8 +598,26 @@ func TestFSHandleResourceUploadTreeMetrics(t *testing.T) {
 	if !slices.Equal(recorder.stages(), wantStages) {
 		t.Fatalf("stages = %v, want %v", recorder.stages(), wantStages)
 	}
-	if recorder.totalBytes("receive-data") != 5 {
-		t.Fatalf("receive-data bytes = %d, want %d", recorder.totalBytes("receive-data"), 5)
+	for _, want := range []struct {
+		stage string
+		count int
+		bytes int
+	}{
+		{stage: "receive-directory", count: 1},
+		{stage: "receive-file-start", count: 1},
+		{stage: "receive-data", count: 1, bytes: 5},
+		{stage: "commit-start", count: 1},
+		{stage: "commit-complete", count: 1},
+		{stage: "reload-start", count: 1},
+		{stage: "reload-complete", count: 1},
+		{stage: "broadcast", count: 1},
+	} {
+		if got := recorder.countStage(want.stage); got != want.count {
+			t.Fatalf("%s metric count = %d, want %d", want.stage, got, want.count)
+		}
+		if got := recorder.totalBytes(want.stage); got != want.bytes {
+			t.Fatalf("%s metric bytes = %d, want %d", want.stage, got, want.bytes)
+		}
 	}
 
 	bfs := unixfs_billy.NewBillyFS(ctx, rootResource.GetHandle(), "", time.Now())
@@ -596,6 +627,15 @@ func TestFSHandleResourceUploadTreeMetrics(t *testing.T) {
 	}
 	if string(data) != "hello" {
 		t.Fatalf("got data %q, want %q", string(data), "hello")
+	}
+	for _, metric := range recorder.metrics {
+		t.Logf(
+			"metric workload=resource-upload-tree file_class=resource-unixfs stage=%s bytes_written=%d files_written=%d directories_written=%d",
+			metric.Stage,
+			metric.Bytes,
+			resp.GetFilesWritten(),
+			resp.GetDirectoriesWritten(),
+		)
 	}
 }
 
@@ -641,8 +681,10 @@ func TestFSHandleResourceUploadTreeOverwriteReadback(t *testing.T) {
 
 	first := uploadTestPatternBytes(96 * 1024)
 	second := uploadTestPatternBytes(160 * 1024)
-	uploadTreeFileViaResource(t, ctx, rootSvc, "overwrite.bin", first)
-	uploadTreeFileViaResource(t, ctx, rootSvc, "overwrite.bin", second)
+	firstResp := uploadTreeFileViaResource(t, ctx, rootSvc, "overwrite.bin", first)
+	assertUploadTreeCounters(t, firstResp, int64(len(first)), 1, 0)
+	secondResp := uploadTreeFileViaResource(t, ctx, rootSvc, "overwrite.bin", second)
+	assertUploadTreeCounters(t, secondResp, int64(len(second)), 1, 0)
 
 	fileResp, err := rootSvc.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{
 		Path: "overwrite.bin",
@@ -719,9 +761,11 @@ func TestFSHandleResourceReadAtCapsLargeResponse(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if _, err := strm.CloseAndRecv(); err != nil {
+	uploadResp, err := strm.CloseAndRecv()
+	if err != nil {
 		t.Fatal(err)
 	}
+	assertUploadTreeCounters(t, uploadResp, int64(len(data)), 1, 0)
 
 	fileResp, err := rootSvc.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{
 		Path: "large.bin",
@@ -775,6 +819,10 @@ func TestFSHandleResourceReadAtCapsLargeResponse(t *testing.T) {
 	if !slices.Equal(second.GetData(), wantTail) {
 		t.Fatal("second read data mismatch")
 	}
+	if !second.GetEof() {
+		t.Fatal("second read did not report EOF")
+	}
+
 }
 
 func uploadTreeFileViaResource(
@@ -783,7 +831,7 @@ func uploadTreeFileViaResource(
 	rootSvc s4wave_unixfs.SRPCFSHandleResourceServiceClient,
 	name string,
 	data []byte,
-) {
+) *s4wave_unixfs.HandleUploadTreeResponse {
 	t.Helper()
 
 	strm, err := rootSvc.UploadTree(ctx)
@@ -815,12 +863,7 @@ func uploadTreeFileViaResource(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resp.GetBytesWritten() != int64(len(data)) {
-		t.Fatalf("bytes_written = %d, want %d", resp.GetBytesWritten(), len(data))
-	}
-	if resp.GetFilesWritten() != 1 {
-		t.Fatalf("files_written = %d, want %d", resp.GetFilesWritten(), 1)
-	}
+	return resp
 }
 
 func uploadTestPatternBytes(size int) []byte {

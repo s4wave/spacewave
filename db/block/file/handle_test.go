@@ -291,6 +291,76 @@ func TestMultiRangeReader(t *testing.T) {
 	}
 }
 
+func TestOverlappingRangeReadResumesAfterHigherNonceSpan(t *testing.T) {
+	ctx := context.Background()
+	bkt := bucket_mock.NewMockBucket("test-overlap-reader-resumes", nil)
+	btx, bcs := block.NewTransaction(bkt, nil, nil, nil)
+
+	baseData := bytes.Repeat([]byte("b"), 32)
+	lowerData := bytes.Repeat([]byte("l"), 20)
+	higherData := []byte("HIGH")
+	rootFile := &File{
+		TotalSize:  32,
+		RangeNonce: 4,
+		Ranges: []*Range{
+			{Nonce: 0, Start: 0, Length: uint64(len(baseData))},
+			{Nonce: 1, Start: 8, Length: uint64(len(lowerData))},
+			{Nonce: 2, Start: 12, Length: uint64(len(higherData))},
+			{Nonce: 3, Start: 20, Length: 4},
+		},
+	}
+	bcs.SetBlock(rootFile, true)
+	rangeSet := NewRangeSet(&rootFile.Ranges, bcs.FollowSubBlock(4))
+	buildRangeData := func(idx int, data []byte) {
+		_, rncs := rangeSet.Get(idx)
+		rncs = rncs.FollowRef(4, nil)
+		_, err := blob.BuildBlob(
+			ctx,
+			int64(len(data)),
+			bytes.NewReader(data),
+			rncs,
+			&blob.BuildBlobOpts{},
+		)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	buildRangeData(0, baseData)
+	buildRangeData(1, lowerData)
+	buildRangeData(2, higherData)
+
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
+	fi, err := block.UnmarshalBlock[*File](ctx, bcs, NewFileBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	rdr := NewHandle(ctx, bcs, fi)
+	defer rdr.Close()
+	if _, err := rdr.Seek(12, io.SeekStart); err != nil {
+		t.Fatal(err.Error())
+	}
+	got := make([]byte, 20)
+	n, err := rdr.Read(got)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if n != len(got) {
+		t.Fatalf("overlap read returned %d bytes, expected %d", n, len(got))
+	}
+	want := append([]byte("HIGH"), bytes.Repeat([]byte("l"), 4)...)
+	want = append(want, 0, 0, 0, 0)
+	want = append(want, bytes.Repeat([]byte("l"), 4)...)
+	want = append(want, bytes.Repeat([]byte("b"), 4)...)
+	if !bytes.Equal(got, want) {
+		t.Fatalf("overlap read mismatch\n got: %v\nwant: %v", got, want)
+	}
+}
+
 // TestRandomReads tests random reads from a 1Mb file of random data.
 func TestRandomReads(t *testing.T) {
 	ctx := context.Background()

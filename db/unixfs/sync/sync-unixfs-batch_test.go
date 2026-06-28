@@ -3,15 +3,19 @@ package unixfs_sync
 import (
 	"bytes"
 	"context"
+	"io"
 	"io/fs"
 	"testing"
 	"testing/fstest"
 	"time"
 
 	billy_util "github.com/go-git/go-billy/v6/util"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/file"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
+	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	unixfs_iofs "github.com/s4wave/spacewave/db/unixfs/iofs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	unixfs_world_testbed "github.com/s4wave/spacewave/db/unixfs/world/testbed"
@@ -58,6 +62,229 @@ func srcHandleFromFS(t *testing.T, srcFs fstest.MapFS) *unixfs.FSHandle {
 		t.Fatal(err.Error())
 	}
 	return srcHandle
+}
+
+func readWorldUnixFSMetricFile(t *testing.T, ctx context.Context, wtb *world_testbed.Testbed, objKey, name string) ([]byte, *file.File, time.Duration) {
+	t.Helper()
+	obj, found, err := wtb.WorldState.GetObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !found {
+		t.Fatalf("world object %q not found", objKey)
+	}
+	objRef, _, err := obj.GetRootRef(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	rootCursor, err := wtb.WorldState.BuildStorageCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer rootCursor.Release()
+	locCursor, err := rootCursor.FollowRef(ctx, objRef)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer locCursor.Release()
+	_, bcs := locCursor.BuildTransaction(nil)
+	root, err := unixfs_block.NewFSTree(ctx, bcs, unixfs_block.NodeType_NodeType_DIRECTORY)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	child, _, err := root.LookupFollowDirent(name)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	fh, err := child.BuildFileHandle(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer fh.Close()
+	readStarted := time.Now()
+	out, err := io.ReadAll(fh)
+	readLatency := time.Since(readStarted)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	rootFile, err := block.UnmarshalBlock[*file.File](ctx, fh.GetCursor(), file.NewFileBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return out, rootFile, readLatency
+}
+
+func TestSyncToUnixfsBatch_MetricExistingFileRewrite(t *testing.T) {
+	ctx, dstRef, wtb, objKey := buildDstBatchTestbed(t)
+	ts := time.Unix(1_700_000_000, 0)
+	if err := dstRef.Mknod(ctx, true, []string{"metric.txt"}, unixfs.NewFSCursorNodeType_File(), 0o644, ts); err != nil {
+		t.Fatal(err.Error())
+	}
+	dstFile, err := dstRef.Lookup(ctx, "metric.txt")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer dstFile.Release()
+	body := bytes.Repeat([]byte("sync-existing-file-rewrite-base-"), 128)
+	seed := append([]byte(nil), body...)
+	if err := dstFile.WriteAt(ctx, 0, seed, ts); err != nil {
+		t.Fatal(err.Error())
+	}
+	seedWrites := []struct {
+		offset int
+		data   []byte
+	}{
+		{96, bytes.Repeat([]byte("a"), 64)},
+		{96, bytes.Repeat([]byte("b"), 64)},
+		{220, bytes.Repeat([]byte("c"), 48)},
+	}
+	for _, write := range seedWrites {
+		copy(seed[write.offset:], write.data)
+		if err := dstFile.WriteAt(ctx, int64(write.offset), write.data, ts); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	if err := dstFile.Truncate(ctx, uint64(len(seed)), ts); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	_, beforeFile, _ := readWorldUnixFSMetricFile(t, ctx, wtb, objKey, "metric.txt")
+	beforeRefs := rangeRefStrings(beforeFile.GetRanges())
+	if len(beforeRefs) == 0 {
+		t.Fatal("metric seed did not produce reachable range refs")
+	}
+
+	imported := append([]byte(nil), seed...)
+	copy(imported[300:], bytes.Repeat([]byte("d"), 24))
+	srcHandle := srcHandleFromFS(t, fstest.MapFS{
+		"metric.txt": {Data: imported, Mode: 0o644, ModTime: ts},
+	})
+	defer srcHandle.Release()
+
+	b := unixfs_world.NewBatchFSWriter(
+		wtb.WorldState, objKey, unixfs_world.FSType_FSType_FS_NODE, wtb.Volume.GetPeerID(),
+	)
+	rootWriteStarted := time.Now()
+	if err := SyncToUnixfsBatch(ctx, b, srcHandle, nil); err != nil {
+		t.Fatalf("SyncToUnixfsBatch: %v", err)
+	}
+	rootWriteLatency := time.Since(rootWriteStarted)
+
+	out, rootFile, readLatency := readWorldUnixFSMetricFile(t, ctx, wtb, objKey, "metric.txt")
+	if !bytes.Equal(out, imported) {
+		t.Fatal("unixfs sync existing-file rewrite readback mismatch")
+	}
+	metadataBytes, err := rootFile.MarshalBlock()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	afterRefs := rangeRefStrings(rootFile.GetRanges())
+	preservedRefs := countPreservedRefs(beforeRefs, afterRefs)
+	occluded := countFullyOccludedRanges(rootFile.GetRanges())
+	overlapDepth := maxOverlapDepth(rootFile.GetRanges())
+	lookupScan := lookupScanLength(rootFile.GetRanges(), 128)
+	if occluded != 0 {
+		t.Fatalf("sync rewrite left stale occluded ranges: ranges=%d occluded=%d overlap_depth=%d", len(rootFile.GetRanges()), occluded, overlapDepth)
+	}
+	if len(rootFile.GetRanges()) != 0 && len(afterRefs) == 0 {
+		t.Fatalf("sync rewrite produced non-empty range stack without block refs: ranges=%d", len(rootFile.GetRanges()))
+	}
+	t.Logf("metric workload=unixfs-sync-existing-file-rewrite file_class=unixfs-sync chunk_class=blob before_range_count=%d range_count=%d before_range_refs=%d after_range_refs=%d fully_occluded_range_count=%d stale_reachable_refs=%d overlap_depth=%d lookup_scan_length=%d imported_bytes=%d preserved_range_refs=%d read_latency_ns=%d serialized_metadata_bytes=%d root_write_latency_ns=%d metadata_rewrite_bytes_per_append=%d metadata_rewrite_bytes_per_publish=%d", len(beforeFile.GetRanges()), len(rootFile.GetRanges()), len(beforeRefs), len(afterRefs), occluded, occluded, overlapDepth, lookupScan, len(imported), preservedRefs, readLatency.Nanoseconds(), len(metadataBytes), rootWriteLatency.Nanoseconds(), len(metadataBytes), len(metadataBytes))
+}
+
+func rangeRefStrings(ranges []*file.Range) []string {
+	refs := make([]string, 0, len(ranges))
+	for _, rng := range ranges {
+		if rng.GetRef() != nil {
+			refs = append(refs, rng.GetRef().MarshalString())
+		}
+	}
+	return refs
+}
+
+func countPreservedRefs(before, after []string) int {
+	afterSet := make(map[string]struct{}, len(after))
+	for _, ref := range after {
+		afterSet[ref] = struct{}{}
+	}
+	var count int
+	for _, ref := range before {
+		if _, ok := afterSet[ref]; ok {
+			count++
+		}
+	}
+	return count
+}
+
+func countFullyOccludedRanges(ranges []*file.Range) int {
+	var count int
+	for i, rng := range ranges {
+		if rangeFullyOccluded(i, ranges, rng) {
+			count++
+		}
+	}
+	return count
+}
+
+func rangeFullyOccluded(idx int, ranges []*file.Range, rng *file.Range) bool {
+	start := rng.GetStart()
+	end := start + rng.GetLength()
+	for pos := start; pos < end; pos++ {
+		covered := false
+		for j, other := range ranges {
+			if j == idx || other.GetNonce() <= rng.GetNonce() {
+				continue
+			}
+			if other.GetStart() <= pos && pos < other.GetStart()+other.GetLength() {
+				covered = true
+				break
+			}
+		}
+		if !covered {
+			return false
+		}
+	}
+	return true
+}
+
+func maxOverlapDepth(ranges []*file.Range) int {
+	var maxDepth int
+	for _, rng := range ranges {
+		end := rng.GetStart() + rng.GetLength()
+		for pos := rng.GetStart(); pos < end; pos++ {
+			var depth int
+			for _, other := range ranges {
+				if other.GetStart() <= pos && pos < other.GetStart()+other.GetLength() {
+					depth++
+				}
+			}
+			if depth > maxDepth {
+				maxDepth = depth
+			}
+		}
+	}
+	return maxDepth
+}
+
+func lookupScanLength(ranges []*file.Range, pos uint64) int {
+	idxAfter := len(ranges)
+	for i, rng := range ranges {
+		if rng.GetStart() > pos {
+			idxAfter = i
+			break
+		}
+	}
+	var scans int
+	for i := idxAfter - 1; i >= 0; i-- {
+		scans++
+		rng := ranges[i]
+		start := rng.GetStart()
+		end := start + rng.GetLength()
+		if start <= pos && pos < end {
+			continue
+		}
+	}
+	return scans
 }
 
 // TestSyncToUnixfsBatch_FlatSeed covers Phase 2 iter 1: a flat directory

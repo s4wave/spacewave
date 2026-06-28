@@ -18,10 +18,9 @@ type Handle struct {
 	ctxCancel context.CancelFunc
 	bcs       *block.Cursor
 
-	root         *File
-	idx          uint64
-	nextEval     uint64
-	lastStartIdx int
+	root     *File
+	idx      uint64
+	nextEval uint64
 
 	rangeSet        *sbset.SubBlockSet
 	currentRangeIdx int
@@ -110,62 +109,86 @@ func (r *Handle) ComputeStorageSize(ctx context.Context) (uint64, error) {
 
 // Read implements the reader interface.
 // Read and Seek are not concurrent safe.
-// XXX: currently reads to the end of a Range and returns.
-// XXX: sometimes requires repeated calls to read the full length of p.
-// XXX: possibly read the full length of p before stopping instead.
+// It fills p across range boundaries until p is full, EOF is reached, or a
+// selected blob reader stops making progress.
 func (r *Handle) Read(p []byte) (n int, err error) {
-	totalSize := r.root.GetTotalSize()
-	readSize := uint64(len(p))
-
-	if err := r.evaluateCurrentRange(); err != nil {
-		return 0, err
+	if len(p) == 0 {
+		return 0, nil
 	}
-
-	idx := r.idx
-	if idx >= totalSize {
+	totalSize := r.root.GetTotalSize()
+	if r.idx >= totalSize {
 		return 0, io.EOF
 	}
 
-	// readEnd is the index after the one we will read to.
-	readEnd := min(idx+readSize, totalSize)
-
-	// zeros if current == nil
-	if r.currentRange == nil || r.currentBlob == nil {
-		// zeroEnd is the index after the zeros.
-		zeroEnd := min(r.nextEval, totalSize)
-		if zeroEnd < readEnd {
-			readEnd = zeroEnd
+	for n < len(p) && r.idx < totalSize {
+		if err := r.evaluateCurrentRange(); err != nil {
+			if n > 0 && err == io.EOF {
+				return n, nil
+			}
+			return n, err
 		}
-		// read up to min(readEnd, zeroEnd)
+
+		idx := r.idx
+		if idx >= totalSize {
+			break
+		}
+
+		readLen := min(uint64(len(p)-n), totalSize-idx)
+		readEnd := idx + readLen
+		if r.nextEval != 0 && r.nextEval < readEnd {
+			readEnd = r.nextEval
+		}
+		if readEnd <= idx {
+			r.clearReadState()
+			if n > 0 {
+				return n, nil
+			}
+			return 0, errors.New("invalid file read range")
+		}
+
 		readN := int(readEnd - idx) //nolint:gosec
-		// this is optimized by compiler to memset
-		for i := range readN {
-			p[i] = 0
+		if r.currentRange == nil || r.currentBlob == nil {
+			// this is optimized by compiler to memset
+			for i := range readN {
+				p[n+i] = 0
+			}
+			r.idx += uint64(readN) //nolint:gosec
+			n += readN
+			continue
 		}
-		r.idx += uint64(readN) //nolint:gosec
-		return readN, nil
-	}
 
-	// otherwise we are reading from a blob...
-	// nextEval will be at or before end of next blob.
-	blobEnd := r.nextEval
-	if readEnd > blobEnd {
-		readEnd = blobEnd
+		blobReadN, err := r.currentBlob.Read(p[n : n+readN])
+		if blobReadN > 0 {
+			nextIdx := min(r.idx+uint64(blobReadN), readEnd) //nolint:gosec
+			r.idx = nextIdx
+			n += blobReadN
+		}
+		if err != nil {
+			if r.currentBlob != nil {
+				r.currentBlob.Close()
+				r.currentBlob = nil
+			}
+			r.currentRange = nil
+			r.currentRangeIdx = 0
+			r.nextEval = 0
+			if err == io.EOF && blobReadN > 0 && r.idx == readEnd {
+				// EOF with bytes at the planned boundary hands selection back to
+				// the file owner so the next covering span can be chosen.
+				continue
+			}
+			if n > 0 {
+				return n, nil
+			}
+			return 0, err
+		}
+		if blobReadN == 0 {
+			break
+		}
 	}
-	readN := readEnd - idx
-	// note: blob was already seeked to idx by evaluateCurrentRange.
-	blobReadN, err := r.currentBlob.Read(p[:readN])
-	if err != nil {
-		r.currentBlob = nil
-		r.currentRange = nil
-		r.currentRangeIdx = 0
-		r.nextEval = 0
-		return 0, err
+	if n == 0 && r.idx >= totalSize {
+		return 0, io.EOF
 	}
-
-	nextIdx := min(r.idx+uint64(blobReadN), blobEnd) //nolint:gosec
-	r.idx = nextIdx
-	return blobReadN, nil
+	return n, nil
 }
 
 // Seek implements the seeking interface.
@@ -311,16 +334,19 @@ func (r *Handle) evaluateCurrentRange() error {
 		return seekBlob()
 	}
 
-	// Find ranges where start < idx and start + len > idx.
-	// Locate the range with the highest nonce (newest)
+	// Find every range covering idx and choose the highest nonce (newest).
+	// Ranges are sorted by start, not by end. A small overwrite can end before a
+	// lower-nonce base range that still covers the next byte, so correctness
+	// requires checking all earlier starts until the first future start.
 	var bestNonce uint64
+	var foundRange bool
 	r.currentRange = nil
 	r.currentRangeIdx = 0
 	if r.currentBlob != nil {
 		r.currentBlob.Close()
 		r.currentBlob = nil
 	}
-	for i := r.lastStartIdx; i < len(ranges); i++ {
+	for i := range ranges {
 		st := ranges[i].GetStart()
 		if st > idx {
 			// evaluate at the next range with start > idx
@@ -333,17 +359,12 @@ func (r *Handle) evaluateCurrentRange() error {
 		// end is the last index + 1
 		end := st + ranges[i].GetLength()
 		if end <= idx {
-			// if the end is less than the current idx
-			// only increment this by 1, sometimes we may backtrack
-			if r.lastStartIdx == i-1 {
-				r.lastStartIdx = i
-			}
 			continue
 		}
 
 		// this blob is in range, take it if the nonce is higher than the current best.
 		rangeNonce := ranges[i].GetNonce()
-		if bestNonce == 0 || rangeNonce > bestNonce {
+		if !foundRange || rangeNonce > bestNonce {
 			if end < r.nextEval || r.nextEval == 0 {
 				// NOTE: if there's a range that starts after idx, but before
 				// the end of this range, with a higher Nonce, then nextEval
@@ -353,6 +374,7 @@ func (r *Handle) evaluateCurrentRange() error {
 			r.currentRange = ranges[i]
 			r.currentRangeIdx = i
 			bestNonce = rangeNonce
+			foundRange = true
 		}
 	}
 
@@ -396,15 +418,23 @@ func (r *Handle) clearReadState() {
 	r.currentRange = nil
 	r.currentRangeIdx = 0
 	r.nextEval = 0
-	r.lastStartIdx = 0
 }
 
-// followRootRangeBlobRef follows a block reference in a Range in the root
+// followRootRangeBlobRef follows a block reference in a Range in the root.
 func (r *Handle) followRootRangeBlobRef(
 	idx int,
 	blobRef *block.BlockRef,
 ) (*blob.Blob, *block.Cursor, error) {
-	ncs := r.bcs.FollowSubBlock(4).FollowSubBlock(uint32(idx)).FollowRef(4, blobRef) //nolint:gosec
+	rangeCs := r.bcs.FollowSubBlock(4).FollowSubBlock(uint32(idx)) //nolint:gosec
+	var ncs *block.Cursor
+	if blobRef == nil {
+		ncs = rangeCs.GetExistingRef(4)
+		if ncs == nil {
+			return nil, nil, nil
+		}
+	} else {
+		ncs = rangeCs.FollowRef(4, blobRef)
+	}
 	blobi, err := ncs.Unmarshal(r.ctx, blob.NewBlobBlock)
 	if err != nil {
 		return nil, nil, err
