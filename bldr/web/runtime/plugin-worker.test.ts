@@ -114,9 +114,8 @@ describe('PluginWorker startup shutdown', () => {
     ).toHaveLength(1)
   })
 
-  test('installs OPFS bridge global when hosted in a SharedWorker under config C', async () => {
-    vi.stubGlobal('SharedWorkerGlobalScope', FakeSharedWorkerGlobalScope)
-    const global = new FakeSharedWorkerGlobal()
+  test('installs OPFS bridge global before starting Config A plugins', async () => {
+    const global = new FakeDedicatedWorkerGlobal()
     vi.stubGlobal('navigator', {})
     const opfsChannel = new MessageChannel()
     const refreshedOpfsChannel = new MessageChannel()
@@ -139,7 +138,7 @@ describe('PluginWorker startup shutdown', () => {
       })
     })
     const worker = new PluginWorker(
-      global as unknown as SharedWorkerGlobalScope,
+      global as unknown as DedicatedWorkerGlobalScope,
       startPlugin,
       null,
     )
@@ -152,18 +151,14 @@ describe('PluginWorker startup shutdown', () => {
       .mockResolvedValueOnce(opfsChannel.port1)
       .mockResolvedValueOnce(refreshedOpfsChannel.port1)
 
-    // A cross-origin-isolated config C page still hosts the Go runtime in a
-    // SharedWorker, where direct OPFS is denied, so the bridge must activate.
-    const initChannel = new MessageChannel()
-    global.dispatchConnect(initChannel.port2)
-    initChannel.port1.postMessage({
+    global.dispatchMessage({
       initData: new TextEncoder().encode(btoa('{}')),
       workerCommsDetect: {
-        config: 'C',
+        config: 'A',
         caps: {
-          crossOriginIsolated: true,
-          sabAvailable: true,
-          opfsAvailable: true,
+          crossOriginIsolated: false,
+          sabAvailable: false,
+          opfsAvailable: false,
           webLocksAvailable: true,
           broadcastChannelAvailable: true,
         },
@@ -220,7 +215,7 @@ describe('PluginWorker startup shutdown', () => {
     delete globals.__spacewaveInstallOpfsRemoteDriver
   })
 
-  test('does not install an OPFS bridge in a DedicatedWorker host even under config A', async () => {
+  test('does not install an OPFS bridge under config C', async () => {
     const global = new FakeDedicatedWorkerGlobal()
     vi.stubGlobal('navigator', {})
     const globals = globalThis as typeof globalThis & {
@@ -253,11 +248,11 @@ describe('PluginWorker startup shutdown', () => {
     global.dispatchMessage({
       initData: new TextEncoder().encode(btoa('{}')),
       workerCommsDetect: {
-        config: 'A',
+        config: 'C',
         caps: {
-          crossOriginIsolated: false,
-          sabAvailable: false,
-          opfsAvailable: false,
+          crossOriginIsolated: true,
+          sabAvailable: true,
+          opfsAvailable: true,
           webLocksAvailable: true,
           broadcastChannelAvailable: true,
         },
@@ -272,24 +267,6 @@ describe('PluginWorker startup shutdown', () => {
     delete globals.__spacewaveInstallOpfsRemoteDriver
   })
 })
-
-class FakeSharedWorkerGlobalScope {}
-
-class FakeSharedWorkerGlobal extends FakeSharedWorkerGlobalScope {
-  public readonly name = 'plugin/spacewave-core?s=/b/pd/core.mjs&t=wasm&p=1'
-  public readonly close = vi.fn()
-  private connectHandler?: (ev: MessageEvent) => void
-
-  public addEventListener(type: string, handler: EventListener): void {
-    if (type === 'connect') {
-      this.connectHandler = handler as (ev: MessageEvent) => void
-    }
-  }
-
-  public dispatchConnect(port: MessagePort): void {
-    this.connectHandler?.({ ports: [port] } as unknown as MessageEvent)
-  }
-}
 
 class FakeDedicatedWorkerGlobal {
   public readonly name = 'plugin/spacewave-core?s=/b/pd/core.mjs&t=wasm&p=1'

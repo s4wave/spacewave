@@ -15,6 +15,21 @@ import { installWebRTCShim, setBridgePort } from './wasm/webrtc-bridge.js'
 
 export const PLUGIN_STARTUP_FAILURE_SHUTDOWN_DELAY_MS = 5000
 
+// shouldRequestOpfsBridge reports whether this plugin worker must host its own
+// OPFS bridge. Only Config A/F runs the plugin as a SharedWorker that backs its
+// own OPFS storage, and a SharedWorker scope cannot call
+// navigator.storage.getDirectory() (Chrome throws SecurityError). In B/C the
+// plugin's storage routes through the engine runtime worker, which owns the
+// SharedWorker OPFS bridge for the shared engine; requesting a second bridge
+// from a B/C plugin worker only blocks native plugin startup on a document that
+// is already tearing down, so the plugin must skip it.
+function shouldRequestOpfsBridge(
+  workerCommsDetect?: WorkerCommsDetectResult,
+): boolean {
+  const config = workerCommsDetect?.config
+  return config === 'A' || config === 'F'
+}
+
 export function waitPluginStartupFailureShutdownDelay(): Promise<void> {
   return timeoutPromise(PLUGIN_STARTUP_FAILURE_SHUTDOWN_DELAY_MS)
 }
@@ -253,13 +268,7 @@ export class PluginWorker {
       enabled: !!bridgePort,
     })
 
-    // A SharedWorker scope cannot call navigator.storage.getDirectory(): Chrome
-    // throws SecurityError on OPFS root acquisition from a SharedWorker. The Go
-    // runtime hosted here must therefore route every File System Access op
-    // through a dedicated OPFS bridge worker whenever it runs in a SharedWorker,
-    // independent of the A/B/C/F worker-comms transport config. A DedicatedWorker
-    // host reaches OPFS directly and needs no bridge.
-    this.shouldMaintainOpfsBridge = this.isSharedWorker
+    this.shouldMaintainOpfsBridge = shouldRequestOpfsBridge(workerCommsDetect)
     if (this.shouldMaintainOpfsBridge) {
       await this.requestAndInstallOpfsBridge('worker.opfs-bridge-ready')
     } else {
