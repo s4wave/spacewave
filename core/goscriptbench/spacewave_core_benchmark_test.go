@@ -24,6 +24,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime/trace"
 	"testing"
 
 	"github.com/s4wave/goscript/compiler"
@@ -42,34 +43,43 @@ func TestSpacewaveCoreCompile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	comp, err := compiler.NewCompiler(&compiler.Config{
-		Dir:            spacewaveDir,
-		OutputPath:     out,
-		BuildFlags:     []string{"-tags=goscript,skip_e2e,purego"},
-		AllDependencies: true,
-	}, nil, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	ctx, task := trace.NewTask(context.Background(), "goscript/compile")
+	defer task.End()
 
-	_, err = comp.CompilePackages(context.Background(),
-		"./core/resource/root/controller",
-		"./core/resource/listener",
-		"./core/session/controller",
-		"./core/provider/local",
-		"./core/provider/spacewave",
-		"./core/space/sobject",
-		"./core/sobject/world/engine",
-		"./core/space/world/optypes",
-		"./core/plugin/space",
-		"./core/space/http/download",
-		"./core/space/http/export",
-		"./db/blocktype/controller-factory",
-		"github.com/s4wave/spacewave/db/object/peer",
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
+	var comp *compiler.Compiler
+	trace.WithRegion(ctx, "goscript/new-compiler", func() {
+		var err error
+		comp, err = compiler.NewCompiler(&compiler.Config{
+			Dir:            spacewaveDir,
+			OutputPath:     out,
+			BuildFlags:     []string{"-tags=goscript,skip_e2e,purego"},
+			AllDependencies: true,
+		}, nil, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	trace.WithRegion(ctx, "goscript/compile-packages", func() {
+		_, err := comp.CompilePackages(ctx,
+			"./core/resource/root/controller",
+			"./core/resource/listener",
+			"./core/session/controller",
+			"./core/provider/local",
+			"./core/provider/spacewave",
+			"./core/space/sobject",
+			"./core/sobject/world/engine",
+			"./core/space/world/optypes",
+			"./core/plugin/space",
+			"./core/space/http/download",
+			"./core/space/http/export",
+			"./db/blocktype/controller-factory",
+			"github.com/s4wave/spacewave/db/object/peer",
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
 }
 `
 
@@ -91,7 +101,7 @@ func TestSpacewaveCoreGoScriptProfileHarness(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	runProfileHarness(t, root, profileDir, filepath.Join(profileDir, "out"), runUntraced)
+	runProfileHarness(t, root, profileDir, filepath.Join(profileDir, "out"), profileRunMode())
 }
 
 func TestGoTestArgsRunMode(t *testing.T) {
@@ -220,7 +230,7 @@ func BenchmarkSpacewaveCoreGoScriptCompile(b *testing.B) {
 			b.Fatal(err)
 		}
 		out := filepath.Join(runDir, "out")
-		runProfileHarness(b, root, runDir, out, runUntraced)
+		runProfileHarness(b, root, runDir, out, profileRunMode())
 		lastOut = out
 	}
 
@@ -288,6 +298,21 @@ func runProfileHarness(tb testing.TB, root string, profileDir string, outputDir 
 	}
 	if err := os.WriteFile(filepath.Join(profileDir, "go-test.err"), stderr.Bytes(), 0o644); err != nil {
 		tb.Fatal(err)
+	}
+}
+
+func profileRunMode() runMode {
+	mode := os.Getenv("AUTORESEARCH_HARNESS_MODE")
+	if mode == "" {
+		mode = os.Getenv("GOSCRIPT_PROFILE_MODE")
+	}
+	switch mode {
+	case "profiled":
+		return runProfiled
+	case "traced":
+		return runTraced
+	default:
+		return runUntraced
 	}
 }
 
