@@ -20,7 +20,7 @@ replace (
 	github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 // aperture-2
 )
 
-require github.com/s4wave/goscript v0.2.9-0.20260629113932-db93799d7268 // master
+require github.com/s4wave/goscript v0.2.9-0.20260629181044-58d78964f5cc // master
 
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
