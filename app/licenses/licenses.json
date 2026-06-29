@@ -827,7 +827,6 @@
       "version": "2.1.1",
       "spdx": "MIT",
       "source": "js",
-      "isDev": true,
       "copyrightNotice": "Copyright (c) Luke Edwards <luke.edwards05@gmail.com> (lukeed.com)"
     },
     {
@@ -836,6 +835,13 @@
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2022 Paco Coursey"
+    },
+    {
+      "name": "cnfast",
+      "version": "0.0.7",
+      "spdx": "MIT",
+      "source": "js",
+      "fullText": "MIT License\n\nCopyright (c) 2026 Aiden Bai\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n\n-------------------------------------------------------------------------------\n\ncnfast bundles and adapts code from the following MIT-licensed projects:\n\nclsx — Copyright (c) Luke Edwards <luke.edwards05@gmail.com> (lukeed.com)\nhttps://github.com/lukeed/clsx\n\ntailwind-merge — Copyright (c) 2021 Dany Castillo\nhttps://github.com/dcastil/tailwind-merge\n\nBoth are distributed under the MIT License, the full text of which is identical\nto the license above (with their respective copyright holders)."
     },
     {
       "name": "comma-separated-tokens",
@@ -2274,13 +2280,6 @@
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2020 Simon Knott and superjson contributors"
-    },
-    {
-      "name": "tailwind-merge",
-      "version": "3.6.0",
-      "spdx": "MIT",
-      "source": "js",
-      "copyrightNotice": "Copyright (c) 2021 Dany Castillo"
     },
     {
       "name": "tiny-invariant",
