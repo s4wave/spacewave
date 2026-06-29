@@ -120,6 +120,7 @@ const bootStateVersion='1000000';
 const bootStateVersionKey='spacewave-browser-app-state-version';
 const bootSessionStateVersionKey='spacewave-browser-tab-state-version';
 const bootStateResetAttemptKey='spacewave-browser-app-state-reset-attempted';
+const bootReloadParam='brr';
 const g=globalThis;
 const bootStorageResetRules=[
   {area:'localStorage',kind:'key',key:'spacewave-has-session',owner:'browser-boot-session-hint',durability:'derived-shell-hint',resetPolicy:'reset',migrationPolicy:'recompute-from-session-list'},
@@ -281,11 +282,20 @@ async function clearCachesForBootReset(){
   const cacheNames=await g.caches.keys();
   await Promise.all(cacheNames.map(function(cacheName){return g.caches.delete(cacheName)}));
 }
+function clearBootResetReloadParam(){
+  try{
+    if(!window.history||typeof window.history.replaceState!=='function')return;
+    const next=new URL(window.location.href);
+    if(!next.searchParams.has(bootReloadParam))return;
+    next.searchParams.delete(bootReloadParam);
+    window.history.replaceState(window.history.state,'',next.toString());
+  }catch(_){}
+}
 function reloadAfterBootStateReset(){
   try{window.location.reload()}catch(_){}
   try{
     const next=new URL(window.location.href);
-    next.searchParams.set('bootResetReload',String(Date.now()));
+    next.searchParams.set(bootReloadParam,String(Date.now()));
     window.location.replace(next.toString());
     return;
   }catch(_){}
@@ -307,12 +317,14 @@ async function resetHistoricalStateForBoot(){
     }else{
       setBootResetDecision('current','stored compatibility version current');
     }
+    clearBootResetReloadParam();
     storageRemove(sessionStorage,bootStateResetAttemptKey);
     return false;
   }
   if(storageGet(sessionStorage,bootStateResetAttemptKey)===bootStateVersion){
     clearBootSessionState();
     setBootResetDecision('attempt-guard','reset already attempted in this tab');
+    clearBootResetReloadParam();
     return false;
   }
   setBootResetDecision('reset-started','stored compatibility version mismatch');

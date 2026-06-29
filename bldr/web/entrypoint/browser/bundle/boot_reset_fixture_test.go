@@ -253,16 +253,24 @@ function installEnvironment({ events, localStorage, sessionStorage, autoStart, e
     }
   }
   globalThis.performance = { mark() {} }
+  const location = {
+    href,
+    hash,
+    reload() {
+      events.push('reload')
+    },
+    replace(next) {
+      events.push('replace:' + next)
+      this.href = String(next)
+    },
+  }
   globalThis.window = {
-    location: {
-      href,
-      hash,
-      reload() {
-        events.push('reload')
-      },
-      replace(next) {
-        events.push('replace')
-        this.href = next
+    location,
+    history: {
+      state: null,
+      replaceState(state, title, next) {
+        events.push('history:replaceState:' + next)
+        location.href = String(next)
       },
     },
     dispatchEvent(event) {
@@ -340,6 +348,9 @@ async function runCase({ name, autoStart, hash }) {
   assert(firstFetch === -1, name + ' fetched release before reset reload')
   assert(firstEntrypoint === -1, name + ' reached entrypoint before reset reload')
   assert(localStorage.getItem('spacewave-browser-app-state-version') === '1000000', name + ' did not store boot version')
+  const resetHref = globalThis.window.location.href
+  assert(new URL(resetHref).searchParams.has('brr'), name + ' reset reload did not add brr query: ' + resetHref)
+
 
   installEnvironment({
     events,
@@ -347,7 +358,7 @@ async function runCase({ name, autoStart, hash }) {
     sessionStorage,
     autoStart,
     entrypointPath: entrypointURL,
-    href: 'https://spacewave.test/' + hash,
+    href: resetHref,
     hash,
   })
   new Function(script)()
@@ -359,6 +370,8 @@ async function runCase({ name, autoStart, hash }) {
   assert(cleanupStarts === 1, name + ' cleanup ran more than once: ' + events.join(','))
   assert(cacheCleanups === 1, name + ' cache cleanup ran more than once: ' + events.join(','))
   assert(reloads === 1, name + ' reset reloaded more than once: ' + events.join(','))
+  const cleanHref = globalThis.window.location.href
+  assert(!new URL(cleanHref).searchParams.has('brr'), name + ' did not clear brr query after reset: ' + cleanHref)
 
   const reloadIndex = events.indexOf('reload')
   const releaseFetchIndex = events.indexOf('fetch:/browser-release.json')
