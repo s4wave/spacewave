@@ -44,6 +44,7 @@
         "@xterm/addon-fit": "^0.11.0",
         "@xterm/xterm": "^6.0.0",
         "cmdk": "^1.1.1",
+        "cnfast": "0.0.7",
         "date-fns": "^4.4.0",
         "deepmerge": "^4.3.1",
         "electron": "^42.4.1",
@@ -63,7 +64,6 @@
         "sonner": "^2.0.7",
         "starpc": "0.49.18",
         "superjson": "^2.2.6",
-        "tailwind-merge": "^3.6.0",
         "uint8arraylist": "^3.0.2",
         "ulid": "^3.0.2",
         "workbox-window": "^7.4.1",
@@ -84,7 +84,6 @@
         "@vitest/browser-playwright": "^4.1.9",
         "@vitest/ui": "^4.1.9",
         "class-variance-authority": "^0.7.1",
-        "clsx": "^2.1.1",
         "cross-env": "^10.1.0",
         "eslint-plugin-react-compiler": "19.1.0-rc.2",
         "happy-dom": "^20.10.6",
@@ -947,6 +946,8 @@
 
     "cmdk": ["cmdk@1.1.1", "", { "dependencies": { "@radix-ui/react-compose-refs": "^1.1.1", "@radix-ui/react-dialog": "^1.1.6", "@radix-ui/react-id": "^1.1.0", "@radix-ui/react-primitive": "^2.0.2" }, "peerDependencies": { "react": "^18 || ^19 || ^19.0.0-rc", "react-dom": "^18 || ^19 || ^19.0.0-rc" } }, "sha512-Vsv7kFaXm+ptHDMZ7izaRsP70GgrW9NBNGswt9OZaVBLlE0SNpDq8eu/VGXyF9r7M0azK3Wy7OlYXsuyYLFzHg=="],
 
+    "cnfast": ["cnfast@0.0.7", "", { "bin": { "cnfast": "bin/cli.js" } }, "sha512-03wkOzgQaRe1kq0OQCB5h8cCUTnHv1s/+Pi6uDNNwLWJoOTfpnyGd13ThML1b1EhJzOXnPK1l0WRiNYjPPnBaw=="],
+
     "codem-isoboxer": ["codem-isoboxer@0.3.10", "", {}, "sha512-eNk3TRV+xQMJ1PEj0FQGY8KD4m0GPxT487XJ+Iftm7mVa9WpPFDMWqPt+46buiP5j5Wzqe5oMIhqBcAeKfygSA=="],
 
     "color-convert": ["color-convert@2.0.1", "", { "dependencies": { "color-name": "~1.1.4" } }, "sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ=="],
@@ -1590,8 +1591,6 @@
     "tabbable": ["tabbable@6.4.0", "", {}, "sha512-05PUHKSNE8ou2dwIxTngl4EzcnsCDZGJ/iCLtDflR/SHB/ny14rXc+qU5P4mG9JkusiV7EivzY9Mhm55AzAvCg=="],
 
     "tagged-tag": ["tagged-tag@1.0.0", "", {}, "sha512-yEFYrVhod+hdNyx7g5Bnkkb0G6si8HJurOoOEgC8B/O0uXLHlaey/65KRv6cuWBNhBgHKAROVpc7QyYqE5gFng=="],
-
-    "tailwind-merge": ["tailwind-merge@3.6.0", "", {}, "sha512-uxL7qAVQriqRQPAyK3pj66VqskWqoZ37PW94jwOTwNfq/z9oyu1V+eqrZqtR2+fCiXdYOZe/Modt8GtvqNzu+w=="],
 
     "tailwindcss": ["tailwindcss@4.3.1", "", {}, "sha512-hk+TB1m+K8CYNrP6rjQaq/Y+4Zylwpa87mLYBKCunwnnQ9p+fHb7kmSfGqyEJoxF/O6CDyABWVFEafNSYKll+Q=="],
 

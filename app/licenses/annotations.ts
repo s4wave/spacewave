@@ -170,9 +170,9 @@ export const annotations: Record<string, DependencyAnnotation> = {
     purpose: 'Conditional CSS class name composition',
     internal: false,
   },
-  'tailwind-merge': {
+  cnfast: {
     category: 'ui-components',
-    purpose: 'Tailwind CSS class deduplication and merging',
+    purpose: 'Fast Tailwind CSS class name composition and deduplication',
     internal: false,
   },
 
