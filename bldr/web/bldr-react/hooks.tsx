@@ -836,16 +836,17 @@ export function useFocusOnValueChange<T extends Focusable, V>(
  * @returns The current {@link DocumentVisibilityState} of the document
  */
 export function useDocumentVisibility(): DocumentVisibilityState {
+  // The first browser render must match the SSR fallback. Visibility changes
+  // after hydration publish the live browser state without caller guards.
   const [documentVisibility, setDocumentVisibility] =
-    useState<DocumentVisibilityState>(
-      typeof document !== 'undefined' ? document.visibilityState : 'visible',
-    )
+    useState<DocumentVisibilityState>('visible')
 
   useEffect(() => {
     if (typeof document === 'undefined') return
-    const listener = () => setDocumentVisibility(document.visibilityState)
-    document.addEventListener('visibilitychange', listener)
-    return () => document.removeEventListener('visibilitychange', listener)
+
+    const update = () => setDocumentVisibility(document.visibilityState)
+    document.addEventListener('visibilitychange', update)
+    return () => document.removeEventListener('visibilitychange', update)
   }, [])
 
   return documentVisibility

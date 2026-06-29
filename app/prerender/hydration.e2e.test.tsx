@@ -29,6 +29,23 @@ function StaticTree({
   )
 }
 
+function setDocumentVisibility(value: DocumentVisibilityState) {
+  Object.defineProperty(document, 'visibilityState', {
+    configurable: true,
+    value,
+  })
+  Object.defineProperty(document, 'hidden', {
+    configurable: true,
+    value: value !== 'visible',
+  })
+}
+
+function waitForHydration(): Promise<void> {
+  const { promise, resolve } = Promise.withResolvers<void>()
+  setTimeout(resolve, 200)
+  return promise
+}
+
 describe('Hydration', () => {
   let container: HTMLDivElement
   let root: Root | null = null
@@ -61,6 +78,7 @@ describe('Hydration', () => {
     restoreConsoleError?.()
     restoreConsoleError = null
     globalThis.__swStaticHandoffLinks = undefined
+    setDocumentVisibility('visible')
   })
 
   function getHydrationErrors(): unknown[][] {
@@ -87,10 +105,35 @@ describe('Hydration', () => {
     root = hydrateRoot(container, tree)
 
     // Wait for hydration to settle.
-    await new Promise((r) => setTimeout(r, 200))
+    await waitForHydration()
 
     const errors = getHydrationErrors()
     expect(errors).toHaveLength(0)
+  })
+
+  it('landing page hydrates without errors when the first browser render starts hidden', async () => {
+    const tree = (
+      <StaticTree path="/">
+        <Landing />
+      </StaticTree>
+    )
+
+    setDocumentVisibility('visible')
+    container.innerHTML = renderToString(tree)
+    const serverButton = container.querySelector('[role="button"]')
+    expect(serverButton?.getAttribute('class')).toContain(
+      'animate-[pulse_8s_ease-in-out_infinite]',
+    )
+
+    setDocumentVisibility('hidden')
+    root = hydrateRoot(container, tree)
+    await waitForHydration()
+
+    expect(getHydrationErrors()).toHaveLength(0)
+    const hydratedButton = container.querySelector('[role="button"]')
+    expect(hydratedButton?.getAttribute('class')).toContain(
+      'animate-[pulse_8s_ease-in-out_infinite]',
+    )
   })
 
   it('landing page hydrates after boot rewrites quickstart handoff links', async () => {
@@ -109,7 +152,7 @@ describe('Hydration', () => {
 
     root = hydrateRoot(container, tree)
 
-    await new Promise((r) => setTimeout(r, 200))
+    await waitForHydration()
 
     const errors = getHydrationErrors()
     expect(errors).toHaveLength(0)
@@ -130,7 +173,7 @@ describe('Hydration', () => {
     container.innerHTML = renderToString(tree)
     root = hydrateRoot(container, tree)
 
-    await new Promise((r) => setTimeout(r, 200))
+    await waitForHydration()
 
     const errors = getHydrationErrors()
     expect(errors).toHaveLength(0)
@@ -146,7 +189,7 @@ describe('Hydration', () => {
     container.innerHTML = renderToString(tree)
     root = hydrateRoot(container, tree)
 
-    await new Promise((r) => setTimeout(r, 200))
+    await waitForHydration()
 
     const errors = getHydrationErrors()
     expect(errors).toHaveLength(0)
