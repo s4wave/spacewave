@@ -227,7 +227,7 @@ export function ShellMenuBar() {
       </button>
       <div
         className={cn(
-          'flex h-full items-center gap-px overflow-hidden transition-all duration-200 select-none',
+          'shell-menu-collapsible flex h-full items-center gap-px overflow-hidden transition-all duration-200 select-none',
           'narrow:w-0 narrow:opacity-0',
         )}
       >

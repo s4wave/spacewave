@@ -1106,6 +1106,17 @@ body,
   align-items: center;
 }
 
+/* Collapse the menu items when the overlay's container (the top-left tabset)
+ * is too narrow to hold them, independent of the viewport width. ShellTabStrip
+ * measures the top-left tabset strip and sets data-menu-collapsed on the
+ * overlay; the menu-items wrap animates to zero width via its own
+ * transition/overflow utilities. The page-width `narrow` variant on the wrap
+ * stays as the fallback for grid mode's full-width header (no overlay). */
+.shell-menu-bar-overlay[data-menu-collapsed='true'] .shell-menu-collapsible {
+  width: 0;
+  opacity: 0;
+}
+
 /*
  * Shell FlexLayout Styles
  *
@@ -1143,6 +1154,27 @@ body,
   > .flexlayout__layout
   .flexlayout__tabset_tabbar_outer_top:not(.flexlayout__tab *) {
   padding: 0 0.5rem 0 0.5rem;
+}
+
+/* Only the top-left tabset sits under the absolute menu-bar overlay, so only
+ * it needs the --menu-bar-width clearance. The top-left tabset is the unique
+ * one with no splitter before it or before any ancestor row; every other
+ * tabset is preceded (directly or via an ancestor row) by a splitter. Reset
+ * those back to the normal strip padding. Higher specificity than the rule
+ * above plus later source order, so it wins for non-top-left strips. */
+.shell-flexlayout--with-menu
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__splitter
+  ~ .flexlayout__tabset_container
+  .flexlayout__tabset_tabbar_outer_top:not(.flexlayout__tab *),
+.shell-flexlayout--with-menu
+  > .flexlayout__optimized_layout
+  > .flexlayout__layout
+  .flexlayout__splitter
+  ~ .flexlayout__row
+  .flexlayout__tabset_tabbar_outer_top:not(.flexlayout__tab *) {
+  padding-left: 0.5rem;
 }
 
 /* Remove border from main tabset container in single-tabset mode */

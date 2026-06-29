@@ -65,6 +65,30 @@ function isTabNode(node: { getType(): string } | undefined): node is TabNode {
   return node?.getType() === 'tab'
 }
 
+// MENU_COLLAPSE_WIDTH is the top-left tabset width below which the menu bar
+// collapses to the logo. Mirrors the page-width `narrow` breakpoint (640px),
+// re-based onto the overlay's container instead of the viewport.
+const MENU_COLLAPSE_WIDTH = 640
+
+// findTopLeftStrip returns the top-left tab strip element in the shell layout,
+// which is the container the menu-bar overlay sits over. Nested FlexLayouts
+// inside tab content are excluded. Returns null when no strip is present yet.
+function findTopLeftStrip(container: HTMLElement): HTMLElement | null {
+  const strips = Array.from(
+    container.querySelectorAll<HTMLElement>(
+      '.flexlayout__tabset_tabbar_outer_top',
+    ),
+  ).filter((el) => !el.closest('.flexlayout__tab'))
+  if (strips.length === 0) return null
+  return strips.reduce((best, el) => {
+    const a = el.getBoundingClientRect()
+    const b = best.getBoundingClientRect()
+    if (a.top < b.top - 2) return el
+    if (a.top <= b.top + 2 && a.left < b.left) return el
+    return best
+  })
+}
+
 // noop stubs for TabContextValue in the shell overlay scope.
 const noopAddTab = () => Promise.resolve({ tabId: '' })
 const noopNavigateTab = () => Promise.resolve({})
@@ -663,23 +687,36 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
   const menuBarRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Track menu bar width and update CSS variable
+  // Track the menu bar width (for the top-left strip's overlay clearance) and
+  // the top-left tabset width (to collapse the menu when its container, not the
+  // viewport, is too narrow). Re-found per model so splits re-target the
+  // top-left strip; the observer catches splitter-drag and window resizes.
   useEffect(() => {
     const menuBar = menuBarRef.current
     const container = containerRef.current
     if (!menuBar || !container) return
 
-    const updateWidth = () => {
-      const width = menuBar.offsetWidth
-      container.style.setProperty('--menu-bar-width', `${width}px`)
+    const topLeftStrip = findTopLeftStrip(container)
+
+    const update = () => {
+      container.style.setProperty(
+        '--menu-bar-width',
+        `${menuBar.offsetWidth}px`,
+      )
+      const width =
+        topLeftStrip?.getBoundingClientRect().width ??
+        container.getBoundingClientRect().width
+      menuBar.dataset.menuCollapsed = String(width < MENU_COLLAPSE_WIDTH)
     }
 
-    updateWidth()
+    update()
 
-    const observer = new ResizeObserver(updateWidth)
+    const observer = new ResizeObserver(update)
     observer.observe(menuBar)
+    observer.observe(container)
+    if (topLeftStrip) observer.observe(topLeftStrip)
     return () => observer.disconnect()
-  }, [])
+  }, [model])
 
   // Provide TabContext for command components in the shell overlay.
   const overlayTabContext = useMemo<TabContextValue>(
