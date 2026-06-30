@@ -1089,7 +1089,7 @@
     },
     {
       "name": "github.com/aperturerobotics/protobuf-go-lite",
-      "version": "v0.14.0",
+      "version": "v0.15.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/protobuf-go-lite",
@@ -1690,7 +1690,7 @@
     },
     {
       "name": "github.com/s4wave/goscript",
-      "version": "v0.2.8",
+      "version": "v0.2.9-0.20260630020512-392dce2f7f5e",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/s4wave/goscript",
