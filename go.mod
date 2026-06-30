@@ -20,7 +20,7 @@ replace (
 	github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 // aperture-2
 )
 
-require github.com/s4wave/goscript v0.2.9-0.20260629181044-58d78964f5cc // master
+require github.com/s4wave/goscript v0.2.8
 
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
@@ -47,7 +47,7 @@ require (
 	github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
-	github.com/aperturerobotics/protobuf-go-lite v0.14.1-0.20260604021409-f936dca845a2 // master
+	github.com/aperturerobotics/protobuf-go-lite v0.14.0
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
 	github.com/aperturerobotics/starpc v0.49.18 // latest
 	github.com/aperturerobotics/util v1.34.10-0.20260610174257-740fe32c1ea1 // master
