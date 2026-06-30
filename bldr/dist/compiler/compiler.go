@@ -307,24 +307,11 @@ func (c *Controller) BuildManifest(
 	var embedWG sync.WaitGroup
 	for _, em := range embedSpecs {
 		embedWG.Go(func() {
-			dir := bldr_manifest.NewFetchManifest(
-				em.GetManifestId(),
-				[]bldr_manifest.BuildType{buildType},
-				[]string{em.GetPlatformId()},
-				0,
-			)
-			_, _, ref, err := bus.ExecWaitValue[*bldr_manifest.FetchManifestValue](
+			ref, err := waitForEmbedManifestValue(
 				embedCtx,
 				c.GetBus(),
-				dir,
-				func(isIdle bool, errs []error) (bool, error) {
-					if isIdle && len(errs) != 0 {
-						return false, errs[0]
-					}
-					return true, nil
-				},
-				nil,
-				nil,
+				em,
+				buildType,
 			)
 			if err != nil {
 				if embedCtx.Err() == nil {
@@ -476,6 +463,40 @@ func (c *Controller) BuildManifest(
 	}
 
 	return result, nil
+}
+
+func waitForEmbedManifestValue(
+	ctx context.Context,
+	b bus.Bus,
+	em *EmbedManifest,
+	buildType bldr_manifest.BuildType,
+) (directive.Reference, error) {
+	dir := bldr_manifest.NewFetchManifest(
+		em.GetManifestId(),
+		[]bldr_manifest.BuildType{buildType},
+		[]string{em.GetPlatformId()},
+		0,
+	)
+	_, _, ref, err := bus.ExecWaitValue[*bldr_manifest.FetchManifestValue](
+		ctx,
+		b,
+		dir,
+		func(isIdle bool, errs []error) (bool, error) {
+			if len(errs) != 0 {
+				return false, errs[0]
+			}
+			if isIdle {
+				return false, pkgerrors.New("FetchManifest became idle without a manifest value")
+			}
+			return true, nil
+		},
+		nil,
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return ref, nil
 }
 
 // GetSupportedPlatforms returns the base platform IDs this compiler supports.
