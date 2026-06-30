@@ -2,12 +2,15 @@ module github.com/s4wave/spacewave
 
 go 1.26.3
 
+require github.com/s4wave/goscript v0.2.9-0.20260630010821-7fdb7ed251be // master
+
 replace (
 	// aperture: use compatibility forks
 	// https://github.com/dgraph-io/badger/pull/2048
 	github.com/cloudflare/circl => github.com/aperturerobotics/circl v1.6.4-0.20260621010139-e3e5c81ebc40
 	github.com/dgraph-io/badger/v4 => github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac // main
 	github.com/dgraph-io/ristretto/v2 => github.com/aperturerobotics/ristretto/v2 v2.0.0-20260619193556-b7aa4f19bce9 // main
+
 	// aperture: use ext-engines forks
 	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260621171526-1e2167d387d8 // aperture-7
 	github.com/dolthub/jsonpath => github.com/aperturerobotics/jsonpath v0.1.5-0.20260620020844-bd6430df1008
@@ -15,12 +18,11 @@ replace (
 	github.com/go-git/go-git/v6 => github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260620031345-da32192f9c83
 	github.com/pion/webrtc/v4 => github.com/aperturerobotics/pion-webrtc/v4 v4.2.16-0.20260620023100-dab2ab5b7c65
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.5-0.20260430110313-9c892333814d
+
 	// https://github.com/wazero/wazero/pull/2479
 	// https://github.com/wazero/wazero/pull/2481
 	github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 // aperture-2
 )
-
-require github.com/s4wave/goscript v0.2.8
 
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
@@ -47,7 +49,7 @@ require (
 	github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
-	github.com/aperturerobotics/protobuf-go-lite v0.14.0
+	github.com/aperturerobotics/protobuf-go-lite v0.15.0 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
 	github.com/aperturerobotics/starpc v0.49.18 // latest
 	github.com/aperturerobotics/util v1.34.10-0.20260610174257-740fe32c1ea1 // master
@@ -198,3 +200,5 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
+
+tool github.com/s4wave/goscript/cmd/goscript
