@@ -8,13 +8,14 @@
 package drivebench
 
 import (
-	"encoding/json"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
+	"github.com/aperturerobotics/fastjson"
 	"github.com/aperturerobotics/util/gitroot"
 	"github.com/pkg/errors"
 )
@@ -84,12 +85,13 @@ type Phase struct {
 // pre-quickstart startup gap is attributed by reading the interval between
 // adjacent marks: the gap belongs to whichever mark transition spans it.
 type StartupMark struct {
-	Label    string `json:"label"`
-	Sequence int    `json:"sequence,omitempty"`
-	StartMs  int    `json:"startMs"`
-	Phase    string `json:"phase,omitempty"`
-	Mode     string `json:"mode,omitempty"`
-	Source   string `json:"source,omitempty"`
+	Label    string         `json:"label"`
+	Sequence int            `json:"sequence,omitempty"`
+	StartMs  int            `json:"startMs"`
+	Phase    string         `json:"phase,omitempty"`
+	Mode     string         `json:"mode,omitempty"`
+	Source   string         `json:"source,omitempty"`
+	Detail   map[string]any `json:"detail,omitempty"`
 }
 
 // StartupMarksScript reads the page startup-mark timeline into a JSON-able
@@ -109,6 +111,7 @@ const StartupMarksScript = `() => {
       phase: m.detail?.phase ?? null,
       mode: m.detail?.mode ?? null,
       source: m.detail?.source ?? null,
+      detail: m.detail ?? {},
     }))
 }`
 
@@ -242,18 +245,205 @@ func MeasureBundleDir(root string) (*Bundle, error) {
 	return &bundle, nil
 }
 
-// WriteRun marshals run as indented JSON and writes it to dir/run.json,
-// returning the written path.
+// WriteRun marshals run as JSON and writes it to dir/run.json, returning the
+// written path.
 func WriteRun(dir string, run Run) (string, error) {
-	data, err := json.MarshalIndent(run, "", "  ")
-	if err != nil {
-		return "", errors.Wrap(err, "marshal run.json")
-	}
+	var arena fastjson.Arena
+	data := marshalRunValue(&arena, run).MarshalTo(nil)
+	data = append(data, '\n')
 	path := filepath.Join(dir, "run.json")
 	if err := WriteArtifact(path, data); err != nil {
 		return "", err
 	}
 	return path, nil
+}
+
+func marshalRunValue(arena *fastjson.Arena, run Run) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("timestamp", arena.NewString(run.Timestamp))
+	obj.Set("compiler", arena.NewString(run.Compiler))
+	obj.Set("buildMode", arena.NewString(run.BuildMode))
+	obj.Set("runtimeState", arena.NewString(run.RuntimeState))
+	obj.Set("cell", arena.NewString(run.Cell))
+	obj.Set("milestones", marshalMilestonesValue(arena, run.Milestones))
+	obj.Set("browser", marshalBrowserValue(arena, run.Browser))
+	if run.ServedBundle != nil {
+		obj.Set("servedBundle", marshalBundleValue(arena, *run.ServedBundle))
+	}
+	obj.Set("resourceConnection", marshalResourceConnValue(arena, run.ResourceConnection))
+	if run.Trace != nil {
+		obj.Set("trace", marshalTraceValue(arena, *run.Trace))
+	}
+	return obj
+}
+
+func marshalMilestonesValue(arena *fastjson.Arena, milestones Milestones) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("liveAppMs", arena.NewNumberString(strconv.FormatInt(milestones.LiveAppMs, 10)))
+	obj.Set("routeAcceptedMs", arena.NewNumberString(strconv.FormatInt(milestones.RouteAcceptedMs, 10)))
+	obj.Set("unixfsVisibleMs", arena.NewNumberString(strconv.FormatInt(milestones.UnixfsVisibleMs, 10)))
+	obj.Set("contentReadyMs", arena.NewNumberString(strconv.FormatInt(milestones.ContentReadyMs, 10)))
+	return obj
+}
+
+func marshalBrowserValue(arena *fastjson.Arena, browser Browser) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("contentReadyMs", arena.NewNumberInt(browser.ContentReadyMs))
+	obj.Set("quickstartState", arena.NewString(browser.QuickstartState))
+	setOptionalIntJSONField(arena, obj, "quickstartProgressReadyMs", browser.QuickstartProgressReadyMs)
+	setOptionalIntJSONField(arena, obj, "quickstartContentReadyMs", browser.QuickstartContentReadyMs)
+	setOptionalIntJSONField(arena, obj, "quickstartFinishedMs", browser.QuickstartFinishedMs)
+	if len(browser.QuickstartPhases) != 0 {
+		obj.Set("quickstartPhases", marshalPhasesValue(arena, browser.QuickstartPhases))
+	}
+	if browser.DriveSeedResourceCalls != 0 {
+		obj.Set("driveSeedResourceCalls", arena.NewNumberInt(browser.DriveSeedResourceCalls))
+	}
+	setOptionalIntJSONField(arena, obj, "driveSeedStartedMs", browser.DriveSeedStartedMs)
+	setOptionalIntJSONField(arena, obj, "driveSeedFinishedMs", browser.DriveSeedFinishedMs)
+	setOptionalIntJSONField(arena, obj, "driveSeedElapsedMs", browser.DriveSeedElapsedMs)
+	if len(browser.StartupMarks) != 0 {
+		obj.Set("startupMarks", marshalStartupMarksValue(arena, browser.StartupMarks))
+	}
+	return obj
+}
+
+func marshalPhasesValue(arena *fastjson.Arena, phases []Phase) *fastjson.Value {
+	arr := arena.NewArray()
+	for _, phase := range phases {
+		obj := arena.NewObject()
+		obj.Set("name", arena.NewString(phase.Name))
+		obj.Set("startedMs", arena.NewNumberInt(phase.StartedMs))
+		setOptionalIntJSONField(arena, obj, "finishedMs", phase.FinishedMs)
+		setOptionalIntJSONField(arena, obj, "elapsedMs", phase.ElapsedMs)
+		setOmitEmptyStringJSONField(arena, obj, "error", phase.Error)
+		arr.SetArrayItem(len(arr.GetArray()), obj)
+	}
+	return arr
+}
+
+func marshalStartupMarksValue(arena *fastjson.Arena, marks []StartupMark) *fastjson.Value {
+	arr := arena.NewArray()
+	for _, mark := range marks {
+		obj := arena.NewObject()
+		obj.Set("label", arena.NewString(mark.Label))
+		if mark.Sequence != 0 {
+			obj.Set("sequence", arena.NewNumberInt(mark.Sequence))
+		}
+		obj.Set("startMs", arena.NewNumberInt(mark.StartMs))
+		setOmitEmptyStringJSONField(arena, obj, "phase", mark.Phase)
+		setOmitEmptyStringJSONField(arena, obj, "mode", mark.Mode)
+		setOmitEmptyStringJSONField(arena, obj, "source", mark.Source)
+		if len(mark.Detail) != 0 {
+			obj.Set("detail", marshalJSONMapValue(arena, mark.Detail))
+		}
+		arr.SetArrayItem(len(arr.GetArray()), obj)
+	}
+	return arr
+}
+
+func marshalBundleValue(arena *fastjson.Arena, bundle Bundle) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("totalBytes", arena.NewNumberString(strconv.FormatInt(bundle.TotalBytes, 10)))
+	obj.Set("wasmBytes", arena.NewNumberString(strconv.FormatInt(bundle.WasmBytes, 10)))
+	obj.Set("fileCount", arena.NewNumberInt(bundle.FileCount))
+	return obj
+}
+
+func marshalResourceConnValue(arena *fastjson.Arena, conn ResourceConn) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("durationMs", arena.NewNumberString(strconv.FormatInt(conn.DurationMs, 10)))
+	obj.Set("attempts", arena.NewNumberInt(conn.Attempts))
+	obj.Set("startupReloads", arena.NewNumberInt(conn.StartupReloads))
+	return obj
+}
+
+func marshalTraceValue(arena *fastjson.Arena, trace Trace) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("bytes", arena.NewNumberInt(trace.Bytes))
+	obj.Set("runtimeTracePath", arena.NewString(trace.RuntimeTracePath))
+	obj.Set("tracetoolPath", arena.NewString(trace.TracetoolPath))
+	obj.Set("userTasks", arena.NewNumberInt(trace.UserTasks))
+	obj.Set("userRegions", arena.NewNumberInt(trace.UserRegions))
+	obj.Set("userLogs", arena.NewNumberInt(trace.UserLogs))
+	if len(trace.Tasks) != 0 {
+		obj.Set("tasks", marshalTasksValue(arena, trace.Tasks))
+	}
+	return obj
+}
+
+func marshalTasksValue(arena *fastjson.Arena, tasks []Task) *fastjson.Value {
+	arr := arena.NewArray()
+	for _, task := range tasks {
+		obj := arena.NewObject()
+		obj.Set("type", arena.NewString(task.Type))
+		obj.Set("count", arena.NewNumberInt(task.Count))
+		obj.Set("totalUs", arena.NewNumberString(strconv.FormatInt(task.TotalUs, 10)))
+		obj.Set("maxUs", arena.NewNumberString(strconv.FormatInt(task.MaxUs, 10)))
+		arr.SetArrayItem(len(arr.GetArray()), obj)
+	}
+	return arr
+}
+
+func marshalJSONMapValue(arena *fastjson.Arena, values map[string]any) *fastjson.Value {
+	obj := arena.NewObject()
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	for _, key := range keys {
+		obj.Set(key, marshalJSONAnyValue(arena, values[key]))
+	}
+	return obj
+}
+
+func marshalJSONArrayValue(arena *fastjson.Arena, values []any) *fastjson.Value {
+	arr := arena.NewArray()
+	for _, value := range values {
+		arr.SetArrayItem(len(arr.GetArray()), marshalJSONAnyValue(arena, value))
+	}
+	return arr
+}
+
+func marshalJSONAnyValue(arena *fastjson.Arena, value any) *fastjson.Value {
+	switch typed := value.(type) {
+	case nil:
+		return arena.NewNull()
+	case bool:
+		if typed {
+			return arena.NewTrue()
+		}
+		return arena.NewFalse()
+	case string:
+		return arena.NewString(typed)
+	case int:
+		return arena.NewNumberInt(typed)
+	case int64:
+		return arena.NewNumberString(strconv.FormatInt(typed, 10))
+	case uint64:
+		return arena.NewNumberString(strconv.FormatUint(typed, 10))
+	case float64:
+		return arena.NewNumberString(strconv.FormatFloat(typed, 'f', -1, 64))
+	case []any:
+		return marshalJSONArrayValue(arena, typed)
+	case map[string]any:
+		return marshalJSONMapValue(arena, typed)
+	default:
+		return arena.NewNull()
+	}
+}
+
+func setOmitEmptyStringJSONField(arena *fastjson.Arena, obj *fastjson.Value, key, value string) {
+	if value != "" {
+		obj.Set(key, arena.NewString(value))
+	}
+}
+
+func setOptionalIntJSONField(arena *fastjson.Arena, obj *fastjson.Value, key string, value *int) {
+	if value != nil {
+		obj.Set(key, arena.NewNumberInt(*value))
+	}
 }
 
 var driveSeedResourcePhaseNames = []string{
@@ -297,6 +487,9 @@ func ParseStartupMarks(raw any) []StartupMark {
 		mark.Phase, _ = m["phase"].(string)
 		mark.Mode, _ = m["mode"].(string)
 		mark.Source, _ = m["source"].(string)
+		if detail, ok := m["detail"].(map[string]any); ok && len(detail) > 0 {
+			mark.Detail = detail
+		}
 		marks = append(marks, mark)
 	}
 	return marks

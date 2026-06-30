@@ -3,11 +3,13 @@ package bucket_lookup
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 )
 
 // CopyObjectToBucket copies an object from srcCursor to destCursor.
@@ -68,12 +70,17 @@ func CopyObjectToBucket(
 	// key: string (BlockRef)
 	// value: bool (seen)
 	var seenBlocks sync.Map
+	var copiedBlocks atomic.Int64
+	var dedupedBlocks atomic.Int64
+	var existingBlocks atomic.Int64
+	var writtenBlocks atomic.Int64
+	var skippedSubtrees atomic.Int64
 
 	// To copy the object fully, we have to traverse the block graph.
 	// We do this by recursively following the block refs.
 	// Note that GetBlockRefCtor must be implemented for this to work properly.
 	// TODO: handle garbage collection (set parent in PutOpts)
-	if err := WalkObjectBlocks(
+	err = WalkObjectBlocks(
 		ctx,
 		NewWalkObjectBlocksWithRef(srcRef.GetRootRef(), rootCtor),
 		func(ent *WalkObjectBlocksEntry) (cntu bool, err error) {
@@ -98,6 +105,7 @@ func CopyObjectToBucket(
 			refStr := ent.Ref.MarshalString()
 			_, seen := seenBlocks.LoadOrStore(refStr, true)
 			if seen {
+				dedupedBlocks.Add(1)
 				return
 			}
 
@@ -115,8 +123,17 @@ func CopyObjectToBucket(
 			if err != nil && err != context.Canceled {
 				err = errors.Wrapf(err, "write ref %s", ent.Ref.MarshalString())
 			}
+			if err == nil {
+				copiedBlocks.Add(1)
+				if writeExisted {
+					existingBlocks.Add(1)
+				} else {
+					writtenBlocks.Add(1)
+				}
+			}
 
 			if skipSubtreeExists && writeExisted && err == nil {
+				skippedSubtrees.Add(1)
 				// skip sub-tree
 				return false, nil
 			}
@@ -126,7 +143,13 @@ func CopyObjectToBucket(
 		readBkt, readXfrm,
 		maxConcurrency,
 		false,
-	); err != nil {
+	)
+	trace.Logf(ctx, "copy-block-copied-count", "%d", copiedBlocks.Load())
+	trace.Logf(ctx, "copy-block-dedupe-skip-count", "%d", dedupedBlocks.Load())
+	trace.Logf(ctx, "copy-block-existing-count", "%d", existingBlocks.Load())
+	trace.Logf(ctx, "copy-block-written-count", "%d", writtenBlocks.Load())
+	trace.Logf(ctx, "copy-block-skip-subtree-count", "%d", skippedSubtrees.Load())
+	if err != nil {
 		return nil, err
 	}
 

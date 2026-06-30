@@ -837,6 +837,41 @@ describe('WebDocument plugin generation state', () => {
     )
   })
 
+  it('records worker spawn and reap metric fields', async () => {
+    installFakeDedicatedWorker()
+    const doc = buildTestWebDocument()
+
+    await WebDocument.prototype.createWebWorker.call(doc, {
+      id: 'worker-1',
+      path: '/b/pd/web/web.mjs',
+      workerMode: WebWorkerMode.WORKER_MODE_DEDICATED,
+    })
+
+    const createReady = globalThis.__swStartupMarks?.find(
+      (mark) => mark.label === 'worker.create-ready',
+    )
+    expect(createReady?.detail).toMatchObject({
+      workerId: 'worker-1',
+      activeWorkerCountBefore: 0,
+      activeWorkerCountAfter: 1,
+      replacedWorker: false,
+      shared: false,
+    })
+
+    await doc.removeWebWorker({ id: 'worker-1' })
+
+    const removeReady = globalThis.__swStartupMarks?.find(
+      (mark) => mark.label === 'worker.remove-ready',
+    )
+    expect(removeReady?.detail).toMatchObject({
+      workerId: 'worker-1',
+      activeWorkerCountBefore: 1,
+      activeWorkerCountAfter: 0,
+      removed: true,
+      shared: false,
+    })
+  })
+
   it('terminates unready dedicated workers immediately on replacement', async () => {
     vi.useFakeTimers()
     const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout')

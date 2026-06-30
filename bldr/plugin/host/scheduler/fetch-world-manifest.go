@@ -2,6 +2,7 @@ package plugin_host_scheduler
 
 import (
 	"context"
+	"strings"
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -12,6 +13,7 @@ import (
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,13 +38,19 @@ func (t *pluginInstance) execFetchWorldManifest(ctx context.Context, hosts *plug
 		return nil
 	}
 
+	ctx, task := trace.NewTask(ctx, "bldr/plugin-host-scheduler/fetch-manifest")
+	defer task.End()
+	t.logPluginAccountingFields(ctx)
+
 	platformIDs := t.c.conf.FilterPluginPlatformIDs(t.pluginID, hosts.toPlatformIDs())
+	trace.Log(ctx, "platform-ids", strings.Join(platformIDs, ","))
 	t.le.
 		WithField("platform-ids", platformIDs).
 		Debugf("starting fetch plugin manifests")
 
 	// If configured, store manifests in the world.
 	storeManifests := !t.c.conf.GetDisableStoreManifest()
+	trace.Logf(ctx, "store-manifests", "%t", storeManifests)
 	var handler directive.ReferenceHandler
 	if storeManifests {
 		// Keyed set of FetchManifestValue store routines.
@@ -118,13 +126,14 @@ func (t *pluginInstance) execFetchWorldManifest(ctx context.Context, hosts *plug
 }
 
 type fetchManifestValueStorer struct {
-	pi     *pluginInstance
-	value  *promise.Promise[*bldr_manifest.FetchManifestValue]
-	refIdx int
+	pi      *pluginInstance
+	value   *promise.Promise[*bldr_manifest.FetchManifestValue]
+	valueID uint32
+	refIdx  int
 }
 
 func (t *pluginInstance) newManifestFetchValueStorer(key storeFetchedManifestsKey) (keyed.Routine, *fetchManifestValueStorer) {
-	s := &fetchManifestValueStorer{pi: t, refIdx: key.refIndex}
+	s := &fetchManifestValueStorer{pi: t, valueID: key.valueID, refIdx: key.refIndex}
 	s.value = promise.NewPromise[*bldr_manifest.FetchManifestValue]()
 	return s.execFetchManifestValueStorer, s
 }
@@ -140,6 +149,12 @@ func (t *fetchManifestValueStorer) execFetchManifestValueStorer(ctx context.Cont
 		)
 	}()
 
+	ctx, task := trace.NewTask(ctx, "bldr/plugin-host-scheduler/fetch-manifest/store-result")
+	defer task.End()
+	t.pi.logPluginAccountingFields(ctx)
+	trace.Logf(ctx, "fetch-value-id", "%d", t.valueID)
+	trace.Logf(ctx, "fetch-ref-index", "%d", t.refIdx)
+
 	fetchManifestValue, err := t.value.Await(ctx)
 	if err != nil {
 		return err
@@ -151,6 +166,7 @@ func (t *fetchManifestValueStorer) execFetchManifestValueStorer(ctx context.Cont
 	}
 
 	manifestRef := manifestRefs[t.refIdx]
+	logManifestRefAccountingFields(ctx, "fetched", manifestRef)
 	meta := manifestRef.GetMeta()
 	le := meta.Logger(t.pi.le)
 	le.Debug("downloading and storing plugin manifest ref")

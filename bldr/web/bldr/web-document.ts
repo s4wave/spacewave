@@ -1075,6 +1075,14 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           runtimeId: this.webRuntimeId,
           mode: 'dedicated-worker',
         })
+        markStartupBoundary('runtime.opfs-bridge-ready', {
+          source: 'browser',
+          documentId: this.webDocumentUuid,
+          runtimeId: this.webRuntimeId,
+          workerId: this.webRuntimeId,
+          mode: 'dedicated-worker',
+          enabled: false,
+        })
       } else {
         // SharedWorker mode: all tabs share a single Worker.
         markStartupBoundary('runtime.worker-create-start', {
@@ -1332,6 +1340,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
     const plugin = !!request.initData
     const workerType = request.workerType ?? WebWorkerType.NATIVE
+    const activeWorkerCountBefore = Object.keys(this.webWorkers).length
+    const replacedWorker = !!this.webWorkers[request.id]
     markStartupBoundary('worker.create-request-received', {
       source: 'browser',
       documentId: this.webDocumentUuid,
@@ -1340,6 +1350,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       workerType,
       plugin,
       path: request.path,
+      activeWorkerCountBefore,
+      replacedWorker,
     })
 
     if (plugin) {
@@ -1385,6 +1397,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       workerType,
       plugin,
       path: request.path,
+      activeWorkerCountBefore,
+      replacedWorker,
     })
     const detect = await this.workerCommsDetect
     if (!this.firstWorkerCreationMarked) {
@@ -1438,6 +1452,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       plugin,
       path: request.path,
       detectConfig: detect.config,
+      activeWorkerCountBefore,
+      replacedWorker,
     })
     const worker = new WebDocumentWebWorker(
       request.id,
@@ -1480,6 +1496,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       shared: createdShared,
       workerType,
       plugin: !!request.initData,
+      activeWorkerCountBefore,
+      activeWorkerCountAfter: Object.keys(this.webWorkers).length,
+      replacedWorker,
     })
     return { created: true, shared: createdShared }
   }
@@ -1493,6 +1512,17 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       throw new Error('web worker id is required')
     }
     const old = this.webWorkers[request.id]
+    const activeWorkerCountBefore = Object.keys(this.webWorkers).length
+    markStartupBoundary('worker.remove-request-received', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+      workerId: request.id,
+      activeWorkerCountBefore,
+      removed: !!old,
+      shared: old?.isShared,
+      ready: old?.ready,
+    })
     if (old) {
       this.closeWorkerBridgeEndpoint(request.id)
       this.closeOpfsWorker(request.id)
@@ -1509,6 +1539,17 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         old.generationState,
       )
     }
+    markStartupBoundary('worker.remove-ready', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+      workerId: request.id,
+      activeWorkerCountBefore,
+      activeWorkerCountAfter: Object.keys(this.webWorkers).length,
+      removed: !!old,
+      shared: old?.isShared,
+      ready: old?.ready,
+    })
     return { removed: !!old }
   }
 
@@ -2445,7 +2486,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       if (!clientPort) {
         return
       }
-      this.sendOpenOpfsWorkerAck(from, { from: this.webDocumentUuid }, clientPort)
+      this.sendOpenOpfsWorkerAck(
+        from,
+        { from: this.webDocumentUuid },
+        clientPort,
+      )
       console.log(`WebDocument: OPFS worker opened for ${from}`)
     } catch (err) {
       this.sendOpenOpfsWorkerError(
@@ -2509,7 +2554,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           reportWorkerError(ev)
           cleanup()
           reject(
-            new Error(ev.message || `OPFS worker ${requesterId} failed to start`),
+            new Error(
+              ev.message || `OPFS worker ${requesterId} failed to start`,
+            ),
           )
         }
         clientPort?.addEventListener('message', onMessage)

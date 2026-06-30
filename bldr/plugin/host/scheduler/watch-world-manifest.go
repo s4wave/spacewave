@@ -13,6 +13,7 @@ import (
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/world"
 	world_control "github.com/s4wave/spacewave/db/world/control"
 	world_vlogger "github.com/s4wave/spacewave/db/world/vlogger"
@@ -57,6 +58,11 @@ func (t *pluginInstance) processManifestWorldState(
 		return true, nil
 	}
 
+	ctx, task := trace.NewTask(ctx, "bldr/plugin-host-scheduler/select-manifest")
+	defer task.End()
+	t.logPluginAccountingFields(ctx)
+	trace.Log(ctx, "host-object-key", t.c.objKey)
+
 	if t.c.conf.GetVerbose() {
 		ws = world_vlogger.NewWorldState(le, ws)
 	}
@@ -65,6 +71,7 @@ func (t *pluginInstance) processManifestWorldState(
 	platformIDsMap := hosts.toPluginPlatformIDsMap(t.c.conf, t.pluginID)
 	platformIDs := slices.Collect(maps.Keys(platformIDsMap))
 	slices.Sort(platformIDs)
+	trace.Log(ctx, "platform-ids", strings.Join(platformIDs, ","))
 
 	// configure logger
 	le = le.WithFields(logrus.Fields{
@@ -87,6 +94,9 @@ func (t *pluginInstance) processManifestWorldState(
 		return true, context.Canceled
 	}
 	manifests := bldr_manifest_world.SelectableStartupManifests(candidateEligibility)
+	trace.Logf(ctx, "candidate-count", "%d", len(candidateEligibility))
+	trace.Logf(ctx, "selectable-candidate-count", "%d", len(manifests))
+	trace.Logf(ctx, "skipped-candidate-count", "%d", countStartupManifestEligibilitySkips(candidateEligibility))
 	skipSummary := summarizeStartupManifestEligibilitySkips(candidateEligibility)
 	if skipSummary != "" {
 		logEntry := le.WithField("skipped-startup-manifest-refs", skipSummary)
@@ -154,6 +164,7 @@ func (t *pluginInstance) processManifestWorldState(
 		func(bls *bucket_lookup.Cursor) error {
 			// get the bucket id of the world state
 			worldBucketID := bls.GetOpArgs().GetBucketId()
+			trace.Log(ctx, "world-bucket-id", worldBucketID)
 
 			// decide the "download manifest" and the "execute manifest" based on which is fully downloaded
 			// we consider a manifest to be fully downloaded if its ref bucket matches the world bucket
@@ -224,6 +235,11 @@ func (t *pluginInstance) processManifestWorldState(
 				downloadManifest,
 				candidateEligibility,
 			)
+			logManifestSnapshotAccountingFields(ctx, "execute", executeManifest)
+			logManifestSnapshotAccountingFields(ctx, "download", downloadManifest)
+			if downloadManifest != nil {
+				trace.Log(ctx, "download-manifest-copy-class", string(t.classifyManifestCopy(downloadManifest)))
+			}
 
 			var anyChanged bool
 

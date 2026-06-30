@@ -76,6 +76,11 @@ func (t *pluginInstance) waitForStartupExecuteReady(
 	if class != manifestCopyClassAfterExecuteReady {
 		return nil
 	}
+	ctx, task := trace.NewTask(ctx, "bldr/plugin-host-scheduler/download-manifest/wait-for-startup-execute-ready")
+	defer task.End()
+	t.logPluginAccountingFields(ctx)
+	logManifestSnapshotAccountingFields(ctx, "download", manifestSnapshot)
+
 	t.setManifestCopyStatus(manifestCopyPhaseWaiting, class, manifestSnapshot)
 	_, err := t.runningPluginCtr.WaitValue(ctx, nil)
 	return err
@@ -116,8 +121,8 @@ func (t *pluginInstance) execDownloadManifest(
 			t.setManifestCopyStatus(manifestCopyPhaseFailed, class, manifestSnapshot)
 		}
 	}()
-	trace.Log(ctx, "plugin-id", t.pluginID)
-	trace.Log(ctx, "manifest-ref", ref.MarshalString())
+	t.logPluginAccountingFields(ctx)
+	logManifestSnapshotAccountingFields(ctx, "download", manifestSnapshot)
 	trace.Log(ctx, "startup-fetch-kind", "background-manifest-dag-copy")
 	trace.Log(ctx, "manifest-copy-class", string(class))
 
@@ -132,12 +137,18 @@ func (t *pluginInstance) execDownloadManifest(
 	}
 
 	// Access the world root bucket (dest) then the manifest source bucket (src).
-	return ws.AccessWorldState(ctx, nil, func(dest *bucket_lookup.Cursor) error {
-		return ws.AccessWorldState(ctx, ref, func(src *bucket_lookup.Cursor) error {
+	accessCtx, accessTask := trace.NewTask(ctx, "bldr/plugin-host-scheduler/download-manifest/access-world-state")
+	err = ws.AccessWorldState(accessCtx, nil, func(dest *bucket_lookup.Cursor) error {
+		return ws.AccessWorldState(accessCtx, ref, func(src *bucket_lookup.Cursor) error {
 			destBucketID := dest.GetOpArgs().GetBucketId()
+			trace.Log(accessCtx, "world-bucket-id", destBucketID)
+			trace.Log(accessCtx, "source-bucket-id", src.GetOpArgs().GetBucketId())
 			le.Infof("copying manifest DAG from bucket %s to %s", src.GetOpArgs().GetBucketId(), destBucketID)
+
+			copyCtx, copyTask := trace.NewTask(accessCtx, "bldr/plugin-host-scheduler/download-manifest/copy-dag")
+			trace.Log(copyCtx, "accounting-phase", "decode-verify-deserialize-block-publish")
 			localRef, err := bucket_lookup.CopyObjectToBucket(
-				ctx,
+				copyCtx,
 				dest,
 				src,
 				bldr_manifest.NewManifestBlock,
@@ -145,28 +156,42 @@ func (t *pluginInstance) execDownloadManifest(
 				false,
 				nil,
 			)
+			copyTask.End()
 			if err != nil {
 				return errors.Wrap(err, "copy manifest block DAG")
 			}
+			logObjectRefAccountingFields(accessCtx, "local-manifest", localRef)
+
 			if !t.c.conf.GetDisableStoreManifest() {
+				storeCtx, storeTask := trace.NewTask(accessCtx, "bldr/plugin-host-scheduler/download-manifest/store-local-ref")
+				trace.Log(storeCtx, "accounting-phase", "world-op-store-local-manifest-ref")
 				manifestKey := bldr_manifest.NewManifestKey(t.c.objKey, manifestMeta)
 				if err := bldr_manifest_world.ExStoreManifestOp(
-					ctx,
+					storeCtx,
 					ws,
 					t.c.peerID,
 					manifestKey,
 					[]string{t.c.objKey},
 					bldr_manifest.NewManifestRef(manifestMeta, localRef),
 				); err != nil {
+					storeTask.End()
 					return errors.Wrap(err, "store local manifest ref")
 				}
+				storeTask.End()
 			}
-			if _, err := ws.Sync(ctx); err != nil {
+
+			syncCtx, syncTask := trace.NewTask(accessCtx, "bldr/plugin-host-scheduler/download-manifest/sync")
+			trace.Log(syncCtx, "accounting-phase", "world-sync-block-barrier-and-head-commit")
+			if _, err := ws.Sync(syncCtx); err != nil {
+				syncTask.End()
 				return errors.Wrap(err, "sync local manifest blocks")
 			}
+			syncTask.End()
 			t.setManifestCopyStatus(manifestCopyPhaseDone, class, manifestSnapshot)
 			le.Info("manifest download complete")
 			return nil
 		})
 	})
+	accessTask.End()
+	return err
 }
