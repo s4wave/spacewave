@@ -1374,6 +1374,65 @@ describe('service worker messages', () => {
     )
   })
 
+
+  it('proxies attached DedicatedWorker documents to the elected runtime host relay', async () => {
+    const runtimeChannel = new MessageChannel()
+    const responseChannel = new MessageChannel()
+    const tracker = {
+      handleWebDocumentMessage: vi.fn(),
+      openWebRuntimePort: vi.fn().mockResolvedValue(runtimeChannel.port1),
+    }
+    const deps = {
+      clients: buildTestClients(),
+      fetchTracker: {
+        abortClient: vi.fn(),
+      },
+      webDocumentTracker: tracker,
+      syncLatestBrowserRelease: vi.fn(),
+      refreshBrowserIndexCache: vi.fn(),
+      handleCrossTabMessage: vi.fn(),
+    }
+    const ack = new Promise<MessageEvent>((resolve) => {
+      responseChannel.port1.onmessage = resolve
+      responseChannel.port1.start()
+    })
+    const init = new Uint8Array([1, 2, 3])
+    const ev = buildMessageEvent({
+      from: 'attached-document',
+      connectDedicatedRuntimeHost: {
+        webRuntimeId: 'runtime-1',
+        init,
+        port: responseChannel.port2,
+      },
+    })
+
+    handleServiceWorkerMessage(ev, deps)
+    await vi.mocked(ev.waitUntil).mock.calls[0][0]
+
+    expect(tracker.openWebRuntimePort).toHaveBeenCalledWith(
+      init,
+      'attached-document',
+    )
+    const ackEvent = await ack
+    expect(ackEvent.data).toMatchObject({
+      from: expect.stringMatching(/^service-worker-/),
+    })
+    const openedPort =
+      ackEvent.data.webRuntimePort ?? ackEvent.ports?.[0]
+    expect(openedPort).toBeDefined()
+    const delivered = new Promise<unknown>((resolve) => {
+      runtimeChannel.port2.onmessage = (messageEvent: MessageEvent) =>
+        resolve(messageEvent.data)
+      runtimeChannel.port2.start()
+    })
+    openedPort.postMessage({ relayed: true })
+    await expect(delivered).resolves.toEqual({ relayed: true })
+
+    openedPort.close()
+    runtimeChannel.port2.close()
+    responseChannel.port1.close()
+  })
+
   it('aborts outstanding fetch waiters when a client says goodbye', () => {
     const deps = {
       clients: buildTestClients(),

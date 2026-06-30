@@ -1,11 +1,18 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { WebDocumentToClient } from '../runtime/runtime.js'
+import type {
+  ConnectWebRuntimeAck,
+  WebDocumentToClient,
+} from '../runtime/runtime.js'
 import {
   WebWorkerGenerationState,
   WebWorkerMode,
   WebWorkerType,
 } from '../document/document.pb.js'
+import {
+  WebRuntimeClientInit,
+  WebRuntimeClientType,
+} from '../runtime/runtime.pb.js'
 import {
   WebDocument,
   registerUpdatedServiceWorker,
@@ -27,6 +34,11 @@ type TestWebDocument = {
   pluginSingletonReady: Promise<void>
   pluginSingletonLockEnabled: boolean
   singletonAbort?: AbortController
+  dedicatedRuntimeHost?: {
+    role: string
+    openClientChannel?: (init: WebRuntimeClientInit) => Promise<MessagePort>
+    handleHostLost?: (reason: string) => void
+  }
   sabPairBroker: SabPairBroker
   webrtcBridgeEndpoints: Map<string, unknown>
   opfsWorkers: Map<string, { terminate: ReturnType<typeof vi.fn> }>
@@ -46,11 +58,18 @@ type TestWebDocument = {
   releasePluginSingletonLock(): void
   buildWebDocumentStatusSnapshot(): Promise<unknown>
   openWebDocumentHostStream(): Promise<unknown>
+  openWebRuntimeClient(init: WebRuntimeClientInit): Promise<MessagePort>
+  handleClientConnectWebRuntime(
+    from: string,
+    init: Uint8Array,
+    port: MessagePort,
+  ): Promise<void>
   removeWebWorker(request: { id: string }): Promise<unknown>
   taskEnsureWebRuntimeConn(): void
   webRuntimeClient: {
     openStream: () => Promise<unknown>
     waitConn?: () => Promise<unknown>
+    rerouteChannel?: (opts?: { reconnect?: boolean }) => Promise<void>
   }
   sharedWorkerPath: string
   opfsWorkerPath: string
@@ -808,6 +827,86 @@ describe('WebDocument plugin generation state', () => {
     expect(singletonAbort?.signal.aborted).toBe(false)
     expect(doc.singletonAbort).toBe(singletonAbort)
     expect(lockRequest).toHaveBeenCalledOnce()
+  })
+
+  it('routes attached DedicatedWorker runtime clients through the elected host owner', async () => {
+    const doc = buildTestWebDocument()
+    const runtimePort = new MessageChannel().port1
+    const openClientChannel = vi.fn().mockResolvedValue(runtimePort)
+    doc.dedicatedRuntimeHost = {
+      role: 'attached',
+      openClientChannel,
+    }
+    const init: WebRuntimeClientInit = {
+      webRuntimeId: 'runtime-1',
+      clientUuid: 'document-1',
+      clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+    }
+
+    await expect(doc.openWebRuntimeClient(init)).resolves.toBe(runtimePort)
+
+    expect(openClientChannel).toHaveBeenCalledWith(init)
+  })
+
+  it('re-elects attached DedicatedWorker documents when the host relay closes', () => {
+    const doc = buildTestWebDocument()
+    doc.runtimeConnected = true
+    doc.resumeReady = true
+    const handleHostLost = vi.fn()
+    const rerouteChannel = vi.fn().mockResolvedValue(undefined)
+    doc.dedicatedRuntimeHost = {
+      role: 'attached',
+      handleHostLost,
+    }
+    doc.webRuntimeClient = {
+      openStream: vi.fn(),
+      rerouteChannel,
+    }
+
+    doc.onWebDocumentClientMessage({
+      data: {
+        from: 'tracker-client',
+        dedicatedRuntimeHostLost: {
+          webDocumentId: 'host-document',
+          reason: 'host closed',
+        },
+      },
+    } as MessageEvent)
+
+    expect(doc.runtimeConnected).toBe(false)
+    expect(doc.resumeReady).toBe(false)
+    expect(handleHostLost).toHaveBeenCalledWith('host closed')
+    expect(rerouteChannel).toHaveBeenCalledWith({ reconnect: false })
+  })
+
+  it('rejects runtime relay requests from an attached DedicatedWorker non-host', async () => {
+    const doc = buildTestWebDocument()
+    doc.dedicatedRuntimeHost = {
+      role: 'attached',
+    }
+    const { port1, port2 } = new MessageChannel()
+    const ack = new Promise<ConnectWebRuntimeAck>((resolve) => {
+      port1.onmessage = (ev: MessageEvent<ConnectWebRuntimeAck>) => {
+        resolve(ev.data)
+      }
+      port1.start()
+    })
+    const init = WebRuntimeClientInit.toBinary({
+      webRuntimeId: 'runtime-1',
+      clientUuid: 'service-worker',
+      clientType: WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
+    })
+
+    void doc.handleClientConnectWebRuntime('service-worker', init, port2)
+
+    await expect(ack).resolves.toMatchObject({
+      from: 'document-1',
+      error: 'dedicated runtime host role is attached',
+    })
+    expect(globalThis.__swStartupMarks?.map((mark) => mark.label)).toContain(
+      'dedicated-host.attach-relay-rejected',
+    )
+    port1.close()
   })
 
   it('keeps dedicated plugin workers running when the document becomes hidden', () => {

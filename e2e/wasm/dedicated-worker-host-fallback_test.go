@@ -12,6 +12,9 @@ const (
 	dedicatedFallbackFolder = "dedicated-worker-fallback-proof"
 	dedicatedMultiTabLeft   = "dedicated-worker-multitab-left"
 	dedicatedMultiTabRight  = "dedicated-worker-multitab-right"
+
+	dedicatedHostRoleAttached = "attached"
+	dedicatedHostRoleHost     = "host"
 )
 
 // TestDedicatedWorkerHostFallback proves the temporary Chromium 528332884
@@ -30,7 +33,7 @@ func TestDedicatedWorkerHostFallback(t *testing.T) {
 	ready := WaitForDriveReady(t, h, page)
 	AssertQuickstartContentAfterProgress(t, ready)
 	AssertBrowserStartupDone(t, h, page)
-	assertDedicatedWorkerHostTopology(t, page)
+	assertDedicatedWorkerHostTopology(t, page, dedicatedHostRoleHost)
 	assertDirectOpfsMarkers(t, page)
 
 	createDriveFolder(t, page, dedicatedFallbackFolder)
@@ -49,15 +52,15 @@ func TestDedicatedWorkerHostFallback(t *testing.T) {
 	WaitForApp(t, page)
 	WaitForDriveReady(t, h, page)
 	AssertBrowserStartupDone(t, h, page)
-	assertDedicatedWorkerHostTopology(t, page)
+	assertDedicatedWorkerHostTopology(t, page, dedicatedHostRoleHost)
 	assertDirectOpfsMarkers(t, page)
 	waitForDriveEntry(t, page, dedicatedFallbackFolder)
 	assertDriveRoute(t, page, scenario.GetSessionIndex(), scenario.GetSpaceID())
 }
 
 // TestDedicatedWorkerHostMultiTab proves two documents in one browser profile
-// each use a DedicatedWorker host, survive closing one document, and keep Drive
-// writes visible after a reload through the existing OPFS/Web Lock owners.
+// use one elected DedicatedWorker host generation, then fail over to a survivor
+// after the elected host closes without corrupting OPFS-backed Drive state.
 func TestDedicatedWorkerHostMultiTab(t *testing.T) {
 	h := harness(t)
 	skipDedicatedWorkerFallbackIfUnsupported(t, h)
@@ -70,7 +73,7 @@ func TestDedicatedWorkerHostMultiTab(t *testing.T) {
 	leftPage := scenario.GetSession().Page()
 	WaitForDriveReady(t, h, leftPage)
 	AssertBrowserStartupDone(t, h, leftPage)
-	assertDedicatedWorkerHostTopology(t, leftPage)
+	assertDedicatedWorkerHostTopology(t, leftPage, dedicatedHostRoleHost)
 	createDriveFolder(t, leftPage, dedicatedMultiTabLeft)
 	targetHash, err := currentHash(leftPage.URL())
 	if err != nil {
@@ -82,11 +85,7 @@ func TestDedicatedWorkerHostMultiTab(t *testing.T) {
 		t.Fatalf("open second app document: %v", err)
 	}
 	h.registerPageSession(rightPage, sess)
-	rightRegistered := true
 	defer func() {
-		if !rightRegistered {
-			return
-		}
 		h.unregisterPageSession(rightPage)
 		if err := rightPage.Close(); err != nil {
 			t.Errorf("close second app document: %v", err)
@@ -97,34 +96,27 @@ func TestDedicatedWorkerHostMultiTab(t *testing.T) {
 	WaitForApp(t, rightPage)
 	WaitForDriveReady(t, h, rightPage)
 	AssertBrowserStartupDone(t, h, rightPage)
-	assertDedicatedWorkerHostTopology(t, rightPage)
+	assertDedicatedWorkerHostTopology(t, rightPage, dedicatedHostRoleAttached)
 	waitForDriveEntry(t, rightPage, dedicatedMultiTabLeft)
-	createDriveFolder(t, rightPage, dedicatedMultiTabRight)
-	assertDirectOpfsMarkers(t, rightPage)
-
 	if err := leftPage.Close(); err != nil {
-		t.Fatalf("close first app document: %v", err)
+		t.Fatalf("close elected DedicatedWorker host document: %v", err)
 	}
-	h.unregisterPageSession(leftPage)
-	sess.page = rightPage
-	rightRegistered = false
-
-	WaitForApp(t, rightPage)
+	waitForDedicatedWorkerHostRole(t, rightPage, dedicatedHostRoleHost)
 	WaitForDriveReady(t, h, rightPage)
 	AssertBrowserStartupDone(t, h, rightPage)
-	assertDedicatedWorkerHostTopology(t, rightPage)
+	assertDedicatedWorkerHostTopology(t, rightPage, dedicatedHostRoleHost)
+	assertDirectOpfsMarkers(t, rightPage)
 	waitForDriveEntry(t, rightPage, dedicatedMultiTabLeft)
+	createDriveFolder(t, rightPage, dedicatedMultiTabRight)
 	waitForDriveEntry(t, rightPage, dedicatedMultiTabRight)
-	assertDriveRoute(t, rightPage, scenario.GetSessionIndex(), scenario.GetSpaceID())
 
 	reloadPage(t, rightPage)
 	WaitForApp(t, rightPage)
 	WaitForDriveReady(t, h, rightPage)
 	AssertBrowserStartupDone(t, h, rightPage)
-	assertDedicatedWorkerHostTopology(t, rightPage)
-	assertDirectOpfsMarkers(t, rightPage)
 	waitForDriveEntry(t, rightPage, dedicatedMultiTabLeft)
 	waitForDriveEntry(t, rightPage, dedicatedMultiTabRight)
+	assertDedicatedWorkerHostTopology(t, rightPage, dedicatedHostRoleHost)
 	assertDriveRoute(t, rightPage, scenario.GetSessionIndex(), scenario.GetSpaceID())
 }
 
@@ -150,18 +142,33 @@ func watchFallbackConsole(t testing.TB, sess *TestSession, label string) func() 
 	}
 }
 
-func assertDedicatedWorkerHostTopology(t testing.TB, page playwright.Page) map[string]any {
+func assertDedicatedWorkerHostTopology(
+	t testing.TB,
+	page playwright.Page,
+	expectedRole string,
+) map[string]any {
 	t.Helper()
 	raw, err := page.Evaluate(`() => {
 		const marks = globalThis.__swStartupMarks ?? []
 		let runtimeMode = null
 		let runtimeDocumentId = null
-		for (let i = marks.length - 1; i >= 0; i--) {
-			const mark = marks[i]
+		let dedicatedHostRole = null
+		let dedicatedHostGeneration = null
+		let dedicatedHostAttachReady = false
+		for (const mark of marks) {
 			if (mark.label === 'runtime.mode-selected') {
 				runtimeMode = mark.detail?.mode ?? null
 				runtimeDocumentId = mark.detail?.documentId ?? null
-				break
+			}
+			if (mark.label === 'dedicated-host.lease-acquired') {
+				dedicatedHostRole = 'host'
+				dedicatedHostGeneration = mark.detail?.generation ?? null
+			}
+			if (mark.label === 'dedicated-host.attach-selected') {
+				dedicatedHostRole = 'attached'
+			}
+			if (mark.label === 'dedicated-host.attach-open-ready') {
+				dedicatedHostAttachReady = true
 			}
 		}
 		const pluginDispatches = marks
@@ -187,6 +194,9 @@ func assertDedicatedWorkerHostTopology(t testing.TB, page playwright.Page) map[s
 			opfsGetDirectoryType: typeof navigator.storage?.getDirectory,
 			runtimeMode,
 			runtimeDocumentId,
+			dedicatedHostRole,
+			dedicatedHostGeneration,
+			dedicatedHostAttachReady,
 			pluginDispatches,
 			opfsBridgeEnabled: opfsBridgeMarks.some((mark) => mark.enabled === true),
 			opfsBridgeMarks,
@@ -211,12 +221,33 @@ func assertDedicatedWorkerHostTopology(t testing.TB, page playwright.Page) map[s
 	if got := stringField(proof, "runtimeMode"); got != "dedicated-worker" {
 		t.Fatalf("runtime mode=%q want dedicated-worker; topology=%#v", got, proof)
 	}
+	if got := stringField(proof, "dedicatedHostRole"); got != expectedRole {
+		t.Fatalf("dedicated host role=%q want %q; topology=%#v", got, expectedRole, proof)
+	}
 	if boolField(proof, "opfsBridgeEnabled") {
 		t.Fatalf("DedicatedWorker fallback unexpectedly enabled the SharedWorker OPFS bridge; topology=%#v", proof)
 	}
 	dispatches, ok := proof["pluginDispatches"].([]any)
-	if !ok || len(dispatches) == 0 {
-		t.Fatalf("no plugin worker dispatch marks found; topology=%#v", proof)
+	if !ok {
+		t.Fatalf("unexpected plugin dispatches %T: %#v", proof["pluginDispatches"], proof)
+	}
+	switch expectedRole {
+	case dedicatedHostRoleHost:
+		if stringField(proof, "dedicatedHostGeneration") == "" {
+			t.Fatalf("host page did not record a DedicatedWorker generation; topology=%#v", proof)
+		}
+		if len(dispatches) == 0 {
+			t.Fatalf("host page recorded no plugin worker dispatch marks; topology=%#v", proof)
+		}
+	case dedicatedHostRoleAttached:
+		if !boolField(proof, "dedicatedHostAttachReady") {
+			t.Fatalf("attached page did not open through the elected host; topology=%#v", proof)
+		}
+		if len(dispatches) != 0 {
+			t.Fatalf("attached page created duplicate plugin workers; topology=%#v", proof)
+		}
+	default:
+		t.Fatalf("unknown DedicatedWorker host role assertion: %q", expectedRole)
 	}
 	for _, item := range dispatches {
 		dispatch, ok := item.(map[string]any)
@@ -228,6 +259,46 @@ func assertDedicatedWorkerHostTopology(t testing.TB, page playwright.Page) map[s
 		}
 	}
 	return proof
+}
+
+func waitForDedicatedWorkerHostRole(
+	t testing.TB,
+	page playwright.Page,
+	expectedRole string,
+) {
+	t.Helper()
+	_, err := page.WaitForFunction(`(arg) => {
+		const expectedRole = Array.isArray(arg) ? arg[0] : arg
+		const marks = globalThis.__swStartupMarks ?? []
+		let role = null
+		let attachReady = false
+		let hostGeneration = null
+		let hostDispatches = 0
+		for (const mark of marks) {
+			if (mark.label === 'dedicated-host.lease-acquired') {
+				role = 'host'
+				hostGeneration = mark.detail?.generation ?? null
+			}
+			if (mark.label === 'dedicated-host.attach-selected') {
+				role = 'attached'
+			}
+			if (mark.label === 'dedicated-host.attach-open-ready') {
+				attachReady = true
+			}
+			if (mark.label === 'worker.create-dispatch-start' && mark.detail?.plugin) {
+				hostDispatches++
+			}
+		}
+		if (expectedRole === 'attached') {
+			return role === 'attached' && attachReady
+		}
+		return role === 'host' && hostGeneration && hostDispatches > 0
+	}`, []any{expectedRole}, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(120000),
+	})
+	if err != nil {
+		t.Fatalf("wait for DedicatedWorker host role %q: %v", expectedRole, err)
+	}
 }
 
 func assertDirectOpfsMarkers(t testing.TB, page playwright.Page) []string {

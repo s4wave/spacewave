@@ -61,6 +61,7 @@ import {
   type WorkerCommsDetectResult,
 } from './worker-comms-detect.js'
 import { CrossTabManager } from './cross-tab-manager.js'
+import { DedicatedWorkerHostOwner } from './dedicated-worker-host-owner.js'
 import { WebRTCBridgeEndpoint } from './webrtc-bridge-endpoint.js'
 import { SabPairBroker } from './sab-pair-broker.js'
 import { shouldUseWebDocumentLivenessLock } from './web-document-lock.js'
@@ -116,10 +117,10 @@ function isFirefoxBrowserRuntime(): boolean {
 }
 
 // sharedWorkerOpfsBugHardDisable keeps the entrypoint runtime out of
-// SharedWorker mode while Chromium issue 528332884 is active. The local repro is
-// a cross-origin-isolated SharedWorker receiving OPFS SecurityError from
-// navigator.storage.getDirectory(); this is a temporary hard-disable, not a
-// removal of the SharedWorker architecture or OPFS bridge.
+// SharedWorker mode while Chromium issue 528332884 is active. Remove this
+// single guard only after the fix is in stable Chrome and the
+// E2E_WASM_WORKER_MODE=shared runtime OPFS bridge probe is green; the fallback
+// does not remove the SharedWorker architecture or OPFS bridge.
 const sharedWorkerOpfsBugHardDisable = true
 
 // shouldForceDedicatedWorkers reports whether this browser document should
@@ -166,6 +167,11 @@ function isOpfsWorkerReadyMessage(data: unknown): boolean {
     'opfsWorkerReady' in data &&
     data.opfsWorkerReady === true
   )
+}
+
+interface DedicatedRuntimeHostLostMessage {
+  webDocumentId: string
+  reason?: string
 }
 
 // WebDocumentWebWorker tracks a WebWorker associated with a WebDocument.
@@ -719,6 +725,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   private runtimeWorker?: Worker
   // forceDedicatedWorkers forces dedicated Worker mode for the runtime.
   private forceDedicatedWorkers?: boolean
+  // dedicatedRuntimeHost owns the temporary DedicatedWorker host election.
+  private dedicatedRuntimeHost?: DedicatedWorkerHostOwner
   // forceMessagePortWorkerComms forces MessagePort-only worker communication.
   private forceMessagePortWorkerComms?: boolean
   // webRuntimePort is the Port connected to the WebRuntime (Shared Worker or Electron Main).
@@ -758,6 +766,10 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   public readonly crossTabManager: CrossTabManager
   // abortController aborts the Web Lock request on close.
   private abortController?: AbortController
+  // webDocumentLivenessLockState prevents failover reconnects from queuing a
+  // second same-document lock request behind the lock this document already
+  // holds.
+  private webDocumentLivenessLockState: 'idle' | 'pending' | 'held' = 'idle'
   // pluginSingletonReady resolves when this tab can create plugin workers.
   // A Web Lock ensures only one tab creates runtime-scoped dedicated plugin
   // workers at a time. The holder keeps the lock until close so other tabs use
@@ -995,6 +1007,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       runtimeId: this.webRuntimeId,
       mode: useDedicatedRuntime ? 'dedicated-worker' : 'shared-worker',
     })
+    if (useDedicatedRuntime && !this.isElectron) {
+      this.dedicatedRuntimeHost = new DedicatedWorkerHostOwner(
+        this.webRuntimeId,
+        this.webDocumentUuid,
+      )
+    }
 
     const startWebRuntimeWorker = () => {
       if (this.webRuntimePort || this.closed) {
@@ -1067,10 +1085,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       }
 
       if (useDedicatedRuntime) {
-        // Dedicated Worker mode: create a Worker and a MessageChannel.
-        // Transfer one port to the Worker for communication (same pattern
-        // as SharedWorker's built-in port). Each tab gets its own Worker.
-        console.log('WebDocument: using dedicated Worker for runtime')
+        // Dedicated Worker host mode: the elected document creates the runtime
+        // Worker, while attached documents route runtime clients to this host
+        // generation through the ServiceWorker tracker.
         markStartupBoundary('runtime.worker-create-start', {
           source: 'browser',
           documentId: this.webDocumentUuid,
@@ -1124,10 +1141,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         })
       }
 
-      // In DedicatedWorker runtime mode, acquire a Web Lock to ensure only one
-      // foreground tab creates plugin workers at a time. SharedWorker mode
-      // doesn't need this because the shared Go runtime owns the singleton in
-      // one process.
+      // In DedicatedWorker runtime mode, only the elected host document reaches
+      // plugin worker creation. It still holds the plugin singleton lock so the
+      // fallback preserves SharedWorker's one active plugin-host owner shape.
       const usePluginSingletonLock = useDedicatedRuntime && !this.isElectron
       if (usePluginSingletonLock) {
         this.enablePluginSingletonLock()
@@ -1150,24 +1166,72 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       // then send an armWebLock message to tell the WebRuntime to start watching.
       // This avoids a race where the WebRuntime acquires the lock first.
       if (shouldUseWebDocumentLivenessLock()) {
+        if (this.webDocumentLivenessLockState === 'held') {
+          this.taskEnsureWebRuntimeConn()
+          return
+        }
+        if (this.webDocumentLivenessLockState === 'pending') {
+          return
+        }
         this.abortController = new AbortController()
+        const signal = this.abortController.signal
         const lockName = buildWebDocumentLockName(this.webDocumentUuid)
+        this.webDocumentLivenessLockState = 'pending'
         navigator.locks
-          .request(lockName, { signal: this.abortController.signal }, () => {
-            // Lock acquired - now safe to connect to WebRuntime.
-            // The WebRuntime will wait for this lock when we send armWebLock.
+          .request(lockName, { signal }, () => {
+            if (this.closed || this.abortController?.signal !== signal) {
+              // Stale or closed grant: release the lock immediately. If this
+              // request still owns the pending state, return it to idle so a
+              // later connection attempt is not wedged behind a lock we just
+              // released (close() already resets state on its own path).
+              if (
+                !this.closed &&
+                this.webDocumentLivenessLockState === 'pending'
+              ) {
+                this.webDocumentLivenessLockState = 'idle'
+              }
+              return undefined
+            }
+            this.webDocumentLivenessLockState = 'held'
+            // Lock acquired - now safe to connect to WebRuntime. The runtime
+            // waits for this lock when we send armWebLock.
             this.taskEnsureWebRuntimeConn()
-            // Hold the lock until the page closes or abort is called.
-            // This promise never resolves while the page is open.
+            // Hold the lock until the page closes.
             return new Promise<void>(() => {})
           })
           .catch(() => {
-            // Lock request was aborted (during close) - this is expected.
+            if (this.abortController?.signal === signal) {
+              this.webDocumentLivenessLockState = 'idle'
+            }
           })
       } else {
         // No Web Locks support - connect immediately.
         this.taskEnsureWebRuntimeConn()
       }
+    }
+
+    const startDedicatedRuntime = () => {
+      if (this.closed) {
+        return
+      }
+      if (!this.dedicatedRuntimeHost) {
+        startWebRuntimeWorker()
+        startWebRuntimeConnection()
+        return
+      }
+      this.dedicatedRuntimeHost.start({
+        startHost: () => {
+          startWebRuntimeWorker()
+          startWebRuntimeConnection()
+        },
+        startAttached: () => {
+          startWebRuntimeConnection()
+        },
+        startUnavailable: () => {
+          startWebRuntimeWorker()
+          startWebRuntimeConnection()
+        },
+      })
     }
 
     // setup the service worker
@@ -1189,8 +1253,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
     if (useDedicatedRuntime) {
       void this.initServiceWorker(wb, swUrl, () => {
-        startWebRuntimeWorker()
-        startWebRuntimeConnection()
+        queueMicrotask(startDedicatedRuntime)
       })
     } else {
       // Shared-worker mode: the shared worker imports its plugin bundle and the
@@ -1669,9 +1732,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
     this.emit('closed', err)
 
-    // Release Web Locks last, after all cleanup is done.
     this.releasePluginSingletonLock()
+    this.dedicatedRuntimeHost?.close()
+    this.dedicatedRuntimeHost = undefined
     if (this.abortController) {
+      this.webDocumentLivenessLockState = 'idle'
       this.abortController.abort()
       this.abortController = undefined
     }
@@ -1693,6 +1758,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       }
 
       console.log('WebDocument: got message from ServiceWorker', ev.data)
+      // dedicatedRuntimeHostLost arrives over the per-document tracker port and
+      // is handled in onWebDocumentClientMessage, not on this global
+      // navigator.serviceWorker channel.
       const data: ServiceWorkerToWebDocument = ev.data
       if (typeof data !== 'object' || !data.from || !data.init) {
         return
@@ -1850,11 +1918,40 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     })
   }
 
+  private handleDedicatedRuntimeHostLost(
+    lost: DedicatedRuntimeHostLostMessage,
+  ): void {
+    const host = this.dedicatedRuntimeHost
+    if (!host || host.role !== 'attached') {
+      return
+    }
+    const reason =
+      lost.reason ??
+      `DedicatedWorker host document ${lost.webDocumentId} closed`
+    this.runtimeConnected = false
+    this.clearResumeReadyState('dedicated-runtime-host-lost')
+    host.handleHostLost(reason)
+    if ('rerouteChannel' in this.webRuntimeClient) {
+      void this.webRuntimeClient
+        .rerouteChannel({ reconnect: false })
+        .catch((err: unknown) => {
+          console.warn(
+            'WebDocument: failed to reroute DedicatedWorker host',
+            err,
+          )
+        })
+    }
+  }
+
   // openWebRuntimeClient attempts to open a message port with the WebRuntime.
   // this is the function passed to the WebRuntimeClient for the WebDocument
   private async openWebRuntimeClient(
     init: WebRuntimeClientInit,
   ): Promise<MessagePort> {
+    if (this.dedicatedRuntimeHost?.role === 'attached') {
+      return this.dedicatedRuntimeHost.openClientChannel(init)
+    }
+
     const { port1: localPort, port2: remotePort } = new MessageChannel()
     markStartupBoundary('runtime.client-open-start', {
       source: 'browser',
@@ -2258,6 +2355,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (!data || !data.from) {
       return
     }
+    if (data.dedicatedRuntimeHostLost) {
+      this.handleDedicatedRuntimeHostLost(data.dedicatedRuntimeHostLost)
+      return
+    }
+
     const connectWebRuntime = data.connectWebRuntime
     const port = connectWebRuntime?.port ?? event.ports?.[0]
     if (connectWebRuntime?.init && port) {
@@ -2728,6 +2830,26 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       from,
     })
     port.start()
+    if (
+      this.dedicatedRuntimeHost &&
+      this.dedicatedRuntimeHost.role !== 'host' &&
+      this.dedicatedRuntimeHost.role !== 'unavailable'
+    ) {
+      const message = `dedicated runtime host role is ${this.dedicatedRuntimeHost.role}`
+      port.postMessage({
+        from: this.webDocumentUuid,
+        error: message,
+      } satisfies ConnectWebRuntimeAck)
+      port.close()
+      markStartupBoundary('dedicated-host.attach-relay-rejected', {
+        source: 'browser',
+        documentId: this.webDocumentUuid,
+        runtimeId: this.webRuntimeId,
+        from,
+        role: this.dedicatedRuntimeHost.role,
+      })
+      return
+    }
 
     const { port1: clientPort, port2: webRuntimePort } = new MessageChannel()
     try {

@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { ClientToWebDocument } from '../runtime/runtime.js'
-import { WebRuntimeClientType } from '../runtime/runtime.pb.js'
+import {
+  WebRuntimeClientInit,
+  WebRuntimeClientType,
+} from '../runtime/runtime.pb.js'
 import { WebDocumentTracker } from './web-document-tracker.js'
 
 function buildTracker(): WebDocumentTracker {
@@ -312,7 +315,11 @@ describe('WebDocumentTracker resume-ready gate', () => {
       from: 'document-2',
       resumeReady: true,
     })
-    await new Promise((resolve) => setTimeout(resolve, 0))
+    await vi.waitFor(() => {
+      expect(Reflect.get(tracker, 'preferredRuntimeWebDocumentId')).toBe(
+        'document-2',
+      )
+    })
 
     expect(closeRuntime).not.toHaveBeenCalled()
     expect(Reflect.get(tracker, 'activeRuntimeWebDocumentId')).toBe(
@@ -677,6 +684,141 @@ describe('WebDocumentTracker resume-ready gate', () => {
       'closed while waiting for WebDocument',
     )
     expect(onWebDocumentsExhausted).toHaveBeenCalledTimes(1)
+  })
+
+  it('opens an elected DedicatedWorker host relay through the host document, not the requester', async () => {
+    const tracker = buildTracker()
+    Reflect.set(tracker, 'preferredRuntimeWebDocumentId', 'requester-document')
+    const requesterPort = attachWebDocument(tracker, 'requester-document')
+    const hostPort = attachWebDocument(tracker, 'host-document')
+    const requesterMessage = vi.fn()
+    requesterPort.onmessage = requesterMessage
+    requesterPort.start()
+
+    const runtimeChannel = new MessageChannel()
+    const hostMessage = new Promise<void>((resolve) => {
+      hostPort.onmessage = (ev: MessageEvent<ClientToWebDocument>) => {
+        const request = ev.data.connectWebRuntime
+        expect(request).toBeDefined()
+        const ackPort = request?.port ?? ev.ports?.[0]
+        expect(ackPort).toBeDefined()
+        ackPort!.postMessage(
+          {
+            from: 'host-document',
+            webRuntimePort: runtimeChannel.port1,
+          },
+          [runtimeChannel.port1],
+        )
+        resolve()
+      }
+      hostPort.start()
+    })
+    const init = WebRuntimeClientInit.toBinary({
+      webRuntimeId: 'runtime-1',
+      clientUuid: 'requester-document',
+      clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+    })
+
+    const openedPort = await tracker.openWebRuntimePort(
+      init,
+      'requester-document',
+    )
+    await hostMessage
+
+    expect(requesterMessage).not.toHaveBeenCalled()
+    const delivered = new Promise<unknown>((resolve) => {
+      runtimeChannel.port2.onmessage = (ev: MessageEvent) => resolve(ev.data)
+      runtimeChannel.port2.start()
+    })
+    openedPort.postMessage({ ok: true })
+    await expect(delivered).resolves.toEqual({ ok: true })
+
+    tracker.close()
+    requesterPort.close()
+    hostPort.close()
+    openedPort.close()
+    runtimeChannel.port2.close()
+  })
+
+  it('fails DedicatedWorker host relay when only the requester remains', async () => {
+    const onWebDocumentsExhausted = vi.fn().mockResolvedValue(undefined)
+    const tracker = new WebDocumentTracker(
+      'tracker-client',
+      WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER,
+      onWebDocumentsExhausted,
+      null,
+    )
+    const requesterPort = attachWebDocument(tracker, 'requester-document')
+    const init = WebRuntimeClientInit.toBinary({
+      webRuntimeId: 'runtime-1',
+      clientUuid: 'requester-document',
+      clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+    })
+
+    await expect(
+      tracker.openWebRuntimePort(init, 'requester-document'),
+    ).rejects.toThrow('no elected DedicatedWorker runtime host available')
+    expect(onWebDocumentsExhausted).not.toHaveBeenCalled()
+
+    tracker.close()
+    requesterPort.close()
+  })
+
+  it('notifies surviving documents when the elected host relay closes', async () => {
+    const tracker = buildTracker()
+    const requesterPort = attachWebDocument(tracker, 'requester-document')
+    const hostPort = attachWebDocument(tracker, 'host-document')
+    const lost = new Promise<ClientToWebDocument>((resolve) => {
+      requesterPort.onmessage = (ev: MessageEvent<ClientToWebDocument>) => {
+        if (ev.data.dedicatedRuntimeHostLost) {
+          resolve(ev.data)
+        }
+      }
+      requesterPort.start()
+    })
+
+    const runtimeChannel = new MessageChannel()
+    const hostMessage = new Promise<void>((resolve) => {
+      hostPort.onmessage = (ev: MessageEvent<ClientToWebDocument>) => {
+        const request = ev.data.connectWebRuntime
+        expect(request).toBeDefined()
+        const ackPort = request?.port ?? ev.ports?.[0]
+        expect(ackPort).toBeDefined()
+        ackPort!.postMessage(
+          {
+            from: 'host-document',
+            webRuntimePort: runtimeChannel.port1,
+          },
+          [runtimeChannel.port1],
+        )
+        resolve()
+      }
+      hostPort.start()
+    })
+    const init = WebRuntimeClientInit.toBinary({
+      webRuntimeId: 'runtime-1',
+      clientUuid: 'requester-document',
+      clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+    })
+
+    const openedPort = await tracker.openWebRuntimePort(
+      init,
+      'requester-document',
+    )
+    await hostMessage
+    hostPort.postMessage({ from: 'host-document', close: true })
+
+    await expect(lost).resolves.toMatchObject({
+      dedicatedRuntimeHostLost: {
+        webDocumentId: 'host-document',
+      },
+    })
+
+    tracker.close()
+    requesterPort.close()
+    hostPort.close()
+    openedPort.close()
+    runtimeChannel.port2.close()
   })
 })
 

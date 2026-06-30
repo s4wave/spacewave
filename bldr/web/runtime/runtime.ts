@@ -104,6 +104,12 @@ export interface ClientToWebDocument {
   // openOpfsWorker requests a same-tab DedicatedWorker OPFS bridge.
   // The WebDocument returns OpenOpfsWorkerAck and the bridge MessagePort in event.ports.
   openOpfsWorker?: true
+  // dedicatedRuntimeHostLost reports that the WebDocument currently relaying
+  // the DedicatedWorker host closed, so attached documents must re-elect.
+  dedicatedRuntimeHostLost?: {
+    webDocumentId: string
+    reason?: string
+  }
   // close indicates the client is closed.
   close?: true
   // failureReason indicates close was caused by a worker runtime failure.
@@ -190,6 +196,13 @@ export interface WebDocumentToWorker {
   // Worker sends ClientToWebDocument
   // Document sends WebDocumentToClient
   initPort?: MessagePort
+  // connectDedicatedRuntimeHost asks the ServiceWorker tracker to connect this
+  // non-host document to the elected DedicatedWorker runtime host generation.
+  connectDedicatedRuntimeHost?: {
+    webRuntimeId: string
+    init: Uint8Array // WebRuntimeClientInit
+    port: MessagePort
+  }
   // workerCommsDetect is the main-thread detection result.
   // Passed so workers use the authoritative config without re-detecting.
   workerCommsDetect?: WorkerCommsDetectResult

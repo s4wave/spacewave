@@ -2,6 +2,10 @@ import { castToError } from 'starpc'
 import { ServiceWorkerHostClient } from '../runtime/sw/sw_srpc.pb.js'
 import { proxyFetch } from '../fetch/fetch.js'
 import { WebRuntimeClientType } from '../runtime/runtime.pb.js'
+import {
+  ConnectWebRuntimeAck,
+  WebDocumentToWorker,
+} from '../runtime/runtime.js'
 import { BLDR_URI_PREFIXES } from './constants.js'
 import {
   type BrowserReleaseDescriptor,
@@ -74,7 +78,8 @@ export interface BrowserReleaseSyncOptions {
 export interface ServiceWorkerMessageDeps {
   clients: Clients
   fetchTracker: Pick<ServiceWorkerFetchTracker, 'abortClient'>
-  webDocumentTracker: Pick<WebDocumentTracker, 'handleWebDocumentMessage'>
+  webDocumentTracker: Pick<WebDocumentTracker, 'handleWebDocumentMessage'> &
+    Partial<Pick<WebDocumentTracker, 'openWebRuntimePort'>>
   syncLatestBrowserRelease(
     options?: BrowserReleaseSyncOptions,
   ): Promise<BrowserReleaseState>
@@ -94,6 +99,13 @@ export interface BrowserReleaseSyncMessage {
 // BrowserIndexRefreshMessage asks the SW to refresh the runtime browser shell.
 export interface BrowserIndexRefreshMessage {
   bldrRefreshBrowserIndex?: boolean
+}
+
+interface DedicatedRuntimeHostConnectRequest {
+  from: string
+  webRuntimeId: string
+  init: Uint8Array
+  port: MessagePort
 }
 
 // BrowserFetchSourceKind classifies the ServiceWorker fetch authority.
@@ -990,6 +1002,94 @@ async function swActivate() {
   })
 }
 
+function readDedicatedRuntimeHostConnectRequest(
+  data: unknown,
+  ports: readonly MessagePort[],
+): DedicatedRuntimeHostConnectRequest | null {
+  if (!data || typeof data !== 'object') {
+    return null
+  }
+  const msg = data as WebDocumentToWorker
+  const connect = msg.connectDedicatedRuntimeHost
+  const port = connect?.port ?? ports[0]
+  if (
+    !msg.from ||
+    !connect?.webRuntimeId ||
+    !(connect.init instanceof Uint8Array) ||
+    !port
+  ) {
+    return null
+  }
+  return {
+    from: msg.from,
+    webRuntimeId: connect.webRuntimeId,
+    init: connect.init,
+    port,
+  }
+}
+
+async function handleDedicatedRuntimeHostConnectRequest(
+  request: DedicatedRuntimeHostConnectRequest,
+  tracker: ServiceWorkerMessageDeps['webDocumentTracker'],
+): Promise<void> {
+  const postAck = (ack: ConnectWebRuntimeAck, runtimePort?: MessagePort) => {
+    try {
+      request.port.postMessage(ack, runtimePort ? [runtimePort] : [])
+    } catch (err) {
+      runtimePort?.close()
+      throw err
+    } finally {
+      request.port.close()
+    }
+  }
+
+  if (!tracker.openWebRuntimePort) {
+    postAck({
+      from: serviceWorkerLogicalId,
+      error: 'dedicated runtime host relay unavailable',
+    })
+    return
+  }
+
+  markStartupBoundary('dedicated-host.service-worker-connect-start', {
+    source: 'service-worker',
+    serviceWorkerId,
+    runtimeId: request.webRuntimeId,
+    requesterDocumentId: request.from,
+  })
+  let runtimePort: MessagePort
+  try {
+    runtimePort = await tracker.openWebRuntimePort(request.init, request.from)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    postAck({
+      from: serviceWorkerLogicalId,
+      error: message,
+    })
+    markStartupBoundary('dedicated-host.service-worker-connect-failed', {
+      source: 'service-worker',
+      serviceWorkerId,
+      runtimeId: request.webRuntimeId,
+      requesterDocumentId: request.from,
+      error: message,
+    })
+    return
+  }
+  postAck(
+    {
+      from: serviceWorkerLogicalId,
+      webRuntimePort: runtimePort,
+    },
+    runtimePort,
+  )
+  markStartupBoundary('dedicated-host.service-worker-connect-ready', {
+    source: 'service-worker',
+    serviceWorkerId,
+    runtimeId: request.webRuntimeId,
+    requesterDocumentId: request.from,
+  })
+}
+
 // handleServiceWorkerMessage routes a page message to the ServiceWorker owner.
 export function handleServiceWorkerMessage(
   ev: ExtendableMessageEvent,
@@ -1014,6 +1114,19 @@ export function handleServiceWorkerMessage(
   if (isBrowserIndexRefreshMessage(ev.data)) {
     const senderId = (ev.source as Client)?.id || ''
     ev.waitUntil(deps.refreshBrowserIndexCache(senderId))
+    return
+  }
+  const dedicatedHostConnect = readDedicatedRuntimeHostConnectRequest(
+    ev.data,
+    ev.ports ?? [],
+  )
+  if (dedicatedHostConnect) {
+    ev.waitUntil(
+      handleDedicatedRuntimeHostConnectRequest(
+        dedicatedHostConnect,
+        deps.webDocumentTracker,
+      ),
+    )
     return
   }
 

@@ -117,6 +117,10 @@ export type HandleDisconnectedFn = (err?: Error) => Promise<void>
 export type WaitForStreamOpenGateFn =
   () => Promise<RuntimeClientStreamOpenGateResult | void>
 
+export interface RerouteChannelOptions {
+  reconnect?: boolean
+}
+
 class RuntimeClientPacketStream implements PacketStream {
   public readonly source: PacketStream['source']
   public readonly sink: PacketStream['sink']
@@ -273,16 +277,21 @@ export class WebRuntimeClient {
   }
 
   // rerouteChannel drops the stale relay path after its relaying WebDocument
-  // closed and reconnects the client channel through a surviving WebDocument.
-  // Unlike close(), it does not tell the runtime the client is going away: the
-  // logical client stays alive on the runtime, in-flight streams fail with a
-  // retryable relay-rerouted error, and the next openStream re-establishes the
-  // channel via a surviving document instead of failing the plugin-asset fetch.
-  public async rerouteChannel(): Promise<void> {
+  // closed. Unlike close(), it does not tell the runtime the client is going
+  // away: the logical client stays alive on the runtime and in-flight streams
+  // fail with a retryable relay-rerouted error. Reconnect defaults on for stale
+  // relays; callers that are restarting host election can defer reconnect until
+  // the new owner is selected.
+  public async rerouteChannel(
+    opts: RerouteChannelOptions = {},
+  ): Promise<void> {
     const reconnectingClientChannel = this.reconnectingClientChannel
     this.reconnectingClientChannel = undefined
     reconnectingClientChannel?.catch(() => {})
     await this.closeClientChannel('relay-rerouted')
+    if (opts.reconnect === false) {
+      return
+    }
     // Re-establish through a surviving WebDocument so the next plugin-asset
     // fetch finds a ready relay. Best-effort: a failed reconnect is retried
     // lazily by the next openStream.
@@ -542,7 +551,11 @@ export class WebRuntimeClient {
     }
     const state = reason === 'normal-close' ? 'closed' : 'failed'
     this.finishRuntimeGeneration(generationId, state, reason, err)
-    if (this.handleDisconnected && (hadClientChannel || err)) {
+    if (
+      this.handleDisconnected &&
+      reason !== 'relay-rerouted' &&
+      (hadClientChannel || err)
+    ) {
       await this.handleDisconnected(err)
     }
   }

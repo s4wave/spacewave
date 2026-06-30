@@ -461,4 +461,33 @@ describe('WebRuntimeClient', () => {
     reconnect.port1.close()
     reconnect.port2.close()
   })
+
+  it('can drop a stale runtime channel without racing host election', async () => {
+    const { port1, port2 } = new MessageChannel()
+    const handleDisconnected = vi.fn().mockResolvedValue(undefined)
+    const openClientCh = vi.fn().mockResolvedValue(port1)
+    const client = new WebRuntimeClient(
+      'runtime',
+      'client',
+      WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      openClientCh,
+      null,
+      handleDisconnected,
+    )
+
+    await connectClient(client, port2)
+    expect(openClientCh).toHaveBeenCalledTimes(1)
+
+    await client.rerouteChannel({ reconnect: false })
+    await flushPromises()
+
+    expect(openClientCh).toHaveBeenCalledTimes(1)
+    expect(handleDisconnected).not.toHaveBeenCalled()
+    expect(client.getRuntimeGenerationSnapshot().closeReason).toBe(
+      'relay-rerouted',
+    )
+
+    client.close()
+    port2.close()
+  })
 })

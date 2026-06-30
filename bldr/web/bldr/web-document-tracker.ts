@@ -278,6 +278,17 @@ export class WebDocumentTracker {
     }
   }
 
+  public openWebRuntimePort(
+    init: Uint8Array,
+    excludedWebDocumentId?: string,
+  ): Promise<MessagePort> {
+    return this.openWebRuntimeClient(
+      WebRuntimeClientInit.fromBinary(init),
+      excludedWebDocumentId,
+      true,
+    )
+  }
+
   public hasRuntimeFetchRelay(): boolean {
     const webDocumentId =
       this.activeRuntimeWebDocumentId ??
@@ -475,6 +486,8 @@ export class WebDocumentTracker {
   // openWebRuntimeClient attempts to open a client via one of the WebDocuments.
   private async openWebRuntimeClient(
     initMsg: Message<WebRuntimeClientInit>,
+    excludedWebDocumentId?: string,
+    failWhenNoCandidate = false,
   ): Promise<MessagePort> {
     if (this.closed) {
       throw new Error(
@@ -484,11 +497,12 @@ export class WebDocumentTracker {
     const init = WebRuntimeClientInit.toBinary(initMsg)
     const usePreferredOrder = !!(
       this.preferredRuntimeWebDocumentId &&
+      this.preferredRuntimeWebDocumentId !== excludedWebDocumentId &&
       this.webDocuments[this.preferredRuntimeWebDocumentId]
     )
     const webDocumentIds = this.orderRuntimeOpenWebDocuments(
       Object.keys(this.webDocuments),
-    )
+    ).filter((webDocumentId) => webDocumentId !== excludedWebDocumentId)
     for (const i of webDocumentIds.keys()) {
       const x = usePreferredOrder
         ? i
@@ -600,18 +614,33 @@ export class WebDocumentTracker {
       }
     }
 
-    if (Object.keys(this.webDocuments).length) {
+    const hasAvailableWebDocument = Object.keys(this.webDocuments).some(
+      (webDocumentId) => webDocumentId !== excludedWebDocumentId,
+    )
+    if (hasAvailableWebDocument) {
       console.log(
         'ServiceWorker: waiting for existing WebDocument to become ready',
       )
       return new Promise<MessagePort>((resolve, reject) => {
         this.webDocumentWaiters.push({
           resume: () => {
-            resolve(this.openWebRuntimeClient(initMsg))
+            resolve(
+              this.openWebRuntimeClient(
+                initMsg,
+                excludedWebDocumentId,
+                failWhenNoCandidate,
+              ),
+            )
           },
           reject,
         })
       })
+    }
+
+    if (failWhenNoCandidate) {
+      throw new Error(
+        `WebDocumentTracker: ${this.clientUuid}: no elected DedicatedWorker runtime host available`,
+      )
     }
 
     // construct a promise to catch any new incoming WebDocument client
@@ -619,7 +648,7 @@ export class WebDocumentTracker {
       // try again once a new WebDocument is added.
       this.webDocumentWaiters.push({
         resume: () => {
-          resolve(this.openWebRuntimeClient(initMsg))
+          resolve(this.openWebRuntimeClient(initMsg, excludedWebDocumentId))
         },
         reject,
       })
@@ -782,6 +811,16 @@ export class WebDocumentTracker {
       })
     }
 
+    // In the DedicatedWorker host fallback only the elected host document
+    // accepts a connectWebRuntime relay; every other document rejects it. So a
+    // successful relay open always tracks the host as activeRuntimeWebDocumentId,
+    // which makes wasActiveRuntimeDocument the host-lost signal. Keep that
+    // coupling: the tracker cannot otherwise identify the elected host, since
+    // election happens behind a Web Lock inside the documents.
+    if (wasActiveRuntimeDocument) {
+      this.notifyDedicatedRuntimeHostLost(webDocumentId, closeErr)
+    }
+
     if (!remainingWebDocumentIds.length) {
       this.lastWebDocumentId = undefined
       this.lastWebDocumentIdx = 0
@@ -804,6 +843,19 @@ export class WebDocumentTracker {
 
     if (!remainingWebDocumentIds.length && this.onAllWebDocumentsClosed) {
       await this.onAllWebDocumentsClosed()
+    }
+  }
+
+  private notifyDedicatedRuntimeHostLost(webDocumentId: string, err?: Error): void {
+    const msg: ClientToWebDocument = {
+      from: this.clientUuid,
+      dedicatedRuntimeHostLost: {
+        webDocumentId,
+        reason: err?.message,
+      },
+    }
+    for (const doc of Object.values(this.webDocuments)) {
+      doc.postMessage(msg)
     }
   }
 
