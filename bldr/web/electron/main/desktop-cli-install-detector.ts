@@ -276,9 +276,12 @@ function selectTargetCandidate(
 async function findFirstPathCommand(
   opts: DesktopCLIInstallDetectionOpts,
 ): Promise<string> {
+  const isWindows = opts.platformId.includes('/windows/')
+  const commandBasename = isWindows ? 'spacewave.exe' : 'spacewave'
+  const commandPath = isWindows ? path.win32 : path.posix
   for (const entry of opts.pathEntries) {
     if (!entry) continue
-    const candidate = path.join(entry, 'spacewave')
+    const candidate = commandPath.join(entry, commandBasename)
     if (await opts.probe.fileExists(candidate)) return candidate
   }
   return ''

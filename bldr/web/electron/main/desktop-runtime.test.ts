@@ -688,6 +688,69 @@ describe('DesktopRuntimeResource', () => {
     })
   })
 
+  it('detects unmanaged Windows spacewave.exe before the selected managed target', async () => {
+    const homeDir = 'C:\\Users\\test'
+    const unmanagedPath = 'C:\\Tools\\spacewave.exe'
+    const targetPath =
+      'C:\\Users\\test\\AppData\\Local\\Programs\\Spacewave\\spacewave.exe'
+    const platformId = 'desktop/windows/amd64'
+    const probe = {
+      fileExists: vi.fn(async (candidate: string) => {
+        return candidate === unmanagedPath || candidate === targetPath
+      }),
+      targetWritable: vi.fn(async (candidate: string) => {
+        return candidate === targetPath
+      }),
+      readEntrypointIdentity: vi.fn(async (candidate: string) => {
+        if (candidate === targetPath) {
+          return {
+            path: candidate,
+            projectId: 'spacewave',
+            entrypointRole: 'cli',
+            channelKey: 'stable',
+            manifestId: 'spacewave-cli',
+            manifestRev: 9n,
+            platformId,
+          }
+        }
+        return {
+          path: candidate,
+          entrypointRole: 'standalone',
+          platformId,
+        }
+      }),
+    }
+
+    await expect(
+      detectDesktopCLIInstallState({
+        homeDir,
+        pathEntries: [
+          'C:\\Tools',
+          'C:\\Users\\test\\AppData\\Local\\Programs\\Spacewave',
+        ],
+        platformId,
+        probe,
+      }),
+    ).resolves.toMatchObject({
+      status: DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_CONFLICT,
+      conflictPath: unmanagedPath,
+      selectedTargetId: 'local-app-data',
+      installed: {
+        manifestId: 'spacewave-cli',
+        manifestRev: 9n,
+      },
+      targets: [
+        {
+          id: 'local-app-data',
+          path: targetPath,
+          writable: true,
+          selected: true,
+        },
+      ],
+    })
+    expect(probe.fileExists).toHaveBeenNthCalledWith(1, unmanagedPath)
+  })
+
   it('releases ResourceServer client sessions without changing desktop state', async () => {
     const resource = new DesktopRuntimeResource({
       openOrFocusMainWindow: vi.fn(),
