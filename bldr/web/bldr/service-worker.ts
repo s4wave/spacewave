@@ -57,16 +57,27 @@ const CACHES: Record<string, Cache | undefined> = {
 }
 const serviceWorkerFetchTracker = new ServiceWorkerFetchTracker()
 const browserReleaseNetworkRaceTimeoutMs = 800
+// Lifecycle probes trade immediate already-open-tab release pickup for bounded
+// refocus churn; activation and direct manifest fetches stay strong.
+const browserReleaseLifecycleSyncFreshMs = 30000
 const browserReleaseNetworkRaceTimedOut = Symbol(
   'browserReleaseNetworkRaceTimedOut',
 )
+
+// BrowserReleaseSyncOptions selects release-sync freshness semantics.
+export interface BrowserReleaseSyncOptions {
+  discoveredRelease?: BrowserReleaseDescriptor | null
+  lifecycleProbe?: boolean
+}
 
 // ServiceWorkerMessageDeps collects message-handler collaborators.
 export interface ServiceWorkerMessageDeps {
   clients: Clients
   fetchTracker: Pick<ServiceWorkerFetchTracker, 'abortClient'>
   webDocumentTracker: Pick<WebDocumentTracker, 'handleWebDocumentMessage'>
-  syncLatestBrowserRelease(): Promise<BrowserReleaseState>
+  syncLatestBrowserRelease(
+    options?: BrowserReleaseSyncOptions,
+  ): Promise<BrowserReleaseState>
   refreshBrowserIndexCache(clientId: string): Promise<Response>
   handleCrossTabMessage(
     clients: Clients,
@@ -164,10 +175,12 @@ export interface BrowserRuntimeFetchClientTracker {
 export function resetServiceWorkerTestState(): void {
   CACHES[controlCacheName] = undefined
   browserReleaseSyncInFlight = null
+  browserReleaseLifecycleSyncLastSuccessMs = Number.NEGATIVE_INFINITY
   firstWebDocumentMessageMarked = false
 }
 
 let browserReleaseSyncInFlight: Promise<void> | null = null
+let browserReleaseLifecycleSyncLastSuccessMs = Number.NEGATIVE_INFINITY
 let firstWebDocumentMessageMarked = false
 
 interface CacheWriteContext {
@@ -507,18 +520,33 @@ async function pruneReleaseCaches(state: BrowserReleaseState): Promise<void> {
   }
 }
 
-async function syncLatestBrowserRelease(
-  discoveredRelease?: BrowserReleaseDescriptor | null,
+export async function syncLatestBrowserRelease(
+  options: BrowserReleaseSyncOptions = {},
 ): Promise<BrowserReleaseState> {
   if (!canCacheBrowserReleaseRequests()) {
     return createEmptyBrowserReleaseState()
   }
 
+  const lifecycleProbeStartedMs = options.lifecycleProbe ? performance.now() : 0
+  let state = options.lifecycleProbe
+    ? await loadBrowserReleaseState()
+    : undefined
+  if (
+    options.lifecycleProbe &&
+    state?.promotedCurrent &&
+    lifecycleProbeStartedMs - browserReleaseLifecycleSyncLastSuccessMs <
+      browserReleaseLifecycleSyncFreshMs
+  ) {
+    await pruneReleaseCaches(state)
+    return state
+  }
+
   await cacheStableBootAsset()
 
-  let state = await loadBrowserReleaseState()
+  state = state ?? (await loadBrowserReleaseState())
   const previousPromotedRelease = state.promotedCurrent
-  const release = discoveredRelease ?? (await fetchLatestBrowserRelease())
+  const release =
+    options.discoveredRelease ?? (await fetchLatestBrowserRelease())
   if (!release) {
     await pruneReleaseCaches(state)
     return state
@@ -529,6 +557,9 @@ async function syncLatestBrowserRelease(
     sameBrowserRelease(state.staged, release) &&
     sameBrowserRelease(state.promotedCurrent, release)
   ) {
+    if (options.lifecycleProbe) {
+      browserReleaseLifecycleSyncLastSuccessMs = lifecycleProbeStartedMs
+    }
     await pruneReleaseCaches(state)
     return state
   }
@@ -552,6 +583,9 @@ async function syncLatestBrowserRelease(
   }
   state = promotedState
   await pruneReleaseCaches(state)
+  if (options.lifecycleProbe) {
+    browserReleaseLifecycleSyncLastSuccessMs = lifecycleProbeStartedMs
+  }
   if (
     previousPromotedRelease &&
     state.promotedCurrent &&
@@ -840,7 +874,9 @@ export async function handleBrowserReleaseRequest(
     if (raceWinner !== browserReleaseNetworkRaceTimedOut) {
       if (raceWinner) {
         ev.waitUntil(
-          runBrowserReleaseSync(syncLatestBrowserRelease(raceWinner)),
+          runBrowserReleaseSync(
+            syncLatestBrowserRelease({ discoveredRelease: raceWinner }),
+          ),
         )
         return buildJsonResponse(request.method, raceWinner)
       }
@@ -857,7 +893,7 @@ export async function handleBrowserReleaseRequest(
               browserReleaseNetworkRaceTimeoutMs,
               Math.round(performance.now() - startTime),
             )
-            return syncLatestBrowserRelease(lateRelease)
+            return syncLatestBrowserRelease({ discoveredRelease: lateRelease })
           }
           return syncLatestBrowserRelease()
         }),
@@ -875,7 +911,11 @@ export async function handleBrowserReleaseRequest(
     throw new Error('browser release manifest unavailable')
   }
 
-  ev.waitUntil(runBrowserReleaseSync(syncLatestBrowserRelease(latestRelease)))
+  ev.waitUntil(
+    runBrowserReleaseSync(
+      syncLatestBrowserRelease({ discoveredRelease: latestRelease }),
+    ),
+  )
   return buildJsonResponse(request.method, latestRelease)
 }
 
@@ -960,7 +1000,7 @@ export function handleServiceWorkerMessage(
       return
     }
     const syncPromise = runBrowserReleaseSync(
-      deps.syncLatestBrowserRelease(),
+      deps.syncLatestBrowserRelease({ lifecycleProbe: true }),
     ).finally(() => {
       if (browserReleaseSyncInFlight === syncPromise) {
         browserReleaseSyncInFlight = null

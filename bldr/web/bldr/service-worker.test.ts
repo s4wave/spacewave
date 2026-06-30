@@ -15,6 +15,7 @@ import {
   refreshBrowserIndexCache,
   resetServiceWorkerTestState,
   resolveBrowserRuntimeFetchClientId,
+  syncLatestBrowserRelease,
   swFetch,
 } from './service-worker.js'
 
@@ -422,6 +423,55 @@ describe('service worker browser release requests', () => {
       'browser release manifest unavailable',
     )
     expect(waitUntilPromises).toHaveLength(0)
+  })
+
+  it('budgets lifecycle release sync probes and keeps direct manifest refresh strong', async () => {
+    vi.useFakeTimers()
+    const release = buildRelease('gen-a')
+    vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
+      const rawURL = input instanceof Request ? input.url : String(input)
+      const pathname = new URL(rawURL, self.location.href).pathname
+      if (pathname === '/browser-release.json') {
+        return Promise.resolve(
+          new Response(JSON.stringify(release), { status: 200 }),
+        )
+      }
+      return Promise.resolve(new Response('asset', { status: 200 }))
+    })
+
+    await syncLatestBrowserRelease({ lifecycleProbe: true })
+    await syncLatestBrowserRelease({ lifecycleProbe: true })
+
+    const freshBudgetPaths = vi.mocked(fetch).mock.calls.map(([input]) => {
+      const rawURL = input instanceof Request ? input.url : String(input)
+      return new URL(rawURL, self.location.href).pathname
+    })
+    expect(
+      freshBudgetPaths.filter((path) => path === '/boot.mjs'),
+    ).toHaveLength(1)
+    expect(
+      freshBudgetPaths.filter((path) => path === '/browser-release.json'),
+    ).toHaveLength(1)
+
+    const { ev, waitUntilPromises } = buildFetchEvent(
+      'https://example.test/browser-release.json',
+    )
+    const response = await handleBrowserReleaseRequest(ev)
+    expect(await response.json()).toEqual(release)
+    expect(waitUntilPromises).toHaveLength(1)
+    await waitUntilPromises[0]
+
+    vi.advanceTimersByTime(30000)
+    await syncLatestBrowserRelease({ lifecycleProbe: true })
+
+    const allPaths = vi.mocked(fetch).mock.calls.map(([input]) => {
+      const rawURL = input instanceof Request ? input.url : String(input)
+      return new URL(rawURL, self.location.href).pathname
+    })
+    expect(allPaths.filter((path) => path === '/boot.mjs')).toHaveLength(3)
+    expect(
+      allPaths.filter((path) => path === '/browser-release.json'),
+    ).toHaveLength(3)
   })
 })
 
@@ -1217,6 +1267,9 @@ describe('service worker messages', () => {
     handleServiceWorkerMessage(duplicateEv, deps)
 
     expect(syncLatestBrowserRelease).toHaveBeenCalledTimes(1)
+    expect(syncLatestBrowserRelease).toHaveBeenCalledWith({
+      lifecycleProbe: true,
+    })
     expect(firstEv.waitUntil).toHaveBeenCalledWith(expect.any(Promise))
     expect(duplicateEv.waitUntil).not.toHaveBeenCalled()
     expect(deps.handleCrossTabMessage).not.toHaveBeenCalled()
