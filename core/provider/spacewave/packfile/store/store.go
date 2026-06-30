@@ -76,6 +76,8 @@ type PackfileStore struct {
 	maxBytes int64
 	// tuningOverrides are explicit per-engine tuning overrides.
 	tuningOverrides engineTuningOverrides
+	// verifyBeforeServe makes miss-path reads wait for hash verification.
+	verifyBeforeServe bool
 
 	// manifest state, guarded by bcast.
 	manifest []*packfile.PackfileEntry
@@ -120,6 +122,20 @@ func (s *PackfileStore) SetWriteback(ctx context.Context, target block.StoreOps,
 	s.mu.Unlock()
 	for _, e := range engines {
 		e.SetWriteback(ctx, target, windowBytes)
+	}
+}
+
+// SetVerifyBeforeServe makes miss-path reads wait for hash verification before serving bytes.
+func (s *PackfileStore) SetVerifyBeforeServe(enabled bool) {
+	s.mu.Lock()
+	s.verifyBeforeServe = enabled
+	engines := make([]*PackReader, 0, len(s.engines))
+	for _, e := range s.engines {
+		engines = append(engines, e)
+	}
+	s.mu.Unlock()
+	for _, e := range engines {
+		e.SetVerifyBeforeServe(enabled)
 	}
 }
 
@@ -563,6 +579,7 @@ func (s *PackfileStore) getOrOpenEngine(packID string, size int64, blockCount ui
 	wbWindow := s.writebackWindow
 	maxBytes := s.maxBytes
 	verify := s.verifyQueue
+	verifyBeforeServe := s.verifyBeforeServe
 	overrides := s.tuningOverrides
 	notify := s.notify
 	s.mu.Unlock()
@@ -579,6 +596,7 @@ func (s *PackfileStore) getOrOpenEngine(packID string, size int64, blockCount ui
 	eng.SetWriteback(wbCtx, wbTarget, wbWindow)
 	eng.SetMaxBytes(maxBytes)
 	eng.SetVerifyQueue(verify)
+	eng.SetVerifyBeforeServe(verifyBeforeServe)
 	eng.SetStatsChangedCallback(notify)
 	overrides.apply(eng)
 

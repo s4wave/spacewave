@@ -20,11 +20,12 @@ import (
 // Slow path: load the kvfile index (via the shared ReaderAt, so trailer
 // bytes land in the span store), find the target entry, compute the
 // semantic neighborhood window, ensure those bytes are resident, admit
-// every fully-contained block into the catalog, and return the target
-// bytes while verification runs in the background.
+// every fully-contained block into the catalog, and either return the target
+// bytes immediately or wait for verification when the owner requires it.
 func (e *PackReader) getBlock(ctx context.Context, key []byte) ([]byte, bool, error) {
 	keyStr := string(key)
 
+retry:
 	// Try fast path repeatedly: a verifying record may resolve while we wait.
 	for {
 		var data []byte
@@ -114,9 +115,12 @@ func (e *PackReader) getBlock(ctx context.Context, key []byte) ([]byte, bool, er
 
 	// Admit every fully-contained block and gather verify jobs.
 	var firstMiss *blockRecord
+	var readyCh <-chan struct{}
 	var jobs []func()
 	var data []byte
 	var readErr error
+	var verifyBeforeServe bool
+	var verifyJobs []func()
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		for _, entry := range contained {
 			off := int64(entry.GetOffset())
@@ -134,18 +138,23 @@ func (e *PackReader) getBlock(ctx context.Context, key []byte) ([]byte, bool, er
 			}
 		}
 		if firstMiss != nil {
-			data, readErr = firstMiss.readBytes()
-			if readErr != nil {
-				e.removeBlockLocked(firstMiss)
-				broadcast()
-				return
+			readyCh = firstMiss.readyCh
+			verifyBeforeServe = e.verifyBeforeServe
+			if !verifyBeforeServe {
+				data, readErr = firstMiss.readBytes()
+				if readErr != nil {
+					e.removeBlockLocked(firstMiss)
+					broadcast()
+					return
+				}
 			}
 		}
 		if len(jobs) != 0 {
-			e.enqueueVerifyLocked(jobs...)
+			verifyJobs = e.prepareVerifyJobsLocked(jobs...)
 		}
 		broadcast()
 	})
+	e.enqueueVerifyJobs(verifyJobs)
 
 	if firstMiss == nil {
 		// The index entry existed but the block could not be admitted.
@@ -155,13 +164,22 @@ func (e *PackReader) getBlock(ctx context.Context, key []byte) ([]byte, bool, er
 		return nil, false, nil
 	}
 
-	// First caller on the miss path serves directly from resident spans
-	// without blocking on verification. Later callers go through the fast
-	// path above and wait on readyCh.
-	if readErr != nil {
-		return nil, false, readErr
+	// Default miss-path callers serve directly from resident spans without
+	// blocking on verification. Backend bundle endpoints opt into
+	// verify-before-serve so externally visible bytes are hash-checked first.
+	if !verifyBeforeServe {
+		if readErr != nil {
+			return nil, false, readErr
+		}
+		return data, true, nil
 	}
-	return data, true, nil
+
+	select {
+	case <-readyCh:
+	case <-ctx.Done():
+		return nil, false, ctx.Err()
+	}
+	goto retry
 }
 
 func (e *PackReader) getBlockExists(ctx context.Context, key []byte) (bool, error) {

@@ -10,6 +10,77 @@ import (
 	trace "github.com/s4wave/spacewave/db/traceutil"
 )
 
+type manifestCopyClass string
+
+const (
+	manifestCopyClassImmediate         manifestCopyClass = "immediate"
+	manifestCopyClassAfterExecuteReady manifestCopyClass = "after-execute-ready"
+)
+
+type manifestCopyPhase string
+
+const (
+	manifestCopyPhaseWaiting manifestCopyPhase = "waiting-for-running"
+	manifestCopyPhaseCopying manifestCopyPhase = "copying"
+	manifestCopyPhaseDone    manifestCopyPhase = "done"
+	manifestCopyPhaseFailed  manifestCopyPhase = "failed"
+)
+
+type manifestCopyStatus struct {
+	phase       manifestCopyPhase
+	class       manifestCopyClass
+	manifestRef string
+}
+
+func (t *pluginInstance) classifyManifestCopy(manifestSnapshot *bldr_manifest.ManifestSnapshot) manifestCopyClass {
+	if t == nil || t.executePluginRoutine == nil || t.runningPluginCtr == nil || manifestSnapshot == nil {
+		return manifestCopyClassImmediate
+	}
+	execState := t.executePluginRoutine.GetState()
+	if execState == nil || execState.manifestSnapshot == nil {
+		return manifestCopyClassImmediate
+	}
+	if !manifestObjectRefsSameExecutable(execState.manifestSnapshot.GetManifestRef(), manifestSnapshot.GetManifestRef()) {
+		return manifestCopyClassImmediate
+	}
+	if t.runningPluginCtr.GetValue() != nil {
+		return manifestCopyClassImmediate
+	}
+	return manifestCopyClassAfterExecuteReady
+}
+
+func (t *pluginInstance) setManifestCopyStatus(
+	phase manifestCopyPhase,
+	class manifestCopyClass,
+	manifestSnapshot *bldr_manifest.ManifestSnapshot,
+) {
+	if t == nil || t.manifestCopyStatus == nil {
+		return
+	}
+	var ref string
+	if manifestSnapshot != nil && manifestSnapshot.GetManifestRef() != nil {
+		ref = manifestSnapshot.GetManifestRef().MarshalString()
+	}
+	t.manifestCopyStatus.SetValue(&manifestCopyStatus{
+		phase:       phase,
+		class:       class,
+		manifestRef: ref,
+	})
+}
+
+func (t *pluginInstance) waitForStartupExecuteReady(
+	ctx context.Context,
+	class manifestCopyClass,
+	manifestSnapshot *bldr_manifest.ManifestSnapshot,
+) error {
+	if class != manifestCopyClassAfterExecuteReady {
+		return nil
+	}
+	t.setManifestCopyStatus(manifestCopyPhaseWaiting, class, manifestSnapshot)
+	_, err := t.runningPluginCtr.WaitValue(ctx, nil)
+	return err
+}
+
 // execDownloadManifest copies manifest blocks from the source bucket to the world bucket.
 func (t *pluginInstance) execDownloadManifest(
 	ctx context.Context,
@@ -39,9 +110,21 @@ func (t *pluginInstance) execDownloadManifest(
 			return errors.Wrap(err, "manifest snapshot metadata")
 		}
 	}
+	class := t.classifyManifestCopy(manifestSnapshot)
+	defer func() {
+		if rerr != nil {
+			t.setManifestCopyStatus(manifestCopyPhaseFailed, class, manifestSnapshot)
+		}
+	}()
 	trace.Log(ctx, "plugin-id", t.pluginID)
 	trace.Log(ctx, "manifest-ref", ref.MarshalString())
 	trace.Log(ctx, "startup-fetch-kind", "background-manifest-dag-copy")
+	trace.Log(ctx, "manifest-copy-class", string(class))
+
+	if err := t.waitForStartupExecuteReady(ctx, class, manifestSnapshot); err != nil {
+		return err
+	}
+	t.setManifestCopyStatus(manifestCopyPhaseCopying, class, manifestSnapshot)
 
 	ws, err := t.c.worldStateCtr.WaitValue(ctx, nil)
 	if err != nil {
@@ -81,6 +164,7 @@ func (t *pluginInstance) execDownloadManifest(
 			if _, err := ws.Sync(ctx); err != nil {
 				return errors.Wrap(err, "sync local manifest blocks")
 			}
+			t.setManifestCopyStatus(manifestCopyPhaseDone, class, manifestSnapshot)
 			le.Info("manifest download complete")
 			return nil
 		})

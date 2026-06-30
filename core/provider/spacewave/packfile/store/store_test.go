@@ -1290,6 +1290,58 @@ func TestPackfileStoreColdReadReturnsBeforePersistence(t *testing.T) {
 	close(blocked)
 }
 
+// TestPackfileStoreVerifyBeforeServeWaitsForPersistence verifies opt-in
+// backend reads do not expose resident bytes before hash verification and
+// publication complete.
+func TestPackfileStoreVerifyBeforeServeWaitsForPersistence(t *testing.T) {
+	ctx := t.Context()
+	packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
+	opener, _ := openerFromBytes(packBytes)
+	store := NewPackfileStore(opener, newMemIndexCache())
+	store.UpdateManifest([]*packfile.PackfileEntry{{
+		Id:          "verified-pack",
+		BloomFilter: bloomBytes,
+		BlockCount:  1,
+		SizeBytes:   uint64(len(packBytes)),
+	}})
+
+	blocked := make(chan struct{})
+	wb := newWritebackStore(func() { <-blocked })
+	store.SetWriteback(ctx, wb, 1<<20)
+	store.SetVerifyBeforeServe(true)
+
+	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
+	done := make(chan error, 1)
+	go func() {
+		got, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash})
+		if err != nil {
+			done <- err
+			return
+		}
+		if !found || !bytes.Equal(got, []byte("alpha")) {
+			done <- errors.New("verified read returned wrong block")
+			return
+		}
+		done <- nil
+	}()
+
+	select {
+	case err := <-done:
+		t.Fatalf("expected verified read to wait for persistence, got %v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	close(blocked)
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("verified read returned error: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("expected verified read to resume after persistence")
+	}
+}
+
 // TestPackfileStoreSecondReadWaitsForVerify verifies the second concurrent
 // caller blocks until verification completes.
 func TestPackfileStoreSecondReadWaitsForVerify(t *testing.T) {

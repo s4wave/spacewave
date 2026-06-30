@@ -3,6 +3,7 @@ package bldr_manifest_pack
 import (
 	"bytes"
 	"context"
+	"io"
 	"strings"
 	"testing"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/go-git/go-billy/v6/memfs"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -17,6 +19,7 @@ import (
 	"github.com/s4wave/spacewave/db/unixfs"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -43,6 +46,67 @@ func TestImportManifestPackReconstructsCollectableManifest(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("manifest count = %d", len(got))
 	}
+}
+
+func TestNewPackfileStoreServesManifestBundleBlock(t *testing.T) {
+	ctx := context.Background()
+	source := newTestWorld(t, ctx, logrus.NewEntry(logrus.New()))
+	sender := peer.ID("sender")
+	tuple := testManifestPackTuple()
+	manifestRef := storeTestManifest(t, ctx, source, tuple, false, true)
+	_, bundleRef, err := StoreManifestBundle(ctx, source, sender, tuple, manifestRef, timestamppb.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var buf bytes.Buffer
+	entry, packDigest, err := PackManifestBundle(ctx, source, "ci-release", bundleRef, &buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	meta, err := NewMetadata(
+		"0123456789abcdef0123456789abcdef01234567",
+		"production",
+		"spacewave-web-js",
+		false,
+		"manifest-pack-v1",
+		[]*ManifestTuple{tuple},
+		bundleRef,
+		entry,
+		packDigest,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	transport := manifestPackBytesTransport{data: buf.Bytes()}
+	opener := func(packID string, size int64) (*packfile_store.PackReader, error) {
+		return packfile_store.NewPackReader(packID, size, transport, hash.HashType_HashType_SHA256), nil
+	}
+	store, err := NewPackfileStore(ctx, meta, opener, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, found, err := store.GetBlock(ctx, bundleRef.GetRootRef())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found {
+		t.Fatal("manifest bundle root not found")
+	}
+	if len(got) == 0 {
+		t.Fatal("manifest bundle root block is empty")
+	}
+}
+
+type manifestPackBytesTransport struct {
+	data []byte
+}
+
+func (t manifestPackBytesTransport) Fetch(_ context.Context, off int64, length int) ([]byte, error) {
+	if off >= int64(len(t.data)) {
+		return nil, io.EOF
+	}
+	end := min(off+int64(length), int64(len(t.data)))
+	return bytes.Clone(t.data[off:end]), nil
 }
 
 func TestImportManifestPackIncludesBucketScopedManifestRoot(t *testing.T) {

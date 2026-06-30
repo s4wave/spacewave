@@ -3,7 +3,6 @@ package bldr_dist_compiler
 import (
 	"context"
 	"io"
-	"strings"
 	"testing"
 	"time"
 
@@ -12,8 +11,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func TestWaitForEmbedManifestValueErrorsWhenIdleWithoutValue(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+func TestWaitForEmbedManifestValueWaitsWhenIdleWithoutValue(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
 	defer cancel()
 
 	log := logrus.New()
@@ -33,12 +32,9 @@ func TestWaitForEmbedManifestValueErrorsWhenIdleWithoutValue(t *testing.T) {
 		defer ref.Release()
 	}
 	if err == nil {
-		t.Fatal("expected idle FetchManifest error")
+		t.Fatal("expected context timeout while waiting for FetchManifest")
 	}
-	if ctx.Err() != nil {
-		t.Fatalf("wait reached context deadline instead of idle error: %v", err)
-	}
-	if !strings.Contains(err.Error(), "FetchManifest became idle without a manifest value") {
-		t.Fatalf("error = %q, want idle without manifest value", err.Error())
+	if ctx.Err() != context.DeadlineExceeded {
+		t.Fatalf("wait returned before context deadline: err=%v ctx=%v", err, ctx.Err())
 	}
 }

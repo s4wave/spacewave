@@ -22,6 +22,10 @@ function buildRelease(generationId: string): BrowserReleaseDescriptor {
       wasm: `entrypoint/${generationId}/runtime.wasm.gz`,
       css: [`entrypoint/${generationId}/entrypoint.css`],
     },
+    defaultManifestBundle: {
+      metadata: '/manifest-pack.json',
+      pack: '/manifest.pack.kvf',
+    },
     prerenderedRoutes: ['/', '/pricing', '/blog/launch'],
     requiredStaticAssets: ['/images/favicon.ico', 'images/logo.png'],
   }

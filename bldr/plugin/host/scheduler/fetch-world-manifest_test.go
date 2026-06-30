@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -1984,6 +1985,138 @@ func TestDownloadManifestCopiesRemoteDAGAndStoresLocalWorldRef(t *testing.T) {
 		return err
 	}); err != nil {
 		t.Fatal(err.Error())
+	}
+}
+
+func TestDownloadManifestYieldsColdStartCopyUntilPluginRunning(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const objKey = "plugin-host"
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const remoteBucketID = "remote-manifest-bucket"
+	if _, _, _, err := tb.Volume.ApplyBucketConfig(ctx, &bucket.Config{
+		Id:  remoteBucketID,
+		Rev: 1,
+	}); err != nil {
+		t.Fatal(err.Error())
+	}
+	ref := newTestStoredManifestRefWithDistInBucket(t, ctx, tb, remoteBucketID, "spacewave-core", "desktop/darwin/arm64", 2)
+	var remoteManifest *bldr_manifest.Manifest
+	if err := bldr_manifest_world.AccessManifest(ctx, le, ws.AccessWorldState, ref.GetManifestRef(), func(
+		ctx context.Context,
+		bls *bucket_lookup.Cursor,
+		bcs *block.Cursor,
+		manifest *bldr_manifest.Manifest,
+		distFS *unixfs.FSHandle,
+		assetsFS *unixfs.FSHandle,
+	) error {
+		remoteManifest = manifest.CloneVT()
+		_, _, err := distFS.LookupPath(ctx, manifest.GetEntrypoint())
+		return err
+	}); err != nil {
+		t.Fatal(err.Error())
+	}
+	snapshot := &bldr_manifest.ManifestSnapshot{
+		ManifestRef: ref.GetManifestRef(),
+		Manifest:    remoteManifest,
+	}
+
+	var wsv world.WorldState = ws
+	pi := &pluginInstance{
+		c: &Controller{
+			conf:            &Config{},
+			objKey:          objKey,
+			peerID:          peer.ID("test"),
+			worldStateCtr:   ccontainer.NewCContainer(wsv),
+			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
+			pluginStatusCtr: ccontainer.NewCContainer(&PluginStatusSnapshot{}),
+		},
+		le:                      le,
+		pluginID:                "spacewave-core",
+		runningPluginCtr:        ccontainer.NewCContainer[bldr_plugin.RunningPlugin](nil),
+		manifestCopyStatus:      ccontainer.NewCContainer[*manifestCopyStatus](nil),
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+	pi.executePluginRoutine.SetState(&executePluginArgs{
+		manifestSnapshot: snapshot,
+		pluginHost:       &testPluginHost{id: "desktop/darwin/arm64"},
+	})
+
+	execCtx, execCancel := context.WithCancel(ctx)
+	defer execCancel()
+	copyErrCh := make(chan error, 1)
+	go func() {
+		copyErrCh <- pi.execDownloadManifest(execCtx, snapshot)
+	}()
+
+	waitCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	status, err := pi.manifestCopyStatus.WaitValueWithValidator(waitCtx, func(status *manifestCopyStatus) (bool, error) {
+		return status != nil && status.phase == manifestCopyPhaseWaiting, nil
+	}, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if status.class != manifestCopyClassAfterExecuteReady {
+		t.Fatalf("copy class = %q, want %q", status.class, manifestCopyClassAfterExecuteReady)
+	}
+	select {
+	case err := <-copyErrCh:
+		t.Fatalf("copy completed before plugin was running: %v", err)
+	default:
+	}
+
+	got, errs, err := bldr_manifest_world.CollectManifestsForManifestID(
+		ctx,
+		ws,
+		"spacewave-core",
+		[]string{"desktop/darwin/arm64"},
+		objKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(errs) != 0 {
+		t.Fatalf("manifest errors = %v", errs)
+	}
+	if len(got) != 0 {
+		t.Fatalf("manifest count before running = %d, want 0", len(got))
+	}
+
+	pi.runningPluginCtr.SetValue(bldr_plugin.NewRunningPlugin(nil))
+	select {
+	case err := <-copyErrCh:
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+	case <-waitCtx.Done():
+		t.Fatal(waitCtx.Err().Error())
+	}
+	status = pi.manifestCopyStatus.GetValue()
+	if status == nil || status.phase != manifestCopyPhaseDone {
+		t.Fatalf("copy status = %#v, want done", status)
 	}
 }
 

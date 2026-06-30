@@ -79,6 +79,7 @@ type PackReader struct {
 	maxBytes               int64
 	writebackWindow        int64
 	indexPromotion         bool
+	verifyBeforeServe      bool
 
 	// Span store.
 	spans         []*span
@@ -179,6 +180,13 @@ func (e *PackReader) SetWriteback(ctx context.Context, target block.StoreOps, wi
 	})
 }
 
+// SetVerifyBeforeServe makes miss-path reads wait for hash verification before returning bytes.
+func (e *PackReader) SetVerifyBeforeServe(enabled bool) {
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		e.verifyBeforeServe = enabled
+	})
+}
+
 // SetExpectedBlockCount configures the manifest block count used to validate index tails.
 func (e *PackReader) SetExpectedBlockCount(blockCount uint64) {
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -222,11 +230,12 @@ func (e *PackReader) ReaderAt(ctx context.Context) io.ReaderAt {
 	return &engineReaderAt{ctx: ctx, e: e}
 }
 
-// enqueueVerifyLocked submits verify/publish jobs to the shared worker pool.
-// Must be called with bcast held.
-func (e *PackReader) enqueueVerifyLocked(jobs ...func()) {
+// prepareVerifyJobsLocked prepares verify/publish jobs for the shared worker pool.
+// Must be called with bcast held; the returned jobs must be enqueued after the
+// caller releases bcast.
+func (e *PackReader) prepareVerifyJobsLocked(jobs ...func()) []func() {
 	if len(jobs) == 0 {
-		return
+		return nil
 	}
 	if e.verifyQueue == nil {
 		e.verifyQueue = newDefaultVerifyExecutor(defaultVerifyConcurrency())
@@ -241,10 +250,14 @@ func (e *PackReader) enqueueVerifyLocked(jobs ...func()) {
 		}
 		wrapped = append(wrapped, e.wrapVerifyJob(job))
 	}
-	if len(wrapped) == 0 {
+	return wrapped
+}
+
+func (e *PackReader) enqueueVerifyJobs(jobs []func()) {
+	if len(jobs) == 0 {
 		return
 	}
-	e.verifyQueue.Enqueue(wrapped...)
+	e.verifyQueue.Enqueue(jobs...)
 }
 
 func (e *PackReader) wrapVerifyJob(job func()) func() {
@@ -377,7 +390,7 @@ func binarySearchEntriesByKey(entries []*kvfile.IndexEntry, key []byte) (*kvfile
 	i := sort.Search(len(entries), func(i int) bool {
 		return bytes.Compare(entries[i].GetKey(), key) >= 0
 	})
-	if i < len(entries) && bytes.Compare(entries[i].GetKey(), key) == 0 {
+	if i < len(entries) && bytes.Equal(entries[i].GetKey(), key) {
 		return entries[i], true
 	}
 	return nil, false

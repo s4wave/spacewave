@@ -238,6 +238,12 @@ choice first.
 - Controller factories are normally registered through `bldr.yaml` `configSet`
   entries and package scans, not production `AddFactory` calls. Direct
   `AddFactory` belongs in tests.
+- `FetchManifest` idle readbacks are not proof that the manifest can never
+  appear, and do not by themselves justify changing build ordering, splitting
+  release scripts, or adding fallback paths. Bldr waits on manifest directives;
+  first trace the producing manifest builder, selector platform IDs, directive
+  refs, and surrounding resolver state before treating an idle readback as a
+  terminal missing-manifest failure.
 - `bldr/util/gocompiler` owns platform signing hooks. Preserve the env-var
   contract for macOS and Windows signing, and keep signing a no-op when signing
   credentials are unset.

@@ -11,14 +11,9 @@ func defaultVerifyConcurrency() int {
 
 // inlineVerifyExecutor runs each enqueued job synchronously on the calling
 // goroutine. It exists for TinyGo wasm-unknown builds, which compile with
-// -scheduler=none and cannot spawn goroutines.
-//
-// Inline execution is incompatible with PackReader's recursive-lock pattern:
-// enqueueVerifyLocked is called from inside PackReader.bcast.HoldLock, and
-// wrapVerifyJob's closure begins with another HoldLock. Running the closure
-// synchronously deadlocks the calling goroutine on its own non-reentrant
-// mutex. Builds with a real scheduler (tasks, asyncify) use the
-// goroutine-spawning executor in verify-queue-tinygo-scheduler.go instead.
+// -scheduler=none and cannot spawn goroutines. PackReader prepares verify jobs
+// while holding its broadcast lock, then enqueues them after the lock is
+// released, so inline execution can safely reenter PackReader state.
 type inlineVerifyExecutor struct{}
 
 // Enqueue runs each job inline and returns zero queue depth.

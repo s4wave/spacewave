@@ -272,6 +272,10 @@ func TestWriteBuildManifestIncludesServiceWorker(t *testing.T) {
 		OpfsWorker:    "opfs-worker-c0ffee.mjs",
 		Wasm:          "entrypoint/abc123/runtime.wasm",
 		CSS:           []string{"static/app.css"},
+		DefaultManifestBundle: &DefaultManifestBundle{
+			Metadata: "/manifest-pack.json",
+			Pack:     "/manifest.pack.kvf",
+		},
 	}
 	if err := WriteBuildManifest(dir, manifest); err != nil {
 		t.Fatal(err)
@@ -322,6 +326,12 @@ func TestWriteBuildManifestIncludesServiceWorker(t *testing.T) {
 	}
 	if got := string(v.GetStringBytes("shellAssets", "opfsWorker")); got != manifest.OpfsWorker {
 		t.Fatalf("unexpected release opfsWorker: %q", got)
+	}
+	if got := string(v.GetStringBytes("defaultManifestBundle", "metadata")); got != manifest.DefaultManifestBundle.Metadata {
+		t.Fatalf("unexpected release default bundle metadata: %q", got)
+	}
+	if got := string(v.GetStringBytes("defaultManifestBundle", "pack")); got != manifest.DefaultManifestBundle.Pack {
+		t.Fatalf("unexpected release default bundle pack: %q", got)
 	}
 }
 

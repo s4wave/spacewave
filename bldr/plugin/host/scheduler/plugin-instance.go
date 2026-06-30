@@ -49,6 +49,8 @@ type pluginInstance struct {
 	// downloadManifestRoutine is the routine to download the contents of a manifest to a local bucket
 	// this routine only runs if watchWorldManifestRoutine triggers it.
 	downloadManifestRoutine *routine.StateRoutineContainer[*bldr_manifest.ManifestSnapshot]
+	// manifestCopyStatus exposes the owner-local copy class for tests and diagnostics.
+	manifestCopyStatus *ccontainer.CContainer[*manifestCopyStatus]
 	// executePluginRoutine is the routine to execute a plugin with a manifest.
 	executePluginRoutine *routine.StateRoutineContainer[*executePluginArgs]
 }
@@ -68,13 +70,14 @@ func (c *Controller) newPluginInstance(key string) (keyed.Routine, *pluginInstan
 		le = le.WithField("instance-key", instanceKey)
 	}
 	tr := &pluginInstance{
-		c:                c,
-		le:               le,
-		pluginID:         pluginID,
-		instanceKey:      instanceKey,
-		runningPluginCtr: ccontainer.NewCContainer[bldr_plugin.RunningPlugin](nil),
-		distAccess:       unixfs_access.NewRotatingAccess(),
-		assetsAccess:     unixfs_access.NewRotatingAccess(),
+		c:                  c,
+		le:                 le,
+		pluginID:           pluginID,
+		instanceKey:        instanceKey,
+		runningPluginCtr:   ccontainer.NewCContainer[bldr_plugin.RunningPlugin](nil),
+		manifestCopyStatus: ccontainer.NewCContainer[*manifestCopyStatus](nil),
+		distAccess:         unixfs_access.NewRotatingAccess(),
+		assetsAccess:       unixfs_access.NewRotatingAccess(),
 	}
 
 	fetchBackoff, execBackoff := c.conf.BuildFetchBackoff(), c.conf.BuildExecBackoff()

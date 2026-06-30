@@ -21,10 +21,8 @@ type blockState int
 const defaultIndexTailInitialWindow = 256 * 1024
 
 const (
-	// blockStateLoaded indicates the bytes are resident but not yet verified.
-	blockStateLoaded blockState = iota
 	// blockStateVerifying indicates hash verification is scheduled or running.
-	blockStateVerifying
+	blockStateVerifying blockState = iota
 	// blockStateVerified indicates hash verification succeeded.
 	blockStateVerified
 	// blockStatePublished indicates the block was written to the writeback target.
@@ -135,7 +133,6 @@ func (e *PackReader) ensureIndexLoaded(ctx context.Context) error {
 			}
 			if cacheErr == nil {
 				e.recordIndexCacheHit()
-				tail = cached
 			}
 		} else {
 			e.recordIndexCacheMiss()
@@ -152,10 +149,11 @@ func (e *PackReader) ensureIndexLoaded(ctx context.Context) error {
 		}
 	}
 
+	var verifyJobs []func()
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		loadCh := e.indexLoadCh
 		if err == nil {
-			e.setIndexEntriesLocked(entries)
+			verifyJobs = e.setIndexEntriesLocked(entries)
 			e.indexLoaded = true
 		} else {
 			e.indexLoaded = false
@@ -167,6 +165,7 @@ func (e *PackReader) ensureIndexLoaded(ctx context.Context) error {
 		}
 		broadcast()
 	})
+	e.enqueueVerifyJobs(verifyJobs)
 	return err
 }
 
@@ -381,8 +380,9 @@ func validateIndexEntries(entries []*kvfile.IndexEntry, tailStart uint64, blockC
 	return nil
 }
 
-// setIndexEntriesLocked sorts and stores index entries. Must be called with bcast held.
-func (e *PackReader) setIndexEntriesLocked(entries []*kvfile.IndexEntry) {
+// setIndexEntriesLocked sorts and stores index entries. Must be called with
+// bcast held; the returned jobs must be enqueued after releasing bcast.
+func (e *PackReader) setIndexEntriesLocked(entries []*kvfile.IndexEntry) []func() {
 	byOff := slices.Clone(entries)
 	slices.SortFunc(byOff, func(a, b *kvfile.IndexEntry) int {
 		return cmp.Compare(a.GetOffset(), b.GetOffset())
@@ -394,22 +394,24 @@ func (e *PackReader) setIndexEntriesLocked(entries []*kvfile.IndexEntry) {
 	e.entriesByOff = byOff
 	e.entriesByKey = byKey
 
+	var jobs []func()
 	// Promote any blocks already fully covered by the spans we fetched
 	// during the trailer/index read (or from earlier block fetches).
 	for _, sp := range e.spans {
-		e.promoteBlocksInSpanLocked(sp)
+		jobs = append(jobs, e.promoteBlocksInSpanLocked(sp)...)
 	}
+	return jobs
 }
 
 // promoteBlocksInSpanLocked registers loaded block records for every index
 // entry fully contained in the given span.
 //
-// Requires the span to already be inserted in the span store. Enqueues a
-// verify job for each new record so publication flows through the same
-// pipeline used by regular block fetches.
-func (e *PackReader) promoteBlocksInSpanLocked(sp *span) {
+// Requires the span to already be inserted in the span store. Returns prepared
+// verify jobs that the caller must enqueue after releasing bcast, using the
+// same verify/writeback pipeline used by regular block fetches.
+func (e *PackReader) promoteBlocksInSpanLocked(sp *span) []func() {
 	if sp == nil || len(e.entriesByOff) == 0 || !e.indexPromotion {
-		return
+		return nil
 	}
 	pos := sort.Search(len(e.entriesByOff), func(i int) bool {
 		return int64(e.entriesByOff[i].GetOffset()) >= sp.off
@@ -430,9 +432,10 @@ func (e *PackReader) promoteBlocksInSpanLocked(sp *span) {
 			jobs = append(jobs, job)
 		}
 	}
-	if len(jobs) != 0 {
-		e.enqueueVerifyLocked(jobs...)
+	if len(jobs) == 0 {
+		return nil
 	}
+	return e.prepareVerifyJobsLocked(jobs...)
 }
 
 // admitBlockLocked creates or touches a block record covering [off, end).

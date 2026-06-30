@@ -38,16 +38,24 @@ type BrowserBundleResult struct {
 	CSSPaths []string
 }
 
+// DefaultManifestBundle describes the browser-discoverable manifest bundle
+// transport for first-boot range reads.
+type DefaultManifestBundle struct {
+	Metadata string `json:"metadata"`
+	Pack     string `json:"pack"`
+}
+
 // BuildManifest is the manifest.json structure written alongside index.html.
 // The prerender build script reads this to discover asset URLs.
 type BuildManifest struct {
-	Entrypoint    string   `json:"entrypoint"`
-	ServiceWorker string   `json:"serviceWorker"`
-	SharedWorker  string   `json:"sharedWorker"`
-	Wasm          string   `json:"wasm,omitempty"`
-	OpfsWorker    string   `json:"opfsWorker,omitempty"`
-	CSS           []string `json:"css"`
-	AutoStart     bool     `json:"autoStart,omitempty"`
+	Entrypoint            string                 `json:"entrypoint"`
+	ServiceWorker         string                 `json:"serviceWorker"`
+	SharedWorker          string                 `json:"sharedWorker"`
+	Wasm                  string                 `json:"wasm,omitempty"`
+	OpfsWorker            string                 `json:"opfsWorker,omitempty"`
+	CSS                   []string               `json:"css"`
+	AutoStart             bool                   `json:"autoStart,omitempty"`
+	DefaultManifestBundle *DefaultManifestBundle `json:"defaultManifestBundle,omitempty"`
 }
 
 const stableBootFilename = "boot.mjs"
@@ -108,6 +116,12 @@ func writeBrowserReleaseManifest(dir string, manifest *BuildManifest) error {
 	routes.SetArrayItem(0, a.NewString("/"))
 	obj.Set("prerenderedRoutes", routes)
 	obj.Set("requiredStaticAssets", a.NewArray())
+	if manifest.DefaultManifestBundle != nil {
+		bundle := a.NewObject()
+		bundle.Set("metadata", a.NewString(manifest.DefaultManifestBundle.Metadata))
+		bundle.Set("pack", a.NewString(manifest.DefaultManifestBundle.Pack))
+		obj.Set("defaultManifestBundle", bundle)
+	}
 
 	data := obj.MarshalTo(nil)
 	return os.WriteFile(filepath.Join(dir, "browser-release.json"), data, 0o644)

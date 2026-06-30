@@ -8,11 +8,18 @@ export interface BrowserReleaseShellAssets {
   css: string[]
 }
 
+// BrowserReleaseDefaultManifestBundle points at the default first-boot bundle.
+export interface BrowserReleaseDefaultManifestBundle {
+  metadata: string
+  pack: string
+}
+
 // BrowserReleaseDescriptor defines one browser generation.
 export interface BrowserReleaseDescriptor {
   schemaVersion: number
   generationId: string
   shellAssets: BrowserReleaseShellAssets
+  defaultManifestBundle?: BrowserReleaseDefaultManifestBundle
   prerenderedRoutes: string[]
   requiredStaticAssets: string[]
 }

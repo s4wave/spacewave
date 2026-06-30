@@ -485,9 +485,8 @@ func waitForEmbedManifestValue(
 			if len(errs) != 0 {
 				return false, errs[0]
 			}
-			if isIdle {
-				return false, pkgerrors.New("FetchManifest became idle without a manifest value")
-			}
+			// Idle means no resolver currently has a value; manifest producers may
+			// still publish later, so keep waiting under the caller's context.
 			return true, nil
 		},
 		nil,

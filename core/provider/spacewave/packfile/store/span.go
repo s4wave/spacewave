@@ -73,25 +73,3 @@ func copySpans(dst []byte, spans []*span, off int64) int {
 	}
 	return n
 }
-
-// spansCover reports whether the given disjoint ascending spans fully cover
-// [start, end) with no gaps.
-func spansCover(spans []*span, start, end int64) bool {
-	if end <= start {
-		return true
-	}
-	cur := start
-	for _, s := range spans {
-		if cur < s.off {
-			return false
-		}
-		if cur >= s.end() {
-			continue
-		}
-		cur = min(end, s.end())
-		if cur >= end {
-			return true
-		}
-	}
-	return false
-}

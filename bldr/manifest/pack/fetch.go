@@ -35,9 +35,8 @@ func ResolveManifestTuple(
 			if len(errs) != 0 {
 				return false, errs[0]
 			}
-			if isIdle {
-				return false, errors.New("FetchManifest became idle without a manifest value")
-			}
+			// Idle is not terminal for FetchManifest; keep waiting until a producer
+			// publishes a matching manifest or the caller's context ends.
 			return true, nil
 		},
 		nil,

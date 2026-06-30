@@ -75,6 +75,7 @@ func (e *PackReader) fetchMiss(ctx context.Context, off, readEnd int64) error {
 				sp = newSpan(key.off, e.pageSize, data)
 			}
 			var notifyDone func()
+			var verifyJobs []func()
 			e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 				if e.loading != nil {
 					if lod := e.loading[key]; lod != nil {
@@ -87,13 +88,14 @@ func (e *PackReader) fetchMiss(ctx context.Context, off, readEnd int64) error {
 				if err == nil && sp != nil {
 					e.insertSpanLocked(sp)
 					notifyDone = e.recordFetchLocked(key, len(data))
-					e.promoteBlocksInSpanLocked(sp)
+					verifyJobs = e.promoteBlocksInSpanLocked(sp)
 				}
 				if notifyDone == nil {
 					notifyDone = e.statsChanged
 				}
 				broadcast()
 			})
+			e.enqueueVerifyJobs(verifyJobs)
 			if notifyDone != nil {
 				notifyDone()
 			}
@@ -210,6 +212,7 @@ func (e *PackReader) fetchExact(ctx context.Context, off, readEnd int64) error {
 				sp = newSpan(key.off, e.pageSize, data)
 			}
 			var notifyDone func()
+			var verifyJobs []func()
 			e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 				if e.loading != nil {
 					if lod := e.loading[key]; lod != nil {
@@ -222,13 +225,14 @@ func (e *PackReader) fetchExact(ctx context.Context, off, readEnd int64) error {
 				if err == nil && sp != nil {
 					e.insertSpanLocked(sp)
 					notifyDone = e.recordIndexTailFetchLocked(key, len(data))
-					e.promoteBlocksInSpanLocked(sp)
+					verifyJobs = e.promoteBlocksInSpanLocked(sp)
 				}
 				if notifyDone == nil {
 					notifyDone = e.statsChanged
 				}
 				broadcast()
 			})
+			e.enqueueVerifyJobs(verifyJobs)
 			if notifyDone != nil {
 				notifyDone()
 			}
