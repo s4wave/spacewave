@@ -1,8 +1,9 @@
 package s4wave_wizard
 
 import (
+	"cmp"
 	"context"
-	"sort"
+	"slices"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
@@ -153,11 +154,11 @@ func (r *WizardRegistryResource) getWizardsLocked() []*ObjectWizard {
 	for _, wizard := range r.state.registrations {
 		regs = append(regs, wizard.CloneVT())
 	}
-	sort.Slice(regs, func(i, j int) bool {
-		if regs[i].GetTypeId() == regs[j].GetTypeId() {
-			return regs[i].GetRegistrationId() < regs[j].GetRegistrationId()
+	slices.SortFunc(regs, func(a, b *ObjectWizard) int {
+		if n := cmp.Compare(a.GetTypeId(), b.GetTypeId()); n != 0 {
+			return n
 		}
-		return regs[i].GetTypeId() < regs[j].GetTypeId()
+		return cmp.Compare(a.GetRegistrationId(), b.GetRegistrationId())
 	})
 	for _, wizard := range regs {
 		if _, ok := seen[wizard.GetTypeId()]; ok {
@@ -169,5 +170,4 @@ func (r *WizardRegistryResource) getWizardsLocked() []*ObjectWizard {
 	return wizards
 }
 
-// _ is a type assertion
 var _ SRPCObjectWizardRegistryResourceServiceServer = (*WizardRegistryResource)(nil)

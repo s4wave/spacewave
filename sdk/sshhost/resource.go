@@ -100,5 +100,4 @@ func readSshHostObject(ctx context.Context, objState world.ObjectState) (*SshHos
 	return state, err
 }
 
-// _ is a type assertion.
 var _ SRPCSshHostResourceServiceServer = (*SshHostResource)(nil)

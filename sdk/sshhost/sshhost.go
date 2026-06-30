@@ -119,5 +119,4 @@ func validateHostKeyPin(pin *SshHostKeyPin) error {
 	return nil
 }
 
-// _ is a type assertion.
 var _ block.Block = (*SshHost)(nil)

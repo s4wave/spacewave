@@ -91,17 +91,14 @@ func NewClientWithBus(
 	protocolID protocol.ID,
 	serviceID string,
 ) (*Client, error) {
-	// determine protocol id
 	if protocolID == "" {
 		protocolID = signaling_rpc.ProtocolID
 	}
 
-	// determine service id
 	if serviceID == "" {
 		serviceID = signaling_rpc.SRPCSignalingServiceID
 	}
 
-	// setup the signaling client
 	signalRpcClient, err := stream_srpc_client.NewClient(le, b, clientConf, protocolID)
 	if err != nil {
 		return nil, err
@@ -196,13 +193,8 @@ func (r *ClientPeerRef) GetRemotePeerID() peer.ID {
 	return r.tkr.peerID
 }
 
-// Send attempts to sign and send a message to the remote peer.
-//
-// Encodes & signs the data with the peer private key
-// Waits for the remote buffer to be empty
-// Sends the message
-// Waits for the message to be acked
-//
+// Send signs msg with the peer private key, waits for remote send capacity,
+// transmits the message, and waits for the remote peer to acknowledge it.
 // If context is canceled the message will also be canceled.
 func (r *ClientPeerRef) Send(ctx context.Context, msg []byte) (_ *signaling_rpc.SessionMsg, outErr error) {
 	tkr := r.tkr
@@ -215,7 +207,6 @@ func (r *ClientPeerRef) Send(ctx context.Context, msg []byte) (_ *signaling_rpc.
 	var txed, acked bool
 	var sessionSeqno *uint64
 
-	// Handle errors by clearing the message.
 	defer func() {
 		if !txed || outErr == nil {
 			return
@@ -239,35 +230,28 @@ func (r *ClientPeerRef) Send(ctx context.Context, msg []byte) (_ *signaling_rpc.
 	for {
 		var waitCh <-chan struct{}
 		tkr.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-			// Stream with remote is not opened yet. Wait.
 			if tkr.open == nil {
 				txed = false
 				waitCh = getWaitCh()
 				return
 			}
 
-			// Stream with remote was re-opened.
 			if sessionSeqno == nil || *sessionSeqno != *tkr.open {
 				txed = false
 				sessionSeqno = tkr.open
 			}
 
-			// If we transmitted already make sure the connection didn't close in the meantime.
 			if txed {
 				if tkr.out == nil {
-					// No message is waiting. We can transmit now.
 					txed = false
 				} else if tkr.out.Seqno != seqno {
-					// Some other message is now waiting.
 					txed = false
 					waitCh = getWaitCh()
 					return
 				}
 			}
 
-			// We didn't sent the message to tkr.out yet.
 			if !txed {
-				// No other message is waiting, send it.
 				if tkr.out == nil {
 					txed = true
 					tkr.out = sessMsg
@@ -278,7 +262,6 @@ func (r *ClientPeerRef) Send(ctx context.Context, msg []byte) (_ *signaling_rpc.
 				return
 			}
 
-			// We sent the message to tkr.out and tkr.out is our message.
 			if tkr.outAcked {
 				acked = true
 				tkr.out, tkr.outSent, tkr.outAcked = nil, false, false
@@ -286,7 +269,6 @@ func (r *ClientPeerRef) Send(ctx context.Context, msg []byte) (_ *signaling_rpc.
 				return
 			}
 
-			// We are still waiting for the message to be acked.
 			waitCh = getWaitCh()
 		})
 
@@ -312,14 +294,11 @@ func (r *ClientPeerRef) Recv(ctx context.Context) (*signaling_rpc.SessionMsg, er
 	for {
 		var waitCh <-chan struct{}
 		tkr.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-			// If recv == nil, there is no message to receive, wait.
-			// If recvProcessed, is set someone else already received this message, wait.
 			if tkr.recv == nil || tkr.recvProcessed {
 				waitCh = getWaitCh()
 				return
 			}
 
-			// Receive the next recv message.
 			recv = tkr.recv
 			tkr.recvProcessed = true
 			broadcast()
@@ -400,16 +379,13 @@ func (c *Client) newPeerTracker(peerIDStr string) (keyed.Routine, *clientPeerTra
 
 // execute executes the clientPeerTracker.
 func (s *clientPeerTracker) execute(ctx context.Context) error {
-	// Initiate the Session RPC.
 	sess, err := s.c.client.Session(ctx)
 	if err != nil {
 		return errors.Wrap(err, "open signaling rpc session")
 	}
 
-	// errCh contains any errors
 	errCh := make(chan error, 2)
 
-	// handleClose handles cleaning up when the session is closed.
 	handleClose := func() {
 		s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			if s.open != nil {
@@ -427,7 +403,6 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 		})
 	}
 
-	// handleOpen handles when the session is opened.
 	handleOpen := func(seqno uint64) {
 		s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			if s.open == nil || *s.open != seqno {
@@ -440,15 +415,12 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 		})
 	}
 
-	// handleRecv handles when we got a valid remote message.
 	handleRecv := func(msg *signaling_rpc.SessionMsg) error {
-		// Extract and verify the signed message.
 		_, id, err := msg.ExtractAndVerify()
 		if err != nil {
 			return err
 		}
 
-		// Ensure the signed message is from the correct peer.
 		expectedPeerIDStr := s.key
 		actualPeerIDStr := id.String()
 		if expectedPeerIDStr != actualPeerIDStr {
@@ -464,7 +436,6 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 		return nil
 	}
 
-	// handleClearMsg handles when an incoming message was cleared by the remote peer.
 	handleClearMsg := func(msgSeqno uint64) {
 		s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			// s.le.Debugf("signaling: client: remote cleared msg: %v", msgSeqno)
@@ -475,7 +446,6 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 		})
 	}
 
-	// handleAckMsg handles when our outgoing message was acked by the remote peer.
 	handleAckMsg := func(msgSeqno uint64) {
 		s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			// s.le.Debugf("signaling: client: remote acked msg: %v", msgSeqno)
@@ -490,13 +460,11 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 		})
 	}
 
-	// Mark as closed when this function returns.
 	defer func() {
 		_ = sess.Close()
 		handleClose()
 	}()
 
-	// Request a session with the remote peer.
 	err = sess.Send(&signaling_rpc.SessionRequest{
 		Body: &signaling_rpc.SessionRequest_Init{
 			Init: &signaling_rpc.SessionInit{
@@ -508,7 +476,6 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 		return errors.Wrap(err, "send signaling init")
 	}
 
-	// Process incoming messages.
 	go func() {
 		for {
 			resp, err := sess.Recv()
@@ -526,7 +493,6 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 				handleOpen(b.Opened)
 			case *signaling_rpc.SessionResponse_RecvMsg:
 				if b.RecvMsg != nil {
-					// Set recv to the received message.
 					if err := handleRecv(b.RecvMsg); err != nil {
 						errCh <- err
 						return
@@ -543,9 +509,8 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 		}
 	}()
 
-	// Process outgoing messages and errors.
 	for {
-		// Make sure context is still active.
+
 		if err := ctx.Err(); err != nil {
 			return context.Canceled
 		}
@@ -557,12 +522,9 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 		var sessSeqno uint64
 
 		s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-			// If the session is open...
 			if s.open != nil {
-				// Get session seqno
 				sessSeqno = *s.open
 
-				// If we sent a message already but want to cancel sending it...
 				if s.out != nil && s.outCancel {
 					cancelMsg = s.out.Seqno
 					s.out, s.outAcked, s.outCancel, s.outSent = nil, false, false, false
@@ -570,7 +532,6 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 					return
 				}
 
-				// If we want to send a message but haven't transmitted it yet...
 				if s.out != nil && !s.outSent {
 					sendMsg = s.out
 					s.outSent = true
@@ -578,7 +539,6 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 					return
 				}
 
-				// If we received a message but haven't processed it yet...
 				if s.recv != nil && s.recvProcessed {
 					ackRecvMsg = s.recv.Seqno
 					s.recv = nil
@@ -588,11 +548,9 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 				}
 			}
 
-			// Otherwise wait for changes.
 			waitCh = getWaitCh()
 		})
 
-		// transmit ack for the received message
 		if ackRecvMsg != 0 {
 			err := sess.Send(&signaling_rpc.SessionRequest{
 				SessionSeqno: sessSeqno,
@@ -605,7 +563,6 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 			}
 		}
 
-		// cancel the message if any
 		if cancelMsg != 0 {
 			err := sess.Send(&signaling_rpc.SessionRequest{
 				SessionSeqno: sessSeqno,
@@ -618,7 +575,6 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 			}
 		}
 
-		// send the message if any
 		if sendMsg != nil {
 			err := sess.Send(&signaling_rpc.SessionRequest{
 				SessionSeqno: sessSeqno,

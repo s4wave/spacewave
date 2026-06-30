@@ -454,5 +454,4 @@ func isIndexStaged(sc git.StatusCode) bool {
 	return sc != git.Unmodified && sc != git.Untracked
 }
 
-// _ is a type assertion
 var _ s4wave_git.SRPCGitWorktreeResourceServiceServer = (*GitWorktreeResource)(nil)

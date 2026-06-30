@@ -19,13 +19,11 @@ func TestAccessRpcService(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// construct the server bus
 	serverBus, _, err := core.NewCoreBus(ctx, le.WithField("test-bus", "server"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// construct the AccessRpcService server on serverBus
 	serverMux := srpc.NewMux()
 	accessServer := NewAccessRpcServiceServer(serverBus, true, nil)
 	if err := SRPCRegisterAccessRpcService(serverMux, accessServer); err != nil {
@@ -33,7 +31,6 @@ func TestAccessRpcService(t *testing.T) {
 	}
 	server := srpc.NewServer(serverMux)
 
-	// construct the destination service mux + attach to serverBus
 	targetMux := srpc.NewMux()
 	targetService := echo.NewEchoServer(nil)
 	if err := echo.SRPCRegisterEchoer(targetMux, targetService); err != nil {
@@ -52,8 +49,6 @@ func TestAccessRpcService(t *testing.T) {
 	}
 	defer invokerRel()
 
-	// construct client bus + access client controller
-	// this will forward LookupRpcService<echo...> to serverMux
 	clientBus, _, err := core.NewCoreBus(ctx, le.WithField("test-bus", "client"))
 	if err != nil {
 		t.Fatal(err)
@@ -75,10 +70,8 @@ func TestAccessRpcService(t *testing.T) {
 	}
 	defer clientRel()
 
-	// construct the srpc server running on clientBus
 	clientServer := srpc.NewServer(bifrost_rpc.NewInvoker(clientBus, "test-server", true))
 
-	// access the echo service via clientServer
 	clientClient := srpc.NewClient(srpc.NewServerPipe(clientServer))
 	echoClient := echo.NewSRPCEchoerClient(clientClient)
 	resp, err := echoClient.Echo(ctx, &echo.EchoMsg{Body: "hello world"})

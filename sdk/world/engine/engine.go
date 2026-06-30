@@ -117,5 +117,4 @@ func (e *SDKEngine) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef,
 	return accessSDKBucketLookupCursor(ctx, e.client, resp.GetResourceId(), cb)
 }
 
-// _ is a type assertion
 var _ world.Engine = (*SDKEngine)(nil)

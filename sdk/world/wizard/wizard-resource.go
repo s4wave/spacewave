@@ -398,5 +398,4 @@ func (r *WizardResource) persistState(ctx context.Context, state *WizardState) (
 	return rev, nil
 }
 
-// _ is a type assertion
 var _ SRPCWizardResourceServiceServer = (*WizardResource)(nil)

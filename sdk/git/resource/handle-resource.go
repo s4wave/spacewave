@@ -588,5 +588,4 @@ func resolveRefToTree(repo *git.Repository, refName string) (plumbing.Hash, erro
 	return commit.TreeHash, nil
 }
 
-// _ is a type assertion
 var _ s4wave_git.SRPCGitRepoResourceServiceServer = (*GitRepoResource)(nil)

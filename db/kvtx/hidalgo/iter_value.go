@@ -74,14 +74,14 @@ func (i *txScanIterator) Err() error {
 	return i.err
 }
 
-// Key return current key. The value will become invalid on Next or Close.
-// Caller should not modify or store the value - use Clone.
+// Key returns the current key. The value becomes invalid on Next or Close.
+// Caller should not modify or store the value; use Clone.
 func (i *txScanIterator) Key() kv.Key {
 	return i.key
 }
 
-// Val return current value. The value will become invalid on Next or Close.
-// Caller should not modify or store the value - use Clone.
+// Val returns the current value. The value becomes invalid on Next or Close.
+// Caller should not modify or store the value; use Clone.
 func (i *txScanIterator) Val() kv.Value {
 	return i.value
 }
@@ -97,7 +97,7 @@ func (i *txScanIterator) Close() error {
 	return nil
 }
 
-// Reset the iterator to the starting state. Closed iterator can not reset.
+// Reset resets the iterator to the starting state. Closed iterators cannot reset.
 func (i *txScanIterator) Reset() {
 	i.key = nil
 	i.value = nil

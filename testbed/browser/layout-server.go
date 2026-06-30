@@ -13,22 +13,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// LayoutServer provides a WebSocket-based RPC server for browser layout E2E tests.
-// It exposes a LayoutHost service that can be connected to from browser tests.
+// LayoutServer serves the browser layout test RPC surface over WebSocket.
 type LayoutServer struct {
-	// server is the underlying browser testbed server
-	server *Server
-	// le is the logger
-	le *logrus.Entry
-	// layoutStateCtr holds the current layout model state
+	server         *Server
+	le             *logrus.Entry
 	layoutStateCtr *ccontainer.CContainer[*s4wave_layout.LayoutModel]
 
-	// bcast guards access to layout update state
-	bcast broadcast.Broadcast
-	// lastLayoutUpdate is the most recent layout update from the frontend
+	// bcast protects the pending frontend event fields.
+	bcast            broadcast.Broadcast
 	lastLayoutUpdate *s4wave_layout.LayoutModel
-	// lastNavigateTab is the most recent navigate tab request from the frontend
-	lastNavigateTab *s4wave_layout.NavigateTabRequest
+	lastNavigateTab  *s4wave_layout.NavigateTabRequest
 }
 
 // NewLayoutServer creates a new LayoutServer.
@@ -40,10 +34,8 @@ func NewLayoutServer(le *logrus.Entry) *LayoutServer {
 		layoutStateCtr: layoutStateCtr,
 	}
 
-	// Create the RPC mux
 	mux := srpc.NewMux()
 
-	// Create LayoutResource with callbacks and register directly on main mux
 	layoutResource := resource_layout.NewLayoutResource(
 		layoutStateCtr,
 		s.handleSetLayout,
@@ -51,14 +43,12 @@ func NewLayoutServer(le *logrus.Entry) *LayoutServer {
 	)
 	_ = s4wave_layout.SRPCRegisterLayoutHost(mux, layoutResource)
 
-	// Create the underlying server
 	s.server = NewServer(le, mux)
 
 	return s
 }
 
-// Start starts the WebSocket server on a random available port.
-// Returns the port number the server is listening on.
+// Start starts the WebSocket server on an available loopback port.
 func (s *LayoutServer) Start(ctx context.Context) (int, error) {
 	return s.server.Start(ctx)
 }
@@ -68,8 +58,7 @@ func (s *LayoutServer) Stop(ctx context.Context) error {
 	return s.server.Stop(ctx)
 }
 
-// SetLayoutModel sets the current layout model (server-initiated).
-// This will be streamed to connected clients via WatchLayoutModel.
+// SetLayoutModel publishes the server-side layout model to connected clients.
 func (s *LayoutServer) SetLayoutModel(model *s4wave_layout.LayoutModel) {
 	s.layoutStateCtr.SetValue(model)
 }
@@ -79,8 +68,7 @@ func (s *LayoutServer) GetLayoutModel() *s4wave_layout.LayoutModel {
 	return s.layoutStateCtr.GetValue()
 }
 
-// WaitForLayoutUpdate waits for the frontend to push a layout update.
-// Returns the updated model or an error if ctx is canceled.
+// WaitForLayoutUpdate waits for the next frontend layout update.
 func (s *LayoutServer) WaitForLayoutUpdate(ctx context.Context) (*s4wave_layout.LayoutModel, error) {
 	var result *s4wave_layout.LayoutModel
 	err := s.bcast.Wait(ctx, func(broadcast func(), getWaitCh func() <-chan struct{}) (bool, error) {
@@ -94,8 +82,7 @@ func (s *LayoutServer) WaitForLayoutUpdate(ctx context.Context) (*s4wave_layout.
 	return result, err
 }
 
-// WaitForNavigateTab waits for the frontend to navigate within a tab.
-// Returns the navigate request or an error if ctx is canceled.
+// WaitForNavigateTab waits for the next frontend tab navigation request.
 func (s *LayoutServer) WaitForNavigateTab(ctx context.Context) (*s4wave_layout.NavigateTabRequest, error) {
 	var result *s4wave_layout.NavigateTabRequest
 	err := s.bcast.Wait(ctx, func(broadcast func(), getWaitCh func() <-chan struct{}) (bool, error) {
@@ -119,9 +106,7 @@ func (s *LayoutServer) DrainLayoutUpdates() {
 // handleSetLayout is called when the frontend pushes a layout update.
 func (s *LayoutServer) handleSetLayout(ctx context.Context, layoutModel *s4wave_layout.LayoutModel) error {
 	s.le.Debug("received layout update from frontend")
-	// Update our state
 	s.layoutStateCtr.SetValue(layoutModel)
-	// Store and broadcast
 	s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		s.lastLayoutUpdate = layoutModel
 		broadcast()
@@ -132,7 +117,6 @@ func (s *LayoutServer) handleSetLayout(ctx context.Context, layoutModel *s4wave_
 // handleNavigateTab is called when the frontend navigates within a tab.
 func (s *LayoutServer) handleNavigateTab(ctx context.Context, req *s4wave_layout.NavigateTabRequest) (*s4wave_layout.NavigateTabResponse, error) {
 	s.le.Debugf("navigate tab %s to %s", req.GetTabId(), req.GetPath())
-	// Store and broadcast
 	s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		s.lastNavigateTab = req
 		broadcast()

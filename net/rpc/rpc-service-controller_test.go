@@ -14,11 +14,9 @@ import (
 const mockServiceID = "/foo/" + echo.SRPCEchoerServiceID
 
 func startMockHandler(t *testing.T, tb *testbed.Testbed) func() {
-	// create a rpc handler
 	mux := srpc.NewMux()
 	_ = mux.Register(echo.NewSRPCEchoerHandler(echo.NewEchoServer(nil), echo.SRPCEchoerServiceID))
 
-	// attach it to the bus
 	handlerCtrl := NewRpcServiceController(
 		controller.NewInfo("bifrost/rpc/test-handler", controller.MustParseVersion("0.0.1"), "test handler"),
 		NewRpcServiceBuilder(mux),

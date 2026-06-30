@@ -23,16 +23,20 @@ const CLIVolumeIDAlias = "default"
 
 // DaemonArgs contains common flags for hydra daemons.
 type DaemonArgs struct {
-	// BadgerDBs contains a list of badger db paths (directories)
-	// use a YAML configuration file if you want to adjust options.
+	// BadgerDBs contains a list of badger database directories.
+	// Use a YAML configuration file to adjust options.
 	BadgerDBs cli.StringSlice
-	// BoltDBs contains a list of bolt db paths (files)
-	// use a YAML configuration file if you want to adjust options.
-	BoltDBs        cli.StringSlice
-	BoltDBVerbose  bool
-	InmemDB        bool
+	// BoltDBs contains a list of bolt database files.
+	// Use a YAML configuration file to adjust options.
+	BoltDBs cli.StringSlice
+	// BoltDBVerbose marks bolt databases as verbose.
+	BoltDBVerbose bool
+	// InmemDB starts an in-memory volume.
+	InmemDB bool
+	// InmemDBVerbose marks the in-memory volume as verbose.
 	InmemDBVerbose bool
-	RedisURL       string
+	// RedisURL is the Redis instance URL to connect to on startup.
+	RedisURL string
 }
 
 // BuildFlags attaches the flags to a flag set.
@@ -82,14 +86,13 @@ func (a *DaemonArgs) BuildFlags() []cli.Flag {
 
 // ApplyToConfigSet applies the configured values to the configset.
 //
-// baseVolCtrlConf can be nil
+// If baseVolCtrlConf is nil, a default volume controller config is used.
 func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite bool, baseVolCtrlConf *volume_controller.Config) error {
 	if baseVolCtrlConf == nil {
 		baseVolCtrlConf = &volume_controller.Config{}
 	}
 	baseVolCtrlConf.VolumeIdAlias = append(baseVolCtrlConf.VolumeIdAlias, CLIVolumeIDAlias)
 
-	// Load defined inmem database
 	if a.InmemDB || a.InmemDBVerbose {
 		id := "cli-inmem-volume-0"
 		conf := &volume_kvtxinmem.Config{
@@ -101,7 +104,6 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 		}
 	}
 
-	// Load defined badger databases
 	for i, bdbi := range a.BadgerDBs.Value() {
 		id := "cli-badger-volume-" + strconv.Itoa(i)
 		bdb := strings.TrimSpace(bdbi)
@@ -117,7 +119,6 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 		}
 	}
 
-	// Load defined bolt databases
 	for i, bdbi := range a.BoltDBs.Value() {
 		id := "cli-bolt-volume-" + strconv.Itoa(i)
 		bdb := strings.TrimSpace(bdbi)
@@ -150,9 +151,8 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 
 // BuildSingleVolume builds a single volume from the given flags.
 //
-// id is optional and specifies a prefix to use for the volume.
-//
-// baseVolCtrlConf can be nil
+// id is optional and specifies a prefix to use for the volume. If
+// baseVolCtrlConf is nil, a default volume controller config is used.
 func (a *DaemonArgs) BuildSingleVolume(id string, baseVolCtrlConf *volume_controller.Config) config.Config {
 	if baseVolCtrlConf == nil {
 		baseVolCtrlConf = &volume_controller.Config{}
@@ -161,7 +161,6 @@ func (a *DaemonArgs) BuildSingleVolume(id string, baseVolCtrlConf *volume_contro
 
 	id = strings.TrimSpace(id)
 
-	// Load defined badger database
 	for _, bdbi := range a.BadgerDBs.Value() {
 		bdb := strings.TrimSpace(bdbi)
 		if bdb == "" {
@@ -179,7 +178,6 @@ func (a *DaemonArgs) BuildSingleVolume(id string, baseVolCtrlConf *volume_contro
 		}
 	}
 
-	// Load defined bolt database
 	for _, bdbi := range a.BoltDBs.Value() {
 		bdb := strings.TrimSpace(bdbi)
 		if bdb == "" {
@@ -202,7 +200,7 @@ func (a *DaemonArgs) BuildSingleVolume(id string, baseVolCtrlConf *volume_contro
 	}
 
 	if a.RedisURL != "" {
-		// TODO: respect "id" for redis
+		// Redis volume construction has no id-scoped path component.
 		return &volume_redis.Config{
 			Client: &store_kvtx_redis.ClientConfig{
 				Url: a.RedisURL,
@@ -211,6 +209,5 @@ func (a *DaemonArgs) BuildSingleVolume(id string, baseVolCtrlConf *volume_contro
 		}
 	}
 
-	// fallback to in-mem
 	return &volume_kvtxinmem.Config{Verbose: a.InmemDBVerbose, VolumeConfig: baseVolCtrlConf}
 }

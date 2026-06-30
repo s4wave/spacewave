@@ -4,7 +4,6 @@ package downstreamapp
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -15,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/fastjson"
 	"github.com/aperturerobotics/util/gitroot"
 	playwright "github.com/playwright-community/playwright-go"
 	"github.com/sirupsen/logrus"
@@ -190,29 +190,26 @@ func TestEnableBrowserReleaseAutoStartPreservesGeneratedDescriptor(t *testing.T)
 	if err != nil {
 		t.Fatalf("read descriptor: %v", err)
 	}
-	var got struct {
-		GenerationID string `json:"generationId"`
-		AutoStart    bool   `json:"autoStart"`
-		ShellAssets  struct {
-			ServiceWorker string   `json:"serviceWorker"`
-			SharedWorker  string   `json:"sharedWorker"`
-			CSS           []string `json:"css"`
-		} `json:"shellAssets"`
+	var parser fastjson.Parser
+	got, err := parser.ParseBytes(data)
+	if err != nil {
+		t.Fatalf("parse descriptor: %v", err)
 	}
-	if err := json.Unmarshal(data, &got); err != nil {
-		t.Fatalf("unmarshal descriptor: %v", err)
-	}
-	if !got.AutoStart {
+	if !got.GetBool("autoStart") {
 		t.Fatal("autoStart = false, want true")
 	}
-	if got.GenerationID != "/sw-generated.mjs" {
-		t.Fatalf("generationId = %q, want generated service worker", got.GenerationID)
+	if generationID := string(got.GetStringBytes("generationId")); generationID != "/sw-generated.mjs" {
+		t.Fatalf("generationId = %q, want generated service worker", generationID)
 	}
-	if got.ShellAssets.ServiceWorker != "/sw-generated.mjs" || got.ShellAssets.SharedWorker != "/shw-generated.mjs" {
-		t.Fatalf("shell assets changed: %+v", got.ShellAssets)
+	if serviceWorker := string(got.GetStringBytes("shellAssets", "serviceWorker")); serviceWorker != "/sw-generated.mjs" {
+		t.Fatalf("serviceWorker = %q, want generated service worker", serviceWorker)
 	}
-	if len(got.ShellAssets.CSS) != 1 || got.ShellAssets.CSS[0] != "/entrypoint/app.css" {
-		t.Fatalf("css assets changed: %+v", got.ShellAssets.CSS)
+	if sharedWorker := string(got.GetStringBytes("shellAssets", "sharedWorker")); sharedWorker != "/shw-generated.mjs" {
+		t.Fatalf("sharedWorker = %q, want generated shared worker", sharedWorker)
+	}
+	css := got.GetArray("shellAssets", "css")
+	if len(css) != 1 || string(css[0].GetStringBytes()) != "/entrypoint/app.css" {
+		t.Fatalf("css assets changed: %s", got.Get("shellAssets", "css"))
 	}
 }
 
@@ -242,7 +239,7 @@ func TestGoScriptDownstreamAppLoadsSonner(t *testing.T) {
 	}
 	defer browserCtx.Close()
 
-	diag := newBrowserDiagnostics()
+	diag := &browserDiagnostics{}
 	wireDiagnostics(browserCtx, page, diag)
 
 	scenarioStart := time.Now()
@@ -315,31 +312,54 @@ func TestGoScriptDownstreamAppLoadsSonner(t *testing.T) {
 }
 
 type sdkAppProbe struct {
-	SDKAppImport          bool     `json:"sdkAppImport"`
-	CatalogComponentIDs   []string `json:"catalogComponentIDs"`
-	ProductViewerImplicit bool     `json:"productViewerImplicit"`
-	NonIndexRootMarker    string   `json:"nonIndexRootMarker"`
-	LifecycleLabels       []string `json:"lifecycleLabels"`
-	FallbackRendered      bool     `json:"fallbackRendered"`
+	SDKAppImport          bool
+	CatalogComponentIDs   []string
+	ProductViewerImplicit bool
+	NonIndexRootMarker    string
+	LifecycleLabels       []string
+	FallbackRendered      bool
 }
 
 func collectSDKAppProbe(page playwright.Page) (sdkAppProbe, error) {
 	for _, frame := range page.Frames() {
-		value, err := frame.Evaluate(`() => window.__downstreamE2E || null`)
-		if err != nil || value == nil {
+		value, err := frame.Evaluate(`() => {
+  const state = window.__downstreamE2E
+  return state ? JSON.stringify(state) : ""
+}`)
+		if err != nil || value == "" {
 			continue
 		}
-		body, err := json.Marshal(value)
+		probe, err := parseSDKAppProbe([]byte(value.(string)))
 		if err != nil {
-			return sdkAppProbe{}, err
-		}
-		var probe sdkAppProbe
-		if err := json.Unmarshal(body, &probe); err != nil {
 			return sdkAppProbe{}, err
 		}
 		return probe, nil
 	}
 	return sdkAppProbe{}, errors.New("downstream SDK app probe was not published")
+}
+
+func parseSDKAppProbe(data []byte) (sdkAppProbe, error) {
+	var parser fastjson.Parser
+	v, err := parser.ParseBytes(data)
+	if err != nil {
+		return sdkAppProbe{}, err
+	}
+	return sdkAppProbe{
+		SDKAppImport:          v.GetBool("sdkAppImport"),
+		CatalogComponentIDs:   fastjsonStringSlice(v.GetArray("catalogComponentIDs")),
+		ProductViewerImplicit: v.GetBool("productViewerImplicit"),
+		NonIndexRootMarker:    string(v.GetStringBytes("nonIndexRootMarker")),
+		LifecycleLabels:       fastjsonStringSlice(v.GetArray("lifecycleLabels")),
+		FallbackRendered:      v.GetBool("fallbackRendered"),
+	}, nil
+}
+
+func fastjsonStringSlice(values []*fastjson.Value) []string {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		out = append(out, string(value.GetStringBytes()))
+	}
+	return out
 }
 
 type browserDiagnostics struct {
@@ -350,8 +370,6 @@ type browserDiagnostics struct {
 	failed   []string
 	sonner   []playwright.Response
 }
-
-func newBrowserDiagnostics() *browserDiagnostics { return &browserDiagnostics{} }
 
 func wireDiagnostics(browserCtx playwright.BrowserContext, page playwright.Page, diag *browserDiagnostics) {
 	recordConsole := func(source string, msg playwright.ConsoleMessage) {
@@ -503,25 +521,25 @@ func collectSonnerProbe(page playwright.Page, diag *browserDiagnostics) (sonnerP
 	diag.mu.Lock()
 	responses := append([]playwright.Response(nil), diag.sonner...)
 	diag.mu.Unlock()
-	for i := len(responses) - 1; i >= 0; i-- {
-		resp := responses[i]
-		body, err := resp.Body()
-		if err != nil {
-			return sonnerProbe{}, err
-		}
-		tail := string(body)
-		if len(tail) > 256 {
-			tail = tail[len(tail)-256:]
-		}
-		return sonnerProbe{
-			URL:             resp.URL(),
-			Status:          resp.Status(),
-			BodyLength:      len(body),
-			Tail:            tail,
-			BrowserObserved: observed,
-		}, nil
+	if len(responses) == 0 {
+		return sonnerProbe{}, errors.New("no sonner response observed")
 	}
-	return sonnerProbe{}, errors.New("no sonner response observed")
+	resp := responses[len(responses)-1]
+	body, err := resp.Body()
+	if err != nil {
+		return sonnerProbe{}, err
+	}
+	tail := string(body)
+	if len(tail) > 256 {
+		tail = tail[len(tail)-256:]
+	}
+	return sonnerProbe{
+		URL:             resp.URL(),
+		Status:          resp.Status(),
+		BodyLength:      len(body),
+		Tail:            tail,
+		BrowserObserved: observed,
+	}, nil
 }
 
 func (d *browserDiagnostics) String() string {
@@ -580,7 +598,7 @@ func describeBootSnapshot(page playwright.Page) string {
     .map((entry) => entry.name)
     .filter((name) => String(name).includes('/bldr-dev/') || String(name).includes('/b/'))
     .slice(-20)
-  return {
+  return JSON.stringify({
     href: window.location.href,
     localBootVersion: local.getItem('spacewave-browser-app-state-version'),
     sessionBootVersion: session.getItem('spacewave-browser-tab-state-version'),
@@ -591,14 +609,14 @@ func describeBootSnapshot(page playwright.Page) string {
     bootMarks: window.__swStartupMarks || null,
     downstreamState: window.__downstreamE2E || null,
     resourceEntries,
-  }
+  }, null, 2)
 }`)
 	if err != nil {
 		return "snapshot error: " + err.Error()
 	}
-	body, err := json.MarshalIndent(value, "", "  ")
-	if err != nil {
-		return "snapshot marshal error: " + err.Error()
+	body, ok := value.(string)
+	if !ok {
+		return "snapshot marshal error: browser returned non-string snapshot"
 	}
-	return string(body)
+	return body
 }

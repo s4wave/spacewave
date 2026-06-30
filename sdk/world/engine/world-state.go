@@ -418,7 +418,6 @@ func (ws *SDKWorldState) ApplyWorldOp(ctx context.Context, op world.Operation, s
 	return resp.Seqno, resp.SysErr, nil
 }
 
-// _ is a type assertion
 var _ world.WorldState = (*SDKWorldState)(nil)
 
 func graphPathQueryToProto(query *world.GraphPathQuery) (*s4wave_world.QueryGraphPathRequest, error) {

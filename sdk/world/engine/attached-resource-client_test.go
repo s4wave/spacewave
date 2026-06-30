@@ -88,5 +88,4 @@ func (c *attachedResourceTestContext) GetAttachedResource(resourceID uint32) (sr
 	return client, nil
 }
 
-// _ is a type assertion.
 var _ resource_server.ResourceClientContext = ((*attachedResourceTestContext)(nil))

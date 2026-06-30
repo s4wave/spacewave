@@ -219,5 +219,4 @@ func (s *sdkBucketLookupStore) Sync(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-// _ is a type assertion
 var _ bucket.BucketOps = (*sdkBucketLookupStore)(nil)

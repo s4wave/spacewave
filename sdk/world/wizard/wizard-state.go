@@ -31,5 +31,4 @@ func (s *WizardState) UnmarshalBlock(data []byte) error {
 	return s.UnmarshalVT(data)
 }
 
-// _ is a type assertion
 var _ block.Block = ((*WizardState)(nil))

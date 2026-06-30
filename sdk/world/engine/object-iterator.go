@@ -132,5 +132,4 @@ func (e *iterError) Error() string {
 	return e.msg
 }
 
-// _ is a type assertion
 var _ world.ObjectIterator = (*SDKObjectIterator)(nil)

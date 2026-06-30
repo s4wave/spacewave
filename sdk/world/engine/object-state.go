@@ -117,5 +117,4 @@ func (os *SDKObjectState) WaitRev(ctx context.Context, rev uint64, ignoreNotFoun
 	return resp.Rev, nil
 }
 
-// _ is a type assertion
 var _ world.ObjectState = (*SDKObjectState)(nil)

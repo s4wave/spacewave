@@ -22,24 +22,23 @@ import (
 type Testbed struct {
 	*testbed.Testbed
 
-	// EngineBucketID is the bucket the engine is attached to.
+	// EngineBucketID identifies the bucket the engine is attached to.
 	EngineBucketID string
-	// EngineVolumeID is the volume the engine uses for state.
+	// EngineVolumeID identifies the volume the engine uses for state.
 	EngineVolumeID string
-	// EngineObjectStoreID is the object store the engine uses for state.
+	// EngineObjectStoreID identifies the object store the engine uses for state.
 	EngineObjectStoreID string
-	// EngineID is the engine identifier on the bus.
+	// EngineID identifies the engine on the bus.
 	EngineID string
-	// Engine contains a reference to the running world engine.
-	// Queries the engine directly.
+	// Engine is a direct reference to the running world engine.
 	Engine world.Engine
-	// EngineController contains the world engine controller
+	// EngineController contains the world engine controller.
 	EngineController *world_block_engine.Controller
-	// BusEngine uses directives to locate the Engine.
+	// BusEngine locates the engine through bus directives.
 	BusEngine world.Engine
-	// WorldState contains the BusEngine-backed Engine state.
+	// WorldState exposes the BusEngine-backed engine state.
 	WorldState world.WorldState
-	// StorageID is the storage controller id.
+	// StorageID identifies the storage controller.
 	StorageID string
 }
 
@@ -79,7 +78,6 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 	sr.AddFactory(world_block_engine.NewFactory(tb.Bus))
 	sr.AddFactory(storage_volume.NewFactory(tb.Bus))
 
-	// Construct the world engine.
 	t.EngineID = "testbed-engine"
 	t.EngineVolumeID = tb.Volume.GetID()
 	t.EngineBucketID = tb.BucketId
@@ -121,7 +119,6 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 	t.BusEngine = world.NewBusEngine(ctx, b, t.EngineID)
 	t.WorldState = world.NewEngineWorldState(t.BusEngine, true)
 
-	// storage controller
 	storageID := "default"
 	t.StorageID = storageID
 	if len(storages) == 0 {

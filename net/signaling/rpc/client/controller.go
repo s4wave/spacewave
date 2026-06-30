@@ -48,7 +48,6 @@ type Controller struct {
 
 // NewController constructs a new signaling client controller.
 func NewController(le *logrus.Entry, b bus.Bus, conf *Config) (*Controller, error) {
-	// determine protocol id
 	protocolID, err := conf.ParseProtocolID()
 	if err != nil {
 		return nil, err
@@ -57,22 +56,18 @@ func NewController(le *logrus.Entry, b bus.Bus, conf *Config) (*Controller, erro
 		protocolID = signaling_rpc.ProtocolID
 	}
 
-	// determine service id
 	serviceID := conf.GetServiceId()
 	if serviceID == "" {
 		serviceID = signaling_rpc.SRPCSignalingServiceID
 	}
 
-	// construct rpc client
 	rpcClient, err := stream_srpc_client.NewClient(le, b, conf.GetClient(), protocolID)
 	if err != nil {
 		return nil, err
 	}
 
-	// construct rpc service
 	srv := signaling_rpc.NewSRPCSignalingClientWithServiceID(rpcClient, serviceID)
 
-	// construct controller
 	c := &Controller{
 		le:             le,
 		b:              b,
@@ -92,7 +87,6 @@ func NewController(le *logrus.Entry, b bus.Bus, conf *Config) (*Controller, erro
 		}),
 	)
 
-	// return controller
 	return c, nil
 }
 
@@ -119,32 +113,26 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
-	// Get the priv key and release the peer
 	privKey, err := localPeer.GetPrivKey(ctx)
 	localPeerRef.Release()
 	if err != nil {
 		return err
 	}
 
-	// Construct the signaling client
 	signalingClient, err := NewClient(c.le, c.srv, privKey, c.conf.GetBackoff())
 	if err != nil {
 		return err
 	}
 
-	// Set the signaling client
 	c.client.SetValue(signalingClient)
 
-	// Set the listening routine if applicable
 	if !c.conf.GetDisableListen() {
 		signalingClient.SetListenHandler(c.handlePeerWantsSession)
 	}
 
-	// Set the contexts, starting the client.
 	signalingClient.SetContext(ctx)
 	c.sessionTrackers.SetContext(ctx, true)
 
-	// Done
 	return nil
 }
 
@@ -173,7 +161,6 @@ func (c *Controller) handlePeerWantsSession(ctx context.Context, reset, added bo
 	addSession := func(addPeerID string) {
 		_, ok := c.listenSessions[addPeerID]
 		if ok {
-			// already existed
 			return
 		}
 
@@ -213,19 +200,16 @@ func (c *Controller) addSessionTrackerRef(
 	ctx context.Context,
 	peerIDStr string,
 ) (*keyed.KeyedRef[string, *sessionTracker], *sessionTracker, bool, error) {
-	// assert that we can extract the public key from the peer id
 	peerID, peerPub, err := peer.ParsePeerIDWithPubKey(peerIDStr)
 	if err != nil {
 		return nil, nil, false, err
 	}
 
-	// wait for the client to be ready
 	client, err := c.client.WaitValue(ctx, nil)
 	if err != nil {
 		return nil, nil, false, err
 	}
 
-	// assert that we are not trying to open a session with ourselves
 	if client.peerID.MatchesPublicKey(peerPub) {
 		return nil, nil, false, errors.New("signaling: cannot self-dial")
 	}

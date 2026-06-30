@@ -20,8 +20,7 @@ func (n *Node) DecodedBlockCacheTypeKey() string {
 	return "db/kvtx/block/iavl.Node"
 }
 
-// loadNode follows the node cursor.
-// may return nil
+// loadNode follows the node cursor and returns nil when it does not contain a Node.
 func loadNode(ctx context.Context, cursor *block.Cursor) (*Node, error) {
 	ni, err := cursor.Unmarshal(ctx, func() block.Block { return &Node{} })
 	if err != nil {
@@ -184,9 +183,6 @@ func (n *Node) GetBlockRefCtor(id uint32) block.Ctor {
 	case 6:
 		return NewNodeBlock
 
-		// Unknown!
-		// case 7:
-		// return byteslice.NewByteSliceBlock
 	}
 	return nil
 }

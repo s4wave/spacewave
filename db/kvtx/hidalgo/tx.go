@@ -21,7 +21,7 @@ func NewTx(tx kvtx.Tx) *Tx {
 }
 
 // Get fetches a value for a single key from the database.
-// It return ErrNotFound if key does not exists.
+// It returns ErrNotFound if the key does not exist.
 func (t *Tx) Get(ctx context.Context, key kv.Key) (kv.Value, error) {
 	if len(key) == 0 {
 		return nil, kv.ErrNotFound
@@ -37,7 +37,7 @@ func (t *Tx) Get(ctx context.Context, key kv.Key) (kv.Value, error) {
 }
 
 // GetBatch fetches values for multiple keys from the database.
-// Nil element in the slice indicates that key does not exists.
+// A nil element in the slice indicates that the key does not exist.
 func (t *Tx) GetBatch(ctx context.Context, keys []kv.Key) ([]kv.Value, error) {
 	var err error
 	vals := make([]kv.Value, len(keys))
@@ -67,7 +67,7 @@ func (t *Tx) Put(ctx context.Context, k kv.Key, v kv.Value) error {
 	return t.tx.Set(ctx, k, v)
 }
 
-// Del removes the key from the database. See Put for consistency guaranties.
+// Del removes the key from the database. See Put for consistency guarantees.
 func (t *Tx) Del(ctx context.Context, k kv.Key) error {
 	if len(k) == 0 {
 		return kvtx.ErrEmptyKey

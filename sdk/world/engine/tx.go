@@ -47,5 +47,4 @@ func (tx *SDKTx) Discard() {
 	tx.ref.Release()
 }
 
-// _ is a type assertion
 var _ world.Tx = (*SDKTx)(nil)

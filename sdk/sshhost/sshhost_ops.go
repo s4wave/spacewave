@@ -150,5 +150,4 @@ func cloneSshHostKeyPins(pins []*SshHostKeyPin) []*SshHostKeyPin {
 	return slices.Clip(out)
 }
 
-// _ is a type assertion.
 var _ world.Operation = ((*CreateSshHostOp)(nil))

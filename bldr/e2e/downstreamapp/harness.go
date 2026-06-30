@@ -4,7 +4,6 @@ package downstreamapp
 
 import (
 	"context"
-	"encoding/json"
 	"net"
 	"net/http"
 	"os"
@@ -17,6 +16,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/fastjson"
 	"github.com/aperturerobotics/util/gitroot"
 	"github.com/pkg/errors"
 	playwright "github.com/playwright-community/playwright-go"
@@ -302,15 +302,13 @@ func enableBrowserReleaseAutoStart(entryDir string) error {
 	if err != nil {
 		return err
 	}
-	var descriptor map[string]json.RawMessage
-	if err := json.Unmarshal(data, &descriptor); err != nil {
-		return err
-	}
-	descriptor["autoStart"] = json.RawMessage("true")
-	data, err = json.MarshalIndent(descriptor, "", "  ")
+	var parser fastjson.Parser
+	descriptor, err := parser.ParseBytes(data)
 	if err != nil {
 		return err
 	}
+	descriptor.GetObject().Set("autoStart", fastjson.MustParse("true"))
+	data = descriptor.MarshalTo(nil)
 	data = append(data, '\n')
 	return os.WriteFile(descriptorPath, data, 0o644)
 }

@@ -18,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ListBucketsConf is the list buckets request
+// ListBucketsConf is the list buckets request.
 type ListBucketsConf = volume.ListBucketsRequest
 
 // ClientArgs contains the client arguments and functions.
@@ -134,7 +134,6 @@ func (a *ClientArgs) BuildCommands() []*ucli.Command {
 			Usage:  "Puts a block into a bucket.",
 			Action: a.RunPutBlock,
 			Flags: []ucli.Flag{
-				//  TODO: override put opts
 				&ucli.StringFlag{
 					Name:        "file",
 					Aliases:     []string{"f"},

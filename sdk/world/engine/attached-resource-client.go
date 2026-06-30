@@ -71,8 +71,6 @@ func (r *attachedResourceRef) Release() {
 	r.resourceCtx.ReleaseResource(r.resourceID)
 }
 
-// _ is a type assertion.
 var _ ResourceClient = ((*AttachedResourceClient)(nil))
 
-// _ is a type assertion.
 var _ resource_client.ResourceRef = ((*attachedResourceRef)(nil))
