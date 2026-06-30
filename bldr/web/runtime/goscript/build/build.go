@@ -503,6 +503,17 @@ function resolveGoScriptImport(source) {
   return existingTypeScriptSibling(path.join(opts.goScriptOutputRoot, "@goscript", rel))
 }
 
+function resolveGoScriptOverrideSourceImport(source, importer) {
+  if (!importer || importer.startsWith("\0")) return null
+  if (!source.endsWith(".js")) return null
+  if (!source.startsWith("./") && !source.startsWith("../")) return null
+  const outputRoot = path.join(opts.goScriptOutputRoot, "@goscript")
+  const targetPath = path.normalize(path.join(path.dirname(importer), source))
+  const rel = path.relative(outputRoot, targetPath)
+  if (rel === "" || rel.startsWith("..") || path.isAbsolute(rel)) return null
+  return existingSourcePath(path.join(opts.sourceRoot, "vendor", "github.com", "s4wave", "goscript", "gs", rel))
+}
+
 function readLocalModule(projectRoot) {
   try {
     const contents = fs.readFileSync(path.join(projectRoot, "go.mod"), "utf8")
@@ -590,6 +601,11 @@ const plugin = {
       if (resolved) {
         trackInput(resolved)
         return resolved
+      }
+      const overrideSource = resolveGoScriptOverrideSourceImport(source, importer)
+      if (overrideSource) {
+        trackInput(overrideSource)
+        return overrideSource
       }
     }
     return null

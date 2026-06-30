@@ -103,6 +103,57 @@ export const Present = 1
 	}
 }
 
+func TestBuildWebGoScriptPluginScriptResolvesGoScriptOverrideImports(t *testing.T) {
+	sourceRoot := t.TempDir()
+	bldrDistRoot := filepath.Join(sourceRoot, "bldr")
+	writeRolldownToolFixture(t, bldrDistRoot)
+	workDir := filepath.Join(sourceRoot, "work")
+	goScriptOutputRoot := filepath.Join(sourceRoot, "goscript")
+	outPath := filepath.Join(sourceRoot, "out", "plugin.mjs")
+	stdlibMathPath := filepath.Join(sourceRoot, "vendor", "github.com", "s4wave", "goscript", "gs", "math", "index.ts")
+
+	writeTestFile(t, filepath.Join(sourceRoot, "go.mod"), "module github.com/s4wave/spacewave\n")
+	writeTestFile(t, filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts"), `
+export default async function runGoScriptPlugin(_api, pluginMain) {
+  await pluginMain()
+}
+`)
+	writeTestFile(t, filepath.Join(goScriptOutputRoot, "@goscript", "example", "main", "plugin.gs.ts"), `
+import { EncodedValue } from "@goscript/github.com/aperturerobotics/protobuf-go-lite/index.js"
+
+export async function main() {
+  return EncodedValue
+}
+`)
+	writeTestFile(t, filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "aperturerobotics", "protobuf-go-lite", "index.ts"), `
+import { MathValue } from "../../../math/index.js"
+
+export const EncodedValue = MathValue
+`)
+	writeTestFile(t, stdlibMathPath, `
+export const MathValue = 1
+`)
+
+	inputs, err := BuildWebGoScriptPluginScript(
+		context.Background(),
+		logrus.NewEntry(logrus.New()),
+		bldrDistRoot,
+		workDir,
+		goScriptOutputRoot,
+		outPath,
+		"example/main",
+		false,
+		false,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stdlibMathPath = canonicalTestPath(t, stdlibMathPath)
+	if !slices.Contains(inputs, stdlibMathPath) {
+		t.Fatalf("inputs missing %s: %v", stdlibMathPath, inputs)
+	}
+}
+
 func TestBuildWebGoScriptPluginScriptShimsNodeEvents(t *testing.T) {
 	root := t.TempDir()
 	bldrDistRoot := filepath.Join(root, "dist")
