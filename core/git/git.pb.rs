@@ -336,6 +336,42 @@ pub struct UnstageFilesRequest {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct UnstageFilesResponse {
 }
+/// CommitFilesRequest is the request for CommitFiles.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CommitFilesRequest {
+    /// Paths is the list of staged file paths that must be included in the commit.
+    /// Empty accepts all currently staged paths.
+    #[prost(string, repeated, tag="1")]
+    pub paths: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Message is the commit message.
+    #[prost(string, tag="2")]
+    pub message: ::prost::alloc::string::String,
+    /// AuthorName is the commit author name.
+    #[prost(string, tag="3")]
+    pub author_name: ::prost::alloc::string::String,
+    /// AuthorEmail is the commit author email.
+    #[prost(string, tag="4")]
+    pub author_email: ::prost::alloc::string::String,
+    /// AuthorTimestamp is the author timestamp as Unix seconds.
+    #[prost(int64, tag="5")]
+    pub author_timestamp: i64,
+}
+/// CommitFilesResponse is the response for CommitFiles.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CommitFilesResponse {
+    /// CommitHash is the hash of the newly created commit.
+    #[prost(string, tag="1")]
+    pub commit_hash: ::prost::alloc::string::String,
+    /// BaseCommitHash is the HEAD commit before the commit operation.
+    #[prost(string, tag="2")]
+    pub base_commit_hash: ::prost::alloc::string::String,
+    /// BranchRef is the current branch/ref updated by the commit.
+    #[prost(string, tag="3")]
+    pub branch_ref: ::prost::alloc::string::String,
+    /// AffectedPaths are the staged paths accepted by the commit operation.
+    #[prost(string, repeated, tag="4")]
+    pub affected_paths: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
 /// FileStatusCode maps directly to go-git's StatusCode.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]

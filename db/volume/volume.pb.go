@@ -221,10 +221,8 @@ func (m *VolumeBucketInfo) CloneVT() *VolumeBucketInfo {
 		return (*VolumeBucketInfo)(nil)
 	}
 	r := new(VolumeBucketInfo)
+	r.BucketInfo = m.BucketInfo.CloneVT()
 	r.VolumeInfo = m.VolumeInfo.CloneVT()
-	if rhs := m.BucketInfo; rhs != nil {
-		r.BucketInfo = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

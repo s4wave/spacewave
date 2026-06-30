@@ -654,9 +654,7 @@ func (m *RootDb) CloneVT() *RootDb {
 	}
 	r := new(RootDb)
 	r.Name = m.Name
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
+	r.Ref = m.Ref.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -694,9 +692,7 @@ func (m *DatabaseRootTable) CloneVT() *DatabaseRootTable {
 	}
 	r := new(DatabaseRootTable)
 	r.Name = m.Name
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
+	r.Ref = m.Ref.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -788,9 +784,7 @@ func (m *TablePartitionRoot) CloneVT() *TablePartitionRoot {
 		return (*TablePartitionRoot)(nil)
 	}
 	r := new(TablePartitionRoot)
-	if rhs := m.RowKeyValue; rhs != nil {
-		r.RowKeyValue = rhs.CloneVT()
-	}
+	r.RowKeyValue = m.RowKeyValue.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

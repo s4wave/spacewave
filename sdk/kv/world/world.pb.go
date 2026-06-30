@@ -170,12 +170,8 @@ func (m *KvSetRootOp) CloneVT() *KvSetRootOp {
 	}
 	r := new(KvSetRootOp)
 	r.ObjectKey = m.ObjectKey
-	if rhs := m.RootRef; rhs != nil {
-		r.RootRef = rhs.CloneVT()
-	}
-	if rhs := m.BaseRef; rhs != nil {
-		r.BaseRef = rhs.CloneVT()
-	}
+	r.RootRef = m.RootRef.CloneVT()
+	r.BaseRef = m.BaseRef.CloneVT()
 	if rhs := m.Mutations; rhs != nil {
 		r.Mutations = make([]*KvMutation, len(rhs))
 		for k, v := range rhs {

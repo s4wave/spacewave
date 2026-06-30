@@ -159,13 +159,9 @@ func (m *Config) CloneVT() *Config {
 	r.ObjectStoreId = m.ObjectStoreId
 	r.ObjectStorePrefix = m.ObjectStorePrefix
 	r.ObjectStoreHeadKey = m.ObjectStoreHeadKey
+	r.InitHeadRef = m.InitHeadRef.CloneVT()
+	r.StateTransformConf = m.StateTransformConf.CloneVT()
 	r.SqlRpcServiceId = m.SqlRpcServiceId
-	if rhs := m.InitHeadRef; rhs != nil {
-		r.InitHeadRef = rhs.CloneVT()
-	}
-	if rhs := m.StateTransformConf; rhs != nil {
-		r.StateTransformConf = rhs.CloneVT()
-	}
 	if rhs := m.CreateDbs; rhs != nil {
 		r.CreateDbs = slices.Clone(rhs)
 	}
@@ -184,9 +180,7 @@ func (m *HeadState) CloneVT() *HeadState {
 		return (*HeadState)(nil)
 	}
 	r := new(HeadState)
-	if rhs := m.HeadRef; rhs != nil {
-		r.HeadRef = rhs.CloneVT()
-	}
+	r.HeadRef = m.HeadRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

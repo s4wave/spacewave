@@ -252,9 +252,7 @@ func (m *BlockRef) CloneVT() *BlockRef {
 		return (*BlockRef)(nil)
 	}
 	r := new(BlockRef)
-	if rhs := m.Hash; rhs != nil {
-		r.Hash = rhs.CloneVT()
-	}
+	r.Hash = m.Hash.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

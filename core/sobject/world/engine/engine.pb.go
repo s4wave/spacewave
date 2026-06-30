@@ -531,6 +531,7 @@ func (m *Config) CloneVT() *Config {
 	}
 	r := new(Config)
 	r.EngineId = m.EngineId
+	r.Ref = m.Ref.CloneVT()
 	r.InitWorldOp = m.InitWorldOp.CloneVT()
 	r.DisableLookup = m.DisableLookup
 	r.DisableApplyWorldOp = m.DisableApplyWorldOp
@@ -538,9 +539,6 @@ func (m *Config) CloneVT() *Config {
 	r.Verbose = m.Verbose
 	r.GcSweepIdleWindowDur = m.GcSweepIdleWindowDur
 	r.GcSweepBackstopIntervalDur = m.GcSweepBackstopIntervalDur
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
 	if rhs := m.ProcessOpsBackoff; rhs != nil {
 		r.ProcessOpsBackoff = rhs.CloneVT()
 	}
@@ -559,9 +557,7 @@ func (m *InnerState) CloneVT() *InnerState {
 		return (*InnerState)(nil)
 	}
 	r := new(InnerState)
-	if rhs := m.HeadRef; rhs != nil {
-		r.HeadRef = rhs.CloneVT()
-	}
+	r.HeadRef = m.HeadRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -622,9 +618,7 @@ func (m *InitWorldOp) CloneVT() *InitWorldOp {
 	}
 	r := new(InitWorldOp)
 	r.LastChangeDisable = m.LastChangeDisable
-	if rhs := m.TransformConf; rhs != nil {
-		r.TransformConf = rhs.CloneVT()
-	}
+	r.TransformConf = m.TransformConf.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -640,9 +634,7 @@ func (m *ApplyTxOp) CloneVT() *ApplyTxOp {
 		return (*ApplyTxOp)(nil)
 	}
 	r := new(ApplyTxOp)
-	if rhs := m.Tx; rhs != nil {
-		r.Tx = rhs.CloneVT()
-	}
+	r.Tx = m.Tx.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -658,21 +650,15 @@ func (m *SpaceWorldFinalizationPacket) CloneVT() *SpaceWorldFinalizationPacket {
 		return (*SpaceWorldFinalizationPacket)(nil)
 	}
 	r := new(SpaceWorldFinalizationPacket)
+	r.BaseSharedObjectRoot = m.BaseSharedObjectRoot.CloneVT()
+	r.BaseWorldRoot = m.BaseWorldRoot.CloneVT()
+	r.CandidateWorldRoot = m.CandidateWorldRoot.CloneVT()
 	r.StorageGeneration = m.StorageGeneration
 	r.AuthorityEpoch = m.AuthorityEpoch
 	r.BlocksAvailable = m.BlocksAvailable
 	r.Op = m.Op.CloneVT()
 	r.FollowerParticipantId = m.FollowerParticipantId
 	r.LocalOperationId = m.LocalOperationId
-	if rhs := m.BaseSharedObjectRoot; rhs != nil {
-		r.BaseSharedObjectRoot = rhs.CloneVT()
-	}
-	if rhs := m.BaseWorldRoot; rhs != nil {
-		r.BaseWorldRoot = rhs.CloneVT()
-	}
-	if rhs := m.CandidateWorldRoot; rhs != nil {
-		r.CandidateWorldRoot = rhs.CloneVT()
-	}
 	if rhs := m.CandidateContentId; rhs != nil {
 		r.CandidateContentId = slices.Clone(rhs)
 	}
@@ -692,15 +678,11 @@ func (m *SpaceWorldFinalizationDecision) CloneVT() *SpaceWorldFinalizationDecisi
 	}
 	r := new(SpaceWorldFinalizationDecision)
 	r.Status = m.Status
+	r.AcceptedSharedObjectRoot = m.AcceptedSharedObjectRoot.CloneVT()
+	r.AcceptedWorldRoot = m.AcceptedWorldRoot.CloneVT()
 	r.Error = m.Error
 	r.Retryable = m.Retryable
 	r.LocalOperationId = m.LocalOperationId
-	if rhs := m.AcceptedSharedObjectRoot; rhs != nil {
-		r.AcceptedSharedObjectRoot = rhs.CloneVT()
-	}
-	if rhs := m.AcceptedWorldRoot; rhs != nil {
-		r.AcceptedWorldRoot = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

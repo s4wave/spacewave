@@ -703,9 +703,7 @@ func (m *WatchVolumeInfoResponse) CloneVT() *WatchVolumeInfoResponse {
 	}
 	r := new(WatchVolumeInfoResponse)
 	r.NotFound = m.NotFound
-	if rhs := m.VolumeInfo; rhs != nil {
-		r.VolumeInfo = rhs.CloneVT()
-	}
+	r.VolumeInfo = m.VolumeInfo.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -736,9 +734,7 @@ func (m *GetVolumeInfoResponse) CloneVT() *GetVolumeInfoResponse {
 		return (*GetVolumeInfoResponse)(nil)
 	}
 	r := new(GetVolumeInfoResponse)
-	if rhs := m.VolumeInfo; rhs != nil {
-		r.VolumeInfo = rhs.CloneVT()
-	}
+	r.VolumeInfo = m.VolumeInfo.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -799,10 +795,8 @@ func (m *CoordinatorEvent) CloneVT() *CoordinatorEvent {
 	r.Generation = m.Generation
 	r.WantLock = m.WantLock
 	r.Unlocked = m.Unlocked
+	r.RootChanged = m.RootChanged.CloneVT()
 	r.FallbackReason = m.FallbackReason
-	if rhs := m.RootChanged; rhs != nil {
-		r.RootChanged = rhs.CloneVT()
-	}
 	if rhs := m.KeyPrefixChanged; rhs != nil {
 		r.KeyPrefixChanged = slices.Clone(rhs)
 	}
@@ -824,9 +818,7 @@ func (m *CoordinatorSnapshot) CloneVT() *CoordinatorSnapshot {
 	r.VolumeId = m.VolumeId
 	r.ObjectStoreId = m.ObjectStoreId
 	r.Generation = m.Generation
-	if rhs := m.Root; rhs != nil {
-		r.Root = rhs.CloneVT()
-	}
+	r.Root = m.Root.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1098,9 +1090,7 @@ func (m *GetStorageStatsResponse) CloneVT() *GetStorageStatsResponse {
 		return (*GetStorageStatsResponse)(nil)
 	}
 	r := new(GetStorageStatsResponse)
-	if rhs := m.StorageStats; rhs != nil {
-		r.StorageStats = rhs.CloneVT()
-	}
+	r.StorageStats = m.StorageStats.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

@@ -2281,12 +2281,10 @@ func (m *WorldRootSnapshot) CloneVT() *WorldRootSnapshot {
 		return (*WorldRootSnapshot)(nil)
 	}
 	r := new(WorldRootSnapshot)
+	r.RootRef = m.RootRef.CloneVT()
 	r.Seqno = m.Seqno
 	r.EngineInfo = m.EngineInfo.CloneVT()
 	r.StorageVolumeId = m.StorageVolumeId
-	if rhs := m.RootRef; rhs != nil {
-		r.RootRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2428,9 +2426,7 @@ func (m *AccessWorldStateRequest) CloneVT() *AccessWorldStateRequest {
 		return (*AccessWorldStateRequest)(nil)
 	}
 	r := new(AccessWorldStateRequest)
-	if rhs := m.Ref; rhs != nil {
-		r.Ref = rhs.CloneVT()
-	}
+	r.Ref = m.Ref.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2585,9 +2581,7 @@ func (m *CreateObjectRequest) CloneVT() *CreateObjectRequest {
 	}
 	r := new(CreateObjectRequest)
 	r.ObjectKey = m.ObjectKey
-	if rhs := m.RootRef; rhs != nil {
-		r.RootRef = rhs.CloneVT()
-	}
+	r.RootRef = m.RootRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2754,9 +2748,7 @@ func (m *SetGraphQuadRequest) CloneVT() *SetGraphQuadRequest {
 		return (*SetGraphQuadRequest)(nil)
 	}
 	r := new(SetGraphQuadRequest)
-	if rhs := m.Quad; rhs != nil {
-		r.Quad = rhs.CloneVT()
-	}
+	r.Quad = m.Quad.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2787,9 +2779,7 @@ func (m *DeleteGraphQuadRequest) CloneVT() *DeleteGraphQuadRequest {
 		return (*DeleteGraphQuadRequest)(nil)
 	}
 	r := new(DeleteGraphQuadRequest)
-	if rhs := m.Quad; rhs != nil {
-		r.Quad = rhs.CloneVT()
-	}
+	r.Quad = m.Quad.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2820,10 +2810,8 @@ func (m *LookupGraphQuadsRequest) CloneVT() *LookupGraphQuadsRequest {
 		return (*LookupGraphQuadsRequest)(nil)
 	}
 	r := new(LookupGraphQuadsRequest)
+	r.Filter = m.Filter.CloneVT()
 	r.Limit = m.Limit
-	if rhs := m.Filter; rhs != nil {
-		r.Filter = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3031,11 +3019,9 @@ func (m *ObjectRootRef) CloneVT() *ObjectRootRef {
 	}
 	r := new(ObjectRootRef)
 	r.ObjectKey = m.ObjectKey
+	r.RootRef = m.RootRef.CloneVT()
 	r.Rev = m.Rev
 	r.Exists = m.Exists
-	if rhs := m.RootRef; rhs != nil {
-		r.RootRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3648,10 +3634,8 @@ func (m *GetRootRefResponse) CloneVT() *GetRootRefResponse {
 		return (*GetRootRefResponse)(nil)
 	}
 	r := new(GetRootRefResponse)
+	r.RootRef = m.RootRef.CloneVT()
 	r.Rev = m.Rev
-	if rhs := m.RootRef; rhs != nil {
-		r.RootRef = rhs.CloneVT()
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3667,9 +3651,7 @@ func (m *SetRootRefRequest) CloneVT() *SetRootRefRequest {
 		return (*SetRootRefRequest)(nil)
 	}
 	r := new(SetRootRefRequest)
-	if rhs := m.RootRef; rhs != nil {
-		r.RootRef = rhs.CloneVT()
-	}
+	r.RootRef = m.RootRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}

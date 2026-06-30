@@ -196,9 +196,7 @@ func (m *SqlArgument) CloneVT() *SqlArgument {
 	r := new(SqlArgument)
 	r.Name = m.Name
 	r.Ordinal = m.Ordinal
-	if rhs := m.Value; rhs != nil {
-		r.Value = rhs.CloneVT()
-	}
+	r.Value = m.Value.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -239,12 +237,8 @@ func (m *SqlSetRootOp) CloneVT() *SqlSetRootOp {
 	}
 	r := new(SqlSetRootOp)
 	r.ObjectKey = m.ObjectKey
-	if rhs := m.RootRef; rhs != nil {
-		r.RootRef = rhs.CloneVT()
-	}
-	if rhs := m.BaseRef; rhs != nil {
-		r.BaseRef = rhs.CloneVT()
-	}
+	r.RootRef = m.RootRef.CloneVT()
+	r.BaseRef = m.BaseRef.CloneVT()
 	if rhs := m.Statements; rhs != nil {
 		r.Statements = make([]*SqlStatement, len(rhs))
 		for k, v := range rhs {

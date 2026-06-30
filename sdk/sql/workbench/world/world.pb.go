@@ -51,9 +51,7 @@ func (m *SqlWorkbenchSetRootOp) CloneVT() *SqlWorkbenchSetRootOp {
 	}
 	r := new(SqlWorkbenchSetRootOp)
 	r.ObjectKey = m.ObjectKey
-	if rhs := m.RootRef; rhs != nil {
-		r.RootRef = rhs.CloneVT()
-	}
+	r.RootRef = m.RootRef.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
