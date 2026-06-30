@@ -33,11 +33,15 @@ func (c *Config) ParseBlockStoreWritebackTimeoutDur() (time.Duration, error) {
 // ParseGCIntervalDur parses the GC interval duration field.
 // Returns defaultGCInterval if empty.
 func (c *Config) ParseGCIntervalDur() (time.Duration, error) {
-	dur, err := confparse.ParseDuration(c.GetGcIntervalDur())
+	raw := c.GetGcIntervalDur()
+	if raw == "0" {
+		return 0, nil
+	}
+	dur, err := confparse.ParseDuration(raw)
 	if err != nil {
 		return 0, err
 	}
-	if dur == 0 && c.GetGcIntervalDur() == "" {
+	if dur == 0 && raw == "" {
 		return defaultGCInterval, nil
 	}
 	return dur, nil
