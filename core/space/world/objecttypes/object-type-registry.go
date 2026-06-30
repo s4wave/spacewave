@@ -25,17 +25,6 @@ import (
 	s4wave_org "github.com/s4wave/spacewave/sdk/org"
 	s4wave_org_world "github.com/s4wave/spacewave/sdk/org/world"
 	s4wave_secret_world "github.com/s4wave/spacewave/sdk/secret/world"
-	s4wave_sql_query "github.com/s4wave/spacewave/sdk/sql/query"
-	s4wave_sql_query_result "github.com/s4wave/spacewave/sdk/sql/query-result"
-	s4wave_sql_query_result_world "github.com/s4wave/spacewave/sdk/sql/query-result/world"
-	s4wave_sql_query_world "github.com/s4wave/spacewave/sdk/sql/query/world"
-	s4wave_sql_schema "github.com/s4wave/spacewave/sdk/sql/schema"
-	s4wave_sql_schema_world "github.com/s4wave/spacewave/sdk/sql/schema/world"
-	s4wave_sql_table_view "github.com/s4wave/spacewave/sdk/sql/table-view"
-	s4wave_sql_table_view_world "github.com/s4wave/spacewave/sdk/sql/table-view/world"
-	s4wave_sql_workbench "github.com/s4wave/spacewave/sdk/sql/workbench"
-	s4wave_sql_workbench_world "github.com/s4wave/spacewave/sdk/sql/workbench/world"
-	s4wave_sql_world "github.com/s4wave/spacewave/sdk/sql/world"
 	s4wave_sshhost "github.com/s4wave/spacewave/sdk/sshhost"
 	s4wave_sshhost_world "github.com/s4wave/spacewave/sdk/sshhost/world"
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
@@ -63,18 +52,10 @@ func LookupObjectType(ctx context.Context, typeID string) (objecttype.ObjectType
 		return s4wave_git_world.GitWorktreeType, nil
 	case s4wave_kv_world.KvStoreTypeID:
 		return s4wave_kv_world.KvStoreType, nil
-	case s4wave_sql_world.SqlDbTypeID:
-		return s4wave_sql_world.SqlDbType, nil
-	case s4wave_sql_query.SqlQueryTypeID:
-		return s4wave_sql_query_world.SqlQueryType, nil
-	case s4wave_sql_query_result.SqlQueryResultTypeID:
-		return s4wave_sql_query_result_world.SqlQueryResultType, nil
-	case s4wave_sql_schema.SqlSchemaTypeID:
-		return s4wave_sql_schema_world.SqlSchemaType, nil
-	case s4wave_sql_table_view.SqlTableViewTypeID:
-		return s4wave_sql_table_view_world.SqlTableViewType, nil
-	case s4wave_sql_workbench.SqlWorkbenchTypeID:
-		return s4wave_sql_workbench_world.SqlWorkbenchType, nil
+	// TODO: move SQL ObjectTypes into a separate spacewave-sql plugin.
+	// SQL stays out of spacewave-core so go-mysql-server is not in the core bundle.
+	// When wiring that plugin, pass the sql_lite build tag so go-mysql-server
+	// omits heavy features like collation maps.
 	case forge_cluster.ClusterTypeID:
 		return s4wave_forge_world.ClusterType, nil
 	case forge_job.JobTypeID:

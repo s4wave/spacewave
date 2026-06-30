@@ -74,3 +74,22 @@ func TestLookupSshHostObjectType(t *testing.T) {
 		t.Fatalf("object type id = %q, want %q", got.GetObjectTypeID(), s4wave_sshhost.SshHostTypeID)
 	}
 }
+
+func TestLookupOmitsSqlObjectTypesFromCore(t *testing.T) {
+	for _, typeID := range []string{
+		"sql/db",
+		"sql/query",
+		"sql/query-result",
+		"sql/schema",
+		"sql/table-view",
+		"sql/workbench",
+	} {
+		got, err := LookupObjectType(context.Background(), typeID)
+		if err != nil {
+			t.Fatalf("LookupObjectType(%s): %v", typeID, err)
+		}
+		if got != nil {
+			t.Fatalf("expected SQL ObjectType %s to stay out of spacewave-core, got %q", typeID, got.GetObjectTypeID())
+		}
+	}
+}
