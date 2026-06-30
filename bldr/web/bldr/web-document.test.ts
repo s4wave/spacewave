@@ -173,6 +173,27 @@ function installFakeDedicatedWorker() {
   return workers
 }
 
+function installFakeSharedWorker() {
+  class FakeSharedWorker {
+    public onerror: ((ev: Event) => void) | null = null
+    public readonly port = {
+      postMessage: vi.fn(),
+      start: vi.fn(),
+    }
+
+    public constructor(
+      public readonly url: string,
+      public readonly options?: WorkerOptions & { name?: string },
+    ) {
+      sharedWorkers.push(this)
+    }
+  }
+
+  const sharedWorkers: FakeSharedWorker[] = []
+  vi.stubGlobal('SharedWorker', FakeSharedWorker)
+  return sharedWorkers
+}
+
 describe('registerUpdatedServiceWorker', () => {
   afterEach(() => {
     vi.restoreAllMocks()
@@ -245,13 +266,13 @@ describe('shouldForceDedicatedWorkers', () => {
     expect(shouldForceDedicatedWorkers()).toBe(true)
   })
 
-  it('keeps SharedWorker runtime for non-Firefox browsers with SharedWorker', () => {
+  it('temporarily hard-disables SharedWorker runtime for Chrome with SharedWorker', () => {
     vi.stubGlobal('SharedWorker', class {})
     vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(
       'Mozilla/5.0 Chrome/143.0.0.0 Safari/537.36',
     )
 
-    expect(shouldForceDedicatedWorkers()).toBe(false)
+    expect(shouldForceDedicatedWorkers()).toBe(true)
   })
 })
 
@@ -467,6 +488,7 @@ describe('WebDocument resume-ready state', () => {
 describe('WebDocument plugin generation state', () => {
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
     resetStartupMarksForTest()
   })
 
@@ -834,6 +856,34 @@ describe('WebDocument plugin generation state', () => {
       true,
       undefined,
       WebWorkerGenerationState.NORMAL_STOP,
+    )
+  })
+
+  it('retains the SharedWorker construction path behind the hard-disable', async () => {
+    const sharedWorkers = installFakeSharedWorker()
+    const doc = buildTestWebDocument()
+    doc.forceDedicatedWorkers = false
+
+    await expect(
+      WebDocument.prototype.createWebWorker.call(doc, {
+        id: 'worker-shared',
+        path: '/b/pd/web/web.mjs',
+        workerMode: WebWorkerMode.WORKER_MODE_SHARED,
+      }),
+    ).resolves.toEqual({ created: true, shared: true })
+
+    const [worker] = sharedWorkers
+    if (!worker) {
+      throw new Error('expected SharedWorker construction')
+    }
+    expect(String(worker.url)).toContain('/shw.mjs')
+    expect(worker.options).toMatchObject({ type: 'module' })
+    expect(worker.port.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: 'document-1',
+        initPort: expect.any(Object),
+      }),
+      [expect.any(Object)],
     )
   })
 

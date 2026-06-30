@@ -57,6 +57,7 @@ import { detectWasmSupported } from './wasm-detect.js'
 import {
   detectWorkerCommsConfig,
   configDescription,
+  applyMessagePortWorkerCommsOverride,
   type WorkerCommsDetectResult,
 } from './worker-comms-detect.js'
 import { CrossTabManager } from './cross-tab-manager.js'
@@ -114,6 +115,13 @@ function isFirefoxBrowserRuntime(): boolean {
   return /\bFirefox\//.test(globalThis.navigator?.userAgent ?? '')
 }
 
+// sharedWorkerOpfsBugHardDisable keeps the entrypoint runtime out of
+// SharedWorker mode while Chromium issue 528332884 is active. The local repro is
+// a cross-origin-isolated SharedWorker receiving OPFS SecurityError from
+// navigator.storage.getDirectory(); this is a temporary hard-disable, not a
+// removal of the SharedWorker architecture or OPFS bridge.
+const sharedWorkerOpfsBugHardDisable = true
+
 // shouldForceDedicatedWorkers reports whether this browser document should
 // avoid SharedWorker-backed runtime and plugin workers.
 export function shouldForceDedicatedWorkers(
@@ -121,6 +129,7 @@ export function shouldForceDedicatedWorkers(
 ): boolean {
   return (
     !!forceDedicatedWorkers ||
+    sharedWorkerOpfsBugHardDisable ||
     typeof SharedWorker === 'undefined' ||
     isFirefoxBrowserRuntime()
   )
@@ -871,7 +880,10 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
     // Detect worker communication capabilities (SAB, OPFS, etc.).
     this.workerCommsDetect = detectWorkerCommsConfig().then((result) =>
-      this.forceMessagePortWorkerComms ? { ...result, config: 'A' } : result,
+      applyMessagePortWorkerCommsOverride(
+        result,
+        !!this.forceMessagePortWorkerComms,
+      ),
     )
     this.workerCommsDetect.then((result) => {
       const desc = configDescription(result.config)

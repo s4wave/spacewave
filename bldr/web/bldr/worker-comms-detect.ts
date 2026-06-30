@@ -124,3 +124,29 @@ export async function detectWorkerCommsConfig(): Promise<WorkerCommsDetectResult
   console.log('worker-comms: detected config', config, caps)
   return { config, caps }
 }
+
+// applyMessagePortWorkerCommsOverride applies a build/runtime request to force
+// Config A (SharedWorker/MessagePort), refusing the override when the page
+// genuinely has crossOriginIsolated + SharedArrayBuffer. Forcing MessagePort
+// transport on top of a real Config B/C page is a known capability mismatch,
+// not a supported configuration: WebDocument.registerWebView throws because
+// the document closes itself when the forced config disagrees with the
+// capabilities the page actually detected.
+export function applyMessagePortWorkerCommsOverride(
+  result: WorkerCommsDetectResult,
+  forceMessagePortWorkerComms: boolean,
+): WorkerCommsDetectResult {
+  if (!forceMessagePortWorkerComms || result.config === 'A') {
+    return result
+  }
+  if (result.caps.crossOriginIsolated && result.caps.sabAvailable) {
+    console.warn(
+      'worker-comms: ignoring forceMessagePortWorkerComms override: page has ' +
+        'crossOriginIsolated + SharedArrayBuffer (detected config ' +
+        result.config +
+        '), forcing Config A on top of that is an unsafe capability mismatch',
+    )
+    return result
+  }
+  return { ...result, config: 'A' }
+}
