@@ -216,11 +216,6 @@ func shouldLogBrowserConsole(msgType, text string) bool {
 	return strings.Contains(text, "level=error") || strings.Contains(text, "level=warning")
 }
 
-// loadAppPage loads the app base URL into the session page.
-func (h *Harness) loadAppPage(s *TestSession) error {
-	return h.loadAppPageURL(s, h.baseURL)
-}
-
 func (h *Harness) loadAppPageURL(s *TestSession, targetURL string) error {
 	if s.page == nil {
 		return errors.New("session page not initialized")

@@ -6,16 +6,17 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/fastjson"
 	playwright "github.com/playwright-community/playwright-go"
 )
 
@@ -138,10 +139,7 @@ func TestQuickstartDriveLargeUploadBudgetReport(t *testing.T) {
 		Before:      before,
 		After:       after,
 	}
-	data, err := json.MarshalIndent(artifact, "", "  ")
-	if err != nil {
-		t.Fatalf("marshal TinyGo budget artifact: %v", err)
-	}
+	data := marshalDriveUploadBudgetArtifact(artifact)
 	artifactPath := driveUploadBudgetArtifactPath(t)
 	if err := WriteTraceArtifact(artifactPath, data); err != nil {
 		t.Fatalf("write TinyGo budget artifact: %v", err)
@@ -228,12 +226,9 @@ func TestQuickstartDriveUploadBudgetProfiles(t *testing.T) {
 		})
 	}
 
-	data, err := json.MarshalIndent(driveUploadBudgetProfilesArtifact{
+	data := marshalDriveUploadBudgetProfilesArtifact(driveUploadBudgetProfilesArtifact{
 		Profiles: profiles,
-	}, "", "  ")
-	if err != nil {
-		t.Fatalf("marshal TinyGo budget profile artifact: %v", err)
-	}
+	})
 	artifactPath := driveUploadBudgetProfilesArtifactPath(t)
 	if err := WriteTraceArtifact(artifactPath, data); err != nil {
 		t.Fatalf("write TinyGo budget profile artifact: %v", err)
@@ -616,6 +611,191 @@ type tinyGoBrowserBudgetTotals struct {
 	HighWaterBytes int64 `json:"highWaterBytes"`
 }
 
+func marshalDriveUploadBudgetArtifact(artifact driveUploadBudgetArtifact) []byte {
+	var arena fastjson.Arena
+	return marshalDriveUploadBudgetArtifactValue(&arena, artifact).MarshalTo(nil)
+}
+
+func marshalDriveUploadBudgetArtifactValue(arena *fastjson.Arena, artifact driveUploadBudgetArtifact) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("fixtureName", arena.NewString(artifact.FixtureName))
+	obj.Set("fixtureSize", arena.NewNumberString(strconv.FormatInt(artifact.FixtureSize, 10)))
+	obj.Set("startedAt", arena.NewString(artifact.StartedAt))
+	obj.Set("durationMs", arena.NewNumberString(strconv.FormatInt(artifact.DurationMS, 10)))
+	obj.Set("before", marshalTinyGoBudgetDebugPayloadValue(arena, artifact.Before))
+	obj.Set("after", marshalTinyGoBudgetDebugPayloadValue(arena, artifact.After))
+	return obj
+}
+
+func marshalDriveUploadBudgetProfilesArtifact(artifact driveUploadBudgetProfilesArtifact) []byte {
+	var arena fastjson.Arena
+	obj := arena.NewObject()
+	profiles := arena.NewArray()
+	for _, profile := range artifact.Profiles {
+		profiles.SetArrayItem(len(profiles.GetArray()), marshalDriveUploadBudgetProfileValue(&arena, profile))
+	}
+	obj.Set("profiles", profiles)
+	return obj.MarshalTo(nil)
+}
+
+func marshalDriveUploadBudgetProfileValue(arena *fastjson.Arena, profile driveUploadBudgetProfile) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("name", arena.NewString(profile.Name))
+	if profile.Status != "" {
+		obj.Set("status", arena.NewString(profile.Status))
+	}
+	if profile.DurationMS != 0 {
+		obj.Set("durationMs", arena.NewNumberString(strconv.FormatInt(profile.DurationMS, 10)))
+	}
+	obj.Set("before", marshalTinyGoBudgetDebugPayloadValue(arena, profile.Before))
+	obj.Set("after", marshalTinyGoBudgetDebugPayloadValue(arena, profile.After))
+	return obj
+}
+
+func marshalTinyGoBudgetDebugPayloadValue(arena *fastjson.Arena, payload tinyGoBudgetDebugPayload) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("budget", marshalTinyGoBrowserBudgetReportValue(arena, payload.Budget))
+	if len(payload.JSHeap) != 0 {
+		obj.Set("jsHeap", marshalFloat64MapValue(arena, payload.JSHeap))
+	}
+	obj.Set("now", arena.NewNumberString(strconv.FormatFloat(payload.Now, 'f', -1, 64)))
+	return obj
+}
+
+func marshalTinyGoBrowserBudgetReportValue(arena *fastjson.Arena, report tinyGoBrowserBudgetReport) *fastjson.Value {
+	obj := arena.NewObject()
+	if report.CurrentGenerationID != 0 {
+		obj.Set("currentGenerationId", arena.NewNumberInt(report.CurrentGenerationID))
+	}
+	generations := arena.NewArray()
+	for _, generation := range report.Generations {
+		generations.SetArrayItem(len(generations.GetArray()), marshalTinyGoBrowserBudgetGenerationValue(arena, generation))
+	}
+	obj.Set("generations", generations)
+	obj.Set("totals", marshalTinyGoBrowserBudgetTotalsValue(arena, report.Totals))
+	return obj
+}
+
+func marshalTinyGoBrowserBudgetGenerationValue(arena *fastjson.Arena, generation tinyGoBrowserBudgetGeneration) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("id", arena.NewNumberInt(generation.ID))
+	obj.Set("state", arena.NewString(generation.State))
+	owners := arena.NewArray()
+	for _, owner := range generation.Owners {
+		owners.SetArrayItem(len(owners.GetArray()), marshalTinyGoBrowserBudgetOwnerValue(arena, owner))
+	}
+	obj.Set("owners", owners)
+	return obj
+}
+
+func marshalTinyGoBrowserBudgetOwnerValue(arena *fastjson.Arena, owner tinyGoBrowserBudgetOwner) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("owner", arena.NewString(owner.Owner))
+	obj.Set("currentBytes", arena.NewNumberString(strconv.FormatInt(owner.CurrentBytes, 10)))
+	obj.Set("highWaterBytes", arena.NewNumberString(strconv.FormatInt(owner.HighWaterBytes, 10)))
+	obj.Set("currentCount", arena.NewNumberString(strconv.FormatInt(owner.CurrentCount, 10)))
+	obj.Set("highWaterCount", arena.NewNumberString(strconv.FormatInt(owner.HighWaterCount, 10)))
+	return obj
+}
+
+func marshalTinyGoBrowserBudgetTotalsValue(arena *fastjson.Arena, totals tinyGoBrowserBudgetTotals) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("currentBytes", arena.NewNumberString(strconv.FormatInt(totals.CurrentBytes, 10)))
+	obj.Set("highWaterBytes", arena.NewNumberString(strconv.FormatInt(totals.HighWaterBytes, 10)))
+	return obj
+}
+
+func marshalFloat64MapValue(arena *fastjson.Arena, values map[string]float64) *fastjson.Value {
+	obj := arena.NewObject()
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	for _, key := range keys {
+		obj.Set(key, arena.NewNumberString(strconv.FormatFloat(values[key], 'f', -1, 64)))
+	}
+	return obj
+}
+
+func parseTinyGoBudgetDebugPayload(data []byte) (tinyGoBudgetDebugPayload, error) {
+	var parser fastjson.Parser
+	v, err := parser.ParseBytes(data)
+	if err != nil {
+		return tinyGoBudgetDebugPayload{}, err
+	}
+	return parseTinyGoBudgetDebugPayloadValue(v), nil
+}
+
+func parseTinyGoBudgetDebugPayloadValue(v *fastjson.Value) tinyGoBudgetDebugPayload {
+	if v == nil {
+		return tinyGoBudgetDebugPayload{}
+	}
+	return tinyGoBudgetDebugPayload{
+		Budget: parseTinyGoBrowserBudgetReportValue(v.Get("budget")),
+		JSHeap: parseFloat64MapValue(v.GetObject("jsHeap")),
+		Now:    v.GetFloat64("now"),
+	}
+}
+
+func parseTinyGoBrowserBudgetReportValue(v *fastjson.Value) tinyGoBrowserBudgetReport {
+	if v == nil {
+		return tinyGoBrowserBudgetReport{}
+	}
+	return tinyGoBrowserBudgetReport{
+		CurrentGenerationID: v.GetInt("currentGenerationId"),
+		Generations:         parseTinyGoBrowserBudgetGenerations(v.GetArray("generations")),
+		Totals:              parseTinyGoBrowserBudgetTotalsValue(v.Get("totals")),
+	}
+}
+
+func parseTinyGoBrowserBudgetGenerations(values []*fastjson.Value) []tinyGoBrowserBudgetGeneration {
+	out := make([]tinyGoBrowserBudgetGeneration, 0, len(values))
+	for _, value := range values {
+		out = append(out, tinyGoBrowserBudgetGeneration{
+			ID:     value.GetInt("id"),
+			State:  string(value.GetStringBytes("state")),
+			Owners: parseTinyGoBrowserBudgetOwners(value.GetArray("owners")),
+		})
+	}
+	return out
+}
+
+func parseTinyGoBrowserBudgetOwners(values []*fastjson.Value) []tinyGoBrowserBudgetOwner {
+	out := make([]tinyGoBrowserBudgetOwner, 0, len(values))
+	for _, value := range values {
+		out = append(out, tinyGoBrowserBudgetOwner{
+			Owner:          string(value.GetStringBytes("owner")),
+			CurrentBytes:   value.GetInt64("currentBytes"),
+			HighWaterBytes: value.GetInt64("highWaterBytes"),
+			CurrentCount:   value.GetInt64("currentCount"),
+			HighWaterCount: value.GetInt64("highWaterCount"),
+		})
+	}
+	return out
+}
+
+func parseTinyGoBrowserBudgetTotalsValue(v *fastjson.Value) tinyGoBrowserBudgetTotals {
+	if v == nil {
+		return tinyGoBrowserBudgetTotals{}
+	}
+	return tinyGoBrowserBudgetTotals{
+		CurrentBytes:   v.GetInt64("currentBytes"),
+		HighWaterBytes: v.GetInt64("highWaterBytes"),
+	}
+}
+
+func parseFloat64MapValue(obj *fastjson.Object) map[string]float64 {
+	if obj == nil {
+		return nil
+	}
+	values := map[string]float64{}
+	obj.Visit(func(key []byte, value *fastjson.Value) {
+		values[string(key)] = value.GetFloat64()
+	})
+	return values
+}
+
 func captureTinyGoBudgetSnapshot(t testing.TB, sess *TestSession) (tinyGoBudgetDebugPayload, bool) {
 	t.Helper()
 
@@ -632,8 +812,8 @@ func captureTinyGoBudgetSnapshot(t testing.TB, sess *TestSession) (tinyGoBudgetD
 			if !ok || rawJSON == "null" {
 				continue
 			}
-			var payload tinyGoBudgetDebugPayload
-			if err := json.Unmarshal([]byte(rawJSON), &payload); err != nil {
+			payload, err := parseTinyGoBudgetDebugPayload([]byte(rawJSON))
+			if err != nil {
 				t.Fatalf("parse TinyGo budget snapshot: %v", err)
 			}
 			return payload, true

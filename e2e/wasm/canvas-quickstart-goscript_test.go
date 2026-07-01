@@ -3,10 +3,10 @@
 package wasm
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 
+	"github.com/aperturerobotics/fastjson"
 	playwright "github.com/playwright-community/playwright-go"
 )
 
@@ -273,11 +273,51 @@ func waitForCanvasRouteResourceProbe(t testing.TB, page playwright.Page) canvasR
 	if !ok {
 		t.Fatalf("unexpected Canvas route/resource probe result %T: %#v", raw, raw)
 	}
-	var probe canvasRouteResourceProbe
-	if err := json.Unmarshal([]byte(text), &probe); err != nil {
+	probe, err := parseCanvasRouteResourceProbe(text)
+	if err != nil {
 		t.Fatalf("decode Canvas route/resource probe: %v\nraw: %s", err, text)
 	}
 	return probe
+}
+
+func parseCanvasRouteResourceProbe(text string) (canvasRouteResourceProbe, error) {
+	var parser fastjson.Parser
+	v, err := parser.Parse(text)
+	if err != nil {
+		return canvasRouteResourceProbe{}, err
+	}
+	return canvasRouteResourceProbe{
+		Timeout:     v.GetBool("timeout"),
+		Hash:        string(v.GetStringBytes("hash")),
+		TimingState: string(v.GetStringBytes("timingState")),
+		HasViewport: v.GetBool("hasViewport"),
+		HasDemoNode: v.GetBool("hasDemoNode"),
+		AppText:     string(v.GetStringBytes("appText")),
+		RouteProbe: canvasRouteResourceData{
+			Skipped:      v.GetBool("routeProbe", "skipped"),
+			HasDebugRoot: v.GetBool("routeProbe", "hasDebugRoot"),
+			Step:         string(v.GetStringBytes("routeProbe", "step")),
+			Error:        string(v.GetStringBytes("routeProbe", "error")),
+			SpaceState: canvasRouteSpaceState{
+				Ready:      v.GetBool("routeProbe", "spaceState", "ready"),
+				IndexPath:  string(v.GetStringBytes("routeProbe", "spaceState", "indexPath")),
+				ObjectKeys: canvasFastJSONStringSlice(v.GetArray("routeProbe", "spaceState", "objectKeys")),
+				ObjectType: string(v.GetStringBytes("routeProbe", "spaceState", "objectType")),
+			},
+			CanvasAccess: canvasRouteCanvasState{
+				TypeID:     string(v.GetStringBytes("routeProbe", "canvasAccess", "typeId")),
+				ResourceID: v.GetInt64("routeProbe", "canvasAccess", "resourceId"),
+			},
+		},
+	}, nil
+}
+
+func canvasFastJSONStringSlice(values []*fastjson.Value) []string {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		out = append(out, string(value.GetStringBytes()))
+	}
+	return out
 }
 
 func addCanvasTextNode(t testing.TB, page playwright.Page, text string) {

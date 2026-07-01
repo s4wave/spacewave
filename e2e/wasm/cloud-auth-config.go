@@ -4,7 +4,7 @@ package wasm
 
 import (
 	"context"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/binary"
 	"net"
 	"net/http"
@@ -22,7 +22,7 @@ import (
 const e2eCloudAuthConfigPath = "/api/auth/config"
 
 func stableE2ECloudAuthConfigAddr(stateRoot string) string {
-	sum := sha1.Sum([]byte("e2e-cloud-auth|" + stateRoot))
+	sum := sha256.Sum256([]byte("e2e-cloud-auth|" + stateRoot))
 	port := 20000 + int(binary.BigEndian.Uint16(sum[:2])%30000)
 	return "127.0.0.1:" + strconv.Itoa(port)
 }

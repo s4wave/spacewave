@@ -3,7 +3,6 @@
 package wasm
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aperturerobotics/fastjson"
 	playwright "github.com/playwright-community/playwright-go"
 )
 
@@ -121,13 +121,11 @@ func installV86CdnMirrorRuntimeEnv(t testing.TB, sess *TestSession) {
 	}))
 	t.Cleanup(srv.Close)
 
-	envJSON, err := json.Marshal(map[string]string{
-		"SPACEWAVE_CDN_BASE_URL": srv.URL,
-		"SPACEWAVE_CDN_SPACE_ID": spaceID,
-	})
-	if err != nil {
-		t.Fatalf("encode v86 CDN runtime env: %v", err)
-	}
+	var arena fastjson.Arena
+	env := arena.NewObject()
+	env.Set("SPACEWAVE_CDN_BASE_URL", arena.NewString(srv.URL))
+	env.Set("SPACEWAVE_CDN_SPACE_ID", arena.NewString(spaceID))
+	envJSON := env.MarshalTo(nil)
 	script := fmt.Sprintf(
 		"globalThis.BLDR_RUNTIME_WASM_ENV = Object.assign({}, globalThis.BLDR_RUNTIME_WASM_ENV || {}, %s);",
 		envJSON,
@@ -221,7 +219,7 @@ func parseV86CdnByteRange(header string, size int64) (int64, int64, bool) {
 		return 0, 0, false
 	}
 	start64, err := strconv.ParseInt(parts[0], 10, 0)
-	if err != nil || start64 < 0 || start64 >= int64(size) {
+	if err != nil || start64 < 0 || start64 >= size {
 		return 0, 0, false
 	}
 	end := size - 1

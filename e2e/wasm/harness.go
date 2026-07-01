@@ -6,7 +6,7 @@ package wasm
 
 import (
 	"context"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"maps"
 	"net"
@@ -821,7 +821,7 @@ func (s *manifestWaitState) digest() string {
 		}
 	}
 	slices.Sort(refs)
-	sum := sha1.Sum([]byte(strings.Join(refs, ",")))
+	sum := sha256.Sum256([]byte(strings.Join(refs, ",")))
 	return hex.EncodeToString(sum[:])
 }
 
@@ -1040,7 +1040,7 @@ func buildHarnessStateRoot(repoRoot string, preserveStartupBuildCache bool) (str
 		// package e2e boots otherwise delete or close each other's state root.
 		tokenInput += "|" + exe + "|" + strconv.Itoa(os.Getpid())
 	}
-	sum := sha1.Sum([]byte(tokenInput))
+	sum := sha256.Sum256([]byte(tokenInput))
 	token := hex.EncodeToString(sum[:4])
 	return filepath.Join(stateRoot, label+"-"+token), nil
 }

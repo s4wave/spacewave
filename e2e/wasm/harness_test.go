@@ -2422,13 +2422,3 @@ func TestQuickstartDriveNavigateTrace(t *testing.T) {
 		t.Fatal("expected non-empty trace artifact")
 	}
 }
-
-func pageURLHash(t testing.TB, page playwright.Page) string {
-	t.Helper()
-	rawURL := page.URL()
-	hashIdx := strings.Index(rawURL, "#")
-	if hashIdx < 0 {
-		t.Fatalf("page URL %q has no hash route", rawURL)
-	}
-	return rawURL[hashIdx:]
-}
