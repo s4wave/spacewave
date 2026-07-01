@@ -1,47 +1,43 @@
 # Spacewave Agent Guide
 
-This file is the repository-local alignment layer for `repos/spacewave`.
+This is the repository-local guide for Spacewave. If a broader workspace
+rulebook is already in force, keep following it; this file adds Spacewave's
+product model, package boundaries, recurring hazards, and verification commands.
+If this is the only guide available, read it with `README.md`, `DESIGN.md`,
+`package.json`, `go.mod`, and the files near the target code before editing.
 
-This file assumes any broader workspace `AGENTS.md` that applies to the session
-has already been read before this repository-local guide. When this is the only
-guide available, read it with `README.md`, `DESIGN.md`, `package.json`,
-`go.mod`, and the files near the target code before editing.
+## Entry Contract
 
-## Skill-Style Entry Contract
-
-- Keep following the broader workspace rulebook when one is in force; this file
-  only adds Spacewave-specific alignment.
-- If the broader workspace provides private workflow, vocabulary, planning,
-  design, or review authority, use those owners before substantial design or
-  code instead of redefining them here.
-- When this is the only guide in force, build a short read list from
-  `README.md`, `DESIGN.md`, this file, nearby code, package scripts, tests, and
-  the subsystem README when present.
 - State the work surface and proof event before editing. For behavior-changing
   work, name the owner, invariant, falsifier, proof command, and adjacent risk.
 - Ask before branch changes, commits, pushes, releases, live-service mutation,
-  credentials, destructive cleanup, public API changes, durable data breaks, or
-  behavior changes that materially affect lifecycle, concurrency, persistence,
-  sync, latency, or user-visible behavior.
-- Preserve concurrent work. Treat dirty files you did not edit as user/agent
+  credential handling, destructive cleanup, public API changes, durable data
+  breaks, or behavior changes that materially affect lifecycle, concurrency,
+  persistence, sync, latency, or user-visible behavior.
+- Preserve concurrent work. Treat dirty files you did not edit as user or agent
   work; inspect before depending on them and never revert them unless asked.
-- Keep private planning state, notes, phase numbers, and internal workflow
-  references out of Spacewave code, comments, commits, and PRs.
+- Keep private planning artifacts, phase labels, process notes, and internal
+  workflow references out of Spacewave code, comments, commits, PRs, and public
+  docs.
+- Prefer the smallest complete owner-level fix, not the smallest diff. Delete
+  speculative code and shallow helpers when they sit inside the touched owner.
 
 ## Product Model
 
 Spacewave is a local-first Go and TypeScript application framework for
 peer-to-peer collaborative apps on Hydra and Bifrost. The shared substrate is
 Spaces, SharedObjects, storage/sync, Spacewave Cloud, PluginHost, and Bldr
-plugin loading; focused apps and plugins are front doors over that substrate.
+plugin loading. Focused apps and plugins are front doors over that substrate;
+they must not fork account, Space, SharedObject, storage, sync, cloud, or SDK
+semantics.
 
 Runtime reach must not fork the product model:
 
 - Go owns SDK/core semantics and native runtime paths.
-- Browser Go plugins target `web/js/wasm` through Bldr/TinyGo and run in
-  browser workers.
-- TypeScript plugins target `js` through WebWorker, QuickJS, and browser
-  QuickJS paths.
+- Browser Go plugins target `web/js/wasm` through Bldr/TinyGo and run in browser
+  workers.
+- TypeScript plugins target `js` through WebWorker, QuickJS, and browser QuickJS
+  paths.
 - GoScript is a selected-package Go-to-TypeScript compiler for browser builds
   and staging gates, not a guarantee that every Go package has GoScript parity.
 - Every Bldr plugin has its own bus. Cross-plugin behavior uses explicit
@@ -60,36 +56,34 @@ choice first.
 - Fix the owner of the invariant, state machine, lifecycle, resource, cache,
   storage, wire format, or UI data flow. Do not add caller-side guards that
   reconstruct owner state.
-- Prefer the simplest complete design, not the smallest diff. Delete
-  speculative code and shallow helpers; keep necessary owner rewrites.
-- No fixed-interval polling for state. Owners expose waits, watches,
-  broadcasts, conditions, event streams, or context-aware blocking calls.
+- No fixed-interval polling for state. Owners expose waits, watches, broadcasts,
+  conditions, event streams, or context-aware blocking calls.
 - No fire-and-forget goroutines from callbacks, handlers, WebSocket frames, or
   hot paths. Use `util/routine`, `util/keyed`, `util/refcount`, and
   `broadcast.Broadcast` under an owning lifecycle context.
 - Do not add dead-code fallback paths for impossible conditions. If construction
   guarantees a field, enforce construction and let violations fail at the owner.
 - Comments record durable invariants, contracts, boundaries, algorithms, or
-  historical failures only. Do not narrate the code or the session.
+  historical failures only. Do not narrate the code, task, or session.
 - Docs describe the current system in present-state wording, not migration
-  history, plan phases, or temporary implementation notes.
+  history, phase history, or temporary implementation notes.
 
-## Repository Basics
+## Repository Commands
 
-- Work from the repository root unless a command explicitly belongs in a
-  subdirectory.
-- Use `rg` for search, `bun` for JS/TS scripts, `uv` for Python, and repo-local
-  commands with explicit working directories.
-- Use `bun run ...`, not `npm`, `yarn`, `pnpm`, or bare package binaries.
-- Do not assume `bldr setup` needs a manual run. Bldr runs setup automatically
-  for most operations; run `bun run setup` only to repair stale `.bldr` exports
-  or module resolution.
+Run commands from the repository root unless a package README or script requires
+a subdirectory.
+
+- Use `bun run ...` for JS/TS/package scripts; do not use `npm`, `yarn`, `pnpm`,
+  `npx`, or bare package binaries from the shell.
+- Run `bun install` before treating generated/module-resolution failures as real.
+  Use `bun run setup` only to repair stale `.bldr` exports or module resolution
+  after dependencies are installed.
 - Do not edit, copy into, or sync files under `.bldr/src/`; it is generated.
   Edit source files in their original locations.
 - Keep large command output under `.tmp/` when needed, then inspect a short
   summary or tail. Do not commit `.tmp/`.
 - Do not use sleep loops for readiness, locks, files, ports, pids, or results.
-  Prefer one blocking command with a real timeout, or an event-backed background
+  Prefer one blocking command with a real timeout or an event-backed background
   run whose completion is reported once.
 - Do not add new prototypes in this repo unless explicitly asked and the target
   runtime cannot be exercised elsewhere. Production tests do not live in
@@ -102,13 +96,13 @@ choice first.
   `fix/<name>`.
 - If asked to commit, use DCO sign-off and conventional lowercase imperative
   subjects, for example `fix(db): bound opfs root lookup`.
-- Never mention private plans/scopes/phases or test-passing summaries in commit
-  messages or PRs. Name the product/code change.
+- Never mention private planning artifacts, phase labels, or test-passing
+  summaries in commit messages or PRs. Name the product/code change.
 - Do not push to `release` unless explicitly asked. When asked to push ordinary
   work, push `master`. Fast-forwarding `release` to `master` is a separate
   explicit release action; no merge commits.
-- Before any discard or restore, inspect `git status --short` and the exact
-  path diff. Reverse only hunks you authored.
+- Before any discard or restore, inspect `git status --short` and the exact path
+  diff. Reverse only hunks you authored.
 
 ## Dependencies And Vendoring
 
@@ -126,32 +120,30 @@ choice first.
 
 ## Go Rules
 
-- Read `style/principles.org` and `style/go.org` when available. If they are
-  not available, derive the same rules from the local code: one owner per
-  invariant, scannable file contracts, lifecycle-owned concurrency, earned
-  abstractions.
+- If an outer workspace provides Go/style rules, follow them. Otherwise derive
+  the same rules from local code: one owner per invariant, scannable file
+  contracts, lifecycle-owned concurrency, and earned abstractions.
 - Package/type structure matters more than helper fragmentation. Inline helpers
   that only name local shape checks; extract helpers only for real invariants,
   lifecycle transitions, domain operations, or shared mechanics.
-- `cmd/...` packages are adapters for flags, terminal formatting, process
-  setup, and calls into domain packages. Durable state transitions, graph or
-  storage mutations, runner scheduling, daemon policy, lifecycle recovery, and
-  reusable validation belong in owner packages.
+- `cmd/...` packages are adapters for flags, terminal formatting, process setup,
+  and calls into domain packages. Durable state transitions, graph or storage
+  mutations, runner scheduling, daemon policy, lifecycle recovery, and reusable
+  validation belong in owner packages.
 - One exported struct per `.go` file when practical, named after the struct.
   File layout: imports, exported type, constructor, getters, `Execute(ctx)` if
-  present, other context methods, non-context work, private helpers,
-  compile-time assertions.
+  present, other context methods, non-context work, private helpers, compile-time
+  assertions.
 - Imports have two groups: stdlib then external, one blank line between groups.
 - Doc comments start with the identifier and end with a period.
 - Prefer getters over cross-struct field chains.
-- Use `gopls rename` for symbol renames; do not manual find/replace
-  identifiers.
-- Avoid `fmt`, stdlib `log`, package-global loggers, `encoding/json`,
-  `reflect`, `sync.Map`, `interface{}` maps, and `panic` for control flow.
-  Use `strconv`, `github.com/pkg/errors`, explicit `*logrus.Entry` plumbing,
-  generated codecs, typed maps, and explicit owner APIs.
-- Log through a plumbed `le *logrus.Entry`; logrus entry methods are nil-safe,
-  so do not add defensive nil checks around them.
+- Use `gopls rename` for symbol renames; do not manual find/replace identifiers.
+- Avoid `fmt`, stdlib `log`, package-global loggers, `encoding/json`, `reflect`,
+  `sync.Map`, `interface{}` maps, and `panic` for control flow. Use `strconv`,
+  `github.com/pkg/errors`, explicit `*logrus.Entry` plumbing, generated codecs,
+  typed maps, and explicit owner APIs.
+- Log through a plumbed `le *logrus.Entry`; logrus entry methods are nil-safe, so
+  do not add defensive nil checks around them.
 - Prefer `slices`/`maps` helpers over `sort` unless implementing
   `sort.Interface` or using a legacy API.
 - Check new objects for `Release()` or `Close()` and bind cleanup immediately.
@@ -169,8 +161,7 @@ choice first.
 - Avoid CSS gradients unless an existing design pattern requires one.
 - Use `cn()` for conditional classes; do not interpolate class strings.
 - Import hooks directly (`useMemo`, not `React.useMemo`), prefer
-  `useCallback`/`useMemo`, and merge related `useState` values or use a
-  reducer.
+  `useCallback`/`useMemo`, and merge related `useState` values or use a reducer.
 - Function declarations for React components. One exported component per file,
   PascalCase filename, co-located tests as `ComponentName.test.tsx`.
 - Import paths use `.js` suffixes, even when importing `.ts` or `.tsx` files.
@@ -180,25 +171,25 @@ choice first.
   only for dynamic resource sets.
 - Raw `useEffect` plus `useState` is not the async data pattern. Use
   `useResource`, `useStreamingResource`, `useMappedResource`,
-  `useWatchStateRpc`, `useGetValueRpc`, `useSetValueRpc`,
-  `useRetryWithAbort`, `useAbortSignalEffect`, or local app hooks such as
-  `useRootResource` and `useStateAtomResource`.
+  `useWatchStateRpc`, `useGetValueRpc`, `useSetValueRpc`, `useRetryWithAbort`,
+  `useAbortSignalEffect`, or local app hooks such as `useRootResource` and
+  `useStateAtomResource`.
 - Raw `useEffect` is only for DOM side effects that load no async data and call
   no RPCs.
 - React Doctor suppressions are architecture smells. Split components, move
   async/state into hooks/resources, or use SDK/resource primitives before
   suppressing; suppress narrowly with the owner reason.
 - Prefer icon libraries in this order: `react-icons/lu`, `react-icons/ri`,
-  `react-icons/pi`, `react-icons/rx`. Keep related components on one icon
-  family when possible.
+  `react-icons/pi`, `react-icons/rx`. Keep related components on one icon family
+  when possible.
 - Use Vite static asset imports for images; do not use
   `new URL(..., import.meta.url).href`.
 
 ## Frontend State And Routing
 
-- Components inside the session tree use React contexts, not global URL
-  parsing. Use `useSessionIndex`, `usePath`, router context,
-  `useSessionNavigate`, and relative navigation.
+- Components inside the session tree use React contexts, not global URL parsing.
+  Use `useSessionIndex`, `usePath`, router context, `useSessionNavigate`, and
+  relative navigation.
 - Do not reconstruct `/u/${sessionIndex}/...` paths. `SessionIndexContext` and
   `SessionRouteContext` are set by `AppSession`; session indexes are 1-based.
 - TypeScript frontend code must not implement crypto, make direct cloud HTTP
@@ -208,9 +199,9 @@ choice first.
   Viewer components scope under the provided `['objectViewer', objectKey]`
   namespace with one domain prefix; do not include `objectKey` again and do not
   use an empty namespace.
-- `BottomBarLevel` props must be stable. Wrap button renderers in
-  `useCallback`, overlay elements in `useMemo`, and pass keys when rendered
-  content should update.
+- `BottomBarLevel` props must be stable. Wrap button renderers in `useCallback`,
+  overlay elements in `useMemo`, and pass keys when rendered content should
+  update.
 
 ## Package Boundaries
 
@@ -220,8 +211,8 @@ choice first.
   shell, window chrome, loading screens, and quickstarts.
 - Plugins import from `@s4wave/web/`, never `@s4wave/app/`. `app/` may import
   from both.
-- When adding plugin-importable files under `web/`, update the nearest
-  `index.ts` barrel so `spacewave-web` exposes the API.
+- When adding plugin-importable files under `web/`, update the nearest `index.ts`
+  barrel so `spacewave-web` exposes the API.
 - Singleton library APIs must be imported through `web/` re-exports when shared
   across bundles. Example: import `toast` from `@s4wave/web/ui/toaster.js`, not
   directly from `sonner`.
@@ -235,9 +226,9 @@ choice first.
 
 - Bldr setup output is generated. Do not edit `.bldr/src/` or hand-copy files
   there.
-- Controller factories are normally registered through `bldr.yaml` `configSet`
-  entries and package scans, not production `AddFactory` calls. Direct
-  `AddFactory` belongs in tests.
+- Controller factories are normally registered through Bldr `configSet` entries
+  and package scans, not production `AddFactory` calls. Direct `AddFactory`
+  belongs in tests.
 - `FetchManifest` idle readbacks are not proof that the manifest can never
   appear, and do not by themselves justify changing build ordering, splitting
   release scripts, or adding fallback paths. Bldr waits on manifest directives;
@@ -247,14 +238,16 @@ choice first.
 - `bldr/util/gocompiler` owns platform signing hooks. Preserve the env-var
   contract for macOS and Windows signing, and keep signing a no-op when signing
   credentials are unset.
-- `bldr/util/logfile` owns file logging. Preserve `--log-file`,
-  `BLDR_LOG_FILE`, console-vs-file level separation, auto-default logs for dev
-  and distribution entrypoints, and retention pruning.
-- Bldr `webPkgs` in `bldr.yaml` are shared at runtime through `/b/pkg/...`.
-  With `exclude: true`, another plugin must provide the package or runtime URLs
-  will 404.
+- `bldr/util/logfile` owns file logging. Preserve `--log-file`, `BLDR_LOG_FILE`,
+  console-vs-file level separation, auto-default logs for dev and distribution
+  entrypoints, and retention pruning.
+- Bldr `webPkgs` are shared at runtime through `/b/pkg/...`. With
+  `exclude: true`, another plugin must provide the package or runtime URLs will
+  404.
 - When adding TypeScript that must be bundled for Electron or browser
   entrypoints, update the relevant `//go:embed` `DistSources` in `dist.go`.
+- Treat Bldr config as the build graph. Change it only when the task truly
+  changes build inputs, manifests, platform targets, or generated exports.
 
 ## TinyGo, WASM, And Browser APIs
 
@@ -268,8 +261,8 @@ choice first.
 - Never block inside a JavaScript-to-Go callback. Copy or retain the needed
   values, start owner-lifecycle Go work, return to JS immediately, and report
   completion through the owning Promise, callback, stream, or port.
-- Do not pass raw wasm-memory pointer/length pairs to helper JS for long-lived
-  or large data.
+- Do not pass raw wasm-memory pointer/length pairs to helper JS for long-lived or
+  large data.
 - Bound heap pressure before crossing browser APIs; stream or chunk large
   uploads, block shards, SSTables, and RPC packets at the storage/transport
   owner.
@@ -280,14 +273,13 @@ choice first.
 
 ## RPC, Resources, Watches, And Cloud State
 
-- SDK RPCs returning mutable state are server-streaming `Watch*` RPCs, not
-  unary `Get*` RPCs. Unary RPCs are for immutable values or one-shot actions.
-- The UI uses `useStreamingResource` or watch hooks for server-pushed state.
-  Any state changed by CLI, another tab, or a background process must be
-  reactive.
+- SDK RPCs returning mutable state are server-streaming `Watch*` RPCs, not unary
+  `Get*` RPCs. Unary RPCs are for immutable values or one-shot actions.
+- The UI uses `useStreamingResource` or watch hooks for server-pushed state. Any
+  state changed by CLI, another tab, or a background process must be reactive.
 - Proto3 bool fields can deserialize to `undefined` in TypeScript. Use
-  `field ?? false` or `!!field`; loading state checks the containing message
-  for `null`.
+  `field ?? false` or `!!field`; loading state checks the containing message for
+  `null`.
 - RPCs returning `resource_id` allocate server resources. Wrap IDs with
   `resourceRef.createRef(id)`, bind fixed lifetimes with `using`, and release
   refs. Never discard resource IDs with `void`.
@@ -315,20 +307,20 @@ choice first.
 
 ## Cloud HTTP And Wire Formats
 
-- All HTTP traffic to `repos/spacewave-cloud` goes through
+- All Spacewave Cloud HTTP traffic from this repository goes through
   `core/provider/spacewave/client.go`.
 - Cloud API request and response bodies use proto-binary
-  `MarshalVT`/`UnmarshalVT` with `Content-Type: application/octet-stream`.
-  Every endpoint has typed request/response protos, including empty acks.
+  `MarshalVT`/`UnmarshalVT` with `Content-Type: application/octet-stream`. Every
+  endpoint has typed request/response protos, including empty acks.
 - Approved helpers include `doPostBinary`, `doGetBinary`, `doDelete`,
   `doPostStream`, and `doMultiSig`. Do not resurrect JSON helpers.
 - Streaming bulk routes, such as packfiles, release artifacts, and R2
   passthrough, carry raw byte streams. Consume them with streaming copies, not
   full buffering into proto decode.
-- Forbidden on the Spacewave <-> Cloud boundary: `doPostJSON`, `fastjson`,
-  proto JSON methods, hand-rolled JSON bodies, and hand-parsed JSON responses.
-- WebSocket frames from Cloud are binary envelope protos with oneof bodies.
-  Parse with `UnmarshalVT` and switch on the oneof.
+- Forbidden on the Spacewave <-> Cloud boundary: `doPostJSON`, `fastjson`, proto
+  JSON methods, hand-rolled JSON bodies, and hand-parsed JSON responses.
+- WebSocket frames from Cloud are binary envelope protos with oneof bodies. Parse
+  with `UnmarshalVT` and switch on the oneof.
 - In Go HTTP clients, drain unread response bodies to `io.Discard` before
   closing unless the full body has already been read or streamed to EOF.
 
@@ -341,8 +333,8 @@ choice first.
 - Other ULID-keyed resources also store the ULID verbatim; use separate typed
   columns/wrappers for disambiguation.
 - When calling `volume.ExBuildObjectStoreAPI`, pass the mounted volume's
-  `vol.GetID()`, never a reconstructed `StorageVolumeID(...)`. Plugin-host
-  proxy volumes change IDs; reconstructing raw IDs can hang alias matching.
+  `vol.GetID()`, never a reconstructed `StorageVolumeID(...)`. Plugin-host proxy
+  volumes change IDs; reconstructing raw IDs can hang alias matching.
 - When identifiers share a wire shape but mean different domain roles, encode
   the distinction in the owner library API with semantic helpers. Callers choose
   by meaning, not byte shape.
@@ -354,15 +346,15 @@ choice first.
 - `sdk/` proto packages use the full `s4wave.` prefix. `core/` protos use
   shorter package names. Cross-package type references use leading-dot fully
   qualified names.
-- After changing `.proto`, stage the `.proto` files first if using `aptre`,
-  then run `bun run gen`. Use `bun run gen:force` only when a forced rebuild is
+- After changing `.proto`, stage the `.proto` files first if using `aptre`, then
+  run `bun run gen`. Use `bun run gen:force` only when a forced rebuild is
   actually needed.
 - Never hand-edit generated `*.pb.go`, `*.pb.ts`, `*.pb.gs.ts`, `*.pb.cc`, or
   `*.pb.h`; change the source proto and regenerate.
 - Follow existing SDK/resource naming before inventing shapes. Use
-  `sdk/world/world.proto` and `sdk/world/` as the reference for resource
-  service naming, `MethodRequest`/`MethodResponse`, resource-id access, Go SDK
-  wrappers, TS Resource wrappers, and generated exports.
+  `sdk/world/world.proto` and `sdk/world/` as the reference for resource service
+  naming, `MethodRequest`/`MethodResponse`, resource-id access, Go SDK wrappers,
+  TS Resource wrappers, and generated exports.
 - Block-backed state should be a clean block DAG under the owning World object.
   Make a separate World object only for independent identity, graph
   relationships, permissions, lifecycle, or cross-owner references.
@@ -381,8 +373,8 @@ choice first.
 - `BeginReadOperation`, `NewTransaction(false)`, bucket cursors, GC wrappers,
   projection hydration, and resource read scopes are lock-owning transaction
   boundaries.
-- Never open a second read transaction on the same bbolt/kvtx-backed store
-  while holding the first. During mmap growth this can deadlock the process.
+- Never open a second read transaction on the same bbolt/kvtx-backed store while
+  holding the first. During mmap growth this can deadlock the process.
 - When layering wrappers, wrap the already-scoped store or add an owner API for
   the scoped wrapper; do not call an ordinary `BeginReadOperation` while already
   holding the underlying read scope.
@@ -409,8 +401,8 @@ choice first.
 
 ## Directive Patterns
 
-- Name resolvers descriptively, store the directive on the resolver, use
-  pointer receivers, and return resolver pointers.
+- Name resolvers descriptively, store the directive on the resolver, use pointer
+  receivers, and return resolver pointers.
 - Use `directive.NewValueResolver` for static values,
   `directive.NewFuncResolver` for simple async/watch logic, and custom resolver
   types only for complex state.
@@ -419,40 +411,39 @@ choice first.
   `ctx.Done()`.
 - In `HandleDirective`, do not filter on ephemeral state.
 - Never call `AddValue` inside `bcast.HoldLock`; it can deadlock.
-- Each directive gets an `Ex{DirectiveName}` helper wrapping
-  `bus.ExecWaitValue`. Prefer `Ex` helpers over direct `ExecWaitValue`.
+- Each directive gets an `Ex{DirectiveName}` helper wrapping `bus.ExecWaitValue`.
+  Prefer `Ex` helpers over direct `ExecWaitValue`.
 
 ## Testing And Verification
 
-Choose the narrowest tier that proves the changed behavior:
+Choose the narrowest tier that proves the changed behavior. Package scripts own
+repo-wide tags, timeouts, and e2e gates; raw `go test` is for narrow owner
+packages when no script fits.
 
-- JS unit tests: `*.test.ts` with Vitest/happy-dom for pure logic.
+- Fast repo check: `bun run testcheck`.
+- Standard JS/Go/browser suite: `bun run test`.
+- TypeScript and lint: `bun run check`, `bun run typecheck`, `bun run lint`.
+- Repo-wide Go tests: `bun run test:go`.
+- Narrow Go owner: `go test ./path/to/pkg` or the matching
+  `bun run test:go:<family>` script.
 - Browser tests: `*.browser.test.ts` / `*.e2e.test.ts` in vitest browser mode
-  for real browser APIs such as OPFS, BroadcastChannel, Web Locks, SharedArray
-  Buffer, and workers.
-- Playwright app E2E: use the relevant package script in `package.json` for
-  full app lifecycle, WASM boot, plugin rendering, and console checks
-  (`test:browser`, `test:go:e2e:*`, or a release lane).
+  for real browser APIs such as OPFS, BroadcastChannel, Web Locks,
+  SharedArrayBuffer, and workers.
+- Playwright/full app lifecycle: use the relevant package script in
+  `package.json` (`test:browser`, `test:go:e2e:*`, or a release lane).
 - Release web E2E: `bun run test:release:web` for static release output.
-- Go tests: `go test ./...`, scoped to the package when the change is narrow.
 
-Common commands:
+Spacewave is designed to have in-memory implementations for every component and
+subsystem. Before writing a mock, look for the existing in-memory owner or
+testbed; common anchors include `testbed/`, `db/testbed/`, `db/world/testbed/`,
+`db/unixfs/world/testbed/`, `core/resource/testbed/`,
+`core/resource/layout/testbed/`, `bldr/testbed/`, `net/testbed/`,
+`forge/testbed/`, and `sdk/testbed/`.
 
-```bash
-bun testcheck
-bun run test
-bun run check
-bun run typecheck
-bun run lint
-go build ./...
-go test ./...
-```
-
-Use `bun run test` or `bun testcheck`, not `bun test`; bare `bun test` invokes
-Bun's built-in runner instead of package scripts.
-
-Prefer `testbed.Default(ctx)` and real in-memory stack components over mocks.
-Mock only the explicit boundary under test.
+Prefer `testbed.Default(ctx)`, package-specific testbeds, and real in-memory
+stack components over mocks. Mock only the explicit boundary under test, or an
+edge case the in-memory stack cannot reasonably reproduce; name that reason in
+the test.
 
 E2E WASM rules:
 
@@ -470,8 +461,9 @@ cover the touched owner.
 ## Public Docs And Links
 
 - Public GitHub docs must link only to public repositories and public docs.
-- Do not leak local absolute paths, private planning files, or internal
-  plan/scope/review state into public docs, code comments, commits, or PRs.
+- Do not leak local absolute paths, private planning files, private planning or
+  review state, or internal process notes into public docs, code comments,
+  commits, or PRs.
 - Keep this guide general-purpose. It captures repository rules, recurring
-  patterns, and architectural invariants, not task-specific plans or historical
+  patterns, and architectural invariants, not task-specific history or temporary
   work notes.
