@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -75,12 +74,12 @@ func TestSqlDbFactoryCommitsWorldBackedRootAndReplaysOp(t *testing.T) {
 		t.Fatal("world object root did not advance")
 	}
 
-	lookupOp, err := optypes.LookupWorldOp(ctx, s4wave_sql_world.SqlSetRootOpId)
+	lookupOp, err := s4wave_sql_world.LookupSqlSetRootOp(ctx, s4wave_sql_world.SqlSetRootOpId)
 	if err != nil {
-		t.Fatalf("LookupWorldOp(%s): %v", s4wave_sql_world.SqlSetRootOpId, err)
+		t.Fatalf("LookupSqlSetRootOp(%s): %v", s4wave_sql_world.SqlSetRootOpId, err)
 	}
 	if _, ok := lookupOp.(*s4wave_sql_world.SqlSetRootOp); !ok {
-		t.Fatalf("LookupWorldOp returned %T, want *SqlSetRootOp", lookupOp)
+		t.Fatalf("LookupSqlSetRootOp returned %T, want *SqlSetRootOp", lookupOp)
 	}
 
 	op := s4wave_sql_world.NewSqlSetRootOp(objectKey, afterRoot, afterRoot, nil)
