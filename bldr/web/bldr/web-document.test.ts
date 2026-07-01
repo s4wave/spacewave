@@ -66,6 +66,7 @@ type TestWebDocument = {
   ): Promise<void>
   removeWebWorker(request: { id: string }): Promise<unknown>
   taskEnsureWebRuntimeConn(): void
+  webDocumentLivenessLockState?: 'idle' | 'pending' | 'held'
   webRuntimeClient: {
     openStream: () => Promise<unknown>
     waitConn?: () => Promise<unknown>
@@ -92,6 +93,11 @@ function buildTestWebDocument(hidden = false): TestWebDocument {
     resumeReadyPending: false,
     resumeReadySequence: 0,
     runtimeConnected: true,
+    webDocumentLivenessLockState: 'held',
+    webRuntimeClient: {
+      openStream: vi.fn(),
+      waitConn: vi.fn().mockResolvedValue(undefined),
+    },
     serviceWorkerPort: undefined,
     webViews: {},
     webWorkers: {},
@@ -827,6 +833,41 @@ describe('WebDocument plugin generation state', () => {
     expect(singletonAbort?.signal.aborted).toBe(false)
     expect(doc.singletonAbort).toBe(singletonAbort)
     expect(lockRequest).toHaveBeenCalledOnce()
+  })
+
+  it('re-arms the liveness lock when a suspend releases it and the document becomes visible', async () => {
+    const lockRequest = vi.fn(
+      (
+        _name: string,
+        _opts: { signal: AbortSignal },
+        callback: () => Promise<void> | undefined,
+      ) => {
+        void callback()
+        return new Promise<void>(() => {})
+      },
+    )
+    vi.stubGlobal('navigator', {
+      locks: { request: lockRequest },
+    })
+
+    const doc = buildTestWebDocument(true)
+    // A background/bfcache suspend released the liveness lock: state is idle
+    // even though the document still believes it is connected.
+    doc.webDocumentLivenessLockState = 'idle'
+    const waitConn = vi.fn().mockResolvedValue(undefined)
+    doc.webRuntimeClient = {
+      openStream: vi.fn(),
+      waitConn,
+    }
+
+    doc.onVisibilityChange(false)
+
+    expect(lockRequest).toHaveBeenCalledOnce()
+    expect(lockRequest.mock.calls[0][0]).toBe('bldr-doc-document-1')
+    expect(doc.webDocumentLivenessLockState).toBe('held')
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(waitConn).toHaveBeenCalledOnce()
   })
 
   it('routes attached DedicatedWorker runtime clients through the elected host owner', async () => {

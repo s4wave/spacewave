@@ -764,8 +764,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   private readonly workerCommsDetect: Promise<WorkerCommsDetectResult>
   // crossTabManager manages brokered cross-tab MessagePort channels.
   public readonly crossTabManager: CrossTabManager
-  // abortController aborts the Web Lock request on close.
-  private abortController?: AbortController
+  // webDocumentLivenessAbort aborts the liveness Web Lock request on close.
+  private webDocumentLivenessAbort?: AbortController
   // webDocumentLivenessLockState prevents failover reconnects from queuing a
   // second same-document lock request behind the lock this document already
   // holds.
@@ -1153,83 +1153,26 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       this.webRuntimePort.start()
     }
 
-    const startWebRuntimeConnection = () => {
-      if (this.closed) {
-        return
-      }
-      // Acquire a Web Lock to enable reliable disconnect detection.
-      // The WebRuntime (SharedWorker) will try to acquire the same lock.
-      // When this page closes (or crashes), the lock is released and the
-      // WebRuntime can detect the disconnect without relying on timeouts.
-      //
-      // IMPORTANT: We must acquire the lock BEFORE connecting to the WebRuntime,
-      // then send an armWebLock message to tell the WebRuntime to start watching.
-      // This avoids a race where the WebRuntime acquires the lock first.
-      if (shouldUseWebDocumentLivenessLock()) {
-        if (this.webDocumentLivenessLockState === 'held') {
-          this.taskEnsureWebRuntimeConn()
-          return
-        }
-        if (this.webDocumentLivenessLockState === 'pending') {
-          return
-        }
-        this.abortController = new AbortController()
-        const signal = this.abortController.signal
-        const lockName = buildWebDocumentLockName(this.webDocumentUuid)
-        this.webDocumentLivenessLockState = 'pending'
-        navigator.locks
-          .request(lockName, { signal }, () => {
-            if (this.closed || this.abortController?.signal !== signal) {
-              // Stale or closed grant: release the lock immediately. If this
-              // request still owns the pending state, return it to idle so a
-              // later connection attempt is not wedged behind a lock we just
-              // released (close() already resets state on its own path).
-              if (
-                !this.closed &&
-                this.webDocumentLivenessLockState === 'pending'
-              ) {
-                this.webDocumentLivenessLockState = 'idle'
-              }
-              return undefined
-            }
-            this.webDocumentLivenessLockState = 'held'
-            // Lock acquired - now safe to connect to WebRuntime. The runtime
-            // waits for this lock when we send armWebLock.
-            this.taskEnsureWebRuntimeConn()
-            // Hold the lock until the page closes.
-            return new Promise<void>(() => {})
-          })
-          .catch(() => {
-            if (this.abortController?.signal === signal) {
-              this.webDocumentLivenessLockState = 'idle'
-            }
-          })
-      } else {
-        // No Web Locks support - connect immediately.
-        this.taskEnsureWebRuntimeConn()
-      }
-    }
-
     const startDedicatedRuntime = () => {
       if (this.closed) {
         return
       }
       if (!this.dedicatedRuntimeHost) {
         startWebRuntimeWorker()
-        startWebRuntimeConnection()
+        this.startWebRuntimeConnection()
         return
       }
       this.dedicatedRuntimeHost.start({
         startHost: () => {
           startWebRuntimeWorker()
-          startWebRuntimeConnection()
+          this.startWebRuntimeConnection()
         },
         startAttached: () => {
-          startWebRuntimeConnection()
+          this.startWebRuntimeConnection()
         },
         startUnavailable: () => {
           startWebRuntimeWorker()
-          startWebRuntimeConnection()
+          this.startWebRuntimeConnection()
         },
       })
     }
@@ -1271,7 +1214,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         }
         runtimeStarted = true
         startWebRuntimeWorker()
-        startWebRuntimeConnection()
+        this.startWebRuntimeConnection()
       }
       const controlFallback = globalThis.setTimeout(
         startRuntimeOnce,
@@ -1735,10 +1678,10 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     this.releasePluginSingletonLock()
     this.dedicatedRuntimeHost?.close()
     this.dedicatedRuntimeHost = undefined
-    if (this.abortController) {
+    if (this.webDocumentLivenessAbort) {
       this.webDocumentLivenessLockState = 'idle'
-      this.abortController.abort()
-      this.abortController = undefined
+      this.webDocumentLivenessAbort.abort()
+      this.webDocumentLivenessAbort = undefined
     }
   }
 
@@ -2040,9 +1983,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     // Emit the visibilitychange event
     this.emit('visibilitychange', hidden)
     if (!hidden) {
-      if (!this.runtimeConnected) {
-        this.taskEnsureWebRuntimeConn()
-      }
+      // Re-arm the liveness Web Lock and runtime channel. A background/bfcache
+      // suspend can release the lock, so re-acquiring it here (idempotent when
+      // still held) restores reliable disconnect detection instead of leaving
+      // the runtime torn down until a manual reload.
+      this.startWebRuntimeConnection()
       this.scheduleResumeReadySeed()
     }
   }
@@ -2881,6 +2826,66 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       runtimeId: this.webRuntimeId,
       from,
     })
+  }
+
+  // startWebRuntimeConnection acquires the liveness Web Lock and connects to the
+  // WebRuntime. It is idempotent: when the lock is already held it just ensures
+  // the runtime channel, when a request is in flight it does nothing, and when
+  // the lock is idle (never acquired, or released while the tab was hidden and
+  // throttled/frozen) it re-acquires it. The become-visible path calls this to
+  // restore reliable disconnect detection instead of leaving the runtime torn
+  // down until a manual reload.
+  private startWebRuntimeConnection() {
+    if (this.closed) {
+      return
+    }
+    // Acquire a Web Lock to enable reliable disconnect detection. The WebRuntime
+    // tries to acquire the same lock; when this page closes or crashes the lock
+    // releases and the WebRuntime detects the disconnect without timeouts.
+    //
+    // The lock must be acquired BEFORE connecting to the WebRuntime, then an
+    // armWebLock message tells the WebRuntime to start watching. This avoids a
+    // race where the WebRuntime acquires the lock first.
+    if (!shouldUseWebDocumentLivenessLock()) {
+      // No Web Locks support - connect immediately.
+      this.taskEnsureWebRuntimeConn()
+      return
+    }
+    if (this.webDocumentLivenessLockState === 'held') {
+      this.taskEnsureWebRuntimeConn()
+      return
+    }
+    if (this.webDocumentLivenessLockState === 'pending') {
+      return
+    }
+    this.webDocumentLivenessAbort = new AbortController()
+    const signal = this.webDocumentLivenessAbort.signal
+    const lockName = buildWebDocumentLockName(this.webDocumentUuid)
+    this.webDocumentLivenessLockState = 'pending'
+    navigator.locks
+      .request(lockName, { signal }, () => {
+        if (this.closed || this.webDocumentLivenessAbort?.signal !== signal) {
+          // Stale or closed grant: release the lock immediately. If this request
+          // still owns the pending state, return it to idle so a later
+          // connection attempt is not wedged behind a lock we just released
+          // (close() already resets state on its own path).
+          if (!this.closed && this.webDocumentLivenessLockState === 'pending') {
+            this.webDocumentLivenessLockState = 'idle'
+          }
+          return undefined
+        }
+        this.webDocumentLivenessLockState = 'held'
+        // Lock acquired - now safe to connect to WebRuntime. The runtime waits
+        // for this lock when we send armWebLock.
+        this.taskEnsureWebRuntimeConn()
+        // Hold the lock until the page closes.
+        return new Promise<void>(() => {})
+      })
+      .catch(() => {
+        if (this.webDocumentLivenessAbort?.signal === signal) {
+          this.webDocumentLivenessLockState = 'idle'
+        }
+      })
   }
 
   // taskEnsureWebRuntimeConn ensures an active connection with the WebRuntime.
