@@ -4,13 +4,16 @@ import (
 	"context"
 	"sync"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/csync"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/routine"
+	"github.com/pkg/errors"
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
 	"github.com/s4wave/spacewave/core/bstore"
 	provider "github.com/s4wave/spacewave/core/provider"
@@ -154,7 +157,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	volumeID := storageVolumeID
 
 	// Start the storage volume controller.
-	volCtrl, _, volCtrlRef, err := loader.WaitExecControllerRunningTyped[volume.Controller](
+	volCtrl, volCtrlRef, err := waitExecVolumeController(
 		ctx,
 		t.p.b,
 		resolver.NewLoadControllerWithConfig(&storage_volume.Config{
@@ -322,6 +325,40 @@ func (a *ProviderAccount) GetStorageStatsSnapshotWithWait(
 		return stats, nil, err
 	}
 	return statsProvider.GetStorageStatsSnapshotWithWait(ctx)
+}
+
+// waitExecVolumeController waits for a storage-volume controller without the
+// generated typed loader helper so browser builds do not depend on its callback
+// select lowering.
+func waitExecVolumeController(
+	ctx context.Context,
+	b bus.Bus,
+	dir directive.Directive,
+	disposeCb func(),
+) (volume.Controller, directive.Reference, error) {
+	execValue, _, ref, err := bus.ExecWaitValue[loader.ExecControllerValue](
+		ctx,
+		b,
+		dir,
+		nil,
+		disposeCb,
+		func(val loader.ExecControllerValue) (bool, error) {
+			if err := val.GetError(); err != nil {
+				return false, err
+			}
+			return val.GetController() != nil, nil
+		},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	volCtrl, ok := execValue.GetController().(volume.Controller)
+	if !ok {
+		ref.Release()
+		return nil, nil, errors.New("exec controller constructed unexpected controller type")
+	}
+	return volCtrl, ref, nil
 }
 
 // _ is a type assertion

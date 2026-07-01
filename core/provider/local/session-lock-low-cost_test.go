@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/util/scrub"
@@ -53,6 +54,49 @@ func TestMountedPINUnlockRestoresLocalSessionStateLowCost(t *testing.T) {
 	if mounted.GetPrivKey() == nil {
 		t.Fatal("expected future mount to receive unlocked session")
 	}
+}
+
+func TestEnsureSessionTransportReleasesAccountLockWhileWaitingReady(t *testing.T) {
+	ctx := t.Context()
+	_, _, acc, sess, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+	acc.StopSessionTransport()
+
+	waitCtx, cancel := context.WithCancel(ctx)
+	done := make(chan error, 1)
+	go func() {
+		_, _, err := acc.ensureSessionTransport(waitCtx, sess.GetPrivKey(), "ws://127.0.0.1:1")
+		done <- err
+	}()
+
+	running, ch := acc.GetTransportSnapshotWithWait()
+	for !running {
+		select {
+		case <-ch:
+			running, ch = acc.GetTransportSnapshotWithWait()
+		case err := <-done:
+			cancel()
+			if err != nil {
+				t.Fatalf("transport exited before wait state: %v", err)
+			}
+			t.Fatal("transport exited before wait state")
+		case <-ctx.Done():
+			cancel()
+			t.Fatal(ctx.Err())
+		}
+	}
+
+	lockCtx, lockCancel := context.WithTimeout(ctx, time.Second)
+	defer lockCancel()
+	rel, err := acc.mtx.Lock(lockCtx)
+	if err != nil {
+		cancel()
+		t.Fatalf("account mutex stayed locked while transport was waiting: %v", err)
+	}
+	rel()
+
+	cancel()
+	<-done
 }
 
 func configureLowCostPINLock(ctx context.Context, t *testing.T, sess *Session, pin []byte) {

@@ -34,30 +34,34 @@ func (a *ProviderAccount) createSessionTransport(ctx context.Context, sessionKey
 	if err != nil {
 		return nil, err
 	}
-	defer rel()
-
-	return a.createSessionTransportLocked(ctx, sessionKey, signalingURL)
+	sts, exitedCh, err := a.startSessionTransportLocked(ctx, sessionKey, signalingURL)
+	rel()
+	if err != nil {
+		return nil, err
+	}
+	if err := a.waitSessionTransportReady(ctx, sts, exitedCh); err != nil {
+		return nil, err
+	}
+	return sts, nil
 }
 
-func (a *ProviderAccount) createSessionTransportLocked(ctx context.Context, sessionKey crypto.PrivKey, signalingURL string) (*sessionTransportState, error) {
+func (a *ProviderAccount) startSessionTransportLocked(ctx context.Context, sessionKey crypto.PrivKey, signalingURL string) (*sessionTransportState, <-chan error, error) {
 	a.stopSessionTransportLocked()
 
 	st, err := transport.NewSessionTransport(a.le, a.t.p.b, sessionKey, signalingURL, "")
 	if err != nil {
-		return nil, errors.Wrap(err, "create session transport")
+		return nil, nil, errors.Wrap(err, "create session transport")
 	}
 
 	// exitedCh signals startup failure (Execute returned before Ready).
-	exitedCh := make(chan struct{}, 1)
-	var exitErr error
+	exitedCh := make(chan error, 1)
 	var sts *sessionTransportState
 
 	rc := routine.NewRoutineContainerWithLogger(
 		a.le.WithField("routine", "session-transport"),
 		routine.WithExitCb(func(err error) {
-			exitErr = err
 			select {
-			case exitedCh <- struct{}{}:
+			case exitedCh <- err:
 			default:
 			}
 			if err != nil && !errors.Is(err, context.Canceled) {
@@ -86,15 +90,18 @@ func (a *ProviderAccount) createSessionTransportLocked(ctx context.Context, sess
 		bcast()
 	})
 
-	// Wait for ready or startup failure.
+	return sts, exitedCh, nil
+}
+
+func (a *ProviderAccount) waitSessionTransportReady(ctx context.Context, sts *sessionTransportState, exitedCh <-chan error) error {
 	select {
 	case <-ctx.Done():
-		a.stopSessionTransportLocked()
-		return nil, ctx.Err()
-	case <-exitedCh:
-		return nil, errors.Wrap(exitErr, "session transport failed to start")
-	case <-st.Ready():
-		return sts, nil
+		a.stopSessionTransportState(sts)
+		return ctx.Err()
+	case err := <-exitedCh:
+		return errors.Wrap(err, "session transport failed to start")
+	case <-sts.transport.Ready():
+		return nil
 	}
 }
 
@@ -215,18 +222,22 @@ func (a *ProviderAccount) ensureSessionTransport(
 	if err != nil {
 		return nil, false, err
 	}
-	defer rel()
 
 	var sts *sessionTransportState
 	a.transportBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		sts = a.sessionTransport
 	})
 	if sts != nil {
+		rel()
 		a.le.Debug("session transport already exists, skipping creation")
 		return sts, false, sts.transport.AwaitReady(ctx)
 	}
-	sts, err = a.createSessionTransportLocked(ctx, sessionPriv, relayURL)
-	return sts, true, err
+	sts, exitedCh, err := a.startSessionTransportLocked(ctx, sessionPriv, relayURL)
+	rel()
+	if err != nil {
+		return nil, false, err
+	}
+	return sts, true, a.waitSessionTransportReady(ctx, sts, exitedCh)
 }
 
 // GetOnlinePeerIDsWithWait returns the base58 peer IDs of paired devices that

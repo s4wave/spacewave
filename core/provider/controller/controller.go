@@ -39,6 +39,8 @@ type ProviderController struct {
 	// lookupPeerID is the peer id to lookup on the bus
 	// may be empty
 	lookupPeerID peer.ID
+	// requirePeer gates providers that need a bus peer before they can publish.
+	requirePeer bool
 	// providerCtr contains the provider initialized by Execute
 	providerCtr *ccontainer.CContainer[provider.Provider]
 }
@@ -52,12 +54,37 @@ func NewProviderController(
 	peerID peer.ID,
 	ctor Constructor,
 ) *ProviderController {
+	return newProviderController(le, bus, info, providerInfo, peerID, true, ctor)
+}
+
+// NewProviderControllerWithoutPeer constructs a provider controller that publishes
+// the provider without waiting for a bus peer.
+func NewProviderControllerWithoutPeer(
+	le *logrus.Entry,
+	bus bus.Bus,
+	info *controller.Info,
+	providerInfo *provider.ProviderInfo,
+	ctor Constructor,
+) *ProviderController {
+	return newProviderController(le, bus, info, providerInfo, "", false, ctor)
+}
+
+func newProviderController(
+	le *logrus.Entry,
+	bus bus.Bus,
+	info *controller.Info,
+	providerInfo *provider.ProviderInfo,
+	peerID peer.ID,
+	requirePeer bool,
+	ctor Constructor,
+) *ProviderController {
 	return &ProviderController{
 		le:           le,
 		bus:          bus,
 		info:         info,
 		providerInfo: providerInfo,
 		lookupPeerID: peerID,
+		requirePeer:  requirePeer,
 		ctor:         ctor,
 		providerCtr:  ccontainer.NewCContainer[provider.Provider](nil),
 	}
@@ -92,11 +119,16 @@ func (c *ProviderController) Execute(rctx context.Context) error {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
-	localPeer, _, localPeerRef, err := peer.GetPeerWithID(ctx, c.bus, c.lookupPeerID, false, ctxCancel)
-	if err != nil {
-		return err
+	var localPeer peer.Peer
+	var err error
+	if c.requirePeer {
+		var localPeerRef directive.Reference
+		localPeer, _, localPeerRef, err = peer.GetPeerWithID(ctx, c.bus, c.lookupPeerID, false, ctxCancel)
+		if err != nil {
+			return err
+		}
+		defer localPeerRef.Release()
 	}
-	defer localPeerRef.Release()
 
 	// validate provider info
 	if err := c.providerInfo.Validate(); err != nil {

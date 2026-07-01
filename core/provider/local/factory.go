@@ -47,9 +47,10 @@ func (t *Factory) Construct(
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
-	peerIDConstraint, err := cc.ParsePeerID()
-	if err != nil {
-		return nil, err
+	if cc.GetPeerId() != "" {
+		if _, err := cc.ParsePeerID(); err != nil {
+			return nil, err
+		}
 	}
 
 	providerID := cc.GetProviderId()
@@ -57,14 +58,13 @@ func (t *Factory) Construct(
 		providerID = ProviderID
 	}
 
-	// Construct the provider controller.
-	return provider_controller.NewProviderController(
+	// The local provider does not use a provider-level Peer. Account and session
+	// operations resolve the volume peer at their storage owner.
+	return provider_controller.NewProviderControllerWithoutPeer(
 		le,
 		t.bus,
 		controller.NewInfo(ControllerID, Version, controllerDescrip),
 		NewProviderInfo(providerID),
-		peerIDConstraint,
-
 		func(
 			ctx context.Context,
 			le *logrus.Entry,
