@@ -445,6 +445,52 @@ describe('useCanvasMutationQueue', () => {
     expect(result.current.effectiveState.nodes.get('a')?.x).toBe(50)
   })
 
+  it('keeps later confirmed nodes visible until their server update arrives', async () => {
+    const state0 = makeState([])
+    const resolvers: Array<() => void> = []
+    const send = vi.fn().mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolvers.push(resolve)
+        }),
+    )
+
+    const { result, rerender } = renderHook(
+      ({ serverState }) => useCanvasMutationQueue(serverState, send),
+      { initialProps: { serverState: state0 } },
+    )
+
+    act(() => {
+      result.current.enqueueNodesChange(
+        new Map([['first', makeNode({ id: 'first', x: 10 })]]),
+      )
+      result.current.enqueueNodesChange(
+        new Map([['second', makeNode({ id: 'second', x: 20 })]]),
+      )
+    })
+    expect(result.current.pending).toBe(2)
+
+    await act(async () => {
+      resolvers[0]()
+      await Promise.resolve()
+    })
+    rerender({
+      serverState: makeState([['first', makeNode({ id: 'first', x: 10 })]]),
+    })
+
+    expect(result.current.pending).toBe(1)
+    expect(result.current.effectiveState.nodes.has('first')).toBe(true)
+    expect(result.current.effectiveState.nodes.has('second')).toBe(true)
+
+    await act(async () => {
+      resolvers[1]()
+      await Promise.resolve()
+    })
+
+    expect(result.current.pending).toBe(1)
+    expect(result.current.effectiveState.nodes.has('second')).toBe(true)
+  })
+
   it('drops a confirmed mutation when server state already updated', async () => {
     const state1 = makeState([['a', makeNode({ id: 'a', x: 10 })]])
     let resolveSend: () => void

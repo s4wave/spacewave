@@ -11,7 +11,6 @@ import type {
 // CanvasMutation represents a pending canvas state change.
 interface CanvasMutation {
   seq: number
-  serverVersion: number
   setNodes?: Map<string, CanvasNodeData>
   removeNodeIds?: string[]
   addEdges?: CanvasEdgeData[]
@@ -36,6 +35,117 @@ export type SendMutationFn = (mutation: {
 
 function graphLinkKey(link: HiddenGraphLinkData): string {
   return `${link.subject}\n${link.predicate}\n${link.object}\n${link.label ?? ''}`
+}
+
+function bytesEqual(a?: Uint8Array, b?: Uint8Array): boolean {
+  if (!a || a.length === 0) return !b || b.length === 0
+  if (!b) return false
+  if (a.length !== b.length) return false
+  for (const [index, value] of a.entries()) {
+    if (value !== b[index]) return false
+  }
+  return true
+}
+
+function nodesEqual(a: CanvasNodeData, b: CanvasNodeData): boolean {
+  return (
+    a.id === b.id &&
+    a.x === b.x &&
+    a.y === b.y &&
+    a.width === b.width &&
+    a.height === b.height &&
+    a.zIndex === b.zIndex &&
+    a.type === b.type &&
+    (a.textContent ?? '') === (b.textContent ?? '') &&
+    (a.objectKey ?? '') === (b.objectKey ?? '') &&
+    (a.pinned ?? false) === (b.pinned ?? false) &&
+    (a.viewPath ?? '') === (b.viewPath ?? '') &&
+    bytesEqual(a.shapeData, b.shapeData)
+  )
+}
+
+function edgesEqual(a: CanvasEdgeData, b: CanvasEdgeData): boolean {
+  return (
+    a.id === b.id &&
+    a.sourceNodeId === b.sourceNodeId &&
+    a.targetNodeId === b.targetNodeId &&
+    (a.label ?? '') === (b.label ?? '') &&
+    a.style === b.style
+  )
+}
+
+function layoutMetadataEqual(
+  a: CanvasLayoutMetadataData,
+  b: CanvasLayoutMetadataData,
+): boolean {
+  return (
+    (a.stableNodeId ?? '') === (b.stableNodeId ?? '') &&
+    (a.lane ?? '') === (b.lane ?? '') &&
+    (a.rank ?? 0) === (b.rank ?? 0) &&
+    (a.group ?? '') === (b.group ?? '') &&
+    (a.projectionOwner ?? '') === (b.projectionOwner ?? '')
+  )
+}
+
+function mutationApplied(
+  serverState: CanvasStateData | null,
+  mutation: CanvasMutation,
+): boolean {
+  if (!serverState) return false
+
+  if (mutation.setNodes) {
+    for (const [id, node] of mutation.setNodes) {
+      const serverNode = serverState.nodes.get(id)
+      if (!serverNode || !nodesEqual(serverNode, node)) return false
+    }
+  }
+  if (mutation.removeNodeIds) {
+    for (const id of mutation.removeNodeIds) {
+      if (serverState.nodes.has(id)) return false
+    }
+  }
+  if (mutation.addEdges) {
+    const serverEdges = new Map(
+      serverState.edges.map((edge) => [edge.id, edge]),
+    )
+    for (const edge of mutation.addEdges) {
+      const serverEdge = serverEdges.get(edge.id)
+      if (!serverEdge || !edgesEqual(serverEdge, edge)) return false
+    }
+  }
+  if (mutation.removeEdgeIds) {
+    const serverEdgeIds = new Set(serverState.edges.map((edge) => edge.id))
+    for (const id of mutation.removeEdgeIds) {
+      if (serverEdgeIds.has(id)) return false
+    }
+  }
+  if (mutation.addHiddenGraphLinks) {
+    const serverLinks = new Set(serverState.hiddenGraphLinks.map(graphLinkKey))
+    for (const link of mutation.addHiddenGraphLinks) {
+      if (!serverLinks.has(graphLinkKey(link))) return false
+    }
+  }
+  if (mutation.removeHiddenGraphLinks) {
+    const serverLinks = new Set(serverState.hiddenGraphLinks.map(graphLinkKey))
+    for (const link of mutation.removeHiddenGraphLinks) {
+      if (serverLinks.has(graphLinkKey(link))) return false
+    }
+  }
+  if (mutation.setLayoutMetadata) {
+    for (const [id, metadata] of mutation.setLayoutMetadata) {
+      const serverMetadata = serverState.layoutMetadata.get(id)
+      if (!serverMetadata || !layoutMetadataEqual(serverMetadata, metadata)) {
+        return false
+      }
+    }
+  }
+  if (mutation.removeLayoutMetadataNodeIds) {
+    for (const id of mutation.removeLayoutMetadataNodeIds) {
+      if (serverState.layoutMetadata.has(id)) return false
+    }
+  }
+
+  return true
 }
 
 // applyMutations applies pending mutations on top of server state.
@@ -141,30 +251,34 @@ export interface MutationQueueResult {
 
 // useCanvasMutationQueue manages optimistic canvas state via a mutation queue.
 // Mutations are applied locally on top of server state and sent to the backend.
-// Once the server confirms (RPC success) and a new streaming state arrives,
-// the mutation is dropped from the queue. On RPC failure, the mutation is
-// removed immediately (server wins).
+// Once the server confirms (RPC success) and watched state contains the change,
+// the mutation is dropped from the queue. On RPC failure, the mutation is removed
+// immediately (server wins).
 export function useCanvasMutationQueue(
   serverState: CanvasStateData | null,
   sendMutation: SendMutationFn | null,
   onError?: (err: unknown) => void,
 ): MutationQueueResult {
   const nextSeqRef = useRef(0)
-  const serverVersionRef = useRef(0)
   const [queue, setQueue] = useState<CanvasMutation[]>([])
   const confirmedSeqs = useRef(new Set<number>())
+  const serverStateRef = useRef(serverState)
   const sendRef = useRef(sendMutation)
 
-  // When server state updates, drop confirmed mutations.
+  // Confirmed mutations stay optimistic until the watched state contains them.
   useEffect(() => {
-    serverVersionRef.current++
+    serverStateRef.current = serverState
     if (!serverState || confirmedSeqs.current.size === 0) return
 
     const confirmed = confirmedSeqs.current
     setQueue((prev) => {
-      const next = prev.filter((m) => !confirmed.has(m.seq))
+      const next = prev.filter((m) => {
+        if (!confirmed.has(m.seq)) return true
+        if (!mutationApplied(serverState, m)) return true
+        confirmed.delete(m.seq)
+        return false
+      })
       if (next.length === prev.length) return prev
-      confirmed.clear()
       return next
     })
   }, [serverState])
@@ -175,7 +289,7 @@ export function useCanvasMutationQueue(
   }, [sendMutation])
 
   const enqueue = useCallback(
-    (mutation: Omit<CanvasMutation, 'seq' | 'serverVersion'>) => {
+    (mutation: Omit<CanvasMutation, 'seq'>) => {
       const send = sendRef.current
       if (!send) return
 
@@ -183,7 +297,6 @@ export function useCanvasMutationQueue(
       const full: CanvasMutation = {
         ...mutation,
         seq,
-        serverVersion: serverVersionRef.current,
       }
       setQueue((prev) => [...prev, full])
 
@@ -193,10 +306,11 @@ export function useCanvasMutationQueue(
           setQueue((prev) => {
             const next = prev.filter((m) => {
               if (m.seq !== seq) return true
-              return serverVersionRef.current <= m.serverVersion
+              if (!mutationApplied(serverStateRef.current, m)) return true
+              confirmedSeqs.current.delete(seq)
+              return false
             })
             if (next.length === prev.length) return prev
-            confirmedSeqs.current.delete(seq)
             return next
           })
         },
