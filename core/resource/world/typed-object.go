@@ -58,7 +58,10 @@ func NewTypedObjectResourceWithContext(
 		lifecycleCtx:    lifecycleCtx,
 		lifecycleCancel: lifecycleCancel,
 	}
-	r.objects = keyed.NewKeyedRefCountWithLogger[typedObjectResourceKey, *typedObjectHandle](r.buildTypedObjectHandle, le)
+	r.objects = keyed.NewKeyedRefCount(
+		r.buildTypedObjectHandle,
+		keyed.WithExitLoggerWithNameFn[typedObjectResourceKey, *typedObjectHandle](le, typedObjectResourceKey.String),
+	)
 	r.objects.SetContext(lifecycleCtx, false)
 	return r
 }
@@ -161,6 +164,22 @@ type typedObjectResourceKey struct {
 	readOnly      bool
 	sessionPeerID peer.ID
 	engineID      string
+}
+
+func (k typedObjectResourceKey) String() string {
+	readOnly := "false"
+	if k.readOnly {
+		readOnly = "true"
+	}
+
+	name := "typed-object type=" + k.typeID + " object=" + k.objectKey + " readOnly=" + readOnly
+	if k.sessionPeerID != "" {
+		name += " sessionPeerID=" + k.sessionPeerID.String()
+	}
+	if k.engineID != "" {
+		name += " engineID=" + k.engineID
+	}
+	return name
 }
 
 type typedObjectHandle struct {
