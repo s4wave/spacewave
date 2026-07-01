@@ -57,6 +57,7 @@ type FakeDocMode = 'ok' | 'error' | 'silent'
 class FakeWebDocument {
   public requests = 0
   public readonly bridgePorts: MessagePort[] = []
+  public readonly requestIds: string[] = []
   public readonly docPort: MessagePort
   private readonly workerPort: MessagePort
   private mode: FakeDocMode = 'ok'
@@ -66,34 +67,44 @@ class FakeWebDocument {
     this.docPort = channel.port1
     this.workerPort = channel.port2
     this.docPort.onmessage = (ev: MessageEvent<ClientToWebDocument>) => {
-      if (!ev.data?.openOpfsWorker) {
+      const request = ev.data?.openOpfsWorker
+      if (!request) {
         return
       }
       this.requests++
+      this.requestIds.push(request.requestId)
       if (this.mode === 'silent') {
         return
       }
       if (this.mode === 'error') {
         const ack: WebDocumentToClient = {
           from: this.docId,
-          openOpfsWorkerAck: { from: this.docId, error: 'opfs unavailable' },
+          openOpfsWorkerAck: {
+            from: this.docId,
+            requestId: request.requestId,
+            error: 'opfs unavailable',
+          },
         }
         this.docPort.postMessage(ack)
         return
       }
       const bridge = new MessageChannel()
       this.bridgePorts.push(bridge.port2)
-      const ack: WebDocumentToClient = {
-        from: this.docId,
-        openOpfsWorkerAck: { from: this.docId },
-      }
-      this.docPort.postMessage(ack, [bridge.port1])
+      this.sendOpenAck(request.requestId, bridge.port1)
     }
     this.docPort.start()
   }
 
   public attach(bridge: RuntimeOpfsBridge): void {
     bridge.addWebDocument(this.docId, this.workerPort)
+  }
+
+  public sendOpenAck(requestId: string, port: MessagePort): void {
+    const ack: WebDocumentToClient = {
+      from: this.docId,
+      openOpfsWorkerAck: { from: this.docId, requestId },
+    }
+    this.docPort.postMessage(ack, [port])
   }
 
   public sendWorkerClosed(): void {
@@ -264,6 +275,50 @@ describe('RuntimeOpfsBridge', () => {
     expect(installedClient()).toBeInstanceOf(OpfsBridgeClient)
 
     bridge.close()
+  })
+
+  it('closes stale same-document OPFS acks with the wrong requestId', async () => {
+    installControllableLocks()
+    const bridge = new RuntimeOpfsBridge('worker-1')
+    const doc = addDoc(bridge, 'doc-1', 'silent')
+
+    const ensure = bridge.ensureBridge()
+    await vi.waitFor(() => {
+      expect(doc.requests).toBe(1)
+    })
+
+    let settled = false
+    ensure.then(() => {
+      settled = true
+    })
+    const stalePort = {
+      close: vi.fn(),
+    } as unknown as MessagePort
+    const handleMessage = Reflect.get(bridge, 'handleWebDocumentMessage') as (
+      this: RuntimeOpfsBridge,
+      webDocumentId: string,
+      ev: MessageEvent<WebDocumentToClient>,
+    ) => void
+    handleMessage.call(bridge, 'doc-1', {
+      data: {
+        from: 'doc-1',
+        openOpfsWorkerAck: {
+          from: 'doc-1',
+          requestId: 'wrong-request-id',
+        },
+      },
+      ports: [stalePort],
+    } as unknown as MessageEvent<WebDocumentToClient>)
+    expect(stalePort.close).toHaveBeenCalledOnce()
+    await Promise.resolve()
+    expect(settled).toBe(false)
+
+    const current = new MessageChannel()
+    doc.sendOpenAck(doc.requestIds[0], current.port1)
+    await expect(ensure).resolves.toBe(true)
+
+    bridge.close()
+    current.port2.close()
   })
 
   it('stops serving after close', async () => {

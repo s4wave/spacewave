@@ -3,15 +3,18 @@
 package wasm
 
 import (
+	"context"
+	"strings"
 	"testing"
 
 	playwright "github.com/playwright-community/playwright-go"
 )
 
 const (
-	dedicatedFallbackFolder = "dedicated-worker-fallback-proof"
-	dedicatedMultiTabLeft   = "dedicated-worker-multitab-left"
-	dedicatedMultiTabRight  = "dedicated-worker-multitab-right"
+	dedicatedFallbackFolder        = "dedicated-worker-fallback-proof"
+	dedicatedMultiTabLeft          = "dedicated-worker-multitab-left"
+	dedicatedMultiTabRight         = "dedicated-worker-multitab-right"
+	dedicatedFailoverReloadCounter = "__dedicatedHostFailoverLoadCount"
 
 	dedicatedHostRoleAttached = "attached"
 	dedicatedHostRoleHost     = "host"
@@ -80,6 +83,7 @@ func TestDedicatedWorkerHostMultiTab(t *testing.T) {
 		t.Fatalf("current drive hash: %v", err)
 	}
 
+	installDedicatedWorkerFailoverReloadCounter(t, sess)
 	rightPage, err := h.newBrowserPage(sess)
 	if err != nil {
 		t.Fatalf("open second app document: %v", err)
@@ -98,6 +102,9 @@ func TestDedicatedWorkerHostMultiTab(t *testing.T) {
 	AssertBrowserStartupDone(t, h, rightPage)
 	assertDedicatedWorkerHostTopology(t, rightPage, dedicatedHostRoleAttached)
 	waitForDriveEntry(t, rightPage, dedicatedMultiTabLeft)
+	pluginAssetURL := dedicatedWorkerPluginAssetURL(t, leftPage)
+	startDedicatedWorkerPluginAssetFetch(t, rightPage, pluginAssetURL)
+	markDedicatedWorkerFailoverCloseStart(t, rightPage)
 	if err := leftPage.Close(); err != nil {
 		t.Fatalf("close elected DedicatedWorker host document: %v", err)
 	}
@@ -105,6 +112,8 @@ func TestDedicatedWorkerHostMultiTab(t *testing.T) {
 	WaitForDriveReady(t, h, rightPage)
 	AssertBrowserStartupDone(t, h, rightPage)
 	assertDedicatedWorkerHostTopology(t, rightPage, dedicatedHostRoleHost)
+	assertNoDedicatedWorkerFailoverReload(t, rightPage)
+	assertDedicatedWorkerPluginAssetFetch(t, rightPage, pluginAssetURL)
 	assertDirectOpfsMarkers(t, rightPage)
 	waitForDriveEntry(t, rightPage, dedicatedMultiTabLeft)
 	createDriveFolder(t, rightPage, dedicatedMultiTabRight)
@@ -118,6 +127,54 @@ func TestDedicatedWorkerHostMultiTab(t *testing.T) {
 	waitForDriveEntry(t, rightPage, dedicatedMultiTabRight)
 	assertDedicatedWorkerHostTopology(t, rightPage, dedicatedHostRoleHost)
 	assertDriveRoute(t, rightPage, scenario.GetSessionIndex(), scenario.GetSpaceID())
+}
+
+// TestWebDocumentLivenessLockReleaseNoDeletion proves a liveness Web Lock grant
+// in the runtime is suspect evidence while the document port stays open. The
+// unit test pins the runtime-side suspect transition; this browser path releases
+// and re-acquires the page-held lock, then checks that Go did not observe a
+// remote-document teardown signal.
+func TestWebDocumentLivenessLockReleaseNoDeletion(t *testing.T) {
+	h := harness(t)
+	skipDedicatedWorkerFallbackIfUnsupported(t, h)
+
+	sess := h.NewCleanBlankSession(t)
+	installWebDocumentLivenessLockReleaseControl(t, sess)
+	console, stopConsole := sess.WatchConsole()
+	var consoleMessages []string
+	defer func() {
+		stopConsole()
+		consoleMessages = append(consoleMessages, drainConsoleMessages(console)...)
+		report := crashReportFromMessages(consoleMessages)
+		if report.HasCrash() {
+			t.Errorf("unexpected browser/WASM crash report during liveness release: %+v", report)
+		}
+		if report.HasExitedGoLoop() {
+			t.Errorf("unexpected exited-Go loop during liveness release: %+v", report)
+		}
+		assertNoRemoteDocumentDeletedLog(t, consoleMessages)
+	}()
+
+	if err := h.loadAppPageURL(sess, h.BaseURL()+"/#/"); err != nil {
+		t.Fatalf("load app: %v", err)
+	}
+	WaitForApp(t, sess.Page())
+	ctx, cancel := context.WithCancel(h.ctx)
+	t.Cleanup(cancel)
+	if err := sess.ConnectResources(ctx); err != nil {
+		t.Fatalf("connect resources: %v", err)
+	}
+
+	scenario := CreateDriveScenario(t, h, sess)
+	page := scenario.GetSession().Page()
+	WaitForDriveReady(t, h, page)
+	AssertBrowserStartupDone(t, h, page)
+	assertDedicatedWorkerHostTopology(t, page, dedicatedHostRoleHost)
+	assertWebDocumentLivenessLockControlReady(t, page)
+	released := releaseWebDocumentLivenessLock(t, page)
+	t.Logf("released WebDocument liveness lock %q", released)
+	assertWebDocumentLivenessLockRecovered(t, page)
+	assertDriveRoute(t, page, scenario.GetSessionIndex(), scenario.GetSpaceID())
 }
 
 func skipDedicatedWorkerFallbackIfUnsupported(t testing.TB, h *Harness) {
@@ -142,6 +199,297 @@ func watchFallbackConsole(t testing.TB, sess *TestSession, label string) func() 
 	}
 }
 
+func installDedicatedWorkerFailoverReloadCounter(t testing.TB, sess *TestSession) {
+	t.Helper()
+	script := `(() => {
+		const key = '` + dedicatedFailoverReloadCounter + `'
+		const count = Number(sessionStorage.getItem(key) || '0') + 1
+		sessionStorage.setItem(key, String(count))
+		globalThis.__dedicatedHostFailoverLoadCount = count
+	})()`
+	if err := sess.BrowserContext().AddInitScript(playwright.Script{Content: &script}); err != nil {
+		t.Fatalf("install DedicatedWorker failover reload counter: %v", err)
+	}
+}
+
+func installWebDocumentLivenessLockReleaseControl(t testing.TB, sess *TestSession) {
+	t.Helper()
+	script := `(() => {
+		const control = {
+			ready: false,
+			released: false,
+			recovered: false,
+			controlledName: '',
+			error: '',
+			release: null,
+		}
+		globalThis.__bldrLivenessLockControl = control
+		const locks = navigator.locks
+		if (!locks || typeof locks.request !== 'function') {
+			control.error = 'navigator.locks.request unavailable'
+			return
+		}
+		const originalRequest = locks.request.bind(locks)
+		locks.request = (name, options, callback) => {
+			const lockName = String(name)
+			if (lockName.startsWith('bldr-doc-') && !control.ready) {
+				return originalRequest(name, options, (...args) => {
+					control.ready = true
+					control.controlledName = lockName
+					return new Promise((resolve, reject) => {
+						control.release = () => {
+							if (control.released) return
+							control.released = true
+							originalRequest(lockName, {}, () => {
+								control.recovered = true
+								return new Promise(() => {})
+							}).catch((err) => {
+								control.error = String(err)
+							})
+							resolve(undefined)
+						}
+						try {
+							Promise.resolve(callback(...args)).catch(reject)
+						} catch (err) {
+							reject(err)
+						}
+					})
+				})
+			}
+			return originalRequest(name, options, callback)
+		}
+	})()`
+	if err := sess.BrowserContext().AddInitScript(playwright.Script{Content: &script}); err != nil {
+		t.Fatalf("install WebDocument liveness release control: %v", err)
+	}
+}
+
+func assertWebDocumentLivenessLockControlReady(t testing.TB, page playwright.Page) {
+	t.Helper()
+	raw, err := page.Evaluate(`() => {
+		const control = globalThis.__bldrLivenessLockControl
+		return {
+			present: !!control,
+			ready: !!control?.ready,
+			released: !!control?.released,
+			hasRelease: typeof control?.release === 'function',
+			controlledName: control?.controlledName ?? '',
+			error: control?.error ?? '',
+		}
+	}`, nil)
+	if err != nil {
+		t.Fatalf("read WebDocument liveness release control: %v", err)
+	}
+	proof, ok := raw.(map[string]any)
+	if !ok {
+		t.Fatalf("unexpected liveness release control proof %T: %#v", raw, raw)
+	}
+	if errMsg := stringField(proof, "error"); errMsg != "" {
+		t.Fatalf("WebDocument liveness release control failed: %s; proof=%#v", errMsg, proof)
+	}
+	if !boolField(proof, "present") || !boolField(proof, "ready") || !boolField(proof, "hasRelease") {
+		t.Fatalf("WebDocument liveness release control is not ready; proof=%#v", proof)
+	}
+	if name := stringField(proof, "controlledName"); !strings.HasPrefix(name, "bldr-doc-") {
+		t.Fatalf("WebDocument liveness release control captured unexpected lock %q; proof=%#v", name, proof)
+	}
+}
+
+func releaseWebDocumentLivenessLock(t testing.TB, page playwright.Page) string {
+	t.Helper()
+	raw, err := page.Evaluate(`() => {
+		const control = globalThis.__bldrLivenessLockControl
+		if (!control) throw new Error('liveness release control missing')
+		if (control.error) throw new Error(control.error)
+		if (typeof control.release !== 'function') {
+			throw new Error('liveness release function missing')
+		}
+		const name = control.controlledName || ''
+		control.release()
+		return name
+	}`, nil)
+	if err != nil {
+		t.Fatalf("release WebDocument liveness lock: %v", err)
+	}
+	name, ok := raw.(string)
+	if !ok || name == "" {
+		t.Fatalf("unexpected released liveness lock name %T: %#v", raw, raw)
+	}
+	return name
+}
+
+func assertWebDocumentLivenessLockRecovered(t testing.TB, page playwright.Page) {
+	t.Helper()
+	_, err := page.WaitForFunction(`() => {
+		const control = globalThis.__bldrLivenessLockControl
+		if (control?.error) throw new Error(control.error)
+		return !!control?.recovered
+	}`, nil, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(120000),
+	})
+	if err != nil {
+		t.Fatalf("WebDocument liveness lock did not recover: %v", err)
+	}
+}
+
+func drainConsoleMessages(messages <-chan string) []string {
+	var out []string
+	for {
+		select {
+		case msg, ok := <-messages:
+			if !ok {
+				return out
+			}
+			out = append(out, msg)
+		default:
+			return out
+		}
+	}
+}
+
+func crashReportFromMessages(messages []string) CrashReport {
+	var report CrashReport
+	for _, msg := range messages {
+		report.AddMessage(msg)
+	}
+	return report
+}
+
+func assertNoRemoteDocumentDeletedLog(t testing.TB, messages []string) {
+	t.Helper()
+	for _, msg := range messages {
+		if strings.Contains(msg, "removed remote web document") {
+			t.Fatalf("runtime deleted the remote web document after suspect lock release: %s", msg)
+		}
+	}
+}
+
+func dedicatedWorkerPluginAssetURL(t testing.TB, page playwright.Page) string {
+	t.Helper()
+	raw, err := page.Evaluate(`() => {
+		const marks = globalThis.__swStartupMarks ?? []
+		const dispatch = marks.find((mark) =>
+			mark.label === 'worker.create-dispatch-start' &&
+			mark.detail?.plugin &&
+			typeof mark.detail?.path === 'string' &&
+			mark.detail.path
+		)
+		if (!dispatch) {
+			throw new Error('plugin worker dispatch path not found')
+		}
+		return new URL(dispatch.detail.path, window.location.href).toString()
+	}`, nil)
+	if err != nil {
+		t.Fatalf("read plugin asset URL: %v", err)
+	}
+	url, ok := raw.(string)
+	if !ok || url == "" {
+		t.Fatalf("unexpected plugin asset URL %T: %#v", raw, raw)
+	}
+	return url
+}
+
+func startDedicatedWorkerPluginAssetFetch(
+	t testing.TB,
+	page playwright.Page,
+	url string,
+) {
+	t.Helper()
+	if _, err := page.Evaluate(`(arg) => {
+		const url = Array.isArray(arg) ? arg[0] : arg
+		globalThis.__dedicatedHostFailoverPluginFetchSettledAt = null
+		globalThis.__dedicatedHostFailoverPluginFetch = fetch(url, { cache: 'no-store' })
+			.then(async (resp) => {
+				const result = {
+					url,
+					ok: resp.ok,
+					status: resp.status,
+					body: (await resp.text()).slice(0, 120),
+				}
+				globalThis.__dedicatedHostFailoverPluginFetchSettledAt = performance.now()
+				return result
+			})
+			.catch((err) => {
+				globalThis.__dedicatedHostFailoverPluginFetchSettledAt = performance.now()
+				return {
+					url,
+					error: err instanceof Error ? err.message : String(err),
+				}
+			})
+		return true
+	}`, []any{url}); err != nil {
+		t.Fatalf("start in-flight plugin asset fetch: %v", err)
+	}
+}
+
+func markDedicatedWorkerFailoverCloseStart(t testing.TB, page playwright.Page) {
+	t.Helper()
+	if _, err := page.Evaluate(`() => {
+		globalThis.__dedicatedHostFailoverCloseStartedAt = performance.now()
+		return true
+	}`, nil); err != nil {
+		t.Fatalf("mark DedicatedWorker failover close start: %v", err)
+	}
+}
+
+func assertNoDedicatedWorkerFailoverReload(t testing.TB, page playwright.Page) {
+	t.Helper()
+	raw, err := page.Evaluate(`(arg) => {
+		const key = Array.isArray(arg) ? arg[0] : arg
+		return {
+			count: Number(sessionStorage.getItem(key) || globalThis.__dedicatedHostFailoverLoadCount || 0),
+			navigationTypes: performance.getEntriesByType('navigation').map((entry) => entry.type),
+		}
+	}`, []any{dedicatedFailoverReloadCounter})
+	if err != nil {
+		t.Fatalf("read DedicatedWorker failover reload counter: %v", err)
+	}
+	proof, ok := raw.(map[string]any)
+	if !ok {
+		t.Fatalf("unexpected reload counter proof %T: %#v", raw, raw)
+	}
+	if count := intField(proof, "count"); count != 1 {
+		t.Fatalf("survivor document reloaded during DedicatedWorker failover; proof=%#v", proof)
+	}
+}
+
+func assertDedicatedWorkerPluginAssetFetch(t testing.TB, page playwright.Page, url string) {
+	t.Helper()
+	raw, err := page.Evaluate(`async (arg) => {
+		const wantURL = Array.isArray(arg) ? arg[0] : arg
+		const promise = globalThis.__dedicatedHostFailoverPluginFetch
+		if (!promise || typeof promise.then !== 'function') {
+			throw new Error('plugin asset fetch promise not found')
+		}
+		const result = await promise
+		return {
+			...result,
+			wantURL,
+			closeStartedAt: globalThis.__dedicatedHostFailoverCloseStartedAt ?? null,
+			settledAt: globalThis.__dedicatedHostFailoverPluginFetchSettledAt ?? null,
+		}
+	}`, []any{url})
+	if err != nil {
+		t.Fatalf("await in-flight plugin asset fetch: %v", err)
+	}
+	result, ok := raw.(map[string]any)
+	if !ok {
+		t.Fatalf("unexpected plugin asset fetch proof %T: %#v", raw, raw)
+	}
+	if intField(result, "settledAt") < intField(result, "closeStartedAt") {
+		t.Fatalf("plugin asset fetch settled before host close; result=%#v", result)
+	}
+	if gotURL := stringField(result, "url"); gotURL != url {
+		t.Fatalf("plugin asset fetch URL=%q want %q; result=%#v", gotURL, url, result)
+	}
+	if errMsg := stringField(result, "error"); errMsg != "" {
+		t.Fatalf("plugin asset fetch failed after DedicatedWorker failover: %s; result=%#v", errMsg, result)
+	}
+	if !boolField(result, "ok") || intField(result, "status") != 200 {
+		t.Fatalf("plugin asset fetch did not return HTTP 200 after DedicatedWorker failover; result=%#v", result)
+	}
+}
+
 func assertDedicatedWorkerHostTopology(
 	t testing.TB,
 	page playwright.Page,
@@ -160,7 +508,7 @@ func assertDedicatedWorkerHostTopology(
 				runtimeMode = mark.detail?.mode ?? null
 				runtimeDocumentId = mark.detail?.documentId ?? null
 			}
-			if (mark.label === 'dedicated-host.lease-acquired') {
+			if (mark.label === 'dedicated-host.lease-acquired' || mark.label === 'dedicated-host.promoted') {
 				dedicatedHostRole = 'host'
 				dedicatedHostGeneration = mark.detail?.generation ?? null
 			}
@@ -275,7 +623,7 @@ func waitForDedicatedWorkerHostRole(
 		let hostGeneration = null
 		let hostDispatches = 0
 		for (const mark of marks) {
-			if (mark.label === 'dedicated-host.lease-acquired') {
+			if (mark.label === 'dedicated-host.lease-acquired' || mark.label === 'dedicated-host.promoted') {
 				role = 'host'
 				hostGeneration = mark.detail?.generation ?? null
 			}

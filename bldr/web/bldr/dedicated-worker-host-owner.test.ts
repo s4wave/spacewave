@@ -8,6 +8,120 @@ import {
 } from './dedicated-worker-host-owner.js'
 import { resetStartupMarksForTest } from './startup-marks.js'
 
+type TestLockOptions = {
+  signal?: AbortSignal
+  ifAvailable?: boolean
+}
+
+type TestLockRequest = {
+  name: string
+  opts: TestLockOptions
+  callback: (lock: Lock) => Promise<void> | void
+  resolve: () => void
+  reject: (err: unknown) => void
+  releaseAbort?: () => void
+}
+
+class TestLockManager {
+  public readonly request = vi.fn(
+    (
+      name: string,
+      opts: TestLockOptions,
+      callback: (lock: Lock) => Promise<void> | void,
+    ) =>
+      new Promise<void>((resolve, reject) => {
+        const entry: TestLockRequest = {
+          name,
+          opts,
+          callback,
+          resolve,
+          reject,
+        }
+        if (opts.signal?.aborted) {
+          reject(new DOMException('Lock request aborted', 'AbortError'))
+          return
+        }
+        const onAbort = () => {
+          this.pending = this.pending.filter((item) => item !== entry)
+          reject(new DOMException('Lock request aborted', 'AbortError'))
+        }
+        opts.signal?.addEventListener('abort', onAbort, { once: true })
+        entry.releaseAbort = () => {
+          opts.signal?.removeEventListener('abort', onAbort)
+        }
+        this.pending.push(entry)
+        this.drain()
+      }),
+  )
+
+  public readonly query = vi.fn(() =>
+    Promise.resolve({
+      held: this.held
+        ? [
+            {
+              name: this.held.name,
+              mode: 'exclusive',
+              clientId: 'test-holder',
+            } satisfies LockInfo,
+          ]
+        : [],
+      pending: this.pending.map(
+        (entry) =>
+          ({
+            name: entry.name,
+            mode: 'exclusive',
+            clientId: 'test-pending',
+          }) satisfies LockInfo,
+      ),
+    } satisfies LockManagerSnapshot),
+  )
+
+  private held?: TestLockRequest
+  private pending: TestLockRequest[] = []
+
+  private drain(): void {
+    if (this.held || this.pending.length === 0) {
+      return
+    }
+    const entry = this.pending.shift()
+    if (!entry) {
+      return
+    }
+    entry.releaseAbort?.()
+    this.held = entry
+    Promise.resolve(entry.callback({} as Lock)).then(
+      () => {
+        if (this.held === entry) {
+          this.held = undefined
+        }
+        entry.resolve()
+        this.drain()
+      },
+      (err: unknown) => {
+        if (this.held === entry) {
+          this.held = undefined
+        }
+        entry.reject(err)
+        this.drain()
+      },
+    )
+  }
+}
+
+function buildCallbacks() {
+  return {
+    startHost: vi.fn(),
+    startAttached: vi.fn(),
+    startUnavailable: vi.fn(),
+    promoteToHost: vi.fn(),
+  }
+}
+
+async function flushPromises(): Promise<void> {
+  await Promise.resolve()
+  await Promise.resolve()
+}
+
 describe('DedicatedWorkerHostOwner', () => {
   afterEach(() => {
     vi.restoreAllMocks()
@@ -15,52 +129,129 @@ describe('DedicatedWorkerHostOwner', () => {
     resetStartupMarksForTest()
   })
 
-  it('acquires and holds the runtime host lease as one generation', () => {
-    const lockRequest = vi.fn(
-      (
-        _name: string,
-        _opts: { ifAvailable?: boolean; signal?: AbortSignal },
-        callback: (lock: Lock | null) => Promise<void> | void,
-      ) => callback({} as Lock),
-    )
-    vi.stubGlobal('navigator', {
-      locks: {
-        request: lockRequest,
-      },
-    })
+  it('first standing lock grant becomes host', async () => {
+    const locks = new TestLockManager()
+    vi.stubGlobal('navigator', { locks })
     const owner = new DedicatedWorkerHostOwner('runtime-1', 'document-1')
-    const startHost = vi.fn()
-    const startAttached = vi.fn()
-    const startUnavailable = vi.fn()
+    const callbacks = buildCallbacks()
 
-    owner.start({ startHost, startAttached, startUnavailable })
+    owner.start(callbacks)
+    await flushPromises()
 
-    expect(lockRequest).toHaveBeenCalledWith(
+    expect(locks.request).toHaveBeenCalledWith(
       buildDedicatedWorkerHostLockName('runtime-1'),
-      expect.objectContaining({ ifAvailable: true }),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
       expect.any(Function),
     )
+    expect(locks.request.mock.calls[0][1]).not.toHaveProperty('ifAvailable')
     expect(owner.role).toBe('host')
     expect(owner.generation).toMatch(/^document-1-/)
-    expect(startHost).toHaveBeenCalledWith(owner.generation)
-    expect(startAttached).not.toHaveBeenCalled()
-    expect(startUnavailable).not.toHaveBeenCalled()
+    expect(callbacks.startHost).toHaveBeenCalledOnce()
+    expect(callbacks.startHost).toHaveBeenCalledWith(owner.generation)
+    expect(callbacks.startAttached).not.toHaveBeenCalled()
+    expect(callbacks.startUnavailable).not.toHaveBeenCalled()
+    expect(callbacks.promoteToHost).not.toHaveBeenCalled()
     expect(globalThis.__swStartupMarks?.map((mark) => mark.label)).toContain(
       'dedicated-host.lease-acquired',
     )
 
     owner.close()
-    expect(owner.role).toBe('closed')
+  })
+
+  it('second tab attaches while host lock is held', async () => {
+    const locks = new TestLockManager()
+    vi.stubGlobal('navigator', { locks })
+    const host = new DedicatedWorkerHostOwner('runtime-1', 'document-1')
+    host.start(buildCallbacks())
+    await flushPromises()
+    const attached = new DedicatedWorkerHostOwner('runtime-1', 'document-2')
+    const attachedCallbacks = buildCallbacks()
+
+    attached.start(attachedCallbacks)
+    await flushPromises()
+
+    expect(locks.query).toHaveBeenCalled()
+    expect(attached.role).toBe('attached')
+    expect(attachedCallbacks.startAttached).toHaveBeenCalledOnce()
+    expect(attachedCallbacks.startHost).not.toHaveBeenCalled()
+    expect(attachedCallbacks.promoteToHost).not.toHaveBeenCalled()
+
+    attached.close()
+    host.close()
+  })
+
+  it('standing request promotes attached tab on host release', async () => {
+    const locks = new TestLockManager()
+    vi.stubGlobal('navigator', { locks })
+    const host = new DedicatedWorkerHostOwner('runtime-1', 'document-1')
+    host.start(buildCallbacks())
+    await flushPromises()
+    const attached = new DedicatedWorkerHostOwner('runtime-1', 'document-2')
+    const attachedCallbacks = buildCallbacks()
+    attached.start(attachedCallbacks)
+    await flushPromises()
+
+    host.close()
+    await flushPromises()
+
+    expect(attached.role).toBe('host')
+    expect(attached.generation).toMatch(/^document-2-/)
+    expect(attachedCallbacks.promoteToHost).toHaveBeenCalledOnce()
+    expect(attachedCallbacks.startHost).not.toHaveBeenCalled()
+    expect(globalThis.__swStartupMarks?.map((mark) => mark.label)).toContain(
+      'dedicated-host.promoted',
+    )
+
+    attached.close()
+  })
+
+  it('close while pending aborts standing request', async () => {
+    const locks = new TestLockManager()
+    vi.stubGlobal('navigator', { locks })
+    const host = new DedicatedWorkerHostOwner('runtime-1', 'document-1')
+    host.start(buildCallbacks())
+    await flushPromises()
+    const pending = new DedicatedWorkerHostOwner('runtime-1', 'document-2')
+    const pendingCallbacks = buildCallbacks()
+
+    pending.start(pendingCallbacks)
+    pending.close()
+    host.close()
+    await flushPromises()
+
+    expect(pending.role).toBe('closed')
+    expect(pendingCallbacks.startAttached).not.toHaveBeenCalled()
+    expect(pendingCallbacks.startHost).not.toHaveBeenCalled()
+    expect(pendingCallbacks.promoteToHost).not.toHaveBeenCalled()
+  })
+
+  it('keeps no-Web-Locks fallback functional while marking the hazard', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    vi.stubGlobal('navigator', {})
+    const owner = new DedicatedWorkerHostOwner('runtime-1', 'document-1')
+    const callbacks = buildCallbacks()
+
+    owner.start(callbacks)
+
+    expect(owner.role).toBe('unavailable')
+    expect(callbacks.startUnavailable).toHaveBeenCalledOnce()
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('Web Locks unavailable'),
+    )
+    const unavailable = globalThis.__swStartupMarks?.find(
+      (mark) => mark.label === 'dedicated-host.election-unavailable',
+    )
+    expect(unavailable?.detail).toMatchObject({
+      hazard: expect.stringContaining('multiple OPFS writers'),
+    })
   })
 
   it('attaches to the elected host through the ServiceWorker relay', async () => {
-    const lockRequest = vi.fn(
-      (
-        _name: string,
-        _opts: { ifAvailable?: boolean; signal?: AbortSignal },
-        callback: (lock: Lock | null) => Promise<void> | void,
-      ) => callback(null),
-    )
+    const locks = new TestLockManager()
+    const host = new DedicatedWorkerHostOwner('runtime-1', 'document-1')
+    vi.stubGlobal('navigator', { locks })
+    host.start(buildCallbacks())
+    await flushPromises()
     const runtimeChannel = new MessageChannel()
     const postMessage = vi.fn((message: unknown, _transfer?: Transferable[]) => {
       const request = (message as Record<string, unknown>)
@@ -74,9 +265,7 @@ describe('DedicatedWorkerHostOwner', () => {
       )
     })
     vi.stubGlobal('navigator', {
-      locks: {
-        request: lockRequest,
-      },
+      locks,
       serviceWorker: {
         controller: {
           postMessage,
@@ -84,11 +273,8 @@ describe('DedicatedWorkerHostOwner', () => {
       },
     })
     const owner = new DedicatedWorkerHostOwner('runtime-1', 'document-2')
-    owner.start({
-      startHost: vi.fn(),
-      startAttached: vi.fn(),
-      startUnavailable: vi.fn(),
-    })
+    owner.start(buildCallbacks())
+    await flushPromises()
 
     const openedPort = await owner.openClientChannel({
       webRuntimeId: 'runtime-1',
@@ -115,20 +301,15 @@ describe('DedicatedWorkerHostOwner', () => {
     openedPort.close()
     runtimeChannel.port2.close()
     owner.close()
+    host.close()
   })
 
-  it('restarts election when an attached relay has no live host', async () => {
-    let lockAttempt = 0
-    const lockRequest = vi.fn(
-      (
-        _name: string,
-        _opts: { ifAvailable?: boolean; signal?: AbortSignal },
-        callback: (lock: Lock | null) => Promise<void> | void,
-      ) => {
-        lockAttempt++
-        return callback(lockAttempt === 1 ? null : ({} as Lock))
-      },
-    )
+  it('leaves election state alone when an attached relay has no live host', async () => {
+    const locks = new TestLockManager()
+    const host = new DedicatedWorkerHostOwner('runtime-1', 'document-1')
+    vi.stubGlobal('navigator', { locks })
+    host.start(buildCallbacks())
+    await flushPromises()
     const postMessage = vi.fn((message: unknown, _transfer?: Transferable[]) => {
       const request = (message as Record<string, unknown>)
         .connectDedicatedRuntimeHost as { port: MessagePort }
@@ -138,9 +319,7 @@ describe('DedicatedWorkerHostOwner', () => {
       })
     })
     vi.stubGlobal('navigator', {
-      locks: {
-        request: lockRequest,
-      },
+      locks,
       serviceWorker: {
         controller: {
           postMessage,
@@ -148,12 +327,9 @@ describe('DedicatedWorkerHostOwner', () => {
       },
     })
     const owner = new DedicatedWorkerHostOwner('runtime-1', 'document-2')
-    const startHost = vi.fn()
-    owner.start({
-      startHost,
-      startAttached: vi.fn(),
-      startUnavailable: vi.fn(),
-    })
+    const callbacks = buildCallbacks()
+    owner.start(callbacks)
+    await flushPromises()
 
     await expect(
       owner.openClientChannel({
@@ -163,16 +339,14 @@ describe('DedicatedWorkerHostOwner', () => {
       }),
     ).rejects.toThrow('no elected DedicatedWorker runtime host available')
 
-    expect(owner.role).toBe('host')
-    expect(startHost).toHaveBeenCalledWith(owner.generation)
-    expect(lockRequest).toHaveBeenCalledTimes(2)
-    expect(globalThis.__swStartupMarks?.map((mark) => mark.label)).toEqual(
-      expect.arrayContaining([
-        'dedicated-host.attach-lost',
-        'dedicated-host.lease-acquired',
-      ]),
+    expect(owner.role).toBe('attached')
+    expect(callbacks.startHost).not.toHaveBeenCalled()
+    expect(locks.request).toHaveBeenCalledTimes(2)
+    expect(globalThis.__swStartupMarks?.map((mark) => mark.label)).toContain(
+      'dedicated-host.attach-open-failed',
     )
 
     owner.close()
+    host.close()
   })
 })

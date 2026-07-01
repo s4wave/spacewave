@@ -96,14 +96,14 @@ export interface ClientToWebDocument {
   // connectWebRtcBridge requests a bridge MessagePort for WebRTC proxying.
   // The WebDocument creates a MessageChannel, sends one port back via
   // ConnectWebRtcBridgeAck, and creates a WebRTCBridgeEndpoint on the other.
-  connectWebRtcBridge?: true
+  connectWebRtcBridge?: { requestId: string }
   // openSabPair requests a same-tab SAB pair stream to another worker.
   openSabPair?: OpenSabPairRequest
   // closeSabPair releases same-tab SAB pair metadata after a stream closes.
   closeSabPair?: CloseSabPairRequest
   // openOpfsWorker requests a same-tab DedicatedWorker OPFS bridge.
   // The WebDocument returns OpenOpfsWorkerAck and the bridge MessagePort in event.ports.
-  openOpfsWorker?: true
+  openOpfsWorker?: { requestId: string }
   // dedicatedRuntimeHostLost reports that the WebDocument currently relaying
   // the DedicatedWorker host closed, so attached documents must re-elect.
   dedicatedRuntimeHostLost?: {
@@ -172,6 +172,8 @@ export interface ConnectWebRuntimeAck {
 export interface ConnectWebRtcBridgeAck {
   // from is the identifier of the WebDocument.
   from: string
+  // requestId identifies the bridge request this ack resolves.
+  requestId: string
   // bridgePort is the MessagePort to use for WebRTC bridge commands.
   bridgePort: MessagePort
 }
@@ -182,6 +184,8 @@ export interface ConnectWebRtcBridgeAck {
 export interface OpenOpfsWorkerAck {
   // from is the identifier of the WebDocument.
   from: string
+  // requestId identifies the OPFS worker request this ack resolves.
+  requestId: string
   // error reports that the WebDocument could not open the OPFS worker.
   error?: string
 }
@@ -218,6 +222,8 @@ export interface WebDocumentToWorker {
 export interface WebDocumentToClient {
   // from is the identifier of the WebDocument
   from: string
+  // requestId identifies direct acks that are not nested in an ack field.
+  requestId?: string
   // close indicates the web document is about to close.
   close?: true
   // bridgePort is the MessagePort to use for WebRTC bridge commands.
@@ -225,6 +231,9 @@ export interface WebDocumentToClient {
   // resumeReady indicates whether the WebDocument is past its foreground
   // resume gate.
   resumeReady?: boolean
+  // runtimeConnected indicates whether the WebDocument has a live runtime
+  // channel.
+  runtimeConnected?: boolean
   // sabPairEndpoint delivers an endpoint opened by another worker.
   sabPairEndpoint?: SabPairEndpointDescriptor
   // sabPairClosed notifies a worker that broker metadata for a pair closed.

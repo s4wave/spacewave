@@ -25,6 +25,7 @@ import {
 import { DesktopRuntimeResource } from '../electron/main/desktop-runtime.js'
 import { WebRuntimeClientType } from '../runtime/runtime.pb.js'
 import { WebRuntimeClient as WebRuntimeServiceClient } from '../runtime/runtime_srpc.pb.js'
+import { buildWebDocumentLockName } from '../runtime/runtime.js'
 import {
   isClosedStreamWriteError,
   logWebRuntimeMessage,
@@ -184,6 +185,47 @@ function installFakeMessageChannel(): {
     },
   }
 }
+
+function installControllableWebLocks(): {
+  release(name: string): void
+  requestCount(name: string): number
+} {
+  const releasers = new Map<string, () => void>()
+  const counts = new Map<string, number>()
+  vi.stubGlobal('navigator', {
+    locks: {
+      request: (
+        name: string,
+        opts: { signal?: AbortSignal },
+        cb: () => unknown,
+      ) => {
+        counts.set(name, (counts.get(name) ?? 0) + 1)
+        return new Promise<unknown>((resolve, reject) => {
+          const abort = () => reject(new DOMException('aborted', 'AbortError'))
+          opts.signal?.addEventListener('abort', abort, { once: true })
+          releasers.set(name, () => {
+            opts.signal?.removeEventListener('abort', abort)
+            resolve(cb())
+          })
+        })
+      },
+    },
+  })
+  return {
+    release(name: string): void {
+      releasers.get(name)?.()
+    },
+    requestCount(name: string): number {
+      return counts.get(name) ?? 0
+    },
+  }
+}
+
+async function flushMessages(): Promise<void> {
+  await Promise.resolve()
+  await Promise.resolve()
+}
+
 
 function connectRuntimeServer(runtime: WebRuntime): {
   client: SRPCClient
@@ -632,6 +674,116 @@ describe('WebRuntime', () => {
       await runtimeConn.close()
       vi.unstubAllGlobals()
     }
+  })
+
+  it('marks document clients suspect on Web Lock grant without deleted status', async () => {
+    const locks = installControllableWebLocks()
+    const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
+    const statusSpy = vi.spyOn(runtime.statusStream, 'pushChangeEvent')
+    const { port1 } = new MessageChannel()
+
+    runtime.handleClient(
+      {
+        clientUuid: 'document-1',
+        clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      },
+      port1,
+    )
+    const client = runtime.lookupClient('document-1')
+    expect(client).not.toBeNull()
+    expect(Reflect.get(client!, 'state')).toBe('active')
+    const close = vi.fn()
+    Reflect.get(client!, 'childStreams').add({ close })
+    statusSpy.mockClear()
+
+    Reflect.apply(Reflect.get(client!, 'armWebLock'), client!, [])
+    const lockName = buildWebDocumentLockName('document-1')
+    locks.release(lockName)
+    await flushMessages()
+
+    expect(runtime.lookupClient('document-1')).toBe(client)
+    expect(Reflect.get(client!, 'state')).toBe('suspect')
+    expect(close).not.toHaveBeenCalled()
+    expect(statusSpy).not.toHaveBeenCalled()
+    expect(locks.requestCount(lockName)).toBe(2)
+  })
+
+  it('same logical id usurp swaps channels without deleting the document', async () => {
+    const locks = installControllableWebLocks()
+    const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
+    const statusSpy = vi.spyOn(runtime.statusStream, 'pushChangeEvent')
+    const { port1: firstPort } = new MessageChannel()
+    runtime.handleClient(
+      {
+        clientUuid: 'document-gen-1',
+        logicalClientId: 'document',
+        clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      },
+      firstPort,
+    )
+    const first = runtime.lookupClient('document')
+    expect(first).not.toBeNull()
+    const close = vi.fn()
+    Reflect.get(first!, 'childStreams').add({ close })
+    Reflect.apply(Reflect.get(first!, 'armWebLock'), first!, [])
+    locks.release(buildWebDocumentLockName('document-gen-1'))
+    await flushMessages()
+    expect(Reflect.get(first!, 'state')).toBe('suspect')
+
+    const secondChannel = new MessageChannel()
+    runtime.handleClient(
+      {
+        clientUuid: 'document-gen-2',
+        logicalClientId: 'document',
+        clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      },
+      secondChannel.port1,
+    )
+
+    const second = runtime.lookupClient('document')
+    expect(second).not.toBeNull()
+    expect(second).not.toBe(first)
+    expect(Reflect.get(first!, 'state')).toBe('closed')
+    expect(Reflect.get(second!, 'state')).toBe('active')
+    expect(close).toHaveBeenCalledTimes(1)
+    const statuses = statusSpy.mock.calls.flatMap(
+      ([status]) => status.webDocuments ?? [],
+    )
+    expect(statuses.filter((status) => status.deleted)).toHaveLength(0)
+    expect(statuses.filter((status) => status.deleted === false)).toHaveLength(
+      1,
+    )
+  })
+
+  it('explicit close from suspect emits one deleted event', async () => {
+    const locks = installControllableWebLocks()
+    const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
+    const statusSpy = vi.spyOn(runtime.statusStream, 'pushChangeEvent')
+    const { port1 } = new MessageChannel()
+    runtime.handleClient(
+      {
+        clientUuid: 'document-1',
+        clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      },
+      port1,
+    )
+    const client = runtime.lookupClient('document-1')
+    expect(client).not.toBeNull()
+    Reflect.apply(Reflect.get(client!, 'armWebLock'), client!, [])
+    locks.release(buildWebDocumentLockName('document-1'))
+    await flushMessages()
+    expect(Reflect.get(client!, 'state')).toBe('suspect')
+    await Reflect.apply(Reflect.get(client!, 'onClientMessage'), client!, [
+      { data: { close: true }, ports: [] },
+    ])
+    await flushMessages()
+
+    expect(runtime.lookupClient('document-1')).toBeNull()
+    expect(Reflect.get(client!, 'state')).toBe('closed')
+    const deletedStatuses = statusSpy.mock.calls
+      .flatMap(([status]) => status.webDocuments ?? [])
+      .filter((status) => status.deleted)
+    expect(deletedStatuses).toHaveLength(1)
   })
 
   it('lets the latest document generation re-register after refresh invalidation', async () => {

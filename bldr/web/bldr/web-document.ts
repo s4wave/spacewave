@@ -106,6 +106,7 @@ export type RemoveWebViewFunc = (id: string) => Promise<boolean>
 const baseURL = import.meta?.url || window.location.origin
 const dedicatedWorkerShutdownGraceMs = 1000
 const opfsWorkerStartupTimeoutMs = 5000
+const swControllerReloadSessionKey = 'bldr-sw-controller-reload'
 // sharedWorkerControlFallbackMs bounds how long shared-worker mode waits for the
 // ServiceWorker to reach controlling state before starting the runtime anyway.
 // A browser with a broken or unavailable SW then still loads (degraded cold
@@ -794,6 +795,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // resumeReadySequence increments each time this document reaches the
   // foreground resume-ready gate.
   private resumeReadySequence = 0
+  // swMessageListenerAttached ensures ServiceWorker messages have one page listener.
+  private swMessageListenerAttached = false
 
   // isClosed checks if the web document is closed
   public get isClosed(): boolean | Error {
@@ -955,7 +958,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         this.handleWebRuntimeClientDisconnected.bind(this),
         this.isElectron,
         this.webDocumentUuid,
-        this.waitForResumeReady.bind(this),
+        this.waitForRuntimeConnected.bind(this),
       )
     }
 
@@ -1169,6 +1172,19 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         },
         startAttached: () => {
           this.startWebRuntimeConnection()
+        },
+        promoteToHost: () => {
+          startWebRuntimeWorker()
+          if ('rerouteChannel' in this.webRuntimeClient) {
+            void this.webRuntimeClient
+              .rerouteChannel({ reconnect: true })
+              .catch((err: unknown) => {
+                console.warn(
+                  'WebDocument: failed to reroute promoted DedicatedWorker host',
+                  err,
+                )
+              })
+          }
         },
         startUnavailable: () => {
           startWebRuntimeWorker()
@@ -1716,13 +1732,16 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       }
     }
 
-    navigator.serviceWorker.addEventListener('controllerchange', (ev) => {
-      // console.log('WORKBOX: got controllerchange event', ev.target)
-      if (!ev.target) {
+    const attachSwMessageListener = () => {
+      if (this.swMessageListenerAttached) {
         return
       }
-      const swContainer = ev.target as ServiceWorkerContainer
-      swContainer.addEventListener('message', swMessageCallback)
+      this.swMessageListenerAttached = true
+      navigator.serviceWorker.addEventListener('message', swMessageCallback)
+    }
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      attachSwMessageListener()
     })
 
     // register the service worker
@@ -1747,9 +1766,18 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     // https://web.dev/service-worker-lifecycle/#shift-reload
     // Skip this in Electron - it causes spurious reloads that orphan in-flight requests.
     if (!this.isElectron && wbReg && !navigator.serviceWorker.controller) {
-      console.error('WebDocument: detected ctrl+shift+r: reloading page')
-      location.reload()
-      throw new Error('page loaded with cache disabled: ctrl+shift+r')
+      const lastReloadUrl = sessionStorage.getItem(swControllerReloadSessionKey)
+      if (lastReloadUrl !== swUrl) {
+        sessionStorage.setItem(swControllerReloadSessionKey, swUrl)
+        console.warn('WebDocument: service worker controller missing; reloading page')
+        location.reload()
+        return
+      }
+      console.warn('WebDocument: service worker controller still missing after reload')
+      return
+    }
+    if (navigator.serviceWorker.controller) {
+      sessionStorage.removeItem(swControllerReloadSessionKey)
     }
 
     console.log('WebDocument: service worker registered')
@@ -1762,7 +1790,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       runtimeId: this.webRuntimeId,
     })
     onControlReady?.()
-    navigator.serviceWorker.addEventListener('message', swMessageCallback)
+    attachSwMessageListener()
     this.initServiceWorkerPort(sw)
 
     // Send "hello" to the ServiceWorker cross-tab broker.
@@ -1862,18 +1890,14 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   }
 
   private handleDedicatedRuntimeHostLost(
-    lost: DedicatedRuntimeHostLostMessage,
+    _lost: DedicatedRuntimeHostLostMessage,
   ): void {
     const host = this.dedicatedRuntimeHost
     if (!host || host.role !== 'attached') {
       return
     }
-    const reason =
-      lost.reason ??
-      `DedicatedWorker host document ${lost.webDocumentId} closed`
-    this.runtimeConnected = false
+    this.setRuntimeConnected(false)
     this.clearResumeReadyState('dedicated-runtime-host-lost')
-    host.handleHostLost(reason)
     if ('rerouteChannel' in this.webRuntimeClient) {
       void this.webRuntimeClient
         .rerouteChannel({ reconnect: false })
@@ -2322,11 +2346,14 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
 
     if (data.connectWebRtcBridge) {
-      this.handleConnectWebRtcBridge(data.from)
+      this.handleConnectWebRtcBridge(
+        data.from,
+        data.connectWebRtcBridge.requestId,
+      )
     }
 
     if (data.openOpfsWorker) {
-      void this.handleOpenOpfsWorker(data.from)
+      void this.handleOpenOpfsWorker(data.from, data.openOpfsWorker.requestId)
     }
 
     if (data.openSabPair) {
@@ -2516,10 +2543,15 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     } satisfies WebDocumentToClient)
   }
 
-  private sendOpenOpfsWorkerError(from: string, error: string): void {
+  private sendOpenOpfsWorkerError(
+    from: string,
+    requestId: string,
+    error: string,
+  ) {
     try {
       this.sendOpenOpfsWorkerAck(from, {
         from: this.webDocumentUuid,
+        requestId,
         error,
       })
     } catch {
@@ -2529,7 +2561,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
   // handleOpenOpfsWorker creates a raw DedicatedWorker OPFS bridge for a plugin
   // worker and sends its client MessagePort back over the plugin's port.
-  private async handleOpenOpfsWorker(from: string) {
+  private async handleOpenOpfsWorker(from: string, requestId: string) {
     const requester = this.webWorkers[from]
     if (!requester?.port) {
       console.warn(
@@ -2547,13 +2579,14 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       }
       this.sendOpenOpfsWorkerAck(
         from,
-        { from: this.webDocumentUuid },
+        { from: this.webDocumentUuid, requestId },
         clientPort,
       )
       console.log(`WebDocument: OPFS worker opened for ${from}`)
     } catch (err) {
       this.sendOpenOpfsWorkerError(
         from,
+        requestId,
         err instanceof Error ? err.message : String(err),
       )
     }
@@ -2600,7 +2633,24 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         }, opfsWorkerStartupTimeoutMs)
         function cleanup() {
           globalThis.clearTimeout(timeout)
+          worker.removeEventListener('messageerror', onStartupError)
           clientPort?.removeEventListener('message', onMessage)
+          clientPort?.removeEventListener('messageerror', onPortError)
+          clientPort?.removeEventListener('error', onPortError)
+        }
+        function onStartupError(ev: Event) {
+          cleanup()
+          reject(
+            new Error(
+              ev instanceof ErrorEvent && ev.message
+                ? ev.message
+                : `OPFS worker ${requesterId} failed to start`,
+            ),
+          )
+        }
+        function onPortError() {
+          cleanup()
+          reject(new Error(`OPFS worker ${requesterId} port failed before ready`))
         }
         function onMessage(ev: MessageEvent<unknown>) {
           if (!isOpfsWorkerReadyMessage(ev.data)) {
@@ -2609,6 +2659,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           cleanup()
           resolve()
         }
+        worker.addEventListener('messageerror', onStartupError)
         worker.onerror = (ev: ErrorEvent) => {
           reportWorkerError(ev)
           cleanup()
@@ -2619,6 +2670,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           )
         }
         clientPort?.addEventListener('message', onMessage)
+        clientPort?.addEventListener('messageerror', onPortError)
+        clientPort?.addEventListener('error', onPortError)
         clientPort?.start()
       })
       this.opfsWorkers.set(requesterId, worker)
@@ -2674,11 +2727,16 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       return
     }
     const requesterId = data.from
-    void this.serveRuntimeOpfsRequest(requesterId, brokerPort)
+    void this.serveRuntimeOpfsRequest(
+      requesterId,
+      data.openOpfsWorker.requestId,
+      brokerPort,
+    )
   }
 
   private async serveRuntimeOpfsRequest(
     requesterId: string,
+    requestId: string,
     brokerPort: MessagePort,
   ) {
     const postAck = (ack: OpenOpfsWorkerAck, port?: MessagePort): boolean => {
@@ -2708,7 +2766,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       if (!clientPort) {
         return
       }
-      if (!postAck({ from: this.webDocumentUuid }, clientPort)) {
+      if (!postAck({ from: this.webDocumentUuid, requestId }, clientPort)) {
         // The broker port closed before the runtime received the bridge port, so
         // it never got a usable OPFS worker. Tear down the worker we just created
         // instead of leaking it, and do not emit a false readiness mark.
@@ -2726,6 +2784,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     } catch (err) {
       postAck({
         from: this.webDocumentUuid,
+        requestId,
         error: err instanceof Error ? err.message : String(err),
       })
     }
@@ -2733,7 +2792,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
   // handleConnectWebRtcBridge creates a bridge MessageChannel and sends one
   // port back to the requesting worker. The other port drives a WebRTCBridgeEndpoint.
-  private handleConnectWebRtcBridge(from: string) {
+  private handleConnectWebRtcBridge(from: string, requestId: string) {
     // Look up the requesting worker by its id (the `from` field).
     const worker = this.webWorkers[from]
     if (!worker?.port) {
@@ -2756,6 +2815,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
     const ack: ConnectWebRtcBridgeAck = {
       from: this.webDocumentUuid,
+      requestId,
       bridgePort: clientPort,
     }
     worker.port.postMessage(ack, [clientPort])
@@ -2904,14 +2964,13 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
             documentId: this.webDocumentUuid,
             runtimeId: this.webRuntimeId,
           })
-          this.runtimeConnected = true
+          this.setRuntimeConnected(true)
           this.scheduleResumeReadySeed()
-          this.emit('runtimeconnected')
         },
         (err) => {
           if (this.closed) return
           console.warn('WebDocument: failed to connect to WebRuntime', err)
-          this.runtimeConnected = false
+          this.setRuntimeConnected(false)
           this.clearResumeReadyState('runtime-connect-failed')
         },
       )
@@ -2923,7 +2982,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (this.closed) {
       return
     }
-    this.runtimeConnected = false
+    this.setRuntimeConnected(false)
     this.clearResumeReadyState('runtime-disconnected')
     this.taskEnsureWebRuntimeConn()
   }
@@ -3042,8 +3101,59 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     const msg: WebDocumentToClient = {
       from: this.webDocumentUuid,
       resumeReady: this.resumeReady,
+      runtimeConnected: this.runtimeConnected,
     }
     port.postMessage(msg)
+  }
+
+  private setRuntimeConnected(connected: boolean) {
+    if (this.runtimeConnected === connected) {
+      return
+    }
+    this.runtimeConnected = connected
+    this.notifyResumeReadyClients()
+    if (connected) {
+      this.emit('runtimeconnected')
+    }
+  }
+
+  // waitForRuntimeConnected gates stream opens on the runtime channel, not on
+  // foreground resume-ready telemetry.
+  private async waitForRuntimeConnected(): Promise<RuntimeClientStreamOpenGateResult> {
+    if (this.runtimeConnected) {
+      return {
+        state: 'ready',
+        documentId: this.webDocumentUuid,
+      }
+    }
+    return new Promise<RuntimeClientStreamOpenGateResult>((resolve) => {
+      const onReady = () => {
+        this.removeListener('closed', onClosed)
+        this.removeListener('runtimeconnected', onReady)
+        resolve({
+          state: 'ready',
+          documentId: this.webDocumentUuid,
+        })
+      }
+      const onClosed = (err?: Error) => {
+        this.removeListener('runtimeconnected', onReady)
+        this.removeListener('closed', onClosed)
+        resolve({
+          state: 'closed',
+          documentId: this.webDocumentUuid,
+          reason: err?.message ?? 'web document is closed',
+        })
+      }
+      this.on('runtimeconnected', onReady)
+      this.on('closed', onClosed)
+      if (this.closed) {
+        onClosed(
+          this.closed instanceof Error
+            ? this.closed
+            : new Error('web document is closed'),
+        )
+      }
+    })
   }
 
   private async waitForResumeReady(): Promise<RuntimeClientStreamOpenGateResult> {

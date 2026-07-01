@@ -136,14 +136,17 @@ class WebRuntimeClientChildStream implements PacketStream {
   }
 }
 
+type WebRuntimeClientInstanceState = 'active' | 'suspect' | 'closed'
+
 class WebRuntimeClientInstance {
   // waitClosed is resolved when the instance is closed.
   public readonly waitClosed: Promise<void>
   // _resolveWaitClosed resolves waitClosed.
   private _resolveWaitClosed?: () => void
 
-  // closed indicates the instance is closed.
-  private closed?: true
+  // state tracks whether the client is usable, suspected by liveness evidence,
+  // or confirmed closed.
+  private state: WebRuntimeClientInstanceState = 'active'
   // abortController aborts the Web Lock request on close.
   private abortController?: AbortController
   // childStreams are the RPC streams opened through this client connection.
@@ -154,7 +157,7 @@ class WebRuntimeClientInstance {
 
   // isClosed checks if the instance is closed.
   public get isClosed(): boolean {
-    return this.closed ?? false
+    return this.state === 'closed'
   }
 
   // clientId returns the stable logical id used for routing and ownership.
@@ -171,6 +174,12 @@ class WebRuntimeClientInstance {
       (resolve) => (this._resolveWaitClosed = resolve),
     )
     port.onmessage = this.onClientMessage.bind(this)
+    port.onmessageerror = () => {
+      logWebRuntimeError(
+        `WebRuntimeClientInstance: message error from client: ${this.init.clientUuid}`,
+      )
+      this.close()
+    }
     port.start()
 
     // Ack that the runtime registered this client so the page-side
@@ -212,19 +221,36 @@ class WebRuntimeClientInstance {
     if (!lockName) {
       return
     }
+    this.requestWebLock(lockName, this.abortController.signal, clientUuid)
+  }
+
+  private requestWebLock(
+    lockName: string,
+    signal: AbortSignal,
+    clientUuid: string,
+  ) {
     navigator.locks
-      .request(lockName, { signal: this.abortController.signal }, () => {
-        // Lock acquired means the WebDocument has disconnected.
-        if (!this.closed) {
+      .request(lockName, { signal }, () => {
+        if (!this.isClosed) {
+          // Lock grant is only suspect evidence. Background or bfcache suspend
+          // can release the page lock while the MessagePort and streams stay
+          // alive, so deletion waits for a confirmed close path.
+          this.state = 'suspect'
           logWebRuntimeMessage(
-            `WebRuntime: detected client disconnect via Web Lock: ${clientUuid}`,
+            `WebRuntime: client suspect via Web Lock: ${clientUuid}`,
           )
-          this.close()
+          this.requestWebLock(lockName, signal, clientUuid)
         }
         return Promise.resolve()
       })
-      .catch(() => {
-        // Lock request was aborted (during close) - this is expected.
+      .catch((err) => {
+        if (this.isClosed || isAbortError(err)) {
+          return
+        }
+        logWebRuntimeError(
+          `WebRuntime: client Web Lock watch failed: ${clientUuid}:`,
+          err,
+        )
       })
   }
 
@@ -232,7 +258,7 @@ class WebRuntimeClientInstance {
   // note: the stream has message framing (via postMessage)
   // it is not necessary to use length prefixing for packets
   public async openStream(): Promise<PacketStream> {
-    if (this.closed) {
+    if (this.isClosed) {
       throw new Error('WebRuntimeClientInstance is closed')
     }
 
@@ -251,13 +277,13 @@ class WebRuntimeClientInstance {
     // Do not add timer timeouts to stream handshakes. Background tabs can
     // throttle timers, so the parent client invalidation owns cancellation.
     await Promise.race([stream.waitRemoteAck, this.waitClosed])
-    if (this.closed) {
+    if (this.isClosed) {
       trackedStream.close()
       throw new Error('WebRuntimeClientInstance is closed')
     }
     // wait for the stream to be fully opened
     await Promise.race([stream.waitRemoteOpen, this.waitClosed])
-    if (this.closed) {
+    if (this.isClosed) {
       trackedStream.close()
       throw new Error('WebRuntimeClientInstance is closed')
     }
@@ -267,10 +293,14 @@ class WebRuntimeClientInstance {
 
   // close closes the client.
   public close() {
-    if (this.closed) {
+    this.closeInternal(true)
+  }
+
+  public closeInternal(emitStatus: boolean) {
+    if (this.isClosed) {
       return
     }
-    this.closed = true
+    this.state = 'closed'
 
     // Abort the Web Lock request if active.
     if (this.abortController) {
@@ -298,7 +328,7 @@ class WebRuntimeClientInstance {
       logWebRuntimeMessage(
         `WebRuntime: client connection removed: ${clientUuid}`,
       )
-      this.host.removeConnection(this.clientId)
+      this.host.removeConnection(this.clientId, this, emitStatus)
     }
   }
 
@@ -734,8 +764,10 @@ export class WebRuntime {
 
     const existing = this.lookupClient(clientId)
     if (existing) {
-      // userp connection
-      existing.close()
+      // Same logical-id reconnects replace only the channel generation. Emitting
+      // deleted here tears down Go RemoteWebDocument state even though the
+      // document identity is still alive.
+      existing.closeInternal(false)
     }
 
     const clientTypeStr =
@@ -744,13 +776,13 @@ export class WebRuntime {
     logWebRuntimeMessage(
       `WebRuntime: ${this.webRuntimeId}: registered client: ${msg.clientUuid} => ${clientId} type ${clientTypeStr}`,
     )
-    this.clients[clientId] = new WebRuntimeClientInstance(this, port, msg)
+    const client = new WebRuntimeClientInstance(this, port, msg)
+    this.clients[clientId] = client
 
     // Notify any waiters for this client.
     const waiters = this.clientWaiters[clientId]
     if (waiters) {
       delete this.clientWaiters[clientId]
-      const client = this.clients[clientId]
       for (const waiter of waiters) {
         waiter.abortController?.abort()
         waiter.abortController = undefined
@@ -759,6 +791,7 @@ export class WebRuntime {
     }
 
     if (
+      !existing &&
       msg.clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT
     ) {
       const status: WebDocumentStatus = {
@@ -776,9 +809,13 @@ export class WebRuntime {
   }
 
   // removeConnection removes a connection by client id.
-  public removeConnection(clientId: string) {
+  public removeConnection(
+    clientId: string,
+    expectedClient?: WebRuntimeClientInstance,
+    emitStatus = true,
+  ) {
     const client = this.clients[clientId]
-    if (!client) {
+    if (!client || (expectedClient && client !== expectedClient)) {
       return
     }
     delete this.clients[clientId]
@@ -790,6 +827,7 @@ export class WebRuntime {
       `WebRuntime: ${this.webRuntimeId}: removed client: ${clientId} type ${clientTypeStr}`,
     )
     if (
+      emitStatus &&
       !this.closed &&
       clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT &&
       this.webDocuments[clientId]

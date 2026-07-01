@@ -16,14 +16,14 @@ function buildTracker(): WebDocumentTracker {
   )
 }
 
-function waitForActiveWebDocumentResumeReady(
+function waitForActiveWebDocumentRuntimeConnected(
   tracker: WebDocumentTracker,
-): Promise<void> {
-  const waitForResumeReady = Reflect.get(
+): Promise<unknown> {
+  const waitForRuntimeConnected = Reflect.get(
     tracker,
-    'waitForActiveWebDocumentResumeReady',
-  ) as (this: WebDocumentTracker) => Promise<void>
-  return waitForResumeReady.call(tracker)
+    'waitForActiveWebDocumentRuntimeConnected',
+  ) as (this: WebDocumentTracker) => Promise<unknown>
+  return waitForRuntimeConnected.call(tracker)
 }
 
 function attachWebDocument(
@@ -92,7 +92,7 @@ describe('WebDocumentTracker resume-ready gate', () => {
     const tracker = buildTracker()
 
     await expect(
-      waitForActiveWebDocumentResumeReady(tracker),
+      waitForActiveWebDocumentRuntimeConnected(tracker),
     ).resolves.toMatchObject({
       state: 'unavailable',
       reason: 'no active WebDocument',
@@ -101,7 +101,7 @@ describe('WebDocumentTracker resume-ready gate', () => {
     tracker.close()
   })
 
-  it('resolves the active document resume-ready gate from the WebDocument port', async () => {
+  it('resolves the active document runtime-connected gate from the WebDocument port', async () => {
     const tracker = buildTracker()
     const { port1, port2 } = new MessageChannel()
     tracker.handleWebDocumentMessage({
@@ -110,7 +110,7 @@ describe('WebDocumentTracker resume-ready gate', () => {
     })
     Reflect.set(tracker, 'lastWebDocumentId', 'document-1')
 
-    const readyPromise = waitForActiveWebDocumentResumeReady(tracker)
+    const readyPromise = waitForActiveWebDocumentRuntimeConnected(tracker)
     let resolved = false
     readyPromise.then(() => {
       resolved = true
@@ -120,7 +120,7 @@ describe('WebDocumentTracker resume-ready gate', () => {
 
     port2.postMessage({
       from: 'document-1',
-      resumeReady: true,
+      runtimeConnected: true,
     })
 
     await expect(readyPromise).resolves.toMatchObject({
@@ -142,7 +142,7 @@ describe('WebDocumentTracker resume-ready gate', () => {
     })
     Reflect.set(tracker, 'lastWebDocumentId', 'document-1')
 
-    const readyPromise = waitForActiveWebDocumentResumeReady(tracker)
+    const readyPromise = waitForActiveWebDocumentRuntimeConnected(tracker)
 
     port2.postMessage({
       from: 'document-1',
@@ -153,7 +153,7 @@ describe('WebDocumentTracker resume-ready gate', () => {
       state: 'closed',
       documentId: 'document-1',
       reason: expect.stringContaining(
-        'WebDocument document-1 closed before resume-ready',
+        'WebDocument document-1 closed before runtime-connected',
       ),
     })
 
@@ -161,7 +161,7 @@ describe('WebDocumentTracker resume-ready gate', () => {
     port2.close()
   })
 
-  it('waits again after the active WebDocument clears resume-ready', async () => {
+  it('waits again after the active WebDocument clears runtime-connected', async () => {
     const tracker = buildTracker()
     const { port1, port2 } = new MessageChannel()
     tracker.handleWebDocumentMessage({
@@ -172,10 +172,10 @@ describe('WebDocumentTracker resume-ready gate', () => {
 
     port2.postMessage({
       from: 'document-1',
-      resumeReady: true,
+      runtimeConnected: true,
     })
     await expect(
-      waitForActiveWebDocumentResumeReady(tracker),
+      waitForActiveWebDocumentRuntimeConnected(tracker),
     ).resolves.toMatchObject({
       state: 'ready',
       documentId: 'document-1',
@@ -183,11 +183,11 @@ describe('WebDocumentTracker resume-ready gate', () => {
 
     port2.postMessage({
       from: 'document-1',
-      resumeReady: false,
+      runtimeConnected: false,
     })
     await new Promise((resolve) => setTimeout(resolve, 0))
 
-    const readyPromise = waitForActiveWebDocumentResumeReady(tracker)
+    const readyPromise = waitForActiveWebDocumentRuntimeConnected(tracker)
     let resolved = false
     readyPromise.then(() => {
       resolved = true
@@ -197,7 +197,7 @@ describe('WebDocumentTracker resume-ready gate', () => {
 
     port2.postMessage({
       from: 'document-1',
-      resumeReady: true,
+      runtimeConnected: true,
     })
 
     await expect(readyPromise).resolves.toMatchObject({
@@ -216,25 +216,25 @@ describe('WebDocumentTracker resume-ready gate', () => {
 
     firstPort.postMessage({
       from: 'document-1',
-      resumeReady: true,
+      runtimeConnected: true,
     })
 
     await expect(
-      waitForActiveWebDocumentResumeReady(tracker),
+      waitForActiveWebDocumentRuntimeConnected(tracker),
     ).resolves.toMatchObject({
       state: 'ready',
       documentId: 'document-1',
     })
 
     const secondPort = attachWebDocument(tracker, 'document-2')
-    const secondReady = waitForActiveWebDocumentResumeReady(tracker)
+    const secondReady = waitForActiveWebDocumentRuntimeConnected(tracker)
     const secondSettled = markSettled(secondReady)
     await Promise.resolve()
     expect(secondSettled()).toBe(false)
 
     secondPort.postMessage({
       from: 'document-2',
-      resumeReady: true,
+      runtimeConnected: true,
     })
 
     await expect(secondReady).resolves.toMatchObject({
@@ -250,7 +250,7 @@ describe('WebDocumentTracker resume-ready gate', () => {
 
     expect(closeRuntime).not.toHaveBeenCalled()
     await expect(
-      waitForActiveWebDocumentResumeReady(tracker),
+      waitForActiveWebDocumentRuntimeConnected(tracker),
     ).resolves.toMatchObject({
       state: 'ready',
       documentId: 'document-1',
@@ -274,10 +274,10 @@ describe('WebDocumentTracker resume-ready gate', () => {
 
     firstPort.postMessage({
       from: 'document-1',
-      resumeReady: true,
+      runtimeConnected: true,
     })
     await expect(
-      waitForActiveWebDocumentResumeReady(tracker),
+      waitForActiveWebDocumentRuntimeConnected(tracker),
     ).resolves.toMatchObject({
       state: 'ready',
       documentId: 'document-1',
@@ -285,7 +285,7 @@ describe('WebDocumentTracker resume-ready gate', () => {
 
     Reflect.set(tracker, 'activeRuntimeWebDocumentId', 'document-1')
     const secondPort = attachWebDocument(tracker, 'document-2')
-    const readyPromise = waitForActiveWebDocumentResumeReady(tracker)
+    const readyPromise = waitForActiveWebDocumentRuntimeConnected(tracker)
 
     await expect(readyPromise).resolves.toMatchObject({
       state: 'ready',
@@ -365,7 +365,7 @@ describe('WebDocumentTracker resume-ready gate', () => {
     secondPort.close()
   })
 
-  it('keeps plugin worker resume gate parked while the active WebDocument is hidden', async () => {
+  it('relays to a hidden connected active document without resume-ready', async () => {
     vi.useFakeTimers()
     const onWebDocumentsExhausted = vi.fn().mockResolvedValue(undefined)
     const onAllWebDocumentsClosed = vi.fn()
@@ -381,7 +381,7 @@ describe('WebDocumentTracker resume-ready gate', () => {
     try {
       Reflect.set(tracker, 'lastWebDocumentId', 'document-1')
 
-      const readyPromise = waitForActiveWebDocumentResumeReady(tracker)
+      const readyPromise = waitForActiveWebDocumentRuntimeConnected(tracker)
       const isSettled = markSettled(readyPromise)
 
       await vi.advanceTimersByTimeAsync(5000)
@@ -393,7 +393,14 @@ describe('WebDocumentTracker resume-ready gate', () => {
 
       documentPort.postMessage({
         from: 'document-1',
-        resumeReady: true,
+        resumeReady: false,
+      })
+      await Promise.resolve()
+      expect(isSettled()).toBe(false)
+
+      documentPort.postMessage({
+        from: 'document-1',
+        runtimeConnected: true,
       })
 
       await expect(readyPromise).resolves.toMatchObject({
@@ -492,7 +499,7 @@ describe('WebDocumentTracker resume-ready gate', () => {
     const secondConnectMsg = nextConnectMsg()
     documentPort.postMessage({
       from: 'document-1',
-      resumeReady: true,
+      runtimeConnected: true,
     })
 
     const retryMsg = await secondConnectMsg
@@ -616,14 +623,18 @@ describe('WebDocumentTracker resume-ready gate', () => {
 
     const bridgePort = tracker.requestOpfsWorker()
     const msg = await openMsg
-    expect(msg.openOpfsWorker).toBe(true)
-
+    const requestId = msg.openOpfsWorker?.requestId
+    expect(requestId).toBe('opfs-worker-open-1')
+    if (!requestId) {
+      throw new Error('expected OPFS worker request id')
+    }
     const { port1, port2 } = new MessageChannel()
     documentPort.postMessage(
       {
         from: 'document-1',
         openOpfsWorkerAck: {
           from: 'document-1',
+          requestId,
         },
       },
       [port2],
@@ -644,6 +655,100 @@ describe('WebDocumentTracker resume-ready gate', () => {
     documentPort.close()
     port1.close()
     resolvedPort?.close()
+  })
+
+  it('resolves overlapping OPFS worker acks by requestId', async () => {
+    const tracker = buildTracker()
+    const documentPort = attachWebDocument(tracker)
+    const messages: ClientToWebDocument[] = []
+    documentPort.onmessage = (ev) => {
+      messages.push(ev.data)
+    }
+    documentPort.start()
+
+    const first = tracker.requestOpfsWorker()
+    const second = tracker.requestOpfsWorker()
+    await vi.waitFor(() => {
+      expect(messages).toHaveLength(2)
+    })
+
+    const firstChannel = new MessageChannel()
+    const secondChannel = new MessageChannel()
+    documentPort.postMessage(
+      {
+        from: 'document-1',
+        openOpfsWorkerAck: {
+          from: 'document-1',
+          requestId: messages[1].openOpfsWorker?.requestId ?? '',
+        },
+      },
+      [secondChannel.port2],
+    )
+    documentPort.postMessage(
+      {
+        from: 'document-1',
+        openOpfsWorkerAck: {
+          from: 'document-1',
+          requestId: messages[0].openOpfsWorker?.requestId ?? '',
+        },
+      },
+      [firstChannel.port2],
+    )
+
+    const firstPort = await first
+    const secondPort = await second
+    const firstDelivered = new Promise<unknown>((resolve) => {
+      firstChannel.port1.onmessage = (ev) => resolve(ev.data)
+      firstChannel.port1.start()
+    })
+    const secondDelivered = new Promise<unknown>((resolve) => {
+      secondChannel.port1.onmessage = (ev) => resolve(ev.data)
+      secondChannel.port1.start()
+    })
+    firstPort?.postMessage({ from: 'first' })
+    secondPort?.postMessage({ from: 'second' })
+    await expect(firstDelivered).resolves.toEqual({ from: 'first' })
+    await expect(secondDelivered).resolves.toEqual({ from: 'second' })
+
+    tracker.close()
+    documentPort.close()
+    firstChannel.port1.close()
+    secondChannel.port1.close()
+    firstPort?.close()
+    secondPort?.close()
+  })
+
+  it('resolves overlapping WebRTC bridge acks by requestId', async () => {
+    const tracker = buildTracker()
+    const documentPort = attachWebDocument(tracker)
+    const messages: ClientToWebDocument[] = []
+    documentPort.onmessage = (ev) => {
+      messages.push(ev.data)
+    }
+    documentPort.start()
+
+    const first = tracker.requestWebRtcBridge()
+    const second = tracker.requestWebRtcBridge()
+    await vi.waitFor(() => {
+      expect(messages).toHaveLength(2)
+    })
+
+    documentPort.postMessage({
+      from: 'document-1',
+      requestId: messages[1].connectWebRtcBridge?.requestId,
+      bridgePort: { label: 'second' } as unknown as MessagePort,
+    })
+    documentPort.postMessage({
+      from: 'document-1',
+      requestId: messages[0].connectWebRtcBridge?.requestId,
+      bridgePort: { label: 'first' } as unknown as MessagePort,
+    })
+
+    await expect(first).resolves.toMatchObject({ label: 'first' })
+    await expect(second).resolves.toMatchObject({ label: 'second' })
+
+    tracker.close()
+    documentPort.close()
   })
 
   it('keeps OPFS worker open pending until the WebDocument closes', async () => {
@@ -906,10 +1011,21 @@ describe('WebDocumentTracker OPFS bridge host lifecycle', () => {
     documentPort: MessagePort,
     webDocumentId: string,
   ): Promise<void> {
+    const openMsg = new Promise<ClientToWebDocument>((resolve) => {
+      documentPort.onmessage = (ev) => resolve(ev.data)
+      documentPort.start()
+    })
     const opfsReq = tracker.requestOpfsWorker()
     const { port1: bridgePort } = new MessageChannel()
+    const request = await openMsg
     documentPort.postMessage(
-      { from: webDocumentId, openOpfsWorkerAck: { from: webDocumentId } },
+      {
+        from: webDocumentId,
+        openOpfsWorkerAck: {
+          from: webDocumentId,
+          requestId: request.openOpfsWorker?.requestId ?? '',
+        },
+      },
       [bridgePort],
     )
     await opfsReq

@@ -15,6 +15,7 @@ interface TrackedWebDocument {
 
 interface PendingRequest {
   webDocumentId: string
+  requestId: string
   resolve: (port: MessagePort | null) => void
 }
 
@@ -35,6 +36,7 @@ export class RuntimeOpfsBridge {
   private readonly webDocuments = new Map<string, TrackedWebDocument>()
   private hostWebDocumentId?: string
   private pendingRequest?: PendingRequest
+  private nextRequestNumber = 1
   private ensurePromise?: Promise<boolean>
   private closed = false
 
@@ -143,12 +145,13 @@ export class RuntimeOpfsBridge {
     if (!tracked) {
       return Promise.resolve(null)
     }
+    const requestId = `opfs-worker-open-${this.nextRequestNumber++}`
     return new Promise<MessagePort | null>((resolve) => {
       this.resolvePending(null)
-      this.pendingRequest = { webDocumentId, resolve }
+      this.pendingRequest = { webDocumentId, requestId, resolve }
       const msg: ClientToWebDocument = {
         from: this.workerId,
-        openOpfsWorker: true,
+        openOpfsWorker: { requestId },
       }
       try {
         tracked.port.postMessage(msg)
@@ -172,7 +175,10 @@ export class RuntimeOpfsBridge {
     }
 
     if (data.openOpfsWorkerAck) {
-      if (this.pendingRequest?.webDocumentId !== webDocumentId) {
+      if (
+        this.pendingRequest?.webDocumentId !== webDocumentId ||
+        this.pendingRequest.requestId !== data.openOpfsWorkerAck.requestId
+      ) {
         ev.ports?.[0]?.close()
         return
       }

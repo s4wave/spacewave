@@ -18,8 +18,18 @@ import {
   registerUpdatedServiceWorker,
   shouldForceDedicatedWorkers,
 } from './web-document.js'
+import {
+  type RuntimeClientStreamOpenGateResult,
+  WebRuntimeClient,
+} from './web-runtime-client.js'
 import { SabPairBroker } from './sab-pair-broker.js'
 import { resetStartupMarksForTest, startupMarkPrefix } from './startup-marks.js'
+
+type TestWorkbox = {
+  register(): Promise<ServiceWorkerRegistration>
+  update(): Promise<void>
+  controlling: Promise<ServiceWorker>
+}
 
 type TestWebDocument = {
   closed?: true | Error
@@ -27,6 +37,7 @@ type TestWebDocument = {
   resumeReady: boolean
   resumeReadyPending: boolean
   resumeReadySequence: number
+  swMessageListenerAttached: boolean
   runtimeConnected: boolean
   serviceWorkerPort?: MessagePort
   webViews: Record<string, unknown>
@@ -37,7 +48,6 @@ type TestWebDocument = {
   dedicatedRuntimeHost?: {
     role: string
     openClientChannel?: (init: WebRuntimeClientInit) => Promise<MessagePort>
-    handleHostLost?: (reason: string) => void
   }
   sabPairBroker: SabPairBroker
   webrtcBridgeEndpoints: Map<string, unknown>
@@ -53,6 +63,7 @@ type TestWebDocument = {
   webDocumentUuid: string
   onWebWorkerMessage(workerID: string, event: MessageEvent): void
   onWebDocumentClientMessage(event: MessageEvent): void
+  initServiceWorker(wb: TestWorkbox, swUrl: string): Promise<void>
   onRuntimeOpfsBrokerMessage(brokerPort: MessagePort, event: MessageEvent): void
   refreshPluginSingletonLock(): void
   releasePluginSingletonLock(): void
@@ -80,6 +91,10 @@ type TestWebDocument = {
     config: 'A' | 'B' | 'C' | 'F'
     caps: Record<string, boolean>
   }>
+  crossTabManager: {
+    handleMessage(data: unknown, ports: readonly MessagePort[]): boolean
+    close(): void
+  }
 }
 
 function buildTestWebDocument(hidden = false): TestWebDocument {
@@ -93,6 +108,7 @@ function buildTestWebDocument(hidden = false): TestWebDocument {
     resumeReadyPending: false,
     resumeReadySequence: 0,
     runtimeConnected: true,
+    swMessageListenerAttached: false,
     webDocumentLivenessLockState: 'held',
     webRuntimeClient: {
       openStream: vi.fn(),
@@ -128,8 +144,41 @@ function buildTestWebDocument(hidden = false): TestWebDocument {
         broadcastChannelAvailable: true,
       },
     }),
+    crossTabManager: {
+      handleMessage: vi.fn().mockReturnValue(false),
+      close: vi.fn(),
+    },
   })
   return doc
+}
+
+function installFakeMessageChannel(): {
+  channels: Array<{ port1: MessagePort; port2: MessagePort }>
+  port(): MessagePort
+} {
+  const channels: Array<{ port1: MessagePort; port2: MessagePort }> = []
+  class FakeMessagePort {
+    public onmessage: ((ev: MessageEvent) => void) | null = null
+    public postMessage = vi.fn()
+    public start = vi.fn()
+    public close = vi.fn()
+  }
+  class FakeMessageChannel {
+    public readonly port1 = new FakeMessagePort() as unknown as MessagePort
+    public readonly port2 = new FakeMessagePort() as unknown as MessagePort
+
+    public constructor() {
+      channels.push({ port1: this.port1, port2: this.port2 })
+    }
+  }
+  vi.stubGlobal('MessagePort', FakeMessagePort)
+  vi.stubGlobal('MessageChannel', FakeMessageChannel)
+  return {
+    channels,
+    port() {
+      return new FakeMessagePort() as unknown as MessagePort
+    },
+  }
 }
 
 function buildTestWorker(port: MessagePort = {} as MessagePort): Record<
@@ -175,15 +224,30 @@ function installFakeDedicatedWorker() {
     messages: unknown[]
     terminate: ReturnType<typeof vi.fn>
     postMessage: ReturnType<typeof vi.fn>
+    dispatchEvent: (event: Event) => boolean
   }> = []
 
   class FakeWorker {
+    private readonly eventTarget = new EventTarget()
     public onerror: ((ev: ErrorEvent) => void) | null = null
     public readonly messages: unknown[] = []
     public readonly terminate = vi.fn()
     public readonly postMessage = vi.fn((message: unknown) => {
       this.messages.push(message)
     })
+    public addEventListener(...args: Parameters<EventTarget['addEventListener']>) {
+      this.eventTarget.addEventListener(...args)
+    }
+
+    public removeEventListener(
+      ...args: Parameters<EventTarget['removeEventListener']>
+    ) {
+      this.eventTarget.removeEventListener(...args)
+    }
+
+    public dispatchEvent(event: Event): boolean {
+      return this.eventTarget.dispatchEvent(event)
+    }
 
     constructor(
       public readonly url: string,
@@ -217,6 +281,32 @@ function installFakeSharedWorker() {
   const sharedWorkers: FakeSharedWorker[] = []
   vi.stubGlobal('SharedWorker', FakeSharedWorker)
   return sharedWorkers
+}
+
+function installSessionStorage(seed?: Record<string, string>): Storage {
+  const values = new Map(Object.entries(seed ?? {}))
+  const storage = {
+    get length() {
+      return values.size
+    },
+    clear() {
+      values.clear()
+    },
+    getItem(key: string) {
+      return values.get(key) ?? null
+    },
+    key(index: number) {
+      return Array.from(values.keys())[index] ?? null
+    },
+    removeItem(key: string) {
+      values.delete(key)
+    },
+    setItem(key: string, value: string) {
+      values.set(key, value)
+    },
+  } satisfies Storage
+  vi.stubGlobal('sessionStorage', storage)
+  return storage
 }
 
 describe('registerUpdatedServiceWorker', () => {
@@ -261,6 +351,146 @@ describe('registerUpdatedServiceWorker', () => {
 
     expect(result).toBeNull()
     expect(register).not.toHaveBeenCalled()
+  })
+})
+
+describe('WebDocument service worker startup', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+    vi.useRealTimers()
+    resetStartupMarksForTest()
+  })
+
+  it('reloads without throwing when registration leaves the page uncontrolled', async () => {
+    const reload = vi.fn()
+    const storage = installSessionStorage()
+    vi.stubGlobal('location', {
+      href: 'https://example.test/app',
+      reload,
+    })
+    vi.stubGlobal('navigator', {
+      serviceWorker: {
+        controller: null,
+        addEventListener: vi.fn(),
+        register: vi.fn(),
+      },
+    })
+
+    const doc = buildTestWebDocument()
+    const wb: TestWorkbox = {
+      register: vi
+        .fn()
+        .mockResolvedValue({ scope: 'https://example.test/' } as ServiceWorkerRegistration),
+      update: vi.fn().mockResolvedValue(undefined),
+      controlling: new Promise<ServiceWorker>(() => {}),
+    }
+
+    await expect(doc.initServiceWorker(wb, '/sw.mjs')).resolves.toBeUndefined()
+    expect(storage.getItem('bldr-sw-controller-reload')).toBe('/sw.mjs')
+    expect(reload).toHaveBeenCalledOnce()
+  })
+
+  it('registers one ServiceWorker message listener across controller changes', async () => {
+    installSessionStorage()
+    const messageListeners: Array<(ev: MessageEvent) => void> = []
+    const controllerChangeListeners: Array<(ev: Event) => void> = []
+    const sw = { postMessage: vi.fn() } as unknown as ServiceWorker
+    vi.stubGlobal('navigator', {
+      serviceWorker: {
+        controller: sw,
+        addEventListener: vi.fn((type: string, listener: EventListener) => {
+          if (type === 'message') {
+            messageListeners.push(listener as (ev: MessageEvent) => void)
+          }
+          if (type === 'controllerchange') {
+            controllerChangeListeners.push(listener as (ev: Event) => void)
+          }
+        }),
+        register: vi.fn(),
+      },
+    })
+    const doc = buildTestWebDocument()
+    const initServiceWorkerPort = vi
+      .spyOn(
+        doc as unknown as { initServiceWorkerPort: (sw: ServiceWorker) => void },
+        'initServiceWorkerPort',
+      )
+      .mockImplementation(() => {})
+    const wb: TestWorkbox = {
+      register: vi
+        .fn()
+        .mockResolvedValue({ scope: 'https://example.test/' } as ServiceWorkerRegistration),
+      update: vi.fn().mockResolvedValue(undefined),
+      controlling: Promise.resolve(sw),
+    }
+
+    await doc.initServiceWorker(wb, '/sw.mjs')
+    initServiceWorkerPort.mockClear()
+    controllerChangeListeners[0](new Event('controllerchange'))
+    controllerChangeListeners[0](new Event('controllerchange'))
+
+    expect(messageListeners).toHaveLength(1)
+    messageListeners[0](
+      new MessageEvent('message', { data: { from: 'sw', init: true } }),
+    )
+    expect(initServiceWorkerPort).toHaveBeenCalledOnce()
+  })
+
+  it('does not reload twice when the ServiceWorker controller is still missing', async () => {
+    const reload = vi.fn()
+    installSessionStorage({ 'bldr-sw-controller-reload': '/sw.mjs' })
+    vi.stubGlobal('location', {
+      href: 'https://example.test/app',
+      reload,
+    })
+    vi.stubGlobal('navigator', {
+      serviceWorker: {
+        controller: null,
+        addEventListener: vi.fn(),
+        register: vi.fn(),
+      },
+    })
+    const doc = buildTestWebDocument()
+    const wb: TestWorkbox = {
+      register: vi
+        .fn()
+        .mockResolvedValue({ scope: 'https://example.test/' } as ServiceWorkerRegistration),
+      update: vi.fn().mockResolvedValue(undefined),
+      controlling: new Promise<ServiceWorker>(() => {}),
+    }
+
+    await expect(doc.initServiceWorker(wb, '/sw.mjs')).resolves.toBeUndefined()
+    expect(reload).not.toHaveBeenCalled()
+  })
+
+  it('clears bldr-sw-controller-reload when the page is controlled', async () => {
+    const storage = installSessionStorage({
+      'bldr-sw-controller-reload': '/sw.mjs',
+    })
+    const sw = { postMessage: vi.fn() } as unknown as ServiceWorker
+    vi.stubGlobal('navigator', {
+      serviceWorker: {
+        controller: sw,
+        addEventListener: vi.fn(),
+        register: vi.fn(),
+      },
+    })
+    const doc = buildTestWebDocument()
+    vi.spyOn(
+      doc as unknown as { initServiceWorkerPort: (sw: ServiceWorker) => void },
+      'initServiceWorkerPort',
+    ).mockImplementation(() => {})
+    const wb: TestWorkbox = {
+      register: vi
+        .fn()
+        .mockResolvedValue({ scope: 'https://example.test/' } as ServiceWorkerRegistration),
+      update: vi.fn().mockResolvedValue(undefined),
+      controlling: Promise.resolve(sw),
+    }
+
+    await doc.initServiceWorker(wb, '/sw.mjs')
+    expect(storage.getItem('bldr-sw-controller-reload')).toBeNull()
   })
 })
 
@@ -388,10 +618,12 @@ describe('WebDocument resume-ready state', () => {
     expect(serviceWorkerPostMessage).toHaveBeenCalledWith({
       from: 'document-1',
       resumeReady: true,
+      runtimeConnected: true,
     })
     expect(workerPostMessage).toHaveBeenCalledWith({
       from: 'document-1',
       resumeReady: true,
+      runtimeConnected: true,
     })
   })
 
@@ -404,6 +636,49 @@ describe('WebDocument resume-ready state', () => {
 
     expect(raf).not.toHaveBeenCalled()
     expect(globalThis.__swWebDocumentResumeReady).toBeUndefined()
+  })
+
+  it('opens streams while hidden after runtime connects', async () => {
+    const fake = installFakeMessageChannel()
+    const doc = buildTestWebDocument(true)
+    doc.runtimeConnected = true
+    doc.resumeReady = false
+    const waitForRuntimeConnected = Reflect.get(
+      doc,
+      'waitForRuntimeConnected',
+    ) as (this: TestWebDocument) => Promise<RuntimeClientStreamOpenGateResult>
+    const client = new WebRuntimeClient(
+      'runtime-1',
+      'document-1',
+      WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      vi.fn(),
+      null,
+      null,
+      undefined,
+      undefined,
+      waitForRuntimeConnected.bind(doc),
+    )
+    Reflect.set(client, 'generation', {
+      id: 1,
+      state: 'connected',
+      webRuntimeId: 'runtime-1',
+      clientId: 'document-1',
+      clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+    })
+    Reflect.set(client, 'generationAbortController', new AbortController())
+    Reflect.set(client, 'clientChannel', fake.port())
+
+    const openPromise = client.openStream()
+    await vi.waitFor(() => {
+      expect(fake.channels).toHaveLength(1)
+    })
+    expect(globalThis.__swWebDocumentResumeReady).toBeUndefined()
+
+    fake.channels[0].port1.onmessage?.({
+      data: { from: 'runtime-1', ack: true, opened: true },
+    } as MessageEvent)
+    await expect(openPromise).resolves.toBeDefined()
+    client.close()
   })
 
   it('clears and reseeds resume-ready across foreground resumes', () => {
@@ -442,6 +717,7 @@ describe('WebDocument resume-ready state', () => {
     expect(workerPostMessage).toHaveBeenCalledWith({
       from: 'document-1',
       resumeReady: false,
+      runtimeConnected: true,
     })
     expect(mark).toHaveBeenCalledWith(
       `${startupMarkPrefix}web-document.resume-not-ready`,
@@ -889,15 +1165,13 @@ describe('WebDocument plugin generation state', () => {
     expect(openClientChannel).toHaveBeenCalledWith(init)
   })
 
-  it('re-elects attached DedicatedWorker documents when the host relay closes', () => {
+  it('reroutes attached DedicatedWorker documents when the host relay closes', () => {
     const doc = buildTestWebDocument()
     doc.runtimeConnected = true
     doc.resumeReady = true
-    const handleHostLost = vi.fn()
     const rerouteChannel = vi.fn().mockResolvedValue(undefined)
     doc.dedicatedRuntimeHost = {
       role: 'attached',
-      handleHostLost,
     }
     doc.webRuntimeClient = {
       openStream: vi.fn(),
@@ -916,7 +1190,6 @@ describe('WebDocument plugin generation state', () => {
 
     expect(doc.runtimeConnected).toBe(false)
     expect(doc.resumeReady).toBe(false)
-    expect(handleHostLost).toHaveBeenCalledWith('host closed')
     expect(rerouteChannel).toHaveBeenCalledWith({ reconnect: false })
   })
 
@@ -1135,7 +1408,7 @@ describe('WebDocument plugin generation state', () => {
     doc.onWebDocumentClientMessage({
       data: {
         from: 'worker-1',
-        openOpfsWorker: true,
+        openOpfsWorker: { requestId: 'opfs-1' },
       },
     } as MessageEvent)
 
@@ -1160,6 +1433,7 @@ describe('WebDocument plugin generation state', () => {
           from: 'document-1',
           openOpfsWorkerAck: {
             from: 'document-1',
+            requestId: 'opfs-1',
           },
         },
         [expect.any(Object)],
@@ -1182,7 +1456,7 @@ describe('WebDocument plugin generation state', () => {
     doc.onRuntimeOpfsBrokerMessage(brokerPort, {
       data: {
         from: 'runtime-worker-1',
-        openOpfsWorker: true,
+        openOpfsWorker: { requestId: 'runtime-opfs-1' },
       },
     } as MessageEvent)
 
@@ -1202,6 +1476,7 @@ describe('WebDocument plugin generation state', () => {
           from: 'document-1',
           openOpfsWorkerAck: {
             from: 'document-1',
+            requestId: 'runtime-opfs-1',
           },
         },
         [expect.any(Object)],
@@ -1241,7 +1516,7 @@ describe('WebDocument plugin generation state', () => {
     doc.onRuntimeOpfsBrokerMessage(brokerPort, {
       data: {
         from: 'runtime-worker-1',
-        openOpfsWorker: true,
+        openOpfsWorker: { requestId: 'runtime-opfs-2' },
       },
     } as MessageEvent)
 
@@ -1258,6 +1533,41 @@ describe('WebDocument plugin generation state', () => {
     expect(doc.opfsWorkers.has('runtime-worker-1')).toBe(false)
     const labels = (globalThis.__swStartupMarks ?? []).map((mark) => mark.label)
     expect(labels).not.toContain('runtime.opfs-bridge-ready')
+  })
+
+  it('rejects OPFS worker startup on messageerror before ready', async () => {
+    vi.useFakeTimers()
+    const workers = installFakeDedicatedWorker()
+    const requesterPort = {
+      postMessage: vi.fn(),
+    } as unknown as MessagePort
+    const doc = buildTestWebDocument()
+    doc.webWorkers = {
+      'worker-1': buildTestWorker(requesterPort),
+    }
+
+    doc.onWebDocumentClientMessage({
+      data: {
+        from: 'worker-1',
+        openOpfsWorker: { requestId: 'opfs-messageerror' },
+      },
+    } as MessageEvent)
+
+    expect(workers).toHaveLength(1)
+    workers[0].dispatchEvent(new MessageEvent('messageerror'))
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(workers[0].terminate).toHaveBeenCalledOnce()
+    expect(doc.opfsWorkers.has('worker-1')).toBe(false)
+    expect(requesterPort.postMessage).toHaveBeenCalledWith({
+      from: 'document-1',
+      openOpfsWorkerAck: {
+        from: 'document-1',
+        requestId: 'opfs-messageerror',
+        error: expect.stringContaining('failed to start'),
+      },
+    })
   })
 
   it('includes generation state and failure classification in status snapshots', async () => {

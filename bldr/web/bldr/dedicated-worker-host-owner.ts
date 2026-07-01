@@ -14,10 +14,11 @@ export type DedicatedWorkerHostRole =
   | 'unavailable'
   | 'closed'
 
-export interface DedicatedWorkerHostStartCallbacks {
+export interface DedicatedWorkerHostCallbacks {
   startHost(generation: string): void
   startAttached(): void
   startUnavailable(): void
+  promoteToHost(): void
 }
 
 export function buildDedicatedWorkerHostLockName(runtimeId: string): string {
@@ -32,14 +33,15 @@ export class DedicatedWorkerHostOwner {
   private leaseStarted = false
   private closed = false
   private closeLease?: () => void
-  private callbacks?: DedicatedWorkerHostStartCallbacks
+  private standingAbort?: AbortController
+  private callbacks?: DedicatedWorkerHostCallbacks
 
   constructor(
     private readonly webRuntimeId: string,
     private readonly webDocumentId: string,
   ) {}
 
-  public start(callbacks: DedicatedWorkerHostStartCallbacks): void {
+  public start(callbacks: DedicatedWorkerHostCallbacks): void {
     this.callbacks = callbacks
     if (this.leaseStarted || this.closed) {
       return
@@ -52,12 +54,17 @@ export class DedicatedWorkerHostOwner {
         source: 'browser',
         documentId: this.webDocumentId,
         runtimeId: this.webRuntimeId,
+        hazard: 'Web Locks unavailable; DedicatedWorker fallback may run multiple OPFS writers',
       })
+      console.warn(
+        'WebDocument: Web Locks unavailable; DedicatedWorker fallback may run multiple OPFS writers',
+      )
       callbacks.startUnavailable()
       return
     }
 
     const lockName = buildDedicatedWorkerHostLockName(this.webRuntimeId)
+    this.standingAbort = new AbortController()
     markStartupBoundary('dedicated-host.election-start', {
       source: 'browser',
       documentId: this.webDocumentId,
@@ -65,39 +72,15 @@ export class DedicatedWorkerHostOwner {
       lockName,
     })
 
-    let selected = false
+    // The grant callback owns the host lease until close so Web Locks, not
+    // relay failure timing, chooses the next host.
     Promise.resolve(
       navigator.locks.request(
         lockName,
-        {
-          ifAvailable: true,
-        },
-        (lock) => {
-          if (this.closed) {
-            return undefined
-          }
-          selected = true
-          if (!lock) {
-            this.role = 'attached'
-            markStartupBoundary('dedicated-host.attach-selected', {
-              source: 'browser',
-              documentId: this.webDocumentId,
-              runtimeId: this.webRuntimeId,
-            })
-            callbacks.startAttached()
-            return undefined
-          }
-
-          this.role = 'host'
-          this.generation = `${this.webDocumentId}-${randomId()}`
-          markStartupBoundary('dedicated-host.lease-acquired', {
-            source: 'browser',
-            documentId: this.webDocumentId,
-            runtimeId: this.webRuntimeId,
-            generation: this.generation,
-          })
-          callbacks.startHost(this.generation)
-          return new Promise<void>((resolve) => {
+        { signal: this.standingAbort.signal },
+        async () => {
+          this.onLockGranted()
+          await new Promise<void>((resolve) => {
             this.closeLease = resolve
           })
         },
@@ -112,11 +95,56 @@ export class DedicatedWorkerHostOwner {
         runtimeId: this.webRuntimeId,
         error: err instanceof Error ? err.message : String(err),
       })
-      if (!selected) {
-        this.role = 'unavailable'
-        callbacks.startUnavailable()
-      }
+      this.role = 'unavailable'
+      callbacks.startUnavailable()
     })
+
+    void navigator.locks.query().then((snapshot) => {
+      // A grant can beat the query; only a still-pending owner can attach to
+      // the already-held standing lock.
+      if (this.role !== 'pending') {
+        return
+      }
+      const heldByAnother = snapshot.held?.some((lock) => lock.name === lockName)
+      if (!heldByAnother) {
+        return
+      }
+      this.role = 'attached'
+      markStartupBoundary('dedicated-host.attach-selected', {
+        source: 'browser',
+        documentId: this.webDocumentId,
+        runtimeId: this.webRuntimeId,
+      })
+      callbacks.startAttached()
+    })
+  }
+
+  private onLockGranted(): void {
+    if (this.role === 'closed') {
+      this.closeLease?.()
+      return
+    }
+    if (this.role !== 'pending' && this.role !== 'attached') {
+      return
+    }
+
+    const promoted = this.role === 'attached'
+    this.role = 'host'
+    this.generation = `${this.webDocumentId}-${randomId()}`
+    markStartupBoundary(
+      promoted ? 'dedicated-host.promoted' : 'dedicated-host.lease-acquired',
+      {
+        source: 'browser',
+        documentId: this.webDocumentId,
+        runtimeId: this.webRuntimeId,
+        generation: this.generation,
+      },
+    )
+    if (promoted) {
+      this.callbacks?.promoteToHost()
+      return
+    }
+    this.callbacks?.startHost(this.generation)
   }
 
   public async openClientChannel(
@@ -187,30 +215,10 @@ export class DedicatedWorkerHostOwner {
         runtimeId: this.webRuntimeId,
         error: message,
       })
-      this.restartElection(message)
       throw err
     } finally {
       ackChannel.port1.close()
     }
-  }
-
-  public handleHostLost(reason: string): void {
-    this.restartElection(reason)
-  }
-
-  private restartElection(reason: string): void {
-    if (this.closed || this.role !== 'attached' || !this.callbacks) {
-      return
-    }
-    this.role = 'pending'
-    this.leaseStarted = false
-    markStartupBoundary('dedicated-host.attach-lost', {
-      source: 'browser',
-      documentId: this.webDocumentId,
-      runtimeId: this.webRuntimeId,
-      reason,
-    })
-    this.start(this.callbacks)
   }
 
   public close(): void {
@@ -219,6 +227,8 @@ export class DedicatedWorkerHostOwner {
     }
     this.closed = true
     this.role = 'closed'
+    this.standingAbort?.abort()
+    this.standingAbort = undefined
     this.closeLease?.()
     this.closeLease = undefined
     markStartupBoundary('dedicated-host.closed', {

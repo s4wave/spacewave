@@ -24,7 +24,7 @@ interface WebDocumentWaiter {
   reject: (err: Error) => void
 }
 
-interface WebDocumentResumeReadyWaiter extends WebDocumentWaiter {
+interface WebDocumentRuntimeConnectedWaiter extends WebDocumentWaiter {
   webDocumentId: string
 }
 
@@ -68,10 +68,13 @@ export class WebDocumentTracker {
   private closed = false
   // webDocumentWaiters are callbacks waiting for the next WebDocument.
   private webDocumentWaiters: WebDocumentWaiter[] = []
-  // webDocumentResumeReadyIds are WebDocuments that reported resume readiness.
+  // webDocumentResumeReadyIds are WebDocuments that reported foreground readiness.
   private webDocumentResumeReadyIds = new Set<string>()
-  // webDocumentResumeReadyWaiters are callbacks waiting on a specific WebDocument.
-  private webDocumentResumeReadyWaiters: WebDocumentResumeReadyWaiter[] = []
+  // webDocumentRuntimeConnectedIds are WebDocuments with a live runtime channel.
+  private webDocumentRuntimeConnectedIds = new Set<string>()
+  // webDocumentRuntimeConnectedWaiters wait on a specific WebDocument relay.
+  private webDocumentRuntimeConnectedWaiters: WebDocumentRuntimeConnectedWaiter[] =
+    []
   // lastWebDocumentIdx was the last index used from WebDocuments.
   private lastWebDocumentIdx = 0
   // lastWebDocumentId was the last web document id used from WebDocuments.
@@ -83,9 +86,11 @@ export class WebDocumentTracker {
   private preferredRuntimeWebDocumentId?: string
   private nextSabPairRequestNumber = 1
   private sabPairOpenWaiters = new Map<string, SabPairOpenWaiter>()
+  private nextWebRtcBridgeRequestNumber = 1
+  private nextOpfsWorkerRequestNumber = 1
   private sabPairEndpoints = new Map<string, SabPairEndpointDescriptor>()
-  private webRtcBridgeOpenWaiters: WebRtcBridgeOpenWaiter[] = []
-  private opfsWorkerOpenWaiters: OpfsWorkerOpenWaiter[] = []
+  private webRtcBridgeOpenWaiters = new Map<string, WebRtcBridgeOpenWaiter>()
+  private opfsWorkerOpenWaiters = new Map<string, OpfsWorkerOpenWaiter>()
   // opfsWorkerHostId is the WebDocument currently hosting the OPFS bridge worker.
   private opfsWorkerHostId?: string
 
@@ -115,7 +120,7 @@ export class WebDocumentTracker {
       null,
       undefined,
       logicalClientId,
-      this.waitForActiveWebDocumentResumeReady.bind(this),
+      this.waitForActiveWebDocumentRuntimeConnected.bind(this),
     )
   }
 
@@ -161,15 +166,22 @@ export class WebDocumentTracker {
 
       if (data.resumeReady === true) {
         this.webDocumentResumeReadyIds.add(webDocumentId)
-        this.resolveResumeReadyWaiters(webDocumentId)
         this.preferReadyServiceWorkerDocument(webDocumentId)
+      }
+      if (data.resumeReady === false) {
+        this.webDocumentResumeReadyIds.delete(webDocumentId)
+      }
+
+      if (data.runtimeConnected === true) {
+        this.webDocumentRuntimeConnectedIds.add(webDocumentId)
+        this.resolveRuntimeConnectedWaiters(webDocumentId)
         const waiters = this.webDocumentWaiters.splice(0)
         for (const waiter of waiters) {
           waiter.resume()
         }
       }
-      if (data.resumeReady === false) {
-        this.webDocumentResumeReadyIds.delete(webDocumentId)
+      if (data.runtimeConnected === false) {
+        this.webDocumentRuntimeConnectedIds.delete(webDocumentId)
       }
 
       if (data.openSabPairAck) {
@@ -193,16 +205,18 @@ export class WebDocumentTracker {
       }
 
       if (data.bridgePort) {
-        const waiterIdx = this.webRtcBridgeOpenWaiters.findIndex(
-          (waiter) => waiter.webDocumentId === webDocumentId,
-        )
-        if (waiterIdx === -1) {
+        const requestId = data.requestId
+        const waiter = requestId
+          ? this.webRtcBridgeOpenWaiters.get(requestId)
+          : undefined
+        if (!requestId || !waiter) {
+          data.bridgePort.close()
+          console.warn(
+            `WebDocumentTracker: ${this.clientUuid}: unknown WebRTC bridge ack from ${webDocumentId}`,
+          )
           return
         }
-        const waiter = this.webRtcBridgeOpenWaiters.splice(waiterIdx, 1)[0]
-        if (!waiter) {
-          return
-        }
+        this.webRtcBridgeOpenWaiters.delete(requestId)
         waiter.resolve(data.bridgePort)
         return
       }
@@ -257,6 +271,7 @@ export class WebDocumentTracker {
       delete this.webDocuments[docID]
     }
     this.webDocumentResumeReadyIds.clear()
+    this.webDocumentRuntimeConnectedIds.clear()
     delete this.lastWebDocumentId
     delete this.activeRuntimeWebDocumentId
     this.activeRuntimeDocumentAbort?.abort()
@@ -265,7 +280,7 @@ export class WebDocumentTracker {
       `WebDocumentTracker: ${this.clientUuid}: closed while waiting for WebDocument`,
     )
     this.rejectWaiters(err)
-    this.rejectAllResumeReadyWaiters(err)
+    this.rejectAllRuntimeConnectedWaiters(err)
     this.rejectAllSabPairWaiters(err)
     this.rejectAllWebRtcBridgeWaiters(err)
     this.rejectAllOpfsWorkerWaiters(err)
@@ -302,8 +317,8 @@ export class WebDocumentTracker {
   // closes. After a page client closes there is a brief gap before the next
   // WebDocument establishes its relay; routing a static plugin asset fetch to
   // the dying client during that gap fails an in-flight navigation. Callers wait
-  // for the next relay (driven by WebDocument attach and resume-ready events, no
-  // polling) and retry instead of failing the fetch.
+  // for the next relay (driven by WebDocument attach and runtime-connected
+  // events, no polling) and retry instead of failing the fetch.
   public waitForRuntimeFetchRelay(
     timeoutMs: number,
     signal?: AbortSignal,
@@ -326,7 +341,7 @@ export class WebDocumentTracker {
             settle(true)
             return
           }
-          // Relay still absent: re-arm for the next attach / resume-ready event.
+          // Relay still absent: re-arm for the next attach / runtime-connected event.
           this.webDocumentWaiters.push(waiter)
         },
         reject: () => settle(false),
@@ -433,21 +448,21 @@ export class WebDocumentTracker {
     const docPort = this.webDocuments[docId]
     if (!docPort) return null
 
+    const requestId = `webrtc-bridge-open-${this.nextWebRtcBridgeRequestNumber++}`
     return new Promise<MessagePort | null>((resolve, reject) => {
-      const waiter: WebRtcBridgeOpenWaiter = {
+      this.webRtcBridgeOpenWaiters.set(requestId, {
         webDocumentId: docId,
         resolve,
         reject,
-      }
-      this.webRtcBridgeOpenWaiters.push(waiter)
+      })
       const msg: ClientToWebDocument = {
         from: this.clientUuid,
-        connectWebRtcBridge: true,
+        connectWebRtcBridge: { requestId },
       }
       try {
         docPort.postMessage(msg)
       } catch (err) {
-        this.removeWebRtcBridgeWaiter(waiter)
+        this.webRtcBridgeOpenWaiters.delete(requestId)
         reject(err instanceof Error ? err : new Error(String(err)))
       }
     })
@@ -463,21 +478,21 @@ export class WebDocumentTracker {
     const docPort = this.webDocuments[docId]
     if (!docPort) return null
 
+    const requestId = `opfs-worker-open-${this.nextOpfsWorkerRequestNumber++}`
     return new Promise<MessagePort | null>((resolve, reject) => {
-      const waiter: OpfsWorkerOpenWaiter = {
+      this.opfsWorkerOpenWaiters.set(requestId, {
         webDocumentId: docId,
         resolve,
         reject,
-      }
-      this.opfsWorkerOpenWaiters.push(waiter)
+      })
       const msg: ClientToWebDocument = {
         from: this.clientUuid,
-        openOpfsWorker: true,
+        openOpfsWorker: { requestId },
       }
       try {
         docPort.postMessage(msg)
       } catch (err) {
-        this.removeOpfsWorkerWaiter(waiter)
+        this.opfsWorkerOpenWaiters.delete(requestId)
         reject(err instanceof Error ? err : new Error(String(err)))
       }
     })
@@ -761,13 +776,14 @@ export class WebDocumentTracker {
     )
     delete this.webDocuments[webDocumentId]
     this.webDocumentResumeReadyIds.delete(webDocumentId)
+    this.webDocumentRuntimeConnectedIds.delete(webDocumentId)
     this.rejectSabPairWaitersForWebDocument(webDocumentId, closeErr)
     this.rejectWebRtcBridgeWaitersForWebDocument(webDocumentId, closeErr)
     this.rejectOpfsWorkerWaitersForWebDocument(webDocumentId, closeErr)
-    this.rejectResumeReadyWaiters(
+    this.rejectRuntimeConnectedWaiters(
       webDocumentId,
       new Error(
-        `WebDocumentTracker: ${this.clientUuid}: WebDocument ${webDocumentId} closed before resume-ready`,
+        `WebDocumentTracker: ${this.clientUuid}: WebDocument ${webDocumentId} closed before runtime-connected`,
       ),
     )
 
@@ -859,10 +875,9 @@ export class WebDocumentTracker {
     }
   }
 
-  private async waitForActiveWebDocumentResumeReady(): Promise<RuntimeClientStreamOpenGateResult> {
-    // Incoming runtime streams must wait on the WebDocument relaying the
-    // runtime channel. A newer tab may be connected but hidden or still
-    // resuming, and it must not gate streams for an older active relay.
+  private async waitForActiveWebDocumentRuntimeConnected(): Promise<RuntimeClientStreamOpenGateResult> {
+    // Stream opens gate on the active relay's runtime connection. Foreground
+    // resume-ready is telemetry and ServiceWorker preference only.
     const webDocumentId =
       this.activeRuntimeWebDocumentId ?? this.lastWebDocumentId
     if (!webDocumentId || !this.webDocuments[webDocumentId]) {
@@ -871,7 +886,7 @@ export class WebDocumentTracker {
         reason: 'no active WebDocument',
       }
     }
-    if (this.webDocumentResumeReadyIds.has(webDocumentId)) {
+    if (this.webDocumentRuntimeConnectedIds.has(webDocumentId)) {
       return {
         state: 'ready',
         documentId: webDocumentId,
@@ -879,7 +894,7 @@ export class WebDocumentTracker {
     }
 
     return new Promise<RuntimeClientStreamOpenGateResult>((resolve) => {
-      this.webDocumentResumeReadyWaiters.push({
+      this.webDocumentRuntimeConnectedWaiters.push({
         webDocumentId,
         resume: () => resolve({ state: 'ready', documentId: webDocumentId }),
         reject: (err) =>
@@ -900,9 +915,9 @@ export class WebDocumentTracker {
     }
   }
 
-  private resolveResumeReadyWaiters(webDocumentId: string) {
-    const waiters = this.webDocumentResumeReadyWaiters
-    this.webDocumentResumeReadyWaiters = waiters.filter((waiter) => {
+  private resolveRuntimeConnectedWaiters(webDocumentId: string) {
+    const waiters = this.webDocumentRuntimeConnectedWaiters
+    this.webDocumentRuntimeConnectedWaiters = waiters.filter((waiter) => {
       if (waiter.webDocumentId !== webDocumentId) {
         return true
       }
@@ -911,9 +926,9 @@ export class WebDocumentTracker {
     })
   }
 
-  private rejectResumeReadyWaiters(webDocumentId: string, err: Error) {
-    const waiters = this.webDocumentResumeReadyWaiters
-    this.webDocumentResumeReadyWaiters = waiters.filter((waiter) => {
+  private rejectRuntimeConnectedWaiters(webDocumentId: string, err: Error) {
+    const waiters = this.webDocumentRuntimeConnectedWaiters
+    this.webDocumentRuntimeConnectedWaiters = waiters.filter((waiter) => {
       if (waiter.webDocumentId !== webDocumentId) {
         return true
       }
@@ -922,8 +937,8 @@ export class WebDocumentTracker {
     })
   }
 
-  private rejectAllResumeReadyWaiters(err: Error) {
-    const waiters = this.webDocumentResumeReadyWaiters.splice(0)
+  private rejectAllRuntimeConnectedWaiters(err: Error) {
+    const waiters = this.webDocumentRuntimeConnectedWaiters.splice(0)
     for (const waiter of waiters) {
       waiter.reject(err)
     }
@@ -955,18 +970,15 @@ export class WebDocumentTracker {
     ack: OpenOpfsWorkerAck,
     port?: MessagePort,
   ): void {
-    const waiterIdx = this.opfsWorkerOpenWaiters.findIndex(
-      (waiter) => waiter.webDocumentId === webDocumentId,
-    )
-    if (waiterIdx === -1) {
-      port?.close()
-      return
-    }
-    const waiter = this.opfsWorkerOpenWaiters.splice(waiterIdx, 1)[0]
+    const waiter = this.opfsWorkerOpenWaiters.get(ack.requestId)
     if (!waiter) {
       port?.close()
+      console.warn(
+        `WebDocumentTracker: ${this.clientUuid}: unknown OPFS worker ack from ${webDocumentId}`,
+      )
       return
     }
+    this.opfsWorkerOpenWaiters.delete(ack.requestId)
     if (ack.error) {
       port?.close()
       waiter.reject(new Error(ack.error))
@@ -980,38 +992,24 @@ export class WebDocumentTracker {
     waiter.resolve(port)
   }
 
-  private removeOpfsWorkerWaiter(waiter: OpfsWorkerOpenWaiter) {
-    const idx = this.opfsWorkerOpenWaiters.indexOf(waiter)
-    if (idx !== -1) {
-      this.opfsWorkerOpenWaiters.splice(idx, 1)
-    }
-  }
-
   private rejectOpfsWorkerWaitersForWebDocument(
     webDocumentId: string,
     err: Error,
   ) {
-    const waiters = this.opfsWorkerOpenWaiters
-    this.opfsWorkerOpenWaiters = waiters.filter((waiter) => {
+    for (const [requestId, waiter] of this.opfsWorkerOpenWaiters) {
       if (waiter.webDocumentId !== webDocumentId) {
-        return true
+        continue
       }
-      waiter.reject(err)
-      return false
-    })
-  }
-
-  private rejectAllOpfsWorkerWaiters(err: Error) {
-    const waiters = this.opfsWorkerOpenWaiters.splice(0)
-    for (const waiter of waiters) {
+      this.opfsWorkerOpenWaiters.delete(requestId)
       waiter.reject(err)
     }
   }
 
-  private removeWebRtcBridgeWaiter(waiter: WebRtcBridgeOpenWaiter) {
-    const idx = this.webRtcBridgeOpenWaiters.indexOf(waiter)
-    if (idx !== -1) {
-      this.webRtcBridgeOpenWaiters.splice(idx, 1)
+  private rejectAllOpfsWorkerWaiters(err: Error) {
+    const waiters = Array.from(this.opfsWorkerOpenWaiters.values())
+    this.opfsWorkerOpenWaiters.clear()
+    for (const waiter of waiters) {
+      waiter.reject(err)
     }
   }
 
@@ -1019,18 +1017,18 @@ export class WebDocumentTracker {
     webDocumentId: string,
     err: Error,
   ) {
-    const waiters = this.webRtcBridgeOpenWaiters
-    this.webRtcBridgeOpenWaiters = waiters.filter((waiter) => {
+    for (const [requestId, waiter] of this.webRtcBridgeOpenWaiters) {
       if (waiter.webDocumentId !== webDocumentId) {
-        return true
+        continue
       }
+      this.webRtcBridgeOpenWaiters.delete(requestId)
       waiter.reject(err)
-      return false
-    })
+    }
   }
 
   private rejectAllWebRtcBridgeWaiters(err: Error) {
-    const waiters = this.webRtcBridgeOpenWaiters.splice(0)
+    const waiters = Array.from(this.webRtcBridgeOpenWaiters.values())
+    this.webRtcBridgeOpenWaiters.clear()
     for (const waiter of waiters) {
       waiter.reject(err)
     }
