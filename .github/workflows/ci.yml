@@ -169,7 +169,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ./.tools
-          key: ${{ runner.os }}-aptre-tools-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-aptre-tools-${{ hashFiles('go.mod', 'go.sum', '.custom-gcl.yml') }}
 
       - name: Setup aptre tools and vendor
         run: bun run prepare
@@ -222,7 +222,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ./.tools
-          key: ${{ runner.os }}-aptre-tools-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-aptre-tools-${{ hashFiles('go.mod', 'go.sum', '.custom-gcl.yml') }}
 
       - name: Setup aptre tools and vendor
         run: bun run prepare
@@ -330,7 +330,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ./.tools
-          key: ${{ runner.os }}-aptre-tools-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-aptre-tools-${{ hashFiles('go.mod', 'go.sum', '.custom-gcl.yml') }}
 
       - name: Setup aptre tools and vendor
         run: bun run prepare
@@ -372,14 +372,30 @@ jobs:
       - name: Install Bun dependencies
         run: bun install --frozen-lockfile --ignore-scripts
 
+      - name: Resolve Playwright Go version
+        id: playwright-go-version
+        run: echo "version=$(go list -m -f '{{.Version}}' github.com/playwright-community/playwright-go)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright-browser-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-${{ runner.arch }}-playwright-go-${{ steps.playwright-go-version.outputs.version }}
+
+      - name: Install Playwright browser OS dependencies
+        if: ${{ steps.playwright-browser-cache.outputs.cache-hit == 'true' }}
+        run: go run github.com/playwright-community/playwright-go/cmd/playwright install-deps chromium
+
       - name: Install Playwright browsers for Go tests
+        if: ${{ steps.playwright-browser-cache.outputs.cache-hit != 'true' }}
         run: go run github.com/playwright-community/playwright-go/cmd/playwright install --with-deps chromium
 
       - name: Cache aptre tools
         uses: actions/cache@v5
         with:
           path: ./.tools
-          key: ${{ runner.os }}-aptre-tools-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-aptre-tools-${{ hashFiles('go.mod', 'go.sum', '.custom-gcl.yml') }}
 
       - name: Setup aptre tools and vendor
         run: bun run prepare
@@ -443,7 +459,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ./.tools
-          key: ${{ runner.os }}-aptre-tools-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-aptre-tools-${{ hashFiles('go.mod', 'go.sum', '.custom-gcl.yml') }}
 
       - name: Setup aptre tools and vendor
         run: bun run prepare
