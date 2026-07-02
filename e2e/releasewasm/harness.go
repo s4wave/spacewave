@@ -522,6 +522,7 @@ func (h *harness) newContextOptions(t testing.TB) playwright.BrowserNewContextOp
 		}
 		slices.Sort(names)
 		t.Fatalf("unknown PLAYWRIGHT_BROWSER_DEVICE %q. Available devices: %s", deviceName, strings.Join(names, ", "))
+		return playwright.BrowserNewContextOptions{}
 	}
 
 	return playwright.BrowserNewContextOptions{
@@ -565,7 +566,7 @@ func (h *harness) browserRelease(ctx context.Context) (*browserReleaseDescriptor
 		return nil, err
 	}
 	desc := &browserReleaseDescriptor{
-		SchemaVersion: int(v.GetInt("schemaVersion")),
+		SchemaVersion: v.GetInt("schemaVersion"),
 		GenerationID:  string(v.GetStringBytes("generationId")),
 		ShellAssets: browserReleaseShellAssets{
 			Entrypoint:    string(v.GetStringBytes("shellAssets", "entrypoint")),

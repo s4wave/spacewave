@@ -4,15 +4,16 @@ package electron
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/fastjson"
 	playwright "github.com/playwright-community/playwright-go"
 )
 
@@ -117,14 +118,14 @@ func TestRetainedStatePluginAssetFetchDiscriminator(t *testing.T) {
 }
 
 type pluginAssetFetchDiscriminator struct {
-	URL               string `json:"url"`
-	Status            int    `json:"status"`
-	FetchSource       string `json:"fetchSource"`
-	RuntimeError      string `json:"runtimeError"`
-	PluginAssetResult string `json:"pluginAssetResult"`
-	ContentType       string `json:"contentType"`
-	BodyPrefix        string `json:"bodyPrefix"`
-	FetchError        string `json:"fetchError"`
+	URL               string
+	Status            int
+	FetchSource       string
+	RuntimeError      string
+	PluginAssetResult string
+	ContentType       string
+	BodyPrefix        string
+	FetchError        string
 }
 
 func fetchPluginAssetDiscriminator(
@@ -165,11 +166,11 @@ func fetchPluginAssetDiscriminator(
 	if !ok {
 		return nil, fmt.Errorf("unexpected plugin asset discriminator result %T: %#v", raw, raw)
 	}
-	var result pluginAssetFetchDiscriminator
-	if err := json.Unmarshal([]byte(encoded), &result); err != nil {
+	result, err := parsePluginAssetFetchDiscriminator(encoded)
+	if err != nil {
 		return nil, err
 	}
-	return &result, nil
+	return result, nil
 }
 
 func writePluginAssetDiscriminatorArtifact(
@@ -180,10 +181,8 @@ func writePluginAssetDiscriminatorArtifact(
 	retainedLogPath string,
 	result *pluginAssetFetchDiscriminator,
 ) (string, error) {
-	encodedResult, err := json.Marshal(result)
-	if err != nil {
-		return "", err
-	}
+	var arena fastjson.Arena
+	encodedResult := result.appendJSON(&arena).MarshalTo(nil)
 	path := filepath.Join(h.ArtifactDir(), "retained-plugin-asset-fetch-discriminator.txt")
 	classification := classifyPluginAssetFetch(result)
 	ownerClass := pluginAssetFailureOwner(classification)
@@ -255,13 +254,13 @@ func pluginAssetFailureOwner(classification string) string {
 }
 
 type desktopBootCompatibilityDiscriminator struct {
-	URL                 string   `json:"url"`
-	HasBootStatus       bool     `json:"hasBootStatus"`
-	BootStatusPhase     string   `json:"bootStatusPhase"`
-	StoredBootVersion   string   `json:"storedBootVersion"`
-	ResetAttemptVersion string   `json:"resetAttemptVersion"`
-	ScriptSources       []string `json:"scriptSources"`
-	Classification      string   `json:"classification"`
+	URL                 string
+	HasBootStatus       bool
+	BootStatusPhase     string
+	StoredBootVersion   string
+	ResetAttemptVersion string
+	ScriptSources       []string
+	Classification      string
 }
 
 func captureDesktopBootCompatibilityDiscriminator(
@@ -298,11 +297,11 @@ func captureDesktopBootCompatibilityDiscriminator(
 	if !ok {
 		return nil, fmt.Errorf("unexpected desktop boot discriminator result %T: %#v", raw, raw)
 	}
-	var result desktopBootCompatibilityDiscriminator
-	if err := json.Unmarshal([]byte(encoded), &result); err != nil {
+	result, err := parseDesktopBootCompatibilityDiscriminator(encoded)
+	if err != nil {
 		return nil, err
 	}
-	return &result, nil
+	return result, nil
 }
 
 func writeDesktopBootCompatibilityArtifact(
@@ -313,10 +312,8 @@ func writeDesktopBootCompatibilityArtifact(
 	retainedLogPath string,
 	result *desktopBootCompatibilityDiscriminator,
 ) (string, error) {
-	encodedResult, err := json.Marshal(result)
-	if err != nil {
-		return "", err
-	}
+	var arena fastjson.Arena
+	encodedResult := result.appendJSON(&arena).MarshalTo(nil)
 	path := filepath.Join(h.ArtifactDir(), "retained-desktop-boot-compatibility-discriminator.txt")
 	lines := []string{
 		"smoke=retained-desktop-boot-compatibility-discriminator",
@@ -355,9 +352,9 @@ type protectedStateSentinels struct {
 }
 
 type protectedStateSentinelResult struct {
-	FileSurvivors       map[string]bool   `json:"fileSurvivors"`
-	WebStorageSurvivors map[string]bool   `json:"webStorageSurvivors"`
-	BrowserDurableAPIs  map[string]string `json:"browserDurableAPIs"`
+	FileSurvivors       map[string]bool
+	WebStorageSurvivors map[string]bool
+	BrowserDurableAPIs  map[string]string
 }
 
 func seedProtectedStateSentinels(
@@ -391,11 +388,9 @@ func seedProtectedStateSentinels(
 }
 
 func setLocalStorageSentinels(page playwright.Page, values map[string]string) error {
-	encoded, err := json.Marshal(values)
-	if err != nil {
-		return err
-	}
-	_, err = page.Evaluate(`(encoded) => {
+	var arena fastjson.Arena
+	encoded := appendStringMapJSON(&arena, values).MarshalTo(nil)
+	_, err := page.Evaluate(`(encoded) => {
 		const values = JSON.parse(encoded)
 		for (const [key, value] of Object.entries(values)) {
 			localStorage.setItem(key, value)
@@ -428,10 +423,8 @@ func verifyProtectedStateSentinels(
 		}
 	}
 
-	encoded, err := json.Marshal(sentinels.WebStorageValues)
-	if err != nil {
-		return nil, err
-	}
+	var arena fastjson.Arena
+	encoded := appendStringMapJSON(&arena, sentinels.WebStorageValues).MarshalTo(nil)
 	raw, err := page.Evaluate(`(encoded) => {
 		const values = JSON.parse(encoded)
 		const survivors = {}
@@ -459,9 +452,11 @@ func verifyProtectedStateSentinels(
 	if !ok {
 		return nil, fmt.Errorf("unexpected Web Storage sentinel result %T: %#v", raw, raw)
 	}
-	if err := json.Unmarshal([]byte(survivorsJSON), &result.WebStorageSurvivors); err != nil {
+	webStorageSurvivors, err := parseBoolMapJSON(survivorsJSON)
+	if err != nil {
 		return nil, err
 	}
+	result.WebStorageSurvivors = webStorageSurvivors
 	for key, survived := range result.WebStorageSurvivors {
 		if !survived {
 			return result, fmt.Errorf("Web Storage sentinel %q changed", key)
@@ -478,10 +473,8 @@ func writeProtectedStateSentinelArtifact(
 	retainedLogPath string,
 	result *protectedStateSentinelResult,
 ) (string, error) {
-	encodedResult, err := json.Marshal(result)
-	if err != nil {
-		return "", err
-	}
+	var arena fastjson.Arena
+	encodedResult := result.appendJSON(&arena).MarshalTo(nil)
 	path := filepath.Join(h.ArtifactDir(), "retained-protected-state-sentinels.txt")
 	lines := []string{
 		"smoke=retained-protected-state-sentinels",
@@ -503,4 +496,129 @@ func writeProtectedStateSentinelArtifact(
 		return "", err
 	}
 	return path, nil
+}
+
+func parsePluginAssetFetchDiscriminator(data string) (*pluginAssetFetchDiscriminator, error) {
+	var parser fastjson.Parser
+	value, err := parser.Parse(data)
+	if err != nil {
+		return nil, err
+	}
+	return &pluginAssetFetchDiscriminator{
+		URL:               string(value.GetStringBytes("url")),
+		Status:            value.GetInt("status"),
+		FetchSource:       string(value.GetStringBytes("fetchSource")),
+		RuntimeError:      string(value.GetStringBytes("runtimeError")),
+		PluginAssetResult: string(value.GetStringBytes("pluginAssetResult")),
+		ContentType:       string(value.GetStringBytes("contentType")),
+		BodyPrefix:        string(value.GetStringBytes("bodyPrefix")),
+		FetchError:        string(value.GetStringBytes("fetchError")),
+	}, nil
+}
+
+func (d *pluginAssetFetchDiscriminator) appendJSON(arena *fastjson.Arena) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("url", arena.NewString(d.URL))
+	obj.Set("status", arena.NewNumberInt(d.Status))
+	obj.Set("fetchSource", arena.NewString(d.FetchSource))
+	obj.Set("runtimeError", arena.NewString(d.RuntimeError))
+	obj.Set("pluginAssetResult", arena.NewString(d.PluginAssetResult))
+	obj.Set("contentType", arena.NewString(d.ContentType))
+	obj.Set("bodyPrefix", arena.NewString(d.BodyPrefix))
+	obj.Set("fetchError", arena.NewString(d.FetchError))
+	return obj
+}
+
+func parseDesktopBootCompatibilityDiscriminator(data string) (*desktopBootCompatibilityDiscriminator, error) {
+	var parser fastjson.Parser
+	value, err := parser.Parse(data)
+	if err != nil {
+		return nil, err
+	}
+	scriptSourceValues := value.GetArray("scriptSources")
+	scriptSources := make([]string, 0, len(scriptSourceValues))
+	for _, scriptSource := range scriptSourceValues {
+		scriptSources = append(scriptSources, string(scriptSource.GetStringBytes()))
+	}
+	return &desktopBootCompatibilityDiscriminator{
+		URL:                 string(value.GetStringBytes("url")),
+		HasBootStatus:       value.GetBool("hasBootStatus"),
+		BootStatusPhase:     string(value.GetStringBytes("bootStatusPhase")),
+		StoredBootVersion:   string(value.GetStringBytes("storedBootVersion")),
+		ResetAttemptVersion: string(value.GetStringBytes("resetAttemptVersion")),
+		ScriptSources:       scriptSources,
+		Classification:      string(value.GetStringBytes("classification")),
+	}, nil
+}
+
+func (d *desktopBootCompatibilityDiscriminator) appendJSON(arena *fastjson.Arena) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("url", arena.NewString(d.URL))
+	if d.HasBootStatus {
+		obj.Set("hasBootStatus", arena.NewTrue())
+	} else {
+		obj.Set("hasBootStatus", arena.NewFalse())
+	}
+	obj.Set("bootStatusPhase", arena.NewString(d.BootStatusPhase))
+	obj.Set("storedBootVersion", arena.NewString(d.StoredBootVersion))
+	obj.Set("resetAttemptVersion", arena.NewString(d.ResetAttemptVersion))
+	scriptSources := arena.NewArray()
+	for _, scriptSource := range d.ScriptSources {
+		scriptSources.SetArrayItem(len(scriptSources.GetArray()), arena.NewString(scriptSource))
+	}
+	obj.Set("scriptSources", scriptSources)
+	obj.Set("classification", arena.NewString(d.Classification))
+	return obj
+}
+
+func (r *protectedStateSentinelResult) appendJSON(arena *fastjson.Arena) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("fileSurvivors", appendBoolMapJSON(arena, r.FileSurvivors))
+	obj.Set("webStorageSurvivors", appendBoolMapJSON(arena, r.WebStorageSurvivors))
+	obj.Set("browserDurableAPIs", appendStringMapJSON(arena, r.BrowserDurableAPIs))
+	return obj
+}
+
+func appendStringMapJSON(arena *fastjson.Arena, values map[string]string) *fastjson.Value {
+	obj := arena.NewObject()
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	for _, key := range keys {
+		obj.Set(key, arena.NewString(values[key]))
+	}
+	return obj
+}
+
+func appendBoolMapJSON(arena *fastjson.Arena, values map[string]bool) *fastjson.Value {
+	obj := arena.NewObject()
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	for _, key := range keys {
+		if values[key] {
+			obj.Set(key, arena.NewTrue())
+		} else {
+			obj.Set(key, arena.NewFalse())
+		}
+	}
+	return obj
+}
+
+func parseBoolMapJSON(data string) (map[string]bool, error) {
+	var parser fastjson.Parser
+	value, err := parser.Parse(data)
+	if err != nil {
+		return nil, err
+	}
+	obj := value.GetObject()
+	values := make(map[string]bool, obj.Len())
+	obj.Visit(func(key []byte, value *fastjson.Value) {
+		values[string(key)] = value.GetBool()
+	})
+	return values, nil
 }

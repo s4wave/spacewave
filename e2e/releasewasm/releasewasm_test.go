@@ -6,7 +6,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"io"
 	"net/http"
 	"os"
@@ -18,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 	playwright "github.com/playwright-community/playwright-go"
 	"github.com/sirupsen/logrus"
@@ -385,31 +385,27 @@ func collectQuickstartModuleLoadDifferential(t *testing.T, page playwright.Page,
 	rootDirect := directServerModuleProbe(t, modulePath)
 	sonnerDirect := directServerModuleProbe(t, sonnerModulePath)
 	sonnerArtifact := releaseWebPkgArtifactProbe(t, sonnerModulePath)
-	report := map[string]any{
-		"modulePath":   modulePath,
-		"browserProbe": browserProbe,
-		"directServer": map[string]any{
-			"root":   rootDirect,
-			"sonner": sonnerDirect,
+	report := moduleLoadDifferentialReport{
+		ModulePath:   modulePath,
+		BrowserProbe: browserProbe,
+		DirectServer: moduleLoadDifferentialDirectServer{
+			Root:   rootDirect,
+			Sonner: sonnerDirect,
 		},
-		"releaseArtifact": map[string]any{
-			"sonner": sonnerArtifact,
+		ReleaseArtifact: moduleLoadDifferentialArtifacts{
+			Sonner: sonnerArtifact,
 		},
 	}
-	reportJSON, err := json.MarshalIndent(report, "", "  ")
-	if err != nil {
-		t.Fatalf("marshal module load differential: %v", err)
-	}
+	var arena fastjson.Arena
+	reportJSON := report.appendJSON(&arena).MarshalTo(nil)
 	t.Logf("quickstart module load differential: %s", string(reportJSON))
 	writeModuleLoadDifferentialArtifact(t, string(reportJSON))
 
-	rootBrowser, _ := browserProbe["rootFetch"].(map[string]any)
-	sonnerBrowser, _ := browserProbe["sonnerFetch"].(map[string]any)
-	assertBrowserModuleFetchComplete(t, "root App module", rootBrowser)
-	assertBrowserModuleFetchMatchesArtifact(t, "Sonner module", sonnerBrowser, sonnerArtifact)
+	assertBrowserModuleFetchComplete(t, "root App module", browserProbe.RootFetch)
+	assertBrowserModuleFetchMatchesArtifact(t, "Sonner module", browserProbe.SonnerFetch, sonnerArtifact)
 }
 
-func collectBrowserModuleLoadDifferential(t *testing.T, page playwright.Page, modulePath string) map[string]any {
+func collectBrowserModuleLoadDifferential(t *testing.T, page playwright.Page, modulePath string) browserModuleLoadDifferential {
 	t.Helper()
 
 	raw, err := page.Evaluate(`async (args) => {
@@ -580,7 +576,7 @@ func collectBrowserModuleLoadDifferential(t *testing.T, page playwright.Page, mo
 				entry.name.includes('/b/pa/') ||
 				entry.name.includes('/b/pkg/sonner'),
 			)
-		return {
+		return JSON.stringify({
 			location: location.href,
 			controllerURL: navigator.serviceWorker.controller?.scriptURL ?? '',
 			rootAssetStatus: globalThis.__bldrWebViewRootAssetStatus ?? null,
@@ -590,7 +586,7 @@ func collectBrowserModuleLoadDifferential(t *testing.T, page playwright.Page, mo
 			rootImport: await importProbe(args.modulePath, 'root_import_probe'),
 			sonnerImport: await importProbe(args.sonnerPath, 'sonner_import_probe'),
 			performanceEntries,
-		}
+		})
 	}`, map[string]any{
 		"modulePath": modulePath,
 		"sonnerPath": sonnerModulePath,
@@ -598,14 +594,18 @@ func collectBrowserModuleLoadDifferential(t *testing.T, page playwright.Page, mo
 	if err != nil {
 		t.Fatalf("collect browser module load differential: %v", err)
 	}
-	probe, ok := raw.(map[string]any)
+	encoded, ok := raw.(string)
 	if !ok {
 		t.Fatalf("unexpected browser module load differential payload %T", raw)
+	}
+	probe, err := parseBrowserModuleLoadDifferential(encoded)
+	if err != nil {
+		t.Fatalf("parse browser module load differential payload: %v", err)
 	}
 	return probe
 }
 
-func directServerModuleProbe(t *testing.T, modulePath string) map[string]any {
+func directServerModuleProbe(t *testing.T, modulePath string) moduleBodyProbe {
 	t.Helper()
 
 	if !strings.HasPrefix(modulePath, "/") {
@@ -624,15 +624,15 @@ func directServerModuleProbe(t *testing.T, modulePath string) map[string]any {
 	if err != nil {
 		t.Fatalf("read direct module response %q: %v", modulePath, err)
 	}
-	probe := moduleBodySummary(body)
-	probe["path"] = modulePath
-	probe["status"] = resp.StatusCode
-	probe["contentType"] = resp.Header.Get("Content-Type")
-	probe["contentLength"] = resp.Header.Get("Content-Length")
+	probe := summarizeModuleBody(body)
+	probe.Path = modulePath
+	probe.Status = resp.StatusCode
+	probe.ContentType = resp.Header.Get("Content-Type")
+	probe.ContentLength = resp.Header.Get("Content-Length")
 	return probe
 }
 
-func releaseWebPkgArtifactProbe(t *testing.T, modulePath string) map[string]any {
+func releaseWebPkgArtifactProbe(t *testing.T, modulePath string) moduleBodyProbe {
 	t.Helper()
 
 	artifactRelPath := releaseWebPkgArtifactRelPath(t, modulePath)
@@ -640,10 +640,10 @@ func releaseWebPkgArtifactProbe(t *testing.T, modulePath string) map[string]any 
 	if err != nil {
 		t.Fatalf("read release web package artifact %s for %s: %v", artifactRelPath, modulePath, err)
 	}
-	probe := moduleBodySummary(body)
-	probe["path"] = modulePath
-	probe["artifactRelPath"] = artifactRelPath
-	probe["ok"] = true
+	probe := summarizeModuleBody(body)
+	probe.Path = modulePath
+	probe.ArtifactRelPath = artifactRelPath
+	probe.OK = true
 	return probe
 }
 
@@ -662,7 +662,7 @@ func releaseWebPkgArtifactRelPath(t *testing.T, modulePath string) string {
 	return filepath.ToSlash(filepath.Join(webPkgArtifactRelDir, filepath.FromSlash(cleanPkgPath)))
 }
 
-func moduleBodySummary(body []byte) map[string]any {
+func summarizeModuleBody(body []byte) moduleBodyProbe {
 	sum := sha256.Sum256(body)
 	bodyText := string(body)
 	head := bodyText
@@ -673,62 +673,37 @@ func moduleBodySummary(body []byte) map[string]any {
 	if len(tail) > 240 {
 		tail = tail[len(tail)-240:]
 	}
-	return map[string]any{
-		"bodyByteLength": len(body),
-		"sha256":         hex.EncodeToString(sum[:]),
-		"head":           head,
-		"tail":           tail,
+	return moduleBodyProbe{
+		BodyByteLength: len(body),
+		SHA256:         hex.EncodeToString(sum[:]),
+		Head:           head,
+		Tail:           tail,
 	}
 }
 
-func assertBrowserModuleFetchComplete(t *testing.T, label string, browser map[string]any) {
+func assertBrowserModuleFetchComplete(t *testing.T, label string, browser moduleFetchProbe) {
 	t.Helper()
 
-	if browser == nil {
-		t.Fatalf("%s browser probe missing", label)
-	}
-	if moduleProbeStatus(browser["status"]) != 200 {
+	if browser.Status != http.StatusOK {
 		t.Fatalf("%s browser probe did not return 200: %#v", label, browser)
 	}
-	if browser["ok"] != true {
+	if !browser.OK {
 		t.Fatalf("%s browser body failed after headers: %#v", label, browser)
 	}
 }
 
-func assertBrowserModuleFetchMatchesArtifact(t *testing.T, label string, browser, artifact map[string]any) {
+func assertBrowserModuleFetchMatchesArtifact(t *testing.T, label string, browser moduleFetchProbe, artifact moduleBodyProbe) {
 	t.Helper()
 
 	assertBrowserModuleFetchComplete(t, label, browser)
-	if artifact == nil {
-		t.Fatalf("%s release artifact probe missing", label)
-	}
-	if artifact["ok"] != true {
+	if !artifact.OK {
 		t.Fatalf("%s release artifact probe failed: %#v", label, artifact)
 	}
-	browserLength := moduleProbeInt(browser["bodyByteLength"])
-	artifactLength := moduleProbeInt(artifact["bodyByteLength"])
-	if browserLength != artifactLength {
-		t.Fatalf("%s browser body length %d != release artifact length %d: browser=%#v artifact=%#v", label, browserLength, artifactLength, browser, artifact)
+	if browser.BodyByteLength != artifact.BodyByteLength {
+		t.Fatalf("%s browser body length %d != release artifact length %d: browser=%#v artifact=%#v", label, browser.BodyByteLength, artifact.BodyByteLength, browser, artifact)
 	}
-	if browser["sha256"] != artifact["sha256"] {
-		t.Fatalf("%s browser body hash %v != release artifact hash %v: browser=%#v artifact=%#v", label, browser["sha256"], artifact["sha256"], browser, artifact)
-	}
-}
-
-func moduleProbeStatus(value any) int {
-	return moduleProbeInt(value)
-}
-
-func moduleProbeInt(value any) int {
-	switch typed := value.(type) {
-	case int:
-		return typed
-	case int64:
-		return int(typed)
-	case float64:
-		return int(typed)
-	default:
-		return 0
+	if browser.SHA256 != artifact.SHA256 {
+		t.Fatalf("%s browser body hash %v != release artifact hash %v: browser=%#v artifact=%#v", label, browser.SHA256, artifact.SHA256, browser, artifact)
 	}
 }
 
@@ -2373,6 +2348,314 @@ func writeQuickstartSmokeArtifact(path string, data []byte) error {
 		return err
 	}
 	return os.WriteFile(path, data, 0o644)
+}
+
+type moduleLoadDifferentialReport struct {
+	ModulePath      string
+	BrowserProbe    browserModuleLoadDifferential
+	DirectServer    moduleLoadDifferentialDirectServer
+	ReleaseArtifact moduleLoadDifferentialArtifacts
+}
+
+type moduleLoadDifferentialDirectServer struct {
+	Root   moduleBodyProbe
+	Sonner moduleBodyProbe
+}
+
+type moduleLoadDifferentialArtifacts struct {
+	Sonner moduleBodyProbe
+}
+
+type browserModuleLoadDifferential struct {
+	Location           string
+	ControllerURL      string
+	RootAssetStatus    *fastjson.Value
+	ModuleImportError  *fastjson.Value
+	RootFetch          moduleFetchProbe
+	SonnerFetch        moduleFetchProbe
+	RootImport         moduleImportProbe
+	SonnerImport       moduleImportProbe
+	PerformanceEntries []modulePerformanceEntry
+}
+
+type moduleFetchProbe struct {
+	Path           string
+	RequestURL     string
+	Status         int
+	OK             bool
+	Headers        map[string]string
+	BodyComplete   bool
+	BodyReader     string
+	BodyChunks     int
+	BodyLength     int
+	BodyByteLength int
+	SHA256         string
+	Head           string
+	Tail           string
+	PartialSHA256  string
+	PartialHead    string
+	PartialTail    string
+	Phase          string
+	Name           string
+	Message        string
+	Stack          string
+}
+
+type moduleImportProbe struct {
+	Path       string
+	RequestURL string
+	OK         bool
+	ExportKeys []string
+	HasDefault bool
+	Name       string
+	Message    string
+	Stack      string
+}
+
+type modulePerformanceEntry struct {
+	Name            string
+	InitiatorType   string
+	TransferSize    int
+	EncodedBodySize int
+	DecodedBodySize int
+}
+
+type moduleBodyProbe struct {
+	Path            string
+	ArtifactRelPath string
+	Status          int
+	OK              bool
+	ContentType     string
+	ContentLength   string
+	BodyByteLength  int
+	SHA256          string
+	Head            string
+	Tail            string
+}
+
+func parseBrowserModuleLoadDifferential(data string) (browserModuleLoadDifferential, error) {
+	var parser fastjson.Parser
+	value, err := parser.Parse(data)
+	if err != nil {
+		return browserModuleLoadDifferential{}, err
+	}
+	return browserModuleLoadDifferential{
+		Location:           string(value.GetStringBytes("location")),
+		ControllerURL:      string(value.GetStringBytes("controllerURL")),
+		RootAssetStatus:    value.Get("rootAssetStatus"),
+		ModuleImportError:  value.Get("moduleImportError"),
+		RootFetch:          parseModuleFetchProbe(value.Get("rootFetch")),
+		SonnerFetch:        parseModuleFetchProbe(value.Get("sonnerFetch")),
+		RootImport:         parseModuleImportProbe(value.Get("rootImport")),
+		SonnerImport:       parseModuleImportProbe(value.Get("sonnerImport")),
+		PerformanceEntries: parseModulePerformanceEntries(value.GetArray("performanceEntries")),
+	}, nil
+}
+
+func parseModuleFetchProbe(value *fastjson.Value) moduleFetchProbe {
+	if value == nil {
+		return moduleFetchProbe{}
+	}
+	return moduleFetchProbe{
+		Path:           string(value.GetStringBytes("path")),
+		RequestURL:     string(value.GetStringBytes("requestURL")),
+		Status:         value.GetInt("status"),
+		OK:             value.GetBool("ok"),
+		Headers:        parseStringMapValue(value.Get("headers")),
+		BodyComplete:   value.GetBool("bodyComplete"),
+		BodyReader:     string(value.GetStringBytes("bodyReader")),
+		BodyChunks:     value.GetInt("bodyChunks"),
+		BodyLength:     value.GetInt("bodyLength"),
+		BodyByteLength: value.GetInt("bodyByteLength"),
+		SHA256:         string(value.GetStringBytes("sha256")),
+		Head:           string(value.GetStringBytes("head")),
+		Tail:           string(value.GetStringBytes("tail")),
+		PartialSHA256:  string(value.GetStringBytes("partialSha256")),
+		PartialHead:    string(value.GetStringBytes("partialHead")),
+		PartialTail:    string(value.GetStringBytes("partialTail")),
+		Phase:          string(value.GetStringBytes("phase")),
+		Name:           string(value.GetStringBytes("name")),
+		Message:        string(value.GetStringBytes("message")),
+		Stack:          string(value.GetStringBytes("stack")),
+	}
+}
+
+func parseModuleImportProbe(value *fastjson.Value) moduleImportProbe {
+	if value == nil {
+		return moduleImportProbe{}
+	}
+	return moduleImportProbe{
+		Path:       string(value.GetStringBytes("path")),
+		RequestURL: string(value.GetStringBytes("requestURL")),
+		OK:         value.GetBool("ok"),
+		ExportKeys: parseStringArray(value.GetArray("exportKeys")),
+		HasDefault: value.GetBool("hasDefault"),
+		Name:       string(value.GetStringBytes("name")),
+		Message:    string(value.GetStringBytes("message")),
+		Stack:      string(value.GetStringBytes("stack")),
+	}
+}
+
+func parseModulePerformanceEntries(values []*fastjson.Value) []modulePerformanceEntry {
+	entries := make([]modulePerformanceEntry, 0, len(values))
+	for _, value := range values {
+		entries = append(entries, modulePerformanceEntry{
+			Name:            string(value.GetStringBytes("name")),
+			InitiatorType:   string(value.GetStringBytes("initiatorType")),
+			TransferSize:    value.GetInt("transferSize"),
+			EncodedBodySize: value.GetInt("encodedBodySize"),
+			DecodedBodySize: value.GetInt("decodedBodySize"),
+		})
+	}
+	return entries
+}
+
+func parseStringArray(values []*fastjson.Value) []string {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		out = append(out, string(value.GetStringBytes()))
+	}
+	return out
+}
+
+func parseStringMapValue(value *fastjson.Value) map[string]string {
+	obj := value.GetObject()
+	if obj == nil {
+		return nil
+	}
+	values := make(map[string]string, obj.Len())
+	obj.Visit(func(key []byte, value *fastjson.Value) {
+		values[string(key)] = string(value.GetStringBytes())
+	})
+	return values
+}
+
+func (r moduleLoadDifferentialReport) appendJSON(arena *fastjson.Arena) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("modulePath", arena.NewString(r.ModulePath))
+	obj.Set("browserProbe", r.BrowserProbe.appendJSON(arena))
+	directServer := arena.NewObject()
+	directServer.Set("root", r.DirectServer.Root.appendJSON(arena))
+	directServer.Set("sonner", r.DirectServer.Sonner.appendJSON(arena))
+	obj.Set("directServer", directServer)
+	releaseArtifact := arena.NewObject()
+	releaseArtifact.Set("sonner", r.ReleaseArtifact.Sonner.appendJSON(arena))
+	obj.Set("releaseArtifact", releaseArtifact)
+	return obj
+}
+
+func (p browserModuleLoadDifferential) appendJSON(arena *fastjson.Arena) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("location", arena.NewString(p.Location))
+	obj.Set("controllerURL", arena.NewString(p.ControllerURL))
+	setRawJSONValue(arena, obj, "rootAssetStatus", p.RootAssetStatus)
+	setRawJSONValue(arena, obj, "moduleImportError", p.ModuleImportError)
+	obj.Set("rootFetch", p.RootFetch.appendJSON(arena))
+	obj.Set("sonnerFetch", p.SonnerFetch.appendJSON(arena))
+	obj.Set("rootImport", p.RootImport.appendJSON(arena))
+	obj.Set("sonnerImport", p.SonnerImport.appendJSON(arena))
+	entries := arena.NewArray()
+	for _, entry := range p.PerformanceEntries {
+		entries.SetArrayItem(len(entries.GetArray()), entry.appendJSON(arena))
+	}
+	obj.Set("performanceEntries", entries)
+	return obj
+}
+
+func (p moduleFetchProbe) appendJSON(arena *fastjson.Arena) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("path", arena.NewString(p.Path))
+	obj.Set("requestURL", arena.NewString(p.RequestURL))
+	obj.Set("status", arena.NewNumberInt(p.Status))
+	setBoolJSONField(arena, obj, "ok", p.OK)
+	obj.Set("headers", appendStringMapJSON(arena, p.Headers))
+	setBoolJSONField(arena, obj, "bodyComplete", p.BodyComplete)
+	obj.Set("bodyReader", arena.NewString(p.BodyReader))
+	obj.Set("bodyChunks", arena.NewNumberInt(p.BodyChunks))
+	obj.Set("bodyLength", arena.NewNumberInt(p.BodyLength))
+	obj.Set("bodyByteLength", arena.NewNumberInt(p.BodyByteLength))
+	obj.Set("sha256", arena.NewString(p.SHA256))
+	obj.Set("head", arena.NewString(p.Head))
+	obj.Set("tail", arena.NewString(p.Tail))
+	obj.Set("partialSha256", arena.NewString(p.PartialSHA256))
+	obj.Set("partialHead", arena.NewString(p.PartialHead))
+	obj.Set("partialTail", arena.NewString(p.PartialTail))
+	obj.Set("phase", arena.NewString(p.Phase))
+	obj.Set("name", arena.NewString(p.Name))
+	obj.Set("message", arena.NewString(p.Message))
+	obj.Set("stack", arena.NewString(p.Stack))
+	return obj
+}
+
+func (p moduleImportProbe) appendJSON(arena *fastjson.Arena) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("path", arena.NewString(p.Path))
+	obj.Set("requestURL", arena.NewString(p.RequestURL))
+	setBoolJSONField(arena, obj, "ok", p.OK)
+	exportKeys := arena.NewArray()
+	for _, key := range p.ExportKeys {
+		exportKeys.SetArrayItem(len(exportKeys.GetArray()), arena.NewString(key))
+	}
+	obj.Set("exportKeys", exportKeys)
+	setBoolJSONField(arena, obj, "hasDefault", p.HasDefault)
+	obj.Set("name", arena.NewString(p.Name))
+	obj.Set("message", arena.NewString(p.Message))
+	obj.Set("stack", arena.NewString(p.Stack))
+	return obj
+}
+
+func (p modulePerformanceEntry) appendJSON(arena *fastjson.Arena) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("name", arena.NewString(p.Name))
+	obj.Set("initiatorType", arena.NewString(p.InitiatorType))
+	obj.Set("transferSize", arena.NewNumberInt(p.TransferSize))
+	obj.Set("encodedBodySize", arena.NewNumberInt(p.EncodedBodySize))
+	obj.Set("decodedBodySize", arena.NewNumberInt(p.DecodedBodySize))
+	return obj
+}
+
+func (p moduleBodyProbe) appendJSON(arena *fastjson.Arena) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("path", arena.NewString(p.Path))
+	obj.Set("artifactRelPath", arena.NewString(p.ArtifactRelPath))
+	obj.Set("status", arena.NewNumberInt(p.Status))
+	setBoolJSONField(arena, obj, "ok", p.OK)
+	obj.Set("contentType", arena.NewString(p.ContentType))
+	obj.Set("contentLength", arena.NewString(p.ContentLength))
+	obj.Set("bodyByteLength", arena.NewNumberInt(p.BodyByteLength))
+	obj.Set("sha256", arena.NewString(p.SHA256))
+	obj.Set("head", arena.NewString(p.Head))
+	obj.Set("tail", arena.NewString(p.Tail))
+	return obj
+}
+
+func appendStringMapJSON(arena *fastjson.Arena, values map[string]string) *fastjson.Value {
+	obj := arena.NewObject()
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	for _, key := range keys {
+		obj.Set(key, arena.NewString(values[key]))
+	}
+	return obj
+}
+
+func setBoolJSONField(arena *fastjson.Arena, obj *fastjson.Value, key string, value bool) {
+	if value {
+		obj.Set(key, arena.NewTrue())
+	} else {
+		obj.Set(key, arena.NewFalse())
+	}
+}
+
+func setRawJSONValue(arena *fastjson.Arena, obj *fastjson.Value, key string, value *fastjson.Value) {
+	if value == nil {
+		obj.Set(key, arena.NewNull())
+		return
+	}
+	obj.Set(key, value)
 }
 
 func sourceRevision(t testing.TB) map[string]any {

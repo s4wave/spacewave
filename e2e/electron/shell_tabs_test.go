@@ -395,31 +395,6 @@ func waitForSelectedShellTab(page playwright.Page, name string) error {
 	return err
 }
 
-func assertSelectedShellTab(page playwright.Page, want string) error {
-	got, err := selectedShellTab(page)
-	if err != nil {
-		return err
-	}
-	if got != want {
-		return fmt.Errorf("expected selected shell tab %q, got %q", want, got)
-	}
-	return nil
-}
-
-func selectedShellTab(page playwright.Page) (string, error) {
-	raw, err := page.Evaluate(`() => {
-		const content = document.querySelector(
-			'.shell-flexlayout .flexlayout__tab_button--selected .flexlayout__tab_button_content',
-		)
-		return content?.textContent?.trim() ?? ''
-	}`)
-	if err != nil {
-		return "", err
-	}
-	text, _ := raw.(string)
-	return text, nil
-}
-
 func waitForStoredActiveTabID(page playwright.Page, tabID string) error {
 	_, err := page.WaitForFunction(`(tabID) => {
 		const raw = sessionStorage.getItem('shell-tabs-state')

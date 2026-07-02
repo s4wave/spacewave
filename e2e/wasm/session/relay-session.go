@@ -99,16 +99,6 @@ func (r *relayRegistry) unregister(remotePeer peer.ID) {
 	})
 }
 
-// lookup returns the relay session for the given remote peer, or nil.
-func (r *relayRegistry) lookup(remotePeer peer.ID) *relaySession {
-	key := string(remotePeer)
-	var rs *relaySession
-	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		rs = r.sessions[key]
-	})
-	return rs
-}
-
 // waitForSession blocks until a relay session for the given remote peer is
 // registered, or the context is canceled.
 func (r *relayRegistry) waitForSession(ctx context.Context, remotePeer peer.ID) (*relaySession, error) {

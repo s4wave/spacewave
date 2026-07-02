@@ -263,18 +263,6 @@ func doE2EControl(
 	return body, nil
 }
 
-func waitForDesktopRuntimeExit(ctx context.Context, h *Harness) error {
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-h.done:
-		if h.doneErr != nil {
-			return h.desktopRuntimeErr("desktop runtime exited after explicit quit")
-		}
-		return nil
-	}
-}
-
 func parseDesktopRuntimeState(v *fastjson.Value) *desktopRuntimeStateSnapshot {
 	return &desktopRuntimeStateSnapshot{
 		MainWindowOpen: v.GetBool("mainWindowOpen"),

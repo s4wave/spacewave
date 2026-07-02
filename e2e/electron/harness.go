@@ -5,9 +5,7 @@
 package electron
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -215,61 +213,6 @@ func (h *Harness) E2EControlEndpoint() string {
 // ControlEndpoint returns the local Electron main e2e control endpoint.
 func (h *Harness) ControlEndpoint() string {
 	return h.E2EControlEndpoint()
-}
-
-// SetDesktopState projects a desktop runtime fixture through the Electron-main
-// e2e control surface.
-func (h *Harness) SetDesktopState(ctx context.Context, state any) error {
-	// encoding/json: the fixture is an arbitrary any projected over the e2e
-	// control HTTP surface; no proto type or fastjson struct encoder fits.
-	body, err := json.Marshal(state)
-	if err != nil {
-		return errors.Wrap(err, "marshal desktop runtime state")
-	}
-	req, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodPost,
-		h.ControlEndpoint()+"/desktop-state",
-		bytes.NewReader(body),
-	)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("content-type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	respBody, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("set desktop state returned HTTP %d: %s", resp.StatusCode, respBody)
-	}
-	return nil
-}
-
-// ResetDesktopState clears desktop runtime and tray fixtures installed through
-// the Electron-main e2e control surface.
-func (h *Harness) ResetDesktopState(ctx context.Context) error {
-	req, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodDelete,
-		h.ControlEndpoint()+"/desktop-state",
-		nil,
-	)
-	if err != nil {
-		return err
-	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("reset desktop state returned HTTP %d: %s", resp.StatusCode, body)
-	}
-	return nil
 }
 
 // StateRoot returns the isolated Bldr state root used by the harness.
