@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -13,6 +14,8 @@ import (
 	opt_wasm "github.com/s4wave/spacewave/bldr/util/opt/wasm"
 	"github.com/sirupsen/logrus"
 )
+
+var tinyGoBuildMu sync.Mutex
 
 // ExecBuildEntrypoint executes building an entrypoint main package.
 func ExecBuildEntrypoint(
@@ -101,7 +104,17 @@ func ExecBuildEntrypoint(
 	}
 
 	timeStart := time.Now()
-	err = ExecGoCompiler(le, ecmd)
+	if useTinygo {
+		// TinyGo's LLVM pipeline can exhaust GitHub Linux runner memory when
+		// multiple browser plugin compiles run inside one Bldr process.
+		err = func() error {
+			tinyGoBuildMu.Lock()
+			defer tinyGoBuildMu.Unlock()
+			return ExecGoCompiler(le, ecmd)
+		}()
+	} else {
+		err = ExecGoCompiler(le, ecmd)
+	}
 	if err != nil {
 		return err
 	}
