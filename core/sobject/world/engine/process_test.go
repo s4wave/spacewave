@@ -29,7 +29,7 @@ func TestProcessApplyTxOpRejectsUninitializedWorld(t *testing.T) {
 	if err != nil {
 		t.Fatalf("derive peer id: %v", err)
 	}
-	tx, err := world_block_tx.NewTxGCSweep()
+	tx, err := world_block_tx.NewMaintenanceTxGCSweep()
 	if err != nil {
 		t.Fatalf("build tx: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestProcessInitWorldOpWritesDisabledChangelogRoot(t *testing.T) {
 }
 
 func TestSOWorldOpSpeculativeLocalQueueSafeSkipsGCSweep(t *testing.T) {
-	gcTx, err := world_block_tx.NewTxGCSweep()
+	gcTx, err := world_block_tx.NewMaintenanceTxGCSweep()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,7 +180,7 @@ func TestProcessOpRejectsDisabledMaintenanceGCSweepBeforeBlockEngine(t *testing.
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	gcTx, err := world_block_tx.NewTxGCSweep()
+	gcTx, err := world_block_tx.NewMaintenanceTxGCSweep()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -498,7 +498,7 @@ func TestProcessOpDisabledMaintenanceDurablyRejectsGCSweep(t *testing.T) {
 		pid,
 	)
 
-	gcTx, err := world_block_tx.NewTxGCSweep()
+	gcTx, err := world_block_tx.NewMaintenanceTxGCSweep()
 	if err != nil {
 		t.Fatal(err.Error())
 	}

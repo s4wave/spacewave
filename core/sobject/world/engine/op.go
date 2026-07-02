@@ -12,14 +12,14 @@ func NewSOWorldOpBlock() block.Block {
 
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
-func (s *SOWorldOp) MarshalBlock() ([]byte, error) {
-	return s.MarshalVT()
+func (o *SOWorldOp) MarshalBlock() ([]byte, error) {
+	return o.MarshalVT()
 }
 
 // UnmarshalBlock unmarshals the block to the object.
 // This is the final step of decoding, after transformations.
-func (s *SOWorldOp) UnmarshalBlock(data []byte) error {
-	return s.UnmarshalVT(data)
+func (o *SOWorldOp) UnmarshalBlock(data []byte) error {
+	return o.UnmarshalVT(data)
 }
 
 // Validate validates the InitWorldOp configuration.
