@@ -5,34 +5,149 @@
 // creation, plugin startup, and absence of eager SAB bus registration.
 
 import { test, expect } from '@playwright/test'
+import type { Browser, ConsoleMessage, Page } from '@playwright/test'
+
+import { startupMarkEvent } from '../web/bldr/startup-marks.js'
 
 const workerCommsTimeoutMs = 300_000
 
+interface StartupMark {
+  name: string
+  label: string
+  sequence: number
+  detail: Record<string, unknown>
+}
+
+interface StartupMarkGlobal {
+  __swStartupMarks?: StartupMark[]
+}
+
+interface StartupMarkEventPayload {
+  name?: string
+  detail?: Record<string, unknown>
+}
+
 // Collect console messages matching a pattern within a timeout.
 async function waitForConsole(
-  page: import('@playwright/test').Page,
+  page: Page,
   pattern: string | RegExp,
   timeoutMs = workerCommsTimeoutMs,
 ): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error(`timeout waiting for console: ${pattern}`)),
-      timeoutMs,
-    )
-    const handler = (msg: import('@playwright/test').ConsoleMessage) => {
-      const text = msg.text()
-      const matches =
-        typeof pattern === 'string'
-          ? text.includes(pattern)
-          : pattern.test(text)
-      if (matches) {
-        clearTimeout(timer)
-        page.removeListener('console', handler)
-        resolve(text)
+  const { promise, resolve, reject } = Promise.withResolvers<string>()
+  const timer = setTimeout(
+    () => reject(new Error(`timeout waiting for console: ${pattern}`)),
+    timeoutMs,
+  )
+  const handler = (msg: ConsoleMessage) => {
+    const text = msg.text()
+    const matches =
+      typeof pattern === 'string'
+        ? text.includes(pattern)
+        : pattern.test(text)
+    if (matches) {
+      clearTimeout(timer)
+      page.removeListener('console', handler)
+      resolve(text)
+    }
+  }
+  page.on('console', handler)
+  return promise
+}
+
+interface StartupMarkWaiter {
+  label: string
+  resolve: (mark: StartupMark) => void
+}
+
+interface StartupMarkCollector {
+  count(label: string): number
+  wait(label: string, timeoutMs?: number): Promise<StartupMark>
+}
+
+let startupMarkCollectorID = 0
+
+async function createStartupMarkCollector(
+  page: Page,
+): Promise<StartupMarkCollector> {
+  const marks: StartupMark[] = []
+  const waiters: StartupMarkWaiter[] = []
+  const callbackName = `__bldrE2EStartupMark${++startupMarkCollectorID}`
+
+  const removeWaiter = (waiter: StartupMarkWaiter) => {
+    const index = waiters.indexOf(waiter)
+    if (index >= 0) {
+      waiters.splice(index, 1)
+    }
+  }
+  const recordMark = (mark: StartupMark) => {
+    marks.push(mark)
+    for (const waiter of [...waiters]) {
+      if (waiter.label === mark.label) {
+        waiter.resolve(mark)
       }
     }
-    page.on('console', handler)
-  })
+  }
+
+  await page.exposeFunction(callbackName, recordMark)
+  await page.addInitScript(
+    ({ callbackName, startupMarkEvent }) => {
+      const startupGlobal = globalThis as typeof globalThis &
+        StartupMarkGlobal &
+        Record<string, unknown>
+      const pushMark = (mark: StartupMark) => {
+        const callback = startupGlobal[callbackName]
+        if (typeof callback === 'function') {
+          void (callback as (mark: StartupMark) => void)(mark)
+        }
+      }
+      for (const mark of startupGlobal.__swStartupMarks ?? []) {
+        pushMark(mark)
+      }
+      globalThis.addEventListener(startupMarkEvent, (event: Event) => {
+        const payload = (event as CustomEvent<StartupMarkEventPayload>).detail
+        const detail = payload?.detail ?? {}
+        const label = detail.label
+        if (typeof label !== 'string') {
+          return
+        }
+        pushMark({
+          name: payload?.name ?? '',
+          label,
+          sequence: Number(detail.sequence ?? 0),
+          detail,
+        })
+      })
+    },
+    { callbackName, startupMarkEvent },
+  )
+
+  return {
+    count(label: string) {
+      return marks.filter((mark) => mark.label === label).length
+    },
+    wait(label: string, timeoutMs = workerCommsTimeoutMs) {
+      const existing = marks.find((mark) => mark.label === label)
+      if (existing) {
+        return Promise.resolve(existing)
+      }
+
+      const { promise, resolve, reject } = Promise.withResolvers<StartupMark>()
+      const waiter: StartupMarkWaiter = {
+        label,
+        resolve: (mark: StartupMark) => {
+          clearTimeout(timer)
+          removeWaiter(waiter)
+          resolve(mark)
+        },
+      }
+      const timer = setTimeout(() => {
+        removeWaiter(waiter)
+        reject(new Error(`timeout waiting for startup mark: ${label}`))
+      }, timeoutMs)
+      waiters.push(waiter)
+      return promise
+    },
+  }
 }
 
 test.describe.configure({ mode: 'serial', timeout: 360_000 })
@@ -67,11 +182,11 @@ test.describe('worker communication lifecycle', () => {
   })
 
   test('plugin starts native worker', async ({ page }) => {
-    const startPromise = waitForConsole(page, 'starting native plugin')
+    const startupMarks = await createStartupMarkCollector(page)
 
     await page.goto('/#/')
-    const msg = await startPromise
-    expect(msg).toContain('starting native plugin')
+    const startMark = await startupMarks.wait('plugin.script-import-start')
+    expect(startMark.detail).toMatchObject({ plugin: true })
   })
 
   test('full lifecycle: detect, bus, plugin, render', async ({ page }) => {
@@ -159,9 +274,7 @@ test.describe('cross-tab communication', () => {
 
 // Create a browser context where SharedWorker is unavailable,
 // forcing DedicatedWorker runtime mode with Web Lock singleton.
-async function newDedicatedRuntimeContext(
-  browser: import('@playwright/test').Browser,
-) {
+async function newDedicatedRuntimeContext(browser: Browser) {
   const context = await browser.newContext()
   await context.addInitScript(() => {
     Object.defineProperty(globalThis, 'SharedWorker', {
@@ -170,6 +283,15 @@ async function newDedicatedRuntimeContext(
     })
   })
   return context
+}
+
+async function waitForBldrRootRender(page: Page) {
+  const root = page.locator('#bldr-root')
+  await expect(root).toBeVisible()
+  await expect(async () => {
+    const childCount = await root.evaluate((el) => el.children.length)
+    expect(childCount).toBeGreaterThan(0)
+  }).toPass({ timeout: 120_000 })
 }
 
 test.describe('singleton coordinator (no SharedWorker)', () => {
@@ -181,32 +303,21 @@ test.describe('singleton coordinator (no SharedWorker)', () => {
       context.newPage(),
     ])
 
-    const pageALock = waitForConsole(
-      pageA,
-      'acquired plugin singleton lock',
-    )
-    const pageAStart = waitForConsole(pageA, 'starting native plugin')
-    const pageBReady = waitForConsole(
-      pageB,
-      'worker-comms: detected config',
-    )
-    const pluginStartB: string[] = []
-    pageB.on('console', (msg) => {
-      if (msg.text().includes('starting native plugin'))
-        pluginStartB.push(msg.text())
-    })
+    const pageAMarks = await createStartupMarkCollector(pageA)
+    const pageBMarks = await createStartupMarkCollector(pageB)
 
     // Page A loads and acquires the singleton plugin lock.
     await pageA.goto('/#/')
-    await pageALock
-    await pageAStart
+    await pageAMarks.wait('singleton-lock.acquired')
+    await pageAMarks.wait('plugin.script-import-start')
 
     // Page B loads without becoming another plugin host.
     await pageB.goto('/#/')
-    await pageBReady
-    await expect(pageB.locator('#bldr-root')).toBeVisible()
+    await pageBMarks.wait('worker-comms.detected')
+    await waitForBldrRootRender(pageB)
+    await pageBMarks.wait('singleton-lock.wait-start')
 
-    expect(pluginStartB.length).toBe(0)
+    expect(pageBMarks.count('plugin.script-import-start')).toBe(0)
 
     await context.close()
   })
@@ -219,39 +330,30 @@ test.describe('singleton coordinator (no SharedWorker)', () => {
       context.newPage(),
     ])
 
-    const pageAStart = waitForConsole(pageA, 'starting native plugin')
-    const pageBReady = waitForConsole(
-      pageB,
-      'worker-comms: detected config',
-    )
-    const pluginStartB: string[] = []
-    pageB.on('console', (msg) => {
-      if (msg.text().includes('starting native plugin'))
-        pluginStartB.push(msg.text())
-    })
+    const pageAMarks = await createStartupMarkCollector(pageA)
+    const pageBMarks = await createStartupMarkCollector(pageB)
 
     // Page A acquires the singleton.
     await pageA.goto('/#/')
-    await pageAStart
+    await pageAMarks.wait('plugin.script-import-start')
 
     // Page B attaches to the existing runtime without starting plugins.
     await pageB.goto('/#/')
-    await pageBReady
-    await expect(pageB.locator('#bldr-root')).toBeVisible()
-    expect(pluginStartB.length).toBe(0)
+    await pageBMarks.wait('worker-comms.detected')
+    await waitForBldrRootRender(pageB)
+    await pageBMarks.wait('singleton-lock.wait-start')
+    expect(pageBMarks.count('plugin.script-import-start')).toBe(0)
 
-    const pageBLock = waitForConsole(
-      pageB,
-      'acquired plugin singleton lock',
-    )
-    const pageBStart = waitForConsole(pageB, 'starting native plugin')
+    const pageBLock = pageBMarks.wait('singleton-lock.acquired')
+    const pageBStart = pageBMarks.wait('plugin.script-import-start')
 
     // Close page A, releasing the singleton lock.
     await pageA.close()
 
     // Page B should acquire the lock and start plugins.
     await pageBLock
-    await pageBStart
+    const startMark = await pageBStart
+    expect(startMark.detail).toMatchObject({ plugin: true })
 
     await context.close()
   })

@@ -1,12 +1,6 @@
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { CanvasInitOp } from '@s4wave/core/space/world/ops/ops.pb.js'
@@ -180,15 +174,20 @@ describe('WizardViewer', () => {
     await waitFor(() => {
       expect((input as HTMLInputElement).value).toBe('Demo Canvas')
     })
-    fireEvent.change(input, { target: { value: 'Configured Canvas' } })
-    expect((input as HTMLInputElement).value).toBe('Configured Canvas')
+    await user.clear(input)
+    await user.type(input, 'Configured Canvas')
+    await waitFor(() => {
+      expect((input as HTMLInputElement).value).toBe('Configured Canvas')
+    })
 
     expect(mocks.updateState).not.toHaveBeenCalled()
 
     await user.click(screen.getByRole('button', { name: /create/i }))
 
-    expect(mocks.updateState).toHaveBeenCalledWith({
-      name: 'Configured Canvas',
+    await waitFor(() => {
+      expect(mocks.updateState).toHaveBeenCalledWith({
+        name: 'Configured Canvas',
+      })
     })
   })
 
