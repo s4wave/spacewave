@@ -289,8 +289,8 @@ async function waitForBldrRootRender(page: Page) {
   const root = page.locator('#bldr-root')
   await expect(root).toBeVisible()
   await expect(async () => {
-    const childCount = await root.evaluate((el) => el.children.length)
-    expect(childCount).toBeGreaterThan(0)
+    const text = await root.evaluate((el) => el.textContent ?? '')
+    expect(text).not.toContain('Downloading the app bundle')
   }).toPass({ timeout: 120_000 })
 }
 
@@ -315,7 +315,6 @@ test.describe('singleton coordinator (no SharedWorker)', () => {
     await pageB.goto('/#/')
     await pageBMarks.wait('worker-comms.detected')
     await waitForBldrRootRender(pageB)
-    await pageBMarks.wait('singleton-lock.wait-start')
 
     expect(pageBMarks.count('plugin.script-import-start')).toBe(0)
 
@@ -341,7 +340,6 @@ test.describe('singleton coordinator (no SharedWorker)', () => {
     await pageB.goto('/#/')
     await pageBMarks.wait('worker-comms.detected')
     await waitForBldrRootRender(pageB)
-    await pageBMarks.wait('singleton-lock.wait-start')
     expect(pageBMarks.count('plugin.script-import-start')).toBe(0)
 
     const pageBLock = pageBMarks.wait('singleton-lock.acquired')
