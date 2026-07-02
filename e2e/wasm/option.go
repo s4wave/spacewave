@@ -46,6 +46,9 @@ const (
 	// E2EWasmDriveBenchEnv opts in the time-to-Drive startup bench; off by
 	// default so routine e2e does not pay the bench measurement cost.
 	E2EWasmDriveBenchEnv = "E2E_WASM_DRIVE_BENCH"
+	// E2EWasmDriveBenchJSProfileEnv opts the Drive bench into same-window
+	// Chromium JS CPU profile capture; off by default so routine e2e stays cheap.
+	E2EWasmDriveBenchJSProfileEnv = "E2E_WASM_DRIVE_BENCH_JS_PROFILE"
 )
 
 var (
@@ -207,6 +210,17 @@ func E2EWasmGoScriptRuntimeTraceEnabled() bool {
 // gated by E2E_WASM_DRIVE_BENCH so routine e2e skips the measurement.
 func E2EWasmDriveBenchEnabled() bool {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv(E2EWasmDriveBenchEnv))) {
+	case "true", "1", "yes", "on":
+		return true
+	default:
+		return false
+	}
+}
+
+// E2EWasmDriveBenchJSProfileEnabled reports whether the Drive bench should
+// capture a same-window Chromium JS CPU profile.
+func E2EWasmDriveBenchJSProfileEnabled() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(E2EWasmDriveBenchJSProfileEnv))) {
 	case "true", "1", "yes", "on":
 		return true
 	default:

@@ -191,6 +191,112 @@ func TestBrowserFromQuickstartTimingCountsDriveSeedResourceCalls(t *testing.T) {
 	}
 }
 
+func TestWriteRunPreservesOperationShapeAndProfile(t *testing.T) {
+	runPath, err := WriteRun(t.TempDir(), Run{
+		Timestamp:    "2026-07-01T03:11:00Z",
+		Compiler:     "goscript",
+		BuildMode:    "unbundled",
+		RuntimeState: "cold",
+		Cell:         "cold-unbundled",
+		Milestones:   Milestones{ContentReadyMs: 40},
+		Browser:      Browser{ContentReadyMs: 40},
+		ResourceConnection: ResourceConn{
+			Attempts: 1,
+		},
+		OperationShape: &OperationShape{
+			Operations: []OperationSummary{{
+				Name:     "block-write",
+				Count:    2,
+				TotalUs:  30,
+				MaxUs:    20,
+				LogCount: 1,
+				Fields: []OperationField{{
+					Name:    "write-shape.encoded_blocks",
+					Samples: 1,
+					Sum:     3,
+					Max:     3,
+					Last:    3,
+				}},
+			}},
+		},
+		BrowserProfile: &BrowserProfile{
+			Captured:      true,
+			ProfilePath:   "browser-js-profile.cpuprofile",
+			CaptureWindow: "drive-open",
+			Bytes:         42,
+			Buckets: []ProfileBucket{{
+				Name:    "goscript-runtime",
+				Count:   2,
+				SelfUs:  11,
+				TotalUs: 17,
+			}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("write run: %v", err)
+	}
+
+	data, err := os.ReadFile(runPath)
+	if err != nil {
+		t.Fatalf("read run: %v", err)
+	}
+	var parser fastjson.Parser
+	value, err := parser.ParseBytes(data)
+	if err != nil {
+		t.Fatalf("parse run: %v", err)
+	}
+	operation := value.Get("operationShape").GetArray("operations")[0]
+	if got := string(operation.GetStringBytes("name")); got != "block-write" {
+		t.Fatalf("operation name = %q, want block-write", got)
+	}
+	fields := operation.GetArray("fields")
+	if len(fields) != 1 {
+		t.Fatalf("operation fields = %d, want 1", len(fields))
+	}
+	if got := string(fields[0].GetStringBytes("name")); got != "write-shape.encoded_blocks" {
+		t.Fatalf("field name = %q", got)
+	}
+	profile := value.Get("browserProfile")
+	if profile.Get("captured").Type() != fastjson.TypeTrue {
+		t.Fatalf("profile captured type = %v, want true", profile.Get("captured").Type())
+	}
+	if got := string(profile.GetStringBytes("profilePath")); got != "browser-js-profile.cpuprofile" {
+		t.Fatalf("profile path = %q", got)
+	}
+}
+
+func TestWriteRunKeepsOperationShapeAndProfileOptional(t *testing.T) {
+	runPath, err := WriteRun(t.TempDir(), Run{
+		Timestamp:          "2026-07-01T03:11:00Z",
+		Compiler:           "goscript",
+		BuildMode:          "unbundled",
+		RuntimeState:       "warm",
+		Cell:               "warm-unbundled",
+		Milestones:         Milestones{ContentReadyMs: 40},
+		Browser:            Browser{ContentReadyMs: 40},
+		ResourceConnection: ResourceConn{Attempts: 1},
+	})
+	if err != nil {
+		t.Fatalf("write run: %v", err)
+	}
+
+	data, err := os.ReadFile(runPath)
+	if err != nil {
+		t.Fatalf("read run: %v", err)
+	}
+	var parser fastjson.Parser
+	value, err := parser.ParseBytes(data)
+	if err != nil {
+		t.Fatalf("parse run without operation fields: %v", err)
+	}
+	if got := value.Get("operationShape"); got != nil {
+		t.Fatalf("operationShape = %v, want absent", got)
+	}
+	if got := value.Get("browserProfile"); got != nil {
+		t.Fatalf("browserProfile = %v, want absent", got)
+	}
+}
+
 func startupMarkWithInactiveBridge() StartupMark {
 	return StartupMark{
 		Label:    "runtime.opfs-bridge-ready",

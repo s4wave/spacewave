@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
-	exptrace "golang.org/x/exp/trace"
-
 	"github.com/s4wave/spacewave/e2e/drivebench"
+	exptrace "golang.org/x/exp/trace"
 )
 
 // TestGoScriptDriveStartupBench records the time-to-Drive bench for the
@@ -131,6 +131,10 @@ func runDriveBenchCell(
 ) {
 	t.Helper()
 	page := sess.Page()
+	cellDir, err := drivebench.CellDir(in.runStamp, in.cell)
+	if err != nil {
+		t.Fatalf("resolve cell dir: %v", err)
+	}
 
 	var (
 		routeAcceptedMs int64
@@ -150,13 +154,19 @@ func runDriveBenchCell(
 
 	var traceData []byte
 	traceEnabled := E2EWasmTraceServiceEnabled(compiler)
-	if traceEnabled {
-		captured, err := sess.CaptureTrace(ctx, "goscript-drive-bench-"+in.runtimeState, driveOpen)
-		if err != nil {
-			t.Fatalf("capture trace (%s): %v", in.cell, err)
+	openAndTrace := func(ctx context.Context) error {
+		if traceEnabled {
+			captured, err := sess.CaptureTrace(ctx, "goscript-drive-bench-"+in.runtimeState, driveOpen)
+			if err != nil {
+				return errors.Wrapf(err, "capture trace (%s)", in.cell)
+			}
+			traceData = captured
+			return nil
 		}
-		traceData = captured
-	} else if err := driveOpen(ctx); err != nil {
+		return driveOpen(ctx)
+	}
+	browserProfile, err := captureDriveBenchBrowserProfile(t, ctx, h, sess, cellDir, openAndTrace)
+	if err != nil {
 		t.Fatalf("drive open (%s): %v", in.cell, err)
 	}
 
@@ -179,6 +189,9 @@ func runDriveBenchCell(
 		),
 		ResourceConnection: summarizeResourceConnection(connTiming),
 	}
+	if browserProfile != nil {
+		run.BrowserProfile = browserProfile
+	}
 	if raw, err := page.Evaluate(drivebench.StartupMarksScript); err != nil {
 		t.Logf("read startup marks (%s): %v", in.cell, err)
 	} else {
@@ -189,17 +202,13 @@ func runDriveBenchCell(
 	// unbundled dev build serves an unbundled module graph with no single bundle,
 	// and its worker-loaded modules never appear on the page resource timeline.
 
-	cellDir, err := drivebench.CellDir(in.runStamp, in.cell)
-	if err != nil {
-		t.Fatalf("resolve cell dir: %v", err)
-	}
 	if traceEnabled {
 		tracePath := filepath.Join(cellDir, "runtime.trace")
 		if err := drivebench.WriteArtifact(tracePath, traceData); err != nil {
 			t.Fatalf("write runtime.trace: %v", err)
 		}
 		tracetoolPath := filepath.Join(cellDir, "tracetool.txt")
-		summary, tasks, regions, logs, taskAggs := summarizeTrace(t, traceData)
+		summary, tasks, regions, logs, taskAggs, operationShape := summarizeTrace(t, traceData)
 		if err := drivebench.WriteArtifact(tracetoolPath, []byte(summary)); err != nil {
 			t.Fatalf("write tracetool.txt: %v", err)
 		}
@@ -212,6 +221,7 @@ func runDriveBenchCell(
 			UserLogs:         logs,
 			Tasks:            taskAggs,
 		}
+		run.OperationShape = operationShape
 	}
 
 	runPath, err := drivebench.WriteRun(cellDir, run)
@@ -220,6 +230,311 @@ func runDriveBenchCell(
 	}
 	t.Logf("drive bench cell %s written to %s (live=%dms route=%dms unixfs=%dms content=%dms trace=%v)",
 		in.cell, runPath, in.liveAppMs, routeAcceptedMs, unixfsVisibleMs, contentReadyMs, traceEnabled)
+}
+
+func captureDriveBenchBrowserProfile(
+	t testing.TB,
+	ctx context.Context,
+	h *Harness,
+	sess *TestSession,
+	cellDir string,
+	work func(context.Context) error,
+) (*drivebench.BrowserProfile, error) {
+	t.Helper()
+	if !E2EWasmDriveBenchJSProfileEnabled() {
+		return nil, work(ctx)
+	}
+	profile := &drivebench.BrowserProfile{
+		Captured:      false,
+		CaptureWindow: "drive-open",
+	}
+	if h.BrowserName() != "chromium" {
+		profile.SkippedReason = "Chromium Profiler is only available for the chromium Drive bench browser"
+		return profile, work(ctx)
+	}
+
+	cdp, err := sess.BrowserContext().NewCDPSession(sess.Page())
+	if err != nil {
+		return nil, errors.Wrap(err, "new cdp session")
+	}
+	defer cdp.Detach()
+	if _, err := cdp.Send("Profiler.enable", nil); err != nil {
+		return nil, errors.Wrap(err, "enable profiler")
+	}
+	if _, err := cdp.Send("Profiler.start", nil); err != nil {
+		return nil, errors.Wrap(err, "start profiler")
+	}
+	started := time.Now().UTC()
+	workErr := work(ctx)
+	resp, stopErr := cdp.Send("Profiler.stop", nil)
+	stopped := time.Now().UTC()
+	if workErr != nil {
+		return nil, workErr
+	}
+	if stopErr != nil {
+		return nil, errors.Wrap(stopErr, "stop profiler")
+	}
+
+	rawProfile := resp
+	if respObj, ok := resp.(map[string]any); ok {
+		rawProfile = respObj
+		if profileValue, ok := respObj["profile"]; ok {
+			rawProfile = profileValue
+		}
+	}
+	data := marshalBrowserProfileJSON(rawProfile)
+	profilePath := filepath.Join(cellDir, "browser-js-profile.cpuprofile")
+	if err := drivebench.WriteArtifact(profilePath, data); err != nil {
+		return nil, errors.Wrap(err, "write browser JS profile")
+	}
+	buckets := summarizeBrowserCPUProfile(rawProfile)
+	summaryPath := filepath.Join(cellDir, "browser-js-profile-summary.txt")
+	if err := drivebench.WriteArtifact(summaryPath, renderBrowserProfileSummary(buckets)); err != nil {
+		return nil, errors.Wrap(err, "write browser JS profile summary")
+	}
+
+	profile.Captured = true
+	profile.ProfilePath = profilePath
+	profile.SummaryPath = summaryPath
+	profile.StartedAt = started.Format(time.RFC3339Nano)
+	profile.StoppedAt = stopped.Format(time.RFC3339Nano)
+	profile.Bytes = len(data)
+	profile.Buckets = buckets
+	return profile, nil
+}
+
+func marshalBrowserProfileJSON(value any) []byte {
+	var arena fastjson.Arena
+	data := marshalCDPValue(&arena, value).MarshalTo(nil)
+	data = append(data, '\n')
+	return data
+}
+
+func marshalCDPValue(arena *fastjson.Arena, value any) *fastjson.Value {
+	switch typed := value.(type) {
+	case nil:
+		return arena.NewNull()
+	case bool:
+		if typed {
+			return arena.NewTrue()
+		}
+		return arena.NewFalse()
+	case string:
+		return arena.NewString(typed)
+	case int:
+		return arena.NewNumberInt(typed)
+	case int64:
+		return arena.NewNumberString(strconv.FormatInt(typed, 10))
+	case uint64:
+		return arena.NewNumberString(strconv.FormatUint(typed, 10))
+	case float64:
+		return arena.NewNumberString(strconv.FormatFloat(typed, 'f', -1, 64))
+	case []any:
+		arr := arena.NewArray()
+		for _, item := range typed {
+			arr.SetArrayItem(len(arr.GetArray()), marshalCDPValue(arena, item))
+		}
+		return arr
+	case map[string]any:
+		obj := arena.NewObject()
+		keys := make([]string, 0, len(typed))
+		for key := range typed {
+			keys = append(keys, key)
+		}
+		slices.Sort(keys)
+		for _, key := range keys {
+			obj.Set(key, marshalCDPValue(arena, typed[key]))
+		}
+		return obj
+	default:
+		return arena.NewNull()
+	}
+}
+
+func summarizeBrowserCPUProfile(profile any) []drivebench.ProfileBucket {
+	obj, ok := profile.(map[string]any)
+	if !ok {
+		return nil
+	}
+	nodesRaw, _ := obj["nodes"].([]any)
+	if len(nodesRaw) == 0 {
+		return nil
+	}
+	type nodeInfo struct {
+		bucket string
+	}
+	nodes := make(map[int64]nodeInfo, len(nodesRaw))
+	parentByID := make(map[int64]int64, len(nodesRaw))
+	for _, raw := range nodesRaw {
+		node, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		id := cdpInt64(node["id"])
+		if id == 0 {
+			continue
+		}
+		callFrame, _ := node["callFrame"].(map[string]any)
+		bucket := browserProfileBucketName(cdpString(callFrame["url"]), cdpString(callFrame["functionName"]))
+		if rawChildren, _ := node["children"].([]any); len(rawChildren) != 0 {
+			for _, childRaw := range rawChildren {
+				childID := cdpInt64(childRaw)
+				if childID != 0 {
+					parentByID[childID] = id
+				}
+			}
+		}
+		nodes[id] = nodeInfo{bucket: bucket}
+	}
+
+	buckets := map[string]*drivebench.ProfileBucket{}
+	addSelf := func(name string, delta int64) {
+		bucket := profileBucket(buckets, name)
+		bucket.Count++
+		bucket.SelfUs += delta
+
+	}
+	addTotal := func(name string, delta int64) {
+		profileBucket(buckets, name).TotalUs += delta
+	}
+
+	samples, _ := obj["samples"].([]any)
+	timeDeltas, _ := obj["timeDeltas"].([]any)
+	for i, sampleRaw := range samples {
+		id := cdpInt64(sampleRaw)
+		info, ok := nodes[id]
+		if !ok {
+			continue
+		}
+		var delta int64
+		if i < len(timeDeltas) {
+			delta = cdpInt64(timeDeltas[i])
+		}
+		addSelf(info.bucket, delta)
+		seenTotal := map[string]struct{}{}
+		for nodeID := id; nodeID != 0; nodeID = parentByID[nodeID] {
+			node, ok := nodes[nodeID]
+			if !ok {
+				break
+			}
+			if _, ok := seenTotal[node.bucket]; ok {
+				continue
+			}
+			seenTotal[node.bucket] = struct{}{}
+			addTotal(node.bucket, delta)
+		}
+	}
+	if len(samples) == 0 {
+		for _, raw := range nodesRaw {
+			node, ok := raw.(map[string]any)
+			if !ok {
+				continue
+			}
+			id := cdpInt64(node["id"])
+			if id == 0 {
+				continue
+			}
+			hitCount := cdpInt64(node["hitCount"])
+			if hitCount == 0 {
+				continue
+			}
+			addSelf(nodes[id].bucket, 0)
+			buckets[nodes[id].bucket].Count += int(hitCount - 1)
+		}
+	}
+
+	out := make([]drivebench.ProfileBucket, 0, len(buckets))
+	for _, bucket := range buckets {
+		out = append(out, *bucket)
+	}
+	slices.SortFunc(out, func(a, b drivebench.ProfileBucket) int {
+		if a.SelfUs != b.SelfUs {
+			if a.SelfUs > b.SelfUs {
+				return -1
+			}
+			return 1
+		}
+		if a.TotalUs != b.TotalUs {
+			if a.TotalUs > b.TotalUs {
+				return -1
+			}
+			return 1
+		}
+		return strings.Compare(a.Name, b.Name)
+	})
+	return out
+}
+
+func profileBucket(buckets map[string]*drivebench.ProfileBucket, name string) *drivebench.ProfileBucket {
+	bucket := buckets[name]
+	if bucket != nil {
+		return bucket
+	}
+	bucket = &drivebench.ProfileBucket{Name: name}
+	buckets[name] = bucket
+	return bucket
+}
+
+func browserProfileBucketName(url, functionName string) string {
+	text := strings.ToLower(url + " " + functionName)
+	switch {
+	case strings.Contains(text, "gs/builtin") ||
+		strings.Contains(text, "goscript") ||
+		strings.Contains(text, "$."):
+		return "goscript-runtime"
+	case strings.Contains(text, "opfs") ||
+		strings.Contains(text, "blockshard") ||
+		strings.Contains(text, "web lock"):
+		return "storage-opfs"
+	case strings.Contains(text, "db/block") ||
+		strings.Contains(text, "block-gc") ||
+		strings.Contains(text, "cayley") ||
+		strings.Contains(text, "world-graph"):
+		return "storage-block-graph"
+	case strings.Contains(text, "quickstart") ||
+		strings.Contains(text, "drive"):
+		return "app-quickstart"
+	case url == "":
+		return "browser-runtime"
+	default:
+		return "other-js"
+	}
+}
+
+func cdpString(value any) string {
+	text, _ := value.(string)
+	return text
+}
+
+func cdpInt64(value any) int64 {
+	switch typed := value.(type) {
+	case int:
+		return int64(typed)
+	case int64:
+		return typed
+	case uint64:
+		return int64(typed)
+	case float64:
+		return int64(typed)
+	default:
+		return 0
+	}
+}
+
+func renderBrowserProfileSummary(buckets []drivebench.ProfileBucket) []byte {
+	var b strings.Builder
+	b.WriteString("bucket\tcount\tself_us\ttotal_us\n")
+	for _, bucket := range buckets {
+		b.WriteString(bucket.Name)
+		b.WriteByte('\t')
+		b.WriteString(strconv.Itoa(bucket.Count))
+		b.WriteByte('\t')
+		b.WriteString(strconv.FormatInt(bucket.SelfUs, 10))
+		b.WriteByte('\t')
+		b.WriteString(strconv.FormatInt(bucket.TotalUs, 10))
+		b.WriteByte('\n')
+	}
+	return []byte(b.String())
 }
 
 // rebootDriveBenchPage replaces the session page in its existing warm context
@@ -309,9 +624,10 @@ type benchTaskAgg struct {
 // same parser tracetool's fork is built on, and renders a per-subsystem summary:
 // overall task/region/log counts, then one section per known task-type prefix
 // (alpha/, hydra/, provider/, bldr/) plus other, ranking task types by total
-// active duration with count as the tie-breaker. It returns the rendered text
-// and the overall task, region, and log counts.
-func summarizeTrace(t testing.TB, data []byte) (string, int, int, int, []drivebench.Task) {
+// active duration with count as the tie-breaker. It returns the rendered text,
+// raw task aggregates, and a compact operation-shape projection from task timing
+// plus numeric trace-log payloads.
+func summarizeTrace(t testing.TB, data []byte) (string, int, int, int, []drivebench.Task, *drivebench.OperationShape) {
 	t.Helper()
 	reader, err := exptrace.NewReader(bytes.NewReader(data))
 	if err != nil {
@@ -329,6 +645,7 @@ func summarizeTrace(t testing.TB, data []byte) (string, int, int, int, []drivebe
 	)
 	open := map[exptrace.TaskID]openTask{}
 	aggByType := map[string]*benchTaskAgg{}
+	operationShape := newOperationShapeCollector()
 	aggFor := func(typ string) *benchTaskAgg {
 		agg := aggByType[typ]
 		if agg == nil {
@@ -369,16 +686,19 @@ func summarizeTrace(t testing.TB, data []byte) (string, int, int, int, []drivebe
 			if dur > agg.maxDur {
 				agg.maxDur = dur
 			}
+			operationShape.addTask(typ, dur)
 		case exptrace.EventRegionBegin:
 			regions++
 		case exptrace.EventLog:
 			logs++
+			operationShape.addLog(ev.Log())
 		}
 	}
 	// Tasks that began but never ended still count by type; their duration is
 	// unknown, so they contribute count only.
 	for _, ot := range open {
 		aggFor(ot.typ).count++
+		operationShape.addOpenTask(ot.typ)
 	}
 
 	taskAggs := make([]drivebench.Task, 0, len(aggByType))
@@ -403,7 +723,7 @@ func summarizeTrace(t testing.TB, data []byte) (string, int, int, int, []drivebe
 		return strings.Compare(a.Type, c.Type)
 	})
 
-	return renderTraceSummary(aggByType, tasks, regions, logs), tasks, regions, logs, taskAggs
+	return renderTraceSummary(aggByType, tasks, regions, logs), tasks, regions, logs, taskAggs, operationShape.build()
 }
 
 // renderTraceSummary formats the per-prefix ranked task breakdown for
@@ -458,4 +778,196 @@ func benchTracePrefixFor(typ string) string {
 		return seg
 	}
 	return "other"
+}
+
+var operationShapeOrder = []string{
+	"write-transaction",
+	"block-write",
+	"cayley-delta",
+	"gc-wal",
+	"opfs-publish",
+	"startup-replay",
+}
+
+type operationShapeCollector struct {
+	ops map[string]*operationShapeSummary
+}
+
+type operationShapeSummary struct {
+	name     string
+	count    int
+	totalUs  int64
+	maxUs    int64
+	logCount int
+	fields   map[string]*drivebench.OperationField
+}
+
+func newOperationShapeCollector() *operationShapeCollector {
+	return &operationShapeCollector{ops: map[string]*operationShapeSummary{}}
+}
+
+func (c *operationShapeCollector) addTask(typ string, dur time.Duration) {
+	op := operationNameForTraceTask(typ)
+	if op == "" {
+		return
+	}
+	summary := c.summary(op)
+	summary.count++
+	durUs := dur.Microseconds()
+	summary.totalUs += durUs
+	if durUs > summary.maxUs {
+		summary.maxUs = durUs
+	}
+}
+
+func (c *operationShapeCollector) addOpenTask(typ string) {
+	op := operationNameForTraceTask(typ)
+	if op == "" {
+		return
+	}
+	c.summary(op).count++
+}
+
+func (c *operationShapeCollector) addLog(log exptrace.Log) {
+	op := operationNameForTraceLog(log.Category)
+	if op == "" {
+		return
+	}
+	summary := c.summary(op)
+	summary.logCount++
+	for key, value := range parseTraceLogNumericFields(log.Message) {
+		fieldName := operationTraceLogFieldName(log.Category, key)
+		field := summary.fields[fieldName]
+		if field == nil {
+			field = &drivebench.OperationField{Name: fieldName}
+			summary.fields[fieldName] = field
+		}
+		field.Samples++
+		field.Sum += value
+		field.Last = value
+		if field.Samples == 1 || value > field.Max {
+			field.Max = value
+		}
+	}
+}
+
+func (c *operationShapeCollector) summary(name string) *operationShapeSummary {
+	summary := c.ops[name]
+	if summary != nil {
+		return summary
+	}
+	summary = &operationShapeSummary{name: name, fields: map[string]*drivebench.OperationField{}}
+	c.ops[name] = summary
+	return summary
+}
+
+func (c *operationShapeCollector) build() *drivebench.OperationShape {
+	if len(c.ops) == 0 {
+		return nil
+	}
+	shape := &drivebench.OperationShape{}
+	for _, name := range operationShapeOrder {
+		summary := c.ops[name]
+		if summary == nil {
+			continue
+		}
+		shape.Operations = append(shape.Operations, summary.build())
+	}
+	return shape
+}
+
+func (s *operationShapeSummary) build() drivebench.OperationSummary {
+	fields := make([]drivebench.OperationField, 0, len(s.fields))
+	for _, field := range s.fields {
+		fields = append(fields, *field)
+	}
+	slices.SortFunc(fields, func(a, b drivebench.OperationField) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+	return drivebench.OperationSummary{
+		Name:     s.name,
+		Count:    s.count,
+		TotalUs:  s.totalUs,
+		MaxUs:    s.maxUs,
+		LogCount: s.logCount,
+		Fields:   fields,
+	}
+}
+
+func operationNameForTraceTask(typ string) string {
+	switch {
+	case typ == "alpha/so-engine/write-tx/hold-write-mtx" ||
+		strings.HasPrefix(typ, "alpha/so-engine/write-tx/"):
+		return "write-transaction"
+	case typ == "hydra/block/transaction/write-at-root" ||
+		strings.HasPrefix(typ, "hydra/block/transaction/write-at-root/") ||
+		strings.HasPrefix(typ, "hydra/block/buffered-store/"):
+		return "block-write"
+	case typ == "cayley/kv/apply-deltas" ||
+		strings.HasPrefix(typ, "cayley/kv/apply-deltas/"):
+		return "cayley-delta"
+	case strings.HasPrefix(typ, "hydra/world-graph/"):
+		return "cayley-delta"
+	case typ == "hydra/block-gc/manager/startup-replay" ||
+		strings.HasPrefix(typ, "hydra/block-gc/manager/startup-replay/"):
+		return "startup-replay"
+	case strings.HasPrefix(typ, "hydra/block-gc/"):
+		return "gc-wal"
+	case strings.HasPrefix(typ, "hydra/opfs-blockshard/block-store/"):
+		return "opfs-publish"
+	case typ == "hydra/opfs-blockshard/run-actor/publish" ||
+		strings.HasPrefix(typ, "hydra/opfs-blockshard/run-actor/publish/") ||
+		strings.HasPrefix(typ, "hydra/opfs-blockshard/shard/publish/"):
+		return "opfs-publish"
+	default:
+		return ""
+	}
+}
+
+func operationNameForTraceLog(category string) string {
+	if category == "coalesce" {
+		return "opfs-publish"
+	}
+	return operationNameForTraceTask(category)
+}
+
+func operationTraceLogFieldName(category, key string) string {
+	prefix := category
+	for _, base := range []string{
+		"alpha/so-engine/write-tx/",
+		"hydra/block/transaction/write-at-root/",
+		"hydra/block/buffered-store/",
+		"hydra/block-gc/store/flush-pending/",
+		"hydra/block-gc/refgraph/apply-ref-batch/",
+		"hydra/block-gc/wal/",
+		"hydra/opfs-blockshard/run-actor/publish/",
+		"hydra/opfs-blockshard/block-store/",
+		"hydra/opfs-blockshard/shard/publish/",
+		"hydra/world-graph/",
+		"cayley/kv/apply-deltas/",
+	} {
+		if after, ok := strings.CutPrefix(category, base); ok {
+			prefix = after
+			break
+		}
+	}
+	prefix = strings.ReplaceAll(prefix, "/", ".")
+	return prefix + "." + key
+}
+
+func parseTraceLogNumericFields(message string) map[string]int64 {
+	fields := map[string]int64{}
+	for part := range strings.FieldsSeq(message) {
+		key, valueText, ok := strings.Cut(part, "=")
+		if !ok || key == "" || valueText == "" {
+			continue
+		}
+		valueText = strings.TrimRight(valueText, ",;")
+		value, err := strconv.ParseInt(valueText, 10, 64)
+		if err != nil {
+			continue
+		}
+		fields[key] = value
+	}
+	return fields
 }

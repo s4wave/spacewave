@@ -23,21 +23,23 @@ import (
 // Run is one bench cell artifact: the resolved build identity, wall-clock
 // milestones from navigation start to Drive content-ready, the browser-observed
 // quickstart timing, the served bundle size, the Resource SDK connection timing,
-// and, when a Go trace service is available, the captured runtime trace summary.
-// It is written as run.json per cell so cells compare across runtime states and
-// build modes. The bundled production bench has no Go trace service and no
-// Resource SDK client, so it omits Trace and leaves ResourceConnection zero.
+// and optional trace/profile summaries. It is written as run.json per cell so
+// cells compare across runtime states and build modes. The bundled production
+// bench has no Go trace service and no Resource SDK client, so it omits Trace
+// and leaves ResourceConnection zero.
 type Run struct {
-	Timestamp          string       `json:"timestamp"`
-	Compiler           string       `json:"compiler"`
-	BuildMode          string       `json:"buildMode"`
-	RuntimeState       string       `json:"runtimeState"`
-	Cell               string       `json:"cell"`
-	Milestones         Milestones   `json:"milestones"`
-	Browser            Browser      `json:"browser"`
-	ServedBundle       *Bundle      `json:"servedBundle,omitempty"`
-	ResourceConnection ResourceConn `json:"resourceConnection"`
-	Trace              *Trace       `json:"trace,omitempty"`
+	Timestamp          string          `json:"timestamp"`
+	Compiler           string          `json:"compiler"`
+	BuildMode          string          `json:"buildMode"`
+	RuntimeState       string          `json:"runtimeState"`
+	Cell               string          `json:"cell"`
+	Milestones         Milestones      `json:"milestones"`
+	Browser            Browser         `json:"browser"`
+	ServedBundle       *Bundle         `json:"servedBundle,omitempty"`
+	ResourceConnection ResourceConn    `json:"resourceConnection"`
+	Trace              *Trace          `json:"trace,omitempty"`
+	OperationShape     *OperationShape `json:"operationShape,omitempty"`
+	BrowserProfile     *BrowserProfile `json:"browserProfile,omitempty"`
 }
 
 // Milestones records wall-clock milliseconds from navigation start to each boot
@@ -154,6 +156,55 @@ type Task struct {
 	Count   int    `json:"count"`
 	TotalUs int64  `json:"totalUs"`
 	MaxUs   int64  `json:"maxUs"`
+}
+
+// OperationShape is the compact per-run storage/frontier summary derived from
+// runtime trace tasks and numeric trace-log payloads. Raw runtime.trace remains
+// the replay source; this projection is the comparison surface for plan ranking.
+type OperationShape struct {
+	Operations []OperationSummary `json:"operations,omitempty"`
+}
+
+// OperationSummary groups task timing and recovered numeric log payloads under a
+// stable operation name, such as block-write or opfs-publish.
+type OperationSummary struct {
+	Name     string           `json:"name"`
+	Count    int              `json:"count,omitempty"`
+	TotalUs  int64            `json:"totalUs,omitempty"`
+	MaxUs    int64            `json:"maxUs,omitempty"`
+	LogCount int              `json:"logCount,omitempty"`
+	Fields   []OperationField `json:"fields,omitempty"`
+}
+
+// OperationField summarizes one numeric field recovered from trace logs.
+type OperationField struct {
+	Name    string `json:"name"`
+	Samples int    `json:"samples"`
+	Sum     int64  `json:"sum"`
+	Max     int64  `json:"max"`
+	Last    int64  `json:"last"`
+}
+
+// BrowserProfile records the optional same-window browser JS CPU/profile
+// artifact. It is present only when the harness attempted the profile gate.
+type BrowserProfile struct {
+	Captured      bool            `json:"captured"`
+	ProfilePath   string          `json:"profilePath,omitempty"`
+	SummaryPath   string          `json:"summaryPath,omitempty"`
+	CaptureWindow string          `json:"captureWindow,omitempty"`
+	StartedAt     string          `json:"startedAt,omitempty"`
+	StoppedAt     string          `json:"stoppedAt,omitempty"`
+	Bytes         int             `json:"bytes,omitempty"`
+	SkippedReason string          `json:"skippedReason,omitempty"`
+	Buckets       []ProfileBucket `json:"buckets,omitempty"`
+}
+
+// ProfileBucket is one source/function bucket from the browser JS CPU profile.
+type ProfileBucket struct {
+	Name    string `json:"name"`
+	Count   int    `json:"count,omitempty"`
+	SelfUs  int64  `json:"selfUs,omitempty"`
+	TotalUs int64  `json:"totalUs,omitempty"`
 }
 
 // BrowserFromQuickstartTiming builds the browser timing artifact from the
@@ -274,6 +325,12 @@ func marshalRunValue(arena *fastjson.Arena, run Run) *fastjson.Value {
 	if run.Trace != nil {
 		obj.Set("trace", marshalTraceValue(arena, *run.Trace))
 	}
+	if run.OperationShape != nil && len(run.OperationShape.Operations) != 0 {
+		obj.Set("operationShape", marshalOperationShapeValue(arena, *run.OperationShape))
+	}
+	if run.BrowserProfile != nil {
+		obj.Set("browserProfile", marshalBrowserProfileValue(arena, *run.BrowserProfile))
+	}
 	return obj
 }
 
@@ -383,6 +440,94 @@ func marshalTasksValue(arena *fastjson.Arena, tasks []Task) *fastjson.Value {
 		arr.SetArrayItem(len(arr.GetArray()), obj)
 	}
 	return arr
+}
+
+func marshalOperationShapeValue(arena *fastjson.Arena, shape OperationShape) *fastjson.Value {
+	obj := arena.NewObject()
+	if len(shape.Operations) != 0 {
+		arr := arena.NewArray()
+		for _, op := range shape.Operations {
+			arr.SetArrayItem(len(arr.GetArray()), marshalOperationSummaryValue(arena, op))
+		}
+		obj.Set("operations", arr)
+	}
+	return obj
+}
+
+func marshalOperationSummaryValue(arena *fastjson.Arena, op OperationSummary) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("name", arena.NewString(op.Name))
+	if op.Count != 0 {
+		obj.Set("count", arena.NewNumberInt(op.Count))
+	}
+	if op.TotalUs != 0 {
+		obj.Set("totalUs", arena.NewNumberString(strconv.FormatInt(op.TotalUs, 10)))
+	}
+	if op.MaxUs != 0 {
+		obj.Set("maxUs", arena.NewNumberString(strconv.FormatInt(op.MaxUs, 10)))
+	}
+	if op.LogCount != 0 {
+		obj.Set("logCount", arena.NewNumberInt(op.LogCount))
+	}
+	if len(op.Fields) != 0 {
+		arr := arena.NewArray()
+		for _, field := range op.Fields {
+			arr.SetArrayItem(len(arr.GetArray()), marshalOperationFieldValue(arena, field))
+		}
+		obj.Set("fields", arr)
+	}
+	return obj
+}
+
+func marshalOperationFieldValue(arena *fastjson.Arena, field OperationField) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("name", arena.NewString(field.Name))
+	obj.Set("samples", arena.NewNumberInt(field.Samples))
+	obj.Set("sum", arena.NewNumberString(strconv.FormatInt(field.Sum, 10)))
+	obj.Set("max", arena.NewNumberString(strconv.FormatInt(field.Max, 10)))
+	obj.Set("last", arena.NewNumberString(strconv.FormatInt(field.Last, 10)))
+	return obj
+}
+
+func marshalBrowserProfileValue(arena *fastjson.Arena, profile BrowserProfile) *fastjson.Value {
+	obj := arena.NewObject()
+	if profile.Captured {
+		obj.Set("captured", arena.NewTrue())
+	} else {
+		obj.Set("captured", arena.NewFalse())
+	}
+	setOmitEmptyStringJSONField(arena, obj, "profilePath", profile.ProfilePath)
+	setOmitEmptyStringJSONField(arena, obj, "summaryPath", profile.SummaryPath)
+	setOmitEmptyStringJSONField(arena, obj, "captureWindow", profile.CaptureWindow)
+	setOmitEmptyStringJSONField(arena, obj, "startedAt", profile.StartedAt)
+	setOmitEmptyStringJSONField(arena, obj, "stoppedAt", profile.StoppedAt)
+	if profile.Bytes != 0 {
+		obj.Set("bytes", arena.NewNumberInt(profile.Bytes))
+	}
+	setOmitEmptyStringJSONField(arena, obj, "skippedReason", profile.SkippedReason)
+	if len(profile.Buckets) != 0 {
+		arr := arena.NewArray()
+		for _, bucket := range profile.Buckets {
+			arr.SetArrayItem(len(arr.GetArray()), marshalProfileBucketValue(arena, bucket))
+		}
+		obj.Set("buckets", arr)
+	}
+	return obj
+}
+
+func marshalProfileBucketValue(arena *fastjson.Arena, bucket ProfileBucket) *fastjson.Value {
+	obj := arena.NewObject()
+	obj.Set("name", arena.NewString(bucket.Name))
+	if bucket.Count != 0 {
+		obj.Set("count", arena.NewNumberInt(bucket.Count))
+	}
+	if bucket.SelfUs != 0 {
+		obj.Set("selfUs", arena.NewNumberString(strconv.FormatInt(bucket.SelfUs, 10)))
+	}
+	if bucket.TotalUs != 0 {
+		obj.Set("totalUs", arena.NewNumberString(strconv.FormatInt(bucket.TotalUs, 10)))
+	}
+	return obj
 }
 
 func marshalJSONMapValue(arena *fastjson.Arena, values map[string]any) *fastjson.Value {

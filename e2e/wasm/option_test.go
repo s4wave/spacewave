@@ -340,6 +340,17 @@ func TestE2EWasmTraceServiceEnabled(t *testing.T) {
 	})
 }
 
+func TestE2EWasmDriveBenchJSProfileEnabled(t *testing.T) {
+	t.Setenv(E2EWasmDriveBenchJSProfileEnv, "")
+	if E2EWasmDriveBenchJSProfileEnabled() {
+		t.Fatal("expected Drive bench JS profile disabled without the opt-in")
+	}
+	t.Setenv(E2EWasmDriveBenchJSProfileEnv, "1")
+	if !E2EWasmDriveBenchJSProfileEnabled() {
+		t.Fatal("expected Drive bench JS profile enabled with the opt-in")
+	}
+}
+
 // TestConfigureGoScriptForManifestPreservesTraceService verifies the GoScript
 // compiler mutator leaves an injected trace service intact. InjectTraceConfig
 // runs before the compiler mutator, so the mutator must not strip it.
