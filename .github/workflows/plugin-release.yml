@@ -227,9 +227,7 @@ jobs:
   native-windows:
     needs: prep
     if: needs.prep.outputs.include_windows == 'true'
-    # The Windows helper build uses CMake's Visual Studio 17 2022 generator.
-    # windows-2025 currently resolves to a VS2026 image without that generator.
-    runs-on: windows-2022
+    runs-on: windows-2025
     environment: ${{ needs.prep.outputs.environment_name }}
     env:
       AZURE_CORE_OUTPUT: none

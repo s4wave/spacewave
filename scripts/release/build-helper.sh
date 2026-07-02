@@ -103,6 +103,31 @@ build_via_docker() {
   trap - EXIT
 }
 
+windows_cmake_generator() {
+  if [ -n "${BLDR_WINDOWS_CMAKE_GENERATOR:-}" ]; then
+    echo "$BLDR_WINDOWS_CMAKE_GENERATOR"
+    return
+  fi
+
+  local vswhere=""
+  local version=""
+  if command -v vswhere.exe >/dev/null 2>&1; then
+    vswhere="vswhere.exe"
+  elif [ -x "/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" ]; then
+    vswhere="/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe"
+  fi
+
+  if [ -n "$vswhere" ]; then
+    version="$("$vswhere" -latest -products '*' -requires Microsoft.Component.MSBuild -property installationVersion | tr -d '\r' | head -n1)"
+  fi
+
+  case "$version" in
+    18.*) echo "Visual Studio 18 2026" ;;
+    17.*) echo "Visual Studio 17 2022" ;;
+    *) echo "Visual Studio 18 2026" ;;
+  esac
+}
+
 build_windows_native() {
   local arch="$1"
   local scratch="$SCRATCH_ROOT/cmake/windows-${arch}"
@@ -122,7 +147,7 @@ build_windows_native() {
   esac
 
   cmake -S "$REPO_ROOT/desktop/cross" -B "$scratch" \
-    -G "Visual Studio 17 2022" -A "$vs_arch" \
+    -G "$(windows_cmake_generator)" -A "$vs_arch" \
     -DCMAKE_BUILD_TYPE=Release $cmake_configure_extra
   cmake --build "$scratch" --config Release $build_flags
   cp "$scratch/Release/spacewave-helper.exe" "$OUT/windows-${arch}/spacewave-helper.exe"
