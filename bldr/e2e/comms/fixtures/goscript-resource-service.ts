@@ -278,6 +278,7 @@ async function run() {
     port2.postMessage({
       from: documentId,
       resumeReady: true,
+      runtimeConnected: true,
     })
 
     mark('wait-start-info')

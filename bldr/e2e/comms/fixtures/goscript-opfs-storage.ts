@@ -179,6 +179,7 @@ async function runOpfsWorker(
     port2.postMessage({
       from: documentId,
       resumeReady: true,
+      runtimeConnected: true,
     })
 
     await donePromise

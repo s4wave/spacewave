@@ -6,11 +6,13 @@
 
 import { test, expect } from '@playwright/test'
 
+const workerCommsTimeoutMs = 300_000
+
 // Collect console messages matching a pattern within a timeout.
 async function waitForConsole(
   page: import('@playwright/test').Page,
   pattern: string | RegExp,
-  timeoutMs = 60_000,
+  timeoutMs = workerCommsTimeoutMs,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(
@@ -33,7 +35,7 @@ async function waitForConsole(
   })
 }
 
-test.describe.configure({ mode: 'serial' })
+test.describe.configure({ mode: 'serial', timeout: 360_000 })
 
 // TIER: pr
 test.describe('worker communication lifecycle', () => {

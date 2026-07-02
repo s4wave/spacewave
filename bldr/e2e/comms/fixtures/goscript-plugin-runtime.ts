@@ -247,6 +247,7 @@ async function run() {
     port2.postMessage({
       from: documentId,
       resumeReady: true,
+      runtimeConnected: true,
     })
 
     const startInfo = await startInfoPromise
