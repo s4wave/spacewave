@@ -15,6 +15,7 @@ interface StartupMark {
   name: string
   label: string
   sequence: number
+  timestampMs?: number
   detail: Record<string, unknown>
 }
 
@@ -41,9 +42,7 @@ async function waitForConsole(
   const handler = (msg: ConsoleMessage) => {
     const text = msg.text()
     const matches =
-      typeof pattern === 'string'
-        ? text.includes(pattern)
-        : pattern.test(text)
+      typeof pattern === 'string' ? text.includes(pattern) : pattern.test(text)
     if (matches) {
       clearTimeout(timer)
       page.removeListener('console', handler)
@@ -61,10 +60,28 @@ interface StartupMarkWaiter {
 
 interface StartupMarkCollector {
   count(label: string): number
+  dump(): string
   wait(label: string, timeoutMs?: number): Promise<StartupMark>
 }
 
 let startupMarkCollectorID = 0
+
+function formatStartupMarkDump(marks: StartupMark[]): string {
+  if (!marks.length) {
+    return '(none)'
+  }
+  return marks
+    .map((mark, index) => {
+      const sequence =
+        mark.sequence > 0 ? mark.sequence.toString() : (index + 1).toString()
+      const timestamp =
+        typeof mark.timestampMs === 'number'
+          ? `${mark.timestampMs.toFixed(3)}ms`
+          : 'unknown-ms'
+      return `${sequence}. ${mark.label} @ ${timestamp}`
+    })
+    .join('\n')
+}
 
 async function createStartupMarkCollector(
   page: Page,
@@ -96,9 +113,17 @@ async function createStartupMarkCollector(
         Record<string, unknown>
       const pushMark = (mark: StartupMark) => {
         const callback = startupGlobal[callbackName]
-        if (typeof callback === 'function') {
-          void (callback as (mark: StartupMark) => void)(mark)
+        if (typeof callback !== 'function') {
+          return
         }
+        if (typeof performance === 'undefined') {
+          void (callback as (mark: StartupMark) => void)(mark)
+          return
+        }
+        void (callback as (mark: StartupMark) => void)({
+          ...mark,
+          timestampMs: performance.now(),
+        })
       }
       for (const mark of startupGlobal.__swStartupMarks ?? []) {
         pushMark(mark)
@@ -125,6 +150,9 @@ async function createStartupMarkCollector(
     count(label: string) {
       return marks.filter((mark) => mark.label === label).length
     },
+    dump() {
+      return formatStartupMarkDump(marks)
+    },
     wait(label: string, timeoutMs = workerCommsTimeoutMs) {
       const existing = marks.find((mark) => mark.label === label)
       if (existing) {
@@ -142,7 +170,11 @@ async function createStartupMarkCollector(
       }
       const timer = setTimeout(() => {
         removeWaiter(waiter)
-        reject(new Error(`timeout waiting for startup mark: ${label}`))
+        reject(
+          new Error(
+            `timeout waiting for startup mark: ${label}\nCollected startup marks:\n${formatStartupMarkDump(marks)}`,
+          ),
+        )
       }, timeoutMs)
       waiters.push(waiter)
       return promise
@@ -348,10 +380,18 @@ test.describe('singleton coordinator (no SharedWorker)', () => {
     // Close page A, releasing the singleton lock.
     await pageA.close()
 
-    // Page B should acquire the lock and start plugins.
-    await pageBLock
-    const startMark = await pageBStart
-    expect(startMark.detail).toMatchObject({ plugin: true })
+    try {
+      // Page B should acquire the lock and start plugins.
+      await pageBLock
+      const startMark = await pageBStart
+      expect(startMark.detail).toMatchObject({ plugin: true })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      throw new Error(
+        `${message}\nPage A startup marks:\n${pageAMarks.dump()}\nPage B startup marks:\n${pageBMarks.dump()}`,
+        { cause: err },
+      )
+    }
 
     await context.close()
   })

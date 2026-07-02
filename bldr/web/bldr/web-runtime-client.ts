@@ -282,16 +282,34 @@ export class WebRuntimeClient {
   // fail with a retryable relay-rerouted error. Reconnect defaults on for stale
   // relays; callers that are restarting host election can defer reconnect until
   // the new owner is selected.
-  public async rerouteChannel(
-    opts: RerouteChannelOptions = {},
-  ): Promise<void> {
+  public async rerouteChannel(opts: RerouteChannelOptions = {}): Promise<void> {
     const reconnectingClientChannel = this.reconnectingClientChannel
     this.reconnectingClientChannel = undefined
     reconnectingClientChannel?.catch(() => {})
+    markStartupBoundary('runtime.client-channel-reroute-start', {
+      source: 'browser',
+      runtimeId: this.webRuntimeId,
+      clientId: this.clientId,
+      clientType: this.clientType,
+      reconnect: opts.reconnect !== false,
+    })
     await this.closeClientChannel('relay-rerouted')
+    markStartupBoundary('runtime.client-channel-rerouted', {
+      source: 'browser',
+      runtimeId: this.webRuntimeId,
+      clientId: this.clientId,
+      clientType: this.clientType,
+      reconnect: opts.reconnect !== false,
+    })
     if (opts.reconnect === false) {
       return
     }
+    markStartupBoundary('runtime.client-channel-reconnect-start', {
+      source: 'browser',
+      runtimeId: this.webRuntimeId,
+      clientId: this.clientId,
+      clientType: this.clientType,
+    })
     // Re-establish through a surviving WebDocument so the next plugin-asset
     // fetch finds a ready relay. Best-effort: a failed reconnect is retried
     // lazily by the next openStream.
@@ -603,9 +621,9 @@ export class WebRuntimeClient {
     const promise = new Promise<never>((_, reject) => {
       const rejectClosed = () => {
         reject(
-          signal?.reason instanceof Error ?
-            signal.reason
-          : this.runtimeGenerationClosedError(generationId),
+          signal?.reason instanceof Error
+            ? signal.reason
+            : this.runtimeGenerationClosedError(generationId),
         )
       }
       if (!signal || this.generation.id !== generationId || signal.aborted) {
