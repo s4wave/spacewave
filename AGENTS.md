@@ -17,7 +17,7 @@ If this is the only guide available, read it with `README.md`, `DESIGN.md`,
 - Preserve concurrent work. Treat dirty files you did not edit as user or agent
   work; inspect before depending on them and never revert them unless asked.
 - Keep private planning artifacts, phase labels, process notes, and internal
-  workflow references out of Spacewave code, comments, commits, PRs, and public
+  process references out of Spacewave code, comments, commits, PRs, and public
   docs.
 - Prefer the smallest complete owner-level fix, not the smallest diff. Delete
   speculative code and shallow helpers when they sit inside the touched owner.
@@ -413,6 +413,12 @@ a subdirectory.
 - Never call `AddValue` inside `bcast.HoldLock`; it can deadlock.
 - Each directive gets an `Ex{DirectiveName}` helper wrapping `bus.ExecWaitValue`.
   Prefer `Ex` helpers over direct `ExecWaitValue`.
+- ControllerBus wait helpers own directive reference lifetimes. Before replacing
+  `loader.WaitExecControllerRunning`, `WaitExecControllerRunningTyped`, or an
+  `Ex*` helper with raw `bus.ExecWaitValue`, read the helper implementation. If
+  it already returns a live `directive.Reference`, keep the helper and bind the
+  returned ref to the caller's owner/release path. Inline only when changing
+  wait, error, or disposal semantics, and prove that changed behavior directly.
 
 ## Testing And Verification
 
