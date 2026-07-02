@@ -47,10 +47,7 @@ function getDistDir(): string {
   if (idx !== -1 && process.argv[idx + 1]) {
     return resolve(projectRoot, process.argv[idx + 1])
   }
-  return join(
-    projectRoot,
-    '.bldr-dist/build/desktop/js/wasm/spacewave-dist/dist',
-  )
+  return join(projectRoot, '.bldr-dist/build/js/spacewave-browser/dist')
 }
 
 const DIST_DIR = getDistDir()
@@ -140,7 +137,7 @@ function extractViteCss(log: (msg: string) => void): {
   cssUrl: string
   iconUrl: string
 } {
-  // Walk up from DIST_DIR (spacewave-dist/dist) to the js build root
+  // Walk up from DIST_DIR (spacewave-browser/dist) to the js build root
   const jsBuildRoot = resolve(DIST_DIR, '../..')
   const viteAssetsDir = join(jsBuildRoot, 'spacewave-app/sub/vite/assets/b/fe')
   const viteManifestPath = join(viteAssetsDir, '.vite/manifest.json')

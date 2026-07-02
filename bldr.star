@@ -401,6 +401,13 @@ manifest("spacewave-dist",
     # what ships in each bundle.
     config=dist_release_config([], DESKTOP_RELEASE_LOAD_PLUGINS),
 )
+manifest("spacewave-browser",
+    builder="bldr/dist/compiler",
+    # Browser entrypoint packaging is a web shell artifact, not the native
+    # desktop DistConfig slot. Keep it on its own manifest id so browser release
+    # builds never wait on or publish native spacewave-dist refs.
+    config=dist_release_config([], BROWSER_RELEASE_LOAD_PLUGINS, entrypoint_role="browser"),
+)
 manifest("spacewave-cli",
     builder="bldr/dist/compiler",
     # CLI uses the same dist compiler and native CLI path as spacewave-dist,
@@ -421,12 +428,12 @@ BROWSER_RELEASE_MANIFESTS = [
     # extra shared worker that exits after helper lookup fails.
     "spacewave-launcher",
     "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "web",
-    "spacewave-dist",
+    "spacewave-browser",
 ]
 BROWSER_RELEASE_E2E_MANIFESTS = [
     "spacewave-launcher",
     "spacewave-core", "spacewave-web", "spacewave-app", "web",
-    "spacewave-dist",
+    "spacewave-browser",
 ]
 DESKTOP_RELEASE_MANIFESTS = [
     "spacewave-launcher", "spacewave-loader",
@@ -476,7 +483,7 @@ build("release-web",
     manifests=BROWSER_RELEASE_MANIFESTS,
     targets=["browser"],
     manifestOverrides={
-        "spacewave-dist": dist_release_config(
+        "spacewave-browser": dist_release_config(
             BROWSER_RELEASE_EMBED_MANIFESTS,
             BROWSER_RELEASE_LOAD_PLUGINS,
             entrypoint_role="browser",
@@ -488,7 +495,7 @@ build("release-web-e2e",
     targets=["browser"],
     manifestOverrides={
         "spacewave-launcher": e2e_release_wasm_launcher_config(),
-        "spacewave-dist": dist_release_config(
+        "spacewave-browser": dist_release_config(
             BROWSER_RELEASE_E2E_EMBED_MANIFESTS,
             BROWSER_RELEASE_E2E_LOAD_PLUGINS,
             entrypoint_role="browser",
@@ -508,10 +515,10 @@ build("release-web-e2e-assets",
     },
 )
 build("release-web-e2e-dist",
-    manifests=["spacewave-dist"],
+    manifests=["spacewave-browser"],
     platformIds=["js"],
     manifestOverrides={
-        "spacewave-dist": dist_release_config(
+        "spacewave-browser": dist_release_config(
             BROWSER_RELEASE_E2E_EMBED_MANIFESTS,
             BROWSER_RELEASE_E2E_LOAD_PLUGINS,
             entrypoint_role="browser",
@@ -541,7 +548,7 @@ build("release-web-tinygo",
     targets=["browser"],
     manifestOverrides={
         "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_TINYGO"),
-        "spacewave-dist": dist_release_config(
+        "spacewave-browser": dist_release_config(
             BROWSER_RELEASE_EMBED_MANIFESTS,
             BROWSER_RELEASE_LOAD_PLUGINS,
             entrypoint_role="browser",
@@ -555,7 +562,7 @@ build("release-web-e2e-tinygo",
     manifestOverrides={
         "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_TINYGO"),
         "spacewave-launcher": e2e_release_wasm_launcher_config(),
-        "spacewave-dist": dist_release_config(
+        "spacewave-browser": dist_release_config(
             BROWSER_RELEASE_E2E_EMBED_MANIFESTS,
             BROWSER_RELEASE_E2E_LOAD_PLUGINS,
             entrypoint_role="browser",
@@ -569,7 +576,7 @@ build("release-web-e2e-goscript",
     manifestOverrides={
         "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
         "spacewave-launcher": e2e_release_wasm_launcher_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
-        "spacewave-dist": dist_release_config(
+        "spacewave-browser": dist_release_config(
             BROWSER_RELEASE_E2E_EMBED_MANIFESTS,
             BROWSER_RELEASE_E2E_LOAD_PLUGINS,
             entrypoint_role="browser",

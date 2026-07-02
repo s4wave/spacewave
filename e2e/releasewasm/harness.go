@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	releaseDistRelPath          = ".bldr-dist/build/js/spacewave-dist/dist"
+	releaseDistRelPath          = ".bldr-dist/build/js/spacewave-browser/dist"
 	prerenderDistRelPath        = "app/prerender/dist"
 	releaseWasmDistDirEnv       = "E2E_RELEASE_WASM_DIST_DIR"
 	releaseWasmPrerenderDistEnv = "E2E_RELEASE_WASM_PRERENDER_DIST_DIR"

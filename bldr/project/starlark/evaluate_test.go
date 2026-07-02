@@ -443,14 +443,17 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	if strings.Contains(browserManifests, "spacewave-loader") {
 		t.Fatalf("browser release manifests unexpectedly include spacewave-loader: %v", browserRelease.GetManifests())
 	}
-	for _, want := range []string{"spacewave-notes", "spacewave-v86"} {
+	if slices.Contains(browserRelease.GetManifests(), "spacewave-dist") {
+		t.Fatalf("browser release manifests unexpectedly include spacewave-dist: %v", browserRelease.GetManifests())
+	}
+	for _, want := range []string{"spacewave-notes", "spacewave-v86", "spacewave-browser"} {
 		if !slices.Contains(browserRelease.GetManifests(), want) {
 			t.Fatalf("browser release manifests missing %s: %v", want, browserRelease.GetManifests())
 		}
 	}
-	browserOverride := browserRelease.GetManifestOverrides()["spacewave-dist"]
+	browserOverride := browserRelease.GetManifestOverrides()["spacewave-browser"]
 	if browserOverride == nil {
-		t.Fatal("override for browser 'spacewave-dist' not found")
+		t.Fatal("override for browser 'spacewave-browser' not found")
 	}
 	if browserRelease.GetManifestOverrides()["spacewave-launcher"] != nil {
 		t.Fatal("production browser release should not override spacewave-launcher")
@@ -480,7 +483,7 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	if e2eBrowserRelease == nil {
 		t.Fatal("build target 'release-web-e2e' not found")
 	}
-	for _, want := range []string{"spacewave-launcher", "spacewave-core", "spacewave-web", "spacewave-app", "web", "spacewave-dist"} {
+	for _, want := range []string{"spacewave-launcher", "spacewave-core", "spacewave-web", "spacewave-app", "web", "spacewave-browser"} {
 		if !slices.Contains(e2eBrowserRelease.GetManifests(), want) {
 			t.Fatalf("release-web-e2e manifests missing %s: %v", want, e2eBrowserRelease.GetManifests())
 		}
@@ -513,9 +516,9 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	if strings.Contains(e2eLauncherCfg, "https://spacewave.app/api/release/config") {
 		t.Fatalf("release-web-e2e spacewave-launcher override contains production endpoint: %s", e2eLauncherCfg)
 	}
-	e2eBrowserOverride := e2eBrowserRelease.GetManifestOverrides()["spacewave-dist"]
+	e2eBrowserOverride := e2eBrowserRelease.GetManifestOverrides()["spacewave-browser"]
 	if e2eBrowserOverride == nil {
-		t.Fatal("release-web-e2e override for 'spacewave-dist' not found")
+		t.Fatal("release-web-e2e override for 'spacewave-browser' not found")
 	}
 	e2eDistCfg := string(e2eBrowserOverride.GetConfig())
 	for _, want := range []string{
@@ -549,8 +552,10 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 			t.Fatalf("release-web-e2e-assets manifests missing %s: %v", want, e2eAssetBuild.GetManifests())
 		}
 	}
-	if slices.Contains(e2eAssetBuild.GetManifests(), "spacewave-dist") {
-		t.Fatalf("release-web-e2e-assets should not build spacewave-dist: %v", e2eAssetBuild.GetManifests())
+	for _, unexpected := range []string{"spacewave-browser", "spacewave-dist"} {
+		if slices.Contains(e2eAssetBuild.GetManifests(), unexpected) {
+			t.Fatalf("release-web-e2e-assets should not build %s: %v", unexpected, e2eAssetBuild.GetManifests())
+		}
 	}
 	if !slices.Equal(e2eAssetBuild.GetTargets(), []string{"browser"}) {
 		t.Fatalf("release-web-e2e-assets targets: got %v, want [browser]", e2eAssetBuild.GetTargets())
@@ -563,8 +568,8 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	if e2eDistBuild == nil {
 		t.Fatal("build target 'release-web-e2e-dist' not found")
 	}
-	if !slices.Equal(e2eDistBuild.GetManifests(), []string{"spacewave-dist"}) {
-		t.Fatalf("release-web-e2e-dist manifests: got %v, want [spacewave-dist]", e2eDistBuild.GetManifests())
+	if !slices.Equal(e2eDistBuild.GetManifests(), []string{"spacewave-browser"}) {
+		t.Fatalf("release-web-e2e-dist manifests: got %v, want [spacewave-browser]", e2eDistBuild.GetManifests())
 	}
 	if len(e2eDistBuild.GetTargets()) != 0 {
 		t.Fatalf("release-web-e2e-dist targets: got %v, want none", e2eDistBuild.GetTargets())
@@ -572,9 +577,9 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	if !slices.Equal(e2eDistBuild.GetPlatformIds(), []string{"js"}) {
 		t.Fatalf("release-web-e2e-dist platformIds: got %v, want [js]", e2eDistBuild.GetPlatformIds())
 	}
-	e2eDistOnlyOverride := e2eDistBuild.GetManifestOverrides()["spacewave-dist"]
+	e2eDistOnlyOverride := e2eDistBuild.GetManifestOverrides()["spacewave-browser"]
 	if e2eDistOnlyOverride == nil {
-		t.Fatal("release-web-e2e-dist should override spacewave-dist")
+		t.Fatal("release-web-e2e-dist should override spacewave-browser")
 	}
 	if !strings.Contains(string(e2eDistOnlyOverride.GetConfig()), `"spacewave-core"`) {
 		t.Fatalf("release-web-e2e-dist override missing embedded plugin config: %s", e2eDistOnlyOverride.GetConfig())

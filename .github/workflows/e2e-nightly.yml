@@ -156,7 +156,7 @@ jobs:
           set -euo pipefail
           bun run vite build --config app/prerender/vite.hydrate.config.ts
           bun run vite build --config app/prerender/vite.ssr.config.ts
-          bun ./app/prerender/ssr-dist/build.js --dist-dir .bldr-dist/build/js/spacewave-dist/dist
+          bun ./app/prerender/ssr-dist/build.js --dist-dir .bldr-dist/build/js/spacewave-browser/dist
 
       - name: Collect release-WASM build telemetry
         if: always()
@@ -176,8 +176,8 @@ jobs:
           else
             : > .tmp/release-wasm-telemetry/wasm-sizes.txt
           fi
-          if [ -d .bldr-dist/build/js/spacewave-dist/dist ] || [ -d app/prerender/dist ]; then
-            find .bldr-dist/build/js/spacewave-dist/dist app/prerender/dist -type f -printf '%s %p\n' \
+          if [ -d .bldr-dist/build/js/spacewave-browser/dist ] || [ -d app/prerender/dist ]; then
+            find .bldr-dist/build/js/spacewave-browser/dist app/prerender/dist -type f -printf '%s %p\n' \
               > .tmp/release-wasm-telemetry/browser-artifact-files.txt 2>/dev/null || true
           else
             : > .tmp/release-wasm-telemetry/browser-artifact-files.txt
@@ -199,7 +199,7 @@ jobs:
         with:
           name: nightly-release-wasm-browser-${{ github.run_id }}
           path: |
-            .bldr-dist/build/js/spacewave-dist/dist
+            .bldr-dist/build/js/spacewave-browser/dist
             app/prerender/dist
           include-hidden-files: true
           if-no-files-found: error
@@ -211,7 +211,7 @@ jobs:
     env:
       ENABLE_E2E_RELEASE_WASM: true
       E2E_RELEASE_WASM_BROWSER: chromium
-      E2E_RELEASE_WASM_DIST_DIR: .bldr-dist/build/js/spacewave-dist/dist
+      E2E_RELEASE_WASM_DIST_DIR: .bldr-dist/build/js/spacewave-browser/dist
       E2E_RELEASE_WASM_PRERENDER_DIST_DIR: app/prerender/dist
     timeout-minutes: 30
     steps:

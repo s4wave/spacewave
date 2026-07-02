@@ -42,6 +42,7 @@ func TestEvaluateAlpha(t *testing.T) {
 		"web", "spacewave-launcher", "spacewave-loader",
 		"spacewave-core", "spacewave-debug", "spacewave-cli",
 		"spacewave-web", "spacewave-app", "spacewave-dist",
+		"spacewave-browser",
 	}
 	for _, id := range expectedManifests {
 		if result.Config.GetManifests()[id] == nil {

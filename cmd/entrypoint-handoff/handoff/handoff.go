@@ -1076,6 +1076,7 @@ func generateHostIcons(ctx context.Context, repoDir, iconPath string) error {
 	}
 	defer outFile.Close()
 
+	// #nosec G204 -- argv is fixed except generated icon paths, and no shell is invoked.
 	cmd := exec.CommandContext(ctx, "bun", append([]string{"x", "png-to-ico"}, icoInputs...)...)
 	cmd.Dir = repoDir
 	cmd.Env = os.Environ()
@@ -1374,7 +1375,7 @@ func buildBrowser(ctx context.Context, repoDir string, reactDev bool) error {
 		return errors.Wrap(err, "build prerender bundle")
 	}
 
-	bldrDistDir := filepath.Join(repoDir, ".bldr-dist", "build", "js", "spacewave-dist", "dist")
+	bldrDistDir := filepath.Join(repoDir, ".bldr-dist", "build", "js", "spacewave-browser", "dist")
 	if err := runBun(ctx, repoDir, "./app/prerender/ssr-dist/build.js", "--dist-dir", bldrDistDir); err != nil {
 		return errors.Wrap(err, "prerender")
 	}
