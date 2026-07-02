@@ -2,7 +2,7 @@ module github.com/s4wave/spacewave
 
 go 1.26.3
 
-require github.com/s4wave/goscript v0.2.11-0.20260702024942-f6cade8d200c // master
+require github.com/s4wave/goscript v0.2.11-0.20260702033447-88930a9a8e6b // master
 
 replace (
 	// aperture: use compatibility forks
