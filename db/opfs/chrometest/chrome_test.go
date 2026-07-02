@@ -20,24 +20,27 @@ import (
 )
 
 const (
-	runEnv               = "RUN_OPFS_CHROME_TEST"
-	profileEnv           = "RUN_OPFS_CHROME_PROFILE"
-	tinyGoEnv            = "RUN_OPFS_CHROME_TINYGO"
-	tinyGoProfileEnv     = "RUN_OPFS_CHROME_TINYGO_PROFILE"
-	tinyGoOptEnv         = "RUN_OPFS_CHROME_TINYGO_OPT"
-	tinyGoGCEnv          = "RUN_OPFS_CHROME_TINYGO_GC"
-	tinyGoLLVMEnv        = "RUN_OPFS_CHROME_TINYGO_LLVM_FEATURES"
-	tinyGoPanicEnv       = "RUN_OPFS_CHROME_TINYGO_PANIC"
-	tinyGoSchedulerEnv   = "RUN_OPFS_CHROME_TINYGO_SCHEDULER"
-	tinyGoStackEnv       = "RUN_OPFS_CHROME_TINYGO_STACK_SIZE"
-	resourceReadChunkEnv = "RUN_OPFS_CHROME_RESOURCE_READ_CHUNK"
-	largeSizeEnv         = "RUN_OPFS_CHROME_LARGE_SIZE"
-	tinyGoProfileCustom  = "custom"
-	tinyGoTargetDefault  = "target-default"
-	tinyGoBldrFeatures   = "bldr-features"
-	chromeSmoke          = "smoke"
-	chromeStress         = "stress"
-	defaultShards        = 4
+	runEnv                          = "RUN_OPFS_CHROME_TEST"
+	profileEnv                      = "RUN_OPFS_CHROME_PROFILE"
+	tinyGoEnv                       = "RUN_OPFS_CHROME_TINYGO"
+	tinyGoProfileEnv                = "RUN_OPFS_CHROME_TINYGO_PROFILE"
+	tinyGoOptEnv                    = "RUN_OPFS_CHROME_TINYGO_OPT"
+	tinyGoGCEnv                     = "RUN_OPFS_CHROME_TINYGO_GC"
+	tinyGoLLVMEnv                   = "RUN_OPFS_CHROME_TINYGO_LLVM_FEATURES"
+	tinyGoPanicEnv                  = "RUN_OPFS_CHROME_TINYGO_PANIC"
+	tinyGoSchedulerEnv              = "RUN_OPFS_CHROME_TINYGO_SCHEDULER"
+	tinyGoStackEnv                  = "RUN_OPFS_CHROME_TINYGO_STACK_SIZE"
+	resourceReadChunkEnv            = "RUN_OPFS_CHROME_RESOURCE_READ_CHUNK"
+	largeSizeEnv                    = "RUN_OPFS_CHROME_LARGE_SIZE"
+	tinyGoProfileCustom             = "custom"
+	tinyGoTargetDefault             = "target-default"
+	tinyGoBldrFeatures              = "bldr-features"
+	chromeSmoke                     = "smoke"
+	chromeStress                    = "stress"
+	defaultShards                   = 4
+	runWorkersScriptWatchdogDefault = 30 * time.Second
+	runWorkersScriptWatchdogMargin  = 15 * time.Second
+	runWorkersScriptWatchdogMin     = 100 * time.Millisecond
 )
 
 var sharedHarness *chromeHarness
@@ -713,6 +716,44 @@ func TestOpfsChromePersistsAcrossPageLifecycle(t *testing.T) {
 		batch:      1,
 		shards:     defaultShards,
 	})
+}
+
+func TestOpfsChromeRunWorkersScriptWatchdogReportsHangingWorker(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	_, err := s.evalWorkersScript(t, `async ({ worker }) => {
+  window.__opfsChromeWorkerWatchdog.record({
+    scenario: worker.scenario,
+    worker: worker.worker,
+    phase: 'test-hang',
+  })
+  await new Promise(() => {})
+}`, map[string]any{
+		"worker": mapSingleWorkerArg(workerArgs{
+			scenario: "watchdog-hang",
+			root:     "watchdog-hang",
+			worker:   7,
+			workers:  1,
+		}),
+	}, 50*time.Millisecond)
+	if err == nil {
+		t.Fatal("expected hanging worker script watchdog error")
+	}
+	msg := err.Error()
+	for _, want := range []string{
+		"opfs worker script timeout",
+		"scenario=watchdog-hang",
+		"worker=7",
+		"phase=test-hang",
+		"browser exception=none",
+	} {
+		if !strings.Contains(msg, want) {
+			t.Fatalf("watchdog error missing %q: %s", want, msg)
+		}
+	}
 }
 
 func TestOpfsChromeFileLockSerializesWorkers(t *testing.T) {
@@ -1646,11 +1687,7 @@ func (s *chromeSession) runTerminatedReadyWorker(t testing.TB, worker workerArgs
 
 func (s *chromeSession) runWorkersScript(t testing.TB, script string, args map[string]any) []workerResult {
 	t.Helper()
-	raw, err := s.page.Evaluate(script, args)
-	if err != nil {
-		t.Fatal(err)
-	}
-	results, err := decodeWorkerResults(raw)
+	results, err := s.evalWorkersScript(t, script, args, runWorkersScriptTimeout(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1661,6 +1698,87 @@ func (s *chromeSession) runWorkersScript(t testing.TB, script string, args map[s
 		t.Logf("worker scenario=%s worker=%d ok=%t duration=%dms", res.scenario, res.worker, res.ok, res.durationMS)
 	}
 	return results
+}
+
+func (s *chromeSession) evalWorkersScript(
+	t testing.TB,
+	script string,
+	args map[string]any,
+	timeout time.Duration,
+) ([]workerResult, error) {
+	t.Helper()
+	if timeout < runWorkersScriptWatchdogMin {
+		timeout = runWorkersScriptWatchdogMin
+	}
+	if err := testContext(t).Err(); err != nil {
+		return nil, errors.Wrap(err, "opfs worker script context")
+	}
+	raw, err := s.page.Evaluate(opfsWorkerScriptEnvelope, map[string]any{
+		"script":    script,
+		"args":      args,
+		"timeoutMs": int(timeout / time.Millisecond),
+	})
+	if err != nil {
+		state := s.readWorkerScriptState()
+		if state != nil {
+			return nil, errors.Errorf("evaluate opfs worker script: %v; %s", err, state.describe("evaluate error"))
+		}
+		return nil, errors.Wrap(err, "evaluate opfs worker script")
+	}
+	env, err := decodeWorkerScriptEnvelope(raw)
+	if err != nil {
+		return nil, err
+	}
+	switch env.status {
+	case "ok":
+		return env.results, nil
+	case "timeout":
+		return nil, errors.New(env.describe("timeout"))
+	case "exception":
+		return nil, errors.New(env.describe("exception"))
+	default:
+		return nil, errors.Errorf("unexpected opfs worker script status %q", env.status)
+	}
+}
+
+func (s *chromeSession) readWorkerScriptState() *workerScriptEnvelope {
+	raw, err := s.page.Evaluate(`() => window.__opfsChromeWorkerWatchdog?.snapshot?.() ?? null`)
+	if err != nil || raw == nil {
+		return nil
+	}
+	env, err := decodeWorkerScriptEnvelope(raw)
+	if err != nil {
+		return nil
+	}
+	return env
+}
+
+func testContext(t testing.TB) context.Context {
+	ctxT, ok := t.(interface {
+		Context() context.Context
+	})
+	if !ok {
+		return context.Background()
+	}
+	return ctxT.Context()
+}
+
+func runWorkersScriptTimeout(t testing.TB) time.Duration {
+	deadlineT, ok := t.(interface {
+		Deadline() (time.Time, bool)
+	})
+	if !ok {
+		return runWorkersScriptWatchdogDefault
+	}
+	deadline, ok := deadlineT.Deadline()
+	if !ok {
+		return runWorkersScriptWatchdogDefault
+	}
+	timeout := time.Until(deadline) - runWorkersScriptWatchdogMargin
+	if timeout < runWorkersScriptWatchdogMin {
+		return runWorkersScriptWatchdogMin
+	}
+	return timeout
 }
 
 func buildAssets(dir string) error {
@@ -1957,6 +2075,44 @@ func newServer(dir string) *httptest.Server {
 	return httptest.NewServer(mux)
 }
 
+func decodeWorkerScriptEnvelope(raw any) (*workerScriptEnvelope, error) {
+	m, ok := raw.(map[string]any)
+	if !ok {
+		return nil, errors.Errorf("unexpected worker script envelope %T", raw)
+	}
+	results, err := decodeWorkerResults(m["results"])
+	if err != nil && m["results"] != nil {
+		return nil, err
+	}
+	return &workerScriptEnvelope{
+		status:    stringField(m, "status"),
+		results:   results,
+		progress:  decodeWorkerScriptProgress(m["progress"]),
+		exception: stringField(m, "exception"),
+		timeoutMS: intField(m, "timeoutMs"),
+	}, nil
+}
+
+func decodeWorkerScriptProgress(raw any) workerScriptProgress {
+	m, ok := raw.(map[string]any)
+	if !ok {
+		return workerScriptProgress{}
+	}
+	worker, hasWorker := intFieldOK(m, "worker")
+	offset, hasOffset := intFieldOK(m, "offset")
+	total, hasTotal := intFieldOK(m, "total")
+	return workerScriptProgress{
+		scenario:  stringField(m, "scenario"),
+		worker:    worker,
+		hasWorker: hasWorker,
+		phase:     stringField(m, "phase"),
+		offset:    offset,
+		hasOffset: hasOffset,
+		total:     total,
+		hasTotal:  hasTotal,
+	}
+}
+
 func decodeWorkerResults(raw any) ([]workerResult, error) {
 	list, ok := raw.([]any)
 	if !ok {
@@ -2020,13 +2176,18 @@ func boolField(m map[string]any, key string) bool {
 }
 
 func intField(m map[string]any, key string) int {
+	v, _ := intFieldOK(m, key)
+	return v
+}
+
+func intFieldOK(m map[string]any, key string) (int, bool) {
 	switch v := m[key].(type) {
 	case int:
-		return v
+		return v, true
 	case float64:
-		return int(v)
+		return int(v), true
 	default:
-		return 0
+		return 0, false
 	}
 }
 
@@ -2051,6 +2212,100 @@ type workerResult struct {
 	publishGen int
 }
 
+type workerScriptEnvelope struct {
+	status    string
+	results   []workerResult
+	progress  workerScriptProgress
+	exception string
+	timeoutMS int
+}
+
+func (e *workerScriptEnvelope) describe(status string) string {
+	parts := []string{"opfs worker script " + status}
+	if e.timeoutMS != 0 {
+		parts = append(parts, "after "+strconv.Itoa(e.timeoutMS)+"ms")
+	}
+	parts = append(parts, "last progress "+e.progress.describe())
+	if e.exception == "" {
+		parts = append(parts, "browser exception=none")
+	} else {
+		parts = append(parts, "browser exception="+e.exception)
+	}
+	return strings.Join(parts, ": ")
+}
+
+type workerScriptProgress struct {
+	scenario  string
+	worker    int
+	hasWorker bool
+	phase     string
+	offset    int
+	hasOffset bool
+	total     int
+	hasTotal  bool
+}
+
+func (p workerScriptProgress) describe() string {
+	if p.scenario == "" && !p.hasWorker && p.phase == "" && !p.hasOffset && !p.hasTotal {
+		return "none"
+	}
+	parts := make([]string, 0, 5)
+	if p.scenario != "" {
+		parts = append(parts, "scenario="+p.scenario)
+	}
+	if p.hasWorker {
+		parts = append(parts, "worker="+strconv.Itoa(p.worker))
+	}
+	if p.phase != "" {
+		parts = append(parts, "phase="+p.phase)
+	}
+	if p.hasOffset {
+		parts = append(parts, "offset="+strconv.Itoa(p.offset))
+	}
+	if p.hasTotal {
+		parts = append(parts, "total="+strconv.Itoa(p.total))
+	}
+	return strings.Join(parts, " ")
+}
+
+// opfsWorkerScriptEnvelope bounds page evaluation and returns watchdog state so
+// worker hangs report the last browser-side marker before the Go test timeout.
+const opfsWorkerScriptEnvelope = `async ({ script, args, timeoutMs }) => {
+  const watchdog = window.__opfsChromeWorkerWatchdog
+  if (!watchdog) {
+    throw new Error('OPFS worker watchdog is not installed')
+  }
+  watchdog.reset()
+  const run = (async () => {
+    try {
+      const fn = (0, eval)('(' + script + ')')
+      const results = await fn(args)
+      return {
+        ...watchdog.snapshot(),
+        status: 'ok',
+        results,
+      }
+    } catch (reason) {
+      watchdog.exception(reason)
+      return {
+        ...watchdog.snapshot(),
+        status: 'exception',
+        timeoutMs,
+      }
+    }
+  })()
+  const timeout = new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        ...watchdog.snapshot(),
+        status: 'timeout',
+        timeoutMs,
+      })
+    }, timeoutMs)
+  })
+  return await Promise.race([run, timeout])
+}`
+
 const indexHTML = `<!doctype html>
 <html>
   <head>
@@ -2059,6 +2314,7 @@ const indexHTML = `<!doctype html>
   </head>
   <body>
     <script type="module">
+      window.__opfsChromeWorkerWatchdog = createOpfsChromeWorkerWatchdog()
       window.runOpfsWorkers = async (workers) => {
         return await waitWorkers(workers.map((args) => runWorker(args)))
       }
@@ -2175,8 +2431,72 @@ const indexHTML = `<!doctype html>
         return results.filter((result) => result)
       }
 
+      function createOpfsChromeWorkerWatchdog() {
+        let progress = null
+        let exception = ''
+        return {
+          reset: () => {
+            progress = null
+            exception = ''
+          },
+          record: (data) => {
+            progress = normalizeProgress(data)
+          },
+          exception: (reason) => {
+            exception = describeBrowserError(reason)
+          },
+          snapshot: () => ({
+            status: 'state',
+            progress,
+            exception,
+          }),
+        }
+      }
+
+      function normalizeProgress(data) {
+        const progress = {
+          scenario: data?.scenario ?? '',
+          worker: data?.worker ?? 0,
+          phase: data?.phase ?? '',
+        }
+        if (data?.offset !== undefined) {
+          progress.offset = data.offset
+        }
+        if (data?.total !== undefined) {
+          progress.total = data.total
+        }
+        return progress
+      }
+
+      function recordWorkerProgress(data, phase) {
+        window.__opfsChromeWorkerWatchdog.record({
+          scenario: data?.scenario ?? '',
+          worker: data?.worker ?? 0,
+          phase: data?.phase ?? phase,
+          offset: data?.offset,
+          total: data?.total,
+        })
+      }
+
+      function describeBrowserError(reason) {
+        if (!reason) {
+          return ''
+        }
+        if (typeof reason === 'string') {
+          return reason
+        }
+        if (typeof reason.stack === 'string') {
+          return reason.stack
+        }
+        if (typeof reason.message === 'string') {
+          return reason.message
+        }
+        return String(reason)
+      }
+
       function runWorker(args) {
         let readyResolve
+        recordWorkerProgress(args, 'start')
         const worker = new Worker('/worker.js', { type: 'classic' })
         const ready = new Promise((resolve) => {
           readyResolve = resolve
@@ -2185,14 +2505,17 @@ const indexHTML = `<!doctype html>
           worker.onmessage = (event) => {
             const data = event.data
             if (data.kind === 'ready') {
+              recordWorkerProgress(data, 'ready')
               readyResolve(data)
               return
             }
             if (data.kind === 'progress') {
+              recordWorkerProgress(data, 'progress')
               console.log(formatProgress(data))
               return
             }
             if (data.kind === 'result') {
+              recordWorkerProgress(data, data.ok ? 'result-ok' : 'result-error')
               worker.terminate()
               readyResolve(data)
               resolve(data)
@@ -2200,6 +2523,7 @@ const indexHTML = `<!doctype html>
           }
           worker.onerror = (event) => {
             worker.terminate()
+            window.__opfsChromeWorkerWatchdog.exception(event.message)
             const data = {
               kind: 'result',
               scenario: args.scenario,
@@ -2207,6 +2531,7 @@ const indexHTML = `<!doctype html>
               ok: false,
               error: event.message,
             }
+            recordWorkerProgress(data, 'worker-error')
             readyResolve(data)
             resolve(data)
           }
