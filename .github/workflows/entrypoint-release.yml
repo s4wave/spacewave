@@ -536,7 +536,9 @@ jobs:
       - prep
       - manifest_packs
       - remote_handoff
-    runs-on: windows-2025
+    # The Windows helper build uses CMake's Visual Studio 17 2022 generator.
+    # windows-2025 currently resolves to a VS2026 image without that generator.
+    runs-on: windows-2022
     environment: ${{ needs.prep.outputs.environment_name }}
     permissions:
       contents: read
