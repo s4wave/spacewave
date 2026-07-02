@@ -1175,16 +1175,26 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         },
         promoteToHost: () => {
           startWebRuntimeWorker()
+          // Promoted hosts own a new DedicatedWorker generation; publish it
+          // through the normal connection path so runtime and resume-ready
+          // state belong to the new worker, not the stale attached relay.
+          this.setRuntimeConnected(false)
+          this.clearResumeReadyState('dedicated-host-promoted')
           if ('rerouteChannel' in this.webRuntimeClient) {
             void this.webRuntimeClient
-              .rerouteChannel({ reconnect: true })
+              .rerouteChannel({ reconnect: false })
+              .then(() => {
+                this.startWebRuntimeConnection()
+              })
               .catch((err: unknown) => {
                 console.warn(
                   'WebDocument: failed to reroute promoted DedicatedWorker host',
                   err,
                 )
               })
+            return
           }
+          this.startWebRuntimeConnection()
         },
         startUnavailable: () => {
           startWebRuntimeWorker()

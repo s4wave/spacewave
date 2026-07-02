@@ -60,6 +60,7 @@ interface StartupMarkWaiter {
 
 interface StartupMarkCollector {
   count(label: string): number
+  marks(): StartupMark[]
   dump(): string
   wait(label: string, timeoutMs?: number): Promise<StartupMark>
 }
@@ -81,6 +82,22 @@ function formatStartupMarkDump(marks: StartupMark[]): string {
       return `${sequence}. ${mark.label} @ ${timestamp}`
     })
     .join('\n')
+}
+
+function expectStartupMarksInOrder(
+  marks: StartupMark[],
+  expectedLabels: string[],
+) {
+  let searchFrom = 0
+  for (const label of expectedLabels) {
+    const index = marks.findIndex(
+      (mark, markIndex) => markIndex >= searchFrom && mark.label === label,
+    )
+    expect(index, `missing startup mark in order: ${label}`).toBeGreaterThanOrEqual(
+      searchFrom,
+    )
+    searchFrom = index + 1
+  }
 }
 
 async function createStartupMarkCollector(
@@ -149,6 +166,9 @@ async function createStartupMarkCollector(
   return {
     count(label: string) {
       return marks.filter((mark) => mark.label === label).length
+    },
+    marks() {
+      return [...marks]
     },
     dump() {
       return formatStartupMarkDump(marks)
@@ -385,6 +405,16 @@ test.describe('singleton coordinator (no SharedWorker)', () => {
       await pageBLock
       const startMark = await pageBStart
       expect(startMark.detail).toMatchObject({ plugin: true })
+      expectStartupMarksInOrder(pageBMarks.marks(), [
+        'dedicated-host.promoted',
+        'runtime.worker-created',
+        'runtime.client-channel-acked',
+        'runtime.connected',
+        'web-document.resume-ready',
+        'worker.create-request-received',
+        'worker.init-message-received',
+        'plugin.script-import-start',
+      ])
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       throw new Error(
