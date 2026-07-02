@@ -5,13 +5,13 @@
 //   1. The WebDocument creates a bridge endpoint for the worker.
 //   2. No bridge-related errors during startup.
 //
-// The cross-browser test launches Firefox and Chromium simultaneously
-// and verifies both browsers bootstrap the bridge independently.
+// The cross-browser test launches Firefox and Chromium simultaneously and
+// verifies the WebDocument bridge owner without starting the app bundle.
 //
-// Note: verifying the worker-side shim installation or actual PC creation
+// Note: verifying the worker-side shim installation or data-channel signaling
 // through the bridge requires either worker console capture (unreliable in
-// Playwright for WASM workers) or a signaling peer. The alpha e2e/wasm
-// Go test harness is better suited for full-stack bridge integration tests.
+// Playwright for WASM workers) or a signaling peer. The alpha e2e/wasm Go test
+// harness is better suited for full-stack bridge integration tests.
 
 import { test, expect, chromium, firefox } from '@playwright/test'
 import type { Page, ConsoleMessage, Worker } from '@playwright/test'
@@ -20,26 +20,101 @@ async function waitForConsole(
   page: Page,
   pattern: string | RegExp,
   timeoutMs = 60_000,
+  label = 'page',
 ): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error(`timeout waiting for console: ${pattern}`)),
-      timeoutMs,
-    )
-    const handler = (msg: ConsoleMessage) => {
-      const text = msg.text()
-      const matches =
-        typeof pattern === 'string'
-          ? text.includes(pattern)
-          : pattern.test(text)
-      if (matches) {
-        clearTimeout(timer)
-        page.removeListener('console', handler)
-        resolve(text)
-      }
+  const { promise, resolve, reject } = Promise.withResolvers<string>()
+  const timer = setTimeout(
+    () => reject(new Error(`timeout waiting for ${label} console: ${pattern}`)),
+    timeoutMs,
+  )
+  const handler = (msg: ConsoleMessage) => {
+    const text = msg.text()
+    const matches =
+      typeof pattern === 'string'
+        ? text.includes(pattern)
+        : pattern.test(text)
+    if (matches) {
+      clearTimeout(timer)
+      page.removeListener('console', handler)
+      resolve(text)
     }
-    page.on('console', handler)
-  })
+  }
+  page.on('console', handler)
+  return promise
+}
+
+async function bridgeHarnessDocument(origin: string) {
+  const indexResponse = await fetch(origin)
+  if (!indexResponse.ok) {
+    throw new Error(`failed to fetch browser index: ${indexResponse.status}`)
+  }
+
+  const indexHtml = await indexResponse.text()
+  const importMap = indexHtml.match(
+    /<script type="importmap">[\s\S]*?<\/script>/,
+  )?.[0]
+  if (!importMap) {
+    throw new Error('browser index missing importmap')
+  }
+
+  const html = `<!doctype html>
+<html>
+  <head><meta charset="utf-8"></head>
+  <body>
+    ${importMap}
+    <script type="module">
+      import { WebDocument } from '@aptre/bldr'
+
+      const workerId = 'bridge-harness-worker'
+      const requestId = 'bridge-harness-request'
+      const { port1: workerPort, port2: ackPort } = new MessageChannel()
+      const webDocument = Object.create(WebDocument.prototype)
+      webDocument.webDocumentUuid = 'bridge-harness-document'
+      webDocument.webWorkers = { [workerId]: { port: workerPort } }
+      webDocument.webrtcBridgeEndpoints = new Map()
+
+      ackPort.onmessage = (ev) => {
+        const bridgePort = ev.data?.bridgePort
+        if (!bridgePort) {
+          console.error('WebRTC bridge harness missing bridge port')
+          return
+        }
+
+        bridgePort.onmessage = (bridgeEvent) => {
+          if (bridgeEvent.data?.type === 'createPC') {
+            if (bridgeEvent.data.error) {
+              console.error('WebRTC bridge harness createPC failed', bridgeEvent.data.error)
+              return
+            }
+            console.log('WebRTC bridge harness createPC response', bridgeEvent.data.pcId)
+            bridgePort.postMessage({
+              type: 'close',
+              cmdId: 2,
+              pcId: bridgeEvent.data.pcId,
+            })
+            return
+          }
+          if (bridgeEvent.data?.type === 'close') {
+            bridgePort.close()
+            workerPort.close()
+            ackPort.close()
+            webDocument.webrtcBridgeEndpoints.get(workerId)?.close()
+            console.log('WebRTC bridge harness closed')
+          }
+        }
+        bridgePort.start()
+        bridgePort.postMessage({ type: 'createPC', cmdId: 1, config: {} })
+      }
+      ackPort.start()
+      workerPort.start()
+      webDocument.handleConnectWebRtcBridge(workerId, requestId)
+    </script>
+  </body>
+</html>`
+  return {
+    url: `${origin}/__bldr-webrtc-bridge-harness.html`,
+    html,
+  }
 }
 
 // TIER: pr
@@ -98,8 +173,8 @@ test.describe('WebRTC bridge bootstrap', () => {
 test.describe('cross-browser bridge bootstrap', () => {
   test('Chromium and Firefox both bootstrap bridge', async () => {
     const port = Number.parseInt(process.env.E2E_PORT ?? '', 10) || 5593
-    const url = `http://localhost:${port}/#/`
-
+    const origin = `http://localhost:${port}`
+    const harness = await bridgeHarnessDocument(origin)
     // Launch two separate browser instances.
     const [chrBrowser, ffBrowser] = await Promise.all([
       chromium.launch(),
@@ -111,61 +186,87 @@ test.describe('cross-browser bridge bootstrap', () => {
         chrBrowser.newContext(),
         ffBrowser.newContext(),
       ])
+      await Promise.all([
+        chrContext.route(harness.url, (route) =>
+          route.fulfill({ contentType: 'text/html', body: harness.html }),
+        ),
+        ffContext.route(harness.url, (route) =>
+          route.fulfill({ contentType: 'text/html', body: harness.html }),
+        ),
+      ])
 
       const [chrPage, ffPage] = await Promise.all([
         chrContext.newPage(),
         ffContext.newPage(),
       ])
 
-      // Set up console listeners for bridge bootstrap on both pages.
       const chrBridgePromise = waitForConsole(
         chrPage,
         'WebDocument: WebRTC bridge opened for',
+        undefined,
+        'chromium',
       )
       const ffBridgePromise = waitForConsole(
         ffPage,
         'WebDocument: WebRTC bridge opened for',
+        undefined,
+        'firefox',
+      )
+      const chrCreatePCPromise = waitForConsole(
+        chrPage,
+        'WebRTC bridge harness createPC response',
+        undefined,
+        'chromium createPC',
+      )
+      const ffCreatePCPromise = waitForConsole(
+        ffPage,
+        'WebRTC bridge harness createPC response',
+        undefined,
+        'firefox createPC',
       )
 
-      // Collect errors from both browsers.
       const chrErrors: string[] = []
       const ffErrors: string[] = []
       chrPage.on('pageerror', (err) => chrErrors.push(err.message))
       ffPage.on('pageerror', (err) => ffErrors.push(err.message))
 
-      // Navigate both browsers to the app.
-      await Promise.all([chrPage.goto(url), ffPage.goto(url)])
+      await Promise.all([
+        chrPage.goto(harness.url, { waitUntil: 'domcontentloaded' }),
+        ffPage.goto(harness.url, { waitUntil: 'domcontentloaded' }),
+      ])
 
-      // Both should bootstrap the bridge.
-      const [chrMsg, ffMsg] = await Promise.all([
+      const [chrMsg, ffMsg, chrCreatePCMsg, ffCreatePCMsg] = await Promise.all([
         chrBridgePromise,
         ffBridgePromise,
+        chrCreatePCPromise,
+        ffCreatePCPromise,
       ])
 
       expect(chrMsg).toContain('WebRTC bridge opened for')
       expect(ffMsg).toContain('WebRTC bridge opened for')
+      expect(chrCreatePCMsg).toContain('createPC response')
+      expect(ffCreatePCMsg).toContain('createPC response')
 
-      // Allow time for transport init, check no bridge errors.
-      await Promise.all([
-        chrPage.waitForTimeout(5_000),
-        ffPage.waitForTimeout(5_000),
-      ])
-
-      const bridgeErrors = (errs: string[]) =>
-        errs.filter(
+      expect(
+        chrErrors.filter(
           (e) =>
             e.includes('WebRTC') ||
             e.includes('bridge') ||
             e.includes('RTCPeerConnection'),
-        )
-      expect(bridgeErrors(chrErrors)).toEqual([])
-      expect(bridgeErrors(ffErrors)).toEqual([])
+        ),
+      ).toEqual([])
+      expect(
+        ffErrors.filter(
+          (e) =>
+            e.includes('WebRTC') ||
+            e.includes('bridge') ||
+            e.includes('RTCPeerConnection'),
+        ),
+      ).toEqual([])
 
-      await chrContext.close()
-      await ffContext.close()
+      await Promise.all([chrContext.close(), ffContext.close()])
     } finally {
-      await chrBrowser.close()
-      await ffBrowser.close()
+      await Promise.all([chrBrowser.close(), ffBrowser.close()])
     }
   })
 })

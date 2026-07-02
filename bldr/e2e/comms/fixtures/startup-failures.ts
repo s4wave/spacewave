@@ -234,6 +234,7 @@ async function runImportFailureScenario(): Promise<{
       port2.postMessage(
         {
           from: 'startup-failures-import-doc',
+          requestId: data.connectWebRtcBridge.requestId,
           bridgePort: clientPort,
         },
         [clientPort],

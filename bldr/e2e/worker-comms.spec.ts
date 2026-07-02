@@ -179,26 +179,31 @@ test.describe('singleton coordinator (no SharedWorker)', () => {
       context.newPage(),
     ])
 
-    const pageALock = waitForConsole(pageA, 'acquired plugin singleton lock')
+    const pageALock = waitForConsole(
+      pageA,
+      'acquired plugin singleton lock',
+    )
     const pageAStart = waitForConsole(pageA, 'starting native plugin')
-    const pageBWait = waitForConsole(pageB, 'waiting for plugin singleton lock')
+    const pageBReady = waitForConsole(
+      pageB,
+      'worker-comms: detected config',
+    )
+    const pluginStartB: string[] = []
+    pageB.on('console', (msg) => {
+      if (msg.text().includes('starting native plugin'))
+        pluginStartB.push(msg.text())
+    })
 
     // Page A loads and acquires the singleton plugin lock.
     await pageA.goto('/#/')
     await pageALock
     await pageAStart
 
-    // Page B loads. Wait until Go has attempted CreateWebWorker and is
-    // blocked on the singleton lock (deterministic, not a timeout).
+    // Page B loads without becoming another plugin host.
     await pageB.goto('/#/')
-    await pageBWait
+    await pageBReady
+    await expect(pageB.locator('#bldr-root')).toBeVisible()
 
-    // Page B is blocked - verify no plugin started.
-    const pluginStartB: string[] = []
-    pageB.on('console', (msg) => {
-      if (msg.text().includes('starting native plugin'))
-        pluginStartB.push(msg.text())
-    })
     expect(pluginStartB.length).toBe(0)
 
     await context.close()
@@ -213,17 +218,31 @@ test.describe('singleton coordinator (no SharedWorker)', () => {
     ])
 
     const pageAStart = waitForConsole(pageA, 'starting native plugin')
-    const pageBWait = waitForConsole(pageB, 'waiting for plugin singleton lock')
-    const pageBLock = waitForConsole(pageB, 'acquired plugin singleton lock')
-    const pageBStart = waitForConsole(pageB, 'starting native plugin')
+    const pageBReady = waitForConsole(
+      pageB,
+      'worker-comms: detected config',
+    )
+    const pluginStartB: string[] = []
+    pageB.on('console', (msg) => {
+      if (msg.text().includes('starting native plugin'))
+        pluginStartB.push(msg.text())
+    })
 
     // Page A acquires the singleton.
     await pageA.goto('/#/')
     await pageAStart
 
-    // Page B is blocked on the lock.
+    // Page B attaches to the existing runtime without starting plugins.
     await pageB.goto('/#/')
-    await pageBWait
+    await pageBReady
+    await expect(pageB.locator('#bldr-root')).toBeVisible()
+    expect(pluginStartB.length).toBe(0)
+
+    const pageBLock = waitForConsole(
+      pageB,
+      'acquired plugin singleton lock',
+    )
+    const pageBStart = waitForConsole(pageB, 'starting native plugin')
 
     // Close page A, releasing the singleton lock.
     await pageA.close()

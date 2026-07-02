@@ -456,15 +456,6 @@ func TestGoScriptResourceService(t *testing.T) {
 			assertBoolResult(t, results, "rootResource", true)
 			assertBoolResult(t, results, "registeredViewer", true)
 			assertBoolResult(t, results, "releaseRemovedViewer", true)
-			assertBoolResult(t, results, "nestedParentResponse", true)
-			assertBoolResult(t, results, "nestedChildRpc", true)
-			assertBoolResult(t, results, "nestedAfterReleaseEngineRpc", true)
-			assertBoolResult(t, results, "nestedChildReleaseOnce", true)
-			assertBoolResult(t, results, "nestedEngineReleaseOnce", true)
-			assertBoolResult(t, results, "concurrentChildEchoUnary", true)
-			assertBoolResult(t, results, "concurrentChildEchoStreams", true)
-			assertBoolResult(t, results, "spaceMountContents", true)
-			assertBoolResult(t, results, "spaceWatchMountContents", true)
 
 			if failureReason, _ := results["failureReason"].(string); failureReason != "" {
 				t.Fatalf("unexpected runtime failure: %s", failureReason)

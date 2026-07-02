@@ -95,6 +95,7 @@ function connectWorkerRuntime(documentPort: MessagePort): {
         documentPort.postMessage(
           {
             from: documentId,
+            requestId: data.connectWebRtcBridge.requestId,
             bridgePort: clientPort,
           },
           [clientPort],
