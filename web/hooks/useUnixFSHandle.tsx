@@ -204,6 +204,7 @@ const MIME_TYPES: Record<string, string> = {
   txt: 'text/plain',
   md: 'text/markdown',
   markdown: 'text/markdown',
+  org: 'text/org',
   html: 'text/html',
   htm: 'text/html',
   css: 'text/css',

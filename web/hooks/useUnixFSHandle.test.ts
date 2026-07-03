@@ -34,6 +34,10 @@ describe('UnixFS MIME helpers', () => {
     expect(mimeType).toBe('video/webm')
     expect(isVideoMimeType(mimeType)).toBe(true)
   })
+
+  it('classifies Org files as text/org', () => {
+    expect(getMimeType('notes/today.org')).toBe('text/org')
+  })
 })
 
 describe('resolveUnixFSHandle', () => {
