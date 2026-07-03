@@ -11,6 +11,7 @@ import (
 	"github.com/s4wave/spacewave/core/provider"
 	core_session "github.com/s4wave/spacewave/core/session"
 	session_lock "github.com/s4wave/spacewave/core/session/lock"
+	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/net/keypem"
 	"github.com/s4wave/spacewave/testbed"
@@ -97,6 +98,63 @@ func TestEnsureSessionTransportReleasesAccountLockWhileWaitingReady(t *testing.T
 
 	cancel()
 	<-done
+}
+
+func TestEnsureSessionTransportRetriesWhenExistingTransportClearsBeforeReady(t *testing.T) {
+	ctx := t.Context()
+	_, _, acc, sess, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+	acc.StopSessionTransport()
+
+	fakeTransport, err := transport.NewSessionTransport(acc.le, acc.t.p.b, sess.GetPrivKey(), "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fakeState := &sessionTransportState{transport: fakeTransport}
+	acc.transportBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		acc.sessionTransport = fakeState
+		bcast()
+	})
+	clearFakeState := func() {
+		acc.transportBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+			if acc.sessionTransport == fakeState {
+				acc.sessionTransport = nil
+				bcast()
+			}
+		})
+	}
+	defer clearFakeState()
+
+	waitCtx, cancel := context.WithCancel(ctx)
+	done := make(chan error, 1)
+	go func() {
+		_, _, err := acc.ensureSessionTransport(waitCtx, sess.GetPrivKey(), "")
+		done <- err
+	}()
+
+	lockCtx, lockCancel := context.WithTimeout(ctx, time.Second)
+	rel, err := acc.mtx.Lock(lockCtx)
+	lockCancel()
+	if err != nil {
+		cancel()
+		t.Fatalf("account mutex stayed locked while waiting on existing transport: %v", err)
+	}
+	rel()
+
+	clearFakeState()
+
+	completeCtx, completeCancel := context.WithTimeout(ctx, time.Second)
+	defer completeCancel()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("ensure session transport after cleared state: %v", err)
+		}
+	case <-completeCtx.Done():
+		cancel()
+		err := <-done
+		t.Fatalf("ensure session transport remained blocked after cleared state: %v", err)
+	}
 }
 
 func configureLowCostPINLock(ctx context.Context, t *testing.T, sess *Session, pin []byte) {

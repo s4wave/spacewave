@@ -18,6 +18,8 @@ type sessionTransportState struct {
 	rc        *routine.RoutineContainer
 }
 
+var errSessionTransportReplaced = errors.New("session transport replaced before ready")
+
 // CreateSessionTransport creates and starts a session transport using the
 // given session private key and signaling URL. If a transport is already
 // running, it is stopped first.
@@ -102,6 +104,27 @@ func (a *ProviderAccount) waitSessionTransportReady(ctx context.Context, sts *se
 		return errors.Wrap(err, "session transport failed to start")
 	case <-sts.transport.Ready():
 		return nil
+	}
+}
+
+func (a *ProviderAccount) waitExistingSessionTransportReady(ctx context.Context, sts *sessionTransportState) error {
+	for {
+		var waitCh <-chan struct{}
+		var current bool
+		a.transportBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			waitCh = getWaitCh()
+			current = a.sessionTransport == sts
+		})
+		if !current {
+			return errSessionTransportReplaced
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-sts.transport.Ready():
+			return nil
+		case <-waitCh:
+		}
 	}
 }
 
@@ -218,26 +241,32 @@ func (a *ProviderAccount) ensureSessionTransport(
 	sessionPriv crypto.PrivKey,
 	relayURL string,
 ) (*sessionTransportState, bool, error) {
-	rel, err := a.mtx.Lock(ctx)
-	if err != nil {
-		return nil, false, err
-	}
+	for {
+		rel, err := a.mtx.Lock(ctx)
+		if err != nil {
+			return nil, false, err
+		}
 
-	var sts *sessionTransportState
-	a.transportBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		sts = a.sessionTransport
-	})
-	if sts != nil {
+		var sts *sessionTransportState
+		a.transportBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			sts = a.sessionTransport
+		})
+		if sts != nil {
+			rel()
+			a.le.Debug("session transport already exists, skipping creation")
+			err := a.waitExistingSessionTransportReady(ctx, sts)
+			if errors.Is(err, errSessionTransportReplaced) {
+				continue
+			}
+			return sts, false, err
+		}
+		sts, exitedCh, err := a.startSessionTransportLocked(ctx, sessionPriv, relayURL)
 		rel()
-		a.le.Debug("session transport already exists, skipping creation")
-		return sts, false, sts.transport.AwaitReady(ctx)
+		if err != nil {
+			return nil, false, err
+		}
+		return sts, true, a.waitSessionTransportReady(ctx, sts, exitedCh)
 	}
-	sts, exitedCh, err := a.startSessionTransportLocked(ctx, sessionPriv, relayURL)
-	rel()
-	if err != nil {
-		return nil, false, err
-	}
-	return sts, true, a.waitSessionTransportReady(ctx, sts, exitedCh)
 }
 
 // GetOnlinePeerIDsWithWait returns the base58 peer IDs of paired devices that
