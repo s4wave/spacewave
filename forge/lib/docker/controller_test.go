@@ -161,7 +161,7 @@ func TestDockerIntegrationSkippedWithoutDaemon(t *testing.T) {
 	if os.Getenv("FORGE_DOCKER_INTEGRATION") == "" {
 		t.Skip("set FORGE_DOCKER_INTEGRATION=1 to run docker daemon integration")
 	}
-	if _, err := (execDockerRunner{}).Run(context.Background(), "docker", []string{"info"}, nil); err != nil {
+	if _, err := NewExecDockerRunner().Run(context.Background(), "docker", []string{"info"}, nil); err != nil {
 		t.Skip(err.Error())
 	}
 }

@@ -1,9 +1,7 @@
 package forge_lib_docker
 
 import (
-	"bytes"
 	"context"
-	"os/exec"
 	"strconv"
 	"strings"
 
@@ -30,7 +28,7 @@ type Controller struct {
 	// conf is the configuration
 	conf *Config
 	// runner executes docker CLI commands
-	runner dockerRunner
+	runner DockerRunner
 	// inputVals is the input values map
 	inputVals forge_target.InputMap
 	// handle contains the controller handle
@@ -47,7 +45,7 @@ func NewController(
 		le:     le,
 		bus:    bus,
 		conf:   conf,
-		runner: execDockerRunner{},
+		runner: NewExecDockerRunner(),
 	}
 }
 
@@ -147,29 +145,6 @@ func (c *Controller) HandleDirective(ctx context.Context, inst directive.Instanc
 // Close releases any resources used by the controller.
 func (c *Controller) Close() error {
 	return nil
-}
-
-type dockerRunner interface {
-	Run(ctx context.Context, name string, args []string, env []string) ([]byte, error)
-}
-
-type execDockerRunner struct{}
-
-func (execDockerRunner) Run(ctx context.Context, name string, args []string, env []string) ([]byte, error) {
-	cmd := exec.CommandContext(ctx, name, args...)
-	cmd.Env = env
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if err != nil {
-		if ctx.Err() != nil {
-			return stdout.Bytes(), context.Canceled
-		}
-		return stdout.Bytes(), errors.Errorf("%s %s failed: %s: %s", name, strings.Join(args, " "), err, strings.TrimSpace(stderr.String()))
-	}
-	return stdout.Bytes(), nil
 }
 
 // _ is a type assertion
