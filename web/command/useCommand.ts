@@ -2,6 +2,7 @@ import { useEffect, useEffectEvent, useState } from 'react'
 import { createHandler } from 'starpc'
 import { newResourceMux } from '@aptre/bldr-sdk/resource/server/index.js'
 import { ResourceClientError } from '@aptre/bldr-sdk/resource/client.js'
+import type { CommandBinding } from '@s4wave/sdk/command/command.pb.js'
 
 import {
   useCommandContext,
@@ -21,8 +22,10 @@ interface UseCommandOpts {
   label: string
   // menuPath is the menu placement path (e.g. "File/Save").
   menuPath?: string
-  // keybinding is the default key combination (e.g. "CmdOrCtrl+S").
+  // keybinding is the legacy default key combination (e.g. "CmdOrCtrl+S").
   keybinding?: string
+  // defaultBindings are the typed default input bindings.
+  defaultBindings?: CommandBinding[]
   // menuGroup controls separator placement within a menu level.
   menuGroup?: number
   // menuOrder controls ordering within a group.
@@ -99,6 +102,7 @@ export function useCommand(opts: UseCommandOpts): void {
               commandId: opts.commandId,
               label: opts.label,
               keybinding: opts.keybinding,
+              defaultBindings: opts.defaultBindings,
               menuPath: opts.menuPath,
               menuGroup: opts.menuGroup,
               menuOrder: opts.menuOrder,
@@ -139,6 +143,7 @@ export function useCommand(opts: UseCommandOpts): void {
     opts.commandId,
     opts.label,
     opts.keybinding,
+    opts.defaultBindings,
     opts.menuPath,
     opts.menuGroup,
     opts.menuOrder,

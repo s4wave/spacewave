@@ -1,8 +1,39 @@
+import { Window } from 'happy-dom'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, waitFor } from '@testing-library/react'
+import { CommandBindingKind } from '@s4wave/sdk/command/command.pb.js'
+import type { CommandBinding } from '@s4wave/sdk/command/command.pb.js'
 
 import { useCommand } from './useCommand.js'
+
+if (typeof document === 'undefined') {
+  const happyDomWindow = new Window({ url: 'http://localhost/' })
+
+  Object.defineProperties(globalThis, {
+    window: { value: happyDomWindow, configurable: true },
+    document: { value: happyDomWindow.document, configurable: true },
+    HTMLElement: { value: happyDomWindow.HTMLElement, configurable: true },
+    Element: { value: happyDomWindow.Element, configurable: true },
+    Node: { value: happyDomWindow.Node, configurable: true },
+    Text: { value: happyDomWindow.Text, configurable: true },
+    DocumentFragment: {
+      value: happyDomWindow.DocumentFragment,
+      configurable: true,
+    },
+    SVGElement: { value: happyDomWindow.SVGElement, configurable: true },
+    Event: { value: happyDomWindow.Event, configurable: true },
+    CustomEvent: { value: happyDomWindow.CustomEvent, configurable: true },
+    KeyboardEvent: { value: happyDomWindow.KeyboardEvent, configurable: true },
+    MouseEvent: { value: happyDomWindow.MouseEvent, configurable: true },
+    FocusEvent: { value: happyDomWindow.FocusEvent, configurable: true },
+    InputEvent: { value: happyDomWindow.InputEvent, configurable: true },
+    MutationObserver: {
+      value: happyDomWindow.MutationObserver,
+      configurable: true,
+    },
+  })
+}
 
 const mockRegisterCommand = vi.fn()
 const mockSetActive = vi.fn()
@@ -54,11 +85,15 @@ function TestCommand({
   active = true,
   enabled = true,
   handler = vi.fn(),
+  keybinding,
+  defaultBindings,
   subItems,
 }: {
   active?: boolean
   enabled?: boolean
   handler?: (args: Record<string, string>) => void
+  keybinding?: string
+  defaultBindings?: CommandBinding[]
   subItems?: (
     query: string,
     signal: AbortSignal,
@@ -70,6 +105,8 @@ function TestCommand({
     active,
     enabled,
     handler,
+    keybinding,
+    defaultBindings,
     subItems,
     hasSubItems: !!subItems,
   })
@@ -120,6 +157,7 @@ describe('useCommand', () => {
           commandId: 'spacewave.session.settings',
           label: 'Session Settings',
           keybinding: undefined,
+          defaultBindings: undefined,
           menuPath: undefined,
           menuGroup: undefined,
           menuOrder: undefined,
@@ -136,6 +174,115 @@ describe('useCommand', () => {
 
     expect(mockCleanup).toHaveBeenCalled()
     expect(mockReleaseResource).toHaveBeenCalledWith(41)
+  })
+
+  it('registers legacy keybinding without typed default bindings', async () => {
+    render(<TestCommand keybinding="CmdOrCtrl+," />)
+
+    await waitFor(() => {
+      expect(mockRegisterCommand).toHaveBeenCalled()
+    })
+
+    expect(mockRegisterCommand.mock.lastCall).toEqual([
+      {
+        command: {
+          commandId: 'spacewave.session.settings',
+          label: 'Session Settings',
+          keybinding: 'CmdOrCtrl+,',
+          defaultBindings: undefined,
+          menuPath: undefined,
+          menuGroup: undefined,
+          menuOrder: undefined,
+          icon: undefined,
+          description: undefined,
+          hasSubItems: false,
+        },
+        handlerResourceId: 11,
+      },
+      expect.any(AbortSignal),
+    ])
+  })
+
+  it('registers plural typed default bindings', async () => {
+    const defaultBindings: CommandBinding[] = [
+      {
+        id: 'settings.combo',
+        kind: CommandBindingKind.COMBO,
+        combo: { combo: 'CmdOrCtrl+Shift+,' },
+        sourceLabel: 'Spacewave',
+      },
+      {
+        id: 'settings.sequence',
+        kind: CommandBindingKind.SEQUENCE,
+        sequence: { steps: ['Leader', ','] },
+        sourceLabel: 'Spacewave',
+      },
+    ]
+
+    render(<TestCommand defaultBindings={defaultBindings} />)
+
+    await waitFor(() => {
+      expect(mockRegisterCommand).toHaveBeenCalled()
+    })
+
+    expect(mockRegisterCommand.mock.lastCall).toEqual([
+      {
+        command: {
+          commandId: 'spacewave.session.settings',
+          label: 'Session Settings',
+          keybinding: undefined,
+          defaultBindings,
+          menuPath: undefined,
+          menuGroup: undefined,
+          menuOrder: undefined,
+          icon: undefined,
+          description: undefined,
+          hasSubItems: false,
+        },
+        handlerResourceId: 11,
+      },
+      expect.any(AbortSignal),
+    ])
+  })
+
+  it('preserves legacy keybinding and typed default bindings together', async () => {
+    const defaultBindings: CommandBinding[] = [
+      {
+        id: 'settings.combo',
+        kind: CommandBindingKind.COMBO,
+        combo: { combo: 'CmdOrCtrl+Alt+,' },
+      },
+    ]
+
+    render(
+      <TestCommand
+        keybinding="CmdOrCtrl+,"
+        defaultBindings={defaultBindings}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(mockRegisterCommand).toHaveBeenCalled()
+    })
+
+    expect(mockRegisterCommand.mock.lastCall).toEqual([
+      {
+        command: {
+          commandId: 'spacewave.session.settings',
+          label: 'Session Settings',
+          keybinding: 'CmdOrCtrl+,',
+          defaultBindings,
+          menuPath: undefined,
+          menuGroup: undefined,
+          menuOrder: undefined,
+          icon: undefined,
+          description: undefined,
+          hasSubItems: false,
+        },
+        handlerResourceId: 11,
+      },
+      expect.any(AbortSignal),
+    ])
   })
 
   it('uses the latest handler and sub-items callbacks without re-registering', async () => {
