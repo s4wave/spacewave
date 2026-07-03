@@ -483,10 +483,13 @@ build("release-web",
     manifests=BROWSER_RELEASE_MANIFESTS,
     targets=["browser"],
     manifestOverrides={
+        "spacewave-launcher": spacewave_launcher_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
+        "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
         "spacewave-browser": dist_release_config(
             BROWSER_RELEASE_EMBED_MANIFESTS,
             BROWSER_RELEASE_LOAD_PLUGINS,
             entrypoint_role="browser",
+            go_compiler="GO_COMPILER_GOSCRIPT",
         ),
     },
 )

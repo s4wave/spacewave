@@ -451,12 +451,26 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 			t.Fatalf("browser release manifests missing %s: %v", want, browserRelease.GetManifests())
 		}
 	}
+	browserLauncherOverride := browserRelease.GetManifestOverrides()["spacewave-launcher"]
+	if browserLauncherOverride == nil {
+		t.Fatal("production browser release should override spacewave-launcher compiler")
+	}
+	browserCoreOverride := browserRelease.GetManifestOverrides()["spacewave-core"]
+	if browserCoreOverride == nil {
+		t.Fatal("production browser release should override spacewave-core compiler")
+	}
 	browserOverride := browserRelease.GetManifestOverrides()["spacewave-browser"]
 	if browserOverride == nil {
 		t.Fatal("override for browser 'spacewave-browser' not found")
 	}
-	if browserRelease.GetManifestOverrides()["spacewave-launcher"] != nil {
-		t.Fatal("production browser release should not override spacewave-launcher")
+	for name, override := range map[string]string{
+		"spacewave-launcher": string(browserLauncherOverride.GetConfig()),
+		"spacewave-core":     string(browserCoreOverride.GetConfig()),
+		"spacewave-browser":  string(browserOverride.GetConfig()),
+	} {
+		if !strings.Contains(override, `"goCompiler":"GO_COMPILER_GOSCRIPT"`) {
+			t.Fatalf("production browser release %s override should use GoScript: %s", name, override)
+		}
 	}
 	browserCfg := string(browserOverride.GetConfig())
 	if strings.Contains(browserCfg, `"spacewave-loader"`) {
