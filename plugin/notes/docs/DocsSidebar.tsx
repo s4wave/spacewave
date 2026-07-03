@@ -21,6 +21,7 @@ import {
 } from 'react-icons/lu'
 
 import type { NotebookSource } from '../proto/notebook.pb.js'
+import { isNoteFileName, stripNoteFileExtension } from '../note-files.js'
 
 interface DocsSidebarProps {
   source: NotebookSource | undefined
@@ -84,7 +85,7 @@ function DocsSidebar({
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      <div className="text-foreground-alt border-b border-border px-3 py-2 text-xs font-medium uppercase tracking-wide">
+      <div className="text-foreground-alt border-border border-b px-3 py-2 text-xs font-medium tracking-wide uppercase">
         Pages
       </div>
       <div className="flex-1 overflow-y-auto py-1">
@@ -131,9 +132,7 @@ function TreeEntries({
   // Sort: directories first, then files, alphabetical within each group.
   const sorted = useMemo(() => {
     const dirs = entries.filter((e) => e.isDir)
-    const files = entries.filter(
-      (e) => !e.isDir && e.name.endsWith('.md'),
-    )
+    const files = entries.filter((e) => !e.isDir && isNoteFileName(e.name))
     dirs.sort((a, b) => a.name.localeCompare(b.name))
     files.sort((a, b) => a.name.localeCompare(b.name))
     return [...dirs, ...files]
@@ -231,12 +230,16 @@ function FolderNode({
         style={{ paddingLeft }}
         onClick={handleToggle}
       >
-        {expanded ?
+        {expanded ? (
           <LuChevronDown className="size-3 shrink-0" />
-        : <LuChevronRight className="size-3 shrink-0" />}
-        {expanded ?
+        ) : (
+          <LuChevronRight className="size-3 shrink-0" />
+        )}
+        {expanded ? (
           <LuFolderOpen className="size-3 shrink-0" />
-        : <LuFolder className="size-3 shrink-0" />}
+        ) : (
+          <LuFolder className="size-3 shrink-0" />
+        )}
         <span className="truncate">{name}</span>
       </button>
       {expanded && childEntries.value && (
@@ -264,9 +267,9 @@ interface FileNodeProps {
   depth: number
 }
 
-// FileNode renders a clickable .md file leaf in the tree.
+// FileNode renders a clickable note file leaf in the tree.
 function FileNode({ name, path, selected, onSelect, depth }: FileNodeProps) {
-  const title = name.replace(/\.md$/, '')
+  const title = stripNoteFileExtension(name)
   const paddingLeft = 8 + depth * 16
 
   const handleDocSelect = useCallback(() => {

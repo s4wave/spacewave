@@ -37,6 +37,7 @@ import CodeHighlightPlugin from './editor/CodeHighlightPlugin.js'
 import SavePlugin from './editor/SavePlugin.js'
 import EditorCommandsPlugin from './editor/EditorCommandsPlugin.js'
 import { $convertFromOrgString, $convertToOrgString } from './org/lexical.js'
+import type { NoteFileFormat } from './note-files.js'
 
 // validateLinkUrl rejects dangerous URL schemes (javascript:, data:, vbscript:).
 function validateLinkUrl(url: string): boolean {
@@ -75,11 +76,9 @@ const EDITOR_NODES = [
   TableRowNode,
 ]
 
-export type NoteEditorFormat = 'markdown' | 'org'
-
 interface LexicalEditorProps {
   content: string
-  format: NoteEditorFormat
+  format: NoteFileFormat
   onSave: (content: string) => void
   composerKey?: string
 }

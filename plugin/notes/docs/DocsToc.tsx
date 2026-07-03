@@ -3,6 +3,8 @@ import { useCallback, useMemo, useRef } from 'react'
 import { cn } from '@s4wave/web/style/utils.js'
 import { LuList } from 'react-icons/lu'
 
+import type { NoteFileFormat } from '../note-files.js'
+
 interface TocHeading {
   level: number
   text: string
@@ -10,17 +12,19 @@ interface TocHeading {
 }
 
 interface DocsTocProps {
-  markdown: string
+  content: string
+  format: NoteFileFormat
 }
 
-// parseHeadings extracts h1-h4 headings from markdown content.
-function parseHeadings(markdown: string): TocHeading[] {
+// parseHeadings extracts h1-h4 headings from Markdown or Org content.
+function parseHeadings(content: string, format: NoteFileFormat): TocHeading[] {
   const headings: TocHeading[] = []
-  const regex = /^(#{1,4})\s+(.+)$/gm
+  const regex =
+    format === 'org' ? /^(\*{1,4})\s+(.+)$/gm : /^(#{1,4})\s+(.+)$/gm
   let match: RegExpExecArray | null
-  while ((match = regex.exec(markdown)) !== null) {
+  while ((match = regex.exec(content)) !== null) {
     const level = match[1].length
-    const text = match[2].trim()
+    const text = cleanHeadingText(match[2], format)
     const id = text
       .toLowerCase()
       .replace(/[^\w\s-]/g, '')
@@ -30,18 +34,28 @@ function parseHeadings(markdown: string): TocHeading[] {
   return headings
 }
 
-// DocsToc renders a table of contents extracted from markdown headings.
+function cleanHeadingText(text: string, format: NoteFileFormat): string {
+  const trimmed = text.trim()
+  if (format === 'markdown') return trimmed
+  return trimmed
+    .replace(/^(TODO|DONE)\s+/, '')
+    .replace(/\s+:[\w@#%:]+:\s*$/, '')
+    .trim()
+}
+
+// DocsToc renders a table of contents extracted from note headings.
 // Clicking a heading scrolls the Lexical editor to the corresponding element.
-function DocsToc({ markdown }: DocsTocProps) {
-  const headings = useMemo(() => parseHeadings(markdown), [markdown])
+function DocsToc({ content, format }: DocsTocProps) {
+  const headings = useMemo(
+    () => parseHeadings(content, format),
+    [content, format],
+  )
   const containerRef = useRef<HTMLDivElement>(null)
 
   const handleClick = useCallback((heading: TocHeading) => {
     // Lexical renders headings as <h1>-<h4> elements. Find the matching
     // heading in the editor content area by walking the DOM.
-    const container = containerRef.current?.closest(
-      '.bg-background-primary',
-    )
+    const container = containerRef.current?.closest('.bg-background-primary')
     if (!container) return
 
     const editorArea = container.querySelector('[contenteditable]')
@@ -66,7 +80,7 @@ function DocsToc({ markdown }: DocsTocProps) {
 
   return (
     <div ref={containerRef} className="flex h-full flex-col overflow-y-auto">
-      <div className="text-foreground-alt flex items-center gap-1.5 border-b border-border px-3 py-2 text-xs font-medium uppercase tracking-wide">
+      <div className="text-foreground-alt border-border flex items-center gap-1.5 border-b px-3 py-2 text-xs font-medium tracking-wide uppercase">
         <LuList className="size-3" />
         On this page
       </div>

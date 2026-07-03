@@ -127,6 +127,7 @@ function renderList(
       onFilterTagChange={props.onFilterTagChange}
       onFilterStatusChange={props.onFilterStatusChange}
       onCreateNote={props.onCreateNote}
+      allowedFormats={props.allowedFormats}
       renderEntryExtra={props.renderEntryExtra}
     />,
   )
@@ -181,23 +182,23 @@ describe('NoteList', () => {
     expect(screen.getByText('Create your first note')).toBeDefined()
   })
 
-  it('renders markdown file entries and ignores non-markdown files', async () => {
+  it('renders Markdown and Org file entries while ignoring other files', async () => {
     mockDirectory(
       [
         { name: 'hello.md', isDir: false },
-        { name: 'world.md', isDir: false },
+        { name: 'world.org', isDir: false },
         { name: 'image.png', isDir: false },
       ],
       {
         'hello.md': '# Hello',
-        'world.md': '# World',
+        'world.org': '#+TITLE: World\n\n* World',
       },
     )
 
     renderList()
     await waitFor(() => {
       expect(screen.getByText('hello')).toBeDefined()
-      expect(screen.getByText('world')).toBeDefined()
+      expect(screen.getByText('World')).toBeDefined()
       expect(screen.queryByText('image')).toBeNull()
     })
   })
@@ -382,6 +383,32 @@ describe('NoteList', () => {
     expect(text).toContain('# untitled')
   })
 
+  it('creates an Org note with template content atomically', async () => {
+    const handle = mockDirectory([])
+    const onSelectNote = vi.fn()
+
+    renderList({ currentPath: 'projects', onSelectNote })
+
+    fireEvent.click(screen.getByTitle('New Org note'))
+
+    await waitFor(() => {
+      expect(handle.uploadFile).toHaveBeenCalledWith(
+        'untitled.org',
+        expect.anything(),
+        expect.anything(),
+      )
+      expect(onSelectNote).toHaveBeenCalledWith('projects/untitled.org')
+    })
+
+    const uploadCall = handle.uploadFile.mock.calls[0] as unknown as [
+      string,
+      bigint,
+      ReadableStream<Uint8Array>,
+    ]
+    const text = new TextDecoder().decode(await readStreamBytes(uploadCall[2]))
+    expect(text).toBe('#+TITLE: untitled\n\n* untitled\n\n')
+  })
+
   it('renames a note and reports the path change', async () => {
     const handle = mockDirectory([{ name: 'draft.md', isDir: false }], {
       'draft.md': '# Draft',
@@ -403,6 +430,31 @@ describe('NoteList', () => {
       expect(onNoteRenamed).toHaveBeenCalledWith(
         'projects/draft.md',
         'projects/final.md',
+      )
+    })
+  })
+
+  it('renames an Org note without changing its extension', async () => {
+    const handle = mockDirectory([{ name: 'draft.org', isDir: false }], {
+      'draft.org': '#+TITLE: Draft\n\n* Draft',
+    })
+    const onNoteRenamed = vi.fn()
+
+    renderList({ currentPath: 'projects', onNoteRenamed })
+
+    await waitFor(() => {
+      fireEvent.click(screen.getByTitle('Rename note'))
+    })
+    fireEvent.change(screen.getByLabelText('Note name'), {
+      target: { value: 'final' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Rename' }))
+
+    await waitFor(() => {
+      expect(handle.rename).toHaveBeenCalledWith('draft.org', 'final.org')
+      expect(onNoteRenamed).toHaveBeenCalledWith(
+        'projects/draft.org',
+        'projects/final.org',
       )
     })
   })

@@ -154,8 +154,9 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
     if (!handle) return
 
     const existing = new Set(
-      (entriesResource.value ?? [])
-        .flatMap((e) => (!e.isDir && e.name.endsWith('.md') ? [e.name] : [])),
+      (entriesResource.value ?? []).flatMap((e) =>
+        !e.isDir && e.name.endsWith('.md') ? [e.name] : [],
+      ),
     )
     let name = 'new-post.md'
     let counter = 1
@@ -238,14 +239,15 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
 
         {/* Content area */}
         <div className="min-h-0 flex-1">
-          {mode === 'reading' ?
+          {mode === 'reading' ? (
             <BlogReadingView
               posts={blogPosts}
               selectedPost={selectedPost}
               onSelectPost={handleSelectPostReading}
               authorRegistry={authorRegistry}
             />
-          : <div className="flex h-full overflow-hidden">
+          ) : (
+            <div className="flex h-full overflow-hidden">
               {/* Post list sidebar */}
               <div
                 className="border-border border-r"
@@ -257,13 +259,14 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
                   selectedNote={selectedPostName}
                   onSelectNote={handleSelectPostEditing}
                   onCreateNote={handleCreateBlogPostClick}
+                  allowedFormats={['markdown']}
                   renderEntryExtra={renderDraftBadge}
                 />
               </div>
 
               {/* Editor area */}
               <div className="min-w-0 flex-1">
-                {firstSource?.ref && selectedPostName ?
+                {firstSource?.ref && selectedPostName ? (
                   <NoteContentView
                     worldState={worldState}
                     sourceRef={firstSource.ref}
@@ -272,13 +275,14 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
                     onToggleEdit={handleToggleEdit}
                     onContentSaved={handleContentSaved}
                   />
-                : <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
+                ) : (
+                  <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
                     Select a post to edit
                   </div>
-                }
+                )}
               </div>
             </div>
-          }
+          )}
         </div>
       </div>
     </ViewerStatusShell>

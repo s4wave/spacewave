@@ -13,7 +13,8 @@ import { LuCode, LuPenLine } from 'react-icons/lu'
 
 import { parseNote, reassembleNote } from './frontmatter.js'
 import FrontmatterDisplay from './FrontmatterDisplay.js'
-import LexicalEditor, { type NoteEditorFormat } from './LexicalEditor.js'
+import LexicalEditor from './LexicalEditor.js'
+import { getNoteFileFormat, stripNoteFileExtension } from './note-files.js'
 import { reassembleOrgMetadata, splitOrgMetadata } from './org/org.js'
 
 interface NoteContentViewProps {
@@ -43,9 +44,7 @@ function NoteContentView({
     const base = parsed.path
     return base ? `${base}/${noteName}` : noteName
   }, [parsed.path, noteName])
-  const noteFormat: NoteEditorFormat = noteName.toLowerCase().endsWith('.org')
-    ? 'org'
-    : 'markdown'
+  const noteFormat = getNoteFileFormat(noteName) ?? 'markdown'
 
   const rootHandle = useUnixFSRootHandle(worldState, parsed.objectKey)
   const fileHandle = useUnixFSHandle(rootHandle, filePath)
@@ -195,10 +194,7 @@ function NoteContentView({
     <div className="flex h-full flex-col" data-testid="notes-content-view">
       <div className="border-border flex items-center justify-between border-b px-3 py-1.5">
         <span className="text-xs font-medium">
-          {noteName
-            .split('/')
-            .pop()
-            ?.replace(/\.(md|org)$/i, '') ?? noteName}
+          {stripNoteFileExtension(noteName.split('/').pop() ?? noteName)}
         </span>
         <button
           type="button"

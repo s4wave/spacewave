@@ -53,6 +53,9 @@ vi.mock('./LexicalEditor.js', () => ({
       <button type="button" onClick={() => onSave('saved-content')}>
         mock-save
       </button>
+      <button type="button" onClick={() => onSave(content)}>
+        mock-save-current
+      </button>
     </div>
   ),
 }))
@@ -245,6 +248,42 @@ describe('NoteContentView', () => {
 
     fireEvent.click(screen.getByText('mock-save'))
 
+    await waitFor(() => expect(writeAt).toHaveBeenCalledOnce())
+    expect(writeAt).toHaveBeenCalledWith(0n, expectedEncoded)
+    expect(truncate).toHaveBeenCalledWith(BigInt(expectedEncoded.byteLength))
+  })
+
+  it('saves untouched Org content byte-stable through the WYSIWYG path', async () => {
+    const orgContent =
+      '#+TITLE: Org Note\n#+SETUPFILE: ../../setup.org\n\n* TODO Heading\n:PROPERTIES:\n:CUSTOM_ID: h\n:END:\n'
+    const writeAt = vi.fn(() => Promise.resolve(0n))
+    const truncate = vi.fn(() => Promise.resolve())
+    vi.mocked(useUnixFSHandle).mockReturnValue({
+      value: { writeAt, truncate } as never,
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    })
+    vi.mocked(useUnixFSHandleTextContent).mockReturnValue({
+      value: orgContent,
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    })
+
+    render(
+      <NoteContentView
+        worldState={mockWorldState as never}
+        sourceRef="obj-key/-/docs"
+        noteName="note.org"
+        editing={false}
+        onToggleEdit={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByText('mock-save-current'))
+
+    const expectedEncoded = new TextEncoder().encode(orgContent)
     await waitFor(() => expect(writeAt).toHaveBeenCalledOnce())
     expect(writeAt).toHaveBeenCalledWith(0n, expectedEncoded)
     expect(truncate).toHaveBeenCalledWith(BigInt(expectedEncoded.byteLength))

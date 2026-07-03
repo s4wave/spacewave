@@ -32,13 +32,24 @@ import {
 import { ConfirmActionDialog, TextInputDialog } from './NoteDialogs.js'
 import { readFileText } from './read-file.js'
 import { createTextFile } from './write-file.js'
+import {
+  createNoteTemplate,
+  getNoteFileFormat,
+  nextUntitledNoteName,
+  normalizeNoteRename,
+  noteTitleFromContent,
+  stripNoteFileExtension,
+  type NoteFileFormat,
+} from './note-files.js'
+
+const defaultNoteFormats: NoteFileFormat[] = ['markdown', 'org']
 
 interface NoteListEntry {
   name: string
   title: string
   frontmatter: Frontmatter
   tags: string[]
-  status: string | undefined
+  format: NoteFileFormat
 }
 
 interface NoteListProps {
@@ -55,10 +66,11 @@ interface NoteListProps {
   onFilterTagChange?: (tag: string | undefined) => void
   onFilterStatusChange?: (status: string | undefined) => void
   onCreateNote?: () => void
+  allowedFormats?: NoteFileFormat[]
   renderEntryExtra?: (name: string) => React.ReactNode
 }
 
-// NoteList lists notebook directories and markdown files for the selected source.
+// NoteList lists notebook directories and note files for the selected source.
 function NoteList({
   source,
   worldState,
@@ -73,6 +85,7 @@ function NoteList({
   onFilterTagChange,
   onFilterStatusChange,
   onCreateNote,
+  allowedFormats,
   renderEntryExtra,
 }: NoteListProps) {
   const [searchQuery, setSearchQuery] = useState('')
@@ -102,43 +115,55 @@ function NoteList({
     return entriesResource.value.filter((entry) => entry.isDir)
   }, [entriesResource.value])
 
-  const mdEntries = useMemo(() => {
+  const fileEntries = useMemo(() => {
     if (!entriesResource.value) return []
-    return entriesResource.value.filter(
-      (entry) => !entry.isDir && entry.name.endsWith('.md'),
-    )
-  }, [entriesResource.value])
+    return entriesResource.value.filter((entry) => {
+      const format = getNoteFileFormat(entry.name)
+      return (
+        !entry.isDir &&
+        format !== null &&
+        (allowedFormats ?? defaultNoteFormats).includes(format)
+      )
+    })
+  }, [entriesResource.value, allowedFormats])
 
   const noteEntries = useResource(
     pathHandle,
     async (handle, signal) => {
-      if (!handle || mdEntries.length === 0) return []
+      if (!handle || fileEntries.length === 0) return []
 
       const entries: NoteListEntry[] = []
-      for (const entry of mdEntries) {
+      for (const entry of fileEntries) {
         if (signal.aborted) return entries
 
         const child = await handle.lookup(entry.name, signal)
         const text = await readFileText(child, signal).finally(() =>
           child.release(),
         )
-        const note = parseNote(text)
+        const format = getNoteFileFormat(entry.name)
+        if (!format) continue
+
+        const note = format === 'markdown' ? parseNote(text) : null
         entries.push({
           name: entry.name,
           title:
-            typeof note.frontmatter.title === 'string' &&
+            format === 'markdown' &&
+            typeof note?.frontmatter.title === 'string' &&
             note.frontmatter.title.trim()
               ? note.frontmatter.title.trim()
-              : entry.name.replace(/\.md$/, ''),
-          frontmatter: note.frontmatter,
-          tags: getFrontmatterTags(note.frontmatter),
-          status: normalizeFrontmatterStatus(note.frontmatter.status),
+              : noteTitleFromContent(entry.name, text),
+          frontmatter: note?.frontmatter ?? {},
+          tags: note ? getFrontmatterTags(note.frontmatter) : [],
+          status: note
+            ? normalizeFrontmatterStatus(note.frontmatter.status)
+            : undefined,
+          format,
         })
       }
 
       return entries
     },
-    [mdEntries],
+    [fileEntries],
   )
 
   const filteredDirEntries = useMemo(() => {
@@ -177,23 +202,19 @@ function NoteList({
     return entries
   }, [noteEntries.value, searchQuery, filterTag, filterStatus])
 
-  const handleCreateNoteDefault = useCallback(async () => {
-    const handle = pathHandle.value
-    if (!handle) return
+  const handleCreateNoteDefault = useCallback(
+    async (format: NoteFileFormat = 'markdown') => {
+      const handle = pathHandle.value
+      if (!handle) return
 
-    const existing = new Set((entriesResource.value ?? []).map((e) => e.name))
-    let name = 'untitled.md'
-    let counter = 1
-    while (existing.has(name)) {
-      name = `untitled-${counter}.md`
-      counter++
-    }
-
-    const title = name.replace(/\.md$/, '')
-    const template = `---\ncreated: ${new Date().toISOString().slice(0, 10)}\ntags: []\n---\n\n# ${title}\n\n`
-    await createTextFile(handle, name, template)
-    onSelectNote(joinNotePath(currentPath, name))
-  }, [pathHandle.value, entriesResource.value, currentPath, onSelectNote])
+      const existing = new Set((entriesResource.value ?? []).map((e) => e.name))
+      const name = nextUntitledNoteName(existing, format)
+      const template = createNoteTemplate(name, format)
+      await createTextFile(handle, name, template)
+      onSelectNote(joinNotePath(currentPath, name))
+    },
+    [pathHandle.value, entriesResource.value, currentPath, onSelectNote],
+  )
 
   const handleCreateFolder = useCallback(() => {
     setFolderDialogOpen(true)
@@ -225,9 +246,8 @@ function NoteList({
       const handle = pathHandle.value
       if (!handle) return
 
-      let nextName = nextTitle.trim()
+      const nextName = normalizeNoteRename(name, nextTitle)
       if (!nextName) return
-      if (!nextName.endsWith('.md')) nextName += '.md'
       if (nextName === name) return
 
       await handle.rename(name, nextName)
@@ -253,7 +273,9 @@ function NoteList({
     setDeleteTarget(null)
   }, [pathHandle.value, currentPath, deleteTarget, onNoteDeleted])
 
-  const renameDefaultValue = renameTarget?.replace(/\.md$/, '') ?? ''
+  const renameDefaultValue = renameTarget
+    ? stripNoteFileExtension(renameTarget)
+    : ''
   const closeRenameDialog = useCallback((open: boolean) => {
     if (!open) setRenameTarget(null)
   }, [])
@@ -261,7 +283,8 @@ function NoteList({
     if (!open) setDeleteTarget(null)
   }, [])
 
-  const handleCreateNote = onCreateNote ?? handleCreateNoteDefault
+  const handleCreateNote = onCreateNote ?? (() => handleCreateNoteDefault())
+  const canCreateOrg = (allowedFormats ?? defaultNoteFormats).includes('org')
   const hasFilter = !!filterTag || !!filterStatus
   const showEmptyState =
     filteredDirEntries.length === 0 && filteredNoteEntries.length === 0
@@ -269,7 +292,7 @@ function NoteList({
     !hasFilter &&
     !searchQuery &&
     dirEntries.length === 0 &&
-    mdEntries.length === 0
+    fileEntries.length === 0
 
   if (!source) {
     return (
@@ -311,7 +334,7 @@ function NoteList({
     )
   }
 
-  if (noteEntries.loading && mdEntries.length > 0) {
+  if (noteEntries.loading && fileEntries.length > 0) {
     return (
       <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
         Loading…
@@ -352,6 +375,16 @@ function NoteList({
           >
             <LuPlus className="size-3.5" />
           </button>
+          {canCreateOrg && (
+            <button
+              type="button"
+              className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex items-center justify-center rounded px-1.5 py-1 text-[10px] font-medium"
+              onClick={() => void handleCreateNoteDefault('org')}
+              title="New Org note"
+            >
+              Org
+            </button>
+          )}
         </div>
         {currentPath && (
           <div className="border-border flex items-center gap-1 border-b px-2 py-1 text-xs">
