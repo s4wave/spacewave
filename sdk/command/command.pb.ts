@@ -2,12 +2,237 @@
 // @generated from file github.com/s4wave/spacewave/sdk/command/command.proto (package s4wave.command, syntax proto3)
 /* eslint-disable */
 
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.command'
+
+/**
+ * CommandBindingKind identifies how a command binding is matched.
+ *
+ * @generated from enum s4wave.command.CommandBindingKind
+ */
+export enum CommandBindingKind {
+  /**
+   * COMMAND_BINDING_KIND_UNSPECIFIED is unset.
+   *
+   * @generated from enum value: COMMAND_BINDING_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * COMMAND_BINDING_KIND_COMBO matches one keydown event.
+   *
+   * @generated from enum value: COMMAND_BINDING_KIND_COMBO = 1;
+   */
+  COMBO = 1,
+
+  /**
+   * COMMAND_BINDING_KIND_SEQUENCE matches ordered key steps.
+   *
+   * @generated from enum value: COMMAND_BINDING_KIND_SEQUENCE = 2;
+   */
+  SEQUENCE = 2,
+}
+
+export const CommandBindingKind_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.command.CommandBindingKind',
+  [
+    [0, 'COMMAND_BINDING_KIND_UNSPECIFIED'],
+    [1, 'COMMAND_BINDING_KIND_COMBO'],
+    [2, 'COMMAND_BINDING_KIND_SEQUENCE'],
+  ],
+)
+
+/**
+ * CommandFocusContext identifies where a command binding applies.
+ *
+ * @generated from enum s4wave.command.CommandFocusContext
+ */
+export enum CommandFocusContext {
+  /**
+   * COMMAND_FOCUS_CONTEXT_UNSPECIFIED matches the global context.
+   *
+   * @generated from enum value: COMMAND_FOCUS_CONTEXT_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * COMMAND_FOCUS_CONTEXT_GLOBAL matches the shell globally.
+   *
+   * @generated from enum value: COMMAND_FOCUS_CONTEXT_GLOBAL = 1;
+   */
+  GLOBAL = 1,
+
+  /**
+   * COMMAND_FOCUS_CONTEXT_SHELL_TAB matches the active shell tab.
+   *
+   * @generated from enum value: COMMAND_FOCUS_CONTEXT_SHELL_TAB = 2;
+   */
+  SHELL_TAB = 2,
+
+  /**
+   * COMMAND_FOCUS_CONTEXT_EDITOR matches an editor surface.
+   *
+   * @generated from enum value: COMMAND_FOCUS_CONTEXT_EDITOR = 3;
+   */
+  EDITOR = 3,
+
+  /**
+   * COMMAND_FOCUS_CONTEXT_LIST matches list and tree surfaces.
+   *
+   * @generated from enum value: COMMAND_FOCUS_CONTEXT_LIST = 4;
+   */
+  LIST = 4,
+
+  /**
+   * COMMAND_FOCUS_CONTEXT_CANVAS matches canvas surfaces.
+   *
+   * @generated from enum value: COMMAND_FOCUS_CONTEXT_CANVAS = 5;
+   */
+  CANVAS = 5,
+
+  /**
+   * COMMAND_FOCUS_CONTEXT_MODAL matches modal dialogs.
+   *
+   * @generated from enum value: COMMAND_FOCUS_CONTEXT_MODAL = 6;
+   */
+  MODAL = 6,
+
+  /**
+   * COMMAND_FOCUS_CONTEXT_TEXT_INPUT matches editable text controls.
+   *
+   * @generated from enum value: COMMAND_FOCUS_CONTEXT_TEXT_INPUT = 7;
+   */
+  TEXT_INPUT = 7,
+}
+
+export const CommandFocusContext_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.command.CommandFocusContext',
+  [
+    [0, 'COMMAND_FOCUS_CONTEXT_UNSPECIFIED'],
+    [1, 'COMMAND_FOCUS_CONTEXT_GLOBAL'],
+    [2, 'COMMAND_FOCUS_CONTEXT_SHELL_TAB'],
+    [3, 'COMMAND_FOCUS_CONTEXT_EDITOR'],
+    [4, 'COMMAND_FOCUS_CONTEXT_LIST'],
+    [5, 'COMMAND_FOCUS_CONTEXT_CANVAS'],
+    [6, 'COMMAND_FOCUS_CONTEXT_MODAL'],
+    [7, 'COMMAND_FOCUS_CONTEXT_TEXT_INPUT'],
+  ],
+)
+
+/**
+ * KeyCombo stores one key event plus modifiers.
+ *
+ * @generated from message s4wave.command.KeyCombo
+ */
+export interface KeyCombo {
+  /**
+   * Combo is the canonical combo string.
+   *
+   * @generated from field: string combo = 1;
+   */
+  combo?: string
+}
+
+export const KeyCombo: MessageType<KeyCombo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.command.KeyCombo',
+    fields: [
+      { no: 1, name: 'combo', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * KeySequence stores ordered key steps.
+ *
+ * @generated from message s4wave.command.KeySequence
+ */
+export interface KeySequence {
+  /**
+   * Steps are canonical key step strings; "Leader" is the virtual leader step.
+   *
+   * @generated from field: repeated string steps = 1;
+   */
+  steps?: string[]
+}
+
+export const KeySequence: MessageType<KeySequence> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.command.KeySequence',
+    fields: [
+      {
+        no: 1,
+        name: 'steps',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CommandBinding stores one default command input binding.
+ *
+ * @generated from message s4wave.command.CommandBinding
+ */
+export interface CommandBinding {
+  /**
+   * Id is stable within a command's default bindings.
+   *
+   * @generated from field: string id = 1;
+   */
+  id?: string
+  /**
+   * Kind selects the matching grammar.
+   *
+   * @generated from field: s4wave.command.CommandBindingKind kind = 2;
+   */
+  kind?: CommandBindingKind
+  /**
+   * Combo stores a one-event key binding.
+   *
+   * @generated from field: s4wave.command.KeyCombo combo = 3;
+   */
+  combo?: KeyCombo
+  /**
+   * Sequence stores an ordered key sequence.
+   *
+   * @generated from field: s4wave.command.KeySequence sequence = 4;
+   */
+  sequence?: KeySequence
+  /**
+   * When limits the binding to a focus context.
+   *
+   * @generated from field: s4wave.command.CommandFocusContext when = 5;
+   */
+  when?: CommandFocusContext
+  /**
+   * SourceLabel is an optional display label for the binding source.
+   *
+   * @generated from field: string source_label = 6;
+   */
+  sourceLabel?: string
+}
+
+export const CommandBinding: MessageType<CommandBinding> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.command.CommandBinding',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'kind', kind: 'enum', T: CommandBindingKind_Enum },
+      { no: 3, name: 'combo', kind: 'message', T: () => KeyCombo },
+      { no: 4, name: 'sequence', kind: 'message', T: () => KeySequence },
+      { no: 5, name: 'when', kind: 'enum', T: CommandFocusContext_Enum },
+      { no: 6, name: 'source_label', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * Command is the metadata for a registered command.
@@ -29,7 +254,7 @@ export interface Command {
    */
   label?: string
   /**
-   * Keybinding is the default key combination.
+   * Keybinding is the legacy default key combination.
    * Format: "CmdOrCtrl+S", "CmdOrCtrl+Shift+P", "Alt+F4"
    * CmdOrCtrl resolves to Cmd on macOS, Ctrl elsewhere.
    *
@@ -76,6 +301,12 @@ export interface Command {
    * @generated from field: bool has_sub_items = 9;
    */
   hasSubItems?: boolean
+  /**
+   * DefaultBindings are the typed default input bindings for the command.
+   *
+   * @generated from field: repeated s4wave.command.CommandBinding default_bindings = 10;
+   */
+  defaultBindings?: CommandBinding[]
 }
 
 export const Command: MessageType<Command> = /* @__PURE__ */ createMessageType({
@@ -90,6 +321,13 @@ export const Command: MessageType<Command> = /* @__PURE__ */ createMessageType({
     { no: 7, name: 'icon', kind: 'scalar', T: ScalarType.STRING },
     { no: 8, name: 'description', kind: 'scalar', T: ScalarType.STRING },
     { no: 9, name: 'has_sub_items', kind: 'scalar', T: ScalarType.BOOL },
+    {
+      no: 10,
+      name: 'default_bindings',
+      kind: 'message',
+      T: () => CommandBinding,
+      repeated: true,
+    },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

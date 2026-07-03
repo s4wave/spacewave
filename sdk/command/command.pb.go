@@ -15,6 +15,211 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
+// CommandBindingKind identifies how a command binding is matched.
+type CommandBindingKind int32
+
+const (
+	// COMMAND_BINDING_KIND_UNSPECIFIED is unset.
+	CommandBindingKind_COMMAND_BINDING_KIND_UNSPECIFIED CommandBindingKind = 0
+	// COMMAND_BINDING_KIND_COMBO matches one keydown event.
+	CommandBindingKind_COMMAND_BINDING_KIND_COMBO CommandBindingKind = 1
+	// COMMAND_BINDING_KIND_SEQUENCE matches ordered key steps.
+	CommandBindingKind_COMMAND_BINDING_KIND_SEQUENCE CommandBindingKind = 2
+)
+
+// Enum value maps for CommandBindingKind.
+var (
+	CommandBindingKind_name = map[int32]string{
+		0: "COMMAND_BINDING_KIND_UNSPECIFIED",
+		1: "COMMAND_BINDING_KIND_COMBO",
+		2: "COMMAND_BINDING_KIND_SEQUENCE",
+	}
+	CommandBindingKind_value = map[string]int32{
+		"COMMAND_BINDING_KIND_UNSPECIFIED": 0,
+		"COMMAND_BINDING_KIND_COMBO":       1,
+		"COMMAND_BINDING_KIND_SEQUENCE":    2,
+	}
+)
+
+func (x CommandBindingKind) Enum() *CommandBindingKind {
+	p := new(CommandBindingKind)
+	*p = x
+	return p
+}
+
+func (x CommandBindingKind) String() string {
+	name, valid := CommandBindingKind_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// CommandFocusContext identifies where a command binding applies.
+type CommandFocusContext int32
+
+const (
+	// COMMAND_FOCUS_CONTEXT_UNSPECIFIED matches the global context.
+	CommandFocusContext_COMMAND_FOCUS_CONTEXT_UNSPECIFIED CommandFocusContext = 0
+	// COMMAND_FOCUS_CONTEXT_GLOBAL matches the shell globally.
+	CommandFocusContext_COMMAND_FOCUS_CONTEXT_GLOBAL CommandFocusContext = 1
+	// COMMAND_FOCUS_CONTEXT_SHELL_TAB matches the active shell tab.
+	CommandFocusContext_COMMAND_FOCUS_CONTEXT_SHELL_TAB CommandFocusContext = 2
+	// COMMAND_FOCUS_CONTEXT_EDITOR matches an editor surface.
+	CommandFocusContext_COMMAND_FOCUS_CONTEXT_EDITOR CommandFocusContext = 3
+	// COMMAND_FOCUS_CONTEXT_LIST matches list and tree surfaces.
+	CommandFocusContext_COMMAND_FOCUS_CONTEXT_LIST CommandFocusContext = 4
+	// COMMAND_FOCUS_CONTEXT_CANVAS matches canvas surfaces.
+	CommandFocusContext_COMMAND_FOCUS_CONTEXT_CANVAS CommandFocusContext = 5
+	// COMMAND_FOCUS_CONTEXT_MODAL matches modal dialogs.
+	CommandFocusContext_COMMAND_FOCUS_CONTEXT_MODAL CommandFocusContext = 6
+	// COMMAND_FOCUS_CONTEXT_TEXT_INPUT matches editable text controls.
+	CommandFocusContext_COMMAND_FOCUS_CONTEXT_TEXT_INPUT CommandFocusContext = 7
+)
+
+// Enum value maps for CommandFocusContext.
+var (
+	CommandFocusContext_name = map[int32]string{
+		0: "COMMAND_FOCUS_CONTEXT_UNSPECIFIED",
+		1: "COMMAND_FOCUS_CONTEXT_GLOBAL",
+		2: "COMMAND_FOCUS_CONTEXT_SHELL_TAB",
+		3: "COMMAND_FOCUS_CONTEXT_EDITOR",
+		4: "COMMAND_FOCUS_CONTEXT_LIST",
+		5: "COMMAND_FOCUS_CONTEXT_CANVAS",
+		6: "COMMAND_FOCUS_CONTEXT_MODAL",
+		7: "COMMAND_FOCUS_CONTEXT_TEXT_INPUT",
+	}
+	CommandFocusContext_value = map[string]int32{
+		"COMMAND_FOCUS_CONTEXT_UNSPECIFIED": 0,
+		"COMMAND_FOCUS_CONTEXT_GLOBAL":      1,
+		"COMMAND_FOCUS_CONTEXT_SHELL_TAB":   2,
+		"COMMAND_FOCUS_CONTEXT_EDITOR":      3,
+		"COMMAND_FOCUS_CONTEXT_LIST":        4,
+		"COMMAND_FOCUS_CONTEXT_CANVAS":      5,
+		"COMMAND_FOCUS_CONTEXT_MODAL":       6,
+		"COMMAND_FOCUS_CONTEXT_TEXT_INPUT":  7,
+	}
+)
+
+func (x CommandFocusContext) Enum() *CommandFocusContext {
+	p := new(CommandFocusContext)
+	*p = x
+	return p
+}
+
+func (x CommandFocusContext) String() string {
+	name, valid := CommandFocusContext_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// KeyCombo stores one key event plus modifiers.
+type KeyCombo struct {
+	unknownFields []byte
+	// Combo is the canonical combo string.
+	Combo string `protobuf:"bytes,1,opt,name=combo,proto3" json:"combo,omitempty"`
+}
+
+func (x *KeyCombo) Reset() {
+	*x = KeyCombo{}
+}
+
+func (*KeyCombo) ProtoMessage() {}
+
+func (x *KeyCombo) GetCombo() string {
+	if x != nil {
+		return x.Combo
+	}
+	return ""
+}
+
+// KeySequence stores ordered key steps.
+type KeySequence struct {
+	unknownFields []byte
+	// Steps are canonical key step strings; "Leader" is the virtual leader step.
+	Steps []string `protobuf:"bytes,1,rep,name=steps,proto3" json:"steps,omitempty"`
+}
+
+func (x *KeySequence) Reset() {
+	*x = KeySequence{}
+}
+
+func (*KeySequence) ProtoMessage() {}
+
+func (x *KeySequence) GetSteps() []string {
+	if x != nil {
+		return x.Steps
+	}
+	return nil
+}
+
+// CommandBinding stores one default command input binding.
+type CommandBinding struct {
+	unknownFields []byte
+	// Id is stable within a command's default bindings.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Kind selects the matching grammar.
+	Kind CommandBindingKind `protobuf:"varint,2,opt,name=kind,proto3" json:"kind,omitempty"`
+	// Combo stores a one-event key binding.
+	Combo *KeyCombo `protobuf:"bytes,3,opt,name=combo,proto3" json:"combo,omitempty"`
+	// Sequence stores an ordered key sequence.
+	Sequence *KeySequence `protobuf:"bytes,4,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	// When limits the binding to a focus context.
+	When CommandFocusContext `protobuf:"varint,5,opt,name=when,proto3" json:"when,omitempty"`
+	// SourceLabel is an optional display label for the binding source.
+	SourceLabel string `protobuf:"bytes,6,opt,name=source_label,json=sourceLabel,proto3" json:"sourceLabel,omitempty"`
+}
+
+func (x *CommandBinding) Reset() {
+	*x = CommandBinding{}
+}
+
+func (*CommandBinding) ProtoMessage() {}
+
+func (x *CommandBinding) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *CommandBinding) GetKind() CommandBindingKind {
+	if x != nil {
+		return x.Kind
+	}
+	return CommandBindingKind_COMMAND_BINDING_KIND_UNSPECIFIED
+}
+
+func (x *CommandBinding) GetCombo() *KeyCombo {
+	if x != nil {
+		return x.Combo
+	}
+	return nil
+}
+
+func (x *CommandBinding) GetSequence() *KeySequence {
+	if x != nil {
+		return x.Sequence
+	}
+	return nil
+}
+
+func (x *CommandBinding) GetWhen() CommandFocusContext {
+	if x != nil {
+		return x.When
+	}
+	return CommandFocusContext_COMMAND_FOCUS_CONTEXT_UNSPECIFIED
+}
+
+func (x *CommandBinding) GetSourceLabel() string {
+	if x != nil {
+		return x.SourceLabel
+	}
+	return ""
+}
+
 // Command is the metadata for a registered command.
 type Command struct {
 	unknownFields []byte
@@ -23,7 +228,7 @@ type Command struct {
 	CommandId string `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"commandId,omitempty"`
 	// Label is the human-readable display name.
 	Label string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
-	// Keybinding is the default key combination.
+	// Keybinding is the legacy default key combination.
 	// Format: "CmdOrCtrl+S", "CmdOrCtrl+Shift+P", "Alt+F4"
 	// CmdOrCtrl resolves to Cmd on macOS, Ctrl elsewhere.
 	Keybinding string `protobuf:"bytes,3,opt,name=keybinding,proto3" json:"keybinding,omitempty"`
@@ -43,6 +248,8 @@ type Command struct {
 	// HasSubItems indicates the command has a sub-item list in the palette.
 	// When selected, the palette replaces the command list with sub-items.
 	HasSubItems bool `protobuf:"varint,9,opt,name=has_sub_items,json=hasSubItems,proto3" json:"hasSubItems,omitempty"`
+	// DefaultBindings are the typed default input bindings for the command.
+	DefaultBindings []*CommandBinding `protobuf:"bytes,10,rep,name=default_bindings,json=defaultBindings,proto3" json:"defaultBindings,omitempty"`
 }
 
 func (x *Command) Reset() {
@@ -114,6 +321,68 @@ func (x *Command) GetHasSubItems() bool {
 	return false
 }
 
+func (x *Command) GetDefaultBindings() []*CommandBinding {
+	if x != nil {
+		return x.DefaultBindings
+	}
+	return nil
+}
+
+func (m *KeyCombo) CloneVT() *KeyCombo {
+	if m == nil {
+		return (*KeyCombo)(nil)
+	}
+	r := new(KeyCombo)
+	r.Combo = m.Combo
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *KeyCombo) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *KeySequence) CloneVT() *KeySequence {
+	if m == nil {
+		return (*KeySequence)(nil)
+	}
+	r := new(KeySequence)
+	if rhs := m.Steps; rhs != nil {
+		r.Steps = slices.Clone(rhs)
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *KeySequence) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CommandBinding) CloneVT() *CommandBinding {
+	if m == nil {
+		return (*CommandBinding)(nil)
+	}
+	r := new(CommandBinding)
+	r.Id = m.Id
+	r.Kind = m.Kind
+	r.Combo = m.Combo.CloneVT()
+	r.Sequence = m.Sequence.CloneVT()
+	r.When = m.When
+	r.SourceLabel = m.SourceLabel
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CommandBinding) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *Command) CloneVT() *Command {
 	if m == nil {
 		return (*Command)(nil)
@@ -128,6 +397,12 @@ func (m *Command) CloneVT() *Command {
 	r.Icon = m.Icon
 	r.Description = m.Description
 	r.HasSubItems = m.HasSubItems
+	if rhs := m.DefaultBindings; rhs != nil {
+		r.DefaultBindings = make([]*CommandBinding, len(rhs))
+		for k, v := range rhs {
+			r.DefaultBindings[k] = v.CloneVT()
+		}
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -136,6 +411,87 @@ func (m *Command) CloneVT() *Command {
 
 func (m *Command) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
+}
+
+func (this *KeyCombo) EqualVT(that *KeyCombo) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Combo != that.Combo {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *KeyCombo) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*KeyCombo)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *KeySequence) EqualVT(that *KeySequence) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.Steps) != len(that.Steps) {
+		return false
+	}
+	for i, vx := range this.Steps {
+		vy := that.Steps[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *KeySequence) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*KeySequence)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CommandBinding) EqualVT(that *CommandBinding) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if this.Kind != that.Kind {
+		return false
+	}
+	if !this.Combo.EqualVT(that.Combo) {
+		return false
+	}
+	if !this.Sequence.EqualVT(that.Sequence) {
+		return false
+	}
+	if this.When != that.When {
+		return false
+	}
+	if this.SourceLabel != that.SourceLabel {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CommandBinding) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CommandBinding)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
 }
 
 func (this *Command) EqualVT(that *Command) bool {
@@ -171,6 +527,23 @@ func (this *Command) EqualVT(that *Command) bool {
 	if this.HasSubItems != that.HasSubItems {
 		return false
 	}
+	if len(this.DefaultBindings) != len(that.DefaultBindings) {
+		return false
+	}
+	for i, vx := range this.DefaultBindings {
+		vy := that.DefaultBindings[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &CommandBinding{}
+			}
+			if q == nil {
+				q = &CommandBinding{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -180,6 +553,264 @@ func (this *Command) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the CommandBindingKind to JSON.
+func (x CommandBindingKind) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), CommandBindingKind_name)
+}
+
+// MarshalText marshals the CommandBindingKind to text.
+func (x CommandBindingKind) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), CommandBindingKind_name)), nil
+}
+
+// MarshalJSON marshals the CommandBindingKind to JSON.
+func (x CommandBindingKind) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CommandBindingKind from JSON.
+func (x *CommandBindingKind) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(CommandBindingKind_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read CommandBindingKind enum: %v", err)
+		return
+	}
+	*x = CommandBindingKind(v)
+}
+
+// UnmarshalText unmarshals the CommandBindingKind from text.
+func (x *CommandBindingKind) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), CommandBindingKind_value)
+	if err != nil {
+		return err
+	}
+	*x = CommandBindingKind(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the CommandBindingKind from JSON.
+func (x *CommandBindingKind) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CommandFocusContext to JSON.
+func (x CommandFocusContext) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), CommandFocusContext_name)
+}
+
+// MarshalText marshals the CommandFocusContext to text.
+func (x CommandFocusContext) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), CommandFocusContext_name)), nil
+}
+
+// MarshalJSON marshals the CommandFocusContext to JSON.
+func (x CommandFocusContext) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CommandFocusContext from JSON.
+func (x *CommandFocusContext) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(CommandFocusContext_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read CommandFocusContext enum: %v", err)
+		return
+	}
+	*x = CommandFocusContext(v)
+}
+
+// UnmarshalText unmarshals the CommandFocusContext from text.
+func (x *CommandFocusContext) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), CommandFocusContext_value)
+	if err != nil {
+		return err
+	}
+	*x = CommandFocusContext(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the CommandFocusContext from JSON.
+func (x *CommandFocusContext) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the KeyCombo message to JSON.
+func (x *KeyCombo) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Combo != "" || s.HasField("combo") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("combo")
+		s.WriteString(x.Combo)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the KeyCombo to JSON.
+func (x *KeyCombo) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the KeyCombo message from JSON.
+func (x *KeyCombo) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "combo":
+			s.AddField("combo")
+			x.Combo = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the KeyCombo from JSON.
+func (x *KeyCombo) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the KeySequence message to JSON.
+func (x *KeySequence) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Steps) > 0 || s.HasField("steps") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("steps")
+		s.WriteStringArray(x.Steps)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the KeySequence to JSON.
+func (x *KeySequence) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the KeySequence message from JSON.
+func (x *KeySequence) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "steps":
+			s.AddField("steps")
+			if s.ReadNil() {
+				x.Steps = nil
+				return
+			}
+			x.Steps = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the KeySequence from JSON.
+func (x *KeySequence) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CommandBinding message to JSON.
+func (x *CommandBinding) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(x.Id)
+	}
+	if x.Kind != 0 || s.HasField("kind") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("kind")
+		x.Kind.MarshalProtoJSON(s)
+	}
+	if x.Combo != nil || s.HasField("combo") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("combo")
+		x.Combo.MarshalProtoJSON(s.WithField("combo"))
+	}
+	if x.Sequence != nil || s.HasField("sequence") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sequence")
+		x.Sequence.MarshalProtoJSON(s.WithField("sequence"))
+	}
+	if x.When != 0 || s.HasField("when") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("when")
+		x.When.MarshalProtoJSON(s)
+	}
+	if x.SourceLabel != "" || s.HasField("sourceLabel") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sourceLabel")
+		s.WriteString(x.SourceLabel)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CommandBinding to JSON.
+func (x *CommandBinding) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CommandBinding message from JSON.
+func (x *CommandBinding) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadString()
+		case "kind":
+			s.AddField("kind")
+			x.Kind.UnmarshalProtoJSON(s)
+		case "combo":
+			if s.ReadNil() {
+				x.Combo = nil
+				return
+			}
+			x.Combo = &KeyCombo{}
+			x.Combo.UnmarshalProtoJSON(s.WithField("combo", true))
+		case "sequence":
+			if s.ReadNil() {
+				x.Sequence = nil
+				return
+			}
+			x.Sequence = &KeySequence{}
+			x.Sequence.UnmarshalProtoJSON(s.WithField("sequence", true))
+		case "when":
+			s.AddField("when")
+			x.When.UnmarshalProtoJSON(s)
+		case "source_label", "sourceLabel":
+			s.AddField("source_label")
+			x.SourceLabel = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CommandBinding from JSON.
+func (x *CommandBinding) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the Command message to JSON.
@@ -235,6 +866,17 @@ func (x *Command) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("hasSubItems")
 		s.WriteBool(x.HasSubItems)
 	}
+	if len(x.DefaultBindings) > 0 || s.HasField("defaultBindings") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("defaultBindings")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.DefaultBindings {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("defaultBindings"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -279,6 +921,24 @@ func (x *Command) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "has_sub_items", "hasSubItems":
 			s.AddField("has_sub_items")
 			x.HasSubItems = s.ReadBool()
+		case "default_bindings", "defaultBindings":
+			s.AddField("default_bindings")
+			if s.ReadNil() {
+				x.DefaultBindings = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.DefaultBindings = append(x.DefaultBindings, nil)
+					return
+				}
+				v := &CommandBinding{}
+				v.UnmarshalProtoJSON(s.WithField("default_bindings", false))
+				if s.Err() != nil {
+					return
+				}
+				x.DefaultBindings = append(x.DefaultBindings, v)
+			})
 		}
 	})
 }
@@ -286,6 +946,165 @@ func (x *Command) UnmarshalProtoJSON(s *json.UnmarshalState) {
 // UnmarshalJSON unmarshals the Command from JSON.
 func (x *Command) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+func (m *KeyCombo) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *KeyCombo) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KeyCombo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Combo) > 0 {
+		i -= len(m.Combo)
+		copy(dAtA[i:], m.Combo)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Combo)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *KeySequence) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *KeySequence) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KeySequence) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Steps) > 0 {
+		for iNdEx := len(m.Steps) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Steps[iNdEx])
+			copy(dAtA[i:], m.Steps[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Steps[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CommandBinding) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CommandBinding) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CommandBinding) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.SourceLabel) > 0 {
+		i -= len(m.SourceLabel)
+		copy(dAtA[i:], m.SourceLabel)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SourceLabel)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.When != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.When))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.Sequence != nil {
+		size, err := m.Sequence.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.Combo != nil {
+		size, err := m.Combo.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Kind != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Kind))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Id) > 0 {
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Command) MarshalVT() (dAtA []byte, err error) {
@@ -317,6 +1136,18 @@ func (m *Command) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.DefaultBindings) > 0 {
+		for iNdEx := len(m.DefaultBindings) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.DefaultBindings[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x52
+		}
 	}
 	if m.HasSubItems {
 		i--
@@ -383,6 +1214,68 @@ func (m *Command) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *KeyCombo) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Combo)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *KeySequence) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Steps) > 0 {
+		for _, s := range m.Steps {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CommandBinding) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Id)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Kind != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Kind))
+	}
+	if m.Combo != nil {
+		l = m.Combo.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.Sequence != nil {
+		l = m.Sequence.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.When != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.When))
+	}
+	l = len(m.SourceLabel)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *Command) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -422,8 +1315,121 @@ func (m *Command) SizeVT() (n int) {
 	if m.HasSubItems {
 		n += 2
 	}
+	if len(m.DefaultBindings) > 0 {
+		for _, e := range m.DefaultBindings {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x CommandBindingKind) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x CommandFocusContext) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x *KeyCombo) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("KeyCombo {")
+	if x.Combo != "" {
+		if sb.Len() > 10 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("combo: ")
+		sb.WriteString(strconv.Quote(x.Combo))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *KeyCombo) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *KeySequence) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("KeySequence {")
+	if len(x.Steps) > 0 {
+		if sb.Len() > 13 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("steps: [")
+		for i, v := range x.Steps {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *KeySequence) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CommandBinding) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("CommandBinding {")
+	if x.Id != "" {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("id: ")
+		sb.WriteString(strconv.Quote(x.Id))
+	}
+	if x.Kind != 0 {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("kind: ")
+		sb.WriteString("\"")
+		sb.WriteString(CommandBindingKind(x.Kind).String())
+		sb.WriteString("\"")
+	}
+	if x.Combo != nil {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("combo: ")
+		sb.WriteString(x.Combo.MarshalProtoText())
+	}
+	if x.Sequence != nil {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("sequence: ")
+		sb.WriteString(x.Sequence.MarshalProtoText())
+	}
+	if x.When != 0 {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("when: ")
+		sb.WriteString("\"")
+		sb.WriteString(CommandFocusContext(x.When).String())
+		sb.WriteString("\"")
+	}
+	if x.SourceLabel != "" {
+		if sb.Len() > 16 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("source_label: ")
+		sb.WriteString(strconv.Quote(x.SourceLabel))
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *CommandBinding) String() string {
+	return x.MarshalProtoText()
 }
 
 func (x *Command) MarshalProtoText() string {
@@ -492,12 +1498,324 @@ func (x *Command) MarshalProtoText() string {
 		sb.WriteString("has_sub_items: ")
 		sb.WriteString(strconv.FormatBool(x.HasSubItems))
 	}
+	if len(x.DefaultBindings) > 0 {
+		if sb.Len() > 9 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("default_bindings: [")
+		for i, v := range x.DefaultBindings {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			if v == nil {
+				sb.WriteString((&CommandBinding{}).MarshalProtoText())
+			} else {
+				sb.WriteString(v.MarshalProtoText())
+			}
+		}
+		sb.WriteString("]")
+	}
 	sb.WriteString("}")
 	return sb.String()
 }
 
 func (x *Command) String() string {
 	return x.MarshalProtoText()
+}
+
+func (m *KeyCombo) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: KeyCombo: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: KeyCombo: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Combo", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Combo = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *KeySequence) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: KeySequence: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: KeySequence: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Steps", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Steps = append(m.Steps, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CommandBinding) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CommandBinding: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CommandBinding: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Id = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Kind", wireType)
+			}
+			m.Kind = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Kind = CommandBindingKind(_v)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Combo", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Combo == nil {
+				m.Combo = &KeyCombo{}
+			}
+			if err := m.Combo.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sequence", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Sequence == nil {
+				m.Sequence = &KeySequence{}
+			}
+			if err := m.Sequence.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field When", wireType)
+			}
+			m.When = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.When = CommandFocusContext(_v)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SourceLabel", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SourceLabel = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 
 func (m *Command) UnmarshalVT(dAtA []byte) error {
@@ -682,6 +2000,32 @@ func (m *Command) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.HasSubItems = bool(v != 0)
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DefaultBindings", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DefaultBindings = append(m.DefaultBindings, &CommandBinding{})
+			if err := m.DefaultBindings[len(m.DefaultBindings)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

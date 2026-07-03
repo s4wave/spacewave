@@ -1,6 +1,64 @@
 syntax = "proto3";
 package s4wave.command;
 
+// CommandBindingKind identifies how a command binding is matched.
+enum CommandBindingKind {
+  // COMMAND_BINDING_KIND_UNSPECIFIED is unset.
+  COMMAND_BINDING_KIND_UNSPECIFIED = 0;
+  // COMMAND_BINDING_KIND_COMBO matches one keydown event.
+  COMMAND_BINDING_KIND_COMBO = 1;
+  // COMMAND_BINDING_KIND_SEQUENCE matches ordered key steps.
+  COMMAND_BINDING_KIND_SEQUENCE = 2;
+}
+
+// CommandFocusContext identifies where a command binding applies.
+enum CommandFocusContext {
+  // COMMAND_FOCUS_CONTEXT_UNSPECIFIED matches the global context.
+  COMMAND_FOCUS_CONTEXT_UNSPECIFIED = 0;
+  // COMMAND_FOCUS_CONTEXT_GLOBAL matches the shell globally.
+  COMMAND_FOCUS_CONTEXT_GLOBAL = 1;
+  // COMMAND_FOCUS_CONTEXT_SHELL_TAB matches the active shell tab.
+  COMMAND_FOCUS_CONTEXT_SHELL_TAB = 2;
+  // COMMAND_FOCUS_CONTEXT_EDITOR matches an editor surface.
+  COMMAND_FOCUS_CONTEXT_EDITOR = 3;
+  // COMMAND_FOCUS_CONTEXT_LIST matches list and tree surfaces.
+  COMMAND_FOCUS_CONTEXT_LIST = 4;
+  // COMMAND_FOCUS_CONTEXT_CANVAS matches canvas surfaces.
+  COMMAND_FOCUS_CONTEXT_CANVAS = 5;
+  // COMMAND_FOCUS_CONTEXT_MODAL matches modal dialogs.
+  COMMAND_FOCUS_CONTEXT_MODAL = 6;
+  // COMMAND_FOCUS_CONTEXT_TEXT_INPUT matches editable text controls.
+  COMMAND_FOCUS_CONTEXT_TEXT_INPUT = 7;
+}
+
+// KeyCombo stores one key event plus modifiers.
+message KeyCombo {
+  // Combo is the canonical combo string.
+  string combo = 1;
+}
+
+// KeySequence stores ordered key steps.
+message KeySequence {
+  // Steps are canonical key step strings; "Leader" is the virtual leader step.
+  repeated string steps = 1;
+}
+
+// CommandBinding stores one default command input binding.
+message CommandBinding {
+  // Id is stable within a command's default bindings.
+  string id = 1;
+  // Kind selects the matching grammar.
+  CommandBindingKind kind = 2;
+  // Combo stores a one-event key binding.
+  KeyCombo combo = 3;
+  // Sequence stores an ordered key sequence.
+  KeySequence sequence = 4;
+  // When limits the binding to a focus context.
+  CommandFocusContext when = 5;
+  // SourceLabel is an optional display label for the binding source.
+  string source_label = 6;
+}
+
 // Command is the metadata for a registered command.
 message Command {
   // CommandId is the unique reverse-domain command identifier.
@@ -8,7 +66,7 @@ message Command {
   string command_id = 1;
   // Label is the human-readable display name.
   string label = 2;
-  // Keybinding is the default key combination.
+  // Keybinding is the legacy default key combination.
   // Format: "CmdOrCtrl+S", "CmdOrCtrl+Shift+P", "Alt+F4"
   // CmdOrCtrl resolves to Cmd on macOS, Ctrl elsewhere.
   string keybinding = 3;
@@ -28,4 +86,6 @@ message Command {
   // HasSubItems indicates the command has a sub-item list in the palette.
   // When selected, the palette replaces the command list with sub-items.
   bool has_sub_items = 9;
+  // DefaultBindings are the typed default input bindings for the command.
+  repeated CommandBinding default_bindings = 10;
 }

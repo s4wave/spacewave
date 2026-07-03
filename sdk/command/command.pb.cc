@@ -29,9 +29,96 @@ namespace _fl = ::google::protobuf::internal::field_layout;
 namespace s4wave {
 namespace command {
 
+inline constexpr KeySequence::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        steps_{} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR KeySequence::KeySequence(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(KeySequence_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct KeySequenceDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR KeySequenceDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~KeySequenceDefaultTypeInternal() {}
+  union {
+    KeySequence _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 KeySequenceDefaultTypeInternal _KeySequence_default_instance_;
+
+inline constexpr KeyCombo::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        combo_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR KeyCombo::KeyCombo(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(KeyCombo_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct KeyComboDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR KeyComboDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~KeyComboDefaultTypeInternal() {}
+  union {
+    KeyCombo _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 KeyComboDefaultTypeInternal _KeyCombo_default_instance_;
+
+inline constexpr CommandBinding::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        source_label_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        combo_{nullptr},
+        sequence_{nullptr},
+        kind_{static_cast< ::s4wave::command::CommandBindingKind >(0)},
+        when_{static_cast< ::s4wave::command::CommandFocusContext >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR CommandBinding::CommandBinding(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(CommandBinding_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct CommandBindingDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CommandBindingDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CommandBindingDefaultTypeInternal() {}
+  union {
+    CommandBinding _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CommandBindingDefaultTypeInternal _CommandBinding_default_instance_;
+
 inline constexpr Command::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
+        default_bindings_{},
         command_id_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
@@ -75,16 +162,41 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CommandDefaultTypeInternal _Command_default_instance_;
 }  // namespace command
 }  // namespace s4wave
-static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto = nullptr;
+static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto[2];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto = nullptr;
 const ::uint32_t
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::KeyCombo, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::KeyCombo, _impl_.combo_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::KeySequence, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::KeySequence, _impl_.steps_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::CommandBinding, _impl_._has_bits_),
+        9, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::CommandBinding, _impl_.id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::CommandBinding, _impl_.kind_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::CommandBinding, _impl_.combo_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::CommandBinding, _impl_.sequence_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::CommandBinding, _impl_.when_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::CommandBinding, _impl_.source_label_),
+        0,
+        4,
+        2,
+        3,
+        5,
+        1,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::command::Command, _impl_._has_bits_),
-        12, // hasbit index offset
+        13, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::command::Command, _impl_.command_id_),
         PROTOBUF_FIELD_OFFSET(::s4wave::command::Command, _impl_.label_),
         PROTOBUF_FIELD_OFFSET(::s4wave::command::Command, _impl_.keybinding_),
@@ -94,45 +206,73 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::command::Command, _impl_.icon_),
         PROTOBUF_FIELD_OFFSET(::s4wave::command::Command, _impl_.description_),
         PROTOBUF_FIELD_OFFSET(::s4wave::command::Command, _impl_.has_sub_items_),
-        0,
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::Command, _impl_.default_bindings_),
         1,
         2,
         3,
-        6,
-        7,
         4,
-        5,
+        7,
         8,
+        5,
+        6,
+        9,
+        0,
 };
 
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
-        {0, sizeof(::s4wave::command::Command)},
+        {0, sizeof(::s4wave::command::KeyCombo)},
+        {5, sizeof(::s4wave::command::KeySequence)},
+        {10, sizeof(::s4wave::command::CommandBinding)},
+        {25, sizeof(::s4wave::command::Command)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
+    &::s4wave::command::_KeyCombo_default_instance_._instance,
+    &::s4wave::command::_KeySequence_default_instance_._instance,
+    &::s4wave::command::_CommandBinding_default_instance_._instance,
     &::s4wave::command::_Command_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n5github.com/s4wave/spacewave/sdk/comman"
-    "d/command.proto\022\016s4wave.command\"\265\001\n\007Comm"
-    "and\022\022\n\ncommand_id\030\001 \001(\t\022\r\n\005label\030\002 \001(\t\022\022"
-    "\n\nkeybinding\030\003 \001(\t\022\021\n\tmenu_path\030\004 \001(\t\022\022\n"
-    "\nmenu_group\030\005 \001(\r\022\022\n\nmenu_order\030\006 \001(\r\022\014\n"
-    "\004icon\030\007 \001(\t\022\023\n\013description\030\010 \001(\t\022\025\n\rhas_"
-    "sub_items\030\t \001(\010b\006proto3"
+    "d/command.proto\022\016s4wave.command\"\031\n\010KeyCo"
+    "mbo\022\r\n\005combo\030\001 \001(\t\"\034\n\013KeySequence\022\r\n\005ste"
+    "ps\030\001 \003(\t\"\357\001\n\016CommandBinding\022\n\n\002id\030\001 \001(\t\022"
+    "0\n\004kind\030\002 \001(\0162\".s4wave.command.CommandBi"
+    "ndingKind\022\'\n\005combo\030\003 \001(\0132\030.s4wave.comman"
+    "d.KeyCombo\022-\n\010sequence\030\004 \001(\0132\033.s4wave.co"
+    "mmand.KeySequence\0221\n\004when\030\005 \001(\0162#.s4wave"
+    ".command.CommandFocusContext\022\024\n\014source_l"
+    "abel\030\006 \001(\t\"\357\001\n\007Command\022\022\n\ncommand_id\030\001 \001"
+    "(\t\022\r\n\005label\030\002 \001(\t\022\022\n\nkeybinding\030\003 \001(\t\022\021\n"
+    "\tmenu_path\030\004 \001(\t\022\022\n\nmenu_group\030\005 \001(\r\022\022\n\n"
+    "menu_order\030\006 \001(\r\022\014\n\004icon\030\007 \001(\t\022\023\n\013descri"
+    "ption\030\010 \001(\t\022\025\n\rhas_sub_items\030\t \001(\010\0228\n\020de"
+    "fault_bindings\030\n \003(\0132\036.s4wave.command.Co"
+    "mmandBinding*}\n\022CommandBindingKind\022$\n CO"
+    "MMAND_BINDING_KIND_UNSPECIFIED\020\000\022\036\n\032COMM"
+    "AND_BINDING_KIND_COMBO\020\001\022!\n\035COMMAND_BIND"
+    "ING_KIND_SEQUENCE\020\002*\256\002\n\023CommandFocusCont"
+    "ext\022%\n!COMMAND_FOCUS_CONTEXT_UNSPECIFIED"
+    "\020\000\022 \n\034COMMAND_FOCUS_CONTEXT_GLOBAL\020\001\022#\n\037"
+    "COMMAND_FOCUS_CONTEXT_SHELL_TAB\020\002\022 \n\034COM"
+    "MAND_FOCUS_CONTEXT_EDITOR\020\003\022\036\n\032COMMAND_F"
+    "OCUS_CONTEXT_LIST\020\004\022 \n\034COMMAND_FOCUS_CON"
+    "TEXT_CANVAS\020\005\022\037\n\033COMMAND_FOCUS_CONTEXT_M"
+    "ODAL\020\006\022$\n COMMAND_FOCUS_CONTEXT_TEXT_INP"
+    "UT\020\007b\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto = {
     false,
     false,
-    263,
+    1052,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto,
     "github.com/s4wave/spacewave/sdk/command/command.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto_once,
     nullptr,
     0,
-    1,
+    4,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto::offsets,
@@ -141,6 +281,1050 @@ PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2
 };
 namespace s4wave {
 namespace command {
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL CommandBindingKind_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto[0];
+}
+PROTOBUF_CONSTINIT const uint32_t CommandBindingKind_internal_data_[] = {
+    196608u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL CommandFocusContext_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto[1];
+}
+PROTOBUF_CONSTINIT const uint32_t CommandFocusContext_internal_data_[] = {
+    524288u, 0u, };
+// ===================================================================
+
+class KeyCombo::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<KeyCombo>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(KeyCombo, _impl_._has_bits_);
+};
+
+KeyCombo::KeyCombo(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, KeyCombo_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.command.KeyCombo)
+}
+PROTOBUF_NDEBUG_INLINE KeyCombo::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::command::KeyCombo& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        combo_(arena, from.combo_) {}
+
+KeyCombo::KeyCombo(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const KeyCombo& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, KeyCombo_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  KeyCombo* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.command.KeyCombo)
+}
+PROTOBUF_NDEBUG_INLINE KeyCombo::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        combo_(arena) {}
+
+inline void KeyCombo::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+KeyCombo::~KeyCombo() {
+  // @@protoc_insertion_point(destructor:s4wave.command.KeyCombo)
+  SharedDtor(*this);
+}
+inline void KeyCombo::SharedDtor(MessageLite& self) {
+  KeyCombo& this_ = static_cast<KeyCombo&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.combo_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL KeyCombo::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) KeyCombo(arena);
+}
+constexpr auto KeyCombo::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(KeyCombo),
+                                            alignof(KeyCombo));
+}
+constexpr auto KeyCombo::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_KeyCombo_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &KeyCombo::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<KeyCombo>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &KeyCombo::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<KeyCombo>(), &KeyCombo::ByteSizeLong,
+              &KeyCombo::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(KeyCombo, _impl_._cached_size_),
+          false,
+      },
+      &KeyCombo::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull KeyCombo_class_data_ =
+        KeyCombo::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+KeyCombo::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&KeyCombo_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(KeyCombo_class_data_.tc_table);
+  return KeyCombo_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 37, 2>
+KeyCombo::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(KeyCombo, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    KeyCombo_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::command::KeyCombo>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string combo = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(KeyCombo, _impl_.combo_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string combo = 1;
+    {PROTOBUF_FIELD_OFFSET(KeyCombo, _impl_.combo_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\27\5\0\0\0\0\0\0"
+    "s4wave.command.KeyCombo"
+    "combo"
+  }},
+};
+PROTOBUF_NOINLINE void KeyCombo::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.command.KeyCombo)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.combo_.ClearNonDefaultToEmpty();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL KeyCombo::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const KeyCombo& this_ = static_cast<const KeyCombo&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL KeyCombo::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const KeyCombo& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.command.KeyCombo)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string combo = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_combo().empty()) {
+      const ::std::string& _s = this_._internal_combo();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.command.KeyCombo.combo");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.command.KeyCombo)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t KeyCombo::ByteSizeLong(const MessageLite& base) {
+  const KeyCombo& this_ = static_cast<const KeyCombo&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t KeyCombo::ByteSizeLong() const {
+  const KeyCombo& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.command.KeyCombo)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // string combo = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_combo().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_combo());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void KeyCombo::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<KeyCombo*>(&to_msg);
+  auto& from = static_cast<const KeyCombo&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.command.KeyCombo)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!from._internal_combo().empty()) {
+      _this->_internal_set_combo(from._internal_combo());
+    } else {
+      if (_this->_impl_.combo_.IsDefault()) {
+        _this->_internal_set_combo("");
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void KeyCombo::CopyFrom(const KeyCombo& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.command.KeyCombo)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void KeyCombo::InternalSwap(KeyCombo* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.combo_, &other->_impl_.combo_, arena);
+}
+
+::google::protobuf::Metadata KeyCombo::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class KeySequence::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<KeySequence>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(KeySequence, _impl_._has_bits_);
+};
+
+KeySequence::KeySequence(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, KeySequence_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.command.KeySequence)
+}
+PROTOBUF_NDEBUG_INLINE KeySequence::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::command::KeySequence& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        steps_{visibility, arena, from.steps_} {}
+
+KeySequence::KeySequence(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const KeySequence& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, KeySequence_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  KeySequence* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.command.KeySequence)
+}
+PROTOBUF_NDEBUG_INLINE KeySequence::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        steps_{visibility, arena} {}
+
+inline void KeySequence::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+KeySequence::~KeySequence() {
+  // @@protoc_insertion_point(destructor:s4wave.command.KeySequence)
+  SharedDtor(*this);
+}
+inline void KeySequence::SharedDtor(MessageLite& self) {
+  KeySequence& this_ = static_cast<KeySequence&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL KeySequence::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) KeySequence(arena);
+}
+constexpr auto KeySequence::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(KeySequence, _impl_.steps_) +
+          decltype(KeySequence::_impl_.steps_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(KeySequence), alignof(KeySequence), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&KeySequence::PlacementNew_,
+                                 sizeof(KeySequence),
+                                 alignof(KeySequence));
+  }
+}
+constexpr auto KeySequence::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_KeySequence_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &KeySequence::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<KeySequence>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &KeySequence::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<KeySequence>(), &KeySequence::ByteSizeLong,
+              &KeySequence::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(KeySequence, _impl_._cached_size_),
+          false,
+      },
+      &KeySequence::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull KeySequence_class_data_ =
+        KeySequence::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+KeySequence::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&KeySequence_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(KeySequence_class_data_.tc_table);
+  return KeySequence_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 40, 2>
+KeySequence::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(KeySequence, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    KeySequence_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::command::KeySequence>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // repeated string steps = 1;
+    {::_pbi::TcParser::FastUR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(KeySequence, _impl_.steps_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated string steps = 1;
+    {PROTOBUF_FIELD_OFFSET(KeySequence, _impl_.steps_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+  }},
+  // no aux_entries
+  {{
+    "\32\5\0\0\0\0\0\0"
+    "s4wave.command.KeySequence"
+    "steps"
+  }},
+};
+PROTOBUF_NOINLINE void KeySequence::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.command.KeySequence)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _impl_.steps_.Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL KeySequence::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const KeySequence& this_ = static_cast<const KeySequence&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL KeySequence::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const KeySequence& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.command.KeySequence)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated string steps = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (int i = 0, n = this_._internal_steps_size(); i < n; ++i) {
+      const auto& s = this_._internal_steps().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.command.KeySequence.steps");
+      target = stream->WriteString(1, s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.command.KeySequence)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t KeySequence::ByteSizeLong(const MessageLite& base) {
+  const KeySequence& this_ = static_cast<const KeySequence&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t KeySequence::ByteSizeLong() const {
+  const KeySequence& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.command.KeySequence)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+   {
+    // repeated string steps = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_steps().size());
+      for (int i = 0, n = this_._internal_steps().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_steps().Get(i));
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void KeySequence::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<KeySequence*>(&to_msg);
+  auto& from = static_cast<const KeySequence&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.command.KeySequence)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _this->_internal_mutable_steps()->InternalMergeFromWithArena(
+        ::google::protobuf::MessageLite::internal_visibility(), arena,
+        from._internal_steps());
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void KeySequence::CopyFrom(const KeySequence& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.command.KeySequence)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void KeySequence::InternalSwap(KeySequence* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.steps_.InternalSwap(&other->_impl_.steps_);
+}
+
+::google::protobuf::Metadata KeySequence::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CommandBinding::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<CommandBinding>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_._has_bits_);
+};
+
+CommandBinding::CommandBinding(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CommandBinding_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.command.CommandBinding)
+}
+PROTOBUF_NDEBUG_INLINE CommandBinding::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::command::CommandBinding& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        id_(arena, from.id_),
+        source_label_(arena, from.source_label_) {}
+
+CommandBinding::CommandBinding(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const CommandBinding& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CommandBinding_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  CommandBinding* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.combo_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.combo_)
+                : nullptr;
+  _impl_.sequence_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.sequence_)
+                : nullptr;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, kind_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, kind_),
+           offsetof(Impl_, when_) -
+               offsetof(Impl_, kind_) +
+               sizeof(Impl_::when_));
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.command.CommandBinding)
+}
+PROTOBUF_NDEBUG_INLINE CommandBinding::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        id_(arena),
+        source_label_(arena) {}
+
+inline void CommandBinding::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, combo_),
+           0,
+           offsetof(Impl_, when_) -
+               offsetof(Impl_, combo_) +
+               sizeof(Impl_::when_));
+}
+CommandBinding::~CommandBinding() {
+  // @@protoc_insertion_point(destructor:s4wave.command.CommandBinding)
+  SharedDtor(*this);
+}
+inline void CommandBinding::SharedDtor(MessageLite& self) {
+  CommandBinding& this_ = static_cast<CommandBinding&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.id_.Destroy();
+  this_._impl_.source_label_.Destroy();
+  delete this_._impl_.combo_;
+  delete this_._impl_.sequence_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL CommandBinding::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CommandBinding(arena);
+}
+constexpr auto CommandBinding::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(CommandBinding),
+                                            alignof(CommandBinding));
+}
+constexpr auto CommandBinding::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CommandBinding_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CommandBinding::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<CommandBinding>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CommandBinding::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<CommandBinding>(), &CommandBinding::ByteSizeLong,
+              &CommandBinding::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_._cached_size_),
+          false,
+      },
+      &CommandBinding::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CommandBinding_class_data_ =
+        CommandBinding::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CommandBinding::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CommandBinding_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CommandBinding_class_data_.tc_table);
+  return CommandBinding_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 6, 2, 52, 2>
+CommandBinding::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_._has_bits_),
+    0, // no _extensions_
+    6, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967232,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    6,  // num_field_entries
+    2,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    CommandBinding_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::command::CommandBinding>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.id_)}},
+    // .s4wave.command.CommandBindingKind kind = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(CommandBinding, _impl_.kind_), 4>(),
+     {16, 4, 0,
+      PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.kind_)}},
+    // .s4wave.command.KeyCombo combo = 3;
+    {::_pbi::TcParser::FastMtS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.combo_)}},
+    // .s4wave.command.KeySequence sequence = 4;
+    {::_pbi::TcParser::FastMtS1,
+     {34, 3, 1,
+      PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.sequence_)}},
+    // .s4wave.command.CommandFocusContext when = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(CommandBinding, _impl_.when_), 5>(),
+     {40, 5, 0,
+      PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.when_)}},
+    // string source_label = 6;
+    {::_pbi::TcParser::FastUS1,
+     {50, 1, 0,
+      PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.source_label_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string id = 1;
+    {PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .s4wave.command.CommandBindingKind kind = 2;
+    {PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.kind_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // .s4wave.command.KeyCombo combo = 3;
+    {PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.combo_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .s4wave.command.KeySequence sequence = 4;
+    {PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.sequence_), _Internal::kHasBitsOffset + 3, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .s4wave.command.CommandFocusContext when = 5;
+    {PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.when_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string source_label = 6;
+    {PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.source_label_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::command::KeyCombo>()},
+      {::_pbi::TcParser::GetTable<::s4wave::command::KeySequence>()},
+  }},
+  {{
+    "\35\2\0\0\0\0\14\0"
+    "s4wave.command.CommandBinding"
+    "id"
+    "source_label"
+  }},
+};
+PROTOBUF_NOINLINE void CommandBinding::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.command.CommandBinding)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.source_label_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(_impl_.combo_ != nullptr);
+      _impl_.combo_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(_impl_.sequence_ != nullptr);
+      _impl_.sequence_->Clear();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000030U)) {
+    ::memset(&_impl_.kind_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.when_) -
+        reinterpret_cast<char*>(&_impl_.kind_)) + sizeof(_impl_.when_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL CommandBinding::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const CommandBinding& this_ = static_cast<const CommandBinding&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL CommandBinding::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const CommandBinding& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.command.CommandBinding)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_id().empty()) {
+      const ::std::string& _s = this_._internal_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.command.CommandBinding.id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // .s4wave.command.CommandBindingKind kind = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_kind() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          2, this_._internal_kind(), target);
+    }
+  }
+
+  // .s4wave.command.KeyCombo combo = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        3, *this_._impl_.combo_, this_._impl_.combo_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .s4wave.command.KeySequence sequence = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        4, *this_._impl_.sequence_, this_._impl_.sequence_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .s4wave.command.CommandFocusContext when = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_when() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          5, this_._internal_when(), target);
+    }
+  }
+
+  // string source_label = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_source_label().empty()) {
+      const ::std::string& _s = this_._internal_source_label();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.command.CommandBinding.source_label");
+      target = stream->WriteStringMaybeAliased(6, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.command.CommandBinding)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t CommandBinding::ByteSizeLong(const MessageLite& base) {
+  const CommandBinding& this_ = static_cast<const CommandBinding&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t CommandBinding::ByteSizeLong() const {
+  const CommandBinding& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.command.CommandBinding)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    // string id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_id());
+      }
+    }
+    // string source_label = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_source_label().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_source_label());
+      }
+    }
+    // .s4wave.command.KeyCombo combo = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.combo_);
+    }
+    // .s4wave.command.KeySequence sequence = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.sequence_);
+    }
+    // .s4wave.command.CommandBindingKind kind = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_kind() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_kind());
+      }
+    }
+    // .s4wave.command.CommandFocusContext when = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_when() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_when());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void CommandBinding::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<CommandBinding*>(&to_msg);
+  auto& from = static_cast<const CommandBinding&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.command.CommandBinding)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_id().empty()) {
+        _this->_internal_set_id(from._internal_id());
+      } else {
+        if (_this->_impl_.id_.IsDefault()) {
+          _this->_internal_set_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_source_label().empty()) {
+        _this->_internal_set_source_label(from._internal_source_label());
+      } else {
+        if (_this->_impl_.source_label_.IsDefault()) {
+          _this->_internal_set_source_label("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(from._impl_.combo_ != nullptr);
+      if (_this->_impl_.combo_ == nullptr) {
+        _this->_impl_.combo_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.combo_);
+      } else {
+        _this->_impl_.combo_->MergeFrom(*from._impl_.combo_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(from._impl_.sequence_ != nullptr);
+      if (_this->_impl_.sequence_ == nullptr) {
+        _this->_impl_.sequence_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.sequence_);
+      } else {
+        _this->_impl_.sequence_->MergeFrom(*from._impl_.sequence_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_kind() != 0) {
+        _this->_impl_.kind_ = from._impl_.kind_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_when() != 0) {
+        _this->_impl_.when_ = from._impl_.when_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void CommandBinding::CopyFrom(const CommandBinding& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.command.CommandBinding)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void CommandBinding::InternalSwap(CommandBinding* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.source_label_, &other->_impl_.source_label_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.when_)
+      + sizeof(CommandBinding::_impl_.when_)
+      - PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.combo_)>(
+          reinterpret_cast<char*>(&_impl_.combo_),
+          reinterpret_cast<char*>(&other->_impl_.combo_));
+}
+
+::google::protobuf::Metadata CommandBinding::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
 // ===================================================================
 
 class Command::_Internal {
@@ -166,6 +1350,7 @@ PROTOBUF_NDEBUG_INLINE Command::Impl_::Impl_(
     [[maybe_unused]] const ::s4wave::command::Command& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
+        default_bindings_{visibility, arena, from.default_bindings_},
         command_id_(arena, from.command_id_),
         label_(arena, from.label_),
         keybinding_(arena, from.keybinding_),
@@ -200,6 +1385,7 @@ PROTOBUF_NDEBUG_INLINE Command::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
+        default_bindings_{visibility, arena},
         command_id_(arena),
         label_(arena),
         keybinding_(arena),
@@ -242,8 +1428,20 @@ inline void* PROTOBUF_NONNULL Command::PlacementNew_(
   return ::new (mem) Command(arena);
 }
 constexpr auto Command::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(Command),
-                                            alignof(Command));
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(Command, _impl_.default_bindings_) +
+          decltype(Command::_impl_.default_bindings_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(Command), alignof(Command), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&Command::PlacementNew_,
+                                 sizeof(Command),
+                                 alignof(Command));
+  }
 }
 constexpr auto Command::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
@@ -279,18 +1477,18 @@ Command::GetClassData() const {
   return Command_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 9, 0, 88, 2>
+const ::_pbi::TcParseTable<4, 10, 1, 88, 2>
 Command::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Command, _impl_._has_bits_),
     0, // no _extensions_
-    9, 120,  // max_field_number, fast_idx_mask
+    10, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294966784,  // skipmap
+    4294966272,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    9,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
+    10,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
     Command_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
@@ -301,41 +1499,44 @@ Command::_table_ = {
     {::_pbi::TcParser::MiniParse, {}},
     // string command_id = 1;
     {::_pbi::TcParser::FastUS1,
-     {10, 0, 0,
+     {10, 1, 0,
       PROTOBUF_FIELD_OFFSET(Command, _impl_.command_id_)}},
     // string label = 2;
     {::_pbi::TcParser::FastUS1,
-     {18, 1, 0,
+     {18, 2, 0,
       PROTOBUF_FIELD_OFFSET(Command, _impl_.label_)}},
     // string keybinding = 3;
     {::_pbi::TcParser::FastUS1,
-     {26, 2, 0,
+     {26, 3, 0,
       PROTOBUF_FIELD_OFFSET(Command, _impl_.keybinding_)}},
     // string menu_path = 4;
     {::_pbi::TcParser::FastUS1,
-     {34, 3, 0,
+     {34, 4, 0,
       PROTOBUF_FIELD_OFFSET(Command, _impl_.menu_path_)}},
     // uint32 menu_group = 5;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Command, _impl_.menu_group_), 6>(),
-     {40, 6, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Command, _impl_.menu_group_), 7>(),
+     {40, 7, 0,
       PROTOBUF_FIELD_OFFSET(Command, _impl_.menu_group_)}},
     // uint32 menu_order = 6;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Command, _impl_.menu_order_), 7>(),
-     {48, 7, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Command, _impl_.menu_order_), 8>(),
+     {48, 8, 0,
       PROTOBUF_FIELD_OFFSET(Command, _impl_.menu_order_)}},
     // string icon = 7;
     {::_pbi::TcParser::FastUS1,
-     {58, 4, 0,
+     {58, 5, 0,
       PROTOBUF_FIELD_OFFSET(Command, _impl_.icon_)}},
     // string description = 8;
     {::_pbi::TcParser::FastUS1,
-     {66, 5, 0,
+     {66, 6, 0,
       PROTOBUF_FIELD_OFFSET(Command, _impl_.description_)}},
     // bool has_sub_items = 9;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Command, _impl_.has_sub_items_), 8>(),
-     {72, 8, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Command, _impl_.has_sub_items_), 9>(),
+     {72, 9, 0,
       PROTOBUF_FIELD_OFFSET(Command, _impl_.has_sub_items_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // repeated .s4wave.command.CommandBinding default_bindings = 10;
+    {::_pbi::TcParser::FastMtR1,
+     {82, 0, 0,
+      PROTOBUF_FIELD_OFFSET(Command, _impl_.default_bindings_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
@@ -345,25 +1546,29 @@ Command::_table_ = {
     65535, 65535
   }}, {{
     // string command_id = 1;
-    {PROTOBUF_FIELD_OFFSET(Command, _impl_.command_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(Command, _impl_.command_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string label = 2;
-    {PROTOBUF_FIELD_OFFSET(Command, _impl_.label_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(Command, _impl_.label_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string keybinding = 3;
-    {PROTOBUF_FIELD_OFFSET(Command, _impl_.keybinding_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(Command, _impl_.keybinding_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string menu_path = 4;
-    {PROTOBUF_FIELD_OFFSET(Command, _impl_.menu_path_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(Command, _impl_.menu_path_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // uint32 menu_group = 5;
-    {PROTOBUF_FIELD_OFFSET(Command, _impl_.menu_group_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(Command, _impl_.menu_group_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // uint32 menu_order = 6;
-    {PROTOBUF_FIELD_OFFSET(Command, _impl_.menu_order_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(Command, _impl_.menu_order_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // string icon = 7;
-    {PROTOBUF_FIELD_OFFSET(Command, _impl_.icon_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(Command, _impl_.icon_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string description = 8;
-    {PROTOBUF_FIELD_OFFSET(Command, _impl_.description_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(Command, _impl_.description_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // bool has_sub_items = 9;
-    {PROTOBUF_FIELD_OFFSET(Command, _impl_.has_sub_items_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(Command, _impl_.has_sub_items_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // repeated .s4wave.command.CommandBinding default_bindings = 10;
+    {PROTOBUF_FIELD_OFFSET(Command, _impl_.default_bindings_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
-  // no aux_entries
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::command::CommandBinding>()},
+  }},
   {{
     "\26\12\5\12\11\0\0\4\13\0\0\0\0\0\0\0"
     "s4wave.command.Command"
@@ -383,32 +1588,35 @@ PROTOBUF_NOINLINE void Command::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      _impl_.command_id_.ClearNonDefaultToEmpty();
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.default_bindings_.Clear();
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      _impl_.label_.ClearNonDefaultToEmpty();
+      _impl_.command_id_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      _impl_.keybinding_.ClearNonDefaultToEmpty();
+      _impl_.label_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      _impl_.menu_path_.ClearNonDefaultToEmpty();
+      _impl_.keybinding_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-      _impl_.icon_.ClearNonDefaultToEmpty();
+      _impl_.menu_path_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      _impl_.icon_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       _impl_.description_.ClearNonDefaultToEmpty();
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x000000c0U)) {
-    ::memset(&_impl_.menu_group_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.menu_order_) -
-        reinterpret_cast<char*>(&_impl_.menu_group_)) + sizeof(_impl_.menu_order_));
+  _impl_.menu_group_ = 0u;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    ::memset(&_impl_.menu_order_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.has_sub_items_) -
+        reinterpret_cast<char*>(&_impl_.menu_order_)) + sizeof(_impl_.has_sub_items_));
   }
-  _impl_.has_sub_items_ = false;
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -433,7 +1641,7 @@ PROTOBUF_NOINLINE void Command::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // string command_id = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     if (!this_._internal_command_id().empty()) {
       const ::std::string& _s = this_._internal_command_id();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
@@ -443,7 +1651,7 @@ PROTOBUF_NOINLINE void Command::Clear() {
   }
 
   // string label = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     if (!this_._internal_label().empty()) {
       const ::std::string& _s = this_._internal_label();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
@@ -453,7 +1661,7 @@ PROTOBUF_NOINLINE void Command::Clear() {
   }
 
   // string keybinding = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
     if (!this_._internal_keybinding().empty()) {
       const ::std::string& _s = this_._internal_keybinding();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
@@ -463,7 +1671,7 @@ PROTOBUF_NOINLINE void Command::Clear() {
   }
 
   // string menu_path = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (!this_._internal_menu_path().empty()) {
       const ::std::string& _s = this_._internal_menu_path();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
@@ -473,7 +1681,7 @@ PROTOBUF_NOINLINE void Command::Clear() {
   }
 
   // uint32 menu_group = 5;
-  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
     if (this_._internal_menu_group() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -482,7 +1690,7 @@ PROTOBUF_NOINLINE void Command::Clear() {
   }
 
   // uint32 menu_order = 6;
-  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
     if (this_._internal_menu_order() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -491,7 +1699,7 @@ PROTOBUF_NOINLINE void Command::Clear() {
   }
 
   // string icon = 7;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     if (!this_._internal_icon().empty()) {
       const ::std::string& _s = this_._internal_icon();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
@@ -501,7 +1709,7 @@ PROTOBUF_NOINLINE void Command::Clear() {
   }
 
   // string description = 8;
-  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
     if (!this_._internal_description().empty()) {
       const ::std::string& _s = this_._internal_description();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
@@ -511,11 +1719,24 @@ PROTOBUF_NOINLINE void Command::Clear() {
   }
 
   // bool has_sub_items = 9;
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
     if (this_._internal_has_sub_items() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
           9, this_._internal_has_sub_items(), target);
+    }
+  }
+
+  // repeated .s4wave.command.CommandBinding default_bindings = 10;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_default_bindings_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_default_bindings().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              10, repfield, repfield.GetCachedSize(),
+              target, stream);
     }
   }
 
@@ -545,66 +1766,73 @@ PROTOBUF_NOINLINE void Command::Clear() {
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
   if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // repeated .s4wave.command.CommandBinding default_bindings = 10;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_default_bindings_size();
+      for (const auto& msg : this_._internal_default_bindings()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
     // string command_id = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       if (!this_._internal_command_id().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_command_id());
       }
     }
     // string label = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (!this_._internal_label().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_label());
       }
     }
     // string keybinding = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (!this_._internal_keybinding().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_keybinding());
       }
     }
     // string menu_path = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (!this_._internal_menu_path().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_menu_path());
       }
     }
     // string icon = 7;
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (!this_._internal_icon().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_icon());
       }
     }
     // string description = 8;
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (!this_._internal_description().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_description());
       }
     }
     // uint32 menu_group = 5;
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (this_._internal_menu_group() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_menu_group());
       }
     }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
     // uint32 menu_order = 6;
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (this_._internal_menu_order() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_menu_order());
       }
     }
-  }
-   {
     // bool has_sub_items = 9;
-    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       if (this_._internal_has_sub_items() != 0) {
         total_size += 2;
       }
@@ -622,6 +1850,7 @@ void Command::MergeImpl(::google::protobuf::MessageLite& to_msg,
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     from.CheckHasBitConsistency();
   }
+  ::google::protobuf::Arena* arena = _this->GetArena();
   // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.command.Command)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
@@ -629,7 +1858,12 @@ void Command::MergeImpl(::google::protobuf::MessageLite& to_msg,
 
   cached_has_bits = from._impl_._has_bits_[0];
   if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_default_bindings()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_default_bindings());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       if (!from._internal_command_id().empty()) {
         _this->_internal_set_command_id(from._internal_command_id());
       } else {
@@ -638,7 +1872,7 @@ void Command::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (!from._internal_label().empty()) {
         _this->_internal_set_label(from._internal_label());
       } else {
@@ -647,7 +1881,7 @@ void Command::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (!from._internal_keybinding().empty()) {
         _this->_internal_set_keybinding(from._internal_keybinding());
       } else {
@@ -656,7 +1890,7 @@ void Command::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (!from._internal_menu_path().empty()) {
         _this->_internal_set_menu_path(from._internal_menu_path());
       } else {
@@ -665,7 +1899,7 @@ void Command::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (!from._internal_icon().empty()) {
         _this->_internal_set_icon(from._internal_icon());
       } else {
@@ -674,7 +1908,7 @@ void Command::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (!from._internal_description().empty()) {
         _this->_internal_set_description(from._internal_description());
       } else {
@@ -683,20 +1917,22 @@ void Command::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (from._internal_menu_group() != 0) {
         _this->_impl_.menu_group_ = from._impl_.menu_group_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (from._internal_menu_order() != 0) {
         _this->_impl_.menu_order_ = from._impl_.menu_order_;
       }
     }
-  }
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-    if (from._internal_has_sub_items() != 0) {
-      _this->_impl_.has_sub_items_ = from._impl_.has_sub_items_;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (from._internal_has_sub_items() != 0) {
+        _this->_impl_.has_sub_items_ = from._impl_.has_sub_items_;
+      }
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -718,6 +1954,7 @@ void Command::InternalSwap(Command* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.default_bindings_.InternalSwap(&other->_impl_.default_bindings_);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.command_id_, &other->_impl_.command_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.label_, &other->_impl_.label_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.keybinding_, &other->_impl_.keybinding_, arena);
