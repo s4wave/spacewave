@@ -4,6 +4,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 
+	forge_docker "github.com/s4wave/spacewave/forge/lib/docker"
 	forge_git "github.com/s4wave/spacewave/forge/lib/git"
 	forge_kvtx "github.com/s4wave/spacewave/forge/lib/kvtx"
 	forge_util "github.com/s4wave/spacewave/forge/lib/util"
@@ -13,6 +14,7 @@ import (
 // AddFactories adds factories to an existing static resolver.
 func AddFactories(b bus.Bus, sr *static.Resolver) {
 	forge_kvtx.AddFactories(b, sr)
+	forge_docker.AddFactories(b, sr)
 	forge_git.AddFactories(b, sr)
 	forge_util.AddFactories(b, sr)
 	forge_v86.AddFactories(b, sr)

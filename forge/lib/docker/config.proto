@@ -1,0 +1,38 @@
+syntax = "proto3";
+package forge.lib.docker;
+
+// Config configures the docker CLI exec controller.
+// Creates one container, starts it, waits for completion, and stops it on
+// execution cancellation.
+message Config {
+  // DockerPath is the docker CLI executable path.
+  // Defaults to "docker" when empty.
+  string docker_path = 1;
+  // DockerEnv is the explicit environment for the docker CLI subprocess.
+  // No host environment is inherited unless configured here.
+  map<string, string> docker_env = 2;
+  // Image is the container image to create.
+  string image = 3;
+  // Workdir is the container working directory.
+  string workdir = 4;
+  // Env is the explicit environment passed to the container.
+  // No host environment is inherited.
+  map<string, string> env = 5;
+  // Mounts is the ordered list of bind mounts passed to docker create.
+  repeated Mount mounts = 6;
+  // Command is appended after the image as the container command.
+  repeated string command = 7;
+  // StopTimeoutSeconds is passed to docker stop when cancellation stops a
+  // container. Docker's default stop timeout is used when zero.
+  uint32 stop_timeout_seconds = 8;
+}
+
+// Mount configures one docker bind mount.
+message Mount {
+  // HostPath is the host source path.
+  string host_path = 1;
+  // ContainerPath is the target path inside the container.
+  string container_path = 2;
+  // ReadOnly marks the bind mount read-only.
+  bool read_only = 3;
+}
