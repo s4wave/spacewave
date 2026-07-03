@@ -3,12 +3,20 @@
 package handoff
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/aperturerobotics/fastjson"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	"github.com/s4wave/spacewave/db/testbed"
+	db_world "github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
+	"github.com/s4wave/spacewave/net/peer"
+	"github.com/sirupsen/logrus"
 )
 
 func TestNeedsBuilderImage(t *testing.T) {
@@ -171,6 +179,42 @@ func TestCLIBinaryPathUsesCLIManifestBuildRoot(t *testing.T) {
 	want := filepath.Join("/repo", ".bldr", "build", "desktop", "linux", "amd64", "spacewave-cli", "dist", "spacewave")
 	if got != want {
 		t.Fatalf("cli binary path = %q, want %q", got, want)
+	}
+}
+
+func TestCollectCLIHandoffManifestRefsAcceptsReleaseBuildTypeAndRejectsDev(t *testing.T) {
+	ctx := context.Background()
+	releaseWorld := newTestCLIHandoffWorld(t, ctx, func(string) string {
+		return string(bldr_manifest.BuildType_RELEASE)
+	})
+
+	refs, err := collectCLIHandoffManifestRefs(ctx, releaseWorld)
+	if err != nil {
+		t.Fatalf("collectCLIHandoffManifestRefs(release) error = %v", err)
+	}
+	if len(refs) != len(cliHandoffPlatformIDs) {
+		t.Fatalf("release manifest refs = %d, want %d", len(refs), len(cliHandoffPlatformIDs))
+	}
+	for idx, platformID := range cliHandoffPlatformIDs {
+		ref := refs[idx]
+		if ref.ManifestID != cliEntrypointManifestID {
+			t.Fatalf("release ref[%d] manifest id = %q, want %q", idx, ref.ManifestID, cliEntrypointManifestID)
+		}
+		if ref.PlatformID != platformID {
+			t.Fatalf("release ref[%d] platform id = %q, want %q", idx, ref.PlatformID, platformID)
+		}
+	}
+
+	devWorld := newTestCLIHandoffWorld(t, ctx, func(platformID string) string {
+		if platformID == "desktop/linux/amd64" {
+			return string(bldr_manifest.BuildType_DEV)
+		}
+		return string(bldr_manifest.BuildType_RELEASE)
+	})
+
+	_, err = collectCLIHandoffManifestRefs(ctx, devWorld)
+	if err == nil || !strings.Contains(err.Error(), "wrong build type: dev") {
+		t.Fatalf("collectCLIHandoffManifestRefs(dev) error = %v, want wrong build type rejection", err)
 	}
 }
 
@@ -394,6 +438,90 @@ func TestValidateBrowserBundleArtifactsChecksBrowserOutputs(t *testing.T) {
 	if err := validateBrowserBundleArtifacts(dir); err == nil {
 		t.Fatal("validateBrowserBundleArtifacts accepted missing index html")
 	}
+}
+
+func newTestCLIHandoffWorld(
+	t *testing.T,
+	ctx context.Context,
+	buildTypeForPlatform func(string) string,
+) db_world.WorldState {
+	t.Helper()
+
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(tb.Release)
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(ocs.Release)
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, "devtool"); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	for idx, platformID := range cliHandoffPlatformIDs {
+		manifestRef := newTestCLIHandoffManifestRef(
+			t,
+			ctx,
+			tb,
+			buildTypeForPlatform(platformID),
+			platformID,
+			uint64(idx+1),
+		)
+		objectKey := "devtool/manifests/" + platformID
+		if err := bldr_manifest_world.ExStoreManifestOp(
+			ctx,
+			ws,
+			peer.ID("test"),
+			objectKey,
+			[]string{"devtool"},
+			manifestRef,
+		); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	return ws
+}
+
+func newTestCLIHandoffManifestRef(
+	t *testing.T,
+	ctx context.Context,
+	tb *testbed.Testbed,
+	buildType string,
+	platformID string,
+	rev uint64,
+) *bldr_manifest.ManifestRef {
+	t.Helper()
+
+	meta := &bldr_manifest.ManifestMeta{
+		ManifestId: cliEntrypointManifestID,
+		BuildType:  buildType,
+		PlatformId: platformID,
+		Rev:        rev,
+	}
+	oc, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer oc.Release()
+
+	btx, bcs := oc.BuildTransaction(nil)
+	bcs.SetBlock(bldr_manifest.NewManifest(meta, "entrypoint"), true)
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	oc.SetRootRef(rootRef)
+	return bldr_manifest.NewManifestRef(meta, oc.GetRef())
 }
 
 func writeTestFile(t *testing.T, path string) {

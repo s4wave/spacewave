@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
@@ -170,7 +171,7 @@ func collectCLIHandoffManifestRefs(
 		if meta.GetManifestId() != cliEntrypointManifestID {
 			return nil, errors.New("collected wrong cli handoff manifest id: " + meta.GetManifestId())
 		}
-		if meta.GetBuildType() != "production" {
+		if bldr_manifest.ToBuildType(meta.GetBuildType()) != bldr_manifest.BuildType_RELEASE {
 			return nil, errors.New("collected cli handoff manifest has wrong build type: " + meta.GetBuildType())
 		}
 		current := byPlatform[platformID]
