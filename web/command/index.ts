@@ -17,6 +17,23 @@ export {
 } from './KeyDispatcher.js'
 export { WhichKeyPanel } from './WhichKeyPanel.js'
 export {
+  KeybindingEditor,
+  type KeybindingEditorProps,
+  type KeybindingEditorScope,
+} from './KeybindingEditor.js'
+export {
+  useLocalKeybindingOverrides,
+  type LocalKeybindingOverridesValue,
+} from './useLocalKeybindingOverrides.js'
+export {
+  localKeybindingStoreId,
+  type KeybindingCommandOverride,
+  type KeybindingOverrideLayer,
+  type KeybindingOverrideScope,
+  type KeybindingOverrideSet,
+} from './keybinding-overrides.js'
+export { useKeybindingGraph } from './useKeybindingGraph.js'
+export {
   FocusContextProvider,
   FocusContextStackProvider,
   ShellTabFocusContextProvider,
