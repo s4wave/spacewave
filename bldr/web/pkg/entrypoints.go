@@ -311,10 +311,11 @@ func normalizeResolvedExport(resolved string) (string, bool) {
 //
 // Resolution order:
 //  1. Direct file match (with extensions): "./foo" -> "foo.ts"
-//  2. Directory with index file: "./foo" -> "foo/index.ts"
-//  3. Directory scan: "./foo" -> all .ts/.tsx files in foo/
+//  2. Explicit file path: "./style/app.css" -> "style/app.css"
+//  3. Directory index plus direct bundleable files:
+//     "./foo" -> "foo/index.ts", "foo/Feature.tsx", ...
 //
-// Step 3 allows directory-level entrypoints to work without barrel files.
+// Nested directories are separate entrypoints, and test files are not bundled.
 func resolveSubpathEntrypoints(pkgRoot, subpath string) ([]string, error) {
 	// Normalize: strip leading "./"
 	rel := strings.TrimPrefix(subpath, "./")
@@ -332,15 +333,6 @@ func resolveSubpathEntrypoints(pkgRoot, subpath string) ([]string, error) {
 		}
 	}
 
-	// Try as a directory with index files.
-	dir := rel
-	for _, idx := range indexFiles {
-		candidate := filepath.Join(dir, idx)
-		if fileExists(filepath.Join(pkgRoot, candidate)) {
-			return []string{candidate}, nil
-		}
-	}
-
 	// If rel already has an extension and the file exists, use it directly.
 	if rel != "" && filepath.Ext(rel) != "" {
 		if fileExists(filepath.Join(pkgRoot, rel)) {
@@ -348,37 +340,62 @@ func resolveSubpathEntrypoints(pkgRoot, subpath string) ([]string, error) {
 		}
 	}
 
-	// Try scanning the directory for all TS/TSX/JS files.
+	dir := rel
+	var files []string
+	seen := make(map[string]struct{})
+	addFile := func(candidate string) {
+		if _, ok := seen[candidate]; ok {
+			return
+		}
+		seen[candidate] = struct{}{}
+		files = append(files, candidate)
+	}
+
+	// Include the directory index first so package-barrel imports keep their
+	// stable root while direct subpath imports from the same directory are served.
+	for _, idx := range indexFiles {
+		candidate := filepath.Join(dir, idx)
+		if fileExists(filepath.Join(pkgRoot, candidate)) {
+			addFile(candidate)
+			break
+		}
+	}
+
+	// Scan the directory for direct bundleable files. Nested directories are
+	// separate entrypoints so callers choose which subtrees become public.
 	absDir := filepath.Join(pkgRoot, dir)
 	if info, err := os.Stat(absDir); err == nil && info.IsDir() {
 		entries, err := os.ReadDir(absDir)
 		if err != nil {
 			return nil, errors.Wrapf(err, "read directory %q", subpath)
 		}
-		var files []string
 		for _, entry := range entries {
 			if entry.IsDir() {
 				continue
 			}
-			ext := filepath.Ext(entry.Name())
-			switch ext {
-			case ".ts", ".tsx", ".js", ".jsx", ".mjs":
-				// Skip test files and declaration files.
-				name := entry.Name()
-				if strings.HasSuffix(name, ".test.ts") ||
-					strings.HasSuffix(name, ".test.tsx") ||
-					strings.HasSuffix(name, ".d.ts") {
-					continue
-				}
-				files = append(files, filepath.Join(dir, name))
+			if !isBundleableEntrypointFile(entry.Name()) {
+				continue
 			}
-		}
-		if len(files) > 0 {
-			return files, nil
+			addFile(filepath.Join(dir, entry.Name()))
 		}
 	}
 
+	if len(files) != 0 {
+		return files, nil
+	}
 	return nil, errors.Errorf("could not resolve entry point %q in %s", subpath, pkgRoot)
+}
+
+func isBundleableEntrypointFile(name string) bool {
+	if strings.Contains(name, ".test.") {
+		return false
+	}
+	switch filepath.Ext(name) {
+	case ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".css":
+		return true
+	default:
+		return false
+	}
 }
 
 // ResolveWebPkgRefsFromConfig builds WebPkgRef entries from config and

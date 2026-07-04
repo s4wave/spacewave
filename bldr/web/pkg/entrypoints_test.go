@@ -55,6 +55,65 @@ func TestResolveWebPkgRefsFromConfigUsesTSConfigPathRoot(t *testing.T) {
 	}
 }
 
+func TestResolveWebPkgRefsFromConfigDirectoryEntrypointIncludesDirectFiles(t *testing.T) {
+	dir := t.TempDir()
+	commandDir := filepath.Join(dir, "web", "command")
+	if err := os.MkdirAll(filepath.Join(commandDir, "child"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "web", "package.json"), []byte(`{"name":"@s4wave/web"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(commandDir, "index.ts"), []byte("export const command = true\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(commandDir, "useCommand.ts"), []byte("export const useCommand = true\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(commandDir, "CommandPalette.tsx"), []byte("export const CommandPalette = true\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(commandDir, "useCommand.test.tsx"), []byte("export const testOnly = true\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(commandDir, "child", "nested.ts"), []byte("export const nested = true\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "tsconfig.json"), []byte(`{
+  "compilerOptions": {
+    "paths": {
+      "@s4wave/web": ["./web"],
+      "@s4wave/web/*": ["./web/*"]
+    }
+  }
+}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	refs, err := ResolveWebPkgRefsFromConfig(
+		dir,
+		[]WebPkgResolveConfig{{
+			ID: "@s4wave/web",
+			Entrypoints: []WebPkgEntrypointConfig{{
+				Path: "./command",
+			}},
+		}},
+		nil,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(refs) != 1 {
+		t.Fatalf("expected 1 ref, got %d", len(refs))
+	}
+	got := refs[0].GetImports()
+	want := []string{"command/index.ts", "command/CommandPalette.tsx", "command/useCommand.ts"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("unexpected command entrypoint imports: got %v want %v", got, want)
+	}
+}
+
 func TestResolveWebPkgRefsFromConfigAddsNodeModuleRootWithExplicitEntrypoints(t *testing.T) {
 	dir := t.TempDir()
 	pkgRoot := filepath.Join(dir, "node_modules", "non-index-root")
