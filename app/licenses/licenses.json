@@ -904,7 +904,7 @@
     },
     {
       "name": "github.com/aperturerobotics/bbolt",
-      "version": "v0.0.0-20260704100202-48a26303ac88",
+      "version": "v0.0.0-20260704155049-d1668b64c0f6",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/etcd-io/bbolt",
