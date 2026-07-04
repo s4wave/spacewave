@@ -89,8 +89,9 @@ func (rg *RefGraph) RemoveRef(ctx context.Context, subject, object string) error
 	return rg.handle.RemoveQuad(ctx, q)
 }
 
-// ApplyRefBatch applies a batch of ref graph edge additions and removals
-// in a single Cayley transaction.
+// ApplyRefBatch applies a batch of ref graph edge additions and removals.
+// Small batches run in one Cayley transaction; larger batches chunk at a
+// bounded size while preserving add-before-remove order.
 func (rg *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) error {
 	ctx = disableStoreTracking(ctx)
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/apply-ref-batch")
@@ -109,21 +110,21 @@ func (rg *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) 
 	}
 
 	chunks := 0
-	for len(adds) != 0 {
-		n := min(len(adds), refGraphApplyBatchLimit)
+	for len(adds) != 0 || len(removes) != 0 {
+		addCount := min(len(adds), refGraphApplyBatchLimit)
+		removeCount := 0
+		if addCount < refGraphApplyBatchLimit {
+			removeCount = min(len(removes), refGraphApplyBatchLimit-addCount)
+		}
+		if addCount == 0 {
+			removeCount = min(len(removes), refGraphApplyBatchLimit)
+		}
 		chunks++
-		if err := rg.applyRefBatch(ctx, adds[:n], nil); err != nil {
+		if err := rg.applyRefBatch(ctx, adds[:addCount], removes[:removeCount]); err != nil {
 			return err
 		}
-		adds = adds[n:]
-	}
-	for len(removes) != 0 {
-		n := min(len(removes), refGraphApplyBatchLimit)
-		chunks++
-		if err := rg.applyRefBatch(ctx, nil, removes[:n]); err != nil {
-			return err
-		}
-		removes = removes[n:]
+		adds = adds[addCount:]
+		removes = removes[removeCount:]
 	}
 	trace.Logf(ctx, "hydra/block-gc/refgraph/apply-ref-batch/chunks", "chunks=%d", chunks)
 	return nil

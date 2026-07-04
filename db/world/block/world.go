@@ -35,6 +35,12 @@ const (
 	defaultGCJournalReconcileEdgeLimit  uint64 = 4096
 )
 
+type worldRefGraph interface {
+	block_gc.RefGraphOps
+	CloneIRIRefKeys() map[string]any
+	ImportIRIRefKeys(map[string]any)
+}
+
 // WorldState implements world state backed by a block graph.
 // Note: GetRoot, WaitSeqno are concurrency safe.
 // Note: all other calls are not concurrency safe. Use Tx if you want a mutex.
@@ -59,7 +65,7 @@ type WorldState struct {
 	graphHd        *cayley.Handle
 	gcTree         kvtx.BlockTx
 	gcTreeIsolated bool
-	refGraph       *block_gc.RefGraph
+	refGraph       worldRefGraph
 	gcJournalTree  kvtx.BlockTx
 	gcJournal      *gcJournal
 	gcJournalDirty bool
@@ -449,8 +455,12 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 	if t.gcJournalTree != nil {
 		t.gcJournalTree.Discard()
 	}
+	var activeRefGraph worldRefGraph
+	if refGraph != nil {
+		activeRefGraph = refGraph
+	}
 	t.objTree, t.graphTree, t.graphHd = objTree, graphTree, graphHandle
-	t.gcTree, t.gcTreeIsolated, t.refGraph = gcTree, gcTreeIsolated, refGraph
+	t.gcTree, t.gcTreeIsolated, t.refGraph = gcTree, gcTreeIsolated, activeRefGraph
 	t.gcJournalTree, t.gcJournal = journalTree, journal
 	subtask.End()
 

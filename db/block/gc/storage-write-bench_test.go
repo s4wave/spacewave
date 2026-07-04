@@ -139,7 +139,7 @@ func (rg *driveRatioBenchmarkRefGraph) ApplyRefBatch(ctx context.Context, adds, 
 	start := time.Now()
 	err := rg.RefGraph.ApplyRefBatch(ctx, adds, removes)
 	rg.applyRefBatchDuration += time.Since(start)
-	rg.cayleyTransactions += refBatchTransactions(len(adds)) + refBatchTransactions(len(removes))
+	rg.cayleyTransactions += refBatchTransactions(len(adds) + len(removes))
 	return err
 }
 

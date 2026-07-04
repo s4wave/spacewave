@@ -107,18 +107,20 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 		changeBcs.SetRef(5, nbcs)
 	}
 
-	// GC: world -> object, object -> root block.
+	// One logical world object create applies one refgraph batch; logical edges
+	// match the former per-edge writes exactly.
 	if rg := t.refGraph; rg != nil {
 		objIRI := block_gc.ObjectIRI(key)
-		if err := rg.AddRef(ctx, "world", objIRI); err != nil {
-			return nil, err
-		}
+		adds := []block_gc.RefEdge{{Subject: "world", Object: objIRI}}
+		var removes []block_gc.RefEdge
 		rootBlockRef := rootRef.GetRootRef()
-		if err := rg.AddObjectRoot(ctx, key, rootBlockRef); err != nil {
-			return nil, err
-		}
 		if rootBlockRef != nil && !rootBlockRef.GetEmpty() {
-			_ = rg.RemoveRef(ctx, block_gc.NodeUnreferenced, block_gc.BlockIRI(rootBlockRef))
+			rootBlockIRI := block_gc.BlockIRI(rootBlockRef)
+			adds = append(adds, block_gc.RefEdge{Subject: objIRI, Object: rootBlockIRI})
+			removes = append(removes, block_gc.RefEdge{Subject: block_gc.NodeUnreferenced, Object: rootBlockIRI})
+		}
+		if err := rg.ApplyRefBatch(ctx, adds, removes); err != nil {
+			return nil, err
 		}
 	}
 
