@@ -1,4 +1,9 @@
-import type { CommandBinding } from '@s4wave/sdk/command/command.pb.js'
+import {
+  KeybindingDisplayMode,
+  type CommandBinding,
+  type KeybindingCommandOverride as ProtoKeybindingCommandOverride,
+  type KeybindingOverrideSet as ProtoKeybindingOverrideSet,
+} from '@s4wave/sdk/command/command.pb.js'
 
 export type KeybindingOverrideScope = 'local' | 'account' | 'space'
 
@@ -48,6 +53,54 @@ export function createKeybindingOverrideLayer(
     scope,
     label,
     overrideSet: normalizeKeybindingOverrideSet(overrideSet),
+  }
+}
+
+export function keybindingOverrideSetFromProto(
+  value: ProtoKeybindingOverrideSet | null | undefined,
+): KeybindingOverrideSet {
+  if (!value) return createEmptyKeybindingOverrideSet()
+  const overrides: Record<string, KeybindingCommandOverride> = {}
+  for (const rawOverride of value.overrides ?? []) {
+    const commandId = rawOverride.commandId
+    if (!commandId) continue
+    const override = normalizeCommandOverride(rawOverride)
+    if (!isKeybindingCommandOverrideEmpty(override)) {
+      overrides[commandId] = override
+    }
+  }
+  return {
+    version: 1,
+    overrides,
+    settings: normalizeKeybindingSettings(value.settings),
+  }
+}
+
+export function keybindingOverrideSetToProto(
+  value: KeybindingOverrideSet,
+): ProtoKeybindingOverrideSet {
+  const normalized = normalizeKeybindingOverrideSet(value)
+  return {
+    version: normalized.version,
+    overrides: Object.entries(normalized.overrides).map(
+      ([commandId, override]) =>
+        keybindingCommandOverrideToProto(commandId, override),
+    ),
+    settings: keybindingSettingsToProto(normalized.settings),
+  }
+}
+
+export function keybindingCommandOverrideToProto(
+  commandId: string,
+  override: KeybindingCommandOverride,
+): ProtoKeybindingCommandOverride {
+  const normalized = normalizeCommandOverride(override)
+  return {
+    commandId,
+    replaceBindings: normalized.replaceBindings,
+    disabled: normalized.disabled,
+    clearedBindingIds: normalized.clearedBindingIds ?? [],
+    bindings: normalized.bindings ?? [],
   }
 }
 
@@ -217,8 +270,36 @@ function normalizeKeybindingSettings(
   if (isRecord(value.display)) {
     const mode = value.display.mode
     if (mode === 'symbols' || mode === 'text') settings.display = { mode }
+    const protoMode =
+      typeof mode === 'number' ? displayModeFromProto(mode) : undefined
+    if (protoMode) settings.display = { mode: protoMode }
   }
   return settings
+}
+
+function keybindingSettingsToProto(
+  settings: KeybindingOverrideSettings,
+): NonNullable<ProtoKeybindingOverrideSet['settings']> {
+  const mode = settings.display?.mode
+  return {
+    leaderCombo: settings.leaderCombo,
+    whichKeyDelayMs: settings.whichKeyDelayMs,
+    display: mode ? { mode: displayModeToProto(mode) } : undefined,
+  }
+}
+
+function displayModeToProto(mode: 'symbols' | 'text'): KeybindingDisplayMode {
+  return mode === 'symbols'
+    ? KeybindingDisplayMode.SYMBOLS
+    : KeybindingDisplayMode.TEXT
+}
+
+function displayModeFromProto(
+  mode: KeybindingDisplayMode | undefined,
+): KeybindingDisplaySettings['mode'] | undefined {
+  if (mode === KeybindingDisplayMode.SYMBOLS) return 'symbols'
+  if (mode === KeybindingDisplayMode.TEXT) return 'text'
+  return undefined
 }
 
 function uniqueStrings(values: unknown[]): string[] {

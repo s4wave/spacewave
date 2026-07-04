@@ -44,6 +44,26 @@ std::pair<std::unique_ptr<SRPCAccountResourceService_WatchSessionsClient>, starp
   return {std::make_unique<SRPCAccountResourceService_WatchSessionsClient>(std::move(strm)), starpc::Error::OK};
 }
 
+std::pair<std::unique_ptr<SRPCAccountResourceService_WatchKeybindingOverridesClient>, starpc::Error> SRPCAccountResourceServiceClientImpl::WatchKeybindingOverrides(const s4wave::account::WatchKeybindingOverridesRequest& in) {
+  auto [strm, err] = cc_->NewStream(service_id_, "WatchKeybindingOverrides", &in);
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  err = strm->CloseSend();
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::make_unique<SRPCAccountResourceService_WatchKeybindingOverridesClient>(std::move(strm)), starpc::Error::OK};
+}
+
+starpc::Error SRPCAccountResourceServiceClientImpl::UpsertKeybindingOverride(const s4wave::account::UpsertKeybindingOverrideRequest& in, s4wave::account::UpsertKeybindingOverrideResponse* out) {
+  return cc_->ExecCall(service_id_, "UpsertKeybindingOverride", in, out);
+}
+
+starpc::Error SRPCAccountResourceServiceClientImpl::RemoveKeybindingOverride(const s4wave::account::RemoveKeybindingOverrideRequest& in, s4wave::account::RemoveKeybindingOverrideResponse* out) {
+  return cc_->ExecCall(service_id_, "RemoveKeybindingOverride", in, out);
+}
+
 starpc::Error SRPCAccountResourceServiceClientImpl::AddAuthMethod(const s4wave::account::AddAuthMethodRequest& in, s4wave::account::AddAuthMethodResponse* out) {
   return cc_->ExecCall(service_id_, "AddAuthMethod", in, out);
 }
@@ -121,6 +141,9 @@ std::vector<std::string> SRPCAccountResourceServiceHandler::GetMethodIDs() const
     "WatchAccountInfo",
     "WatchAuthMethods",
     "WatchSessions",
+    "WatchKeybindingOverrides",
+    "UpsertKeybindingOverride",
+    "RemoveKeybindingOverride",
     "AddAuthMethod",
     "RemoveAuthMethod",
     "SetSecurityLevel",
@@ -166,6 +189,28 @@ std::pair<bool, starpc::Error> SRPCAccountResourceServiceHandler::InvokeMethod(
     if (err != starpc::Error::OK) return {true, err};
     SRPCAccountResourceService_WatchSessionsStream serverStrm(strm);
     return {true, impl_->WatchSessions(req, &serverStrm)};
+  } else if (method_id == "WatchKeybindingOverrides") {
+    s4wave::account::WatchKeybindingOverridesRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    SRPCAccountResourceService_WatchKeybindingOverridesStream serverStrm(strm);
+    return {true, impl_->WatchKeybindingOverrides(req, &serverStrm)};
+  } else if (method_id == "UpsertKeybindingOverride") {
+    s4wave::account::UpsertKeybindingOverrideRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::account::UpsertKeybindingOverrideResponse resp;
+    err = impl_->UpsertKeybindingOverride(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "RemoveKeybindingOverride") {
+    s4wave::account::RemoveKeybindingOverrideRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::account::RemoveKeybindingOverrideResponse resp;
+    err = impl_->RemoveKeybindingOverride(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
   } else if (method_id == "AddAuthMethod") {
     s4wave::account::AddAuthMethodRequest req;
     starpc::Error err = strm->MsgRecv(&req);

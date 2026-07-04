@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   CommandFocusContext,
+  KeybindingDisplayMode,
   type CommandBinding,
+  type KeybindingOverrideSet as ProtoKeybindingOverrideSet,
 } from '@s4wave/sdk/command/command.pb.js'
 
 import {
@@ -11,8 +13,11 @@ import {
   clearKeybindingOverrideSet,
   createEmptyKeybindingOverrideSet,
   keybindingBindingStorageId,
+  keybindingOverrideSetFromProto,
+  keybindingOverrideSetToProto,
   normalizeKeybindingOverrideSet,
   resetKeybindingCommandOverride,
+  type KeybindingOverrideSet as ModelKeybindingOverrideSet,
   setCommandBindingsOverride,
   setKeybindingCommandOverride,
 } from './keybinding-overrides.js'
@@ -179,5 +184,127 @@ describe('keybinding local override schema', () => {
         binding: { case: 'sequence', value: { steps: ['Leader', 'K'] } },
       }),
     ).toBe('sequence:Leader K')
+  })
+
+  it('round-trips the shared proto override set without losing command keys, binding ids, disables, clears, or display settings', () => {
+    const model: ModelKeybindingOverrideSet = {
+      version: 1,
+      overrides: {
+        'spacewave.palette': {
+          replaceBindings: true,
+          clearedBindingIds: ['palette-default', 'palette-alt'],
+          bindings: [
+            comboBinding('palette-replace', 'Ctrl+K'),
+            sequenceBinding('palette-leader', ['Leader', 'P']),
+          ],
+        },
+        'spacewave.disabled': {
+          disabled: true,
+          bindings: [],
+        },
+        'spacewave.cleared': {
+          clearedBindingIds: ['cleared-default'],
+          bindings: [],
+        },
+      },
+      settings: {
+        leaderCombo: 'Ctrl+Alt+Space',
+        whichKeyDelayMs: 275,
+        display: { mode: 'text' as const },
+      },
+    }
+
+    const proto = keybindingOverrideSetToProto(model)
+    const sortedOverrides = [...(proto.overrides ?? [])].sort((a, b) =>
+      (a.commandId ?? '').localeCompare(b.commandId ?? ''),
+    )
+
+    expect(proto.version).toBe(1)
+    expect(proto.settings).toEqual({
+      leaderCombo: 'Ctrl+Alt+Space',
+      whichKeyDelayMs: 275,
+      display: { mode: KeybindingDisplayMode.TEXT },
+    })
+    expect(sortedOverrides).toEqual([
+      expect.objectContaining({
+        commandId: 'spacewave.cleared',
+        clearedBindingIds: ['cleared-default'],
+        bindings: [],
+      }),
+      expect.objectContaining({
+        commandId: 'spacewave.disabled',
+        disabled: true,
+        bindings: [],
+      }),
+      expect.objectContaining({
+        commandId: 'spacewave.palette',
+        replaceBindings: true,
+        clearedBindingIds: ['palette-default', 'palette-alt'],
+        bindings: [
+          comboBinding('palette-replace', 'Ctrl+K'),
+          sequenceBinding('palette-leader', ['Leader', 'P']),
+        ],
+      }),
+    ])
+    const roundTripped = keybindingOverrideSetFromProto(proto)
+    expect(roundTripped.version).toBe(1)
+    expect(roundTripped.settings).toEqual(model.settings)
+    expect(roundTripped.overrides['spacewave.cleared']).toEqual(
+      model.overrides['spacewave.cleared'],
+    )
+    expect(roundTripped.overrides['spacewave.disabled']).toEqual(
+      expect.objectContaining({
+        disabled: true,
+        bindings: [],
+      }),
+    )
+    expect(roundTripped.overrides['spacewave.palette']).toEqual(
+      model.overrides['spacewave.palette'],
+    )
+  })
+
+  it('normalizes proto overrides by command id and lets later duplicate command rows win atomically', () => {
+    const proto: ProtoKeybindingOverrideSet = {
+      version: 1,
+      overrides: [
+        {
+          commandId: 'spacewave.palette',
+          replaceBindings: true,
+          bindings: [comboBinding('palette-stale', 'Ctrl+P')],
+        },
+        {
+          commandId: '',
+          disabled: true,
+          bindings: [comboBinding('missing-command', 'Ctrl+M')],
+        },
+        {
+          commandId: 'spacewave.palette',
+          disabled: true,
+          clearedBindingIds: ['palette-default'],
+          bindings: [],
+        },
+      ],
+      settings: {
+        leaderCombo: 'Alt+Space',
+        whichKeyDelayMs: 125,
+        display: { mode: KeybindingDisplayMode.SYMBOLS },
+      },
+    }
+
+    expect(keybindingOverrideSetFromProto(proto)).toEqual({
+      version: 1,
+      overrides: {
+        'spacewave.palette': {
+          disabled: true,
+          clearedBindingIds: ['palette-default'],
+          bindings: [],
+        },
+      },
+      settings: {
+        leaderCombo: 'Alt+Space',
+        whichKeyDelayMs: 125,
+        display: { mode: 'symbols' },
+      },
+    })
   })
 })

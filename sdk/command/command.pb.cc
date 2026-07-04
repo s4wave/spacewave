@@ -29,6 +29,31 @@ namespace _fl = ::google::protobuf::internal::field_layout;
 namespace s4wave {
 namespace command {
 
+inline constexpr KeybindingDisplaySettings::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        mode_{static_cast< ::s4wave::command::KeybindingDisplayMode >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR KeybindingDisplaySettings::KeybindingDisplaySettings(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(KeybindingDisplaySettings_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct KeybindingDisplaySettingsDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR KeybindingDisplaySettingsDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~KeybindingDisplaySettingsDefaultTypeInternal() {}
+  union {
+    KeybindingDisplaySettings _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 KeybindingDisplaySettingsDefaultTypeInternal _KeybindingDisplaySettings_default_instance_;
+
 inline constexpr KeySequence::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -81,6 +106,35 @@ struct KeyComboDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 KeyComboDefaultTypeInternal _KeyCombo_default_instance_;
 
+inline constexpr KeybindingOverrideSettings::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        leader_combo_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        display_{nullptr},
+        which_key_delay_ms_{0u} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR KeybindingOverrideSettings::KeybindingOverrideSettings(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(KeybindingOverrideSettings_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct KeybindingOverrideSettingsDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR KeybindingOverrideSettingsDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~KeybindingOverrideSettingsDefaultTypeInternal() {}
+  union {
+    KeybindingOverrideSettings _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 KeybindingOverrideSettingsDefaultTypeInternal _KeybindingOverrideSettings_default_instance_;
+
 inline constexpr CommandBinding::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -113,6 +167,37 @@ struct CommandBindingDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CommandBindingDefaultTypeInternal _CommandBinding_default_instance_;
+
+inline constexpr KeybindingCommandOverride::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        cleared_binding_ids_{},
+        bindings_{},
+        command_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        replace_bindings_{false},
+        disabled_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR KeybindingCommandOverride::KeybindingCommandOverride(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(KeybindingCommandOverride_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct KeybindingCommandOverrideDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR KeybindingCommandOverrideDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~KeybindingCommandOverrideDefaultTypeInternal() {}
+  union {
+    KeybindingCommandOverride _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 KeybindingCommandOverrideDefaultTypeInternal _KeybindingCommandOverride_default_instance_;
 
 inline constexpr Command::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -159,10 +244,37 @@ struct CommandDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CommandDefaultTypeInternal _Command_default_instance_;
+
+inline constexpr KeybindingOverrideSet::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        overrides_{},
+        settings_{nullptr},
+        version_{0u} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR KeybindingOverrideSet::KeybindingOverrideSet(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(KeybindingOverrideSet_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct KeybindingOverrideSetDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR KeybindingOverrideSetDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~KeybindingOverrideSetDefaultTypeInternal() {}
+  union {
+    KeybindingOverrideSet _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 KeybindingOverrideSetDefaultTypeInternal _KeybindingOverrideSet_default_instance_;
 }  // namespace command
 }  // namespace s4wave
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto[1];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto[2];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto = nullptr;
 const ::uint32_t
@@ -194,6 +306,42 @@ const ::uint32_t
         2,
         1,
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::KeybindingDisplaySettings, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::KeybindingDisplaySettings, _impl_.mode_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::KeybindingOverrideSettings, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::KeybindingOverrideSettings, _impl_.leader_combo_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::KeybindingOverrideSettings, _impl_.which_key_delay_ms_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::KeybindingOverrideSettings, _impl_.display_),
+        0,
+        2,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::KeybindingCommandOverride, _impl_._has_bits_),
+        8, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::KeybindingCommandOverride, _impl_.command_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::KeybindingCommandOverride, _impl_.replace_bindings_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::KeybindingCommandOverride, _impl_.disabled_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::KeybindingCommandOverride, _impl_.cleared_binding_ids_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::KeybindingCommandOverride, _impl_.bindings_),
+        2,
+        3,
+        4,
+        0,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::KeybindingOverrideSet, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::KeybindingOverrideSet, _impl_.version_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::KeybindingOverrideSet, _impl_.overrides_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::KeybindingOverrideSet, _impl_.settings_),
+        2,
+        0,
+        1,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::command::Command, _impl_._has_bits_),
         13, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::command::Command, _impl_.command_id_),
@@ -223,12 +371,20 @@ static const ::_pbi::MigrationSchema
         {0, sizeof(::s4wave::command::KeyCombo)},
         {5, sizeof(::s4wave::command::KeySequence)},
         {10, sizeof(::s4wave::command::CommandBinding)},
-        {25, sizeof(::s4wave::command::Command)},
+        {25, sizeof(::s4wave::command::KeybindingDisplaySettings)},
+        {30, sizeof(::s4wave::command::KeybindingOverrideSettings)},
+        {39, sizeof(::s4wave::command::KeybindingCommandOverride)},
+        {52, sizeof(::s4wave::command::KeybindingOverrideSet)},
+        {61, sizeof(::s4wave::command::Command)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::command::_KeyCombo_default_instance_._instance,
     &::s4wave::command::_KeySequence_default_instance_._instance,
     &::s4wave::command::_CommandBinding_default_instance_._instance,
+    &::s4wave::command::_KeybindingDisplaySettings_default_instance_._instance,
+    &::s4wave::command::_KeybindingOverrideSettings_default_instance_._instance,
+    &::s4wave::command::_KeybindingCommandOverride_default_instance_._instance,
+    &::s4wave::command::_KeybindingOverrideSet_default_instance_._instance,
     &::s4wave::command::_Command_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
@@ -241,33 +397,50 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fc
     "H\000\022/\n\010sequence\030\003 \001(\0132\033.s4wave.command.Ke"
     "ySequenceH\000\0221\n\004when\030\004 \001(\0162#.s4wave.comma"
     "nd.CommandFocusContext\022\024\n\014source_label\030\005"
-    " \001(\tB\t\n\007binding\"\357\001\n\007Command\022\022\n\ncommand_i"
-    "d\030\001 \001(\t\022\r\n\005label\030\002 \001(\t\022\022\n\nkeybinding\030\003 \001"
-    "(\t\022\021\n\tmenu_path\030\004 \001(\t\022\022\n\nmenu_group\030\005 \001("
-    "\r\022\022\n\nmenu_order\030\006 \001(\r\022\014\n\004icon\030\007 \001(\t\022\023\n\013d"
-    "escription\030\010 \001(\t\022\025\n\rhas_sub_items\030\t \001(\010\022"
-    "8\n\020default_bindings\030\n \003(\0132\036.s4wave.comma"
-    "nd.CommandBinding*\256\002\n\023CommandFocusContex"
-    "t\022%\n!COMMAND_FOCUS_CONTEXT_UNSPECIFIED\020\000"
-    "\022 \n\034COMMAND_FOCUS_CONTEXT_GLOBAL\020\001\022#\n\037CO"
-    "MMAND_FOCUS_CONTEXT_SHELL_TAB\020\002\022 \n\034COMMA"
-    "ND_FOCUS_CONTEXT_EDITOR\020\003\022\036\n\032COMMAND_FOC"
-    "US_CONTEXT_LIST\020\004\022 \n\034COMMAND_FOCUS_CONTE"
-    "XT_CANVAS\020\005\022\037\n\033COMMAND_FOCUS_CONTEXT_MOD"
-    "AL\020\006\022$\n COMMAND_FOCUS_CONTEXT_TEXT_INPUT"
-    "\020\007b\006proto3"
+    " \001(\tB\t\n\007binding\"P\n\031KeybindingDisplaySett"
+    "ings\0223\n\004mode\030\001 \001(\0162%.s4wave.command.Keyb"
+    "indingDisplayMode\"\212\001\n\032KeybindingOverride"
+    "Settings\022\024\n\014leader_combo\030\001 \001(\t\022\032\n\022which_"
+    "key_delay_ms\030\002 \001(\r\022:\n\007display\030\003 \001(\0132).s4"
+    "wave.command.KeybindingDisplaySettings\"\252"
+    "\001\n\031KeybindingCommandOverride\022\022\n\ncommand_"
+    "id\030\001 \001(\t\022\030\n\020replace_bindings\030\002 \001(\010\022\020\n\010di"
+    "sabled\030\003 \001(\010\022\033\n\023cleared_binding_ids\030\004 \003("
+    "\t\0220\n\010bindings\030\005 \003(\0132\036.s4wave.command.Com"
+    "mandBinding\"\244\001\n\025KeybindingOverrideSet\022\017\n"
+    "\007version\030\001 \001(\r\022<\n\toverrides\030\002 \003(\0132).s4wa"
+    "ve.command.KeybindingCommandOverride\022<\n\010"
+    "settings\030\003 \001(\0132*.s4wave.command.Keybindi"
+    "ngOverrideSettings\"\357\001\n\007Command\022\022\n\ncomman"
+    "d_id\030\001 \001(\t\022\r\n\005label\030\002 \001(\t\022\022\n\nkeybinding\030"
+    "\003 \001(\t\022\021\n\tmenu_path\030\004 \001(\t\022\022\n\nmenu_group\030\005"
+    " \001(\r\022\022\n\nmenu_order\030\006 \001(\r\022\014\n\004icon\030\007 \001(\t\022\023"
+    "\n\013description\030\010 \001(\t\022\025\n\rhas_sub_items\030\t \001"
+    "(\010\0228\n\020default_bindings\030\n \003(\0132\036.s4wave.co"
+    "mmand.CommandBinding*\256\002\n\023CommandFocusCon"
+    "text\022%\n!COMMAND_FOCUS_CONTEXT_UNSPECIFIE"
+    "D\020\000\022 \n\034COMMAND_FOCUS_CONTEXT_GLOBAL\020\001\022#\n"
+    "\037COMMAND_FOCUS_CONTEXT_SHELL_TAB\020\002\022 \n\034CO"
+    "MMAND_FOCUS_CONTEXT_EDITOR\020\003\022\036\n\032COMMAND_"
+    "FOCUS_CONTEXT_LIST\020\004\022 \n\034COMMAND_FOCUS_CO"
+    "NTEXT_CANVAS\020\005\022\037\n\033COMMAND_FOCUS_CONTEXT_"
+    "MODAL\020\006\022$\n COMMAND_FOCUS_CONTEXT_TEXT_IN"
+    "PUT\020\007*\207\001\n\025KeybindingDisplayMode\022\'\n#KEYBI"
+    "NDING_DISPLAY_MODE_UNSPECIFIED\020\000\022#\n\037KEYB"
+    "INDING_DISPLAY_MODE_SYMBOLS\020\001\022 \n\034KEYBIND"
+    "ING_DISPLAY_MODE_TEXT\020\002b\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto = {
     false,
     false,
-    890,
+    1591,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto,
     "github.com/s4wave/spacewave/sdk/command/command.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto_once,
     nullptr,
     0,
-    4,
+    8,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto::offsets,
@@ -282,6 +455,12 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL CommandFocusContext_d
 }
 PROTOBUF_CONSTINIT const uint32_t CommandFocusContext_internal_data_[] = {
     524288u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL KeybindingDisplayMode_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto[1];
+}
+PROTOBUF_CONSTINIT const uint32_t KeybindingDisplayMode_internal_data_[] = {
+    196608u, 0u, };
 // ===================================================================
 
 class KeyCombo::_Internal {
@@ -1344,6 +1523,1430 @@ void CommandBinding::InternalSwap(CommandBinding* PROTOBUF_RESTRICT PROTOBUF_NON
 }
 
 ::google::protobuf::Metadata CommandBinding::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class KeybindingDisplaySettings::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<KeybindingDisplaySettings>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(KeybindingDisplaySettings, _impl_._has_bits_);
+};
+
+KeybindingDisplaySettings::KeybindingDisplaySettings(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, KeybindingDisplaySettings_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.command.KeybindingDisplaySettings)
+}
+KeybindingDisplaySettings::KeybindingDisplaySettings(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const KeybindingDisplaySettings& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, KeybindingDisplaySettings_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(from._impl_) {
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE KeybindingDisplaySettings::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void KeybindingDisplaySettings::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.mode_ = {};
+}
+KeybindingDisplaySettings::~KeybindingDisplaySettings() {
+  // @@protoc_insertion_point(destructor:s4wave.command.KeybindingDisplaySettings)
+  SharedDtor(*this);
+}
+inline void KeybindingDisplaySettings::SharedDtor(MessageLite& self) {
+  KeybindingDisplaySettings& this_ = static_cast<KeybindingDisplaySettings&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL KeybindingDisplaySettings::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) KeybindingDisplaySettings(arena);
+}
+constexpr auto KeybindingDisplaySettings::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(KeybindingDisplaySettings),
+                                            alignof(KeybindingDisplaySettings));
+}
+constexpr auto KeybindingDisplaySettings::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_KeybindingDisplaySettings_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &KeybindingDisplaySettings::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<KeybindingDisplaySettings>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &KeybindingDisplaySettings::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<KeybindingDisplaySettings>(), &KeybindingDisplaySettings::ByteSizeLong,
+              &KeybindingDisplaySettings::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(KeybindingDisplaySettings, _impl_._cached_size_),
+          false,
+      },
+      &KeybindingDisplaySettings::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull KeybindingDisplaySettings_class_data_ =
+        KeybindingDisplaySettings::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+KeybindingDisplaySettings::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&KeybindingDisplaySettings_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(KeybindingDisplaySettings_class_data_.tc_table);
+  return KeybindingDisplaySettings_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
+KeybindingDisplaySettings::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(KeybindingDisplaySettings, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    KeybindingDisplaySettings_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::command::KeybindingDisplaySettings>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .s4wave.command.KeybindingDisplayMode mode = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(KeybindingDisplaySettings, _impl_.mode_), 0>(),
+     {8, 0, 0,
+      PROTOBUF_FIELD_OFFSET(KeybindingDisplaySettings, _impl_.mode_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .s4wave.command.KeybindingDisplayMode mode = 1;
+    {PROTOBUF_FIELD_OFFSET(KeybindingDisplaySettings, _impl_.mode_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void KeybindingDisplaySettings::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.command.KeybindingDisplaySettings)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.mode_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL KeybindingDisplaySettings::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const KeybindingDisplaySettings& this_ = static_cast<const KeybindingDisplaySettings&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL KeybindingDisplaySettings::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const KeybindingDisplaySettings& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.command.KeybindingDisplaySettings)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.command.KeybindingDisplayMode mode = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (this_._internal_mode() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_mode(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.command.KeybindingDisplaySettings)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t KeybindingDisplaySettings::ByteSizeLong(const MessageLite& base) {
+  const KeybindingDisplaySettings& this_ = static_cast<const KeybindingDisplaySettings&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t KeybindingDisplaySettings::ByteSizeLong() const {
+  const KeybindingDisplaySettings& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.command.KeybindingDisplaySettings)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .s4wave.command.KeybindingDisplayMode mode = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (this_._internal_mode() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_mode());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void KeybindingDisplaySettings::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<KeybindingDisplaySettings*>(&to_msg);
+  auto& from = static_cast<const KeybindingDisplaySettings&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.command.KeybindingDisplaySettings)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (from._internal_mode() != 0) {
+      _this->_impl_.mode_ = from._impl_.mode_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void KeybindingDisplaySettings::CopyFrom(const KeybindingDisplaySettings& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.command.KeybindingDisplaySettings)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void KeybindingDisplaySettings::InternalSwap(KeybindingDisplaySettings* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.mode_, other->_impl_.mode_);
+}
+
+::google::protobuf::Metadata KeybindingDisplaySettings::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class KeybindingOverrideSettings::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<KeybindingOverrideSettings>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(KeybindingOverrideSettings, _impl_._has_bits_);
+};
+
+KeybindingOverrideSettings::KeybindingOverrideSettings(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, KeybindingOverrideSettings_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.command.KeybindingOverrideSettings)
+}
+PROTOBUF_NDEBUG_INLINE KeybindingOverrideSettings::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::command::KeybindingOverrideSettings& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        leader_combo_(arena, from.leader_combo_) {}
+
+KeybindingOverrideSettings::KeybindingOverrideSettings(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const KeybindingOverrideSettings& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, KeybindingOverrideSettings_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  KeybindingOverrideSettings* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.display_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.display_)
+                : nullptr;
+  _impl_.which_key_delay_ms_ = from._impl_.which_key_delay_ms_;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.command.KeybindingOverrideSettings)
+}
+PROTOBUF_NDEBUG_INLINE KeybindingOverrideSettings::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        leader_combo_(arena) {}
+
+inline void KeybindingOverrideSettings::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, display_),
+           0,
+           offsetof(Impl_, which_key_delay_ms_) -
+               offsetof(Impl_, display_) +
+               sizeof(Impl_::which_key_delay_ms_));
+}
+KeybindingOverrideSettings::~KeybindingOverrideSettings() {
+  // @@protoc_insertion_point(destructor:s4wave.command.KeybindingOverrideSettings)
+  SharedDtor(*this);
+}
+inline void KeybindingOverrideSettings::SharedDtor(MessageLite& self) {
+  KeybindingOverrideSettings& this_ = static_cast<KeybindingOverrideSettings&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.leader_combo_.Destroy();
+  delete this_._impl_.display_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL KeybindingOverrideSettings::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) KeybindingOverrideSettings(arena);
+}
+constexpr auto KeybindingOverrideSettings::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(KeybindingOverrideSettings),
+                                            alignof(KeybindingOverrideSettings));
+}
+constexpr auto KeybindingOverrideSettings::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_KeybindingOverrideSettings_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &KeybindingOverrideSettings::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<KeybindingOverrideSettings>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &KeybindingOverrideSettings::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<KeybindingOverrideSettings>(), &KeybindingOverrideSettings::ByteSizeLong,
+              &KeybindingOverrideSettings::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(KeybindingOverrideSettings, _impl_._cached_size_),
+          false,
+      },
+      &KeybindingOverrideSettings::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull KeybindingOverrideSettings_class_data_ =
+        KeybindingOverrideSettings::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+KeybindingOverrideSettings::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&KeybindingOverrideSettings_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(KeybindingOverrideSettings_class_data_.tc_table);
+  return KeybindingOverrideSettings_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 1, 62, 2>
+KeybindingOverrideSettings::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(KeybindingOverrideSettings, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    KeybindingOverrideSettings_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::command::KeybindingOverrideSettings>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string leader_combo = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(KeybindingOverrideSettings, _impl_.leader_combo_)}},
+    // uint32 which_key_delay_ms = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(KeybindingOverrideSettings, _impl_.which_key_delay_ms_), 2>(),
+     {16, 2, 0,
+      PROTOBUF_FIELD_OFFSET(KeybindingOverrideSettings, _impl_.which_key_delay_ms_)}},
+    // .s4wave.command.KeybindingDisplaySettings display = 3;
+    {::_pbi::TcParser::FastMtS1,
+     {26, 1, 0,
+      PROTOBUF_FIELD_OFFSET(KeybindingOverrideSettings, _impl_.display_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string leader_combo = 1;
+    {PROTOBUF_FIELD_OFFSET(KeybindingOverrideSettings, _impl_.leader_combo_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint32 which_key_delay_ms = 2;
+    {PROTOBUF_FIELD_OFFSET(KeybindingOverrideSettings, _impl_.which_key_delay_ms_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // .s4wave.command.KeybindingDisplaySettings display = 3;
+    {PROTOBUF_FIELD_OFFSET(KeybindingOverrideSettings, _impl_.display_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::command::KeybindingDisplaySettings>()},
+  }},
+  {{
+    "\51\14\0\0\0\0\0\0"
+    "s4wave.command.KeybindingOverrideSettings"
+    "leader_combo"
+  }},
+};
+PROTOBUF_NOINLINE void KeybindingOverrideSettings::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.command.KeybindingOverrideSettings)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.leader_combo_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.display_ != nullptr);
+      _impl_.display_->Clear();
+    }
+  }
+  _impl_.which_key_delay_ms_ = 0u;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL KeybindingOverrideSettings::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const KeybindingOverrideSettings& this_ = static_cast<const KeybindingOverrideSettings&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL KeybindingOverrideSettings::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const KeybindingOverrideSettings& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.command.KeybindingOverrideSettings)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string leader_combo = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_leader_combo().empty()) {
+      const ::std::string& _s = this_._internal_leader_combo();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.command.KeybindingOverrideSettings.leader_combo");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // uint32 which_key_delay_ms = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_which_key_delay_ms() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          2, this_._internal_which_key_delay_ms(), target);
+    }
+  }
+
+  // .s4wave.command.KeybindingDisplaySettings display = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        3, *this_._impl_.display_, this_._impl_.display_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.command.KeybindingOverrideSettings)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t KeybindingOverrideSettings::ByteSizeLong(const MessageLite& base) {
+  const KeybindingOverrideSettings& this_ = static_cast<const KeybindingOverrideSettings&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t KeybindingOverrideSettings::ByteSizeLong() const {
+  const KeybindingOverrideSettings& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.command.KeybindingOverrideSettings)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // string leader_combo = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_leader_combo().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_leader_combo());
+      }
+    }
+    // .s4wave.command.KeybindingDisplaySettings display = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.display_);
+    }
+    // uint32 which_key_delay_ms = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_which_key_delay_ms() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_which_key_delay_ms());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void KeybindingOverrideSettings::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<KeybindingOverrideSettings*>(&to_msg);
+  auto& from = static_cast<const KeybindingOverrideSettings&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.command.KeybindingOverrideSettings)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_leader_combo().empty()) {
+        _this->_internal_set_leader_combo(from._internal_leader_combo());
+      } else {
+        if (_this->_impl_.leader_combo_.IsDefault()) {
+          _this->_internal_set_leader_combo("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(from._impl_.display_ != nullptr);
+      if (_this->_impl_.display_ == nullptr) {
+        _this->_impl_.display_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.display_);
+      } else {
+        _this->_impl_.display_->MergeFrom(*from._impl_.display_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_which_key_delay_ms() != 0) {
+        _this->_impl_.which_key_delay_ms_ = from._impl_.which_key_delay_ms_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void KeybindingOverrideSettings::CopyFrom(const KeybindingOverrideSettings& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.command.KeybindingOverrideSettings)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void KeybindingOverrideSettings::InternalSwap(KeybindingOverrideSettings* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.leader_combo_, &other->_impl_.leader_combo_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(KeybindingOverrideSettings, _impl_.which_key_delay_ms_)
+      + sizeof(KeybindingOverrideSettings::_impl_.which_key_delay_ms_)
+      - PROTOBUF_FIELD_OFFSET(KeybindingOverrideSettings, _impl_.display_)>(
+          reinterpret_cast<char*>(&_impl_.display_),
+          reinterpret_cast<char*>(&other->_impl_.display_));
+}
+
+::google::protobuf::Metadata KeybindingOverrideSettings::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class KeybindingCommandOverride::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<KeybindingCommandOverride>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(KeybindingCommandOverride, _impl_._has_bits_);
+};
+
+KeybindingCommandOverride::KeybindingCommandOverride(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, KeybindingCommandOverride_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.command.KeybindingCommandOverride)
+}
+PROTOBUF_NDEBUG_INLINE KeybindingCommandOverride::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::command::KeybindingCommandOverride& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        cleared_binding_ids_{visibility, arena, from.cleared_binding_ids_},
+        bindings_{visibility, arena, from.bindings_},
+        command_id_(arena, from.command_id_) {}
+
+KeybindingCommandOverride::KeybindingCommandOverride(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const KeybindingCommandOverride& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, KeybindingCommandOverride_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  KeybindingCommandOverride* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, replace_bindings_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, replace_bindings_),
+           offsetof(Impl_, disabled_) -
+               offsetof(Impl_, replace_bindings_) +
+               sizeof(Impl_::disabled_));
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.command.KeybindingCommandOverride)
+}
+PROTOBUF_NDEBUG_INLINE KeybindingCommandOverride::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        cleared_binding_ids_{visibility, arena},
+        bindings_{visibility, arena},
+        command_id_(arena) {}
+
+inline void KeybindingCommandOverride::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, replace_bindings_),
+           0,
+           offsetof(Impl_, disabled_) -
+               offsetof(Impl_, replace_bindings_) +
+               sizeof(Impl_::disabled_));
+}
+KeybindingCommandOverride::~KeybindingCommandOverride() {
+  // @@protoc_insertion_point(destructor:s4wave.command.KeybindingCommandOverride)
+  SharedDtor(*this);
+}
+inline void KeybindingCommandOverride::SharedDtor(MessageLite& self) {
+  KeybindingCommandOverride& this_ = static_cast<KeybindingCommandOverride&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.command_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL KeybindingCommandOverride::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) KeybindingCommandOverride(arena);
+}
+constexpr auto KeybindingCommandOverride::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(KeybindingCommandOverride, _impl_.cleared_binding_ids_) +
+          decltype(KeybindingCommandOverride::_impl_.cleared_binding_ids_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(KeybindingCommandOverride, _impl_.bindings_) +
+          decltype(KeybindingCommandOverride::_impl_.bindings_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(KeybindingCommandOverride), alignof(KeybindingCommandOverride), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&KeybindingCommandOverride::PlacementNew_,
+                                 sizeof(KeybindingCommandOverride),
+                                 alignof(KeybindingCommandOverride));
+  }
+}
+constexpr auto KeybindingCommandOverride::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_KeybindingCommandOverride_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &KeybindingCommandOverride::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<KeybindingCommandOverride>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &KeybindingCommandOverride::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<KeybindingCommandOverride>(), &KeybindingCommandOverride::ByteSizeLong,
+              &KeybindingCommandOverride::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(KeybindingCommandOverride, _impl_._cached_size_),
+          false,
+      },
+      &KeybindingCommandOverride::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull KeybindingCommandOverride_class_data_ =
+        KeybindingCommandOverride::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+KeybindingCommandOverride::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&KeybindingCommandOverride_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(KeybindingCommandOverride_class_data_.tc_table);
+  return KeybindingCommandOverride_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 5, 1, 78, 2>
+KeybindingCommandOverride::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(KeybindingCommandOverride, _impl_._has_bits_),
+    0, // no _extensions_
+    5, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967264,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    5,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    KeybindingCommandOverride_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::command::KeybindingCommandOverride>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string command_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 2, 0,
+      PROTOBUF_FIELD_OFFSET(KeybindingCommandOverride, _impl_.command_id_)}},
+    // bool replace_bindings = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(KeybindingCommandOverride, _impl_.replace_bindings_), 3>(),
+     {16, 3, 0,
+      PROTOBUF_FIELD_OFFSET(KeybindingCommandOverride, _impl_.replace_bindings_)}},
+    // bool disabled = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(KeybindingCommandOverride, _impl_.disabled_), 4>(),
+     {24, 4, 0,
+      PROTOBUF_FIELD_OFFSET(KeybindingCommandOverride, _impl_.disabled_)}},
+    // repeated string cleared_binding_ids = 4;
+    {::_pbi::TcParser::FastUR1,
+     {34, 0, 0,
+      PROTOBUF_FIELD_OFFSET(KeybindingCommandOverride, _impl_.cleared_binding_ids_)}},
+    // repeated .s4wave.command.CommandBinding bindings = 5;
+    {::_pbi::TcParser::FastMtR1,
+     {42, 1, 0,
+      PROTOBUF_FIELD_OFFSET(KeybindingCommandOverride, _impl_.bindings_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string command_id = 1;
+    {PROTOBUF_FIELD_OFFSET(KeybindingCommandOverride, _impl_.command_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bool replace_bindings = 2;
+    {PROTOBUF_FIELD_OFFSET(KeybindingCommandOverride, _impl_.replace_bindings_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // bool disabled = 3;
+    {PROTOBUF_FIELD_OFFSET(KeybindingCommandOverride, _impl_.disabled_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // repeated string cleared_binding_ids = 4;
+    {PROTOBUF_FIELD_OFFSET(KeybindingCommandOverride, _impl_.cleared_binding_ids_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // repeated .s4wave.command.CommandBinding bindings = 5;
+    {PROTOBUF_FIELD_OFFSET(KeybindingCommandOverride, _impl_.bindings_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::command::CommandBinding>()},
+  }},
+  {{
+    "\50\12\0\0\23\0\0\0"
+    "s4wave.command.KeybindingCommandOverride"
+    "command_id"
+    "cleared_binding_ids"
+  }},
+};
+PROTOBUF_NOINLINE void KeybindingCommandOverride::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.command.KeybindingCommandOverride)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.cleared_binding_ids_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _impl_.bindings_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.command_id_.ClearNonDefaultToEmpty();
+    }
+  }
+  ::memset(&_impl_.replace_bindings_, 0, static_cast<::size_t>(
+      reinterpret_cast<char*>(&_impl_.disabled_) -
+      reinterpret_cast<char*>(&_impl_.replace_bindings_)) + sizeof(_impl_.disabled_));
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL KeybindingCommandOverride::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const KeybindingCommandOverride& this_ = static_cast<const KeybindingCommandOverride&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL KeybindingCommandOverride::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const KeybindingCommandOverride& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.command.KeybindingCommandOverride)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string command_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_command_id().empty()) {
+      const ::std::string& _s = this_._internal_command_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.command.KeybindingCommandOverride.command_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // bool replace_bindings = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_replace_bindings() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          2, this_._internal_replace_bindings(), target);
+    }
+  }
+
+  // bool disabled = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_disabled() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          3, this_._internal_disabled(), target);
+    }
+  }
+
+  // repeated string cleared_binding_ids = 4;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (int i = 0, n = this_._internal_cleared_binding_ids_size(); i < n; ++i) {
+      const auto& s = this_._internal_cleared_binding_ids().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.command.KeybindingCommandOverride.cleared_binding_ids");
+      target = stream->WriteString(4, s, target);
+    }
+  }
+
+  // repeated .s4wave.command.CommandBinding bindings = 5;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_bindings_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_bindings().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              5, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.command.KeybindingCommandOverride)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t KeybindingCommandOverride::ByteSizeLong(const MessageLite& base) {
+  const KeybindingCommandOverride& this_ = static_cast<const KeybindingCommandOverride&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t KeybindingCommandOverride::ByteSizeLong() const {
+  const KeybindingCommandOverride& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.command.KeybindingCommandOverride)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    // repeated string cleared_binding_ids = 4;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_cleared_binding_ids().size());
+      for (int i = 0, n = this_._internal_cleared_binding_ids().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_cleared_binding_ids().Get(i));
+      }
+    }
+    // repeated .s4wave.command.CommandBinding bindings = 5;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      total_size += 1UL * this_._internal_bindings_size();
+      for (const auto& msg : this_._internal_bindings()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // string command_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_command_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_command_id());
+      }
+    }
+    // bool replace_bindings = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_replace_bindings() != 0) {
+        total_size += 2;
+      }
+    }
+    // bool disabled = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_disabled() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void KeybindingCommandOverride::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<KeybindingCommandOverride*>(&to_msg);
+  auto& from = static_cast<const KeybindingCommandOverride&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.command.KeybindingCommandOverride)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_cleared_binding_ids()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_cleared_binding_ids());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _this->_internal_mutable_bindings()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_bindings());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_command_id().empty()) {
+        _this->_internal_set_command_id(from._internal_command_id());
+      } else {
+        if (_this->_impl_.command_id_.IsDefault()) {
+          _this->_internal_set_command_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_replace_bindings() != 0) {
+        _this->_impl_.replace_bindings_ = from._impl_.replace_bindings_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_disabled() != 0) {
+        _this->_impl_.disabled_ = from._impl_.disabled_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void KeybindingCommandOverride::CopyFrom(const KeybindingCommandOverride& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.command.KeybindingCommandOverride)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void KeybindingCommandOverride::InternalSwap(KeybindingCommandOverride* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.cleared_binding_ids_.InternalSwap(&other->_impl_.cleared_binding_ids_);
+  _impl_.bindings_.InternalSwap(&other->_impl_.bindings_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.command_id_, &other->_impl_.command_id_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(KeybindingCommandOverride, _impl_.disabled_)
+      + sizeof(KeybindingCommandOverride::_impl_.disabled_)
+      - PROTOBUF_FIELD_OFFSET(KeybindingCommandOverride, _impl_.replace_bindings_)>(
+          reinterpret_cast<char*>(&_impl_.replace_bindings_),
+          reinterpret_cast<char*>(&other->_impl_.replace_bindings_));
+}
+
+::google::protobuf::Metadata KeybindingCommandOverride::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class KeybindingOverrideSet::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<KeybindingOverrideSet>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(KeybindingOverrideSet, _impl_._has_bits_);
+};
+
+KeybindingOverrideSet::KeybindingOverrideSet(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, KeybindingOverrideSet_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.command.KeybindingOverrideSet)
+}
+PROTOBUF_NDEBUG_INLINE KeybindingOverrideSet::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::command::KeybindingOverrideSet& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        overrides_{visibility, arena, from.overrides_} {}
+
+KeybindingOverrideSet::KeybindingOverrideSet(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const KeybindingOverrideSet& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, KeybindingOverrideSet_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  KeybindingOverrideSet* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.settings_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.settings_)
+                : nullptr;
+  _impl_.version_ = from._impl_.version_;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.command.KeybindingOverrideSet)
+}
+PROTOBUF_NDEBUG_INLINE KeybindingOverrideSet::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        overrides_{visibility, arena} {}
+
+inline void KeybindingOverrideSet::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, settings_),
+           0,
+           offsetof(Impl_, version_) -
+               offsetof(Impl_, settings_) +
+               sizeof(Impl_::version_));
+}
+KeybindingOverrideSet::~KeybindingOverrideSet() {
+  // @@protoc_insertion_point(destructor:s4wave.command.KeybindingOverrideSet)
+  SharedDtor(*this);
+}
+inline void KeybindingOverrideSet::SharedDtor(MessageLite& self) {
+  KeybindingOverrideSet& this_ = static_cast<KeybindingOverrideSet&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.settings_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL KeybindingOverrideSet::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) KeybindingOverrideSet(arena);
+}
+constexpr auto KeybindingOverrideSet::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(KeybindingOverrideSet, _impl_.overrides_) +
+          decltype(KeybindingOverrideSet::_impl_.overrides_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(KeybindingOverrideSet), alignof(KeybindingOverrideSet), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&KeybindingOverrideSet::PlacementNew_,
+                                 sizeof(KeybindingOverrideSet),
+                                 alignof(KeybindingOverrideSet));
+  }
+}
+constexpr auto KeybindingOverrideSet::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_KeybindingOverrideSet_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &KeybindingOverrideSet::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<KeybindingOverrideSet>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &KeybindingOverrideSet::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<KeybindingOverrideSet>(), &KeybindingOverrideSet::ByteSizeLong,
+              &KeybindingOverrideSet::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(KeybindingOverrideSet, _impl_._cached_size_),
+          false,
+      },
+      &KeybindingOverrideSet::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull KeybindingOverrideSet_class_data_ =
+        KeybindingOverrideSet::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+KeybindingOverrideSet::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&KeybindingOverrideSet_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(KeybindingOverrideSet_class_data_.tc_table);
+  return KeybindingOverrideSet_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 2, 0, 2>
+KeybindingOverrideSet::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(KeybindingOverrideSet, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    2,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    KeybindingOverrideSet_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::command::KeybindingOverrideSet>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // uint32 version = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(KeybindingOverrideSet, _impl_.version_), 2>(),
+     {8, 2, 0,
+      PROTOBUF_FIELD_OFFSET(KeybindingOverrideSet, _impl_.version_)}},
+    // repeated .s4wave.command.KeybindingCommandOverride overrides = 2;
+    {::_pbi::TcParser::FastMtR1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(KeybindingOverrideSet, _impl_.overrides_)}},
+    // .s4wave.command.KeybindingOverrideSettings settings = 3;
+    {::_pbi::TcParser::FastMtS1,
+     {26, 1, 1,
+      PROTOBUF_FIELD_OFFSET(KeybindingOverrideSet, _impl_.settings_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // uint32 version = 1;
+    {PROTOBUF_FIELD_OFFSET(KeybindingOverrideSet, _impl_.version_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // repeated .s4wave.command.KeybindingCommandOverride overrides = 2;
+    {PROTOBUF_FIELD_OFFSET(KeybindingOverrideSet, _impl_.overrides_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .s4wave.command.KeybindingOverrideSettings settings = 3;
+    {PROTOBUF_FIELD_OFFSET(KeybindingOverrideSet, _impl_.settings_), _Internal::kHasBitsOffset + 1, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::command::KeybindingCommandOverride>()},
+      {::_pbi::TcParser::GetTable<::s4wave::command::KeybindingOverrideSettings>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void KeybindingOverrideSet::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.command.KeybindingOverrideSet)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.overrides_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.settings_ != nullptr);
+      _impl_.settings_->Clear();
+    }
+  }
+  _impl_.version_ = 0u;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL KeybindingOverrideSet::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const KeybindingOverrideSet& this_ = static_cast<const KeybindingOverrideSet&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL KeybindingOverrideSet::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const KeybindingOverrideSet& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.command.KeybindingOverrideSet)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // uint32 version = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_version() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          1, this_._internal_version(), target);
+    }
+  }
+
+  // repeated .s4wave.command.KeybindingCommandOverride overrides = 2;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_overrides_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_overrides().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              2, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // .s4wave.command.KeybindingOverrideSettings settings = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        3, *this_._impl_.settings_, this_._impl_.settings_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.command.KeybindingOverrideSet)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t KeybindingOverrideSet::ByteSizeLong(const MessageLite& base) {
+  const KeybindingOverrideSet& this_ = static_cast<const KeybindingOverrideSet&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t KeybindingOverrideSet::ByteSizeLong() const {
+  const KeybindingOverrideSet& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.command.KeybindingOverrideSet)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // repeated .s4wave.command.KeybindingCommandOverride overrides = 2;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_overrides_size();
+      for (const auto& msg : this_._internal_overrides()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // .s4wave.command.KeybindingOverrideSettings settings = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.settings_);
+    }
+    // uint32 version = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_version() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_version());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void KeybindingOverrideSet::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<KeybindingOverrideSet*>(&to_msg);
+  auto& from = static_cast<const KeybindingOverrideSet&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.command.KeybindingOverrideSet)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_overrides()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_overrides());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(from._impl_.settings_ != nullptr);
+      if (_this->_impl_.settings_ == nullptr) {
+        _this->_impl_.settings_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.settings_);
+      } else {
+        _this->_impl_.settings_->MergeFrom(*from._impl_.settings_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_version() != 0) {
+        _this->_impl_.version_ = from._impl_.version_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void KeybindingOverrideSet::CopyFrom(const KeybindingOverrideSet& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.command.KeybindingOverrideSet)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void KeybindingOverrideSet::InternalSwap(KeybindingOverrideSet* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.overrides_.InternalSwap(&other->_impl_.overrides_);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(KeybindingOverrideSet, _impl_.version_)
+      + sizeof(KeybindingOverrideSet::_impl_.version_)
+      - PROTOBUF_FIELD_OFFSET(KeybindingOverrideSet, _impl_.settings_)>(
+          reinterpret_cast<char*>(&_impl_.settings_),
+          reinterpret_cast<char*>(&other->_impl_.settings_));
+}
+
+::google::protobuf::Metadata KeybindingOverrideSet::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

@@ -89,34 +89,6 @@ struct WorldContentsObjectDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WorldContentsObjectDefaultTypeInternal _WorldContentsObject_default_instance_;
 
-inline constexpr SpaceSettings::Impl_::Impl_(
-    ::_pbi::ConstantInitialized) noexcept
-      : _cached_size_{0},
-        plugin_ids_{},
-        index_path_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()) {}
-
-template <typename>
-PROTOBUF_CONSTEXPR SpaceSettings::SpaceSettings(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(SpaceSettings_class_data_.base()),
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(),
-#endif  // PROTOBUF_CUSTOM_VTABLE
-      _impl_(::_pbi::ConstantInitialized()) {
-}
-struct SpaceSettingsDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR SpaceSettingsDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~SpaceSettingsDefaultTypeInternal() {}
-  union {
-    SpaceSettings _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SpaceSettingsDefaultTypeInternal _SpaceSettings_default_instance_;
-
 inline constexpr WorldContents::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -142,6 +114,35 @@ struct WorldContentsDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WorldContentsDefaultTypeInternal _WorldContents_default_instance_;
+
+inline constexpr SpaceSettings::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        plugin_ids_{},
+        index_path_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        keybinding_overrides_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SpaceSettings::SpaceSettings(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SpaceSettings_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SpaceSettingsDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SpaceSettingsDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SpaceSettingsDefaultTypeInternal() {}
+  union {
+    SpaceSettings _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SpaceSettingsDefaultTypeInternal _SpaceSettings_default_instance_;
 }  // namespace world
 }  // namespace space
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
@@ -174,11 +175,13 @@ const ::uint32_t
         0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::space::world::SpaceSettings, _impl_._has_bits_),
-        5, // hasbit index offset
+        6, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::space::world::SpaceSettings, _impl_.index_path_),
         PROTOBUF_FIELD_OFFSET(::space::world::SpaceSettings, _impl_.plugin_ids_),
+        PROTOBUF_FIELD_OFFSET(::space::world::SpaceSettings, _impl_.keybinding_overrides_),
         1,
         0,
+        2,
 };
 
 static const ::_pbi::MigrationSchema
@@ -197,27 +200,34 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fspace_2fworld_2fworld_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n8github.com/s4wave/spacewave/core/space"
-    "/world/world.proto\022\013space.world\"~\n\rWorld"
-    "Contents\0221\n\007objects\030\001 \003(\0132 .space.world."
-    "WorldContentsObject\022:\n\014object_types\030\002 \003("
-    "\0132$.space.world.WorldContentsObjectType\""
-    "Y\n\023WorldContentsObject\022\022\n\nobject_key\030\001 \001"
-    "(\t\022\031\n\021parent_object_key\030\002 \001(\t\022\023\n\013object_"
-    "type\030\003 \001(\t\".\n\027WorldContentsObjectType\022\023\n"
-    "\013object_type\030\001 \001(\t\"7\n\rSpaceSettings\022\022\n\ni"
-    "ndex_path\030\001 \001(\t\022\022\n\nplugin_ids\030\002 \003(\tb\006pro"
-    "to3"
+    "/world/world.proto\022\013space.world\0325github."
+    "com/s4wave/spacewave/sdk/command/command"
+    ".proto\"~\n\rWorldContents\0221\n\007objects\030\001 \003(\013"
+    "2 .space.world.WorldContentsObject\022:\n\014ob"
+    "ject_types\030\002 \003(\0132$.space.world.WorldCont"
+    "entsObjectType\"Y\n\023WorldContentsObject\022\022\n"
+    "\nobject_key\030\001 \001(\t\022\031\n\021parent_object_key\030\002"
+    " \001(\t\022\023\n\013object_type\030\003 \001(\t\".\n\027WorldConten"
+    "tsObjectType\022\023\n\013object_type\030\001 \001(\t\"|\n\rSpa"
+    "ceSettings\022\022\n\nindex_path\030\001 \001(\t\022\022\n\nplugin"
+    "_ids\030\002 \003(\t\022C\n\024keybinding_overrides\030\003 \001(\013"
+    "2%.s4wave.command.KeybindingOverrideSetb"
+    "\006proto3"
+};
+static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fspace_2fworld_2fworld_2eproto_deps[1] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto,
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fspace_2fworld_2fworld_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fspace_2fworld_2fworld_2eproto = {
     false,
     false,
-    403,
+    527,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fspace_2fworld_2fworld_2eproto,
     "github.com/s4wave/spacewave/core/space/world/world.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fspace_2fworld_2fworld_2eproto_once,
-    nullptr,
-    0,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fspace_2fworld_2fworld_2eproto_deps,
+    1,
     4,
     schemas,
     file_default_instances,
@@ -1203,6 +1213,12 @@ class SpaceSettings::_Internal {
       8 * PROTOBUF_FIELD_OFFSET(SpaceSettings, _impl_._has_bits_);
 };
 
+void SpaceSettings::clear_keybinding_overrides() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.keybinding_overrides_ != nullptr) _impl_.keybinding_overrides_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
 SpaceSettings::SpaceSettings(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::Message(arena, SpaceSettings_class_data_.base()) {
@@ -1234,6 +1250,10 @@ SpaceSettings::SpaceSettings(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.keybinding_overrides_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.keybinding_overrides_)
+                : nullptr;
 
   // @@protoc_insertion_point(copy_constructor:space.world.SpaceSettings)
 }
@@ -1246,6 +1266,7 @@ PROTOBUF_NDEBUG_INLINE SpaceSettings::Impl_::Impl_(
 
 inline void SpaceSettings::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.keybinding_overrides_ = {};
 }
 SpaceSettings::~SpaceSettings() {
   // @@protoc_insertion_point(destructor:space.world.SpaceSettings)
@@ -1259,6 +1280,7 @@ inline void SpaceSettings::SharedDtor(MessageLite& self) {
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.index_path_.Destroy();
+  delete this_._impl_.keybinding_overrides_;
   this_._impl_.~Impl_();
 }
 
@@ -1317,18 +1339,18 @@ SpaceSettings::GetClassData() const {
   return SpaceSettings_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 0, 54, 2>
+const ::_pbi::TcParseTable<2, 3, 1, 54, 2>
 SpaceSettings::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(SpaceSettings, _impl_._has_bits_),
     0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
+    3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967288,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
+    3,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
     SpaceSettings_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
@@ -1336,14 +1358,19 @@ SpaceSettings::_table_ = {
     ::_pbi::TcParser::GetTable<::space::world::SpaceSettings>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // repeated string plugin_ids = 2;
-    {::_pbi::TcParser::FastUR1,
-     {18, 0, 0,
-      PROTOBUF_FIELD_OFFSET(SpaceSettings, _impl_.plugin_ids_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // string index_path = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 1, 0,
       PROTOBUF_FIELD_OFFSET(SpaceSettings, _impl_.index_path_)}},
+    // repeated string plugin_ids = 2;
+    {::_pbi::TcParser::FastUR1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceSettings, _impl_.plugin_ids_)}},
+    // .s4wave.command.KeybindingOverrideSet keybinding_overrides = 3;
+    {::_pbi::TcParser::FastMtS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceSettings, _impl_.keybinding_overrides_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -1351,8 +1378,12 @@ SpaceSettings::_table_ = {
     {PROTOBUF_FIELD_OFFSET(SpaceSettings, _impl_.index_path_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // repeated string plugin_ids = 2;
     {PROTOBUF_FIELD_OFFSET(SpaceSettings, _impl_.plugin_ids_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // .s4wave.command.KeybindingOverrideSet keybinding_overrides = 3;
+    {PROTOBUF_FIELD_OFFSET(SpaceSettings, _impl_.keybinding_overrides_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
-  // no aux_entries
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::command::KeybindingOverrideSet>()},
+  }},
   {{
     "\31\12\12\0\0\0\0\0"
     "space.world.SpaceSettings"
@@ -1368,12 +1399,16 @@ PROTOBUF_NOINLINE void SpaceSettings::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _impl_.plugin_ids_.Clear();
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       _impl_.index_path_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(_impl_.keybinding_overrides_ != nullptr);
+      _impl_.keybinding_overrides_->Clear();
     }
   }
   _impl_._has_bits_.Clear();
@@ -1419,6 +1454,13 @@ PROTOBUF_NOINLINE void SpaceSettings::Clear() {
     }
   }
 
+  // .s4wave.command.KeybindingOverrideSet keybinding_overrides = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        3, *this_._impl_.keybinding_overrides_, this_._impl_.keybinding_overrides_->GetCachedSize(), target,
+        stream);
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1444,7 +1486,7 @@ PROTOBUF_NOINLINE void SpaceSettings::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     // repeated string plugin_ids = 2;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       total_size +=
@@ -1460,6 +1502,11 @@ PROTOBUF_NOINLINE void SpaceSettings::Clear() {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_index_path());
       }
+    }
+    // .s4wave.command.KeybindingOverrideSet keybinding_overrides = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.keybinding_overrides_);
     }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
@@ -1481,7 +1528,7 @@ void SpaceSettings::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _this->_internal_mutable_plugin_ids()->InternalMergeFromWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), arena,
@@ -1494,6 +1541,14 @@ void SpaceSettings::MergeImpl(::google::protobuf::MessageLite& to_msg,
         if (_this->_impl_.index_path_.IsDefault()) {
           _this->_internal_set_index_path("");
         }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(from._impl_.keybinding_overrides_ != nullptr);
+      if (_this->_impl_.keybinding_overrides_ == nullptr) {
+        _this->_impl_.keybinding_overrides_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.keybinding_overrides_);
+      } else {
+        _this->_impl_.keybinding_overrides_->MergeFrom(*from._impl_.keybinding_overrides_);
       }
     }
   }
@@ -1518,6 +1573,7 @@ void SpaceSettings::InternalSwap(SpaceSettings* PROTOBUF_RESTRICT PROTOBUF_NONNU
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   _impl_.plugin_ids_.InternalSwap(&other->_impl_.plugin_ids_);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.index_path_, &other->_impl_.index_path_, arena);
+  swap(_impl_.keybinding_overrides_, other->_impl_.keybinding_overrides_);
 }
 
 ::google::protobuf::Metadata SpaceSettings::GetMetadata() const {

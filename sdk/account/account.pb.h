@@ -35,6 +35,7 @@
 #include "google/protobuf/unknown_field_set.h"
 #include "../../core/provider/spacewave/api/api.pb.h"
 #include "../../core/session/session.pb.h"
+#include "../command/command.pb.h"
 #include "google/protobuf/timestamp.pb.h"
 // @@protoc_insertion_point(includes)
 
@@ -161,6 +162,14 @@ class RemoveAuthMethodResponse;
 struct RemoveAuthMethodResponseDefaultTypeInternal;
 extern RemoveAuthMethodResponseDefaultTypeInternal _RemoveAuthMethodResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull RemoveAuthMethodResponse_class_data_;
+class RemoveKeybindingOverrideRequest;
+struct RemoveKeybindingOverrideRequestDefaultTypeInternal;
+extern RemoveKeybindingOverrideRequestDefaultTypeInternal _RemoveKeybindingOverrideRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull RemoveKeybindingOverrideRequest_class_data_;
+class RemoveKeybindingOverrideResponse;
+struct RemoveKeybindingOverrideResponseDefaultTypeInternal;
+extern RemoveKeybindingOverrideResponseDefaultTypeInternal _RemoveKeybindingOverrideResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull RemoveKeybindingOverrideResponse_class_data_;
 class RevokeSessionRequest;
 struct RevokeSessionRequestDefaultTypeInternal;
 extern RevokeSessionRequestDefaultTypeInternal _RevokeSessionRequest_default_instance_;
@@ -209,6 +218,14 @@ class UnlockEntityKeypairResponse;
 struct UnlockEntityKeypairResponseDefaultTypeInternal;
 extern UnlockEntityKeypairResponseDefaultTypeInternal _UnlockEntityKeypairResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull UnlockEntityKeypairResponse_class_data_;
+class UpsertKeybindingOverrideRequest;
+struct UpsertKeybindingOverrideRequestDefaultTypeInternal;
+extern UpsertKeybindingOverrideRequestDefaultTypeInternal _UpsertKeybindingOverrideRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull UpsertKeybindingOverrideRequest_class_data_;
+class UpsertKeybindingOverrideResponse;
+struct UpsertKeybindingOverrideResponseDefaultTypeInternal;
+extern UpsertKeybindingOverrideResponseDefaultTypeInternal _UpsertKeybindingOverrideResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull UpsertKeybindingOverrideResponse_class_data_;
 class WatchAccountInfoRequest;
 struct WatchAccountInfoRequestDefaultTypeInternal;
 extern WatchAccountInfoRequestDefaultTypeInternal _WatchAccountInfoRequest_default_instance_;
@@ -233,6 +250,14 @@ class WatchEntityKeypairsResponse;
 struct WatchEntityKeypairsResponseDefaultTypeInternal;
 extern WatchEntityKeypairsResponseDefaultTypeInternal _WatchEntityKeypairsResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull WatchEntityKeypairsResponse_class_data_;
+class WatchKeybindingOverridesRequest;
+struct WatchKeybindingOverridesRequestDefaultTypeInternal;
+extern WatchKeybindingOverridesRequestDefaultTypeInternal _WatchKeybindingOverridesRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull WatchKeybindingOverridesRequest_class_data_;
+class WatchKeybindingOverridesResponse;
+struct WatchKeybindingOverridesResponseDefaultTypeInternal;
+extern WatchKeybindingOverridesResponseDefaultTypeInternal _WatchKeybindingOverridesResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull WatchKeybindingOverridesResponse_class_data_;
 class WatchSessionsRequest;
 struct WatchSessionsRequestDefaultTypeInternal;
 extern WatchSessionsRequestDefaultTypeInternal _WatchSessionsRequest_default_instance_;
@@ -394,7 +419,7 @@ class WatchSessionsRequest final : public ::google::protobuf::internal::ZeroFiel
     return *reinterpret_cast<const WatchSessionsRequest*>(
         &_WatchSessionsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 11;
   friend void swap(WatchSessionsRequest& a, WatchSessionsRequest& b) { a.Swap(&b); }
   inline void Swap(WatchSessionsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -474,6 +499,140 @@ class WatchSessionsRequest final : public ::google::protobuf::internal::ZeroFiel
 extern const ::google::protobuf::internal::ClassDataFull WatchSessionsRequest_class_data_;
 // -------------------------------------------------------------------
 
+class WatchKeybindingOverridesRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:s4wave.account.WatchKeybindingOverridesRequest) */ {
+ public:
+  inline WatchKeybindingOverridesRequest() : WatchKeybindingOverridesRequest(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(WatchKeybindingOverridesRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(WatchKeybindingOverridesRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR WatchKeybindingOverridesRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline WatchKeybindingOverridesRequest(const WatchKeybindingOverridesRequest& from) : WatchKeybindingOverridesRequest(nullptr, from) {}
+  inline WatchKeybindingOverridesRequest(WatchKeybindingOverridesRequest&& from) noexcept
+      : WatchKeybindingOverridesRequest(nullptr, ::std::move(from)) {}
+  inline WatchKeybindingOverridesRequest& operator=(const WatchKeybindingOverridesRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WatchKeybindingOverridesRequest& operator=(WatchKeybindingOverridesRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WatchKeybindingOverridesRequest& default_instance() {
+    return *reinterpret_cast<const WatchKeybindingOverridesRequest*>(
+        &_WatchKeybindingOverridesRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 2;
+  friend void swap(WatchKeybindingOverridesRequest& a, WatchKeybindingOverridesRequest& b) { a.Swap(&b); }
+  inline void Swap(WatchKeybindingOverridesRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WatchKeybindingOverridesRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WatchKeybindingOverridesRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<WatchKeybindingOverridesRequest>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const WatchKeybindingOverridesRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const WatchKeybindingOverridesRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.account.WatchKeybindingOverridesRequest"; }
+
+  explicit WatchKeybindingOverridesRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  WatchKeybindingOverridesRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchKeybindingOverridesRequest& from);
+  WatchKeybindingOverridesRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WatchKeybindingOverridesRequest&& from) noexcept
+      : WatchKeybindingOverridesRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:s4wave.account.WatchKeybindingOverridesRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull WatchKeybindingOverridesRequest_class_data_;
+// -------------------------------------------------------------------
+
 class WatchEntityKeypairsRequest final : public ::google::protobuf::internal::ZeroFieldsBase
 /* @@protoc_insertion_point(class_definition:s4wave.account.WatchEntityKeypairsRequest) */ {
  public:
@@ -528,7 +687,7 @@ class WatchEntityKeypairsRequest final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const WatchEntityKeypairsRequest*>(
         &_WatchEntityKeypairsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 20;
+  static constexpr int kIndexInFileMessages = 26;
   friend void swap(WatchEntityKeypairsRequest& a, WatchEntityKeypairsRequest& b) { a.Swap(&b); }
   inline void Swap(WatchEntityKeypairsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -662,7 +821,7 @@ class WatchAuthMethodsRequest final : public ::google::protobuf::internal::ZeroF
     return *reinterpret_cast<const WatchAuthMethodsRequest*>(
         &_WatchAuthMethodsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 2;
+  static constexpr int kIndexInFileMessages = 8;
   friend void swap(WatchAuthMethodsRequest& a, WatchAuthMethodsRequest& b) { a.Swap(&b); }
   inline void Swap(WatchAuthMethodsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1129,6 +1288,140 @@ class WatchAccountInfoRequest final : public ::google::protobuf::internal::ZeroF
 extern const ::google::protobuf::internal::ClassDataFull WatchAccountInfoRequest_class_data_;
 // -------------------------------------------------------------------
 
+class UpsertKeybindingOverrideResponse final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:s4wave.account.UpsertKeybindingOverrideResponse) */ {
+ public:
+  inline UpsertKeybindingOverrideResponse() : UpsertKeybindingOverrideResponse(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(UpsertKeybindingOverrideResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(UpsertKeybindingOverrideResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR UpsertKeybindingOverrideResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline UpsertKeybindingOverrideResponse(const UpsertKeybindingOverrideResponse& from) : UpsertKeybindingOverrideResponse(nullptr, from) {}
+  inline UpsertKeybindingOverrideResponse(UpsertKeybindingOverrideResponse&& from) noexcept
+      : UpsertKeybindingOverrideResponse(nullptr, ::std::move(from)) {}
+  inline UpsertKeybindingOverrideResponse& operator=(const UpsertKeybindingOverrideResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline UpsertKeybindingOverrideResponse& operator=(UpsertKeybindingOverrideResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const UpsertKeybindingOverrideResponse& default_instance() {
+    return *reinterpret_cast<const UpsertKeybindingOverrideResponse*>(
+        &_UpsertKeybindingOverrideResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 5;
+  friend void swap(UpsertKeybindingOverrideResponse& a, UpsertKeybindingOverrideResponse& b) { a.Swap(&b); }
+  inline void Swap(UpsertKeybindingOverrideResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(UpsertKeybindingOverrideResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  UpsertKeybindingOverrideResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<UpsertKeybindingOverrideResponse>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const UpsertKeybindingOverrideResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const UpsertKeybindingOverrideResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.account.UpsertKeybindingOverrideResponse"; }
+
+  explicit UpsertKeybindingOverrideResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  UpsertKeybindingOverrideResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const UpsertKeybindingOverrideResponse& from);
+  UpsertKeybindingOverrideResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, UpsertKeybindingOverrideResponse&& from) noexcept
+      : UpsertKeybindingOverrideResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:s4wave.account.UpsertKeybindingOverrideResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull UpsertKeybindingOverrideResponse_class_data_;
+// -------------------------------------------------------------------
+
 class UnlockEntityKeypairResponse final : public ::google::protobuf::internal::ZeroFieldsBase
 /* @@protoc_insertion_point(class_definition:s4wave.account.UnlockEntityKeypairResponse) */ {
  public:
@@ -1183,7 +1476,7 @@ class UnlockEntityKeypairResponse final : public ::google::protobuf::internal::Z
     return *reinterpret_cast<const UnlockEntityKeypairResponse*>(
         &_UnlockEntityKeypairResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 27;
+  static constexpr int kIndexInFileMessages = 33;
   friend void swap(UnlockEntityKeypairResponse& a, UnlockEntityKeypairResponse& b) { a.Swap(&b); }
   inline void Swap(UnlockEntityKeypairResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1318,7 +1611,7 @@ class StartDesktopPasskeyRegisterResponse final : public ::google::protobuf::Mes
     return *reinterpret_cast<const StartDesktopPasskeyRegisterResponse*>(
         &_StartDesktopPasskeyRegisterResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 37;
+  static constexpr int kIndexInFileMessages = 43;
   friend void swap(StartDesktopPasskeyRegisterResponse& a, StartDesktopPasskeyRegisterResponse& b) { a.Swap(&b); }
   inline void Swap(StartDesktopPasskeyRegisterResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1546,7 +1839,7 @@ class StartDesktopPasskeyRegisterRequest final : public ::google::protobuf::inte
     return *reinterpret_cast<const StartDesktopPasskeyRegisterRequest*>(
         &_StartDesktopPasskeyRegisterRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 36;
+  static constexpr int kIndexInFileMessages = 42;
   friend void swap(StartDesktopPasskeyRegisterRequest& a, StartDesktopPasskeyRegisterRequest& b) { a.Swap(&b); }
   inline void Swap(StartDesktopPasskeyRegisterRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1681,7 +1974,7 @@ class StartDesktopPasskeyRegisterHandoffResponse final : public ::google::protob
     return *reinterpret_cast<const StartDesktopPasskeyRegisterHandoffResponse*>(
         &_StartDesktopPasskeyRegisterHandoffResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 39;
+  static constexpr int kIndexInFileMessages = 45;
   friend void swap(StartDesktopPasskeyRegisterHandoffResponse& a, StartDesktopPasskeyRegisterHandoffResponse& b) { a.Swap(&b); }
   inline void Swap(StartDesktopPasskeyRegisterHandoffResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1938,7 +2231,7 @@ class StartDesktopPasskeyRegisterHandoffRequest final : public ::google::protobu
     return *reinterpret_cast<const StartDesktopPasskeyRegisterHandoffRequest*>(
         &_StartDesktopPasskeyRegisterHandoffRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 38;
+  static constexpr int kIndexInFileMessages = 44;
   friend void swap(StartDesktopPasskeyRegisterHandoffRequest& a, StartDesktopPasskeyRegisterHandoffRequest& b) { a.Swap(&b); }
   inline void Swap(StartDesktopPasskeyRegisterHandoffRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2072,7 +2365,7 @@ class SetSecurityLevelResponse final : public ::google::protobuf::internal::Zero
     return *reinterpret_cast<const SetSecurityLevelResponse*>(
         &_SetSecurityLevelResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 12;
+  static constexpr int kIndexInFileMessages = 18;
   friend void swap(SetSecurityLevelResponse& a, SetSecurityLevelResponse& b) { a.Swap(&b); }
   inline void Swap(SetSecurityLevelResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2207,7 +2500,7 @@ class SSOCodeExchangeResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const SSOCodeExchangeResponse*>(
         &_SSOCodeExchangeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 33;
+  static constexpr int kIndexInFileMessages = 39;
   friend void swap(SSOCodeExchangeResponse& a, SSOCodeExchangeResponse& b) { a.Swap(&b); }
   inline void Swap(SSOCodeExchangeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2511,7 +2804,7 @@ class SSOCodeExchangeRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SSOCodeExchangeRequest*>(
         &_SSOCodeExchangeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 32;
+  static constexpr int kIndexInFileMessages = 38;
   friend void swap(SSOCodeExchangeRequest& a, SSOCodeExchangeRequest& b) { a.Swap(&b); }
   inline void Swap(SSOCodeExchangeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2739,7 +3032,7 @@ class RevokeSessionResponse final : public ::google::protobuf::internal::ZeroFie
     return *reinterpret_cast<const RevokeSessionResponse*>(
         &_RevokeSessionResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 14;
+  static constexpr int kIndexInFileMessages = 20;
   friend void swap(RevokeSessionResponse& a, RevokeSessionResponse& b) { a.Swap(&b); }
   inline void Swap(RevokeSessionResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2819,6 +3112,335 @@ class RevokeSessionResponse final : public ::google::protobuf::internal::ZeroFie
 extern const ::google::protobuf::internal::ClassDataFull RevokeSessionResponse_class_data_;
 // -------------------------------------------------------------------
 
+class RemoveKeybindingOverrideResponse final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:s4wave.account.RemoveKeybindingOverrideResponse) */ {
+ public:
+  inline RemoveKeybindingOverrideResponse() : RemoveKeybindingOverrideResponse(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(RemoveKeybindingOverrideResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(RemoveKeybindingOverrideResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR RemoveKeybindingOverrideResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline RemoveKeybindingOverrideResponse(const RemoveKeybindingOverrideResponse& from) : RemoveKeybindingOverrideResponse(nullptr, from) {}
+  inline RemoveKeybindingOverrideResponse(RemoveKeybindingOverrideResponse&& from) noexcept
+      : RemoveKeybindingOverrideResponse(nullptr, ::std::move(from)) {}
+  inline RemoveKeybindingOverrideResponse& operator=(const RemoveKeybindingOverrideResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline RemoveKeybindingOverrideResponse& operator=(RemoveKeybindingOverrideResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const RemoveKeybindingOverrideResponse& default_instance() {
+    return *reinterpret_cast<const RemoveKeybindingOverrideResponse*>(
+        &_RemoveKeybindingOverrideResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 7;
+  friend void swap(RemoveKeybindingOverrideResponse& a, RemoveKeybindingOverrideResponse& b) { a.Swap(&b); }
+  inline void Swap(RemoveKeybindingOverrideResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(RemoveKeybindingOverrideResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  RemoveKeybindingOverrideResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<RemoveKeybindingOverrideResponse>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const RemoveKeybindingOverrideResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const RemoveKeybindingOverrideResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.account.RemoveKeybindingOverrideResponse"; }
+
+  explicit RemoveKeybindingOverrideResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  RemoveKeybindingOverrideResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RemoveKeybindingOverrideResponse& from);
+  RemoveKeybindingOverrideResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, RemoveKeybindingOverrideResponse&& from) noexcept
+      : RemoveKeybindingOverrideResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:s4wave.account.RemoveKeybindingOverrideResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull RemoveKeybindingOverrideResponse_class_data_;
+// -------------------------------------------------------------------
+
+class RemoveKeybindingOverrideRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.account.RemoveKeybindingOverrideRequest) */ {
+ public:
+  inline RemoveKeybindingOverrideRequest() : RemoveKeybindingOverrideRequest(nullptr) {}
+  ~RemoveKeybindingOverrideRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(RemoveKeybindingOverrideRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(RemoveKeybindingOverrideRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR RemoveKeybindingOverrideRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline RemoveKeybindingOverrideRequest(const RemoveKeybindingOverrideRequest& from) : RemoveKeybindingOverrideRequest(nullptr, from) {}
+  inline RemoveKeybindingOverrideRequest(RemoveKeybindingOverrideRequest&& from) noexcept
+      : RemoveKeybindingOverrideRequest(nullptr, ::std::move(from)) {}
+  inline RemoveKeybindingOverrideRequest& operator=(const RemoveKeybindingOverrideRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline RemoveKeybindingOverrideRequest& operator=(RemoveKeybindingOverrideRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const RemoveKeybindingOverrideRequest& default_instance() {
+    return *reinterpret_cast<const RemoveKeybindingOverrideRequest*>(
+        &_RemoveKeybindingOverrideRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 6;
+  friend void swap(RemoveKeybindingOverrideRequest& a, RemoveKeybindingOverrideRequest& b) { a.Swap(&b); }
+  inline void Swap(RemoveKeybindingOverrideRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(RemoveKeybindingOverrideRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  RemoveKeybindingOverrideRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<RemoveKeybindingOverrideRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const RemoveKeybindingOverrideRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const RemoveKeybindingOverrideRequest& from) { RemoveKeybindingOverrideRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(RemoveKeybindingOverrideRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.account.RemoveKeybindingOverrideRequest"; }
+
+  explicit RemoveKeybindingOverrideRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  RemoveKeybindingOverrideRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RemoveKeybindingOverrideRequest& from);
+  RemoveKeybindingOverrideRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, RemoveKeybindingOverrideRequest&& from) noexcept
+      : RemoveKeybindingOverrideRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kCommandIdFieldNumber = 1,
+  };
+  // string command_id = 1;
+  void clear_command_id() ;
+  const ::std::string& command_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_command_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_command_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_command_id();
+  void set_allocated_command_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_command_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_command_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_command_id();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.account.RemoveKeybindingOverrideRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 65,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const RemoveKeybindingOverrideRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr command_id_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull RemoveKeybindingOverrideRequest_class_data_;
+// -------------------------------------------------------------------
+
 class RemoveAuthMethodResponse final : public ::google::protobuf::internal::ZeroFieldsBase
 /* @@protoc_insertion_point(class_definition:s4wave.account.RemoveAuthMethodResponse) */ {
  public:
@@ -2873,7 +3495,7 @@ class RemoveAuthMethodResponse final : public ::google::protobuf::internal::Zero
     return *reinterpret_cast<const RemoveAuthMethodResponse*>(
         &_RemoveAuthMethodResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 10;
+  static constexpr int kIndexInFileMessages = 16;
   friend void swap(RemoveAuthMethodResponse& a, RemoveAuthMethodResponse& b) { a.Swap(&b); }
   inline void Swap(RemoveAuthMethodResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3008,7 +3630,7 @@ class PasskeyRegisterVerifyResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const PasskeyRegisterVerifyResponse*>(
         &_PasskeyRegisterVerifyResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 43;
+  static constexpr int kIndexInFileMessages = 49;
   friend void swap(PasskeyRegisterVerifyResponse& a, PasskeyRegisterVerifyResponse& b) { a.Swap(&b); }
   inline void Swap(PasskeyRegisterVerifyResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3203,7 +3825,7 @@ class PasskeyRegisterVerifyRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const PasskeyRegisterVerifyRequest*>(
         &_PasskeyRegisterVerifyRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 42;
+  static constexpr int kIndexInFileMessages = 48;
   friend void swap(PasskeyRegisterVerifyRequest& a, PasskeyRegisterVerifyRequest& b) { a.Swap(&b); }
   inline void Swap(PasskeyRegisterVerifyRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3478,7 +4100,7 @@ class PasskeyRegisterOptionsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const PasskeyRegisterOptionsResponse*>(
         &_PasskeyRegisterOptionsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 41;
+  static constexpr int kIndexInFileMessages = 47;
   friend void swap(PasskeyRegisterOptionsResponse& a, PasskeyRegisterOptionsResponse& b) { a.Swap(&b); }
   inline void Swap(PasskeyRegisterOptionsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3672,7 +4294,7 @@ class PasskeyRegisterOptionsRequest final : public ::google::protobuf::internal:
     return *reinterpret_cast<const PasskeyRegisterOptionsRequest*>(
         &_PasskeyRegisterOptionsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 40;
+  static constexpr int kIndexInFileMessages = 46;
   friend void swap(PasskeyRegisterOptionsRequest& a, PasskeyRegisterOptionsRequest& b) { a.Swap(&b); }
   inline void Swap(PasskeyRegisterOptionsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3806,7 +4428,7 @@ class LockEntityKeypairResponse final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const LockEntityKeypairResponse*>(
         &_LockEntityKeypairResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 29;
+  static constexpr int kIndexInFileMessages = 35;
   friend void swap(LockEntityKeypairResponse& a, LockEntityKeypairResponse& b) { a.Swap(&b); }
   inline void Swap(LockEntityKeypairResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3941,7 +4563,7 @@ class LockEntityKeypairRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const LockEntityKeypairRequest*>(
         &_LockEntityKeypairRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 28;
+  static constexpr int kIndexInFileMessages = 34;
   friend void swap(LockEntityKeypairRequest& a, LockEntityKeypairRequest& b) { a.Swap(&b); }
   inline void Swap(LockEntityKeypairRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4135,7 +4757,7 @@ class LockAllEntityKeypairsResponse final : public ::google::protobuf::internal:
     return *reinterpret_cast<const LockAllEntityKeypairsResponse*>(
         &_LockAllEntityKeypairsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 31;
+  static constexpr int kIndexInFileMessages = 37;
   friend void swap(LockAllEntityKeypairsResponse& a, LockAllEntityKeypairsResponse& b) { a.Swap(&b); }
   inline void Swap(LockAllEntityKeypairsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4269,7 +4891,7 @@ class LockAllEntityKeypairsRequest final : public ::google::protobuf::internal::
     return *reinterpret_cast<const LockAllEntityKeypairsRequest*>(
         &_LockAllEntityKeypairsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 30;
+  static constexpr int kIndexInFileMessages = 36;
   friend void swap(LockAllEntityKeypairsRequest& a, LockAllEntityKeypairsRequest& b) { a.Swap(&b); }
   inline void Swap(LockAllEntityKeypairsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4403,7 +5025,7 @@ class LinkSSOResponse final : public ::google::protobuf::internal::ZeroFieldsBas
     return *reinterpret_cast<const LinkSSOResponse*>(
         &_LinkSSOResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 35;
+  static constexpr int kIndexInFileMessages = 41;
   friend void swap(LinkSSOResponse& a, LinkSSOResponse& b) { a.Swap(&b); }
   inline void Swap(LinkSSOResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4538,7 +5160,7 @@ class GenerateBackupKeyResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GenerateBackupKeyResponse*>(
         &_GenerateBackupKeyResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 16;
+  static constexpr int kIndexInFileMessages = 22;
   friend void swap(GenerateBackupKeyResponse& a, GenerateBackupKeyResponse& b) { a.Swap(&b); }
   inline void Swap(GenerateBackupKeyResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4749,7 +5371,7 @@ class ChangePasswordResponse final : public ::google::protobuf::internal::ZeroFi
     return *reinterpret_cast<const ChangePasswordResponse*>(
         &_ChangePasswordResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 18;
+  static constexpr int kIndexInFileMessages = 24;
   friend void swap(ChangePasswordResponse& a, ChangePasswordResponse& b) { a.Swap(&b); }
   inline void Swap(ChangePasswordResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4884,7 +5506,7 @@ class ChangePasswordRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ChangePasswordRequest*>(
         &_ChangePasswordRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 17;
+  static constexpr int kIndexInFileMessages = 23;
   friend void swap(ChangePasswordRequest& a, ChangePasswordRequest& b) { a.Swap(&b); }
   inline void Swap(ChangePasswordRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5095,7 +5717,7 @@ class AddAuthMethodResponse final : public ::google::protobuf::internal::ZeroFie
     return *reinterpret_cast<const AddAuthMethodResponse*>(
         &_AddAuthMethodResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
+  static constexpr int kIndexInFileMessages = 14;
   friend void swap(AddAuthMethodResponse& a, AddAuthMethodResponse& b) { a.Swap(&b); }
   inline void Swap(AddAuthMethodResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5230,7 +5852,7 @@ class AccountEscalationRequirement final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccountEscalationRequirement*>(
         &_AccountEscalationRequirement_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 24;
+  static constexpr int kIndexInFileMessages = 30;
   friend void swap(AccountEscalationRequirement& a, AccountEscalationRequirement& b) { a.Swap(&b); }
   inline void Swap(AccountEscalationRequirement* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5456,7 +6078,7 @@ class AccountEscalationMethod final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccountEscalationMethod*>(
         &_AccountEscalationMethod_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 23;
+  static constexpr int kIndexInFileMessages = 29;
   friend void swap(AccountEscalationMethod& a, AccountEscalationMethod& b) { a.Swap(&b); }
   inline void Swap(AccountEscalationMethod* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5726,7 +6348,7 @@ class AccountEscalationIntent final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccountEscalationIntent*>(
         &_AccountEscalationIntent_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 22;
+  static constexpr int kIndexInFileMessages = 28;
   friend void swap(AccountEscalationIntent& a, AccountEscalationIntent& b) { a.Swap(&b); }
   inline void Swap(AccountEscalationIntent* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6001,7 +6623,7 @@ class UnlockEntityKeypairRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const UnlockEntityKeypairRequest*>(
         &_UnlockEntityKeypairRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 26;
+  static constexpr int kIndexInFileMessages = 32;
   friend void swap(UnlockEntityKeypairRequest& a, UnlockEntityKeypairRequest& b) { a.Swap(&b); }
   inline void Swap(UnlockEntityKeypairRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6213,7 +6835,7 @@ class SetSecurityLevelRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetSecurityLevelRequest*>(
         &_SetSecurityLevelRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 11;
+  static constexpr int kIndexInFileMessages = 17;
   friend void swap(SetSecurityLevelRequest& a, SetSecurityLevelRequest& b) { a.Swap(&b); }
   inline void Swap(SetSecurityLevelRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6420,7 +7042,7 @@ class RevokeSessionRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RevokeSessionRequest*>(
         &_RevokeSessionRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 13;
+  static constexpr int kIndexInFileMessages = 19;
   friend void swap(RevokeSessionRequest& a, RevokeSessionRequest& b) { a.Swap(&b); }
   inline void Swap(RevokeSessionRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6632,7 +7254,7 @@ class RemoveAuthMethodRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RemoveAuthMethodRequest*>(
         &_RemoveAuthMethodRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 9;
+  static constexpr int kIndexInFileMessages = 15;
   friend void swap(RemoveAuthMethodRequest& a, RemoveAuthMethodRequest& b) { a.Swap(&b); }
   inline void Swap(RemoveAuthMethodRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6844,7 +7466,7 @@ class LinkSSORequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const LinkSSORequest*>(
         &_LinkSSORequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 34;
+  static constexpr int kIndexInFileMessages = 40;
   friend void swap(LinkSSORequest& a, LinkSSORequest& b) { a.Swap(&b); }
   inline void Swap(LinkSSORequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7107,7 +7729,7 @@ class GenerateBackupKeyRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const GenerateBackupKeyRequest*>(
         &_GenerateBackupKeyRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 15;
+  static constexpr int kIndexInFileMessages = 21;
   friend void swap(GenerateBackupKeyRequest& a, GenerateBackupKeyRequest& b) { a.Swap(&b); }
   inline void Swap(GenerateBackupKeyRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7302,7 +7924,7 @@ class EntityKeypairState final : public ::google::protobuf::Message
     return *reinterpret_cast<const EntityKeypairState*>(
         &_EntityKeypairState_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 19;
+  static constexpr int kIndexInFileMessages = 25;
   friend void swap(EntityKeypairState& a, EntityKeypairState& b) { a.Swap(&b); }
   inline void Swap(EntityKeypairState* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7509,7 +8131,7 @@ class AddAuthMethodRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AddAuthMethodRequest*>(
         &_AddAuthMethodRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 7;
+  static constexpr int kIndexInFileMessages = 13;
   friend void swap(AddAuthMethodRequest& a, AddAuthMethodRequest& b) { a.Swap(&b); }
   inline void Swap(AddAuthMethodRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7721,7 +8343,7 @@ class AccountSession final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccountSession*>(
         &_AccountSession_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 10;
   friend void swap(AccountSession& a, AccountSession& b) { a.Swap(&b); }
   inline void Swap(AccountSession* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8059,7 +8681,7 @@ class AccountEscalationState final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccountEscalationState*>(
         &_AccountEscalationState_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 25;
+  static constexpr int kIndexInFileMessages = 31;
   friend void swap(AccountEscalationState& a, AccountEscalationState& b) { a.Swap(&b); }
   inline void Swap(AccountEscalationState* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8290,7 +8912,7 @@ class WatchSessionsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchSessionsResponse*>(
         &_WatchSessionsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 12;
   friend void swap(WatchSessionsResponse& a, WatchSessionsResponse& b) { a.Swap(&b); }
   inline void Swap(WatchSessionsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8487,7 +9109,7 @@ class WatchEntityKeypairsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchEntityKeypairsResponse*>(
         &_WatchEntityKeypairsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 21;
+  static constexpr int kIndexInFileMessages = 27;
   friend void swap(WatchEntityKeypairsResponse& a, WatchEntityKeypairsResponse& b) { a.Swap(&b); }
   inline void Swap(WatchEntityKeypairsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8696,7 +9318,7 @@ class WatchAuthMethodsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchAuthMethodsResponse*>(
         &_WatchAuthMethodsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 9;
   friend void swap(WatchAuthMethodsResponse& a, WatchAuthMethodsResponse& b) { a.Swap(&b); }
   inline void Swap(WatchAuthMethodsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8836,6 +9458,408 @@ class WatchAuthMethodsResponse final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull WatchAuthMethodsResponse_class_data_;
+// -------------------------------------------------------------------
+
+class UpsertKeybindingOverrideRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.account.UpsertKeybindingOverrideRequest) */ {
+ public:
+  inline UpsertKeybindingOverrideRequest() : UpsertKeybindingOverrideRequest(nullptr) {}
+  ~UpsertKeybindingOverrideRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(UpsertKeybindingOverrideRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(UpsertKeybindingOverrideRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR UpsertKeybindingOverrideRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline UpsertKeybindingOverrideRequest(const UpsertKeybindingOverrideRequest& from) : UpsertKeybindingOverrideRequest(nullptr, from) {}
+  inline UpsertKeybindingOverrideRequest(UpsertKeybindingOverrideRequest&& from) noexcept
+      : UpsertKeybindingOverrideRequest(nullptr, ::std::move(from)) {}
+  inline UpsertKeybindingOverrideRequest& operator=(const UpsertKeybindingOverrideRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline UpsertKeybindingOverrideRequest& operator=(UpsertKeybindingOverrideRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const UpsertKeybindingOverrideRequest& default_instance() {
+    return *reinterpret_cast<const UpsertKeybindingOverrideRequest*>(
+        &_UpsertKeybindingOverrideRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 4;
+  friend void swap(UpsertKeybindingOverrideRequest& a, UpsertKeybindingOverrideRequest& b) { a.Swap(&b); }
+  inline void Swap(UpsertKeybindingOverrideRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(UpsertKeybindingOverrideRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  UpsertKeybindingOverrideRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<UpsertKeybindingOverrideRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const UpsertKeybindingOverrideRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const UpsertKeybindingOverrideRequest& from) { UpsertKeybindingOverrideRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(UpsertKeybindingOverrideRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.account.UpsertKeybindingOverrideRequest"; }
+
+  explicit UpsertKeybindingOverrideRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  UpsertKeybindingOverrideRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const UpsertKeybindingOverrideRequest& from);
+  UpsertKeybindingOverrideRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, UpsertKeybindingOverrideRequest&& from) noexcept
+      : UpsertKeybindingOverrideRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kOverrideFieldNumber = 1,
+  };
+  // .s4wave.command.KeybindingCommandOverride override = 1;
+  bool has_override() const;
+  void clear_override() ;
+  const ::s4wave::command::KeybindingCommandOverride& override() const;
+  [[nodiscard]] ::s4wave::command::KeybindingCommandOverride* PROTOBUF_NULLABLE release_override();
+  ::s4wave::command::KeybindingCommandOverride* PROTOBUF_NONNULL mutable_override();
+  void set_allocated_override(::s4wave::command::KeybindingCommandOverride* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_override(::s4wave::command::KeybindingCommandOverride* PROTOBUF_NULLABLE value);
+  ::s4wave::command::KeybindingCommandOverride* PROTOBUF_NULLABLE unsafe_arena_release_override();
+
+  private:
+  const ::s4wave::command::KeybindingCommandOverride& _internal_override() const;
+  ::s4wave::command::KeybindingCommandOverride* PROTOBUF_NONNULL _internal_mutable_override();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.account.UpsertKeybindingOverrideRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const UpsertKeybindingOverrideRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::s4wave::command::KeybindingCommandOverride* PROTOBUF_NULLABLE override_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull UpsertKeybindingOverrideRequest_class_data_;
+// -------------------------------------------------------------------
+
+class WatchKeybindingOverridesResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.account.WatchKeybindingOverridesResponse) */ {
+ public:
+  inline WatchKeybindingOverridesResponse() : WatchKeybindingOverridesResponse(nullptr) {}
+  ~WatchKeybindingOverridesResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(WatchKeybindingOverridesResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(WatchKeybindingOverridesResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR WatchKeybindingOverridesResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline WatchKeybindingOverridesResponse(const WatchKeybindingOverridesResponse& from) : WatchKeybindingOverridesResponse(nullptr, from) {}
+  inline WatchKeybindingOverridesResponse(WatchKeybindingOverridesResponse&& from) noexcept
+      : WatchKeybindingOverridesResponse(nullptr, ::std::move(from)) {}
+  inline WatchKeybindingOverridesResponse& operator=(const WatchKeybindingOverridesResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WatchKeybindingOverridesResponse& operator=(WatchKeybindingOverridesResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WatchKeybindingOverridesResponse& default_instance() {
+    return *reinterpret_cast<const WatchKeybindingOverridesResponse*>(
+        &_WatchKeybindingOverridesResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 3;
+  friend void swap(WatchKeybindingOverridesResponse& a, WatchKeybindingOverridesResponse& b) { a.Swap(&b); }
+  inline void Swap(WatchKeybindingOverridesResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WatchKeybindingOverridesResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WatchKeybindingOverridesResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<WatchKeybindingOverridesResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const WatchKeybindingOverridesResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const WatchKeybindingOverridesResponse& from) { WatchKeybindingOverridesResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(WatchKeybindingOverridesResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.account.WatchKeybindingOverridesResponse"; }
+
+  explicit WatchKeybindingOverridesResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  WatchKeybindingOverridesResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchKeybindingOverridesResponse& from);
+  WatchKeybindingOverridesResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WatchKeybindingOverridesResponse&& from) noexcept
+      : WatchKeybindingOverridesResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kOverrideSetFieldNumber = 1,
+    kReadOnlyFieldNumber = 2,
+  };
+  // .s4wave.command.KeybindingOverrideSet override_set = 1;
+  bool has_override_set() const;
+  void clear_override_set() ;
+  const ::s4wave::command::KeybindingOverrideSet& override_set() const;
+  [[nodiscard]] ::s4wave::command::KeybindingOverrideSet* PROTOBUF_NULLABLE release_override_set();
+  ::s4wave::command::KeybindingOverrideSet* PROTOBUF_NONNULL mutable_override_set();
+  void set_allocated_override_set(::s4wave::command::KeybindingOverrideSet* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_override_set(::s4wave::command::KeybindingOverrideSet* PROTOBUF_NULLABLE value);
+  ::s4wave::command::KeybindingOverrideSet* PROTOBUF_NULLABLE unsafe_arena_release_override_set();
+
+  private:
+  const ::s4wave::command::KeybindingOverrideSet& _internal_override_set() const;
+  ::s4wave::command::KeybindingOverrideSet* PROTOBUF_NONNULL _internal_mutable_override_set();
+
+  public:
+  // bool read_only = 2;
+  void clear_read_only() ;
+  bool read_only() const;
+  void set_read_only(bool value);
+
+  private:
+  bool _internal_read_only() const;
+  void _internal_set_read_only(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.account.WatchKeybindingOverridesResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const WatchKeybindingOverridesResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::s4wave::command::KeybindingOverrideSet* PROTOBUF_NULLABLE override_set_;
+    bool read_only_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull WatchKeybindingOverridesResponse_class_data_;
 
 // ===================================================================
 
@@ -9101,6 +10125,306 @@ inline void WatchAccountInfoResponse::_internal_set_keypair_count(::uint32_t val
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.keypair_count_ = value;
 }
+
+// -------------------------------------------------------------------
+
+// WatchKeybindingOverridesRequest
+
+// -------------------------------------------------------------------
+
+// WatchKeybindingOverridesResponse
+
+// .s4wave.command.KeybindingOverrideSet override_set = 1;
+inline bool WatchKeybindingOverridesResponse::has_override_set() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.override_set_ != nullptr);
+  return value;
+}
+inline const ::s4wave::command::KeybindingOverrideSet& WatchKeybindingOverridesResponse::_internal_override_set() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::command::KeybindingOverrideSet* p = _impl_.override_set_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::command::KeybindingOverrideSet&>(::s4wave::command::_KeybindingOverrideSet_default_instance_);
+}
+inline const ::s4wave::command::KeybindingOverrideSet& WatchKeybindingOverridesResponse::override_set() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.account.WatchKeybindingOverridesResponse.override_set)
+  return _internal_override_set();
+}
+inline void WatchKeybindingOverridesResponse::unsafe_arena_set_allocated_override_set(
+    ::s4wave::command::KeybindingOverrideSet* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.override_set_);
+  }
+  _impl_.override_set_ = reinterpret_cast<::s4wave::command::KeybindingOverrideSet*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.account.WatchKeybindingOverridesResponse.override_set)
+}
+inline ::s4wave::command::KeybindingOverrideSet* PROTOBUF_NULLABLE WatchKeybindingOverridesResponse::release_override_set() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::command::KeybindingOverrideSet* released = _impl_.override_set_;
+  _impl_.override_set_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::command::KeybindingOverrideSet* PROTOBUF_NULLABLE WatchKeybindingOverridesResponse::unsafe_arena_release_override_set() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.account.WatchKeybindingOverridesResponse.override_set)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::command::KeybindingOverrideSet* temp = _impl_.override_set_;
+  _impl_.override_set_ = nullptr;
+  return temp;
+}
+inline ::s4wave::command::KeybindingOverrideSet* PROTOBUF_NONNULL WatchKeybindingOverridesResponse::_internal_mutable_override_set() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.override_set_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::command::KeybindingOverrideSet>(GetArena());
+    _impl_.override_set_ = reinterpret_cast<::s4wave::command::KeybindingOverrideSet*>(p);
+  }
+  return _impl_.override_set_;
+}
+inline ::s4wave::command::KeybindingOverrideSet* PROTOBUF_NONNULL WatchKeybindingOverridesResponse::mutable_override_set()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::command::KeybindingOverrideSet* _msg = _internal_mutable_override_set();
+  // @@protoc_insertion_point(field_mutable:s4wave.account.WatchKeybindingOverridesResponse.override_set)
+  return _msg;
+}
+inline void WatchKeybindingOverridesResponse::set_allocated_override_set(::s4wave::command::KeybindingOverrideSet* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.override_set_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.override_set_ = reinterpret_cast<::s4wave::command::KeybindingOverrideSet*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.account.WatchKeybindingOverridesResponse.override_set)
+}
+
+// bool read_only = 2;
+inline void WatchKeybindingOverridesResponse::clear_read_only() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.read_only_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline bool WatchKeybindingOverridesResponse::read_only() const {
+  // @@protoc_insertion_point(field_get:s4wave.account.WatchKeybindingOverridesResponse.read_only)
+  return _internal_read_only();
+}
+inline void WatchKeybindingOverridesResponse::set_read_only(bool value) {
+  _internal_set_read_only(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:s4wave.account.WatchKeybindingOverridesResponse.read_only)
+}
+inline bool WatchKeybindingOverridesResponse::_internal_read_only() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.read_only_;
+}
+inline void WatchKeybindingOverridesResponse::_internal_set_read_only(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.read_only_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// UpsertKeybindingOverrideRequest
+
+// .s4wave.command.KeybindingCommandOverride override = 1;
+inline bool UpsertKeybindingOverrideRequest::has_override() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.override_ != nullptr);
+  return value;
+}
+inline const ::s4wave::command::KeybindingCommandOverride& UpsertKeybindingOverrideRequest::_internal_override() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::command::KeybindingCommandOverride* p = _impl_.override_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::command::KeybindingCommandOverride&>(::s4wave::command::_KeybindingCommandOverride_default_instance_);
+}
+inline const ::s4wave::command::KeybindingCommandOverride& UpsertKeybindingOverrideRequest::override() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.account.UpsertKeybindingOverrideRequest.override)
+  return _internal_override();
+}
+inline void UpsertKeybindingOverrideRequest::unsafe_arena_set_allocated_override(
+    ::s4wave::command::KeybindingCommandOverride* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.override_);
+  }
+  _impl_.override_ = reinterpret_cast<::s4wave::command::KeybindingCommandOverride*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.account.UpsertKeybindingOverrideRequest.override)
+}
+inline ::s4wave::command::KeybindingCommandOverride* PROTOBUF_NULLABLE UpsertKeybindingOverrideRequest::release_override() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::command::KeybindingCommandOverride* released = _impl_.override_;
+  _impl_.override_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::command::KeybindingCommandOverride* PROTOBUF_NULLABLE UpsertKeybindingOverrideRequest::unsafe_arena_release_override() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.account.UpsertKeybindingOverrideRequest.override)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::command::KeybindingCommandOverride* temp = _impl_.override_;
+  _impl_.override_ = nullptr;
+  return temp;
+}
+inline ::s4wave::command::KeybindingCommandOverride* PROTOBUF_NONNULL UpsertKeybindingOverrideRequest::_internal_mutable_override() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.override_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::command::KeybindingCommandOverride>(GetArena());
+    _impl_.override_ = reinterpret_cast<::s4wave::command::KeybindingCommandOverride*>(p);
+  }
+  return _impl_.override_;
+}
+inline ::s4wave::command::KeybindingCommandOverride* PROTOBUF_NONNULL UpsertKeybindingOverrideRequest::mutable_override()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::command::KeybindingCommandOverride* _msg = _internal_mutable_override();
+  // @@protoc_insertion_point(field_mutable:s4wave.account.UpsertKeybindingOverrideRequest.override)
+  return _msg;
+}
+inline void UpsertKeybindingOverrideRequest::set_allocated_override(::s4wave::command::KeybindingCommandOverride* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.override_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.override_ = reinterpret_cast<::s4wave::command::KeybindingCommandOverride*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.account.UpsertKeybindingOverrideRequest.override)
+}
+
+// -------------------------------------------------------------------
+
+// UpsertKeybindingOverrideResponse
+
+// -------------------------------------------------------------------
+
+// RemoveKeybindingOverrideRequest
+
+// string command_id = 1;
+inline void RemoveKeybindingOverrideRequest::clear_command_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.command_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& RemoveKeybindingOverrideRequest::command_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.account.RemoveKeybindingOverrideRequest.command_id)
+  return _internal_command_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void RemoveKeybindingOverrideRequest::set_command_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.command_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.account.RemoveKeybindingOverrideRequest.command_id)
+}
+inline ::std::string* PROTOBUF_NONNULL RemoveKeybindingOverrideRequest::mutable_command_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_command_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.account.RemoveKeybindingOverrideRequest.command_id)
+  return _s;
+}
+inline const ::std::string& RemoveKeybindingOverrideRequest::_internal_command_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.command_id_.Get();
+}
+inline void RemoveKeybindingOverrideRequest::_internal_set_command_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.command_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL RemoveKeybindingOverrideRequest::_internal_mutable_command_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.command_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE RemoveKeybindingOverrideRequest::release_command_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.account.RemoveKeybindingOverrideRequest.command_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.command_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.command_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void RemoveKeybindingOverrideRequest::set_allocated_command_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.command_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.command_id_.IsDefault()) {
+    _impl_.command_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.account.RemoveKeybindingOverrideRequest.command_id)
+}
+
+// -------------------------------------------------------------------
+
+// RemoveKeybindingOverrideResponse
 
 // -------------------------------------------------------------------
 

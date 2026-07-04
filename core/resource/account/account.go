@@ -25,6 +25,7 @@ import (
 	"github.com/s4wave/spacewave/net/keypem"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_account "github.com/s4wave/spacewave/sdk/account"
+	s4wave_command "github.com/s4wave/spacewave/sdk/command"
 )
 
 // AccountResource wraps a provider account for resource access.
@@ -171,6 +172,173 @@ func (r *AccountResource) watchCloudAccountInfo(
 		},
 		strm.Send,
 	)
+}
+
+// WatchKeybindingOverrides streams account-scope keybinding overrides.
+func (r *AccountResource) WatchKeybindingOverrides(
+	req *s4wave_account.WatchKeybindingOverridesRequest,
+	strm s4wave_account.SRPCAccountResourceService_WatchKeybindingOverridesStream,
+) error {
+	if r.localAccount == nil {
+		return strm.Send(&s4wave_account.WatchKeybindingOverridesResponse{
+			OverrideSet: &s4wave_command.KeybindingOverrideSet{Version: 1},
+			ReadOnly:    true,
+		})
+	}
+
+	ctx, ctxCancel := context.WithCancel(strm.Context())
+	defer ctxCancel()
+
+	_, relSO, stateCtr, relStateCtr, err := r.mountLocalAccountSettingsState(ctx, ctxCancel)
+	if err != nil {
+		return err
+	}
+	defer relSO()
+	defer relStateCtr()
+
+	var prev *s4wave_account.WatchKeybindingOverridesResponse
+	return ccontainer.WatchChanges(
+		ctx,
+		nil,
+		stateCtr,
+		func(snap sobject.SharedObjectStateSnapshot) error {
+			settings, err := decodeLocalAccountSettingsSnapshot(ctx, snap)
+			if err != nil {
+				return err
+			}
+			overrideSet := settings.GetKeybindingOverrides()
+			if overrideSet == nil {
+				overrideSet = &s4wave_command.KeybindingOverrideSet{Version: 1}
+			}
+			resp := &s4wave_account.WatchKeybindingOverridesResponse{
+				OverrideSet: overrideSet.CloneVT(),
+			}
+			if prev != nil && resp.EqualVT(prev) {
+				return nil
+			}
+			prev = resp
+			return strm.Send(resp)
+		},
+		nil,
+	)
+}
+
+// UpsertKeybindingOverride adds or replaces one account-scope keybinding override.
+func (r *AccountResource) UpsertKeybindingOverride(
+	ctx context.Context,
+	req *s4wave_account.UpsertKeybindingOverrideRequest,
+) (*s4wave_account.UpsertKeybindingOverrideResponse, error) {
+	if r.localAccount == nil {
+		return nil, errors.New("account keybinding overrides require a local account")
+	}
+	op := &account_settings.AccountSettingsOp{
+		Op: &account_settings.AccountSettingsOp_UpsertKeybindingOverride{
+			UpsertKeybindingOverride: req.GetOverride(),
+		},
+	}
+	if err := r.queueLocalAccountSettingsOp(ctx, op); err != nil {
+		return nil, err
+	}
+	return &s4wave_account.UpsertKeybindingOverrideResponse{}, nil
+}
+
+// RemoveKeybindingOverride removes one account-scope keybinding override.
+func (r *AccountResource) RemoveKeybindingOverride(
+	ctx context.Context,
+	req *s4wave_account.RemoveKeybindingOverrideRequest,
+) (*s4wave_account.RemoveKeybindingOverrideResponse, error) {
+	if r.localAccount == nil {
+		return nil, errors.New("account keybinding overrides require a local account")
+	}
+	op := &account_settings.AccountSettingsOp{
+		Op: &account_settings.AccountSettingsOp_RemoveKeybindingOverride{
+			RemoveKeybindingOverride: &account_settings.RemoveKeybindingOverrideOp{
+				CommandId: req.GetCommandId(),
+			},
+		},
+	}
+	if err := r.queueLocalAccountSettingsOp(ctx, op); err != nil {
+		return nil, err
+	}
+	return &s4wave_account.RemoveKeybindingOverrideResponse{}, nil
+}
+
+func (r *AccountResource) mountLocalAccountSettingsState(
+	ctx context.Context,
+	release func(),
+) (
+	sobject.SharedObject,
+	func(),
+	ccontainer.Watchable[sobject.SharedObjectStateSnapshot],
+	func(),
+	error,
+) {
+	soRef, err := r.localAccount.GetAccountSettingsRef(ctx)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	so, relSO, err := r.localAccount.MountSharedObject(ctx, soRef, release)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	stateCtr, relStateCtr, err := so.AccessSharedObjectState(ctx, release)
+	if err != nil {
+		relSO()
+		return nil, nil, nil, nil, err
+	}
+	return so, relSO, stateCtr, relStateCtr, nil
+}
+
+func (r *AccountResource) queueLocalAccountSettingsOp(
+	ctx context.Context,
+	op *account_settings.AccountSettingsOp,
+) error {
+	soRef, err := r.localAccount.GetAccountSettingsRef(ctx)
+	if err != nil {
+		return err
+	}
+	so, relSO, err := r.localAccount.MountSharedObject(ctx, soRef, nil)
+	if err != nil {
+		return err
+	}
+	defer relSO()
+
+	opData, err := op.MarshalVT()
+	if err != nil {
+		return errors.Wrap(err, "marshal account keybinding op")
+	}
+	localID, err := so.QueueOperation(ctx, opData)
+	if err != nil {
+		return errors.Wrap(err, "queue account keybinding op")
+	}
+	if _, rejected, err := so.WaitOperation(ctx, localID); err != nil {
+		if rejected {
+			_ = so.ClearOperationResult(ctx, localID)
+		}
+		return errors.Wrap(err, "wait for account keybinding op")
+	}
+	return nil
+}
+
+func decodeLocalAccountSettingsSnapshot(
+	ctx context.Context,
+	snap sobject.SharedObjectStateSnapshot,
+) (*account_settings.AccountSettings, error) {
+	settings := &account_settings.AccountSettings{}
+	if snap == nil {
+		return settings, nil
+	}
+	rootInner, err := snap.GetRootInner(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if rootInner == nil || len(rootInner.GetStateData()) == 0 {
+		return settings, nil
+	}
+	if err := settings.UnmarshalVT(rootInner.GetStateData()); err != nil {
+		return nil, err
+	}
+	return settings, nil
 }
 
 // watchCloudBcast drives a bcast-based watch loop. snapshot reads

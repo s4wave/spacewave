@@ -13,6 +13,7 @@ import (
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
+	s4wave_command "github.com/s4wave/spacewave/sdk/command"
 	"github.com/s4wave/spacewave/testbed"
 )
 
@@ -477,4 +478,196 @@ func TestEntityKeypairCRUD(t *testing.T) {
 		}
 		return s.GetEntityKeypairs()[0].GetPeerId() == "12D3KooWKeypair2"
 	})
+}
+
+// TestKeybindingOverrideCRUD verifies account-scoped keybinding override ops
+// validate command IDs, replace duplicate command rows, reject malformed ops,
+// and leave existing state intact on rejection.
+func TestKeybindingOverrideCRUD(t *testing.T) {
+	ctx := t.Context()
+	peerID := "12D3KooWL2DEcvqSXXrrCmUxMdPbqFcqzhHBvqseZWHwjAt7aXfW"
+	initial := &account_settings.AccountSettings{
+		KeybindingOverrides: &s4wave_command.KeybindingOverrideSet{
+			Version: 1,
+			Overrides: []*s4wave_command.KeybindingCommandOverride{{
+				CommandId: "spacewave.existing",
+				Bindings: []*s4wave_command.CommandBinding{{
+					Id: "existing-default",
+					Binding: &s4wave_command.CommandBinding_Combo{
+						Combo: &s4wave_command.KeyCombo{Combo: "Ctrl+E"},
+					},
+					When: s4wave_command.CommandFocusContext_COMMAND_FOCUS_CONTEXT_GLOBAL,
+				}},
+			}},
+		},
+	}
+	currentData, err := initial.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	staleUpsert, err := (&account_settings.AccountSettingsOp{
+		Op: &account_settings.AccountSettingsOp_UpsertKeybindingOverride{
+			UpsertKeybindingOverride: &s4wave_command.KeybindingCommandOverride{
+				CommandId:       "spacewave.palette",
+				ReplaceBindings: true,
+				Bindings: []*s4wave_command.CommandBinding{{
+					Id: "palette-stale",
+					Binding: &s4wave_command.CommandBinding_Combo{
+						Combo: &s4wave_command.KeyCombo{Combo: "Ctrl+P"},
+					},
+					When: s4wave_command.CommandFocusContext_COMMAND_FOCUS_CONTEXT_GLOBAL,
+				}},
+			},
+		},
+	}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	replacementUpsert, err := (&account_settings.AccountSettingsOp{
+		Op: &account_settings.AccountSettingsOp_UpsertKeybindingOverride{
+			UpsertKeybindingOverride: &s4wave_command.KeybindingCommandOverride{
+				CommandId:         "spacewave.palette",
+				ClearedBindingIds: []string{"palette-default"},
+				Bindings: []*s4wave_command.CommandBinding{{
+					Id: "palette-account",
+					Binding: &s4wave_command.CommandBinding_Combo{
+						Combo: &s4wave_command.KeyCombo{Combo: "Ctrl+K"},
+					},
+					When: s4wave_command.CommandFocusContext_COMMAND_FOCUS_CONTEXT_GLOBAL,
+				}},
+			},
+		},
+	}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	missingCommandUpsert, err := (&account_settings.AccountSettingsOp{
+		Op: &account_settings.AccountSettingsOp_UpsertKeybindingOverride{
+			UpsertKeybindingOverride: &s4wave_command.KeybindingCommandOverride{
+				Bindings: []*s4wave_command.CommandBinding{{
+					Id: "missing-command",
+					Binding: &s4wave_command.CommandBinding_Combo{
+						Combo: &s4wave_command.KeyCombo{Combo: "Ctrl+M"},
+					},
+					When: s4wave_command.CommandFocusContext_COMMAND_FOCUS_CONTEXT_GLOBAL,
+				}},
+			},
+		},
+	}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	missingCommandRemove, err := (&account_settings.AccountSettingsOp{
+		Op: &account_settings.AccountSettingsOp_RemoveKeybindingOverride{
+			RemoveKeybindingOverride: &account_settings.RemoveKeybindingOverrideOp{},
+		},
+	}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nextData, results, err := account_settings.ProcessAccountSettingsOps(
+		ctx,
+		nil,
+		currentData,
+		[]*sobject.SOOperationInner{
+			{PeerId: peerID, Nonce: 1, OpData: staleUpsert},
+			{PeerId: peerID, Nonce: 2, OpData: replacementUpsert},
+			{PeerId: peerID, Nonce: 3, OpData: missingCommandUpsert},
+			{PeerId: peerID, Nonce: 4, OpData: missingCommandRemove},
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if nextData == nil {
+		t.Fatal("expected keybinding upserts to change account settings")
+	}
+	if len(results) != 4 {
+		t.Fatalf("expected 4 op results, got %d", len(results))
+	}
+	if !results[0].GetSuccess() || !results[1].GetSuccess() {
+		t.Fatalf("expected both valid upserts to succeed: %#v", results[:2])
+	}
+	if results[2].GetSuccess() || results[2].GetErrorDetails().GetErrorMsg() != "command_id is required" {
+		t.Fatalf("expected empty upsert command_id rejection, got %#v", results[2].GetErrorDetails())
+	}
+	if results[3].GetSuccess() || results[3].GetErrorDetails().GetErrorMsg() != "command_id is required" {
+		t.Fatalf("expected empty remove command_id rejection, got %#v", results[3].GetErrorDetails())
+	}
+
+	next := &account_settings.AccountSettings{}
+	if err := next.UnmarshalVT(*nextData); err != nil {
+		t.Fatal(err)
+	}
+	overrides := next.GetKeybindingOverrides().GetOverrides()
+	if len(overrides) != 2 {
+		t.Fatalf("expected existing plus deduped palette override, got %d", len(overrides))
+	}
+	if overrides[0].GetCommandId() != "spacewave.existing" {
+		t.Fatalf("existing override moved or dropped: %#v", overrides[0])
+	}
+	palette := overrides[1]
+	if palette.GetCommandId() != "spacewave.palette" {
+		t.Fatalf("expected palette override, got %q", palette.GetCommandId())
+	}
+	if palette.GetReplaceBindings() {
+		t.Fatal("stale duplicate replace flag survived replacement upsert")
+	}
+	if got := palette.GetClearedBindingIds(); len(got) != 1 || got[0] != "palette-default" {
+		t.Fatalf("replacement cleared ids = %#v", got)
+	}
+	if bindings := palette.GetBindings(); len(bindings) != 1 || bindings[0].GetId() != "palette-account" {
+		t.Fatalf("replacement bindings = %#v", bindings)
+	}
+
+	unchangedData, malformedResults, err := account_settings.ProcessAccountSettingsOps(
+		ctx,
+		nil,
+		*nextData,
+		[]*sobject.SOOperationInner{{PeerId: peerID, Nonce: 5, OpData: []byte{0xff}}},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if unchangedData != nil {
+		t.Fatal("malformed op changed account settings state")
+	}
+	if len(malformedResults) != 1 || malformedResults[0].GetSuccess() {
+		t.Fatalf("expected malformed op rejection, got %#v", malformedResults)
+	}
+
+	removePalette, err := (&account_settings.AccountSettingsOp{
+		Op: &account_settings.AccountSettingsOp_RemoveKeybindingOverride{
+			RemoveKeybindingOverride: &account_settings.RemoveKeybindingOverrideOp{
+				CommandId: "spacewave.palette",
+			},
+		},
+	}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	removedData, removeResults, err := account_settings.ProcessAccountSettingsOps(
+		ctx,
+		nil,
+		*nextData,
+		[]*sobject.SOOperationInner{{PeerId: peerID, Nonce: 6, OpData: removePalette}},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if removedData == nil {
+		t.Fatal("expected remove to change account settings")
+	}
+	if len(removeResults) != 1 || !removeResults[0].GetSuccess() {
+		t.Fatalf("expected valid remove to succeed, got %#v", removeResults)
+	}
+	removed := &account_settings.AccountSettings{}
+	if err := removed.UnmarshalVT(*removedData); err != nil {
+		t.Fatal(err)
+	}
+	remaining := removed.GetKeybindingOverrides().GetOverrides()
+	if len(remaining) != 1 || remaining[0].GetCommandId() != "spacewave.existing" {
+		t.Fatalf("remove should leave only the existing override, got %#v", remaining)
+	}
 }

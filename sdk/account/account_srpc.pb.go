@@ -20,6 +20,12 @@ type SRPCAccountResourceServiceClient interface {
 
 	WatchSessions(ctx context.Context, in *WatchSessionsRequest) (SRPCAccountResourceService_WatchSessionsClient, error)
 
+	WatchKeybindingOverrides(ctx context.Context, in *WatchKeybindingOverridesRequest) (SRPCAccountResourceService_WatchKeybindingOverridesClient, error)
+
+	UpsertKeybindingOverride(ctx context.Context, in *UpsertKeybindingOverrideRequest) (*UpsertKeybindingOverrideResponse, error)
+
+	RemoveKeybindingOverride(ctx context.Context, in *RemoveKeybindingOverrideRequest) (*RemoveKeybindingOverrideResponse, error)
+
 	AddAuthMethod(ctx context.Context, in *AddAuthMethodRequest) (*AddAuthMethodResponse, error)
 
 	RemoveAuthMethod(ctx context.Context, in *RemoveAuthMethodRequest) (*RemoveAuthMethodResponse, error)
@@ -171,6 +177,58 @@ func (x *srpcAccountResourceService_WatchSessionsClient) Recv() (*WatchSessionsR
 
 func (x *srpcAccountResourceService_WatchSessionsClient) RecvTo(m *WatchSessionsResponse) error {
 	return x.MsgRecv(m)
+}
+
+func (c *srpcAccountResourceServiceClient) WatchKeybindingOverrides(ctx context.Context, in *WatchKeybindingOverridesRequest) (SRPCAccountResourceService_WatchKeybindingOverridesClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchKeybindingOverrides", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcAccountResourceService_WatchKeybindingOverridesClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCAccountResourceService_WatchKeybindingOverridesClient interface {
+	srpc.Stream
+	Recv() (*WatchKeybindingOverridesResponse, error)
+	RecvTo(*WatchKeybindingOverridesResponse) error
+}
+
+type srpcAccountResourceService_WatchKeybindingOverridesClient struct {
+	srpc.Stream
+}
+
+func (x *srpcAccountResourceService_WatchKeybindingOverridesClient) Recv() (*WatchKeybindingOverridesResponse, error) {
+	m := new(WatchKeybindingOverridesResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcAccountResourceService_WatchKeybindingOverridesClient) RecvTo(m *WatchKeybindingOverridesResponse) error {
+	return x.MsgRecv(m)
+}
+
+func (c *srpcAccountResourceServiceClient) UpsertKeybindingOverride(ctx context.Context, in *UpsertKeybindingOverrideRequest) (*UpsertKeybindingOverrideResponse, error) {
+	out := new(UpsertKeybindingOverrideResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "UpsertKeybindingOverride", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcAccountResourceServiceClient) RemoveKeybindingOverride(ctx context.Context, in *RemoveKeybindingOverrideRequest) (*RemoveKeybindingOverrideResponse, error) {
+	out := new(RemoveKeybindingOverrideResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "RemoveKeybindingOverride", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *srpcAccountResourceServiceClient) AddAuthMethod(ctx context.Context, in *AddAuthMethodRequest) (*AddAuthMethodResponse, error) {
@@ -349,6 +407,12 @@ type SRPCAccountResourceServiceServer interface {
 
 	WatchSessions(*WatchSessionsRequest, SRPCAccountResourceService_WatchSessionsStream) error
 
+	WatchKeybindingOverrides(*WatchKeybindingOverridesRequest, SRPCAccountResourceService_WatchKeybindingOverridesStream) error
+
+	UpsertKeybindingOverride(context.Context, *UpsertKeybindingOverrideRequest) (*UpsertKeybindingOverrideResponse, error)
+
+	RemoveKeybindingOverride(context.Context, *RemoveKeybindingOverrideRequest) (*RemoveKeybindingOverrideResponse, error)
+
 	AddAuthMethod(context.Context, *AddAuthMethodRequest) (*AddAuthMethodResponse, error)
 
 	RemoveAuthMethod(context.Context, *RemoveAuthMethodRequest) (*RemoveAuthMethodResponse, error)
@@ -411,6 +475,9 @@ func (SRPCAccountResourceServiceHandler) GetMethodIDs() []string {
 		"WatchAccountInfo",
 		"WatchAuthMethods",
 		"WatchSessions",
+		"WatchKeybindingOverrides",
+		"UpsertKeybindingOverride",
+		"RemoveKeybindingOverride",
 		"AddAuthMethod",
 		"RemoveAuthMethod",
 		"SetSecurityLevel",
@@ -445,6 +512,12 @@ func (d *SRPCAccountResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_WatchAuthMethods(d.impl, strm)
 	case "WatchSessions":
 		return true, d.InvokeMethod_WatchSessions(d.impl, strm)
+	case "WatchKeybindingOverrides":
+		return true, d.InvokeMethod_WatchKeybindingOverrides(d.impl, strm)
+	case "UpsertKeybindingOverride":
+		return true, d.InvokeMethod_UpsertKeybindingOverride(d.impl, strm)
+	case "RemoveKeybindingOverride":
+		return true, d.InvokeMethod_RemoveKeybindingOverride(d.impl, strm)
 	case "AddAuthMethod":
 		return true, d.InvokeMethod_AddAuthMethod(d.impl, strm)
 	case "RemoveAuthMethod":
@@ -507,6 +580,39 @@ func (SRPCAccountResourceServiceHandler) InvokeMethod_WatchSessions(impl SRPCAcc
 	}
 	serverStrm := &srpcAccountResourceService_WatchSessionsStream{strm}
 	return impl.WatchSessions(req, serverStrm)
+}
+
+func (SRPCAccountResourceServiceHandler) InvokeMethod_WatchKeybindingOverrides(impl SRPCAccountResourceServiceServer, strm srpc.Stream) error {
+	req := new(WatchKeybindingOverridesRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcAccountResourceService_WatchKeybindingOverridesStream{strm}
+	return impl.WatchKeybindingOverrides(req, serverStrm)
+}
+
+func (SRPCAccountResourceServiceHandler) InvokeMethod_UpsertKeybindingOverride(impl SRPCAccountResourceServiceServer, strm srpc.Stream) error {
+	req := new(UpsertKeybindingOverrideRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.UpsertKeybindingOverride(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCAccountResourceServiceHandler) InvokeMethod_RemoveKeybindingOverride(impl SRPCAccountResourceServiceServer, strm srpc.Stream) error {
+	req := new(RemoveKeybindingOverrideRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.RemoveKeybindingOverride(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
 }
 
 func (SRPCAccountResourceServiceHandler) InvokeMethod_AddAuthMethod(impl SRPCAccountResourceServiceServer, strm srpc.Stream) error {
@@ -765,6 +871,45 @@ func (x *srpcAccountResourceService_WatchSessionsStream) SendAndClose(m *WatchSe
 		}
 	}
 	return x.CloseSend()
+}
+
+type SRPCAccountResourceService_WatchKeybindingOverridesStream interface {
+	srpc.Stream
+	Send(*WatchKeybindingOverridesResponse) error
+	SendAndClose(*WatchKeybindingOverridesResponse) error
+}
+
+type srpcAccountResourceService_WatchKeybindingOverridesStream struct {
+	srpc.Stream
+}
+
+func (x *srpcAccountResourceService_WatchKeybindingOverridesStream) Send(m *WatchKeybindingOverridesResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcAccountResourceService_WatchKeybindingOverridesStream) SendAndClose(m *WatchKeybindingOverridesResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCAccountResourceService_UpsertKeybindingOverrideStream interface {
+	srpc.Stream
+}
+
+type srpcAccountResourceService_UpsertKeybindingOverrideStream struct {
+	srpc.Stream
+}
+
+type SRPCAccountResourceService_RemoveKeybindingOverrideStream interface {
+	srpc.Stream
+}
+
+type srpcAccountResourceService_RemoveKeybindingOverrideStream struct {
+	srpc.Stream
 }
 
 type SRPCAccountResourceService_AddAuthMethodStream interface {

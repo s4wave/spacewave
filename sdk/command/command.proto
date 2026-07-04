@@ -50,6 +50,56 @@ message CommandBinding {
   string source_label = 5;
 }
 
+// KeybindingDisplayMode identifies how bindings are displayed.
+enum KeybindingDisplayMode {
+  // KEYBINDING_DISPLAY_MODE_UNSPECIFIED uses the default display mode.
+  KEYBINDING_DISPLAY_MODE_UNSPECIFIED = 0;
+  // KEYBINDING_DISPLAY_MODE_SYMBOLS displays platform symbols.
+  KEYBINDING_DISPLAY_MODE_SYMBOLS = 1;
+  // KEYBINDING_DISPLAY_MODE_TEXT displays plain text modifier names.
+  KEYBINDING_DISPLAY_MODE_TEXT = 2;
+}
+
+// KeybindingDisplaySettings stores display preferences for one override layer.
+message KeybindingDisplaySettings {
+  // Mode selects how bindings are displayed.
+  KeybindingDisplayMode mode = 1;
+}
+
+// KeybindingOverrideSettings stores non-command-specific keybinding preferences.
+message KeybindingOverrideSettings {
+  // LeaderCombo is the layer's virtual Leader binding.
+  string leader_combo = 1;
+  // WhichKeyDelayMs is the delay before showing which-key discovery.
+  uint32 which_key_delay_ms = 2;
+  // Display contains binding display preferences.
+  KeybindingDisplaySettings display = 3;
+}
+
+// KeybindingCommandOverride stores one command's override in a keybinding layer.
+message KeybindingCommandOverride {
+  // CommandId is the command identifier this override applies to.
+  string command_id = 1;
+  // ReplaceBindings indicates bindings replace lower-layer bindings.
+  bool replace_bindings = 2;
+  // Disabled indicates the command has no effective bindings in this layer.
+  bool disabled = 3;
+  // ClearedBindingIds lists lower-layer binding IDs removed by this layer.
+  repeated string cleared_binding_ids = 4;
+  // Bindings are bindings added by this layer.
+  repeated CommandBinding bindings = 5;
+}
+
+// KeybindingOverrideSet stores one persisted keybinding override layer.
+message KeybindingOverrideSet {
+  // Version is the override set schema version.
+  uint32 version = 1;
+  // Overrides are command-keyed overrides.
+  repeated KeybindingCommandOverride overrides = 2;
+  // Settings stores layer-wide keybinding preferences.
+  KeybindingOverrideSettings settings = 3;
+}
+
 // Command is the metadata for a registered command.
 message Command {
   // CommandId is the unique reverse-domain command identifier.

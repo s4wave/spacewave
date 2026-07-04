@@ -88,6 +88,43 @@ export const CommandFocusContext_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * KeybindingDisplayMode identifies how bindings are displayed.
+ *
+ * @generated from enum s4wave.command.KeybindingDisplayMode
+ */
+export enum KeybindingDisplayMode {
+  /**
+   * KEYBINDING_DISPLAY_MODE_UNSPECIFIED uses the default display mode.
+   *
+   * @generated from enum value: KEYBINDING_DISPLAY_MODE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * KEYBINDING_DISPLAY_MODE_SYMBOLS displays platform symbols.
+   *
+   * @generated from enum value: KEYBINDING_DISPLAY_MODE_SYMBOLS = 1;
+   */
+  SYMBOLS = 1,
+
+  /**
+   * KEYBINDING_DISPLAY_MODE_TEXT displays plain text modifier names.
+   *
+   * @generated from enum value: KEYBINDING_DISPLAY_MODE_TEXT = 2;
+   */
+  TEXT = 2,
+}
+
+export const KeybindingDisplayMode_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.command.KeybindingDisplayMode',
+  [
+    [0, 'KEYBINDING_DISPLAY_MODE_UNSPECIFIED'],
+    [1, 'KEYBINDING_DISPLAY_MODE_SYMBOLS'],
+    [2, 'KEYBINDING_DISPLAY_MODE_TEXT'],
+  ],
+)
+
+/**
  * KeyCombo stores one key event plus modifiers.
  *
  * @generated from message s4wave.command.KeyCombo
@@ -213,6 +250,187 @@ export const CommandBinding: MessageType<CommandBinding> =
       },
       { no: 4, name: 'when', kind: 'enum', T: CommandFocusContext_Enum },
       { no: 5, name: 'source_label', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * KeybindingDisplaySettings stores display preferences for one override layer.
+ *
+ * @generated from message s4wave.command.KeybindingDisplaySettings
+ */
+export interface KeybindingDisplaySettings {
+  /**
+   * Mode selects how bindings are displayed.
+   *
+   * @generated from field: s4wave.command.KeybindingDisplayMode mode = 1;
+   */
+  mode?: KeybindingDisplayMode
+}
+
+export const KeybindingDisplaySettings: MessageType<KeybindingDisplaySettings> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.command.KeybindingDisplaySettings',
+    fields: [
+      { no: 1, name: 'mode', kind: 'enum', T: KeybindingDisplayMode_Enum },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * KeybindingOverrideSettings stores non-command-specific keybinding preferences.
+ *
+ * @generated from message s4wave.command.KeybindingOverrideSettings
+ */
+export interface KeybindingOverrideSettings {
+  /**
+   * LeaderCombo is the layer's virtual Leader binding.
+   *
+   * @generated from field: string leader_combo = 1;
+   */
+  leaderCombo?: string
+  /**
+   * WhichKeyDelayMs is the delay before showing which-key discovery.
+   *
+   * @generated from field: uint32 which_key_delay_ms = 2;
+   */
+  whichKeyDelayMs?: number
+  /**
+   * Display contains binding display preferences.
+   *
+   * @generated from field: s4wave.command.KeybindingDisplaySettings display = 3;
+   */
+  display?: KeybindingDisplaySettings
+}
+
+export const KeybindingOverrideSettings: MessageType<KeybindingOverrideSettings> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.command.KeybindingOverrideSettings',
+    fields: [
+      { no: 1, name: 'leader_combo', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'which_key_delay_ms',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+      {
+        no: 3,
+        name: 'display',
+        kind: 'message',
+        T: () => KeybindingDisplaySettings,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * KeybindingCommandOverride stores one command's override in a keybinding layer.
+ *
+ * @generated from message s4wave.command.KeybindingCommandOverride
+ */
+export interface KeybindingCommandOverride {
+  /**
+   * CommandId is the command identifier this override applies to.
+   *
+   * @generated from field: string command_id = 1;
+   */
+  commandId?: string
+  /**
+   * ReplaceBindings indicates bindings replace lower-layer bindings.
+   *
+   * @generated from field: bool replace_bindings = 2;
+   */
+  replaceBindings?: boolean
+  /**
+   * Disabled indicates the command has no effective bindings in this layer.
+   *
+   * @generated from field: bool disabled = 3;
+   */
+  disabled?: boolean
+  /**
+   * ClearedBindingIds lists lower-layer binding IDs removed by this layer.
+   *
+   * @generated from field: repeated string cleared_binding_ids = 4;
+   */
+  clearedBindingIds?: string[]
+  /**
+   * Bindings are bindings added by this layer.
+   *
+   * @generated from field: repeated s4wave.command.CommandBinding bindings = 5;
+   */
+  bindings?: CommandBinding[]
+}
+
+export const KeybindingCommandOverride: MessageType<KeybindingCommandOverride> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.command.KeybindingCommandOverride',
+    fields: [
+      { no: 1, name: 'command_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'replace_bindings', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'disabled', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 4,
+        name: 'cleared_binding_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 5,
+        name: 'bindings',
+        kind: 'message',
+        T: () => CommandBinding,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * KeybindingOverrideSet stores one persisted keybinding override layer.
+ *
+ * @generated from message s4wave.command.KeybindingOverrideSet
+ */
+export interface KeybindingOverrideSet {
+  /**
+   * Version is the override set schema version.
+   *
+   * @generated from field: uint32 version = 1;
+   */
+  version?: number
+  /**
+   * Overrides are command-keyed overrides.
+   *
+   * @generated from field: repeated s4wave.command.KeybindingCommandOverride overrides = 2;
+   */
+  overrides?: KeybindingCommandOverride[]
+  /**
+   * Settings stores layer-wide keybinding preferences.
+   *
+   * @generated from field: s4wave.command.KeybindingOverrideSettings settings = 3;
+   */
+  settings?: KeybindingOverrideSettings
+}
+
+export const KeybindingOverrideSet: MessageType<KeybindingOverrideSet> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.command.KeybindingOverrideSet',
+    fields: [
+      { no: 1, name: 'version', kind: 'scalar', T: ScalarType.UINT32 },
+      {
+        no: 2,
+        name: 'overrides',
+        kind: 'message',
+        T: () => KeybindingCommandOverride,
+        repeated: true,
+      },
+      {
+        no: 3,
+        name: 'settings',
+        kind: 'message',
+        T: () => KeybindingOverrideSettings,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -31,6 +31,7 @@
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
 #include "google/protobuf/unknown_field_set.h"
+#include "../../../sdk/command/command.pb.h"
 // @@protoc_insertion_point(includes)
 
 // Must be included last.
@@ -511,225 +512,6 @@ class WorldContentsObject final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull WorldContentsObject_class_data_;
 // -------------------------------------------------------------------
 
-class SpaceSettings final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:space.world.SpaceSettings) */ {
- public:
-  inline SpaceSettings() : SpaceSettings(nullptr) {}
-  ~SpaceSettings() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(SpaceSettings* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(SpaceSettings));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR SpaceSettings(::google::protobuf::internal::ConstantInitialized);
-
-  inline SpaceSettings(const SpaceSettings& from) : SpaceSettings(nullptr, from) {}
-  inline SpaceSettings(SpaceSettings&& from) noexcept
-      : SpaceSettings(nullptr, ::std::move(from)) {}
-  inline SpaceSettings& operator=(const SpaceSettings& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline SpaceSettings& operator=(SpaceSettings&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const SpaceSettings& default_instance() {
-    return *reinterpret_cast<const SpaceSettings*>(
-        &_SpaceSettings_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 3;
-  friend void swap(SpaceSettings& a, SpaceSettings& b) { a.Swap(&b); }
-  inline void Swap(SpaceSettings* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(SpaceSettings* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  SpaceSettings* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<SpaceSettings>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const SpaceSettings& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const SpaceSettings& from) { SpaceSettings::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(SpaceSettings* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "space.world.SpaceSettings"; }
-
-  explicit SpaceSettings(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  SpaceSettings(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SpaceSettings& from);
-  SpaceSettings(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SpaceSettings&& from) noexcept
-      : SpaceSettings(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kPluginIdsFieldNumber = 2,
-    kIndexPathFieldNumber = 1,
-  };
-  // repeated string plugin_ids = 2;
-  int plugin_ids_size() const;
-  private:
-  int _internal_plugin_ids_size() const;
-
-  public:
-  void clear_plugin_ids() ;
-  const ::std::string& plugin_ids(int index) const;
-  ::std::string* PROTOBUF_NONNULL mutable_plugin_ids(int index);
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_plugin_ids(int index, Arg_&& value, Args_... args);
-  ::std::string* PROTOBUF_NONNULL add_plugin_ids();
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void add_plugin_ids(Arg_&& value, Args_... args);
-  const ::google::protobuf::RepeatedPtrField<::std::string>& plugin_ids() const;
-  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_plugin_ids();
-
-  private:
-  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_plugin_ids() const;
-  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_plugin_ids();
-
-  public:
-  // string index_path = 1;
-  void clear_index_path() ;
-  const ::std::string& index_path() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_index_path(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_index_path();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_index_path();
-  void set_allocated_index_path(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_index_path() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_index_path(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_index_path();
-
-  public:
-  // @@protoc_insertion_point(class_scope:space.world.SpaceSettings)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   0, 54,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const SpaceSettings& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::RepeatedPtrField<::std::string> plugin_ids_;
-    ::google::protobuf::internal::ArenaStringPtr index_path_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fspace_2fworld_2fworld_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull SpaceSettings_class_data_;
-// -------------------------------------------------------------------
-
 class WorldContents final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:space.world.WorldContents) */ {
  public:
@@ -944,6 +726,242 @@ class WorldContents final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull WorldContents_class_data_;
+// -------------------------------------------------------------------
+
+class SpaceSettings final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:space.world.SpaceSettings) */ {
+ public:
+  inline SpaceSettings() : SpaceSettings(nullptr) {}
+  ~SpaceSettings() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SpaceSettings* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SpaceSettings));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SpaceSettings(::google::protobuf::internal::ConstantInitialized);
+
+  inline SpaceSettings(const SpaceSettings& from) : SpaceSettings(nullptr, from) {}
+  inline SpaceSettings(SpaceSettings&& from) noexcept
+      : SpaceSettings(nullptr, ::std::move(from)) {}
+  inline SpaceSettings& operator=(const SpaceSettings& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SpaceSettings& operator=(SpaceSettings&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SpaceSettings& default_instance() {
+    return *reinterpret_cast<const SpaceSettings*>(
+        &_SpaceSettings_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 3;
+  friend void swap(SpaceSettings& a, SpaceSettings& b) { a.Swap(&b); }
+  inline void Swap(SpaceSettings* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SpaceSettings* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SpaceSettings* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SpaceSettings>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SpaceSettings& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SpaceSettings& from) { SpaceSettings::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SpaceSettings* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "space.world.SpaceSettings"; }
+
+  explicit SpaceSettings(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SpaceSettings(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SpaceSettings& from);
+  SpaceSettings(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SpaceSettings&& from) noexcept
+      : SpaceSettings(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kPluginIdsFieldNumber = 2,
+    kIndexPathFieldNumber = 1,
+    kKeybindingOverridesFieldNumber = 3,
+  };
+  // repeated string plugin_ids = 2;
+  int plugin_ids_size() const;
+  private:
+  int _internal_plugin_ids_size() const;
+
+  public:
+  void clear_plugin_ids() ;
+  const ::std::string& plugin_ids(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_plugin_ids(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_plugin_ids(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_plugin_ids();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_plugin_ids(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& plugin_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_plugin_ids();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_plugin_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_plugin_ids();
+
+  public:
+  // string index_path = 1;
+  void clear_index_path() ;
+  const ::std::string& index_path() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_index_path(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_index_path();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_index_path();
+  void set_allocated_index_path(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_index_path() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_index_path(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_index_path();
+
+  public:
+  // .s4wave.command.KeybindingOverrideSet keybinding_overrides = 3;
+  bool has_keybinding_overrides() const;
+  void clear_keybinding_overrides() ;
+  const ::s4wave::command::KeybindingOverrideSet& keybinding_overrides() const;
+  [[nodiscard]] ::s4wave::command::KeybindingOverrideSet* PROTOBUF_NULLABLE release_keybinding_overrides();
+  ::s4wave::command::KeybindingOverrideSet* PROTOBUF_NONNULL mutable_keybinding_overrides();
+  void set_allocated_keybinding_overrides(::s4wave::command::KeybindingOverrideSet* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_keybinding_overrides(::s4wave::command::KeybindingOverrideSet* PROTOBUF_NULLABLE value);
+  ::s4wave::command::KeybindingOverrideSet* PROTOBUF_NULLABLE unsafe_arena_release_keybinding_overrides();
+
+  private:
+  const ::s4wave::command::KeybindingOverrideSet& _internal_keybinding_overrides() const;
+  ::s4wave::command::KeybindingOverrideSet* PROTOBUF_NONNULL _internal_mutable_keybinding_overrides();
+
+  public:
+  // @@protoc_insertion_point(class_scope:space.world.SpaceSettings)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   1, 54,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SpaceSettings& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> plugin_ids_;
+    ::google::protobuf::internal::ArenaStringPtr index_path_;
+    ::s4wave::command::KeybindingOverrideSet* PROTOBUF_NULLABLE keybinding_overrides_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fspace_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SpaceSettings_class_data_;
 
 // ===================================================================
 
@@ -1480,6 +1498,99 @@ inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
 SpaceSettings::_internal_mutable_plugin_ids() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.plugin_ids_;
+}
+
+// .s4wave.command.KeybindingOverrideSet keybinding_overrides = 3;
+inline bool SpaceSettings::has_keybinding_overrides() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  PROTOBUF_ASSUME(!value || _impl_.keybinding_overrides_ != nullptr);
+  return value;
+}
+inline const ::s4wave::command::KeybindingOverrideSet& SpaceSettings::_internal_keybinding_overrides() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::command::KeybindingOverrideSet* p = _impl_.keybinding_overrides_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::command::KeybindingOverrideSet&>(::s4wave::command::_KeybindingOverrideSet_default_instance_);
+}
+inline const ::s4wave::command::KeybindingOverrideSet& SpaceSettings::keybinding_overrides() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:space.world.SpaceSettings.keybinding_overrides)
+  return _internal_keybinding_overrides();
+}
+inline void SpaceSettings::unsafe_arena_set_allocated_keybinding_overrides(
+    ::s4wave::command::KeybindingOverrideSet* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.keybinding_overrides_);
+  }
+  _impl_.keybinding_overrides_ = reinterpret_cast<::s4wave::command::KeybindingOverrideSet*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:space.world.SpaceSettings.keybinding_overrides)
+}
+inline ::s4wave::command::KeybindingOverrideSet* PROTOBUF_NULLABLE SpaceSettings::release_keybinding_overrides() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::s4wave::command::KeybindingOverrideSet* released = _impl_.keybinding_overrides_;
+  _impl_.keybinding_overrides_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::command::KeybindingOverrideSet* PROTOBUF_NULLABLE SpaceSettings::unsafe_arena_release_keybinding_overrides() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:space.world.SpaceSettings.keybinding_overrides)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::s4wave::command::KeybindingOverrideSet* temp = _impl_.keybinding_overrides_;
+  _impl_.keybinding_overrides_ = nullptr;
+  return temp;
+}
+inline ::s4wave::command::KeybindingOverrideSet* PROTOBUF_NONNULL SpaceSettings::_internal_mutable_keybinding_overrides() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.keybinding_overrides_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::command::KeybindingOverrideSet>(GetArena());
+    _impl_.keybinding_overrides_ = reinterpret_cast<::s4wave::command::KeybindingOverrideSet*>(p);
+  }
+  return _impl_.keybinding_overrides_;
+}
+inline ::s4wave::command::KeybindingOverrideSet* PROTOBUF_NONNULL SpaceSettings::mutable_keybinding_overrides()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::s4wave::command::KeybindingOverrideSet* _msg = _internal_mutable_keybinding_overrides();
+  // @@protoc_insertion_point(field_mutable:space.world.SpaceSettings.keybinding_overrides)
+  return _msg;
+}
+inline void SpaceSettings::set_allocated_keybinding_overrides(::s4wave::command::KeybindingOverrideSet* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.keybinding_overrides_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+
+  _impl_.keybinding_overrides_ = reinterpret_cast<::s4wave::command::KeybindingOverrideSet*>(value);
+  // @@protoc_insertion_point(field_set_allocated:space.world.SpaceSettings.keybinding_overrides)
 }
 
 #ifdef __GNUC__

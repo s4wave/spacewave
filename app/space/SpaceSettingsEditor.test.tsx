@@ -7,6 +7,7 @@ import { SpaceSettingsEditor } from './SpaceSettingsEditor.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { SET_SPACE_SETTINGS_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import { SetSpaceSettingsOp } from '@s4wave/core/space/world/ops/ops.pb.js'
+import { CommandFocusContext } from '@s4wave/sdk/command/command.pb.js'
 import type { SpaceState } from '@s4wave/sdk/space/space.pb.js'
 import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 
@@ -161,9 +162,31 @@ describe('SpaceSettingsEditor', () => {
     expect(screen.queryByText('Rename')).toBeNull()
   })
 
-  it('calls applyWorldOp with correct op ID when selector changes', async () => {
+  it('calls applyWorldOp with correct op ID when selector changes and preserves non-index settings', async () => {
     const user = userEvent.setup()
-    renderEditor(true)
+    renderEditor(true, {
+      ...mockSpaceState,
+      settings: {
+        indexPath: 'object-layout/main',
+        pluginIds: ['spacewave-app'],
+        keybindingOverrides: {
+          version: 1,
+          overrides: [
+            {
+              commandId: 'spacewave.palette',
+              clearedBindingIds: ['palette-default'],
+              bindings: [
+                {
+                  id: 'palette-space',
+                  binding: { case: 'combo', value: { combo: 'Ctrl+K' } },
+                  when: CommandFocusContext.GLOBAL,
+                },
+              ],
+            },
+          ],
+        },
+      },
+    })
     const selector = screen.getByTestId('object-key-selector')
     await user.click(selector)
     expect(mockSpaceWorld.applyWorldOp).toHaveBeenCalledWith(
@@ -175,6 +198,21 @@ describe('SpaceSettingsEditor', () => {
     const op = SetSpaceSettingsOp.fromBinary(opData)
     expect(op.settings?.indexPath).toBe('new/path')
     expect(op.settings?.pluginIds).toEqual(['spacewave-app'])
+    expect(op.settings?.keybindingOverrides?.overrides).toEqual([
+      {
+        commandId: 'spacewave.palette',
+        replaceBindings: undefined,
+        disabled: undefined,
+        clearedBindingIds: ['palette-default'],
+        bindings: [
+          {
+            id: 'palette-space',
+            binding: { case: 'combo', value: { combo: 'Ctrl+K' } },
+            when: CommandFocusContext.GLOBAL,
+          },
+        ],
+      },
+    ])
   })
 
   it('does not call applyWorldOp when new path matches current indexPath', async () => {

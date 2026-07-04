@@ -41,6 +41,17 @@ pub trait AccountResourceServiceWatchSessionsStream: Send + Sync {
     async fn close(&self) -> starpc::Result<()>;
 }
 
+/// Stream trait for AccountResourceService.WatchKeybindingOverrides.
+#[starpc::async_trait]
+pub trait AccountResourceServiceWatchKeybindingOverridesStream: Send + Sync {
+    /// Returns the context for this stream.
+    fn context(&self) -> &starpc::Context;
+    /// Receives a message from the stream.
+    async fn recv(&self) -> starpc::Result<WatchKeybindingOverridesResponse>;
+    /// Closes the stream.
+    async fn close(&self) -> starpc::Result<()>;
+}
+
 /// Stream trait for AccountResourceService.WatchEntityKeypairs.
 #[starpc::async_trait]
 pub trait AccountResourceServiceWatchEntityKeypairsStream: Send + Sync {
@@ -61,6 +72,12 @@ pub trait AccountResourceServiceClient: Send + Sync {
     async fn watch_auth_methods(&self, request: &WatchAuthMethodsRequest) -> starpc::Result<Box<dyn AccountResourceServiceWatchAuthMethodsStream>>;
     /// WatchSessions.
     async fn watch_sessions(&self, request: &WatchSessionsRequest) -> starpc::Result<Box<dyn AccountResourceServiceWatchSessionsStream>>;
+    /// WatchKeybindingOverrides.
+    async fn watch_keybinding_overrides(&self, request: &WatchKeybindingOverridesRequest) -> starpc::Result<Box<dyn AccountResourceServiceWatchKeybindingOverridesStream>>;
+    /// UpsertKeybindingOverride.
+    async fn upsert_keybinding_override(&self, request: &UpsertKeybindingOverrideRequest) -> starpc::Result<UpsertKeybindingOverrideResponse>;
+    /// RemoveKeybindingOverride.
+    async fn remove_keybinding_override(&self, request: &RemoveKeybindingOverrideRequest) -> starpc::Result<RemoveKeybindingOverrideResponse>;
     /// AddAuthMethod.
     async fn add_auth_method(&self, request: &AddAuthMethodRequest) -> starpc::Result<AddAuthMethodResponse>;
     /// RemoveAuthMethod.
@@ -129,6 +146,19 @@ impl<C: starpc::Client + 'static> AccountResourceServiceClient for AccountResour
         let stream = self.client.new_stream("s4wave.account.AccountResourceService", "WatchSessions", Some(&data)).await?;
         stream.close_send().await?;
         Ok(Box::new(AccountResourceServiceWatchSessionsStreamImpl { stream }))
+    }
+    async fn watch_keybinding_overrides(&self, request: &WatchKeybindingOverridesRequest) -> starpc::Result<Box<dyn AccountResourceServiceWatchKeybindingOverridesStream>> {
+        use starpc::ProstMessage;
+        let data = request.encode_to_vec();
+        let stream = self.client.new_stream("s4wave.account.AccountResourceService", "WatchKeybindingOverrides", Some(&data)).await?;
+        stream.close_send().await?;
+        Ok(Box::new(AccountResourceServiceWatchKeybindingOverridesStreamImpl { stream }))
+    }
+    async fn upsert_keybinding_override(&self, request: &UpsertKeybindingOverrideRequest) -> starpc::Result<UpsertKeybindingOverrideResponse> {
+        self.client.exec_call("s4wave.account.AccountResourceService", "UpsertKeybindingOverride", request).await
+    }
+    async fn remove_keybinding_override(&self, request: &RemoveKeybindingOverrideRequest) -> starpc::Result<RemoveKeybindingOverrideResponse> {
+        self.client.exec_call("s4wave.account.AccountResourceService", "RemoveKeybindingOverride", request).await
     }
     async fn add_auth_method(&self, request: &AddAuthMethodRequest) -> starpc::Result<AddAuthMethodResponse> {
         self.client.exec_call("s4wave.account.AccountResourceService", "AddAuthMethod", request).await
@@ -235,6 +265,23 @@ impl AccountResourceServiceWatchSessionsStream for AccountResourceServiceWatchSe
     }
 }
 
+struct AccountResourceServiceWatchKeybindingOverridesStreamImpl {
+    stream: Box<dyn starpc::Stream>,
+}
+
+#[starpc::async_trait]
+impl AccountResourceServiceWatchKeybindingOverridesStream for AccountResourceServiceWatchKeybindingOverridesStreamImpl {
+    fn context(&self) -> &starpc::Context {
+        self.stream.context()
+    }
+    async fn recv(&self) -> starpc::Result<WatchKeybindingOverridesResponse> {
+        self.stream.msg_recv().await
+    }
+    async fn close(&self) -> starpc::Result<()> {
+        self.stream.close().await
+    }
+}
+
 struct AccountResourceServiceWatchEntityKeypairsStreamImpl {
     stream: Box<dyn starpc::Stream>,
 }
@@ -261,6 +308,12 @@ pub trait AccountResourceServiceServer: Send + Sync {
     async fn watch_auth_methods(&self, request: WatchAuthMethodsRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// WatchSessions.
     async fn watch_sessions(&self, request: WatchSessionsRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
+    /// WatchKeybindingOverrides.
+    async fn watch_keybinding_overrides(&self, request: WatchKeybindingOverridesRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
+    /// UpsertKeybindingOverride.
+    async fn upsert_keybinding_override(&self, request: UpsertKeybindingOverrideRequest) -> starpc::Result<UpsertKeybindingOverrideResponse>;
+    /// RemoveKeybindingOverride.
+    async fn remove_keybinding_override(&self, request: RemoveKeybindingOverrideRequest) -> starpc::Result<RemoveKeybindingOverrideResponse>;
     /// AddAuthMethod.
     async fn add_auth_method(&self, request: AddAuthMethodRequest) -> starpc::Result<AddAuthMethodResponse>;
     /// RemoveAuthMethod.
@@ -299,6 +352,9 @@ const ACCOUNT_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "WatchAccountInfo",
     "WatchAuthMethods",
     "WatchSessions",
+    "WatchKeybindingOverrides",
+    "UpsertKeybindingOverride",
+    "RemoveKeybindingOverride",
     "AddAuthMethod",
     "RemoveAuthMethod",
     "SetSecurityLevel",
@@ -363,6 +419,43 @@ impl<S: AccountResourceServiceServer + 'static> starpc::Invoker for AccountResou
                     Err(e) => return (true, Err(e)),
                 };
                 (true, self.server.watch_sessions(request, stream).await)
+            }
+            "WatchKeybindingOverrides" => {
+                let request: WatchKeybindingOverridesRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                (true, self.server.watch_keybinding_overrides(request, stream).await)
+            }
+            "UpsertKeybindingOverride" => {
+                let request: UpsertKeybindingOverrideRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.upsert_keybinding_override(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "RemoveKeybindingOverride" => {
+                let request: RemoveKeybindingOverrideRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.remove_keybinding_override(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
             }
             "AddAuthMethod" => {
                 let request: AddAuthMethodRequest = match stream.msg_recv().await {

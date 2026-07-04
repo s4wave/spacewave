@@ -21,6 +21,8 @@ import {
   PasskeyRegisterVerifyResponse,
   RemoveAuthMethodRequest,
   RemoveAuthMethodResponse,
+  RemoveKeybindingOverrideRequest,
+  RemoveKeybindingOverrideResponse,
   RevokeSessionRequest,
   RevokeSessionResponse,
   SetSecurityLevelRequest,
@@ -33,12 +35,16 @@ import {
   StartDesktopPasskeyRegisterResponse,
   UnlockEntityKeypairRequest,
   UnlockEntityKeypairResponse,
+  UpsertKeybindingOverrideRequest,
+  UpsertKeybindingOverrideResponse,
   WatchAccountInfoRequest,
   WatchAccountInfoResponse,
   WatchAuthMethodsRequest,
   WatchAuthMethodsResponse,
   WatchEntityKeypairsRequest,
   WatchEntityKeypairsResponse,
+  WatchKeybindingOverridesRequest,
+  WatchKeybindingOverridesResponse,
   WatchSessionsRequest,
   WatchSessionsResponse,
 } from './account.pb.js'
@@ -77,6 +83,33 @@ export const AccountResourceServiceDefinition = {
       I: WatchSessionsRequest,
       O: WatchSessionsResponse,
       kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * @generated from rpc s4wave.account.AccountResourceService.WatchKeybindingOverrides
+     */
+    WatchKeybindingOverrides: {
+      name: 'WatchKeybindingOverrides',
+      I: WatchKeybindingOverridesRequest,
+      O: WatchKeybindingOverridesResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * @generated from rpc s4wave.account.AccountResourceService.UpsertKeybindingOverride
+     */
+    UpsertKeybindingOverride: {
+      name: 'UpsertKeybindingOverride',
+      I: UpsertKeybindingOverrideRequest,
+      O: UpsertKeybindingOverrideResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.account.AccountResourceService.RemoveKeybindingOverride
+     */
+    RemoveKeybindingOverride: {
+      name: 'RemoveKeybindingOverride',
+      I: RemoveKeybindingOverrideRequest,
+      O: RemoveKeybindingOverrideResponse,
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc s4wave.account.AccountResourceService.AddAuthMethod
@@ -254,6 +287,30 @@ export interface AccountResourceService {
   ): MessageStream<WatchSessionsResponse>
 
   /**
+   * @generated from rpc s4wave.account.AccountResourceService.WatchKeybindingOverrides
+   */
+  WatchKeybindingOverrides(
+    request: WatchKeybindingOverridesRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchKeybindingOverridesResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.UpsertKeybindingOverride
+   */
+  UpsertKeybindingOverride(
+    request: UpsertKeybindingOverrideRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<UpsertKeybindingOverrideResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.RemoveKeybindingOverride
+   */
+  RemoveKeybindingOverride(
+    request: RemoveKeybindingOverrideRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RemoveKeybindingOverrideResponse>
+
+  /**
    * @generated from rpc s4wave.account.AccountResourceService.AddAuthMethod
    */
   AddAuthMethod(
@@ -394,6 +451,9 @@ export class AccountResourceServiceClient implements AccountResourceService {
     this.WatchAccountInfo = this.WatchAccountInfo.bind(this)
     this.WatchAuthMethods = this.WatchAuthMethods.bind(this)
     this.WatchSessions = this.WatchSessions.bind(this)
+    this.WatchKeybindingOverrides = this.WatchKeybindingOverrides.bind(this)
+    this.UpsertKeybindingOverride = this.UpsertKeybindingOverride.bind(this)
+    this.RemoveKeybindingOverride = this.RemoveKeybindingOverride.bind(this)
     this.AddAuthMethod = this.AddAuthMethod.bind(this)
     this.RemoveAuthMethod = this.RemoveAuthMethod.bind(this)
     this.SetSecurityLevel = this.SetSecurityLevel.bind(this)
@@ -462,6 +522,57 @@ export class AccountResourceServiceClient implements AccountResourceService {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WatchSessionsResponse)(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.WatchKeybindingOverrides
+   */
+  WatchKeybindingOverrides(
+    request: WatchKeybindingOverridesRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchKeybindingOverridesResponse> {
+    const requestMsg = WatchKeybindingOverridesRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      AccountResourceServiceDefinition.methods.WatchKeybindingOverrides.name,
+      WatchKeybindingOverridesRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchKeybindingOverridesResponse)(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.UpsertKeybindingOverride
+   */
+  async UpsertKeybindingOverride(
+    request: UpsertKeybindingOverrideRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<UpsertKeybindingOverrideResponse> {
+    const requestMsg = UpsertKeybindingOverrideRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      AccountResourceServiceDefinition.methods.UpsertKeybindingOverride.name,
+      UpsertKeybindingOverrideRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return UpsertKeybindingOverrideResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.RemoveKeybindingOverride
+   */
+  async RemoveKeybindingOverride(
+    request: RemoveKeybindingOverrideRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RemoveKeybindingOverrideResponse> {
+    const requestMsg = RemoveKeybindingOverrideRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      AccountResourceServiceDefinition.methods.RemoveKeybindingOverride.name,
+      RemoveKeybindingOverrideRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return RemoveKeybindingOverrideResponse.fromBinary(result)
   }
 
   /**

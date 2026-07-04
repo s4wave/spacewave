@@ -644,6 +644,152 @@ describe('KeybindingResolver', () => {
     ).toBe(false)
   })
 
+  it('keeps higher cascade layers authoritative when account beats local, space beats account, and higher clears or disables lower bindings', () => {
+    const commands = [
+      commandState(
+        command('spacewave.account-wins', {
+          defaultBindings: [comboBinding('account-default', 'Ctrl+1')],
+        }),
+      ),
+      commandState(
+        command('spacewave.space-wins', {
+          defaultBindings: [comboBinding('space-default', 'Ctrl+2')],
+        }),
+      ),
+      commandState(
+        command('spacewave.account-clears-local', {
+          defaultBindings: [comboBinding('clear-default', 'Ctrl+3')],
+        }),
+      ),
+      commandState(
+        command('spacewave.space-clears-account', {
+          defaultBindings: [comboBinding('space-clear-default', 'Ctrl+4')],
+        }),
+      ),
+      commandState(
+        command('spacewave.account-disables-local', {
+          defaultBindings: [comboBinding('account-disable-default', 'Ctrl+5')],
+        }),
+      ),
+      commandState(
+        command('spacewave.space-disables-account', {
+          defaultBindings: [comboBinding('space-disable-default', 'Ctrl+6')],
+        }),
+      ),
+    ]
+    const localLayer: KeybindingOverrideLayer = {
+      scope: 'local',
+      label: 'Local',
+      overrideSet: {
+        version: 1,
+        overrides: {
+          'spacewave.account-wins': {
+            replaceBindings: true,
+            bindings: [comboBinding('account-wins-local', 'Ctrl+L')],
+          },
+          'spacewave.space-wins': {
+            replaceBindings: true,
+            bindings: [comboBinding('space-wins-local', 'Ctrl+L')],
+          },
+          'spacewave.account-clears-local': {
+            bindings: [comboBinding('clear-local', 'Ctrl+L')],
+          },
+          'spacewave.space-clears-account': {
+            bindings: [comboBinding('space-clear-local', 'Ctrl+L')],
+          },
+          'spacewave.account-disables-local': {
+            bindings: [comboBinding('account-disable-local', 'Ctrl+L')],
+          },
+          'spacewave.space-disables-account': {
+            bindings: [comboBinding('space-disable-local', 'Ctrl+L')],
+          },
+        },
+        settings: {},
+      },
+    }
+    const accountLayer: KeybindingOverrideLayer = {
+      scope: 'account',
+      label: 'Account',
+      overrideSet: {
+        version: 1,
+        overrides: {
+          'spacewave.account-wins': {
+            replaceBindings: true,
+            bindings: [comboBinding('account-wins-account', 'Ctrl+A')],
+          },
+          'spacewave.space-wins': {
+            replaceBindings: true,
+            bindings: [comboBinding('space-wins-account', 'Ctrl+A')],
+          },
+          'spacewave.account-clears-local': {
+            clearedBindingIds: ['clear-local'],
+            bindings: [comboBinding('clear-account', 'Ctrl+A')],
+          },
+          'spacewave.space-clears-account': {
+            bindings: [comboBinding('space-clear-account', 'Ctrl+A')],
+          },
+          'spacewave.account-disables-local': {
+            disabled: true,
+          },
+          'spacewave.space-disables-account': {
+            replaceBindings: true,
+            bindings: [comboBinding('space-disable-account', 'Ctrl+A')],
+          },
+        },
+        settings: {},
+      },
+    }
+    const spaceLayer: KeybindingOverrideLayer = {
+      scope: 'space',
+      label: 'Space',
+      overrideSet: {
+        version: 1,
+        overrides: {
+          'spacewave.space-wins': {
+            replaceBindings: true,
+            bindings: [comboBinding('space-wins-space', 'Ctrl+S')],
+          },
+          'spacewave.space-clears-account': {
+            clearedBindingIds: ['space-clear-account'],
+            bindings: [comboBinding('space-clear-space', 'Ctrl+S')],
+          },
+          'spacewave.space-disables-account': {
+            disabled: true,
+          },
+        },
+        settings: {},
+      },
+    }
+
+    const graph = resolveKeybindings(commands, {
+      platform: 'other',
+      overrideLayers: [localLayer, accountLayer, spaceLayer],
+    })
+    const resolved = (commandId: string) =>
+      graph.bindingsByCommandId.get(commandId)?.map((binding) => ({
+        id: binding.bindingId,
+        layer: binding.sourceLayer,
+        display: binding.display,
+      })) ?? []
+
+    expect(resolved('spacewave.account-wins')).toEqual([
+      { id: 'account-wins-account', layer: 'account', display: 'Ctrl+A' },
+    ])
+    expect(resolved('spacewave.space-wins')).toEqual([
+      { id: 'space-wins-space', layer: 'space', display: 'Ctrl+S' },
+    ])
+    expect(resolved('spacewave.account-clears-local')).toEqual([
+      { id: 'clear-default', layer: 'default', display: 'Ctrl+3' },
+      { id: 'clear-account', layer: 'account', display: 'Ctrl+A' },
+    ])
+    expect(resolved('spacewave.space-clears-account')).toEqual([
+      { id: 'space-clear-default', layer: 'default', display: 'Ctrl+4' },
+      { id: 'space-clear-local', layer: 'local', display: 'Ctrl+L' },
+      { id: 'space-clear-space', layer: 'space', display: 'Ctrl+S' },
+    ])
+    expect(resolved('spacewave.account-disables-local')).toEqual([])
+    expect(resolved('spacewave.space-disables-account')).toEqual([])
+  })
   it('records local same-context combo conflicts without dispatching either conflicting binding', () => {
     const localLayer: KeybindingOverrideLayer = {
       scope: 'local',

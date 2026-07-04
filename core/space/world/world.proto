@@ -1,5 +1,6 @@
 syntax = "proto3";
 package space.world;
+import "github.com/s4wave/spacewave/sdk/command/command.proto";
 
 // WorldContents contains a list of world objects and types.
 message WorldContents {
@@ -35,4 +36,6 @@ message SpaceSettings {
   // PluginIds lists manifest IDs of plugins this Space uses.
   // Shared with all Space participants.
   repeated string plugin_ids = 2;
+  // KeybindingOverrides stores Space-scope keybinding overrides.
+  .s4wave.command.KeybindingOverrideSet keybinding_overrides = 3;
 }

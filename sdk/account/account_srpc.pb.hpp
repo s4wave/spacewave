@@ -26,6 +26,8 @@ class SRPCAccountResourceService_WatchAuthMethodsClient;
 class SRPCAccountResourceService_WatchAuthMethodsStream;
 class SRPCAccountResourceService_WatchSessionsClient;
 class SRPCAccountResourceService_WatchSessionsStream;
+class SRPCAccountResourceService_WatchKeybindingOverridesClient;
+class SRPCAccountResourceService_WatchKeybindingOverridesStream;
 class SRPCAccountResourceService_WatchEntityKeypairsClient;
 class SRPCAccountResourceService_WatchEntityKeypairsStream;
 
@@ -43,6 +45,12 @@ class SRPCAccountResourceServiceClient {
   virtual std::pair<std::unique_ptr<SRPCAccountResourceService_WatchAuthMethodsClient>, starpc::Error> WatchAuthMethods(const s4wave::account::WatchAuthMethodsRequest& in) = 0;
   // WatchSessions
   virtual std::pair<std::unique_ptr<SRPCAccountResourceService_WatchSessionsClient>, starpc::Error> WatchSessions(const s4wave::account::WatchSessionsRequest& in) = 0;
+  // WatchKeybindingOverrides
+  virtual std::pair<std::unique_ptr<SRPCAccountResourceService_WatchKeybindingOverridesClient>, starpc::Error> WatchKeybindingOverrides(const s4wave::account::WatchKeybindingOverridesRequest& in) = 0;
+  // UpsertKeybindingOverride
+  virtual starpc::Error UpsertKeybindingOverride(const s4wave::account::UpsertKeybindingOverrideRequest& in, s4wave::account::UpsertKeybindingOverrideResponse* out) = 0;
+  // RemoveKeybindingOverride
+  virtual starpc::Error RemoveKeybindingOverride(const s4wave::account::RemoveKeybindingOverrideRequest& in, s4wave::account::RemoveKeybindingOverrideResponse* out) = 0;
   // AddAuthMethod
   virtual starpc::Error AddAuthMethod(const s4wave::account::AddAuthMethodRequest& in, s4wave::account::AddAuthMethodResponse* out) = 0;
   // RemoveAuthMethod
@@ -91,6 +99,12 @@ class SRPCAccountResourceServiceClientImpl : public SRPCAccountResourceServiceCl
   virtual std::pair<std::unique_ptr<SRPCAccountResourceService_WatchAuthMethodsClient>, starpc::Error> WatchAuthMethods(const s4wave::account::WatchAuthMethodsRequest& in) override;
   // WatchSessions
   virtual std::pair<std::unique_ptr<SRPCAccountResourceService_WatchSessionsClient>, starpc::Error> WatchSessions(const s4wave::account::WatchSessionsRequest& in) override;
+  // WatchKeybindingOverrides
+  virtual std::pair<std::unique_ptr<SRPCAccountResourceService_WatchKeybindingOverridesClient>, starpc::Error> WatchKeybindingOverrides(const s4wave::account::WatchKeybindingOverridesRequest& in) override;
+  // UpsertKeybindingOverride
+  virtual starpc::Error UpsertKeybindingOverride(const s4wave::account::UpsertKeybindingOverrideRequest& in, s4wave::account::UpsertKeybindingOverrideResponse* out) override;
+  // RemoveKeybindingOverride
+  virtual starpc::Error RemoveKeybindingOverride(const s4wave::account::RemoveKeybindingOverrideRequest& in, s4wave::account::RemoveKeybindingOverrideResponse* out) override;
   // AddAuthMethod
   virtual starpc::Error AddAuthMethod(const s4wave::account::AddAuthMethodRequest& in, s4wave::account::AddAuthMethodResponse* out) override;
   // RemoveAuthMethod
@@ -145,6 +159,12 @@ class SRPCAccountResourceServiceServer {
   virtual starpc::Error WatchAuthMethods(const s4wave::account::WatchAuthMethodsRequest& req, SRPCAccountResourceService_WatchAuthMethodsStream* strm) = 0;
   // WatchSessions
   virtual starpc::Error WatchSessions(const s4wave::account::WatchSessionsRequest& req, SRPCAccountResourceService_WatchSessionsStream* strm) = 0;
+  // WatchKeybindingOverrides
+  virtual starpc::Error WatchKeybindingOverrides(const s4wave::account::WatchKeybindingOverridesRequest& req, SRPCAccountResourceService_WatchKeybindingOverridesStream* strm) = 0;
+  // UpsertKeybindingOverride
+  virtual starpc::Error UpsertKeybindingOverride(const s4wave::account::UpsertKeybindingOverrideRequest& req, s4wave::account::UpsertKeybindingOverrideResponse* resp) = 0;
+  // RemoveKeybindingOverride
+  virtual starpc::Error RemoveKeybindingOverride(const s4wave::account::RemoveKeybindingOverrideRequest& req, s4wave::account::RemoveKeybindingOverrideResponse* resp) = 0;
   // AddAuthMethod
   virtual starpc::Error AddAuthMethod(const s4wave::account::AddAuthMethodRequest& req, s4wave::account::AddAuthMethodResponse* resp) = 0;
   // RemoveAuthMethod
@@ -309,6 +329,41 @@ class SRPCAccountResourceService_WatchSessionsStream {
   }
 
   starpc::Error SendAndClose(const s4wave::account::WatchSessionsResponse& msg) {
+    starpc::Error err = strm_->MsgSend(msg);
+    if (err != starpc::Error::OK) return err;
+    return strm_->CloseSend();
+  }
+
+ private:
+  starpc::Stream* strm_;
+};
+
+// SRPCAccountResourceService_WatchKeybindingOverridesClient is the client stream for WatchKeybindingOverrides.
+class SRPCAccountResourceService_WatchKeybindingOverridesClient {
+ public:
+  explicit SRPCAccountResourceService_WatchKeybindingOverridesClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
+
+  starpc::Error Recv(s4wave::account::WatchKeybindingOverridesResponse* msg) {
+    return strm_->MsgRecv(msg);
+  }
+
+  starpc::Error CloseSend() { return strm_->CloseSend(); }
+  starpc::Error Close() { return strm_->Close(); }
+
+ private:
+  std::unique_ptr<starpc::Stream> strm_;
+};
+
+// SRPCAccountResourceService_WatchKeybindingOverridesStream is the server stream for WatchKeybindingOverrides.
+class SRPCAccountResourceService_WatchKeybindingOverridesStream {
+ public:
+  explicit SRPCAccountResourceService_WatchKeybindingOverridesStream(starpc::Stream* strm) : strm_(strm) {}
+
+  starpc::Error Send(const s4wave::account::WatchKeybindingOverridesResponse& msg) {
+    return strm_->MsgSend(msg);
+  }
+
+  starpc::Error SendAndClose(const s4wave::account::WatchKeybindingOverridesResponse& msg) {
     starpc::Error err = strm_->MsgSend(msg);
     if (err != starpc::Error::OK) return err;
     return strm_->CloseSend();

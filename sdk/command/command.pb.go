@@ -75,6 +75,46 @@ func (x CommandFocusContext) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// KeybindingDisplayMode identifies how bindings are displayed.
+type KeybindingDisplayMode int32
+
+const (
+	// KEYBINDING_DISPLAY_MODE_UNSPECIFIED uses the default display mode.
+	KeybindingDisplayMode_KEYBINDING_DISPLAY_MODE_UNSPECIFIED KeybindingDisplayMode = 0
+	// KEYBINDING_DISPLAY_MODE_SYMBOLS displays platform symbols.
+	KeybindingDisplayMode_KEYBINDING_DISPLAY_MODE_SYMBOLS KeybindingDisplayMode = 1
+	// KEYBINDING_DISPLAY_MODE_TEXT displays plain text modifier names.
+	KeybindingDisplayMode_KEYBINDING_DISPLAY_MODE_TEXT KeybindingDisplayMode = 2
+)
+
+// Enum value maps for KeybindingDisplayMode.
+var (
+	KeybindingDisplayMode_name = map[int32]string{
+		0: "KEYBINDING_DISPLAY_MODE_UNSPECIFIED",
+		1: "KEYBINDING_DISPLAY_MODE_SYMBOLS",
+		2: "KEYBINDING_DISPLAY_MODE_TEXT",
+	}
+	KeybindingDisplayMode_value = map[string]int32{
+		"KEYBINDING_DISPLAY_MODE_UNSPECIFIED": 0,
+		"KEYBINDING_DISPLAY_MODE_SYMBOLS":     1,
+		"KEYBINDING_DISPLAY_MODE_TEXT":        2,
+	}
+)
+
+func (x KeybindingDisplayMode) Enum() *KeybindingDisplayMode {
+	p := new(KeybindingDisplayMode)
+	*p = x
+	return p
+}
+
+func (x KeybindingDisplayMode) String() string {
+	name, valid := KeybindingDisplayMode_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // KeyCombo stores one key event plus modifiers.
 type KeyCombo struct {
 	unknownFields []byte
@@ -196,6 +236,158 @@ type CommandBinding_Sequence struct {
 func (*CommandBinding_Combo) isCommandBinding_Binding() {}
 
 func (*CommandBinding_Sequence) isCommandBinding_Binding() {}
+
+// KeybindingDisplaySettings stores display preferences for one override layer.
+type KeybindingDisplaySettings struct {
+	unknownFields []byte
+	// Mode selects how bindings are displayed.
+	Mode KeybindingDisplayMode `protobuf:"varint,1,opt,name=mode,proto3" json:"mode,omitempty"`
+}
+
+func (x *KeybindingDisplaySettings) Reset() {
+	*x = KeybindingDisplaySettings{}
+}
+
+func (*KeybindingDisplaySettings) ProtoMessage() {}
+
+func (x *KeybindingDisplaySettings) GetMode() KeybindingDisplayMode {
+	if x != nil {
+		return x.Mode
+	}
+	return KeybindingDisplayMode_KEYBINDING_DISPLAY_MODE_UNSPECIFIED
+}
+
+// KeybindingOverrideSettings stores non-command-specific keybinding preferences.
+type KeybindingOverrideSettings struct {
+	unknownFields []byte
+	// LeaderCombo is the layer's virtual Leader binding.
+	LeaderCombo string `protobuf:"bytes,1,opt,name=leader_combo,json=leaderCombo,proto3" json:"leaderCombo,omitempty"`
+	// WhichKeyDelayMs is the delay before showing which-key discovery.
+	WhichKeyDelayMs uint32 `protobuf:"varint,2,opt,name=which_key_delay_ms,json=whichKeyDelayMs,proto3" json:"whichKeyDelayMs,omitempty"`
+	// Display contains binding display preferences.
+	Display *KeybindingDisplaySettings `protobuf:"bytes,3,opt,name=display,proto3" json:"display,omitempty"`
+}
+
+func (x *KeybindingOverrideSettings) Reset() {
+	*x = KeybindingOverrideSettings{}
+}
+
+func (*KeybindingOverrideSettings) ProtoMessage() {}
+
+func (x *KeybindingOverrideSettings) GetLeaderCombo() string {
+	if x != nil {
+		return x.LeaderCombo
+	}
+	return ""
+}
+
+func (x *KeybindingOverrideSettings) GetWhichKeyDelayMs() uint32 {
+	if x != nil {
+		return x.WhichKeyDelayMs
+	}
+	return 0
+}
+
+func (x *KeybindingOverrideSettings) GetDisplay() *KeybindingDisplaySettings {
+	if x != nil {
+		return x.Display
+	}
+	return nil
+}
+
+// KeybindingCommandOverride stores one command's override in a keybinding layer.
+type KeybindingCommandOverride struct {
+	unknownFields []byte
+	// CommandId is the command identifier this override applies to.
+	CommandId string `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"commandId,omitempty"`
+	// ReplaceBindings indicates bindings replace lower-layer bindings.
+	ReplaceBindings bool `protobuf:"varint,2,opt,name=replace_bindings,json=replaceBindings,proto3" json:"replaceBindings,omitempty"`
+	// Disabled indicates the command has no effective bindings in this layer.
+	Disabled bool `protobuf:"varint,3,opt,name=disabled,proto3" json:"disabled,omitempty"`
+	// ClearedBindingIds lists lower-layer binding IDs removed by this layer.
+	ClearedBindingIds []string `protobuf:"bytes,4,rep,name=cleared_binding_ids,json=clearedBindingIds,proto3" json:"clearedBindingIds,omitempty"`
+	// Bindings are bindings added by this layer.
+	Bindings []*CommandBinding `protobuf:"bytes,5,rep,name=bindings,proto3" json:"bindings,omitempty"`
+}
+
+func (x *KeybindingCommandOverride) Reset() {
+	*x = KeybindingCommandOverride{}
+}
+
+func (*KeybindingCommandOverride) ProtoMessage() {}
+
+func (x *KeybindingCommandOverride) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+func (x *KeybindingCommandOverride) GetReplaceBindings() bool {
+	if x != nil {
+		return x.ReplaceBindings
+	}
+	return false
+}
+
+func (x *KeybindingCommandOverride) GetDisabled() bool {
+	if x != nil {
+		return x.Disabled
+	}
+	return false
+}
+
+func (x *KeybindingCommandOverride) GetClearedBindingIds() []string {
+	if x != nil {
+		return x.ClearedBindingIds
+	}
+	return nil
+}
+
+func (x *KeybindingCommandOverride) GetBindings() []*CommandBinding {
+	if x != nil {
+		return x.Bindings
+	}
+	return nil
+}
+
+// KeybindingOverrideSet stores one persisted keybinding override layer.
+type KeybindingOverrideSet struct {
+	unknownFields []byte
+	// Version is the override set schema version.
+	Version uint32 `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
+	// Overrides are command-keyed overrides.
+	Overrides []*KeybindingCommandOverride `protobuf:"bytes,2,rep,name=overrides,proto3" json:"overrides,omitempty"`
+	// Settings stores layer-wide keybinding preferences.
+	Settings *KeybindingOverrideSettings `protobuf:"bytes,3,opt,name=settings,proto3" json:"settings,omitempty"`
+}
+
+func (x *KeybindingOverrideSet) Reset() {
+	*x = KeybindingOverrideSet{}
+}
+
+func (*KeybindingOverrideSet) ProtoMessage() {}
+
+func (x *KeybindingOverrideSet) GetVersion() uint32 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *KeybindingOverrideSet) GetOverrides() []*KeybindingCommandOverride {
+	if x != nil {
+		return x.Overrides
+	}
+	return nil
+}
+
+func (x *KeybindingOverrideSet) GetSettings() *KeybindingOverrideSettings {
+	if x != nil {
+		return x.Settings
+	}
+	return nil
+}
 
 // Command is the metadata for a registered command.
 type Command struct {
@@ -388,6 +580,90 @@ func (m *CommandBinding_Sequence) CloneOneofVT() isCommandBinding_Binding {
 	return m.CloneVT()
 }
 
+func (m *KeybindingDisplaySettings) CloneVT() *KeybindingDisplaySettings {
+	if m == nil {
+		return (*KeybindingDisplaySettings)(nil)
+	}
+	r := new(KeybindingDisplaySettings)
+	r.Mode = m.Mode
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *KeybindingDisplaySettings) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *KeybindingOverrideSettings) CloneVT() *KeybindingOverrideSettings {
+	if m == nil {
+		return (*KeybindingOverrideSettings)(nil)
+	}
+	r := new(KeybindingOverrideSettings)
+	r.LeaderCombo = m.LeaderCombo
+	r.WhichKeyDelayMs = m.WhichKeyDelayMs
+	r.Display = m.Display.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *KeybindingOverrideSettings) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *KeybindingCommandOverride) CloneVT() *KeybindingCommandOverride {
+	if m == nil {
+		return (*KeybindingCommandOverride)(nil)
+	}
+	r := new(KeybindingCommandOverride)
+	r.CommandId = m.CommandId
+	r.ReplaceBindings = m.ReplaceBindings
+	r.Disabled = m.Disabled
+	if rhs := m.ClearedBindingIds; rhs != nil {
+		r.ClearedBindingIds = slices.Clone(rhs)
+	}
+	if rhs := m.Bindings; rhs != nil {
+		r.Bindings = make([]*CommandBinding, len(rhs))
+		for k, v := range rhs {
+			r.Bindings[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *KeybindingCommandOverride) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *KeybindingOverrideSet) CloneVT() *KeybindingOverrideSet {
+	if m == nil {
+		return (*KeybindingOverrideSet)(nil)
+	}
+	r := new(KeybindingOverrideSet)
+	r.Version = m.Version
+	r.Settings = m.Settings.CloneVT()
+	if rhs := m.Overrides; rhs != nil {
+		r.Overrides = make([]*KeybindingCommandOverride, len(rhs))
+		for k, v := range rhs {
+			r.Overrides[k] = v.CloneVT()
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *KeybindingOverrideSet) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *Command) CloneVT() *Command {
 	if m == nil {
 		return (*Command)(nil)
@@ -552,6 +828,144 @@ func (this *CommandBinding_Sequence) EqualVT(thatIface isCommandBinding_Binding)
 	return true
 }
 
+func (this *KeybindingDisplaySettings) EqualVT(that *KeybindingDisplaySettings) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Mode != that.Mode {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *KeybindingDisplaySettings) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*KeybindingDisplaySettings)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *KeybindingOverrideSettings) EqualVT(that *KeybindingOverrideSettings) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.LeaderCombo != that.LeaderCombo {
+		return false
+	}
+	if this.WhichKeyDelayMs != that.WhichKeyDelayMs {
+		return false
+	}
+	if !this.Display.EqualVT(that.Display) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *KeybindingOverrideSettings) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*KeybindingOverrideSettings)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *KeybindingCommandOverride) EqualVT(that *KeybindingCommandOverride) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.CommandId != that.CommandId {
+		return false
+	}
+	if this.ReplaceBindings != that.ReplaceBindings {
+		return false
+	}
+	if this.Disabled != that.Disabled {
+		return false
+	}
+	if len(this.ClearedBindingIds) != len(that.ClearedBindingIds) {
+		return false
+	}
+	for i, vx := range this.ClearedBindingIds {
+		vy := that.ClearedBindingIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.Bindings) != len(that.Bindings) {
+		return false
+	}
+	for i, vx := range this.Bindings {
+		vy := that.Bindings[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &CommandBinding{}
+			}
+			if q == nil {
+				q = &CommandBinding{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *KeybindingCommandOverride) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*KeybindingCommandOverride)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *KeybindingOverrideSet) EqualVT(that *KeybindingOverrideSet) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Version != that.Version {
+		return false
+	}
+	if len(this.Overrides) != len(that.Overrides) {
+		return false
+	}
+	for i, vx := range this.Overrides {
+		vy := that.Overrides[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &KeybindingCommandOverride{}
+			}
+			if q == nil {
+				q = &KeybindingCommandOverride{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if !this.Settings.EqualVT(that.Settings) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *KeybindingOverrideSet) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*KeybindingOverrideSet)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *Command) EqualVT(that *Command) bool {
 	if this == that {
 		return true
@@ -650,6 +1064,46 @@ func (x *CommandFocusContext) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the CommandFocusContext from JSON.
 func (x *CommandFocusContext) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the KeybindingDisplayMode to JSON.
+func (x KeybindingDisplayMode) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), KeybindingDisplayMode_name)
+}
+
+// MarshalText marshals the KeybindingDisplayMode to text.
+func (x KeybindingDisplayMode) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), KeybindingDisplayMode_name)), nil
+}
+
+// MarshalJSON marshals the KeybindingDisplayMode to JSON.
+func (x KeybindingDisplayMode) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the KeybindingDisplayMode from JSON.
+func (x *KeybindingDisplayMode) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(KeybindingDisplayMode_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read KeybindingDisplayMode enum: %v", err)
+		return
+	}
+	*x = KeybindingDisplayMode(v)
+}
+
+// UnmarshalText unmarshals the KeybindingDisplayMode from text.
+func (x *KeybindingDisplayMode) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), KeybindingDisplayMode_value)
+	if err != nil {
+		return err
+	}
+	*x = KeybindingDisplayMode(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the KeybindingDisplayMode from JSON.
+func (x *KeybindingDisplayMode) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -826,6 +1280,292 @@ func (x *CommandBinding) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the CommandBinding from JSON.
 func (x *CommandBinding) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the KeybindingDisplaySettings message to JSON.
+func (x *KeybindingDisplaySettings) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Mode != 0 || s.HasField("mode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("mode")
+		x.Mode.MarshalProtoJSON(s)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the KeybindingDisplaySettings to JSON.
+func (x *KeybindingDisplaySettings) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the KeybindingDisplaySettings message from JSON.
+func (x *KeybindingDisplaySettings) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "mode":
+			s.AddField("mode")
+			x.Mode.UnmarshalProtoJSON(s)
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the KeybindingDisplaySettings from JSON.
+func (x *KeybindingDisplaySettings) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the KeybindingOverrideSettings message to JSON.
+func (x *KeybindingOverrideSettings) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.LeaderCombo != "" || s.HasField("leaderCombo") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("leaderCombo")
+		s.WriteString(x.LeaderCombo)
+	}
+	if x.WhichKeyDelayMs != 0 || s.HasField("whichKeyDelayMs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("whichKeyDelayMs")
+		s.WriteUint32(x.WhichKeyDelayMs)
+	}
+	if x.Display != nil || s.HasField("display") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("display")
+		x.Display.MarshalProtoJSON(s.WithField("display"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the KeybindingOverrideSettings to JSON.
+func (x *KeybindingOverrideSettings) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the KeybindingOverrideSettings message from JSON.
+func (x *KeybindingOverrideSettings) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "leader_combo", "leaderCombo":
+			s.AddField("leader_combo")
+			x.LeaderCombo = s.ReadString()
+		case "which_key_delay_ms", "whichKeyDelayMs":
+			s.AddField("which_key_delay_ms")
+			x.WhichKeyDelayMs = s.ReadUint32()
+		case "display":
+			if s.ReadNil() {
+				x.Display = nil
+				return
+			}
+			x.Display = &KeybindingDisplaySettings{}
+			x.Display.UnmarshalProtoJSON(s.WithField("display", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the KeybindingOverrideSettings from JSON.
+func (x *KeybindingOverrideSettings) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the KeybindingCommandOverride message to JSON.
+func (x *KeybindingCommandOverride) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.CommandId != "" || s.HasField("commandId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("commandId")
+		s.WriteString(x.CommandId)
+	}
+	if x.ReplaceBindings || s.HasField("replaceBindings") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("replaceBindings")
+		s.WriteBool(x.ReplaceBindings)
+	}
+	if x.Disabled || s.HasField("disabled") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("disabled")
+		s.WriteBool(x.Disabled)
+	}
+	if len(x.ClearedBindingIds) > 0 || s.HasField("clearedBindingIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("clearedBindingIds")
+		s.WriteStringArray(x.ClearedBindingIds)
+	}
+	if len(x.Bindings) > 0 || s.HasField("bindings") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("bindings")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Bindings {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("bindings"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the KeybindingCommandOverride to JSON.
+func (x *KeybindingCommandOverride) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the KeybindingCommandOverride message from JSON.
+func (x *KeybindingCommandOverride) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "command_id", "commandId":
+			s.AddField("command_id")
+			x.CommandId = s.ReadString()
+		case "replace_bindings", "replaceBindings":
+			s.AddField("replace_bindings")
+			x.ReplaceBindings = s.ReadBool()
+		case "disabled":
+			s.AddField("disabled")
+			x.Disabled = s.ReadBool()
+		case "cleared_binding_ids", "clearedBindingIds":
+			s.AddField("cleared_binding_ids")
+			if s.ReadNil() {
+				x.ClearedBindingIds = nil
+				return
+			}
+			x.ClearedBindingIds = s.ReadStringArray()
+		case "bindings":
+			s.AddField("bindings")
+			if s.ReadNil() {
+				x.Bindings = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Bindings = append(x.Bindings, nil)
+					return
+				}
+				v := &CommandBinding{}
+				v.UnmarshalProtoJSON(s.WithField("bindings", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Bindings = append(x.Bindings, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the KeybindingCommandOverride from JSON.
+func (x *KeybindingCommandOverride) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the KeybindingOverrideSet message to JSON.
+func (x *KeybindingOverrideSet) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Version != 0 || s.HasField("version") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("version")
+		s.WriteUint32(x.Version)
+	}
+	if len(x.Overrides) > 0 || s.HasField("overrides") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("overrides")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Overrides {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("overrides"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.Settings != nil || s.HasField("settings") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("settings")
+		x.Settings.MarshalProtoJSON(s.WithField("settings"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the KeybindingOverrideSet to JSON.
+func (x *KeybindingOverrideSet) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the KeybindingOverrideSet message from JSON.
+func (x *KeybindingOverrideSet) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "version":
+			s.AddField("version")
+			x.Version = s.ReadUint32()
+		case "overrides":
+			s.AddField("overrides")
+			if s.ReadNil() {
+				x.Overrides = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Overrides = append(x.Overrides, nil)
+					return
+				}
+				v := &KeybindingCommandOverride{}
+				v.UnmarshalProtoJSON(s.WithField("overrides", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Overrides = append(x.Overrides, v)
+			})
+		case "settings":
+			if s.ReadNil() {
+				x.Settings = nil
+				return
+			}
+			x.Settings = &KeybindingOverrideSettings{}
+			x.Settings.UnmarshalProtoJSON(s.WithField("settings", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the KeybindingOverrideSet from JSON.
+func (x *KeybindingOverrideSet) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1155,6 +1895,240 @@ func (m *CommandBinding_Sequence) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	return len(dAtA) - i, nil
 }
 
+func (m *KeybindingDisplaySettings) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *KeybindingDisplaySettings) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KeybindingDisplaySettings) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Mode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Mode))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *KeybindingOverrideSettings) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *KeybindingOverrideSettings) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KeybindingOverrideSettings) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Display != nil {
+		size, err := m.Display.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.WhichKeyDelayMs != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WhichKeyDelayMs))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.LeaderCombo) > 0 {
+		i -= len(m.LeaderCombo)
+		copy(dAtA[i:], m.LeaderCombo)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.LeaderCombo)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *KeybindingCommandOverride) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *KeybindingCommandOverride) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KeybindingCommandOverride) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Bindings) > 0 {
+		for iNdEx := len(m.Bindings) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Bindings[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
+	if len(m.ClearedBindingIds) > 0 {
+		for iNdEx := len(m.ClearedBindingIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ClearedBindingIds[iNdEx])
+			copy(dAtA[i:], m.ClearedBindingIds[iNdEx])
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.ClearedBindingIds[iNdEx])))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if m.Disabled {
+		i--
+		if m.Disabled {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.ReplaceBindings {
+		i--
+		if m.ReplaceBindings {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.CommandId) > 0 {
+		i -= len(m.CommandId)
+		copy(dAtA[i:], m.CommandId)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.CommandId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *KeybindingOverrideSet) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *KeybindingOverrideSet) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KeybindingOverrideSet) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Settings != nil {
+		size, err := m.Settings.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Overrides) > 0 {
+		for iNdEx := len(m.Overrides) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Overrides[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if m.Version != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Version))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Command) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1346,6 +2320,95 @@ func (m *CommandBinding_Sequence) SizeVT() (n int) {
 	return n
 }
 
+func (m *KeybindingDisplaySettings) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Mode != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Mode))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *KeybindingOverrideSettings) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.LeaderCombo)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.WhichKeyDelayMs != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.WhichKeyDelayMs))
+	}
+	if m.Display != nil {
+		l = m.Display.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *KeybindingCommandOverride) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.CommandId)
+	if l > 0 {
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	if m.ReplaceBindings {
+		n += 2
+	}
+	if m.Disabled {
+		n += 2
+	}
+	if len(m.ClearedBindingIds) > 0 {
+		for _, s := range m.ClearedBindingIds {
+			l = len(s)
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.Bindings) > 0 {
+		for _, e := range m.Bindings {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *KeybindingOverrideSet) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Version != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Version))
+	}
+	if len(m.Overrides) > 0 {
+		for _, e := range m.Overrides {
+			l = e.SizeVT()
+			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+		}
+	}
+	if m.Settings != nil {
+		l = m.Settings.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *Command) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1396,6 +2459,10 @@ func (m *Command) SizeVT() (n int) {
 }
 
 func (x CommandFocusContext) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x KeybindingDisplayMode) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -1494,6 +2561,162 @@ func (x *CommandBinding) MarshalProtoText() string {
 }
 
 func (x *CommandBinding) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *KeybindingDisplaySettings) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("KeybindingDisplaySettings {")
+	if x.Mode != 0 {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("mode: ")
+		sb.WriteString("\"")
+		sb.WriteString(KeybindingDisplayMode(x.Mode).String())
+		sb.WriteString("\"")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *KeybindingDisplaySettings) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *KeybindingOverrideSettings) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("KeybindingOverrideSettings {")
+	if x.LeaderCombo != "" {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("leader_combo: ")
+		sb.WriteString(strconv.Quote(x.LeaderCombo))
+	}
+	if x.WhichKeyDelayMs != 0 {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("which_key_delay_ms: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.WhichKeyDelayMs), 10))
+	}
+	if x.Display != nil {
+		if sb.Len() > 28 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("display: ")
+		sb.WriteString(x.Display.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *KeybindingOverrideSettings) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *KeybindingCommandOverride) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("KeybindingCommandOverride {")
+	if x.CommandId != "" {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("command_id: ")
+		sb.WriteString(strconv.Quote(x.CommandId))
+	}
+	if x.ReplaceBindings != false {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("replace_bindings: ")
+		sb.WriteString(strconv.FormatBool(x.ReplaceBindings))
+	}
+	if x.Disabled != false {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("disabled: ")
+		sb.WriteString(strconv.FormatBool(x.Disabled))
+	}
+	if len(x.ClearedBindingIds) > 0 {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("cleared_binding_ids: [")
+		for i, v := range x.ClearedBindingIds {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(strconv.Quote(v))
+		}
+		sb.WriteString("]")
+	}
+	if len(x.Bindings) > 0 {
+		if sb.Len() > 27 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("bindings: [")
+		for i, v := range x.Bindings {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			if v == nil {
+				sb.WriteString((&CommandBinding{}).MarshalProtoText())
+			} else {
+				sb.WriteString(v.MarshalProtoText())
+			}
+		}
+		sb.WriteString("]")
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *KeybindingCommandOverride) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *KeybindingOverrideSet) MarshalProtoText() string {
+	var sb strings.Builder
+	sb.WriteString("KeybindingOverrideSet {")
+	if x.Version != 0 {
+		if sb.Len() > 23 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("version: ")
+		sb.WriteString(strconv.FormatUint(uint64(x.Version), 10))
+	}
+	if len(x.Overrides) > 0 {
+		if sb.Len() > 23 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("overrides: [")
+		for i, v := range x.Overrides {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			if v == nil {
+				sb.WriteString((&KeybindingCommandOverride{}).MarshalProtoText())
+			} else {
+				sb.WriteString(v.MarshalProtoText())
+			}
+		}
+		sb.WriteString("]")
+	}
+	if x.Settings != nil {
+		if sb.Len() > 23 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("settings: ")
+		sb.WriteString(x.Settings.MarshalProtoText())
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
+func (x *KeybindingOverrideSet) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1858,6 +3081,405 @@ func (m *CommandBinding) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.SourceLabel = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *KeybindingDisplaySettings) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: KeybindingDisplaySettings: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: KeybindingDisplaySettings: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mode", wireType)
+			}
+			m.Mode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Mode = KeybindingDisplayMode(_v)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *KeybindingOverrideSettings) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: KeybindingOverrideSettings: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: KeybindingOverrideSettings: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LeaderCombo", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LeaderCombo = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WhichKeyDelayMs", wireType)
+			}
+			m.WhichKeyDelayMs = 0
+			m.WhichKeyDelayMs, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Display", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Display == nil {
+				m.Display = &KeybindingDisplaySettings{}
+			}
+			if err := m.Display.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *KeybindingCommandOverride) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: KeybindingCommandOverride: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: KeybindingCommandOverride: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CommandId", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CommandId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReplaceBindings", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.ReplaceBindings = bool(v != 0)
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Disabled", wireType)
+			}
+			var v int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			v = int(_v)
+			if err != nil {
+				return err
+			}
+			m.Disabled = bool(v != 0)
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClearedBindingIds", wireType)
+			}
+			var stringLen uint64
+			stringLen, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ClearedBindingIds = append(m.ClearedBindingIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Bindings", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Bindings = append(m.Bindings, &CommandBinding{})
+			if err := m.Bindings[len(m.Bindings)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *KeybindingOverrideSet) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: KeybindingOverrideSet: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: KeybindingOverrideSet: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
+			}
+			m.Version = 0
+			m.Version, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Overrides", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Overrides = append(m.Overrides, &KeybindingCommandOverride{})
+			if err := m.Overrides[len(m.Overrides)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Settings", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Settings == nil {
+				m.Settings = &KeybindingOverrideSettings{}
+			}
+			if err := m.Settings.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

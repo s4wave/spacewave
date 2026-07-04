@@ -6,6 +6,7 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { KeybindingOverrideSet } from '../../../sdk/command/command.pb.js'
 
 export const protobufPackage = 'space.world'
 
@@ -138,6 +139,12 @@ export interface SpaceSettings {
    * @generated from field: repeated string plugin_ids = 2;
    */
   pluginIds?: string[]
+  /**
+   * KeybindingOverrides stores Space-scope keybinding overrides.
+   *
+   * @generated from field: s4wave.command.KeybindingOverrideSet keybinding_overrides = 3;
+   */
+  keybindingOverrides?: KeybindingOverrideSet
 }
 
 export const SpaceSettings: MessageType<SpaceSettings> =
@@ -151,6 +158,12 @@ export const SpaceSettings: MessageType<SpaceSettings> =
         kind: 'scalar',
         T: ScalarType.STRING,
         repeated: true,
+      },
+      {
+        no: 3,
+        name: 'keybinding_overrides',
+        kind: 'message',
+        T: () => KeybindingOverrideSet,
       },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,

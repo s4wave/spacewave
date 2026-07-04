@@ -38,12 +38,13 @@ import {
   createKeybindingOverrideLayer,
   keybindingBindingStorageId,
   setCommandBindingsOverride,
+  type KeybindingOverrideLayer,
+  type KeybindingOverrideScope,
+  type KeybindingOverrideSet,
 } from './keybinding-overrides.js'
-import {
-  useLocalKeybindingOverrides,
-  type LocalKeybindingOverridesValue,
-} from './useLocalKeybindingOverrides.js'
-import { useKeybindingGraph } from './useKeybindingGraph.js'
+import { useAccountKeybindingOverrides } from './useAccountKeybindingOverrides.js'
+import { useLocalKeybindingOverrides } from './useLocalKeybindingOverrides.js'
+import { useSpaceKeybindingOverrides } from './useSpaceKeybindingOverrides.js'
 
 export type KeybindingEditorScope = 'local' | 'account' | 'space'
 
@@ -68,6 +69,24 @@ interface CaptureState {
   steps: string[]
 }
 
+interface KeybindingLayerController {
+  scope: KeybindingEditorScope
+  label: string
+  overrideSet: KeybindingOverrideSet
+  layer: KeybindingOverrideLayer | null
+  available: boolean
+  readOnly: boolean
+  loading: boolean
+  error: Error | null
+  setCommandBindings: (commandId: string, bindings: CommandBinding[]) => void
+  addCommandBinding: (commandId: string, binding: CommandBinding) => void
+  clearCommandBindings: (commandId: string) => void
+  clearCommandBindingId: (commandId: string, bindingId: string) => void
+  removeCommandBinding: (commandId: string, bindingId: string) => void
+  resetCommand: (commandId: string) => void
+  resetLayer: () => void
+}
+
 const scopeLabels: Record<KeybindingEditorScope, string> = {
   local: 'Local',
   account: 'Account',
@@ -82,7 +101,59 @@ export function KeybindingEditor({
 }: KeybindingEditorProps) {
   const commands = useCommands()
   const localOverrides = useLocalKeybindingOverrides()
-  const bindingGraph = useKeybindingGraph(commands)
+  const accountOverrides = useAccountKeybindingOverrides()
+  const spaceOverrides = useSpaceKeybindingOverrides()
+  const localController: KeybindingLayerController = {
+    scope: 'local',
+    label: 'Local',
+    overrideSet: localOverrides.overrideSet,
+    layer: localOverrides.layer,
+    available: true,
+    readOnly: false,
+    loading: false,
+    error: null,
+    setCommandBindings: localOverrides.setCommandBindings,
+    addCommandBinding: localOverrides.addCommandBinding,
+    clearCommandBindings: localOverrides.clearCommandBindings,
+    clearCommandBindingId: localOverrides.clearCommandBindingId,
+    removeCommandBinding: localOverrides.removeLocalCommandBinding,
+    resetCommand: localOverrides.resetCommand,
+    resetLayer: localOverrides.resetLayer,
+  }
+  const accountController: KeybindingLayerController = {
+    scope: 'account',
+    label: 'Account',
+    overrideSet: accountOverrides.overrideSet,
+    layer: accountOverrides.layer,
+    available: accountOverrides.available,
+    readOnly: accountOverrides.readOnly,
+    loading: accountOverrides.loading,
+    error: accountOverrides.error,
+    setCommandBindings: accountOverrides.setCommandBindings,
+    addCommandBinding: accountOverrides.addCommandBinding,
+    clearCommandBindings: accountOverrides.clearCommandBindings,
+    clearCommandBindingId: accountOverrides.clearCommandBindingId,
+    removeCommandBinding: accountOverrides.removeCommandBinding,
+    resetCommand: accountOverrides.resetCommand,
+    resetLayer: accountOverrides.resetLayer,
+  }
+  const spaceController: KeybindingLayerController = {
+    scope: 'space',
+    label: 'Space',
+    overrideSet: spaceOverrides.overrideSet,
+    layer: spaceOverrides.layer,
+    available: spaceOverrides.available,
+    readOnly: spaceOverrides.readOnly,
+    loading: spaceOverrides.loading,
+    error: spaceOverrides.error,
+    setCommandBindings: spaceOverrides.setCommandBindings,
+    addCommandBinding: spaceOverrides.addCommandBinding,
+    clearCommandBindings: spaceOverrides.clearCommandBindings,
+    clearCommandBindingId: spaceOverrides.clearCommandBindingId,
+    removeCommandBinding: spaceOverrides.removeCommandBinding,
+    resetCommand: spaceOverrides.resetCommand,
+    resetLayer: spaceOverrides.resetLayer,
+  }
   const [query, setQuery] = useState('')
   const [selectedScope, setSelectedScope] =
     useState<KeybindingEditorScope>(initialScope)
@@ -95,6 +166,33 @@ export function KeybindingEditor({
   )
   const [pendingReplace, setPendingReplace] = useState(true)
   const [captureError, setCaptureError] = useState<string | null>(null)
+  const layerControllers: Record<
+    KeybindingEditorScope,
+    KeybindingLayerController
+  > = {
+    local: localController,
+    account: accountController,
+    space: spaceController,
+  }
+  const selectedController = layerControllers[selectedScope]
+  const selectedLayerEditable =
+    selectedController.available &&
+    !selectedController.readOnly &&
+    !selectedController.loading &&
+    !selectedController.error
+  const overrideLayers = useMemo(
+    () =>
+      [
+        localController.layer,
+        accountController.layer,
+        spaceController.layer,
+      ].filter((layer): layer is KeybindingOverrideLayer => Boolean(layer)),
+    [localController.layer, accountController.layer, spaceController.layer],
+  )
+  const bindingGraph = useMemo(
+    () => resolveKeybindings(commands, { overrideLayers }),
+    [commands, overrideLayers],
+  )
 
   useEffect(() => {
     if (!open) return
@@ -118,16 +216,29 @@ export function KeybindingEditor({
     : []
   const pendingConflict = useMemo(
     () =>
-      selectedRow && pendingBinding
+      selectedRow && pendingBinding && selectedLayerEditable
         ? previewPendingConflict(
             commands,
-            localOverrides,
+            overrideLayers,
+            selectedController.scope,
+            selectedController.label,
+            selectedController.overrideSet,
             selectedRow.commandId,
             pendingBinding,
             pendingReplace,
           )
         : undefined,
-    [commands, localOverrides, selectedRow, pendingBinding, pendingReplace],
+    [
+      commands,
+      overrideLayers,
+      pendingBinding,
+      pendingReplace,
+      selectedController.label,
+      selectedController.overrideSet,
+      selectedController.scope,
+      selectedLayerEditable,
+      selectedRow,
+    ],
   )
   const commandConflicts = selectedRow
     ? bindingGraph.conflicts.filter((conflict) =>
@@ -136,8 +247,7 @@ export function KeybindingEditor({
         ),
       )
     : []
-  const localEnabled = selectedScope === 'local'
-
+  const selectedLayerStatus = layerStatusMessage(selectedController)
   const startCapture = useCallback(
     (kind: 'combo' | 'sequence', replace: boolean) => {
       setCapture({
@@ -166,7 +276,11 @@ export function KeybindingEditor({
       if (capture.kind === 'sequence' && event.key === 'Enter') {
         if (capture.steps.length > 1) {
           setPendingBinding(
-            bindingFromSteps(selectedRow.commandId, capture.steps),
+            bindingFromSteps(
+              selectedRow.commandId,
+              selectedController.scope,
+              capture.steps,
+            ),
           )
           setCapture(null)
         }
@@ -178,8 +292,16 @@ export function KeybindingEditor({
       const nextSteps = [...capture.steps, combo]
       const binding =
         capture.kind === 'combo'
-          ? bindingFromCombo(selectedRow.commandId, combo)
-          : bindingFromSteps(selectedRow.commandId, nextSteps)
+          ? bindingFromCombo(
+              selectedRow.commandId,
+              selectedController.scope,
+              combo,
+            )
+          : bindingFromSteps(
+              selectedRow.commandId,
+              selectedController.scope,
+              nextSteps,
+            )
       if (!bindingResolves(selectedRow.state, binding)) {
         setCaptureError('That binding could not be parsed.')
         return
@@ -193,56 +315,73 @@ export function KeybindingEditor({
         setCapture({ ...capture, steps: nextSteps })
       }
     },
-    [capture, selectedRow],
+    [capture, selectedController.scope, selectedRow],
   )
 
   const savePendingBinding = useCallback(() => {
-    if (!localEnabled || !selectedRow || !pendingBinding || pendingConflict)
+    if (
+      !selectedLayerEditable ||
+      !selectedRow ||
+      !pendingBinding ||
+      pendingConflict
+    ) {
       return
+    }
     if (pendingReplace) {
-      localOverrides.setCommandBindings(selectedRow.commandId, [pendingBinding])
+      selectedController.setCommandBindings(selectedRow.commandId, [
+        pendingBinding,
+      ])
     } else {
-      localOverrides.addCommandBinding(selectedRow.commandId, pendingBinding)
+      selectedController.addCommandBinding(
+        selectedRow.commandId,
+        pendingBinding,
+      )
     }
     setPendingBinding(null)
     setCapture(null)
   }, [
-    localEnabled,
-    localOverrides,
     pendingBinding,
     pendingConflict,
     pendingReplace,
+    selectedController,
+    selectedLayerEditable,
     selectedRow,
   ])
 
   const clearSelectedBindings = useCallback(() => {
-    if (!selectedRow) return
-    localOverrides.clearCommandBindings(selectedRow.commandId)
+    if (!selectedLayerEditable || !selectedRow) return
+    selectedController.clearCommandBindings(selectedRow.commandId)
     setPendingBinding(null)
-  }, [localOverrides, selectedRow])
+  }, [selectedController, selectedLayerEditable, selectedRow])
 
   const resetSelectedCommand = useCallback(() => {
-    if (!selectedRow) return
-    localOverrides.resetCommand(selectedRow.commandId)
+    if (!selectedLayerEditable || !selectedRow) return
+    selectedController.resetCommand(selectedRow.commandId)
     setPendingBinding(null)
-  }, [localOverrides, selectedRow])
+  }, [selectedController, selectedLayerEditable, selectedRow])
 
   const removeBinding = useCallback(
     (binding: ResolvedCommandBinding) => {
-      if (!selectedRow) return
-      if (binding.sourceLayer === 'local') {
-        localOverrides.removeLocalCommandBinding(
+      if (
+        !selectedLayerEditable ||
+        !selectedRow ||
+        !canLayerOverrideBinding(selectedScope, binding.sourceLayer)
+      ) {
+        return
+      }
+      if (binding.sourceLayer === selectedScope) {
+        selectedController.removeCommandBinding(
           selectedRow.commandId,
           binding.bindingId,
         )
         return
       }
-      localOverrides.clearCommandBindingId(
+      selectedController.clearCommandBindingId(
         selectedRow.commandId,
         binding.bindingId,
       )
     },
-    [localOverrides, selectedRow],
+    [selectedController, selectedLayerEditable, selectedRow, selectedScope],
   )
 
   return (
@@ -268,11 +407,11 @@ export function KeybindingEditor({
                 }
               >
                 <option value="local">Local</option>
-                <option value="account" disabled>
-                  Account (next phase)
+                <option value="account" disabled={!accountOverrides.available}>
+                  {accountOptionLabel(accountOverrides.available)}
                 </option>
-                <option value="space" disabled>
-                  Space (next phase)
+                <option value="space" disabled={!spaceOverrides.available}>
+                  {spaceOptionLabel(spaceOverrides.available)}
                 </option>
               </select>
             </div>
@@ -321,7 +460,7 @@ export function KeybindingEditor({
           <section className="min-h-0 overflow-auto p-4">
             {!selectedRow ? (
               <div className="text-foreground-alt/40 text-sm">
-                Select a command to edit its local keybindings.
+                Select a command to edit its keybindings.
               </div>
             ) : (
               <div className="space-y-4">
@@ -339,10 +478,9 @@ export function KeybindingEditor({
                   )}
                 </div>
 
-                {!localEnabled && (
+                {selectedLayerStatus && (
                   <div className="border-warning/30 bg-warning/10 text-warning rounded border px-3 py-2 text-xs">
-                    {scopeLabels[selectedScope]} overrides are visible here but
-                    become editable in the account and Space persistence phase.
+                    {selectedLayerStatus}
                   </div>
                 )}
 
@@ -374,7 +512,13 @@ export function KeybindingEditor({
                           type="button"
                           variant="ghost"
                           size="sm"
-                          disabled={!localEnabled}
+                          disabled={
+                            !selectedLayerEditable ||
+                            !canLayerOverrideBinding(
+                              selectedScope,
+                              binding.sourceLayer,
+                            )
+                          }
                           onClick={() => removeBinding(binding)}
                         >
                           Clear
@@ -427,7 +571,7 @@ export function KeybindingEditor({
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={!localEnabled}
+                    disabled={!selectedLayerEditable}
                     onClick={() => startCapture('combo', true)}
                   >
                     Replace with combo
@@ -436,7 +580,7 @@ export function KeybindingEditor({
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={!localEnabled}
+                    disabled={!selectedLayerEditable}
                     onClick={() => startCapture('combo', false)}
                   >
                     Add combo
@@ -445,7 +589,7 @@ export function KeybindingEditor({
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={!localEnabled}
+                    disabled={!selectedLayerEditable}
                     onClick={() => startCapture('sequence', true)}
                   >
                     Replace with Leader sequence
@@ -454,7 +598,7 @@ export function KeybindingEditor({
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={!localEnabled}
+                    disabled={!selectedLayerEditable}
                     onClick={() => startCapture('sequence', false)}
                   >
                     Add Leader sequence
@@ -466,7 +610,7 @@ export function KeybindingEditor({
                     type="button"
                     size="sm"
                     disabled={
-                      !localEnabled ||
+                      !selectedLayerEditable ||
                       !pendingBinding ||
                       Boolean(pendingConflict)
                     }
@@ -478,7 +622,7 @@ export function KeybindingEditor({
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={!localEnabled}
+                    disabled={!selectedLayerEditable}
                     onClick={clearSelectedBindings}
                   >
                     <LuTrash2 className="h-3.5 w-3.5" />
@@ -488,7 +632,7 @@ export function KeybindingEditor({
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={!localEnabled}
+                    disabled={!selectedLayerEditable}
                     onClick={resetSelectedCommand}
                   >
                     <LuRotateCcw className="h-3.5 w-3.5" />
@@ -498,10 +642,10 @@ export function KeybindingEditor({
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={!localEnabled}
-                    onClick={localOverrides.resetLayer}
+                    disabled={!selectedLayerEditable}
+                    onClick={selectedController.resetLayer}
                   >
-                    Reset local layer
+                    Reset {scopeLabels[selectedScope]} layer
                   </Button>
                 </div>
               </div>
@@ -511,6 +655,44 @@ export function KeybindingEditor({
       </DialogContent>
     </Dialog>
   )
+}
+
+function accountOptionLabel(available: boolean): string {
+  return available ? 'Account' : 'Account (unavailable)'
+}
+
+function spaceOptionLabel(available: boolean): string {
+  return available ? 'Space' : 'Space (unavailable)'
+}
+
+function layerStatusMessage(
+  controller: KeybindingLayerController,
+): string | null {
+  if (!controller.available) {
+    return `${controller.label} overrides are unavailable in this context.`
+  }
+  if (controller.loading) return `Loading ${controller.label} overrides.`
+  if (controller.error) {
+    return `${controller.label} overrides could not load: ${controller.error.message}`
+  }
+  if (controller.readOnly) {
+    return `${controller.label} overrides are read-only in this context.`
+  }
+  return null
+}
+
+function canLayerOverrideBinding(
+  layer: KeybindingOverrideScope,
+  sourceLayer: KeybindingOverrideScope | 'default',
+): boolean {
+  return layerPrecedence(layer) >= layerPrecedence(sourceLayer)
+}
+
+function layerPrecedence(layer: KeybindingOverrideScope | 'default'): number {
+  if (layer === 'space') return 3
+  if (layer === 'account') return 2
+  if (layer === 'local') return 1
+  return 0
 }
 
 function ConflictList({ conflicts }: { conflicts: KeybindingConflict[] }) {
@@ -568,44 +750,62 @@ function buildCommandRows(
 
 function previewPendingConflict(
   commands: CommandState[],
-  localOverrides: LocalKeybindingOverridesValue,
+  overrideLayers: KeybindingOverrideLayer[],
+  scope: KeybindingOverrideScope,
+  label: string,
+  currentOverrideSet: KeybindingOverrideSet,
   commandId: string,
   binding: CommandBinding,
   replace: boolean,
 ): KeybindingConflict | undefined {
   const overrideSet = replace
-    ? setCommandBindingsOverride(localOverrides.overrideSet, commandId, [
-        binding,
-      ])
-    : addCommandBindingOverride(localOverrides.overrideSet, commandId, binding)
+    ? setCommandBindingsOverride(currentOverrideSet, commandId, [binding])
+    : addCommandBindingOverride(currentOverrideSet, commandId, binding)
+  const draftLayer = createKeybindingOverrideLayer(scope, label, overrideSet)
   const graph = resolveKeybindings(commands, {
-    overrideLayers: [
-      createKeybindingOverrideLayer('local', 'Local', overrideSet),
-    ],
+    overrideLayers: overrideLayers.map((layer) =>
+      layer.scope === scope ? draftLayer : layer,
+    ),
   })
   return graph.conflicts.find((conflict) =>
     conflict.bindings.some((candidate) => candidate.commandId === commandId),
   )
 }
 
-function bindingFromCombo(commandId: string, combo: string): CommandBinding {
+function bindingFromCombo(
+  commandId: string,
+  scope: KeybindingOverrideScope,
+  combo: string,
+): CommandBinding {
   return {
-    id: bindingId(commandId, 'combo', combo),
+    id: bindingId(commandId, scope, 'combo', combo),
     binding: { case: 'combo', value: { combo } },
     when: CommandFocusContext.GLOBAL,
   }
 }
 
-function bindingFromSteps(commandId: string, steps: string[]): CommandBinding {
+function bindingFromSteps(
+  commandId: string,
+  scope: KeybindingOverrideScope,
+  steps: string[],
+): CommandBinding {
   return {
-    id: bindingId(commandId, 'sequence', steps.join(' ')),
+    id: bindingId(commandId, scope, 'sequence', steps.join(' ')),
     binding: { case: 'sequence', value: { steps } },
     when: CommandFocusContext.GLOBAL,
   }
 }
 
-function bindingId(commandId: string, kind: string, value: string): string {
-  return `local-${commandId}-${kind}-${value}`.replace(/[^a-z0-9._:-]+/gi, '-')
+function bindingId(
+  commandId: string,
+  scope: KeybindingOverrideScope,
+  kind: string,
+  value: string,
+): string {
+  return `${scope}-${commandId}-${kind}-${value}`.replace(
+    /[^a-z0-9._:-]+/gi,
+    '-',
+  )
 }
 
 function bindingDisplay(binding: CommandBinding): string {

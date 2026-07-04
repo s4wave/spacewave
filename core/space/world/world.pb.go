@@ -13,6 +13,7 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	command "github.com/s4wave/spacewave/sdk/command"
 )
 
 // WorldContents contains a list of world objects and types.
@@ -113,6 +114,8 @@ type SpaceSettings struct {
 	// PluginIds lists manifest IDs of plugins this Space uses.
 	// Shared with all Space participants.
 	PluginIds []string `protobuf:"bytes,2,rep,name=plugin_ids,json=pluginIds,proto3" json:"pluginIds,omitempty"`
+	// KeybindingOverrides stores Space-scope keybinding overrides.
+	KeybindingOverrides *command.KeybindingOverrideSet `protobuf:"bytes,3,opt,name=keybinding_overrides,json=keybindingOverrides,proto3" json:"keybindingOverrides,omitempty"`
 }
 
 func (x *SpaceSettings) Reset() {
@@ -131,6 +134,13 @@ func (x *SpaceSettings) GetIndexPath() string {
 func (x *SpaceSettings) GetPluginIds() []string {
 	if x != nil {
 		return x.PluginIds
+	}
+	return nil
+}
+
+func (x *SpaceSettings) GetKeybindingOverrides() *command.KeybindingOverrideSet {
+	if x != nil {
+		return x.KeybindingOverrides
 	}
 	return nil
 }
@@ -202,6 +212,7 @@ func (m *SpaceSettings) CloneVT() *SpaceSettings {
 	}
 	r := new(SpaceSettings)
 	r.IndexPath = m.IndexPath
+	r.KeybindingOverrides = m.KeybindingOverrides.CloneVT()
 	if rhs := m.PluginIds; rhs != nil {
 		r.PluginIds = slices.Clone(rhs)
 	}
@@ -329,6 +340,9 @@ func (this *SpaceSettings) EqualVT(that *SpaceSettings) bool {
 		if vx != vy {
 			return false
 		}
+	}
+	if !this.KeybindingOverrides.EqualVT(that.KeybindingOverrides) {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -551,6 +565,11 @@ func (x *SpaceSettings) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("pluginIds")
 		s.WriteStringArray(x.PluginIds)
 	}
+	if x.KeybindingOverrides != nil || s.HasField("keybindingOverrides") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("keybindingOverrides")
+		x.KeybindingOverrides.MarshalProtoJSON(s.WithField("keybindingOverrides"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -578,6 +597,13 @@ func (x *SpaceSettings) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.PluginIds = s.ReadStringArray()
+		case "keybinding_overrides", "keybindingOverrides":
+			if s.ReadNil() {
+				x.KeybindingOverrides = nil
+				return
+			}
+			x.KeybindingOverrides = &command.KeybindingOverrideSet{}
+			x.KeybindingOverrides.UnmarshalProtoJSON(s.WithField("keybinding_overrides", true))
 		}
 	})
 }
@@ -768,6 +794,16 @@ func (m *SpaceSettings) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.KeybindingOverrides != nil {
+		size, err := m.KeybindingOverrides.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if len(m.PluginIds) > 0 {
 		for iNdEx := len(m.PluginIds) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.PluginIds[iNdEx])
@@ -860,6 +896,10 @@ func (m *SpaceSettings) SizeVT() (n int) {
 			l = len(s)
 			n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 		}
+	}
+	if m.KeybindingOverrides != nil {
+		l = m.KeybindingOverrides.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -982,6 +1022,13 @@ func (x *SpaceSettings) MarshalProtoText() string {
 			sb.WriteString(strconv.Quote(v))
 		}
 		sb.WriteString("]")
+	}
+	if x.KeybindingOverrides != nil {
+		if sb.Len() > 15 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("keybinding_overrides: ")
+		sb.WriteString(x.KeybindingOverrides.MarshalProtoText())
 	}
 	sb.WriteString("}")
 	return sb.String()
@@ -1323,6 +1370,34 @@ func (m *SpaceSettings) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.PluginIds = append(m.PluginIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field KeybindingOverrides", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.KeybindingOverrides == nil {
+				m.KeybindingOverrides = &command.KeybindingOverrideSet{}
+			}
+			if err := m.KeybindingOverrides.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

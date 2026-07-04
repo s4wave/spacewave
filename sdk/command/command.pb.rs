@@ -41,6 +41,58 @@ pub mod command_binding {
         Sequence(super::KeySequence),
     }
 }
+/// KeybindingDisplaySettings stores display preferences for one override layer.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct KeybindingDisplaySettings {
+    /// Mode selects how bindings are displayed.
+    #[prost(enumeration="KeybindingDisplayMode", tag="1")]
+    pub mode: i32,
+}
+/// KeybindingOverrideSettings stores non-command-specific keybinding preferences.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct KeybindingOverrideSettings {
+    /// LeaderCombo is the layer's virtual Leader binding.
+    #[prost(string, tag="1")]
+    pub leader_combo: ::prost::alloc::string::String,
+    /// WhichKeyDelayMs is the delay before showing which-key discovery.
+    #[prost(uint32, tag="2")]
+    pub which_key_delay_ms: u32,
+    /// Display contains binding display preferences.
+    #[prost(message, optional, tag="3")]
+    pub display: ::core::option::Option<KeybindingDisplaySettings>,
+}
+/// KeybindingCommandOverride stores one command's override in a keybinding layer.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct KeybindingCommandOverride {
+    /// CommandId is the command identifier this override applies to.
+    #[prost(string, tag="1")]
+    pub command_id: ::prost::alloc::string::String,
+    /// ReplaceBindings indicates bindings replace lower-layer bindings.
+    #[prost(bool, tag="2")]
+    pub replace_bindings: bool,
+    /// Disabled indicates the command has no effective bindings in this layer.
+    #[prost(bool, tag="3")]
+    pub disabled: bool,
+    /// ClearedBindingIds lists lower-layer binding IDs removed by this layer.
+    #[prost(string, repeated, tag="4")]
+    pub cleared_binding_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Bindings are bindings added by this layer.
+    #[prost(message, repeated, tag="5")]
+    pub bindings: ::prost::alloc::vec::Vec<CommandBinding>,
+}
+/// KeybindingOverrideSet stores one persisted keybinding override layer.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct KeybindingOverrideSet {
+    /// Version is the override set schema version.
+    #[prost(uint32, tag="1")]
+    pub version: u32,
+    /// Overrides are command-keyed overrides.
+    #[prost(message, repeated, tag="2")]
+    pub overrides: ::prost::alloc::vec::Vec<KeybindingCommandOverride>,
+    /// Settings stores layer-wide keybinding preferences.
+    #[prost(message, optional, tag="3")]
+    pub settings: ::core::option::Option<KeybindingOverrideSettings>,
+}
 /// Command is the metadata for a registered command.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Command {
@@ -131,6 +183,39 @@ impl CommandFocusContext {
             "COMMAND_FOCUS_CONTEXT_CANVAS" => Some(Self::Canvas),
             "COMMAND_FOCUS_CONTEXT_MODAL" => Some(Self::Modal),
             "COMMAND_FOCUS_CONTEXT_TEXT_INPUT" => Some(Self::TextInput),
+            _ => None,
+        }
+    }
+}
+/// KeybindingDisplayMode identifies how bindings are displayed.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum KeybindingDisplayMode {
+    /// KEYBINDING_DISPLAY_MODE_UNSPECIFIED uses the default display mode.
+    Unspecified = 0,
+    /// KEYBINDING_DISPLAY_MODE_SYMBOLS displays platform symbols.
+    Symbols = 1,
+    /// KEYBINDING_DISPLAY_MODE_TEXT displays plain text modifier names.
+    Text = 2,
+}
+impl KeybindingDisplayMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "KEYBINDING_DISPLAY_MODE_UNSPECIFIED",
+            Self::Symbols => "KEYBINDING_DISPLAY_MODE_SYMBOLS",
+            Self::Text => "KEYBINDING_DISPLAY_MODE_TEXT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "KEYBINDING_DISPLAY_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "KEYBINDING_DISPLAY_MODE_SYMBOLS" => Some(Self::Symbols),
+            "KEYBINDING_DISPLAY_MODE_TEXT" => Some(Self::Text),
             _ => None,
         }
     }

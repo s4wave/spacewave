@@ -22,17 +22,23 @@ import {
   PasskeyRegisterVerifyResponse,
   RemoveAuthMethodRequest,
   RemoveAuthMethodResponse,
+  RemoveKeybindingOverrideRequest,
+  RemoveKeybindingOverrideResponse,
   RevokeSessionRequest,
   RevokeSessionResponse,
   SetSecurityLevelRequest,
   SetSecurityLevelResponse,
   UnlockEntityKeypairResponse,
+  UpsertKeybindingOverrideRequest,
+  UpsertKeybindingOverrideResponse,
   WatchEntityKeypairsRequest,
   WatchEntityKeypairsResponse,
   WatchAccountInfoRequest,
   WatchAccountInfoResponse,
   WatchAuthMethodsRequest,
   WatchAuthMethodsResponse,
+  WatchKeybindingOverridesRequest,
+  WatchKeybindingOverridesResponse,
   WatchSessionsRequest,
   WatchSessionsResponse,
 } from './account.pb.js'
@@ -70,6 +76,30 @@ export class Account extends Resource {
     abortSignal?: AbortSignal,
   ): AsyncIterable<WatchSessionsResponse> {
     return this.service.WatchSessions(req ?? {}, abortSignal)
+  }
+
+  // watchKeybindingOverrides streams account-scope keybinding overrides.
+  public watchKeybindingOverrides(
+    req?: WatchKeybindingOverridesRequest,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<WatchKeybindingOverridesResponse> {
+    return this.service.WatchKeybindingOverrides(req ?? {}, abortSignal)
+  }
+
+  // upsertKeybindingOverride adds or replaces one account-scope keybinding override.
+  public upsertKeybindingOverride(
+    req: UpsertKeybindingOverrideRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<UpsertKeybindingOverrideResponse> {
+    return this.service.UpsertKeybindingOverride(req, abortSignal)
+  }
+
+  // removeKeybindingOverride removes one account-scope keybinding override.
+  public removeKeybindingOverride(
+    req: RemoveKeybindingOverrideRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RemoveKeybindingOverrideResponse> {
+    return this.service.RemoveKeybindingOverride(req, abortSignal)
   }
 
   // addAuthMethod adds a new entity keypair (auth method) to the account.

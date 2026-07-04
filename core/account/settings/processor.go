@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
+	s4wave_command "github.com/s4wave/spacewave/sdk/command"
 )
 
 // ProcessAccountSettingsOps is a ProcessOpsFunc that applies AccountSettingsOp
@@ -147,6 +148,52 @@ func ProcessAccountSettingsOps(
 			})
 			results = append(results, sobject.BuildSOOperationResult(peerIDStr, opInner.GetNonce(), true, nil))
 
+		case *AccountSettingsOp_UpsertKeybindingOverride:
+			override := body.UpsertKeybindingOverride
+			if err := validateKeybindingOverride(override); err != nil {
+				results = append(results, sobject.BuildSOOperationResult(
+					peerIDStr, opInner.GetNonce(), false,
+					&sobject.SOOperationRejectionErrorDetails{ErrorMsg: err.Error()},
+				))
+				continue
+			}
+			if state.KeybindingOverrides == nil {
+				state.KeybindingOverrides = &s4wave_command.KeybindingOverrideSet{Version: 1}
+			}
+			state.KeybindingOverrides.Overrides = slices.DeleteFunc(
+				state.KeybindingOverrides.GetOverrides(),
+				func(existing *s4wave_command.KeybindingCommandOverride) bool {
+					return existing.GetCommandId() == override.GetCommandId()
+				},
+			)
+			state.KeybindingOverrides.Overrides = append(
+				state.KeybindingOverrides.GetOverrides(),
+				override.CloneVT(),
+			)
+			if state.KeybindingOverrides.GetVersion() == 0 {
+				state.KeybindingOverrides.Version = 1
+			}
+			results = append(results, sobject.BuildSOOperationResult(peerIDStr, opInner.GetNonce(), true, nil))
+
+		case *AccountSettingsOp_RemoveKeybindingOverride:
+			commandID := body.RemoveKeybindingOverride.GetCommandId()
+			if commandID == "" {
+				results = append(results, sobject.BuildSOOperationResult(
+					peerIDStr, opInner.GetNonce(), false,
+					&sobject.SOOperationRejectionErrorDetails{ErrorMsg: "command_id is required"},
+				))
+				continue
+			}
+			if state.KeybindingOverrides != nil {
+				state.KeybindingOverrides.Overrides = slices.DeleteFunc(
+					state.KeybindingOverrides.GetOverrides(),
+					func(existing *s4wave_command.KeybindingCommandOverride) bool {
+						return existing.GetCommandId() == commandID
+					},
+				)
+			}
+			results = append(results, sobject.BuildSOOperationResult(peerIDStr, opInner.GetNonce(), true, nil))
+
 		default:
 			results = append(results, sobject.BuildSOOperationResult(
 				peerIDStr, opInner.GetNonce(), false,
@@ -165,4 +212,22 @@ func ProcessAccountSettingsOps(
 		return nil, nil, errors.Wrap(err, "marshal account settings state")
 	}
 	return &nextData, results, nil
+}
+
+func validateKeybindingOverride(override *s4wave_command.KeybindingCommandOverride) error {
+	if override.GetCommandId() == "" {
+		return errors.New("command_id is required")
+	}
+	if slices.Contains(override.GetClearedBindingIds(), "") {
+		return errors.New("cleared binding id is required")
+	}
+	for _, binding := range override.GetBindings() {
+		if binding.GetId() == "" {
+			return errors.New("binding id is required")
+		}
+		if binding.GetBinding() == nil {
+			return errors.New("binding value is required")
+		}
+	}
+	return nil
 }

@@ -18,6 +18,9 @@ pub struct AccountSettings {
     /// by session peer ID for both local and cloud sessions.
     #[prost(message, repeated, tag="4")]
     pub session_presentations: ::prost::alloc::vec::Vec<SessionPresentation>,
+    /// KeybindingOverrides stores account-scope keybinding overrides.
+    #[prost(message, optional, tag="5")]
+    pub keybinding_overrides: ::core::option::Option<super::super::s4wave::command::KeybindingOverrideSet>,
 }
 /// PairedDevice is a device that has been paired with this account via P2P.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -56,14 +59,14 @@ pub struct SessionPresentation {
 }
 /// AccountSettingsOp is an operation on the account settings SharedObject.
 /// Stored as SOOperationInner.OpData.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AccountSettingsOp {
-    #[prost(oneof="account_settings_op::Op", tags="1, 2, 3, 4, 5, 6, 7")]
+    #[prost(oneof="account_settings_op::Op", tags="1, 2, 3, 4, 5, 6, 7, 8, 9")]
     pub op: ::core::option::Option<account_settings_op::Op>,
 }
 /// Nested message and enum types in `AccountSettingsOp`.
 pub mod account_settings_op {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Op {
         /// UpdateDisplayName changes the local provider account display name.
         #[prost(message, tag="1")]
@@ -86,6 +89,12 @@ pub mod account_settings_op {
         /// RemoveSessionPresentation removes a session presentation by peer_id.
         #[prost(message, tag="7")]
         RemoveSessionPresentation(super::RemoveSessionPresentationOp),
+        /// UpsertKeybindingOverride adds or replaces one keybinding override.
+        #[prost(message, tag="8")]
+        UpsertKeybindingOverride(super::super::super::s4wave::command::KeybindingCommandOverride),
+        /// RemoveKeybindingOverride removes one keybinding override by command_id.
+        #[prost(message, tag="9")]
+        RemoveKeybindingOverride(super::RemoveKeybindingOverrideOp),
     }
 }
 /// UpdateDisplayNameOp changes the local provider account display name.
@@ -115,5 +124,12 @@ pub struct RemoveSessionPresentationOp {
     /// PeerId is the peer ID of the session metadata entry to remove.
     #[prost(string, tag="1")]
     pub peer_id: ::prost::alloc::string::String,
+}
+/// RemoveKeybindingOverrideOp removes one keybinding override by command ID.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RemoveKeybindingOverrideOp {
+    /// CommandId is the command identifier to remove.
+    #[prost(string, tag="1")]
+    pub command_id: ::prost::alloc::string::String,
 }
 // @@protoc_insertion_point(module)

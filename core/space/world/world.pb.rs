@@ -34,7 +34,7 @@ pub struct WorldContentsObjectType {
 /// SpaceSettings is an object containing the settings for a Space.
 ///
 /// Note: the space name and other "public" details are in the SpaceSoMeta.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SpaceSettings {
     /// IndexPath is the default URL path to display at /.
     #[prost(string, tag="1")]
@@ -43,5 +43,8 @@ pub struct SpaceSettings {
     /// Shared with all Space participants.
     #[prost(string, repeated, tag="2")]
     pub plugin_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// KeybindingOverrides stores Space-scope keybinding overrides.
+    #[prost(message, optional, tag="3")]
+    pub keybinding_overrides: ::core::option::Option<super::super::s4wave::command::KeybindingOverrideSet>,
 }
 // @@protoc_insertion_point(module)

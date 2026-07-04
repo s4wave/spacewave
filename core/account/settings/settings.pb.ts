@@ -7,6 +7,10 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { EntityKeypair } from '../../session/session.pb.js'
+import {
+  KeybindingCommandOverride,
+  KeybindingOverrideSet,
+} from '../../../sdk/command/command.pb.js'
 
 export const protobufPackage = 'account.settings'
 
@@ -138,6 +142,12 @@ export interface AccountSettings {
    * @generated from field: repeated account.settings.SessionPresentation session_presentations = 4;
    */
   sessionPresentations?: SessionPresentation[]
+  /**
+   * KeybindingOverrides stores account-scope keybinding overrides.
+   *
+   * @generated from field: s4wave.command.KeybindingOverrideSet keybinding_overrides = 5;
+   */
+  keybindingOverrides?: KeybindingOverrideSet
 }
 
 export const AccountSettings: MessageType<AccountSettings> =
@@ -165,6 +175,12 @@ export const AccountSettings: MessageType<AccountSettings> =
         kind: 'message',
         T: () => SessionPresentation,
         repeated: true,
+      },
+      {
+        no: 5,
+        name: 'keybinding_overrides',
+        kind: 'message',
+        T: () => KeybindingOverrideSet,
       },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
@@ -263,6 +279,29 @@ export const RemoveSessionPresentationOp: MessageType<RemoveSessionPresentationO
   })
 
 /**
+ * RemoveKeybindingOverrideOp removes one keybinding override by command ID.
+ *
+ * @generated from message account.settings.RemoveKeybindingOverrideOp
+ */
+export interface RemoveKeybindingOverrideOp {
+  /**
+   * CommandId is the command identifier to remove.
+   *
+   * @generated from field: string command_id = 1;
+   */
+  commandId?: string
+}
+
+export const RemoveKeybindingOverrideOp: MessageType<RemoveKeybindingOverrideOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'account.settings.RemoveKeybindingOverrideOp',
+    fields: [
+      { no: 1, name: 'command_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * AccountSettingsOp is an operation on the account settings SharedObject.
  * Stored as SOOperationInner.OpData.
  *
@@ -340,6 +379,24 @@ export interface AccountSettingsOp {
         value: RemoveSessionPresentationOp
         case: 'removeSessionPresentation'
       }
+    | {
+        /**
+         * UpsertKeybindingOverride adds or replaces one keybinding override.
+         *
+         * @generated from field: s4wave.command.KeybindingCommandOverride upsert_keybinding_override = 8;
+         */
+        value: KeybindingCommandOverride
+        case: 'upsertKeybindingOverride'
+      }
+    | {
+        /**
+         * RemoveKeybindingOverride removes one keybinding override by command_id.
+         *
+         * @generated from field: account.settings.RemoveKeybindingOverrideOp remove_keybinding_override = 9;
+         */
+        value: RemoveKeybindingOverrideOp
+        case: 'removeKeybindingOverride'
+      }
 }
 
 export const AccountSettingsOp: MessageType<AccountSettingsOp> =
@@ -393,6 +450,20 @@ export const AccountSettingsOp: MessageType<AccountSettingsOp> =
         name: 'remove_session_presentation',
         kind: 'message',
         T: () => RemoveSessionPresentationOp,
+        oneof: 'op',
+      },
+      {
+        no: 8,
+        name: 'upsert_keybinding_override',
+        kind: 'message',
+        T: () => KeybindingCommandOverride,
+        oneof: 'op',
+      },
+      {
+        no: 9,
+        name: 'remove_keybinding_override',
+        kind: 'message',
+        T: () => RemoveKeybindingOverrideOp,
         oneof: 'op',
       },
     ] satisfies readonly PartialFieldInfo[],

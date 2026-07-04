@@ -52,6 +52,49 @@ if (typeof document === 'undefined') {
 
 let commandStates: CommandState[] = []
 
+const sharedLayerHookState = {
+  account: {
+    overrideSet: { version: 1, overrides: {}, settings: {} },
+    layer: null as unknown,
+    available: false,
+    readOnly: true,
+    loading: false,
+    error: null as Error | null,
+    setCommandOverride: vi.fn(),
+    setCommandBindings: vi.fn(),
+    addCommandBinding: vi.fn(),
+    clearCommandBindings: vi.fn(),
+    clearCommandBindingId: vi.fn(),
+    removeCommandBinding: vi.fn(),
+    resetCommand: vi.fn(),
+    resetLayer: vi.fn(),
+  },
+  space: {
+    overrideSet: { version: 1, overrides: {}, settings: {} },
+    layer: null as unknown,
+    available: false,
+    readOnly: true,
+    loading: false,
+    error: null as Error | null,
+    setCommandOverride: vi.fn(),
+    setCommandBindings: vi.fn(),
+    addCommandBinding: vi.fn(),
+    clearCommandBindings: vi.fn(),
+    clearCommandBindingId: vi.fn(),
+    removeCommandBinding: vi.fn(),
+    resetCommand: vi.fn(),
+    resetLayer: vi.fn(),
+  },
+}
+
+vi.mock('./useAccountKeybindingOverrides.js', () => ({
+  useAccountKeybindingOverrides: () => sharedLayerHookState.account,
+}))
+
+vi.mock('./useSpaceKeybindingOverrides.js', () => ({
+  useSpaceKeybindingOverrides: () => sharedLayerHookState.space,
+}))
+
 vi.mock('./CommandContext.js', () => ({
   useCommands: () => commandStates,
 }))
@@ -134,11 +177,31 @@ function editorPanel(): HTMLElement {
 describe('KeybindingEditor', () => {
   afterEach(() => {
     commandStates = []
+    sharedLayerHookState.account.overrideSet = {
+      version: 1,
+      overrides: {},
+      settings: {},
+    }
+    sharedLayerHookState.account.layer = null
+    sharedLayerHookState.account.available = false
+    sharedLayerHookState.account.readOnly = true
+    sharedLayerHookState.account.loading = false
+    sharedLayerHookState.account.error = null
+    sharedLayerHookState.space.overrideSet = {
+      version: 1,
+      overrides: {},
+      settings: {},
+    }
+    sharedLayerHookState.space.layer = null
+    sharedLayerHookState.space.available = false
+    sharedLayerHookState.space.readOnly = true
+    sharedLayerHookState.space.loading = false
+    sharedLayerHookState.space.error = null
     cleanup()
     vi.clearAllMocks()
   })
 
-  it('lists commands from useCommands, filters by label, command id, menu path, and chord, and only enables Local scope', async () => {
+  it('lists commands from useCommands, filters by label, command id, menu path, and chord, and starts on Local scope', async () => {
     commandStates = [
       commandState(
         command('spacewave.paint.brush', {
@@ -173,11 +236,14 @@ describe('KeybindingEditor', () => {
       disabled: option.disabled,
     }))
 
-    expect(options).toEqual([
-      { text: 'Local', value: 'local', disabled: false },
-      { text: 'Account (next phase)', value: 'account', disabled: true },
-      { text: 'Space (next phase)', value: 'space', disabled: true },
-    ])
+    expect(options).toContainEqual({
+      text: 'Local',
+      value: 'local',
+      disabled: false,
+    })
+    expect(options.some((option) => option.text?.includes('next phase'))).toBe(
+      false,
+    )
     expect(scope.value).toBe('local')
     expect(view.getAllByText('Paint Brush').length).toBeGreaterThan(0)
     expect(view.getAllByText('Open Terminal').length).toBeGreaterThan(0)
@@ -219,7 +285,7 @@ describe('KeybindingEditor', () => {
     view.unmount()
   })
 
-  it('opens account and Space scopes as disabled views until persistence layers land', () => {
+  it('enables Account scope when the account hook is writable and saves and resets the selected account layer', () => {
     commandStates = [
       commandState(
         command('spacewave.open', {
@@ -228,38 +294,124 @@ describe('KeybindingEditor', () => {
         }),
       ),
     ]
+    sharedLayerHookState.account.available = true
+    sharedLayerHookState.account.readOnly = false
+    sharedLayerHookState.account.layer = {
+      scope: 'account',
+      label: 'Account',
+      overrideSet: { version: 1, overrides: {}, settings: {} },
+    }
 
-    const accountView = renderEditor('spacewave.open', 'account')
-    const accountScope = accountView.container.querySelector(
-      'select',
-    ) as HTMLSelectElement
+    const view = renderEditor('spacewave.open', 'account')
+    const scope = view.container.querySelector('select') as HTMLSelectElement
+    const options = Array.from(scope.options).map((option) => ({
+      text: option.textContent,
+      value: option.value,
+      disabled: option.disabled,
+    }))
 
-    expect(accountScope.value).toBe('account')
-    expect(
-      accountView.getByText(/Account overrides are visible here/),
-    ).toBeTruthy()
-    expect(
-      accountView.getByRole('button', { name: 'Replace with combo' }),
-    ).toHaveProperty('disabled', true)
-    expect(
-      accountView.getByRole('button', { name: 'Save binding' }),
-    ).toHaveProperty('disabled', true)
-    accountView.unmount()
+    expect(options).toContainEqual({
+      text: 'Account',
+      value: 'account',
+      disabled: false,
+    })
+    expect(options.find((option) => option.value === 'space')?.disabled).toBe(
+      true,
+    )
+    expect(scope.value).toBe('account')
 
-    const spaceView = renderEditor('spacewave.open', 'space')
-    const spaceScope = spaceView.container.querySelector(
-      'select',
-    ) as HTMLSelectElement
+    fireEvent.click(view.getByRole('button', { name: 'Replace with combo' }))
+    fireEvent.keyDown(view.getByRole('button', { name: /Press one combo/ }), {
+      key: 'K',
+      ctrlKey: true,
+    })
+    fireEvent.click(view.getByRole('button', { name: 'Save binding' }))
 
-    expect(spaceScope.value).toBe('space')
-    expect(spaceView.getByText(/Space overrides are visible here/)).toBeTruthy()
     expect(
-      spaceView.getByRole('button', { name: 'Replace with combo' }),
-    ).toHaveProperty('disabled', true)
+      sharedLayerHookState.account.setCommandBindings,
+    ).toHaveBeenCalledWith('spacewave.open', [
+      expect.objectContaining({
+        binding: { case: 'combo', value: { combo: 'ctrl+k' } },
+      }),
+    ])
+    expect(sharedLayerHookState.space.setCommandBindings).not.toHaveBeenCalled()
+
+    fireEvent.click(view.getByRole('button', { name: /Reset command/ }))
+    expect(sharedLayerHookState.account.resetCommand).toHaveBeenCalledWith(
+      'spacewave.open',
+    )
+
+    fireEvent.click(view.getByRole('button', { name: /Reset Account layer/ }))
+    expect(sharedLayerHookState.account.resetLayer).toHaveBeenCalled()
+  })
+
+  it('offers Space scope only when the Space hook is available and targets Space save and reset operations', () => {
+    commandStates = [
+      commandState(
+        command('spacewave.open', {
+          label: 'Open File',
+          defaultBindings: [comboBinding('open-default', 'Ctrl+O')],
+        }),
+      ),
+    ]
+    sharedLayerHookState.account.available = true
+    sharedLayerHookState.account.readOnly = false
+    sharedLayerHookState.account.layer = {
+      scope: 'account',
+      label: 'Account',
+      overrideSet: { version: 1, overrides: {}, settings: {} },
+    }
+    sharedLayerHookState.space.available = true
+    sharedLayerHookState.space.readOnly = false
+    sharedLayerHookState.space.layer = {
+      scope: 'space',
+      label: 'Space',
+      overrideSet: { version: 1, overrides: {}, settings: {} },
+    }
+
+    const view = renderEditor('spacewave.open', 'space')
+    const scope = view.container.querySelector('select') as HTMLSelectElement
+    const spaceOption = Array.from(scope.options).find(
+      (option) => option.value === 'space',
+    )
+
+    expect(spaceOption).toBeDefined()
+    expect(spaceOption?.disabled).toBe(false)
+    expect(scope.value).toBe('space')
+
+    fireEvent.click(view.getByRole('button', { name: 'Replace with combo' }))
+    fireEvent.keyDown(view.getByRole('button', { name: /Press one combo/ }), {
+      key: 'K',
+      ctrlKey: true,
+    })
+    fireEvent.click(view.getByRole('button', { name: 'Save binding' }))
+
+    expect(sharedLayerHookState.space.setCommandBindings).toHaveBeenCalledWith(
+      'spacewave.open',
+      [
+        expect.objectContaining({
+          binding: { case: 'combo', value: { combo: 'ctrl+k' } },
+        }),
+      ],
+    )
     expect(
-      spaceView.getByRole('button', { name: 'Save binding' }),
-    ).toHaveProperty('disabled', true)
-    spaceView.unmount()
+      sharedLayerHookState.account.setCommandBindings,
+    ).not.toHaveBeenCalled()
+
+    fireEvent.click(
+      view.getByRole('button', { name: /Disable command bindings/ }),
+    )
+    expect(
+      sharedLayerHookState.space.clearCommandBindings,
+    ).toHaveBeenCalledWith('spacewave.open')
+
+    fireEvent.click(view.getByRole('button', { name: /Reset command/ }))
+    expect(sharedLayerHookState.space.resetCommand).toHaveBeenCalledWith(
+      'spacewave.open',
+    )
+
+    fireEvent.click(view.getByRole('button', { name: /Reset Space layer/ }))
+    expect(sharedLayerHookState.space.resetLayer).toHaveBeenCalled()
   })
 
   it('captures combos and Leader sequences, mutates the local layer, clears defaults, and resets overrides', () => {
@@ -325,7 +477,7 @@ describe('KeybindingEditor', () => {
     expect(within(editorPanel()).queryByText('Ctrl+W')).toBeNull()
     expect(within(editorPanel()).getByText(/No keyboard binding/)).toBeTruthy()
 
-    fireEvent.click(view.getByRole('button', { name: /Reset local layer/ }))
+    fireEvent.click(view.getByRole('button', { name: /Reset Local layer/ }))
     fireEvent.click(view.getByText('Open File'))
     expect(within(editorPanel()).getByText('Ctrl+O')).toBeTruthy()
     expect(within(editorPanel()).queryByText('ctrl+k')).toBeNull()

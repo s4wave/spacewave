@@ -23,6 +23,42 @@ pub struct WatchAccountInfoResponse {
     #[prost(uint32, tag="5")]
     pub keypair_count: u32,
 }
+/// WatchKeybindingOverridesRequest is the request type for WatchKeybindingOverrides.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WatchKeybindingOverridesRequest {
+}
+/// WatchKeybindingOverridesResponse is the response type for WatchKeybindingOverrides.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WatchKeybindingOverridesResponse {
+    /// OverrideSet is the current account-scope keybinding override set.
+    #[prost(message, optional, tag="1")]
+    pub override_set: ::core::option::Option<super::command::KeybindingOverrideSet>,
+    /// ReadOnly indicates writes are unavailable for this account resource.
+    #[prost(bool, tag="2")]
+    pub read_only: bool,
+}
+/// UpsertKeybindingOverrideRequest is the request type for UpsertKeybindingOverride.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpsertKeybindingOverrideRequest {
+    /// Override is the command override to add or replace.
+    #[prost(message, optional, tag="1")]
+    pub r#override: ::core::option::Option<super::command::KeybindingCommandOverride>,
+}
+/// UpsertKeybindingOverrideResponse is the response type for UpsertKeybindingOverride.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UpsertKeybindingOverrideResponse {
+}
+/// RemoveKeybindingOverrideRequest is the request type for RemoveKeybindingOverride.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RemoveKeybindingOverrideRequest {
+    /// CommandId is the command identifier to remove.
+    #[prost(string, tag="1")]
+    pub command_id: ::prost::alloc::string::String,
+}
+/// RemoveKeybindingOverrideResponse is the response type for RemoveKeybindingOverride.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RemoveKeybindingOverrideResponse {
+}
 /// WatchAuthMethodsRequest is the request type for WatchAuthMethods.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WatchAuthMethodsRequest {
