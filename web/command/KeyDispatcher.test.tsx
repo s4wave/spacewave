@@ -342,4 +342,51 @@ describe('KeyDispatcher', () => {
       expect(getByTestId('prefix-state').textContent).toBe('idle||')
     })
   })
+
+  it('passes global bindings through while typing in text inputs', () => {
+    mockCommands = [
+      commandState(
+        command('spacewave.palette', {
+          defaultBindings: [comboBinding('palette', 'Ctrl+K')],
+        }),
+      ),
+    ]
+
+    const { getByRole } = renderDispatcher(<input aria-label="Title" />)
+
+    const event = dispatchKeydown(getByRole('textbox'), {
+      key: 'k',
+      ctrlKey: true,
+    })
+
+    expect(event.defaultPrevented).toBe(false)
+    expect(mockInvokeCommand).not.toHaveBeenCalled()
+  })
+
+  it('dispatches explicit text-input bindings while typing in text inputs', () => {
+    mockCommands = [
+      commandState(
+        command('spacewave.text.accept', {
+          defaultBindings: [
+            comboBinding(
+              'accept',
+              'Ctrl+Enter',
+              CommandFocusContext.TEXT_INPUT,
+            ),
+          ],
+        }),
+      ),
+    ]
+
+    const { getByRole } = renderDispatcher(<textarea aria-label="Body" />)
+
+    const event = dispatchKeydown(getByRole('textbox'), {
+      key: 'Enter',
+      ctrlKey: true,
+    })
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(mockInvokeCommand).toHaveBeenCalledTimes(1)
+    expect(mockInvokeCommand).toHaveBeenCalledWith('spacewave.text.accept')
+  })
 })

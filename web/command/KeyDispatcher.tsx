@@ -3,22 +3,23 @@ import {
   use,
   useEffect,
   useEffectEvent,
-  useMemo,
   useRef,
   useState,
   type ReactNode,
 } from 'react'
-import { CommandFocusContext } from '@s4wave/sdk/command/command.pb.js'
-
+import type { CommandFocusContext } from '@s4wave/sdk/command/command.pb.js'
 import {
   comboFromKeyboardEvent,
   contextKey,
   isModifierKey,
   resolveKeybindings,
   type KeybindingConflict,
+  type KeybindingGraph,
+  type ResolvedCommandBinding,
   type KeybindingSequenceNode,
 } from './KeybindingResolver.js'
 import { useCommands, useInvokeCommand } from './CommandContext.js'
+import { useFocusContextResolver } from './FocusContext.js'
 
 export type KeyDispatcherMode = 'idle' | 'prefix'
 
@@ -58,7 +59,7 @@ export function useKeyDispatcherState(): KeyDispatcherPrefixState {
 export function KeyDispatcher({ children }: { children?: ReactNode }) {
   const commands = useCommands()
   const invokeCommand = useInvokeCommand()
-  const graph = useMemo(() => resolveKeybindings(commands), [commands])
+  const resolveFocusContexts = useFocusContextResolver()
   const [prefixState, setPrefixState] =
     useState<KeyDispatcherPrefixState>(idlePrefixState)
   const prefixRef = useRef<PrefixSession | null>(null)
@@ -109,14 +110,14 @@ export function KeyDispatcher({ children }: { children?: ReactNode }) {
       return
     }
 
-    if (isEditableTarget(event.target)) return
-
-    const key = contextKey(CommandFocusContext.GLOBAL, combo)
-    if (graph.comboConflicts.has(key)) {
+    const activeFocusContexts = resolveFocusContexts(event.target)
+    const graph = resolveKeybindings(commands, { activeFocusContexts })
+    const comboConflict = findComboConflict(graph, activeFocusContexts, combo)
+    if (comboConflict) {
       event.preventDefault()
       return
     }
-    const comboBinding = graph.comboBindings.get(key)
+    const comboBinding = findComboBinding(graph, activeFocusContexts, combo)
     if (comboBinding) {
       event.preventDefault()
       invokeCommand(comboBinding.commandId)
@@ -161,11 +162,26 @@ function continuationsFromNode(
   return continuations
 }
 
-function isEditableTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false
-  return (
-    target.tagName === 'INPUT' ||
-    target.tagName === 'TEXTAREA' ||
-    target.isContentEditable
-  )
+function findComboConflict(
+  graph: KeybindingGraph,
+  activeFocusContexts: readonly CommandFocusContext[],
+  combo: string,
+): KeybindingConflict | undefined {
+  for (const context of [...activeFocusContexts].reverse()) {
+    const conflict = graph.comboConflicts.get(contextKey(context, combo))
+    if (conflict) return conflict
+  }
+  return undefined
+}
+
+function findComboBinding(
+  graph: KeybindingGraph,
+  activeFocusContexts: readonly CommandFocusContext[],
+  combo: string,
+): ResolvedCommandBinding | undefined {
+  for (const context of [...activeFocusContexts].reverse()) {
+    const binding = graph.comboBindings.get(contextKey(context, combo))
+    if (binding) return binding
+  }
+  return undefined
 }
