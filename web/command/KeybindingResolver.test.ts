@@ -267,4 +267,35 @@ describe('KeybindingResolver', () => {
     expect(binding?.display).toBe('Leader O')
     expect(openNode?.conflicts).toEqual([])
   })
+
+  it('resolves bindings for every typed command focus context', () => {
+    const contexts = [
+      CommandFocusContext.GLOBAL,
+      CommandFocusContext.SHELL_TAB,
+      CommandFocusContext.EDITOR,
+      CommandFocusContext.LIST,
+      CommandFocusContext.CANVAS,
+      CommandFocusContext.MODAL,
+      CommandFocusContext.TEXT_INPUT,
+    ]
+
+    const graph = resolveKeybindings(
+      contexts.map((context) =>
+        commandState(
+          command(`spacewave.context.${context}`, {
+            defaultBindings: [
+              comboBinding(`binding-${context}`, 'Alt+K', context),
+            ],
+          }),
+        ),
+      ),
+      { platform: 'other' },
+    )
+
+    for (const context of contexts) {
+      expect(
+        graph.comboBindings.get(contextKey(context, 'alt+k'))?.commandId,
+      ).toBe(`spacewave.context.${context}`)
+    }
+  })
 })
