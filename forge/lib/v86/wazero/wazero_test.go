@@ -398,12 +398,12 @@ func TestHostBootOptionsKernelCmdlineDefault(t *testing.T) {
 	if got := (HostBootOptions{}).kernelCmdline(); got != DefaultHost9PRootCmdline {
 		t.Fatalf("empty boot options cmdline = %q, want %q", got, DefaultHost9PRootCmdline)
 	}
-	if got := (HostBootOptions{V86FSServer: unixfs_v86fs.NewServer(nil)}).kernelCmdline(); got != DefaultV86FSRootCmdline {
+	if got := (HostBootOptions{V86FSServer: unixfs_v86fs.NewServer(nil, nil)}).kernelCmdline(); got != DefaultV86FSRootCmdline {
 		t.Fatalf("v86fs boot options cmdline = %q, want %q", got, DefaultV86FSRootCmdline)
 	}
 	if got := (HostBootOptions{
 		Cmdline:     "console=ttyS0",
-		V86FSServer: unixfs_v86fs.NewServer(nil),
+		V86FSServer: unixfs_v86fs.NewServer(nil, nil),
 	}).kernelCmdline(); got != "console=ttyS0" {
 		t.Fatalf("explicit cmdline = %q, want caller override", got)
 	}

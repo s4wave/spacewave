@@ -581,7 +581,7 @@ func TestLazyRepoCursorServesV86fsMountedWritesFromWritableTree(t *testing.T) {
 	}
 	defer handle.Release()
 
-	srv := v86fs.NewServer(nil)
+	srv := v86fs.NewServer(nil, nil)
 	srv.AddMount("workspace", "/workspace", handle)
 	mux := srpc.NewMux()
 	if err := v86fs.SRPCRegisterV86FsService(mux, srv); err != nil {

@@ -31,6 +31,8 @@ type MountEntry struct {
 // Server implements the V86fsService SRPC server.
 // It relays v86fs operations from a browser VM to FSHandle storage.
 type Server struct {
+	// le logs relay dispatch and mount failures; nil-safe when unset.
+	le       *logrus.Entry
 	resolver MountResolver
 
 	mtx      sync.Mutex
@@ -39,8 +41,9 @@ type Server struct {
 }
 
 // NewServer constructs a new v86fs relay server.
-func NewServer(resolver MountResolver) *Server {
+func NewServer(le *logrus.Entry, resolver MountResolver) *Server {
 	return &Server{
+		le:       le,
 		resolver: resolver,
 		mounts:   make(map[string]*MountEntry),
 		sessions: make(map[*session]struct{}),
@@ -407,7 +410,7 @@ func (ss *session) dispatch(ctx context.Context, msg *V86FsMessage) (*V86FsMessa
 	case *V86FsMessage_StatfsRequest:
 		return ss.handleStatfs(ctx, tag, body.StatfsRequest)
 	default:
-		logrus.WithField("tag", tag).WithField("body", msg.GetBody()).Debug("v86fs dispatch unknown message type")
+		ss.server.le.WithField("tag", tag).WithField("body", msg.GetBody()).Debug("v86fs dispatch unknown message type")
 		return nil, errors.New("unknown message type")
 	}
 }
@@ -415,12 +418,12 @@ func (ss *session) dispatch(ctx context.Context, msg *V86FsMessage) (*V86FsMessa
 func (ss *session) handleMount(ctx context.Context, tag uint32, req *V86FsMountRequest) (*V86FsMessage, error) {
 	handle, err := ss.server.resolveMountName(ctx, req.GetName())
 	if err != nil {
-		logrus.WithError(err).WithField("mount", req.GetName()).Debug("v86fs mount resolve failed")
+		ss.server.le.WithError(err).WithField("mount", req.GetName()).Debug("v86fs mount resolve failed")
 		return nil, err
 	}
 	mode, err := getNodeMode(ctx, handle)
 	if err != nil {
-		logrus.WithError(err).WithField("mount", req.GetName()).Debug("v86fs mount mode lookup failed")
+		ss.server.le.WithError(err).WithField("mount", req.GetName()).Debug("v86fs mount mode lookup failed")
 		handle.Release()
 		return nil, err
 	}

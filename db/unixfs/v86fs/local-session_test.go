@@ -9,7 +9,7 @@ import (
 func TestLocalSessionMountWriteRead(t *testing.T) {
 	ctx := context.Background()
 	handle := newBillyHandle(t)
-	srv := NewServer(nil)
+	srv := NewServer(nil, nil)
 	srv.AddMount("workspace", "/mnt/workspace", handle)
 
 	sess := NewLocalSession(ctx, srv)

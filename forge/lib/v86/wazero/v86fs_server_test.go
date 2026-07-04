@@ -40,7 +40,7 @@ func TestV86FSServerRootTraversal(t *testing.T) {
 	}
 	defer rootHandle.Release()
 
-	server := unixfs_v86fs.NewServer(nil)
+	server := unixfs_v86fs.NewServer(nil, nil)
 	server.AddMount("", "/", rootHandle)
 	session := unixfs_v86fs.NewLocalSession(ctx, server)
 	defer session.Close()

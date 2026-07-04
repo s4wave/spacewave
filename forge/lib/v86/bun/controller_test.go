@@ -119,7 +119,7 @@ func TestOutputMountViaSRPC(t *testing.T) {
 	defer handle.Release()
 
 	// Set up v86fs server with the output mount.
-	srv := v86fs.NewServer(nil)
+	srv := v86fs.NewServer(nil, nil)
 	srv.AddMount("output", "/output", handle)
 
 	mux := srpc.NewMux()
@@ -318,7 +318,7 @@ func TestInputMountViaSRPC(t *testing.T) {
 	defer inputHandle.Release()
 
 	// Set up v86fs server with the input mount.
-	srv := v86fs.NewServer(nil)
+	srv := v86fs.NewServer(nil, nil)
 	srv.AddMount("toolchain", "/opt/toolchain", inputHandle)
 
 	mux := srpc.NewMux()
@@ -511,7 +511,7 @@ func TestOutputInputChainViaSRPC(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	srvA := v86fs.NewServer(nil)
+	srvA := v86fs.NewServer(nil, nil)
 	srvA.AddMount("output", "/output", outputHandle)
 
 	muxA := srpc.NewMux()
@@ -601,7 +601,7 @@ func TestOutputInputChainViaSRPC(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	srvB := v86fs.NewServer(nil)
+	srvB := v86fs.NewServer(nil, nil)
 	srvB.AddMount("prev", "/input/prev", inputHandle)
 	srvB.AddMount("output", "/output", stageBOutHandle)
 

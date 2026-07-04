@@ -43,7 +43,7 @@ func buildTestServer(t *testing.T, ctx context.Context) SRPCV86FsServiceClient {
 		return nil, unixfs_errors.ErrNotExist
 	}
 
-	srv := NewServer(resolver)
+	srv := NewServer(nil, resolver)
 	mux := srpc.NewMux()
 	if err := SRPCRegisterV86FsService(mux, srv); err != nil {
 		t.Fatal(err.Error())
@@ -229,7 +229,7 @@ func buildMultiMountServer(t *testing.T, ctx context.Context, workspace, home *u
 		}
 		return nil, unixfs_errors.ErrNotExist
 	}
-	srv := NewServer(resolver)
+	srv := NewServer(nil, resolver)
 	mux := srpc.NewMux()
 	if err := SRPCRegisterV86FsService(mux, srv); err != nil {
 		t.Fatal(err.Error())
@@ -578,7 +578,7 @@ func TestRelayPushInvalidation(t *testing.T) {
 		}
 		return nil, unixfs_errors.ErrNotExist
 	}
-	srv := NewServer(resolver)
+	srv := NewServer(nil, resolver)
 	mux := srpc.NewMux()
 	if err := SRPCRegisterV86FsService(mux, srv); err != nil {
 		t.Fatal(err.Error())
@@ -676,7 +676,7 @@ func TestRelayMountManagement(t *testing.T) {
 	}
 
 	// Create server with no static resolver, only dynamic mounts.
-	srv := NewServer(nil)
+	srv := NewServer(nil, nil)
 	mux := srpc.NewMux()
 	if err := SRPCRegisterV86FsService(mux, srv); err != nil {
 		t.Fatal(err.Error())

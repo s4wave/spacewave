@@ -76,7 +76,7 @@ func openV86RootServer(cursor unixfs.FSCursor) (*unixfs_v86fs.Server, func(), er
 		cursor.Release()
 		return nil, nil, errors.Wrap(err, "build rootfs handle")
 	}
-	server := unixfs_v86fs.NewServer(nil)
+	server := unixfs_v86fs.NewServer(nil, nil)
 	server.AddMount("", "/", handle)
 	return server, handle.Release, nil
 }

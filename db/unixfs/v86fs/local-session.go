@@ -19,7 +19,7 @@ func NewLocalSession(ctx context.Context, server *Server) *LocalSession {
 		ctx = context.Background()
 	}
 	if server == nil {
-		server = NewServer(nil)
+		server = NewServer(nil, nil)
 	}
 	sess := &session{
 		server:  server,

@@ -102,7 +102,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	defer lis.Close()
 
 	// Create v86fs relay server (mounts added dynamically below).
-	v86fsSrv := v86fs.NewServer(nil)
+	v86fsSrv := v86fs.NewServer(c.le, nil)
 
 	mux := srpc.NewMux()
 	if err := v86fs.SRPCRegisterV86FsService(mux, v86fsSrv); err != nil {

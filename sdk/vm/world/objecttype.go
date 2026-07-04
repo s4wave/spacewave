@@ -56,7 +56,7 @@ func vmV86Factory(
 	}
 
 	// Create v86fs server with mount resolver that resolves graph edges to FSHandle.
-	v86fsServer := unixfs_v86fs.NewServer(func(ctx context.Context, name string) (*unixfs.FSHandle, error) {
+	v86fsServer := unixfs_v86fs.NewServer(le, func(ctx context.Context, name string) (*unixfs.FSHandle, error) {
 		return resolveV86Mount(ctx, le, resourceWS, objectKey, name)
 	})
 
