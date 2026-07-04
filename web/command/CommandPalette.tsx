@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
 } from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
@@ -107,6 +108,57 @@ function keyboardShortcutAliases(text: string): string {
   return 'keybind keybinding keybindings hotkey hotkeys'
 }
 
+const keyboardShortcutAliasHighlightTerms = [
+  'keyboard',
+  'shortcut',
+  'keybinding',
+  'hotkey',
+]
+
+function keyboardShortcutAliasMatches(text: string, query: string): boolean {
+  const normalizedQuery = normalizeSearchText(query)
+  if (!normalizedQuery) return false
+  return normalizeSearchText(keyboardShortcutAliases(text)).includes(
+    normalizedQuery,
+  )
+}
+
+function highlightSemanticTerms(text: string, terms: readonly string[]) {
+  const normalizedTerms = terms.map(normalizeSearchText).filter(Boolean)
+  if (normalizedTerms.length === 0) return null
+
+  const content: ReactNode[] = []
+  const tokenPattern = /[A-Za-z0-9]+/g
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+  let highlighted = false
+
+  while ((match = tokenPattern.exec(text))) {
+    const token = match[0]
+    const normalizedToken = normalizeSearchText(token)
+    if (!normalizedTerms.some((term) => normalizedToken.includes(term))) {
+      continue
+    }
+
+    if (match.index > lastIndex) {
+      content.push(text.slice(lastIndex, match.index))
+    }
+    content.push(
+      <span key={match.index} className="text-brand font-semibold">
+        {token}
+      </span>,
+    )
+    lastIndex = match.index + token.length
+    highlighted = true
+  }
+
+  if (!highlighted) return null
+  if (lastIndex < text.length) {
+    content.push(text.slice(lastIndex))
+  }
+  return content
+}
+
 function normalizeSearchText(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '')
 }
@@ -127,7 +179,11 @@ function commandMatchesQuery(
   )
 }
 
-function highlightQueryText(text: string, query: string) {
+function highlightQueryText(
+  text: string,
+  query: string,
+  semanticTerms: readonly string[] = [],
+) {
   const trimmedQuery = query.trim()
   if (!trimmedQuery) return text
 
@@ -144,6 +200,9 @@ function highlightQueryText(text: string, query: string) {
       text.slice(end),
     ]
   }
+
+  const semanticHighlight = highlightSemanticTerms(text, semanticTerms)
+  if (semanticHighlight) return semanticHighlight
 
   const matched = new Set<number>()
   let queryIndex = 0
@@ -260,25 +319,32 @@ function CommandPaletteItem({
   const enabled = isCommandEnabled(cmd)
   const displayBindings = getCommandDisplayBindings(bindingGraph, commandId)
   const label = cmd.command?.label ?? commandId
-
+  const searchValue = commandSearchValue(cmd, displayBindings)
+  const aliasHighlightTerms = keyboardShortcutAliasMatches(searchValue, query)
+    ? keyboardShortcutAliasHighlightTerms
+    : []
   return (
     <CommandItem
       key={commandId}
-      value={commandSearchValue(cmd, displayBindings)}
+      value={searchValue}
       onSelect={() => enabled && onSelect(commandId)}
       disabled={!enabled}
       className={cn(
-        'min-h-12 rounded-none border-b border-foreground/6 px-3 py-2 data-[selected=true]:bg-brand/15',
+        'min-h-12 rounded-none border-b border-foreground/6 px-3 py-2 data-[selected=true]:bg-brand/25',
         !enabled && 'cursor-default opacity-50',
       )}
     >
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-sm font-medium">
-          {highlightQueryText(label, query)}
+          {highlightQueryText(label, query, aliasHighlightTerms)}
         </span>
         {cmd.command?.description && (
           <span className="text-foreground-alt/60 truncate text-xs">
-            {cmd.command.description}
+            {highlightQueryText(
+              cmd.command.description,
+              query,
+              aliasHighlightTerms,
+            )}
           </span>
         )}
       </span>
@@ -676,11 +742,12 @@ export function CommandPalette() {
                 : 'Filtering'}
           </span>
         </div>
-        <CommandList className="max-h-[min(24rem,calc(100vh-12rem))] scroll-py-2 pb-2">
+        <CommandList className="max-h-[min(24rem,calc(100vh-12rem))] scroll-py-2 pb-0">
           {subItemCommandId ? (
             <>
               <CommandEmpty>No items found.</CommandEmpty>
               <CommandGroup
+                className="!px-0 [&_[cmdk-group-heading]]:px-3"
                 heading={activeSubItemCommand?.command?.label ?? ''}
               >
                 <CommandItem
@@ -712,6 +779,7 @@ export function CommandPalette() {
             <>
               <CommandEmpty>No commands found.</CommandEmpty>
               <CommandGroup
+                className="!px-0 [&_[cmdk-group-heading]]:px-3"
                 heading={`${paletteMode === 'chord' ? 'Chord' : 'Filter'} mode`}
               >
                 <div className="text-foreground-alt px-2 py-1 text-xs">
@@ -729,7 +797,11 @@ export function CommandPalette() {
                   ))}
               </CommandGroup>
               {filteredGrouped.map((g) => (
-                <CommandGroup key={g.group} heading={g.group}>
+                <CommandGroup
+                  key={g.group}
+                  className="!px-0 [&_[cmdk-group-heading]]:px-3"
+                  heading={g.group}
+                >
                   {g.commands.map((cmd) => {
                     const commandId = cmd.command?.commandId
                     if (!commandId) return null
