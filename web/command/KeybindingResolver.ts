@@ -15,7 +15,11 @@ export type ResolvedBindingKind = 'combo' | 'sequence'
 export interface KeybindingResolverOptions {
   platform?: KeybindingPlatform
   leaderCombo?: string
-  activeFocusContexts?: readonly CommandFocusContext[]
+}
+
+export interface SelectedKeybindingMatch {
+  binding?: ResolvedCommandBinding
+  conflict?: KeybindingConflict
 }
 
 export interface ResolvedCommandBinding {
@@ -59,10 +63,7 @@ export function resolveKeybindings(
 ): KeybindingGraph {
   const platform = opts.platform ?? detectPlatform()
   const leaderCombo = opts.leaderCombo ?? defaultLeaderCombo
-  const bindings = selectFocusContextBindings(
-    collectBindings(commands, platform, leaderCombo),
-    opts.activeFocusContexts,
-  )
+  const bindings = collectBindings(commands, platform, leaderCombo)
   const bindingsByCommandId = groupBindingsByCommandId(bindings)
   const comboBuckets = bucketBindings(
     bindings.filter((binding) => binding.kind === 'combo'),
@@ -225,6 +226,30 @@ export function focusContextLabel(context: CommandFocusContext): string {
   }
 }
 
+export function selectActiveComboMatch(
+  graph: KeybindingGraph,
+  activeFocusContexts: readonly CommandFocusContext[],
+  combo: string,
+): SelectedKeybindingMatch | undefined {
+  for (const context of reverseContexts(
+    activeBindingContexts(activeFocusContexts),
+  )) {
+    const key = contextKey(context, combo)
+    const conflict = graph.comboConflicts.get(key)
+    if (conflict) return { conflict }
+    const binding = graph.comboBindings.get(key)
+    if (binding) return { binding }
+  }
+  return undefined
+}
+
+export function selectActiveSequenceNode(
+  node: KeybindingSequenceNode,
+  activeFocusContexts: readonly CommandFocusContext[],
+): KeybindingSequenceNode | undefined {
+  return selectSequenceNode(node, activeBindingContexts(activeFocusContexts))
+}
+
 function collectBindings(
   commands: CommandState[],
   platform: KeybindingPlatform,
@@ -323,41 +348,21 @@ function defaultBindingId(binding: CommandBinding): string {
   return 'default-combo'
 }
 
-function selectFocusContextBindings(
-  bindings: ResolvedCommandBinding[],
-  activeFocusContexts: readonly CommandFocusContext[] | undefined,
-): ResolvedCommandBinding[] {
-  if (!activeFocusContexts?.length) return bindings
-  const contextRank = new Map<CommandFocusContext, number>()
+function activeBindingContexts(
+  activeFocusContexts: readonly CommandFocusContext[],
+): CommandFocusContext[] {
   const normalizedContexts = normalizeActiveFocusContexts(activeFocusContexts)
-  for (let index = 0; index < normalizedContexts.length; index++) {
-    contextRank.set(normalizedContexts[index], index)
+  if (
+    !normalizedContexts.includes(CommandFocusContext.EDITOR) &&
+    !normalizedContexts.includes(CommandFocusContext.TEXT_INPUT)
+  ) {
+    return normalizedContexts
   }
-  const textEntryActive =
-    contextRank.has(CommandFocusContext.EDITOR) ||
-    contextRank.has(CommandFocusContext.TEXT_INPUT)
-  const candidates = bindings.filter((binding) => {
-    if (!contextRank.has(binding.context)) return false
-    if (!textEntryActive) return true
-    return (
-      binding.context === CommandFocusContext.EDITOR ||
-      binding.context === CommandFocusContext.TEXT_INPUT
-    )
-  })
-  const buckets = bucketBindingsByMatchKey(candidates)
-  const selected: ResolvedCommandBinding[] = []
-  for (const bucket of buckets.values()) {
-    let bestRank = -1
-    for (const binding of bucket) {
-      bestRank = Math.max(bestRank, contextRank.get(binding.context) ?? -1)
-    }
-    selected.push(
-      ...bucket.filter(
-        (binding) => (contextRank.get(binding.context) ?? -1) === bestRank,
-      ),
-    )
-  }
-  return selected
+  return normalizedContexts.filter(
+    (context) =>
+      context === CommandFocusContext.EDITOR ||
+      context === CommandFocusContext.TEXT_INPUT,
+  )
 }
 
 function normalizeActiveFocusContexts(
@@ -374,6 +379,52 @@ function normalizeActiveFocusContexts(
     normalized.push(context)
   }
   return normalized
+}
+
+function reverseContexts(
+  contexts: readonly CommandFocusContext[],
+): CommandFocusContext[] {
+  return [...contexts].reverse()
+}
+
+function selectSequenceNode(
+  node: KeybindingSequenceNode,
+  activeContexts: readonly CommandFocusContext[],
+): KeybindingSequenceNode | undefined {
+  const children = new Map<string, KeybindingSequenceNode>()
+  for (const [step, child] of node.children) {
+    const selectedChild = selectSequenceNode(child, activeContexts)
+    if (selectedChild) children.set(step, selectedChild)
+  }
+
+  const terminal = selectSequenceTerminal(node, activeContexts)
+  const bindings = terminal?.binding ? [terminal.binding] : []
+  const conflicts = terminal?.conflict ? [terminal.conflict] : []
+  if (!children.size && !bindings.length && !conflicts.length) return undefined
+
+  return {
+    step: node.step,
+    children,
+    bindings,
+    conflicts,
+  }
+}
+
+function selectSequenceTerminal(
+  node: KeybindingSequenceNode,
+  activeContexts: readonly CommandFocusContext[],
+): SelectedKeybindingMatch | undefined {
+  for (const context of reverseContexts(activeContexts)) {
+    const conflict = node.conflicts.find(
+      (candidate) => candidate.context === context,
+    )
+    if (conflict) return { conflict }
+    const binding = node.bindings.find(
+      (candidate) => candidate.context === context,
+    )
+    if (binding) return { binding }
+  }
+  return undefined
 }
 
 function bindingNeedsContextLabel(
@@ -409,22 +460,6 @@ function groupBindingsByCommandId(
     list.push(binding)
   }
   return grouped
-}
-
-function bucketBindingsByMatchKey(
-  bindings: ResolvedCommandBinding[],
-): Map<string, ResolvedCommandBinding[]> {
-  const buckets = new Map<string, ResolvedCommandBinding[]>()
-  for (const binding of bindings) {
-    const key = bindingMatchKey(binding)
-    let bucket = buckets.get(key)
-    if (!bucket) {
-      bucket = []
-      buckets.set(key, bucket)
-    }
-    bucket.push(binding)
-  }
-  return buckets
 }
 
 function bucketBindings(

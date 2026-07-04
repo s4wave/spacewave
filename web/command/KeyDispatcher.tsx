@@ -3,19 +3,18 @@ import {
   use,
   useEffect,
   useEffectEvent,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
 } from 'react'
-import type { CommandFocusContext } from '@s4wave/sdk/command/command.pb.js'
 import {
   comboFromKeyboardEvent,
-  contextKey,
   isModifierKey,
   resolveKeybindings,
+  selectActiveComboMatch,
+  selectActiveSequenceNode,
   type KeybindingConflict,
-  type KeybindingGraph,
-  type ResolvedCommandBinding,
   type KeybindingSequenceNode,
 } from './KeybindingResolver.js'
 import { useCommands, useInvokeCommand } from './CommandContext.js'
@@ -62,6 +61,7 @@ export function KeyDispatcher({ children }: { children?: ReactNode }) {
   const resolveFocusContexts = useFocusContextResolver()
   const [prefixState, setPrefixState] =
     useState<KeyDispatcherPrefixState>(idlePrefixState)
+  const graph = useMemo(() => resolveKeybindings(commands), [commands])
   const prefixRef = useRef<PrefixSession | null>(null)
 
   const clearPrefix = useEffectEvent(() => {
@@ -111,19 +111,20 @@ export function KeyDispatcher({ children }: { children?: ReactNode }) {
     }
 
     const activeFocusContexts = resolveFocusContexts(event.target)
-    const graph = resolveKeybindings(commands, { activeFocusContexts })
-    const comboConflict = findComboConflict(graph, activeFocusContexts, combo)
-    if (comboConflict) {
+    const comboMatch = selectActiveComboMatch(graph, activeFocusContexts, combo)
+    if (comboMatch?.conflict) {
       event.preventDefault()
       return
     }
-    const comboBinding = findComboBinding(graph, activeFocusContexts, combo)
-    if (comboBinding) {
+    if (comboMatch?.binding) {
       event.preventDefault()
-      invokeCommand(comboBinding.commandId)
+      invokeCommand(comboMatch.binding.commandId)
       return
     }
-    const prefixNode = graph.sequenceTrie.children.get(combo)
+    const sequenceNode = graph.sequenceTrie.children.get(combo)
+    const prefixNode = sequenceNode
+      ? selectActiveSequenceNode(sequenceNode, activeFocusContexts)
+      : undefined
     if (prefixNode) {
       event.preventDefault()
       beginPrefix([combo], prefixNode)
@@ -160,28 +161,4 @@ function continuationsFromNode(
     })
   }
   return continuations
-}
-
-function findComboConflict(
-  graph: KeybindingGraph,
-  activeFocusContexts: readonly CommandFocusContext[],
-  combo: string,
-): KeybindingConflict | undefined {
-  for (const context of [...activeFocusContexts].reverse()) {
-    const conflict = graph.comboConflicts.get(contextKey(context, combo))
-    if (conflict) return conflict
-  }
-  return undefined
-}
-
-function findComboBinding(
-  graph: KeybindingGraph,
-  activeFocusContexts: readonly CommandFocusContext[],
-  combo: string,
-): ResolvedCommandBinding | undefined {
-  for (const context of [...activeFocusContexts].reverse()) {
-    const binding = graph.comboBindings.get(contextKey(context, combo))
-    if (binding) return binding
-  }
-  return undefined
 }

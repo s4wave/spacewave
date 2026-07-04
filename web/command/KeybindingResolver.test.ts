@@ -11,6 +11,8 @@ import {
   getCommandDisplayBindings,
   normalizeKeyCombo,
   resolveKeybindings,
+  selectActiveComboMatch,
+  selectActiveSequenceNode,
 } from './KeybindingResolver.js'
 
 function commandState(
@@ -300,12 +302,17 @@ describe('KeybindingResolver', () => {
     }
   })
 
-  it('uses the most specific active focus context before conflict checks', () => {
+  it('selects the most specific active focus context before conflict checks', () => {
     const graph = resolveKeybindings(
       [
         commandState(
-          command('spacewave.palette', {
-            defaultBindings: [comboBinding('global-palette', 'CmdOrCtrl+K')],
+          command('spacewave.global.first', {
+            defaultBindings: [comboBinding('global-first', 'CmdOrCtrl+K')],
+          }),
+        ),
+        commandState(
+          command('spacewave.global.second', {
+            defaultBindings: [comboBinding('global-second', 'CmdOrCtrl+K')],
           }),
         ),
         commandState(
@@ -320,24 +327,35 @@ describe('KeybindingResolver', () => {
           }),
         ),
       ],
-      {
-        platform: 'mac',
-        activeFocusContexts: [
-          CommandFocusContext.GLOBAL,
-          CommandFocusContext.SHELL_TAB,
-          CommandFocusContext.EDITOR,
-        ],
-      },
+      { platform: 'mac' },
+    )
+
+    const editorMatch = selectActiveComboMatch(
+      graph,
+      [
+        CommandFocusContext.GLOBAL,
+        CommandFocusContext.SHELL_TAB,
+        CommandFocusContext.EDITOR,
+      ],
+      'meta+k',
+    )
+    const globalMatch = selectActiveComboMatch(
+      graph,
+      [CommandFocusContext.GLOBAL],
+      'meta+k',
     )
 
     expect(
-      graph.comboBindings.get(contextKey(CommandFocusContext.EDITOR, 'meta+k'))
-        ?.commandId,
-    ).toBe('notes.insert.link')
+      graph.comboConflicts.get(
+        contextKey(CommandFocusContext.GLOBAL, 'meta+k'),
+      ),
+    ).toBeDefined()
+    expect(editorMatch?.binding?.commandId).toBe('notes.insert.link')
+    expect(editorMatch?.conflict).toBeUndefined()
+    expect(globalMatch?.binding).toBeUndefined()
     expect(
-      graph.comboBindings.has(contextKey(CommandFocusContext.GLOBAL, 'meta+k')),
-    ).toBe(false)
-    expect(graph.comboConflicts.size).toBe(0)
+      globalMatch?.conflict?.bindings.map((binding) => binding.commandId),
+    ).toEqual(['spacewave.global.first', 'spacewave.global.second'])
   })
 
   it('keeps global bindings inert in text inputs without a text-input binding', () => {
@@ -349,17 +367,60 @@ describe('KeybindingResolver', () => {
           }),
         ),
       ],
-      {
-        platform: 'mac',
-        activeFocusContexts: [
-          CommandFocusContext.GLOBAL,
-          CommandFocusContext.TEXT_INPUT,
-        ],
-      },
+      { platform: 'mac' },
     )
 
-    expect(graph.comboBindings.size).toBe(0)
-    expect(graph.conflicts).toEqual([])
+    const match = selectActiveComboMatch(
+      graph,
+      [CommandFocusContext.GLOBAL, CommandFocusContext.TEXT_INPUT],
+      'meta+k',
+    )
+
+    expect(
+      graph.comboBindings.get(contextKey(CommandFocusContext.GLOBAL, 'meta+k'))
+        ?.commandId,
+    ).toBe('spacewave.palette')
+    expect(match).toBeUndefined()
+  })
+
+  it('filters sequence prefixes with active focus-context rules at lookup time', () => {
+    const graph = resolveKeybindings(
+      [
+        commandState(
+          command('spacewave.global.open', {
+            defaultBindings: [sequenceBinding('global-open', ['Leader', 'O'])],
+          }),
+        ),
+        commandState(
+          command('notes.insert.link', {
+            defaultBindings: [
+              sequenceBinding(
+                'editor-link',
+                ['Leader', 'K'],
+                CommandFocusContext.EDITOR,
+              ),
+            ],
+          }),
+        ),
+      ],
+      { platform: 'other' },
+    )
+
+    const leaderNode = graph.sequenceTrie.children.get('ctrl+space')
+    expect(leaderNode?.children.has('o')).toBe(true)
+    expect(leaderNode?.children.has('k')).toBe(true)
+
+    const editorLeaderNode = leaderNode
+      ? selectActiveSequenceNode(leaderNode, [
+          CommandFocusContext.GLOBAL,
+          CommandFocusContext.EDITOR,
+        ])
+      : undefined
+
+    expect(editorLeaderNode?.children.has('o')).toBe(false)
+    expect(editorLeaderNode?.children.get('k')?.bindings[0]?.commandId).toBe(
+      'notes.insert.link',
+    )
   })
 
   it('shows context labels only when same binding text appears in multiple contexts', () => {
