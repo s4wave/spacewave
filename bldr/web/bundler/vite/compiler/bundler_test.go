@@ -12,6 +12,7 @@ import (
 	srpc "github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/keyed"
 	bldr "github.com/s4wave/spacewave/bldr"
+	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	bldr_web_bundler_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
@@ -121,6 +122,58 @@ func TestResolveViteBaseConfigPathMonorepo(t *testing.T) {
 	}
 }
 
+func TestBuildViteBundleMetaMergesDuplicateBundleMetadata(t *testing.T) {
+	got, err := BuildViteBundleMeta([]*ViteBundleMeta{
+		{
+			Id: "frontend",
+			Entrypoints: []*ViteBundleEntrypoint{
+				{InputPath: "src/app.ts"},
+			},
+			ViteConfigPaths: []string{"vite.project.config.ts"},
+			ExternalPkgs:    []string{"@spacewave/project-runtime"},
+		},
+		{
+			Id: "frontend",
+			Entrypoints: []*ViteBundleEntrypoint{
+				{InputPath: "src/worker.ts"},
+			},
+			ViteConfigPaths:      []string{"vite.compiler.config.ts"},
+			ExternalPkgs:         []string{"react", "@aptre/bldr"},
+			DisableProjectConfig: true,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("merged bundle count=%d want 1", len(got))
+	}
+
+	bundle := got[0]
+	if bundle.GetId() != "frontend" {
+		t.Fatalf("merged bundle id=%q want frontend", bundle.GetId())
+	}
+	entrypoints := bundle.GetEntrypoints()
+	if len(entrypoints) != 2 {
+		t.Fatalf("merged entrypoint count=%d want 2", len(entrypoints))
+	}
+	if entrypoints[0].GetInputPath() != "src/app.ts" || entrypoints[1].GetInputPath() != "src/worker.ts" {
+		t.Fatalf("merged entrypoints=%v want [src/app.ts src/worker.ts]", []string{
+			entrypoints[0].GetInputPath(),
+			entrypoints[1].GetInputPath(),
+		})
+	}
+	if got, want := bundle.GetViteConfigPaths(), []string{"vite.project.config.ts", "vite.compiler.config.ts"}; len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("merged vite config paths=%v want %v", got, want)
+	}
+	if got, want := bundle.GetExternalPkgs(), []string{"@spacewave/project-runtime", "react", "@aptre/bldr"}; len(got) != len(want) || got[0] != want[0] || got[1] != want[1] || got[2] != want[2] {
+		t.Fatalf("merged external packages=%v want %v", got, want)
+	}
+	if !bundle.GetDisableProjectConfig() {
+		t.Fatal("merged bundle did not preserve DisableProjectConfig")
+	}
+}
+
 func TestBuildViteBundlePropagatesJavaScriptPolicy(t *testing.T) {
 	codeRoot := t.TempDir()
 	distRoot := t.TempDir()
@@ -164,6 +217,68 @@ func TestBuildViteBundlePropagatesJavaScriptPolicy(t *testing.T) {
 	}
 	if !client.buildRequest.GetJsSourcemaps() {
 		t.Fatal("request did not enable JavaScript sourcemaps")
+	}
+}
+
+func TestBuildViteBundleOmitsExcludedWebPackagesFromBuildRequest(t *testing.T) {
+	codeRoot := t.TempDir()
+	distRoot := t.TempDir()
+	outAssets := t.TempDir()
+	workingPath := t.TempDir()
+	client := &fakeViteBundlerClient{}
+
+	_, _, _, err := BuildViteBundle(
+		context.Background(),
+		logrus.NewEntry(logrus.New()),
+		distRoot,
+		codeRoot,
+		workingPath,
+		nil,
+		&ViteBundleMeta{
+			Id: "default",
+			Entrypoints: []*ViteBundleEntrypoint{{
+				InputPath: "src/main.ts",
+			}},
+			DisableProjectConfig: true,
+		},
+		client,
+		[]*bldr_web_bundler.WebPkgRefConfig{
+			{Id: "sonner", Exclude: true, Imports: []string{"toast"}},
+			{Id: "@spacewave/ui", Imports: []string{"Button"}},
+			{Id: "react", Imports: []string{"jsx"}},
+		},
+		outAssets,
+		"plugin-id",
+		false,
+		true,
+		false,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client.buildRequest == nil {
+		t.Fatal("missing vite build request")
+	}
+
+	got := client.buildRequest.GetWebPkgs()
+	if len(got) != 2 {
+		t.Fatalf("request web package count=%d want 2: %v", len(got), got)
+	}
+	gotImportsByID := make(map[string][]string, len(got))
+	for _, ref := range got {
+		if ref.GetExclude() {
+			t.Fatalf("request included excluded web package ref: %s", ref.GetId())
+		}
+		gotImportsByID[ref.GetId()] = ref.GetImports()
+	}
+	if _, ok := gotImportsByID["sonner"]; ok {
+		t.Fatal("request included excluded web package sonner")
+	}
+	if gotImports := gotImportsByID["@spacewave/ui"]; len(gotImports) != 1 || gotImports[0] != "Button" {
+		t.Fatalf("request imports for @spacewave/ui=%v want [Button]", gotImports)
+	}
+	if gotImports := gotImportsByID["react"]; len(gotImports) != 1 || gotImports[0] != "jsx" {
+		t.Fatalf("request imports for react=%v want [jsx]", gotImports)
 	}
 }
 

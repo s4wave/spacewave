@@ -31,6 +31,9 @@ export interface WebPkgRemapPluginConfig {
   // (matching buildWebPkg) instead of the package's on-disk file layout, whose
   // dist/ subdir and .pb.js filenames differ from the served names.
   webPkgImports?: Record<string, string[]>
+  // Base URL path that serves web package files.
+  // Defaults to the plugin-assets route; entrypoint web packages use /entrypoint/pkgs.
+  webPkgBasePath?: string
   // Optional callback to report the resolved root directory for a web package.
   // Called once per package when the root is first discovered.
   addWebPkgRoot?: (webPkgID: string, webPkgRoot: string) => void
@@ -105,14 +108,16 @@ export function readPackageRootServedName(pkgRoot: string): string | null {
 
       const resolved = normalizePackageRootExport(rootExport)
       if (resolved) {
-        return normalizePackageImportPath(resolved)
+        const name = normalizePackageImportPath(resolved)
+        return name.startsWith('dist/') ? name.substring('dist/'.length) : name
       }
     }
 
     for (const key of ['module', 'main']) {
       const resolved = pkgJSON[key]
       if (typeof resolved === 'string' && resolved) {
-        return normalizePackageImportPath(resolved)
+        const name = normalizePackageImportPath(resolved)
+        return name.startsWith('dist/') ? name.substring('dist/'.length) : name
       }
     }
   } catch {
@@ -137,11 +142,17 @@ function buildServedNameMap(imports: string[]): Map<string, string> {
   return map
 }
 
-// lookupDeclaredServedURL returns the /b/pkg/ URL for importId derived from the
+// webPkgURL returns the served URL for a web-package file.
+function webPkgURL(basePath: string, pkg: string, subPath: string): string {
+  return `${basePath}/${pkg}/${subPath}`
+}
+
+// lookupDeclaredServedURL returns the served URL for importId derived from the
 // package's declared served-name map, or null when the package has no declared
 // imports or importId is not a declared entry (callers then fall back to
 // on-disk or specifier-based remapping).
 function lookupDeclaredServedURL(
+  basePath: string,
   importId: string,
   pkg: string,
   servedMap: Map<string, string> | undefined,
@@ -159,14 +170,15 @@ function lookupDeclaredServedURL(
   subPath = normalizePackageImportPath(subPath)
   const served = servedMap.get(subPath)
   if (!served) return null
-  return `/b/pkg/${pkg}/${served}`
+  return webPkgURL(basePath, pkg, served)
 }
 
-// remapWebPkgSpecifier rewrites a web pkg import specifier to a /b/pkg/ URL.
+// remapWebPkgSpecifier rewrites a web pkg import specifier to a served URL.
 // Returns null if the id does not match any webPkgID.
 function remapWebPkgSpecifier(
   id: string,
   webPkgIDs: string[],
+  basePath: string,
 ): { pkg: string; subPath: string; remapped: string } | null {
   for (const pkg of webPkgIDs) {
     if (id === pkg || id.startsWith(pkg + '/')) {
@@ -183,7 +195,7 @@ function remapWebPkgSpecifier(
       return {
         pkg,
         subPath: remappedSubPath,
-        remapped: `/b/pkg/${pkg}/${remappedSubPath}`,
+        remapped: webPkgURL(basePath, pkg, remappedSubPath),
       }
     }
   }
@@ -207,6 +219,7 @@ export function createWebPkgRemapPlugin(
   config: WebPkgRemapPluginConfig,
 ): Plugin {
   const debug = config.debug || false
+  const webPkgBasePath = (config.webPkgBasePath ?? '/b/pkg').replace(/\/+$/, '')
   const preservedWebPkgIDSet = new Set(config.preserveWebPkgIDs ?? [])
   const remappedWebPkgIDs = config.webPkgIDs.filter(
     (pkg) => !preservedWebPkgIDSet.has(pkg),
@@ -344,6 +357,7 @@ export function createWebPkgRemapPlugin(
       // import list, not on-disk layout. Derive the served URL directly so the
       // dist/ subdir and .pb.js filenames never leak into the baked URL.
       const declaredURL = lookupDeclaredServedURL(
+        webPkgBasePath,
         normalizedImportId,
         pkgID,
         servedNameMaps[pkgID],
@@ -366,7 +380,11 @@ export function createWebPkgRemapPlugin(
       })
       if (!resolved || !resolved.id) {
         // Fall back to simple remap without resolution.
-        const result = remapWebPkgSpecifier(importId, remappedWebPkgIDs)
+        const result = remapWebPkgSpecifier(
+          importId,
+          remappedWebPkgIDs,
+          webPkgBasePath,
+        )
         if (!result) return null
         if (debug)
           console.log(
@@ -382,7 +400,11 @@ export function createWebPkgRemapPlugin(
         : null
       if (!resolvedRelPath) {
         // Could not determine relative path, use the specifier subpath.
-        const result = remapWebPkgSpecifier(importId, remappedWebPkgIDs)
+        const result = remapWebPkgSpecifier(
+          importId,
+          remappedWebPkgIDs,
+          webPkgBasePath,
+        )
         if (!result) return null
         if (debug)
           console.log(
@@ -398,7 +420,7 @@ export function createWebPkgRemapPlugin(
           '.mjs'
         : resolvedRelPath
 
-      const remapped = `/b/pkg/${pkgID}/${relPath}`
+      const remapped = webPkgURL(webPkgBasePath, pkgID, relPath)
 
       // Report the resolved root for this web package.
       if (config.addWebPkgRoot && pkgRoot) {
@@ -430,6 +452,7 @@ export function createWebPkgRemapPlugin(
         result = result.replace(pattern, (_match, prefix, subPathMatch) => {
           const fullId = pkg + (subPathMatch ?? '')
           const declaredURL = lookupDeclaredServedURL(
+            webPkgBasePath,
             fullId,
             pkg,
             servedNameMaps[pkg],
@@ -442,7 +465,11 @@ export function createWebPkgRemapPlugin(
               )
             return prefix + declaredURL
           }
-          const remap = remapWebPkgSpecifier(fullId, remappedWebPkgIDs)
+          const remap = remapWebPkgSpecifier(
+            fullId,
+            remappedWebPkgIDs,
+            webPkgBasePath,
+          )
           if (!remap) return _match
           modified = true
           if (debug)

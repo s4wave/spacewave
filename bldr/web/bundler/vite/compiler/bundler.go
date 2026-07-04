@@ -372,10 +372,12 @@ func BuildViteBundle(
 	// Store vite cache in cache dir
 	cacheDir := filepath.Join(workingPath, "cache")
 
-	// Run these through the web pkg plugin to remap to /p/...
-	extWebPkgs := slices.Clone(webPkgs)
-
-	// Sort and compact
+	// Only packages this plugin can serve should be externalized/remapped during
+	// the Vite build. Excluded refs are owned by another provider, so remapping
+	// them would make this bundle race that provider's /b/pkg registration.
+	extWebPkgs := slices.DeleteFunc(slices.Clone(webPkgs), func(ref *bldr_web_bundler.WebPkgRefConfig) bool {
+		return ref.GetExclude()
+	})
 	extWebPkgs = bldr_web_bundler.CompactWebPkgRefConfigs(extWebPkgs)
 
 	// Run the build rpc

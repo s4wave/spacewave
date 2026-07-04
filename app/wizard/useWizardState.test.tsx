@@ -1,6 +1,6 @@
 import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
@@ -11,6 +11,7 @@ const h = vi.hoisted(() => ({
 }))
 
 let currentConfigData = new Uint8Array()
+let currentWizardName = 'Repo'
 
 vi.mock('@s4wave/web/hooks/useAccessTypedHandle.js', () => ({
   useAccessTypedHandle: () => ({
@@ -26,7 +27,7 @@ vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
       step: 0,
       targetTypeId: 'git/repo',
       targetKeyPrefix: 'git/repo/',
-      name: 'Repo',
+      name: currentWizardName,
       configData: currentConfigData,
     },
   }),
@@ -58,8 +59,10 @@ vi.mock('@s4wave/web/configtype/useConfigEditor.js', () => ({
 describe('useWizardState', () => {
   afterEach(() => {
     currentConfigData = new Uint8Array()
+    currentWizardName = 'Repo'
     cleanup()
     vi.clearAllMocks()
+    vi.unstubAllGlobals()
   })
 
   it('keeps config edits local until the draft is persisted', async () => {
@@ -79,10 +82,55 @@ describe('useWizardState', () => {
       configData: new TextEncoder().encode('abc'),
     })
   })
+
+  it('does not restore the remote wizard name after a local clear has begun', async () => {
+    const user = userEvent.setup()
+    const view = renderHarness()
+    const input = screen.getByLabelText('Wizard name') as HTMLInputElement
+
+    await waitFor(() => {
+      expect(input.value).toBe('Repo')
+    })
+
+    const nativeQueueMicrotask = globalThis.queueMicrotask
+    const queuedMicrotasks: VoidFunction[] = []
+    vi.stubGlobal('queueMicrotask', (callback: VoidFunction) => {
+      queuedMicrotasks.push(callback)
+    })
+    currentWizardName = 'Repo from server'
+    view.rerender(<HarnessTree />)
+    vi.stubGlobal('queueMicrotask', nativeQueueMicrotask)
+
+    await user.clear(input)
+    await act(async () => {
+      for (const run of queuedMicrotasks.splice(0)) run()
+      await Promise.resolve()
+    })
+
+    expect(input.value).toBe('')
+
+    await user.type(input, 'Renamed Repo')
+
+    expect(input.value).toBe('Renamed Repo')
+    expect(h.updateState).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: /persist/i }))
+
+    await waitFor(() => {
+      expect(h.updateState).toHaveBeenCalledTimes(1)
+    })
+    expect(h.updateState).toHaveBeenCalledWith({
+      name: 'Renamed Repo',
+    })
+  })
 })
 
 function renderHarness() {
-  return render(
+  return render(<HarnessTree />)
+}
+
+function HarnessTree() {
+  return (
     <SpaceContainerContext.Provider
       spaceId="space-1"
       spaceState={{ ready: true }}
@@ -99,7 +147,7 @@ function renderHarness() {
       navigateToSubPath={vi.fn()}
     >
       <Harness />
-    </SpaceContainerContext.Provider>,
+    </SpaceContainerContext.Provider>
   )
 }
 
@@ -126,6 +174,11 @@ function Harness() {
   )
   return (
     <>
+      <input
+        aria-label="Wizard name"
+        value={ws.localName}
+        onChange={(e) => ws.handleUpdateName(e.target.value)}
+      />
       {ws.configEditor.element}
       <button onClick={() => void ws.persistDraftState()}>Persist</button>
     </>

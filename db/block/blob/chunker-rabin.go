@@ -63,11 +63,10 @@ func buildChunkIndexRabin(
 		maxChunkSize = minChunkSize + 1
 	}
 
-	chk := chunker.NewWithBoundaries(
+	chk := chunker.New(
 		rdr,
 		poly,
-		uint(minChunkSize),
-		uint(maxChunkSize),
+		chunker.WithBoundaries(uint(minChunkSize), uint(maxChunkSize)),
 	)
 	var idx int
 	var totalSize uint64

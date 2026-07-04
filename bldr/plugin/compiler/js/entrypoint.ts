@@ -235,27 +235,53 @@ export async function loadBackendEntrypoints(
 /**
  * Loads and executes all configured web packages.
  */
-async function loadWebPkgs(
+export async function loadWebPkgs(
   ourPluginID: string,
   webPlugin: WebPlugin,
   abortSignal: AbortSignal,
   onReady?: () => void,
+  handleWebPkgs:
+    | HandleWebPkgsViaPluginAssetsRequest
+    | undefined = __BLDR_HANDLE_WEB_PKGS__,
 ): Promise<void> {
-  const webPkgsIDs = __BLDR_HANDLE_WEB_PKGS__?.webPkgIdList
+  const webPkgsIDs = handleWebPkgs?.webPkgIdList
   if (!webPkgsIDs?.length) {
     console.debug('No web pkgs configured.')
     onReady?.()
     return
   }
 
-  console.debug(`Processing ${webPkgsIDs.length} web pkgs...`)
-
-  const request = HandleWebPkgsViaPluginAssetsRequest.clone(
-    __BLDR_HANDLE_WEB_PKGS__,
-  )!
+  const request = HandleWebPkgsViaPluginAssetsRequest.clone(handleWebPkgs)!
   request.handlePluginId = ourPluginID
 
-  await retryWithAbort(
+  const { promise, resolve, reject } = Promise.withResolvers<void>()
+  let ready = false
+  const cleanup = () => {
+    abortSignal.removeEventListener('abort', abortReady)
+  }
+  const resolveReady = () => {
+    if (ready) return
+    ready = true
+    cleanup()
+    onReady?.()
+    resolve()
+  }
+  const rejectReady = (error: unknown) => {
+    if (ready) {
+      if (!abortSignal.aborted) {
+        logError('Web package handler failed after startup', error)
+      }
+      return
+    }
+    cleanup()
+    reject(error)
+  }
+  const abortReady = () => {
+    rejectReady(new Error('web package setup aborted'))
+  }
+
+  abortSignal.addEventListener('abort', abortReady, { once: true })
+  void retryWithAbort(
     abortSignal,
     async (signal) => {
       const response = webPlugin.HandleWebPkgsViaPluginAssets(request, signal)
@@ -266,7 +292,7 @@ async function loadWebPkgs(
           console.debug(
             `Configured ${webPkgsIDs.length} web pkgs via web plugin.`,
           )
-          onReady?.()
+          resolveReady()
           continue
         }
         console.debug('Web plugin is not ready yet.')
@@ -274,6 +300,13 @@ async function loadWebPkgs(
     },
     entrypointRetryOpts('error configuring web packages'),
   )
+    .then(() => {
+      if (!ready) {
+        rejectReady(new Error('web package stream closed before readiness'))
+      }
+    })
+    .catch(rejectReady)
+  return promise
 }
 
 /**
@@ -459,16 +492,16 @@ function loadWebPlugin(
           const srpcClient = new Client(openStream)
           const client = new WebPluginClient(srpcClient)
           try {
-            await Promise.all([
-              loadFrontendEntrypoints(
-                backendAPI,
-                ourPluginID,
-                client,
-                signal,
-                setupReady,
-              ),
-              loadWebPkgs(ourPluginID, client, signal, setupReady),
-            ])
+            // Frontend entrypoint imports can reference /b/pkg assets, so the
+            // web plugin must serve this plugin's web packages first.
+            await loadWebPkgs(ourPluginID, client, signal, setupReady)
+            await loadFrontendEntrypoints(
+              backendAPI,
+              ourPluginID,
+              client,
+              signal,
+              setupReady,
+            )
           } catch (err) {
             if (setupAttempt === attempt) {
               setupAttempt++

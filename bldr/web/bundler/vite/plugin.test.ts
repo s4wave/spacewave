@@ -7,7 +7,7 @@ import type { ResolvedConfig } from 'vite'
 import { createWebPkgRemapPlugin } from './plugin.js'
 
 describe('createWebPkgRemapPlugin', () => {
-  it('preserves runtime externals and rewrites downstream web packages in rendered chunks', () => {
+  it('preserves runtime externals and rewrites sibling web packages in rendered chunks', () => {
     const plugin = createWebPkgRemapPlugin({
       webPkgIDs: [
         '@aptre/bldr',
@@ -21,7 +21,6 @@ describe('createWebPkgRemapPlugin', () => {
       preserveWebPkgIDs: [
         '@aptre/bldr',
         '@aptre/bldr-react',
-        '@aptre/protobuf-es-lite',
         'react',
         'react-dom',
       ],
@@ -40,6 +39,7 @@ describe('createWebPkgRemapPlugin', () => {
         'import React from "react";',
         'import { createPortal } from "react-dom";',
         'import { jsxDEV } from "react/jsx-dev-runtime";',
+        'import { createMessageType } from "@aptre/protobuf-es-lite";',
         'import { Message } from "@aptre/protobuf-es-lite/message";',
         'import { SpacewaveRuntimeProviders } from "@s4wave/web/sdk/app";',
         'import { toast } from "sonner";',
@@ -54,12 +54,56 @@ describe('createWebPkgRemapPlugin', () => {
     expect(result).toContain('"react"')
     expect(result).toContain('"react-dom"')
     expect(result).toContain('"react/jsx-dev-runtime"')
-    expect(result).toContain('"@aptre/protobuf-es-lite/message"')
+    expect(result).toContain('"/b/pkg/@aptre/protobuf-es-lite/index.mjs"')
+    expect(result).toContain('"/b/pkg/@aptre/protobuf-es-lite/message.mjs"')
     expect(result).toContain('"/b/pkg/@s4wave/web/sdk/app.mjs"')
     expect(result).toContain('"/b/pkg/sonner/index.mjs"')
+    expect(result).not.toMatch(
+      /\b(?:from|import)\s*\(?\s*["']@aptre\/protobuf-es-lite(?:\/[^"']*)?["']/,
+    )
     expect(result).not.toContain('"/b/pkg/react/')
     expect(result).not.toContain('"/b/pkg/react-dom/')
     expect(result).not.toContain('"/b/pkg/@aptre/bldr/')
+  })
+
+  it('uses the configured web package base path for rendered sibling web packages', () => {
+    const plugin = createWebPkgRemapPlugin({
+      webPkgIDs: ['@aptre/protobuf-es-lite', '@s4wave/web', 'sonner'],
+      webPkgImports: {
+        '@aptre/protobuf-es-lite': ['index.js', 'message.js'],
+      },
+      webPkgBasePath: '/entrypoint/pkgs',
+    })
+
+    const renderChunk = plugin.renderChunk
+    if (typeof renderChunk !== 'function') {
+      throw new Error('missing renderChunk hook')
+    }
+
+    const result = renderChunk.call(
+      {} as never,
+      [
+        'import { createMessageType } from "@aptre/protobuf-es-lite";',
+        'import { Message } from "@aptre/protobuf-es-lite/message";',
+        'import { SpacewaveRuntimeProviders } from "@s4wave/web/sdk/app";',
+        'import { toast } from "sonner";',
+      ].join('\n'),
+      {} as never,
+      {} as never,
+      {} as never,
+    )
+
+    expect(result).toContain(
+      '"/entrypoint/pkgs/@aptre/protobuf-es-lite/index.mjs"',
+    )
+    expect(result).toContain(
+      '"/entrypoint/pkgs/@aptre/protobuf-es-lite/message.mjs"',
+    )
+    expect(result).toContain('"/entrypoint/pkgs/@s4wave/web/sdk/app.mjs"')
+    expect(result).toContain('"/entrypoint/pkgs/sonner/index.mjs"')
+    expect(result).not.toContain('"/b/pkg/@aptre/protobuf-es-lite/')
+    expect(result).not.toContain('"/b/pkg/@s4wave/web/')
+    expect(result).not.toContain('"/b/pkg/sonner/')
   })
 
   it('derives served names from declared imports, stripping dist subdir and .pb extension', async () => {
@@ -121,13 +165,18 @@ describe('createWebPkgRemapPlugin', () => {
     })
   })
 
-  it('keeps declared served names when the package root export resolves under dist', async () => {
+  it('maps a dist root export to the served index URL without declared imports', async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'web-pkg-dist-'))
     try {
-      const pkgRoot = path.join(root, 'node_modules', '@aptre', 'protobuf-es-lite')
+      const pkgRoot = path.join(
+        root,
+        'node_modules',
+        '@aptre',
+        'protobuf-es-lite',
+      )
       fs.mkdirSync(path.join(pkgRoot, 'dist'), { recursive: true })
-      // exports["."] points at ./dist/index.js, the on-disk layout whose dist/
-      // subdir must NOT leak into the served URL when declared imports exist.
+      // exports["."] points at ./dist/index.js. With no declared webPkgImports
+      // map, the package root export still serves as index.mjs, not dist/index.mjs.
       fs.writeFileSync(
         path.join(pkgRoot, 'package.json'),
         JSON.stringify({
@@ -143,9 +192,7 @@ describe('createWebPkgRemapPlugin', () => {
 
       const plugin = createWebPkgRemapPlugin({
         webPkgIDs: ['@aptre/protobuf-es-lite'],
-        webPkgImports: {
-          '@aptre/protobuf-es-lite': ['index.js', 'message.js'],
-        },
+        webPkgBasePath: '/entrypoint/pkgs',
       })
 
       const configResolved = plugin.configResolved
@@ -157,9 +204,7 @@ describe('createWebPkgRemapPlugin', () => {
         {
           root,
           resolve: {
-            alias: [
-              { find: '@aptre/protobuf-es-lite', replacement: pkgRoot },
-            ],
+            alias: [{ find: '@aptre/protobuf-es-lite', replacement: pkgRoot }],
           },
         } as ResolvedConfig,
       )
@@ -175,8 +220,11 @@ describe('createWebPkgRemapPlugin', () => {
         {} as never,
         {} as never,
       )
-      expect(rendered).toContain('"/b/pkg/@aptre/protobuf-es-lite/index.mjs"')
+      expect(rendered).toContain(
+        '"/entrypoint/pkgs/@aptre/protobuf-es-lite/index.mjs"',
+      )
       expect(rendered).not.toContain('/dist/')
+      expect(rendered).not.toContain('"/b/pkg/@aptre/protobuf-es-lite/')
 
       const resolveId = plugin.resolveId
       if (typeof resolveId !== 'function') {
@@ -185,7 +233,9 @@ describe('createWebPkgRemapPlugin', () => {
       const resolved = await resolveId.call(
         {
           resolve: async () => {
-            throw new Error('declared imports must not hit on-disk resolution')
+            throw new Error(
+              'root export served map must not hit on-disk resolution',
+            )
           },
         } as never,
         '@aptre/protobuf-es-lite',
@@ -193,7 +243,7 @@ describe('createWebPkgRemapPlugin', () => {
         { isEntry: false },
       )
       expect(resolved).toEqual({
-        id: '/b/pkg/@aptre/protobuf-es-lite/index.mjs',
+        id: '/entrypoint/pkgs/@aptre/protobuf-es-lite/index.mjs',
         external: true,
       })
     } finally {

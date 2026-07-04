@@ -71,25 +71,27 @@ export function useWizardState(
   const [configDirty, setConfigDirty] = useState(false)
   const [creating, setCreating] = useState(false)
 
-  // Sync local name from remote state on first load or external change.
+  // Sync local name from remote state on first load or external change. The
+  // write must happen in this effect turn; deferring it can restore a stale
+  // remote name after the user starts editing.
   const remoteName = state?.name ?? ''
   useEffect(() => {
     if (nameDirty) {
-      if (localName === remoteName) queueMicrotask(() => setNameDirty(false))
+      if (localName === remoteName) setNameDirty(false)
       return
     }
-    queueMicrotask(() => setLocalName(remoteName))
+    setLocalName(remoteName)
   }, [localName, nameDirty, remoteName])
 
   const remoteConfigData = state?.configData ?? undefined
   useEffect(() => {
     if (configDirty) {
       if (bytesEqual(draftConfigData, remoteConfigData)) {
-        queueMicrotask(() => setConfigDirty(false))
+        setConfigDirty(false)
       }
       return
     }
-    queueMicrotask(() => setDraftConfigData(remoteConfigData))
+    setDraftConfigData(remoteConfigData)
   }, [configDirty, draftConfigData, remoteConfigData])
 
   const handleConfigDataChange = useCallback(

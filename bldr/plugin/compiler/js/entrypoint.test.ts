@@ -5,6 +5,7 @@ import {
   entrypointRetryOpts,
   isEntrypointStreamReset,
   loadBackendEntrypoints,
+  loadWebPkgs,
   startBackendEntrypoint,
 } from './entrypoint.js'
 
@@ -320,6 +321,72 @@ describe('plugin JS backend entrypoint startup', () => {
       abortController.abort()
       debug.mockRestore()
       error.mockRestore()
+    }
+  })
+})
+
+describe('plugin JS frontend startup', () => {
+  test('resolves web package readiness without closing the serving stream', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
+    const abortController = new AbortController()
+    const { promise: webPkgsRequested, resolve: markWebPkgsRequested } =
+      Promise.withResolvers<void>()
+    const { promise: webPkgsReady, resolve: markWebPkgsReady } =
+      Promise.withResolvers<void>()
+    const { promise: streamClosed, resolve: markStreamClosed } =
+      Promise.withResolvers<void>()
+    const events: string[] = []
+    let closed = false
+
+    const webPlugin = {
+      HandleWebPkgsViaPluginAssets: vi.fn((request, signal?: AbortSignal) => {
+        events.push(`request:${request.handlePluginId}`)
+        markWebPkgsRequested()
+        return (async function* () {
+          await webPkgsReady
+          events.push('ready')
+          yield { body: { case: 'ready' as const, value: true } }
+          const { promise: aborted, resolve } = Promise.withResolvers<void>()
+          signal?.addEventListener('abort', () => resolve(), { once: true })
+          await aborted
+          closed = true
+          markStreamClosed()
+        })()
+      }),
+    }
+
+    try {
+      const ready = loadWebPkgs(
+        'spacewave-app',
+        webPlugin as never,
+        abortController.signal,
+        undefined,
+        {
+          webPkgsPath: 'web-pkgs',
+          webPkgIdList: ['sonner'],
+        },
+      )
+      let resolved = false
+      ready.then(() => {
+        resolved = true
+      })
+
+      await webPkgsRequested
+      expect(resolved).toBe(false)
+
+      markWebPkgsReady()
+      await ready
+
+      expect(resolved).toBe(true)
+      expect(closed).toBe(false)
+      expect(webPlugin.HandleWebPkgsViaPluginAssets).toHaveBeenCalledOnce()
+      expect(events).toEqual(['request:spacewave-app', 'ready'])
+
+      abortController.abort()
+      await streamClosed
+    } finally {
+      abortController.abort()
+      debug.mockRestore()
     }
   })
 })
