@@ -1658,7 +1658,7 @@
     },
     {
       "name": "github.com/playwright-community/playwright-go",
-      "version": "v0.5700.1",
+      "version": "v0.6000.0",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/playwright-community/playwright-go",
@@ -1690,7 +1690,7 @@
     },
     {
       "name": "github.com/s4wave/goscript",
-      "version": "v0.2.12-0.20260703224948-ac4daa869172",
+      "version": "v0.2.13-0.20260704052019-c3933e59b4db",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/s4wave/goscript",
