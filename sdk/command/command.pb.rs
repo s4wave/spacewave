@@ -20,21 +20,26 @@ pub struct CommandBinding {
     /// Id is stable within a command's default bindings.
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
-    /// Kind selects the matching grammar.
-    #[prost(enumeration="CommandBindingKind", tag="2")]
-    pub kind: i32,
-    /// Combo stores a one-event key binding.
-    #[prost(message, optional, tag="3")]
-    pub combo: ::core::option::Option<KeyCombo>,
-    /// Sequence stores an ordered key sequence.
-    #[prost(message, optional, tag="4")]
-    pub sequence: ::core::option::Option<KeySequence>,
     /// When limits the binding to a focus context.
-    #[prost(enumeration="CommandFocusContext", tag="5")]
+    #[prost(enumeration="CommandFocusContext", tag="4")]
     pub when: i32,
     /// SourceLabel is an optional display label for the binding source.
-    #[prost(string, tag="6")]
+    #[prost(string, tag="5")]
     pub source_label: ::prost::alloc::string::String,
+    #[prost(oneof="command_binding::Binding", tags="2, 3")]
+    pub binding: ::core::option::Option<command_binding::Binding>,
+}
+/// Nested message and enum types in `CommandBinding`.
+pub mod command_binding {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Binding {
+        /// Combo stores a one-event key binding.
+        #[prost(message, tag="2")]
+        Combo(super::KeyCombo),
+        /// Sequence stores an ordered key sequence.
+        #[prost(message, tag="3")]
+        Sequence(super::KeySequence),
+    }
 }
 /// Command is the metadata for a registered command.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -76,39 +81,6 @@ pub struct Command {
     /// DefaultBindings are the typed default input bindings for the command.
     #[prost(message, repeated, tag="10")]
     pub default_bindings: ::prost::alloc::vec::Vec<CommandBinding>,
-}
-/// CommandBindingKind identifies how a command binding is matched.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum CommandBindingKind {
-    /// COMMAND_BINDING_KIND_UNSPECIFIED is unset.
-    Unspecified = 0,
-    /// COMMAND_BINDING_KIND_COMBO matches one keydown event.
-    Combo = 1,
-    /// COMMAND_BINDING_KIND_SEQUENCE matches ordered key steps.
-    Sequence = 2,
-}
-impl CommandBindingKind {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "COMMAND_BINDING_KIND_UNSPECIFIED",
-            Self::Combo => "COMMAND_BINDING_KIND_COMBO",
-            Self::Sequence => "COMMAND_BINDING_KIND_SEQUENCE",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "COMMAND_BINDING_KIND_UNSPECIFIED" => Some(Self::Unspecified),
-            "COMMAND_BINDING_KIND_COMBO" => Some(Self::Combo),
-            "COMMAND_BINDING_KIND_SEQUENCE" => Some(Self::Sequence),
-            _ => None,
-        }
-    }
 }
 /// CommandFocusContext identifies where a command binding applies.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]

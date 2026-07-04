@@ -11,43 +11,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 export const protobufPackage = 's4wave.command'
 
 /**
- * CommandBindingKind identifies how a command binding is matched.
- *
- * @generated from enum s4wave.command.CommandBindingKind
- */
-export enum CommandBindingKind {
-  /**
-   * COMMAND_BINDING_KIND_UNSPECIFIED is unset.
-   *
-   * @generated from enum value: COMMAND_BINDING_KIND_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * COMMAND_BINDING_KIND_COMBO matches one keydown event.
-   *
-   * @generated from enum value: COMMAND_BINDING_KIND_COMBO = 1;
-   */
-  COMBO = 1,
-
-  /**
-   * COMMAND_BINDING_KIND_SEQUENCE matches ordered key steps.
-   *
-   * @generated from enum value: COMMAND_BINDING_KIND_SEQUENCE = 2;
-   */
-  SEQUENCE = 2,
-}
-
-export const CommandBindingKind_Enum = /* @__PURE__ */ createEnumType(
-  's4wave.command.CommandBindingKind',
-  [
-    [0, 'COMMAND_BINDING_KIND_UNSPECIFIED'],
-    [1, 'COMMAND_BINDING_KIND_COMBO'],
-    [2, 'COMMAND_BINDING_KIND_SEQUENCE'],
-  ],
-)
-
-/**
  * CommandFocusContext identifies where a command binding applies.
  *
  * @generated from enum s4wave.command.CommandFocusContext
@@ -189,35 +152,44 @@ export interface CommandBinding {
    */
   id?: string
   /**
-   * Kind selects the matching grammar.
-   *
-   * @generated from field: s4wave.command.CommandBindingKind kind = 2;
-   */
-  kind?: CommandBindingKind
-  /**
-   * Combo stores a one-event key binding.
-   *
-   * @generated from field: s4wave.command.KeyCombo combo = 3;
-   */
-  combo?: KeyCombo
-  /**
-   * Sequence stores an ordered key sequence.
-   *
-   * @generated from field: s4wave.command.KeySequence sequence = 4;
-   */
-  sequence?: KeySequence
-  /**
    * When limits the binding to a focus context.
    *
-   * @generated from field: s4wave.command.CommandFocusContext when = 5;
+   * @generated from field: s4wave.command.CommandFocusContext when = 4;
    */
   when?: CommandFocusContext
   /**
    * SourceLabel is an optional display label for the binding source.
    *
-   * @generated from field: string source_label = 6;
+   * @generated from field: string source_label = 5;
    */
   sourceLabel?: string
+
+  /**
+   * @generated from oneof s4wave.command.CommandBinding.binding
+   */
+  binding?:
+    | {
+        value?: undefined
+        case: undefined
+      }
+    | {
+        /**
+         * Combo stores a one-event key binding.
+         *
+         * @generated from field: s4wave.command.KeyCombo combo = 2;
+         */
+        value: KeyCombo
+        case: 'combo'
+      }
+    | {
+        /**
+         * Sequence stores an ordered key sequence.
+         *
+         * @generated from field: s4wave.command.KeySequence sequence = 3;
+         */
+        value: KeySequence
+        case: 'sequence'
+      }
 }
 
 export const CommandBinding: MessageType<CommandBinding> =
@@ -225,11 +197,22 @@ export const CommandBinding: MessageType<CommandBinding> =
     typeName: 's4wave.command.CommandBinding',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'kind', kind: 'enum', T: CommandBindingKind_Enum },
-      { no: 3, name: 'combo', kind: 'message', T: () => KeyCombo },
-      { no: 4, name: 'sequence', kind: 'message', T: () => KeySequence },
-      { no: 5, name: 'when', kind: 'enum', T: CommandFocusContext_Enum },
-      { no: 6, name: 'source_label', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'combo',
+        kind: 'message',
+        T: () => KeyCombo,
+        oneof: 'binding',
+      },
+      {
+        no: 3,
+        name: 'sequence',
+        kind: 'message',
+        T: () => KeySequence,
+        oneof: 'binding',
+      },
+      { no: 4, name: 'when', kind: 'enum', T: CommandFocusContext_Enum },
+      { no: 5, name: 'source_label', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -13,6 +13,7 @@ import { CommandFocusContext } from '@s4wave/sdk/command/command.pb.js'
 import {
   comboFromKeyboardEvent,
   contextKey,
+  isModifierKey,
   resolveKeybindings,
   type KeybindingConflict,
   type KeybindingSequenceNode,
@@ -80,6 +81,7 @@ export function KeyDispatcher({ children }: { children?: ReactNode }) {
   )
 
   const handler = useEffectEvent((event: KeyboardEvent) => {
+    if (isModifierKey(event)) return
     const combo = comboFromKeyboardEvent(event)
     const prefix = prefixRef.current
     if (prefix) {

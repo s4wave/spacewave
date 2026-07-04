@@ -2,7 +2,6 @@ import { Window } from 'happy-dom'
 import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render } from '@testing-library/react'
-import { CommandBindingKind } from '@s4wave/sdk/command/command.pb.js'
 
 import { ShellMenuBar } from './ShellMenuBar.js'
 
@@ -165,13 +164,11 @@ describe('ShellMenuBar', () => {
           defaultBindings: [
             {
               id: 'home-combo',
-              kind: CommandBindingKind.COMBO,
-              combo: { combo: 'Ctrl+H' },
+              binding: { case: 'combo', value: { combo: 'Ctrl+H' } },
             },
             {
               id: 'home-sequence',
-              kind: CommandBindingKind.SEQUENCE,
-              sequence: { steps: ['Leader', 'H'] },
+              binding: { case: 'sequence', value: { steps: ['Leader', 'H'] } },
             },
           ],
         },

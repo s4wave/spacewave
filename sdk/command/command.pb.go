@@ -15,46 +15,6 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
-// CommandBindingKind identifies how a command binding is matched.
-type CommandBindingKind int32
-
-const (
-	// COMMAND_BINDING_KIND_UNSPECIFIED is unset.
-	CommandBindingKind_COMMAND_BINDING_KIND_UNSPECIFIED CommandBindingKind = 0
-	// COMMAND_BINDING_KIND_COMBO matches one keydown event.
-	CommandBindingKind_COMMAND_BINDING_KIND_COMBO CommandBindingKind = 1
-	// COMMAND_BINDING_KIND_SEQUENCE matches ordered key steps.
-	CommandBindingKind_COMMAND_BINDING_KIND_SEQUENCE CommandBindingKind = 2
-)
-
-// Enum value maps for CommandBindingKind.
-var (
-	CommandBindingKind_name = map[int32]string{
-		0: "COMMAND_BINDING_KIND_UNSPECIFIED",
-		1: "COMMAND_BINDING_KIND_COMBO",
-		2: "COMMAND_BINDING_KIND_SEQUENCE",
-	}
-	CommandBindingKind_value = map[string]int32{
-		"COMMAND_BINDING_KIND_UNSPECIFIED": 0,
-		"COMMAND_BINDING_KIND_COMBO":       1,
-		"COMMAND_BINDING_KIND_SEQUENCE":    2,
-	}
-)
-
-func (x CommandBindingKind) Enum() *CommandBindingKind {
-	p := new(CommandBindingKind)
-	*p = x
-	return p
-}
-
-func (x CommandBindingKind) String() string {
-	name, valid := CommandBindingKind_name[int32(x)]
-	if valid {
-		return name
-	}
-	return strconv.Itoa(int(x))
-}
-
 // CommandFocusContext identifies where a command binding applies.
 type CommandFocusContext int32
 
@@ -160,16 +120,15 @@ type CommandBinding struct {
 	unknownFields []byte
 	// Id is stable within a command's default bindings.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// Kind selects the matching grammar.
-	Kind CommandBindingKind `protobuf:"varint,2,opt,name=kind,proto3" json:"kind,omitempty"`
-	// Combo stores a one-event key binding.
-	Combo *KeyCombo `protobuf:"bytes,3,opt,name=combo,proto3" json:"combo,omitempty"`
-	// Sequence stores an ordered key sequence.
-	Sequence *KeySequence `protobuf:"bytes,4,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	// Types that are assignable to Binding:
+	//
+	//	*CommandBinding_Combo
+	//	*CommandBinding_Sequence
+	Binding isCommandBinding_Binding `protobuf_oneof:"binding"`
 	// When limits the binding to a focus context.
-	When CommandFocusContext `protobuf:"varint,5,opt,name=when,proto3" json:"when,omitempty"`
+	When CommandFocusContext `protobuf:"varint,4,opt,name=when,proto3" json:"when,omitempty"`
 	// SourceLabel is an optional display label for the binding source.
-	SourceLabel string `protobuf:"bytes,6,opt,name=source_label,json=sourceLabel,proto3" json:"sourceLabel,omitempty"`
+	SourceLabel string `protobuf:"bytes,5,opt,name=source_label,json=sourceLabel,proto3" json:"sourceLabel,omitempty"`
 }
 
 func (x *CommandBinding) Reset() {
@@ -185,22 +144,22 @@ func (x *CommandBinding) GetId() string {
 	return ""
 }
 
-func (x *CommandBinding) GetKind() CommandBindingKind {
-	if x != nil {
-		return x.Kind
+func (m *CommandBinding) GetBinding() isCommandBinding_Binding {
+	if m != nil {
+		return m.Binding
 	}
-	return CommandBindingKind_COMMAND_BINDING_KIND_UNSPECIFIED
+	return nil
 }
 
 func (x *CommandBinding) GetCombo() *KeyCombo {
-	if x != nil {
+	if x, ok := x.GetBinding().(*CommandBinding_Combo); ok {
 		return x.Combo
 	}
 	return nil
 }
 
 func (x *CommandBinding) GetSequence() *KeySequence {
-	if x != nil {
+	if x, ok := x.GetBinding().(*CommandBinding_Sequence); ok {
 		return x.Sequence
 	}
 	return nil
@@ -219,6 +178,24 @@ func (x *CommandBinding) GetSourceLabel() string {
 	}
 	return ""
 }
+
+type isCommandBinding_Binding interface {
+	isCommandBinding_Binding()
+}
+
+type CommandBinding_Combo struct {
+	// Combo stores a one-event key binding.
+	Combo *KeyCombo `protobuf:"bytes,2,opt,name=combo,proto3,oneof"`
+}
+
+type CommandBinding_Sequence struct {
+	// Sequence stores an ordered key sequence.
+	Sequence *KeySequence `protobuf:"bytes,3,opt,name=sequence,proto3,oneof"`
+}
+
+func (*CommandBinding_Combo) isCommandBinding_Binding() {}
+
+func (*CommandBinding_Sequence) isCommandBinding_Binding() {}
 
 // Command is the metadata for a registered command.
 type Command struct {
@@ -368,11 +345,13 @@ func (m *CommandBinding) CloneVT() *CommandBinding {
 	}
 	r := new(CommandBinding)
 	r.Id = m.Id
-	r.Kind = m.Kind
-	r.Combo = m.Combo.CloneVT()
-	r.Sequence = m.Sequence.CloneVT()
 	r.When = m.When
 	r.SourceLabel = m.SourceLabel
+	if m.Binding != nil {
+		r.Binding = m.Binding.(interface {
+			CloneOneofVT() isCommandBinding_Binding
+		}).CloneOneofVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -380,6 +359,32 @@ func (m *CommandBinding) CloneVT() *CommandBinding {
 }
 
 func (m *CommandBinding) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CommandBinding_Combo) CloneVT() *CommandBinding_Combo {
+	if m == nil {
+		return (*CommandBinding_Combo)(nil)
+	}
+	r := new(CommandBinding_Combo)
+	r.Combo = m.Combo.CloneVT()
+	return r
+}
+
+func (m *CommandBinding_Combo) CloneOneofVT() isCommandBinding_Binding {
+	return m.CloneVT()
+}
+
+func (m *CommandBinding_Sequence) CloneVT() *CommandBinding_Sequence {
+	if m == nil {
+		return (*CommandBinding_Sequence)(nil)
+	}
+	r := new(CommandBinding_Sequence)
+	r.Sequence = m.Sequence.CloneVT()
+	return r
+}
+
+func (m *CommandBinding_Sequence) CloneOneofVT() isCommandBinding_Binding {
 	return m.CloneVT()
 }
 
@@ -465,16 +470,19 @@ func (this *CommandBinding) EqualVT(that *CommandBinding) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
+	if this.Binding == nil && that.Binding != nil {
+		return false
+	} else if this.Binding != nil {
+		if that.Binding == nil {
+			return false
+		}
+		if !this.Binding.(interface {
+			EqualVT(isCommandBinding_Binding) bool
+		}).EqualVT(that.Binding) {
+			return false
+		}
+	}
 	if this.Id != that.Id {
-		return false
-	}
-	if this.Kind != that.Kind {
-		return false
-	}
-	if !this.Combo.EqualVT(that.Combo) {
-		return false
-	}
-	if !this.Sequence.EqualVT(that.Sequence) {
 		return false
 	}
 	if this.When != that.When {
@@ -492,6 +500,56 @@ func (this *CommandBinding) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+func (this *CommandBinding_Combo) EqualVT(thatIface isCommandBinding_Binding) bool {
+	that, ok := thatIface.(*CommandBinding_Combo)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if p, q := this.Combo, that.Combo; p != q {
+		if p == nil {
+			p = &KeyCombo{}
+		}
+		if q == nil {
+			q = &KeyCombo{}
+		}
+		if !p.EqualVT(q) {
+			return false
+		}
+	}
+	return true
+}
+
+func (this *CommandBinding_Sequence) EqualVT(thatIface isCommandBinding_Binding) bool {
+	that, ok := thatIface.(*CommandBinding_Sequence)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if p, q := this.Sequence, that.Sequence; p != q {
+		if p == nil {
+			p = &KeySequence{}
+		}
+		if q == nil {
+			q = &KeySequence{}
+		}
+		if !p.EqualVT(q) {
+			return false
+		}
+	}
+	return true
 }
 
 func (this *Command) EqualVT(that *Command) bool {
@@ -553,46 +611,6 @@ func (this *Command) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
-}
-
-// MarshalProtoJSON marshals the CommandBindingKind to JSON.
-func (x CommandBindingKind) MarshalProtoJSON(s *json.MarshalState) {
-	s.WriteEnum(int32(x), CommandBindingKind_name)
-}
-
-// MarshalText marshals the CommandBindingKind to text.
-func (x CommandBindingKind) MarshalText() ([]byte, error) {
-	return []byte(json.GetEnumString(int32(x), CommandBindingKind_name)), nil
-}
-
-// MarshalJSON marshals the CommandBindingKind to JSON.
-func (x CommandBindingKind) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the CommandBindingKind from JSON.
-func (x *CommandBindingKind) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	v := s.ReadEnum(CommandBindingKind_value)
-	if err := s.Err(); err != nil {
-		s.SetErrorf("could not read CommandBindingKind enum: %v", err)
-		return
-	}
-	*x = CommandBindingKind(v)
-}
-
-// UnmarshalText unmarshals the CommandBindingKind from text.
-func (x *CommandBindingKind) UnmarshalText(b []byte) error {
-	i, err := json.ParseEnumString(string(b), CommandBindingKind_value)
-	if err != nil {
-		return err
-	}
-	*x = CommandBindingKind(i)
-	return nil
-}
-
-// UnmarshalJSON unmarshals the CommandBindingKind from JSON.
-func (x *CommandBindingKind) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the CommandFocusContext to JSON.
@@ -736,20 +754,17 @@ func (x *CommandBinding) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("id")
 		s.WriteString(x.Id)
 	}
-	if x.Kind != 0 || s.HasField("kind") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("kind")
-		x.Kind.MarshalProtoJSON(s)
-	}
-	if x.Combo != nil || s.HasField("combo") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("combo")
-		x.Combo.MarshalProtoJSON(s.WithField("combo"))
-	}
-	if x.Sequence != nil || s.HasField("sequence") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("sequence")
-		x.Sequence.MarshalProtoJSON(s.WithField("sequence"))
+	if x.Binding != nil {
+		switch ov := x.Binding.(type) {
+		case *CommandBinding_Combo:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("combo")
+			ov.Combo.MarshalProtoJSON(s.WithField("combo"))
+		case *CommandBinding_Sequence:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("sequence")
+			ov.Sequence.MarshalProtoJSON(s.WithField("sequence"))
+		}
 	}
 	if x.When != 0 || s.HasField("when") {
 		s.WriteMoreIf(&wroteField)
@@ -781,23 +796,24 @@ func (x *CommandBinding) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "id":
 			s.AddField("id")
 			x.Id = s.ReadString()
-		case "kind":
-			s.AddField("kind")
-			x.Kind.UnmarshalProtoJSON(s)
 		case "combo":
+			ov := &CommandBinding_Combo{}
+			x.Binding = ov
 			if s.ReadNil() {
-				x.Combo = nil
+				ov.Combo = nil
 				return
 			}
-			x.Combo = &KeyCombo{}
-			x.Combo.UnmarshalProtoJSON(s.WithField("combo", true))
+			ov.Combo = &KeyCombo{}
+			ov.Combo.UnmarshalProtoJSON(s.WithField("combo", true))
 		case "sequence":
+			ov := &CommandBinding_Sequence{}
+			x.Binding = ov
 			if s.ReadNil() {
-				x.Sequence = nil
+				ov.Sequence = nil
 				return
 			}
-			x.Sequence = &KeySequence{}
-			x.Sequence.UnmarshalProtoJSON(s.WithField("sequence", true))
+			ov.Sequence = &KeySequence{}
+			ov.Sequence.UnmarshalProtoJSON(s.WithField("sequence", true))
 		case "when":
 			s.AddField("when")
 			x.When.UnmarshalProtoJSON(s)
@@ -1060,28 +1076,44 @@ func (m *CommandBinding) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if vtmsg, ok := m.Binding.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
 	if len(m.SourceLabel) > 0 {
 		i -= len(m.SourceLabel)
 		copy(dAtA[i:], m.SourceLabel)
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.SourceLabel)))
 		i--
-		dAtA[i] = 0x32
+		dAtA[i] = 0x2a
 	}
 	if m.When != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.When))
 		i--
-		dAtA[i] = 0x28
+		dAtA[i] = 0x20
 	}
-	if m.Sequence != nil {
-		size, err := m.Sequence.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+	if len(m.Id) > 0 {
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
 		i--
-		dAtA[i] = 0x22
+		dAtA[i] = 0xa
 	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CommandBinding_Combo) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CommandBinding_Combo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	if m.Combo != nil {
 		size, err := m.Combo.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1090,19 +1122,35 @@ func (m *CommandBinding) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= size
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
+		dAtA[i] = 0x12
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x12
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CommandBinding_Sequence) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CommandBinding_Sequence) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Sequence != nil {
+		size, err := m.Sequence.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
 		dAtA[i] = 0x1a
-	}
-	if m.Kind != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Kind))
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
 		i--
-		dAtA[i] = 0x10
-	}
-	if len(m.Id) > 0 {
-		i -= len(m.Id)
-		copy(dAtA[i:], m.Id)
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Id)))
-		i--
-		dAtA[i] = 0xa
+		dAtA[i] = 0x1a
 	}
 	return len(dAtA) - i, nil
 }
@@ -1254,16 +1302,8 @@ func (m *CommandBinding) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
-	if m.Kind != 0 {
-		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Kind))
-	}
-	if m.Combo != nil {
-		l = m.Combo.SizeVT()
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
-	}
-	if m.Sequence != nil {
-		l = m.Sequence.SizeVT()
-		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	if vtmsg, ok := m.Binding.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
 	}
 	if m.When != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.When))
@@ -1273,6 +1313,36 @@ func (m *CommandBinding) SizeVT() (n int) {
 		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CommandBinding_Combo) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Combo != nil {
+		l = m.Combo.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *CommandBinding_Sequence) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Sequence != nil {
+		l = m.Sequence.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	} else {
+		n += 2
+	}
 	return n
 }
 
@@ -1323,10 +1393,6 @@ func (m *Command) SizeVT() (n int) {
 	}
 	n += len(m.unknownFields)
 	return n
-}
-
-func (x CommandBindingKind) MarshalProtoText() string {
-	return x.String()
 }
 
 func (x CommandFocusContext) MarshalProtoText() string {
@@ -1385,28 +1451,27 @@ func (x *CommandBinding) MarshalProtoText() string {
 		sb.WriteString("id: ")
 		sb.WriteString(strconv.Quote(x.Id))
 	}
-	if x.Kind != 0 {
-		if sb.Len() > 16 {
-			sb.WriteString(" ")
-		}
-		sb.WriteString("kind: ")
-		sb.WriteString("\"")
-		sb.WriteString(CommandBindingKind(x.Kind).String())
-		sb.WriteString("\"")
-	}
-	if x.Combo != nil {
+	switch body := x.Binding.(type) {
+	case *CommandBinding_Combo:
 		if sb.Len() > 16 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("combo: ")
-		sb.WriteString(x.Combo.MarshalProtoText())
-	}
-	if x.Sequence != nil {
+		if body.Combo == nil {
+			sb.WriteString((&KeyCombo{}).MarshalProtoText())
+		} else {
+			sb.WriteString(body.Combo.MarshalProtoText())
+		}
+	case *CommandBinding_Sequence:
 		if sb.Len() > 16 {
 			sb.WriteString(" ")
 		}
 		sb.WriteString("sequence: ")
-		sb.WriteString(x.Sequence.MarshalProtoText())
+		if body.Sequence == nil {
+			sb.WriteString((&KeySequence{}).MarshalProtoText())
+		} else {
+			sb.WriteString(body.Sequence.MarshalProtoText())
+		}
 	}
 	if x.When != 0 {
 		if sb.Len() > 16 {
@@ -1696,17 +1761,6 @@ func (m *CommandBinding) UnmarshalVT(dAtA []byte) error {
 			m.Id = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Kind", wireType)
-			}
-			m.Kind = 0
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.Kind = CommandBindingKind(_v)
-			if err != nil {
-				return err
-			}
-		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Combo", wireType)
 			}
@@ -1727,14 +1781,19 @@ func (m *CommandBinding) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Combo == nil {
-				m.Combo = &KeyCombo{}
-			}
-			if err := m.Combo.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
+			if oneof, ok := m.Binding.(*CommandBinding_Combo); ok {
+				if err := oneof.Combo.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &KeyCombo{}
+				if err := v.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.Binding = &CommandBinding_Combo{Combo: v}
 			}
 			iNdEx = postIndex
-		case 4:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Sequence", wireType)
 			}
@@ -1755,14 +1814,19 @@ func (m *CommandBinding) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Sequence == nil {
-				m.Sequence = &KeySequence{}
-			}
-			if err := m.Sequence.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
+			if oneof, ok := m.Binding.(*CommandBinding_Sequence); ok {
+				if err := oneof.Sequence.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &KeySequence{}
+				if err := v.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.Binding = &CommandBinding_Sequence{Sequence: v}
 			}
 			iNdEx = postIndex
-		case 5:
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field When", wireType)
 			}
@@ -1773,7 +1837,7 @@ func (m *CommandBinding) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 6:
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field SourceLabel", wireType)
 			}

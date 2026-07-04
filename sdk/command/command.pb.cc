@@ -90,10 +90,9 @@ inline constexpr CommandBinding::Impl_::Impl_(
         source_label_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        combo_{nullptr},
-        sequence_{nullptr},
-        kind_{static_cast< ::s4wave::command::CommandBindingKind >(0)},
-        when_{static_cast< ::s4wave::command::CommandFocusContext >(0)} {}
+        when_{static_cast< ::s4wave::command::CommandFocusContext >(0)},
+        binding_{},
+        _oneof_case_{} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR CommandBinding::CommandBinding(::_pbi::ConstantInitialized)
@@ -163,7 +162,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace command
 }  // namespace s4wave
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto[2];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto = nullptr;
 const ::uint32_t
@@ -179,20 +178,20 @@ const ::uint32_t
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::command::KeySequence, _impl_.steps_),
         0,
-        0x081, // bitmap
+        0x085, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::command::CommandBinding, _impl_._has_bits_),
-        9, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::CommandBinding, _impl_._oneof_case_[0]),
+        10, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::command::CommandBinding, _impl_.id_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::command::CommandBinding, _impl_.kind_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::command::CommandBinding, _impl_.combo_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::command::CommandBinding, _impl_.sequence_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::CommandBinding, _impl_.binding_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::CommandBinding, _impl_.binding_),
         PROTOBUF_FIELD_OFFSET(::s4wave::command::CommandBinding, _impl_.when_),
         PROTOBUF_FIELD_OFFSET(::s4wave::command::CommandBinding, _impl_.source_label_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::CommandBinding, _impl_.binding_),
         0,
-        4,
+        ~0u,
+        ~0u,
         2,
-        3,
-        5,
         1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::command::Command, _impl_._has_bits_),
@@ -237,36 +236,32 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fc
     "\n5github.com/s4wave/spacewave/sdk/comman"
     "d/command.proto\022\016s4wave.command\"\031\n\010KeyCo"
     "mbo\022\r\n\005combo\030\001 \001(\t\"\034\n\013KeySequence\022\r\n\005ste"
-    "ps\030\001 \003(\t\"\357\001\n\016CommandBinding\022\n\n\002id\030\001 \001(\t\022"
-    "0\n\004kind\030\002 \001(\0162\".s4wave.command.CommandBi"
-    "ndingKind\022\'\n\005combo\030\003 \001(\0132\030.s4wave.comman"
-    "d.KeyCombo\022-\n\010sequence\030\004 \001(\0132\033.s4wave.co"
-    "mmand.KeySequence\0221\n\004when\030\005 \001(\0162#.s4wave"
-    ".command.CommandFocusContext\022\024\n\014source_l"
-    "abel\030\006 \001(\t\"\357\001\n\007Command\022\022\n\ncommand_id\030\001 \001"
-    "(\t\022\r\n\005label\030\002 \001(\t\022\022\n\nkeybinding\030\003 \001(\t\022\021\n"
-    "\tmenu_path\030\004 \001(\t\022\022\n\nmenu_group\030\005 \001(\r\022\022\n\n"
-    "menu_order\030\006 \001(\r\022\014\n\004icon\030\007 \001(\t\022\023\n\013descri"
-    "ption\030\010 \001(\t\022\025\n\rhas_sub_items\030\t \001(\010\0228\n\020de"
-    "fault_bindings\030\n \003(\0132\036.s4wave.command.Co"
-    "mmandBinding*}\n\022CommandBindingKind\022$\n CO"
-    "MMAND_BINDING_KIND_UNSPECIFIED\020\000\022\036\n\032COMM"
-    "AND_BINDING_KIND_COMBO\020\001\022!\n\035COMMAND_BIND"
-    "ING_KIND_SEQUENCE\020\002*\256\002\n\023CommandFocusCont"
-    "ext\022%\n!COMMAND_FOCUS_CONTEXT_UNSPECIFIED"
-    "\020\000\022 \n\034COMMAND_FOCUS_CONTEXT_GLOBAL\020\001\022#\n\037"
-    "COMMAND_FOCUS_CONTEXT_SHELL_TAB\020\002\022 \n\034COM"
-    "MAND_FOCUS_CONTEXT_EDITOR\020\003\022\036\n\032COMMAND_F"
-    "OCUS_CONTEXT_LIST\020\004\022 \n\034COMMAND_FOCUS_CON"
-    "TEXT_CANVAS\020\005\022\037\n\033COMMAND_FOCUS_CONTEXT_M"
-    "ODAL\020\006\022$\n COMMAND_FOCUS_CONTEXT_TEXT_INP"
-    "UT\020\007b\006proto3"
+    "ps\030\001 \003(\t\"\314\001\n\016CommandBinding\022\n\n\002id\030\001 \001(\t\022"
+    ")\n\005combo\030\002 \001(\0132\030.s4wave.command.KeyCombo"
+    "H\000\022/\n\010sequence\030\003 \001(\0132\033.s4wave.command.Ke"
+    "ySequenceH\000\0221\n\004when\030\004 \001(\0162#.s4wave.comma"
+    "nd.CommandFocusContext\022\024\n\014source_label\030\005"
+    " \001(\tB\t\n\007binding\"\357\001\n\007Command\022\022\n\ncommand_i"
+    "d\030\001 \001(\t\022\r\n\005label\030\002 \001(\t\022\022\n\nkeybinding\030\003 \001"
+    "(\t\022\021\n\tmenu_path\030\004 \001(\t\022\022\n\nmenu_group\030\005 \001("
+    "\r\022\022\n\nmenu_order\030\006 \001(\r\022\014\n\004icon\030\007 \001(\t\022\023\n\013d"
+    "escription\030\010 \001(\t\022\025\n\rhas_sub_items\030\t \001(\010\022"
+    "8\n\020default_bindings\030\n \003(\0132\036.s4wave.comma"
+    "nd.CommandBinding*\256\002\n\023CommandFocusContex"
+    "t\022%\n!COMMAND_FOCUS_CONTEXT_UNSPECIFIED\020\000"
+    "\022 \n\034COMMAND_FOCUS_CONTEXT_GLOBAL\020\001\022#\n\037CO"
+    "MMAND_FOCUS_CONTEXT_SHELL_TAB\020\002\022 \n\034COMMA"
+    "ND_FOCUS_CONTEXT_EDITOR\020\003\022\036\n\032COMMAND_FOC"
+    "US_CONTEXT_LIST\020\004\022 \n\034COMMAND_FOCUS_CONTE"
+    "XT_CANVAS\020\005\022\037\n\033COMMAND_FOCUS_CONTEXT_MOD"
+    "AL\020\006\022$\n COMMAND_FOCUS_CONTEXT_TEXT_INPUT"
+    "\020\007b\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto = {
     false,
     false,
-    1052,
+    890,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto,
     "github.com/s4wave/spacewave/sdk/command/command.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto_once,
@@ -281,15 +276,9 @@ PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2
 };
 namespace s4wave {
 namespace command {
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL CommandBindingKind_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto[0];
-}
-PROTOBUF_CONSTINIT const uint32_t CommandBindingKind_internal_data_[] = {
-    196608u, 0u, };
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL CommandFocusContext_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto[1];
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fcommand_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t CommandFocusContext_internal_data_[] = {
     524288u, 0u, };
@@ -860,8 +849,36 @@ class CommandBinding::_Internal {
       decltype(::std::declval<CommandBinding>()._impl_._has_bits_);
   static constexpr ::int32_t kHasBitsOffset =
       8 * PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_._has_bits_);
+  static constexpr ::int32_t kOneofCaseOffset =
+      PROTOBUF_FIELD_OFFSET(::s4wave::command::CommandBinding, _impl_._oneof_case_);
 };
 
+void CommandBinding::set_allocated_combo(::s4wave::command::KeyCombo* PROTOBUF_NULLABLE combo) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  clear_binding();
+  if (combo) {
+    ::google::protobuf::Arena* submessage_arena = combo->GetArena();
+    if (message_arena != submessage_arena) {
+      combo = ::google::protobuf::internal::GetOwnedMessage(message_arena, combo, submessage_arena);
+    }
+    set_has_combo();
+    _impl_.binding_.combo_ = combo;
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.command.CommandBinding.combo)
+}
+void CommandBinding::set_allocated_sequence(::s4wave::command::KeySequence* PROTOBUF_NULLABLE sequence) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  clear_binding();
+  if (sequence) {
+    ::google::protobuf::Arena* submessage_arena = sequence->GetArena();
+    if (message_arena != submessage_arena) {
+      sequence = ::google::protobuf::internal::GetOwnedMessage(message_arena, sequence, submessage_arena);
+    }
+    set_has_sequence();
+    _impl_.binding_.sequence_ = sequence;
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.command.CommandBinding.sequence)
+}
 CommandBinding::CommandBinding(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::Message(arena, CommandBinding_class_data_.base()) {
@@ -878,7 +895,9 @@ PROTOBUF_NDEBUG_INLINE CommandBinding::Impl_::Impl_(
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
         id_(arena, from.id_),
-        source_label_(arena, from.source_label_) {}
+        source_label_(arena, from.source_label_),
+        binding_{},
+        _oneof_case_{from._oneof_case_[0]} {}
 
 CommandBinding::CommandBinding(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -893,20 +912,17 @@ CommandBinding::CommandBinding(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
-  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.combo_ = (CheckHasBit(cached_has_bits, 0x00000004U))
-                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.combo_)
-                : nullptr;
-  _impl_.sequence_ = (CheckHasBit(cached_has_bits, 0x00000008U))
-                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.sequence_)
-                : nullptr;
-  ::memcpy(reinterpret_cast<char*>(&_impl_) +
-               offsetof(Impl_, kind_),
-           reinterpret_cast<const char*>(&from._impl_) +
-               offsetof(Impl_, kind_),
-           offsetof(Impl_, when_) -
-               offsetof(Impl_, kind_) +
-               sizeof(Impl_::when_));
+  _impl_.when_ = from._impl_.when_;
+  switch (binding_case()) {
+    case BINDING_NOT_SET:
+      break;
+      case kCombo:
+        _impl_.binding_.combo_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.binding_.combo_);
+        break;
+      case kSequence:
+        _impl_.binding_.sequence_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.binding_.sequence_);
+        break;
+  }
 
   // @@protoc_insertion_point(copy_constructor:s4wave.command.CommandBinding)
 }
@@ -915,16 +931,13 @@ PROTOBUF_NDEBUG_INLINE CommandBinding::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
         id_(arena),
-        source_label_(arena) {}
+        source_label_(arena),
+        binding_{},
+        _oneof_case_{} {}
 
 inline void CommandBinding::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  ::memset(reinterpret_cast<char*>(&_impl_) +
-               offsetof(Impl_, combo_),
-           0,
-           offsetof(Impl_, when_) -
-               offsetof(Impl_, combo_) +
-               sizeof(Impl_::when_));
+  _impl_.when_ = {};
 }
 CommandBinding::~CommandBinding() {
   // @@protoc_insertion_point(destructor:s4wave.command.CommandBinding)
@@ -939,10 +952,39 @@ inline void CommandBinding::SharedDtor(MessageLite& self) {
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.id_.Destroy();
   this_._impl_.source_label_.Destroy();
-  delete this_._impl_.combo_;
-  delete this_._impl_.sequence_;
+  if (this_.has_binding()) {
+    this_.clear_binding();
+  }
   this_._impl_.~Impl_();
 }
+
+void CommandBinding::clear_binding() {
+// @@protoc_insertion_point(one_of_clear_start:s4wave.command.CommandBinding)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  switch (binding_case()) {
+    case kCombo: {
+      if (GetArena() == nullptr) {
+        delete _impl_.binding_.combo_;
+      } else if (::google::protobuf::internal::DebugHardenClearOneofMessageOnArena()) {
+        ::google::protobuf::internal::MaybePoisonAfterClear(_impl_.binding_.combo_);
+      }
+      break;
+    }
+    case kSequence: {
+      if (GetArena() == nullptr) {
+        delete _impl_.binding_.sequence_;
+      } else if (::google::protobuf::internal::DebugHardenClearOneofMessageOnArena()) {
+        ::google::protobuf::internal::MaybePoisonAfterClear(_impl_.binding_.sequence_);
+      }
+      break;
+    }
+    case BINDING_NOT_SET: {
+      break;
+    }
+  }
+  _impl_._oneof_case_[0] = BINDING_NOT_SET;
+}
+
 
 inline void* PROTOBUF_NONNULL CommandBinding::PlacementNew_(
     const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
@@ -987,16 +1029,16 @@ CommandBinding::GetClassData() const {
   return CommandBinding_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 6, 2, 52, 2>
+const ::_pbi::TcParseTable<3, 5, 2, 52, 2>
 CommandBinding::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_._has_bits_),
     0, // no _extensions_
-    6, 56,  // max_field_number, fast_idx_mask
+    5, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967232,  // skipmap
+    4294967264,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    6,  // num_field_entries
+    5,  // num_field_entries
     2,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     CommandBinding_class_data_.base(),
@@ -1011,41 +1053,30 @@ CommandBinding::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
       PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.id_)}},
-    // .s4wave.command.CommandBindingKind kind = 2;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(CommandBinding, _impl_.kind_), 4>(),
-     {16, 4, 0,
-      PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.kind_)}},
-    // .s4wave.command.KeyCombo combo = 3;
-    {::_pbi::TcParser::FastMtS1,
-     {26, 2, 0,
-      PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.combo_)}},
-    // .s4wave.command.KeySequence sequence = 4;
-    {::_pbi::TcParser::FastMtS1,
-     {34, 3, 1,
-      PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.sequence_)}},
-    // .s4wave.command.CommandFocusContext when = 5;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(CommandBinding, _impl_.when_), 5>(),
-     {40, 5, 0,
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    // .s4wave.command.CommandFocusContext when = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(CommandBinding, _impl_.when_), 2>(),
+     {32, 2, 0,
       PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.when_)}},
-    // string source_label = 6;
+    // string source_label = 5;
     {::_pbi::TcParser::FastUS1,
-     {50, 1, 0,
+     {42, 1, 0,
       PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.source_label_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
     // string id = 1;
     {PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // .s4wave.command.CommandBindingKind kind = 2;
-    {PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.kind_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
-    // .s4wave.command.KeyCombo combo = 3;
-    {PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.combo_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
-    // .s4wave.command.KeySequence sequence = 4;
-    {PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.sequence_), _Internal::kHasBitsOffset + 3, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
-    // .s4wave.command.CommandFocusContext when = 5;
-    {PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.when_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
-    // string source_label = 6;
+    // .s4wave.command.KeyCombo combo = 2;
+    {PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.binding_.combo_), _Internal::kOneofCaseOffset + 0, 0, (0 | ::_fl::kFcOneof | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .s4wave.command.KeySequence sequence = 3;
+    {PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.binding_.sequence_), _Internal::kOneofCaseOffset + 0, 1, (0 | ::_fl::kFcOneof | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .s4wave.command.CommandFocusContext when = 4;
+    {PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.when_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string source_label = 5;
     {PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.source_label_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   {{
@@ -1053,7 +1084,7 @@ CommandBinding::_table_ = {
       {::_pbi::TcParser::GetTable<::s4wave::command::KeySequence>()},
   }},
   {{
-    "\35\2\0\0\0\0\14\0"
+    "\35\2\0\0\0\14\0\0"
     "s4wave.command.CommandBinding"
     "id"
     "source_label"
@@ -1067,27 +1098,16 @@ PROTOBUF_NOINLINE void CommandBinding::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.id_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       _impl_.source_label_.ClearNonDefaultToEmpty();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      ABSL_DCHECK(_impl_.combo_ != nullptr);
-      _impl_.combo_->Clear();
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      ABSL_DCHECK(_impl_.sequence_ != nullptr);
-      _impl_.sequence_->Clear();
-    }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000030U)) {
-    ::memset(&_impl_.kind_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.when_) -
-        reinterpret_cast<char*>(&_impl_.kind_)) + sizeof(_impl_.when_));
-  }
+  _impl_.when_ = 0;
+  clear_binding();
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -1121,45 +1141,38 @@ PROTOBUF_NOINLINE void CommandBinding::Clear() {
     }
   }
 
-  // .s4wave.command.CommandBindingKind kind = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-    if (this_._internal_kind() != 0) {
-      target = stream->EnsureSpace(target);
-      target = ::_pbi::WireFormatLite::WriteEnumToArray(
-          2, this_._internal_kind(), target);
+  switch (this_.binding_case()) {
+    case kCombo: {
+      target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+          2, *this_._impl_.binding_.combo_, this_._impl_.binding_.combo_->GetCachedSize(), target,
+          stream);
+      break;
     }
+    case kSequence: {
+      target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+          3, *this_._impl_.binding_.sequence_, this_._impl_.binding_.sequence_->GetCachedSize(), target,
+          stream);
+      break;
+    }
+    default:
+      break;
   }
-
-  // .s4wave.command.KeyCombo combo = 3;
+  // .s4wave.command.CommandFocusContext when = 4;
   if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
-        3, *this_._impl_.combo_, this_._impl_.combo_->GetCachedSize(), target,
-        stream);
-  }
-
-  // .s4wave.command.KeySequence sequence = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
-        4, *this_._impl_.sequence_, this_._impl_.sequence_->GetCachedSize(), target,
-        stream);
-  }
-
-  // .s4wave.command.CommandFocusContext when = 5;
-  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     if (this_._internal_when() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
-          5, this_._internal_when(), target);
+          4, this_._internal_when(), target);
     }
   }
 
-  // string source_label = 6;
+  // string source_label = 5;
   if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     if (!this_._internal_source_label().empty()) {
       const ::std::string& _s = this_._internal_source_label();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
           _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.command.CommandBinding.source_label");
-      target = stream->WriteStringMaybeAliased(6, _s, target);
+      target = stream->WriteStringMaybeAliased(5, _s, target);
     }
   }
 
@@ -1188,7 +1201,7 @@ PROTOBUF_NOINLINE void CommandBinding::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     // string id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_id().empty()) {
@@ -1196,36 +1209,36 @@ PROTOBUF_NOINLINE void CommandBinding::Clear() {
                                         this_._internal_id());
       }
     }
-    // string source_label = 6;
+    // string source_label = 5;
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       if (!this_._internal_source_label().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_source_label());
       }
     }
-    // .s4wave.command.KeyCombo combo = 3;
+    // .s4wave.command.CommandFocusContext when = 4;
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      total_size += 1 +
-                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.combo_);
-    }
-    // .s4wave.command.KeySequence sequence = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      total_size += 1 +
-                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.sequence_);
-    }
-    // .s4wave.command.CommandBindingKind kind = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-      if (this_._internal_kind() != 0) {
-        total_size += 1 +
-                      ::_pbi::WireFormatLite::EnumSize(this_._internal_kind());
-      }
-    }
-    // .s4wave.command.CommandFocusContext when = 5;
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (this_._internal_when() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_when());
       }
+    }
+  }
+  switch (this_.binding_case()) {
+    // .s4wave.command.KeyCombo combo = 2;
+    case kCombo: {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.binding_.combo_);
+      break;
+    }
+    // .s4wave.command.KeySequence sequence = 3;
+    case kSequence: {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.binding_.sequence_);
+      break;
+    }
+    case BINDING_NOT_SET: {
+      break;
     }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
@@ -1247,7 +1260,7 @@ void CommandBinding::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_id().empty()) {
         _this->_internal_set_id(from._internal_id());
@@ -1267,33 +1280,44 @@ void CommandBinding::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
-      ABSL_DCHECK(from._impl_.combo_ != nullptr);
-      if (_this->_impl_.combo_ == nullptr) {
-        _this->_impl_.combo_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.combo_);
-      } else {
-        _this->_impl_.combo_->MergeFrom(*from._impl_.combo_);
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      ABSL_DCHECK(from._impl_.sequence_ != nullptr);
-      if (_this->_impl_.sequence_ == nullptr) {
-        _this->_impl_.sequence_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.sequence_);
-      } else {
-        _this->_impl_.sequence_->MergeFrom(*from._impl_.sequence_);
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-      if (from._internal_kind() != 0) {
-        _this->_impl_.kind_ = from._impl_.kind_;
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (from._internal_when() != 0) {
         _this->_impl_.when_ = from._impl_.when_;
       }
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
+  if (const uint32_t oneof_from_case =
+          from._impl_._oneof_case_[0]) {
+    const uint32_t oneof_to_case = _this->_impl_._oneof_case_[0];
+    const bool oneof_needs_init = oneof_to_case != oneof_from_case;
+    if (oneof_needs_init) {
+      if (oneof_to_case != 0) {
+        _this->clear_binding();
+      }
+      _this->_impl_._oneof_case_[0] = oneof_from_case;
+    }
+
+    switch (oneof_from_case) {
+      case kCombo: {
+        if (oneof_needs_init) {
+          _this->_impl_.binding_.combo_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.binding_.combo_);
+        } else {
+          _this->_impl_.binding_.combo_->MergeFrom(*from._impl_.binding_.combo_);
+        }
+        break;
+      }
+      case kSequence: {
+        if (oneof_needs_init) {
+          _this->_impl_.binding_.sequence_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.binding_.sequence_);
+        } else {
+          _this->_impl_.binding_.sequence_->MergeFrom(*from._impl_.binding_.sequence_);
+        }
+        break;
+      }
+      case BINDING_NOT_SET:
+        break;
+    }
+  }
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
 }
@@ -1314,12 +1338,9 @@ void CommandBinding::InternalSwap(CommandBinding* PROTOBUF_RESTRICT PROTOBUF_NON
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.source_label_, &other->_impl_.source_label_, arena);
-  ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.when_)
-      + sizeof(CommandBinding::_impl_.when_)
-      - PROTOBUF_FIELD_OFFSET(CommandBinding, _impl_.combo_)>(
-          reinterpret_cast<char*>(&_impl_.combo_),
-          reinterpret_cast<char*>(&other->_impl_.combo_));
+  swap(_impl_.when_, other->_impl_.when_);
+  swap(_impl_.binding_, other->_impl_.binding_);
+  swap(_impl_._oneof_case_[0], other->_impl_._oneof_case_[0]);
 }
 
 ::google::protobuf::Metadata CommandBinding::GetMetadata() const {

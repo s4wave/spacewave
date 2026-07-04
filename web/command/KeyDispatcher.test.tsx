@@ -3,7 +3,6 @@ import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import {
-  CommandBindingKind,
   CommandFocusContext,
   type Command,
   type CommandBinding,
@@ -77,8 +76,7 @@ function comboBinding(
 ): CommandBinding {
   return {
     id,
-    kind: CommandBindingKind.COMBO,
-    combo: { combo },
+    binding: { case: 'combo', value: { combo } },
     when,
   }
 }
@@ -90,8 +88,7 @@ function sequenceBinding(
 ): CommandBinding {
   return {
     id,
-    kind: CommandBindingKind.SEQUENCE,
-    sequence: { steps },
+    binding: { case: 'sequence', value: { steps } },
     when,
   }
 }
@@ -219,6 +216,47 @@ describe('KeyDispatcher', () => {
       expect(getByTestId('prefix-state').textContent).toBe('idle||')
     })
     expect(mockInvokeCommand).not.toHaveBeenCalled()
+  })
+
+  it('keeps prefix state active when a modifier key precedes a shifted sequence step', async () => {
+    mockCommands = [
+      commandState(
+        command('spacewave.sequence.shiftOpen', {
+          defaultBindings: [
+            sequenceBinding('leader-shift-open', ['Leader', 'Shift+O']),
+          ],
+        }),
+      ),
+    ]
+
+    const { getByTestId } = renderDispatcher(<PrefixStateObserver />)
+
+    dispatchKeydown(document, { key: ' ', ctrlKey: true })
+
+    await waitFor(() => {
+      expect(getByTestId('prefix-state').textContent).toBe(
+        'prefix|ctrl+space|shift+o:spacewave.sequence.shiftOpen:ok',
+      )
+    })
+
+    dispatchKeydown(document, { key: 'Shift', shiftKey: true })
+
+    await waitFor(() => {
+      expect(getByTestId('prefix-state').textContent).toBe(
+        'prefix|ctrl+space|shift+o:spacewave.sequence.shiftOpen:ok',
+      )
+    })
+
+    const event = dispatchKeydown(document, { key: 'O', shiftKey: true })
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(mockInvokeCommand).toHaveBeenCalledTimes(1)
+    expect(mockInvokeCommand).toHaveBeenCalledWith(
+      'spacewave.sequence.shiftOpen',
+    )
+    await waitFor(() => {
+      expect(getByTestId('prefix-state').textContent).toBe('idle||')
+    })
   })
 
   it('cancels prefix state when Escape follows Ctrl+Space', async () => {

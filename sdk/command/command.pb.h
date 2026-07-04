@@ -57,8 +57,6 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace s4wave {
 namespace command {
-enum CommandBindingKind : int;
-extern const uint32_t CommandBindingKind_internal_data_[];
 enum CommandFocusContext : int;
 extern const uint32_t CommandFocusContext_internal_data_[];
 class Command;
@@ -82,9 +80,6 @@ extern const ::google::protobuf::internal::ClassDataFull KeySequence_class_data_
 namespace google {
 namespace protobuf {
 template <>
-internal::EnumTraitsT<::s4wave::command::CommandBindingKind_internal_data_>
-    internal::EnumTraitsImpl::value<::s4wave::command::CommandBindingKind>;
-template <>
 internal::EnumTraitsT<::s4wave::command::CommandFocusContext_internal_data_>
     internal::EnumTraitsImpl::value<::s4wave::command::CommandFocusContext>;
 }  // namespace protobuf
@@ -92,43 +87,6 @@ internal::EnumTraitsT<::s4wave::command::CommandFocusContext_internal_data_>
 
 namespace s4wave {
 namespace command {
-enum CommandBindingKind : int {
-  COMMAND_BINDING_KIND_UNSPECIFIED = 0,
-  COMMAND_BINDING_KIND_COMBO = 1,
-  COMMAND_BINDING_KIND_SEQUENCE = 2,
-  CommandBindingKind_INT_MIN_SENTINEL_DO_NOT_USE_ =
-      ::std::numeric_limits<::int32_t>::min(),
-  CommandBindingKind_INT_MAX_SENTINEL_DO_NOT_USE_ =
-      ::std::numeric_limits<::int32_t>::max(),
-};
-
-extern const uint32_t CommandBindingKind_internal_data_[];
-inline constexpr CommandBindingKind CommandBindingKind_MIN =
-    static_cast<CommandBindingKind>(0);
-inline constexpr CommandBindingKind CommandBindingKind_MAX =
-    static_cast<CommandBindingKind>(2);
-inline bool CommandBindingKind_IsValid(int value) {
-  return 0 <= value && value <= 2;
-}
-inline constexpr int CommandBindingKind_ARRAYSIZE = 2 + 1;
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL CommandBindingKind_descriptor();
-template <typename T>
-const ::std::string& CommandBindingKind_Name(T value) {
-  static_assert(::std::is_same<T, CommandBindingKind>::value ||
-                    ::std::is_integral<T>::value,
-                "Incorrect type passed to CommandBindingKind_Name().");
-  return CommandBindingKind_Name(static_cast<CommandBindingKind>(value));
-}
-template <>
-inline const ::std::string& CommandBindingKind_Name(CommandBindingKind value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<CommandBindingKind_descriptor, 0, 2>(
-      static_cast<int>(value));
-}
-inline bool CommandBindingKind_Parse(
-    ::absl::string_view name, CommandBindingKind* PROTOBUF_NONNULL value) {
-  return ::google::protobuf::internal::ParseNamedEnum<CommandBindingKind>(CommandBindingKind_descriptor(), name,
-                                           value);
-}
 enum CommandFocusContext : int {
   COMMAND_FOCUS_CONTEXT_UNSPECIFIED = 0,
   COMMAND_FOCUS_CONTEXT_GLOBAL = 1,
@@ -629,6 +587,11 @@ class CommandBinding final : public ::google::protobuf::Message
     return *reinterpret_cast<const CommandBinding*>(
         &_CommandBinding_default_instance_);
   }
+  enum BindingCase {
+    kCombo = 2,
+    kSequence = 3,
+    BINDING_NOT_SET = 0,
+  };
   static constexpr int kIndexInFileMessages = 2;
   friend void swap(CommandBinding& a, CommandBinding& b) { a.Swap(&b); }
   inline void Swap(CommandBinding* PROTOBUF_NONNULL other) {
@@ -717,11 +680,10 @@ class CommandBinding final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kIdFieldNumber = 1,
-    kSourceLabelFieldNumber = 6,
-    kComboFieldNumber = 3,
-    kSequenceFieldNumber = 4,
-    kKindFieldNumber = 2,
-    kWhenFieldNumber = 5,
+    kSourceLabelFieldNumber = 5,
+    kWhenFieldNumber = 4,
+    kComboFieldNumber = 2,
+    kSequenceFieldNumber = 3,
   };
   // string id = 1;
   void clear_id() ;
@@ -738,7 +700,7 @@ class CommandBinding final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_id();
 
   public:
-  // string source_label = 6;
+  // string source_label = 5;
   void clear_source_label() ;
   const ::std::string& source_label() const;
   template <typename Arg_ = const ::std::string&, typename... Args_>
@@ -753,8 +715,22 @@ class CommandBinding final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_source_label();
 
   public:
-  // .s4wave.command.KeyCombo combo = 3;
+  // .s4wave.command.CommandFocusContext when = 4;
+  void clear_when() ;
+  ::s4wave::command::CommandFocusContext when() const;
+  void set_when(::s4wave::command::CommandFocusContext value);
+
+  private:
+  ::s4wave::command::CommandFocusContext _internal_when() const;
+  void _internal_set_when(::s4wave::command::CommandFocusContext value);
+
+  public:
+  // .s4wave.command.KeyCombo combo = 2;
   bool has_combo() const;
+  private:
+  bool _internal_has_combo() const;
+
+  public:
   void clear_combo() ;
   const ::s4wave::command::KeyCombo& combo() const;
   [[nodiscard]] ::s4wave::command::KeyCombo* PROTOBUF_NULLABLE release_combo();
@@ -768,8 +744,12 @@ class CommandBinding final : public ::google::protobuf::Message
   ::s4wave::command::KeyCombo* PROTOBUF_NONNULL _internal_mutable_combo();
 
   public:
-  // .s4wave.command.KeySequence sequence = 4;
+  // .s4wave.command.KeySequence sequence = 3;
   bool has_sequence() const;
+  private:
+  bool _internal_has_sequence() const;
+
+  public:
   void clear_sequence() ;
   const ::s4wave::command::KeySequence& sequence() const;
   [[nodiscard]] ::s4wave::command::KeySequence* PROTOBUF_NULLABLE release_sequence();
@@ -783,31 +763,17 @@ class CommandBinding final : public ::google::protobuf::Message
   ::s4wave::command::KeySequence* PROTOBUF_NONNULL _internal_mutable_sequence();
 
   public:
-  // .s4wave.command.CommandBindingKind kind = 2;
-  void clear_kind() ;
-  ::s4wave::command::CommandBindingKind kind() const;
-  void set_kind(::s4wave::command::CommandBindingKind value);
-
-  private:
-  ::s4wave::command::CommandBindingKind _internal_kind() const;
-  void _internal_set_kind(::s4wave::command::CommandBindingKind value);
-
-  public:
-  // .s4wave.command.CommandFocusContext when = 5;
-  void clear_when() ;
-  ::s4wave::command::CommandFocusContext when() const;
-  void set_when(::s4wave::command::CommandFocusContext value);
-
-  private:
-  ::s4wave::command::CommandFocusContext _internal_when() const;
-  void _internal_set_when(::s4wave::command::CommandFocusContext value);
-
-  public:
+  void clear_binding();
+  BindingCase binding_case() const;
   // @@protoc_insertion_point(class_scope:s4wave.command.CommandBinding)
  private:
   class _Internal;
+  void set_has_combo();
+  void set_has_sequence();
+  inline bool has_binding() const;
+  inline void clear_has_binding();
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 6,
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
                                    2, 52,
                                    2>
       _table_;
@@ -831,10 +797,14 @@ class CommandBinding final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr id_;
     ::google::protobuf::internal::ArenaStringPtr source_label_;
-    ::s4wave::command::KeyCombo* PROTOBUF_NULLABLE combo_;
-    ::s4wave::command::KeySequence* PROTOBUF_NULLABLE sequence_;
-    int kind_;
     int when_;
+    union BindingUnion {
+      constexpr BindingUnion() : _constinit_{} {}
+      ::google::protobuf::internal::ConstantInitialized _constinit_;
+      ::s4wave::command::KeyCombo* PROTOBUF_NULLABLE combo_;
+      ::s4wave::command::KeySequence* PROTOBUF_NULLABLE sequence_;
+    } binding_;
+    ::uint32_t _oneof_case_[1];
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1404,235 +1374,176 @@ inline void CommandBinding::set_allocated_id(::std::string* PROTOBUF_NULLABLE va
   // @@protoc_insertion_point(field_set_allocated:s4wave.command.CommandBinding.id)
 }
 
-// .s4wave.command.CommandBindingKind kind = 2;
-inline void CommandBinding::clear_kind() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.kind_ = 0;
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
-}
-inline ::s4wave::command::CommandBindingKind CommandBinding::kind() const {
-  // @@protoc_insertion_point(field_get:s4wave.command.CommandBinding.kind)
-  return _internal_kind();
-}
-inline void CommandBinding::set_kind(::s4wave::command::CommandBindingKind value) {
-  _internal_set_kind(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
-  // @@protoc_insertion_point(field_set:s4wave.command.CommandBinding.kind)
-}
-inline ::s4wave::command::CommandBindingKind CommandBinding::_internal_kind() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return static_cast<::s4wave::command::CommandBindingKind>(_impl_.kind_);
-}
-inline void CommandBinding::_internal_set_kind(::s4wave::command::CommandBindingKind value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.kind_ = value;
-}
-
-// .s4wave.command.KeyCombo combo = 3;
+// .s4wave.command.KeyCombo combo = 2;
 inline bool CommandBinding::has_combo() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
-  PROTOBUF_ASSUME(!value || _impl_.combo_ != nullptr);
-  return value;
+  return binding_case() == kCombo;
+}
+inline bool CommandBinding::_internal_has_combo() const {
+  return binding_case() == kCombo;
+}
+inline void CommandBinding::set_has_combo() {
+  _impl_._oneof_case_[0] = kCombo;
 }
 inline void CommandBinding::clear_combo() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (_impl_.combo_ != nullptr) _impl_.combo_->Clear();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+  if (binding_case() == kCombo) {
+    if (GetArena() == nullptr) {
+      delete _impl_.binding_.combo_;
+    } else if (::google::protobuf::internal::DebugHardenClearOneofMessageOnArena()) {
+      ::google::protobuf::internal::MaybePoisonAfterClear(_impl_.binding_.combo_);
+    }
+    clear_has_binding();
+  }
+}
+inline ::s4wave::command::KeyCombo* PROTOBUF_NULLABLE CommandBinding::release_combo() {
+  // @@protoc_insertion_point(field_release:s4wave.command.CommandBinding.combo)
+  if (binding_case() == kCombo) {
+    clear_has_binding();
+    auto* temp = _impl_.binding_.combo_;
+    if (GetArena() != nullptr) {
+      temp = ::google::protobuf::internal::DuplicateIfNonNull(temp);
+    }
+    _impl_.binding_.combo_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
 }
 inline const ::s4wave::command::KeyCombo& CommandBinding::_internal_combo() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  const ::s4wave::command::KeyCombo* p = _impl_.combo_;
-  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::command::KeyCombo&>(::s4wave::command::_KeyCombo_default_instance_);
+  return binding_case() == kCombo ? static_cast<const ::s4wave::command::KeyCombo&>(*_impl_.binding_.combo_)
+                     : reinterpret_cast<const ::s4wave::command::KeyCombo&>(::s4wave::command::_KeyCombo_default_instance_);
 }
 inline const ::s4wave::command::KeyCombo& CommandBinding::combo() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_get:s4wave.command.CommandBinding.combo)
   return _internal_combo();
 }
+inline ::s4wave::command::KeyCombo* PROTOBUF_NULLABLE CommandBinding::unsafe_arena_release_combo() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:s4wave.command.CommandBinding.combo)
+  if (binding_case() == kCombo) {
+    clear_has_binding();
+    auto* temp = _impl_.binding_.combo_;
+    _impl_.binding_.combo_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
 inline void CommandBinding::unsafe_arena_set_allocated_combo(
     ::s4wave::command::KeyCombo* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (GetArena() == nullptr) {
-    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.combo_);
-  }
-  _impl_.combo_ = reinterpret_cast<::s4wave::command::KeyCombo*>(value);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // We rely on the oneof clear method to free the earlier contents
+  // of this oneof. We can directly use the pointer we're given to
+  // set the new value.
+  clear_binding();
+  if (value) {
+    set_has_combo();
+    _impl_.binding_.combo_ = value;
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.command.CommandBinding.combo)
 }
-inline ::s4wave::command::KeyCombo* PROTOBUF_NULLABLE CommandBinding::release_combo() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
-  ::s4wave::command::KeyCombo* released = _impl_.combo_;
-  _impl_.combo_ = nullptr;
-  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
-    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
-    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
-    if (GetArena() == nullptr) {
-      delete old;
-    }
-  } else {
-    if (GetArena() != nullptr) {
-      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
-    }
-  }
-  return released;
-}
-inline ::s4wave::command::KeyCombo* PROTOBUF_NULLABLE CommandBinding::unsafe_arena_release_combo() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.command.CommandBinding.combo)
-
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
-  ::s4wave::command::KeyCombo* temp = _impl_.combo_;
-  _impl_.combo_ = nullptr;
-  return temp;
-}
 inline ::s4wave::command::KeyCombo* PROTOBUF_NONNULL CommandBinding::_internal_mutable_combo() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (_impl_.combo_ == nullptr) {
-    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::command::KeyCombo>(GetArena());
-    _impl_.combo_ = reinterpret_cast<::s4wave::command::KeyCombo*>(p);
+  if (binding_case() != kCombo) {
+    clear_binding();
+    set_has_combo();
+    _impl_.binding_.combo_ = 
+        ::google::protobuf::Message::DefaultConstruct<::s4wave::command::KeyCombo>(GetArena());
   }
-  return _impl_.combo_;
+  return _impl_.binding_.combo_;
 }
 inline ::s4wave::command::KeyCombo* PROTOBUF_NONNULL CommandBinding::mutable_combo()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::s4wave::command::KeyCombo* _msg = _internal_mutable_combo();
   // @@protoc_insertion_point(field_mutable:s4wave.command.CommandBinding.combo)
   return _msg;
 }
-inline void CommandBinding::set_allocated_combo(::s4wave::command::KeyCombo* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::Arena* message_arena = GetArena();
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (message_arena == nullptr) {
-    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.combo_);
-  }
 
-  if (value != nullptr) {
-    ::google::protobuf::Arena* submessage_arena = value->GetArena();
-    if (message_arena != submessage_arena) {
-      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
-    }
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
-  }
-
-  _impl_.combo_ = reinterpret_cast<::s4wave::command::KeyCombo*>(value);
-  // @@protoc_insertion_point(field_set_allocated:s4wave.command.CommandBinding.combo)
-}
-
-// .s4wave.command.KeySequence sequence = 4;
+// .s4wave.command.KeySequence sequence = 3;
 inline bool CommandBinding::has_sequence() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
-  PROTOBUF_ASSUME(!value || _impl_.sequence_ != nullptr);
-  return value;
+  return binding_case() == kSequence;
+}
+inline bool CommandBinding::_internal_has_sequence() const {
+  return binding_case() == kSequence;
+}
+inline void CommandBinding::set_has_sequence() {
+  _impl_._oneof_case_[0] = kSequence;
 }
 inline void CommandBinding::clear_sequence() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (_impl_.sequence_ != nullptr) _impl_.sequence_->Clear();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+  if (binding_case() == kSequence) {
+    if (GetArena() == nullptr) {
+      delete _impl_.binding_.sequence_;
+    } else if (::google::protobuf::internal::DebugHardenClearOneofMessageOnArena()) {
+      ::google::protobuf::internal::MaybePoisonAfterClear(_impl_.binding_.sequence_);
+    }
+    clear_has_binding();
+  }
+}
+inline ::s4wave::command::KeySequence* PROTOBUF_NULLABLE CommandBinding::release_sequence() {
+  // @@protoc_insertion_point(field_release:s4wave.command.CommandBinding.sequence)
+  if (binding_case() == kSequence) {
+    clear_has_binding();
+    auto* temp = _impl_.binding_.sequence_;
+    if (GetArena() != nullptr) {
+      temp = ::google::protobuf::internal::DuplicateIfNonNull(temp);
+    }
+    _impl_.binding_.sequence_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
 }
 inline const ::s4wave::command::KeySequence& CommandBinding::_internal_sequence() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  const ::s4wave::command::KeySequence* p = _impl_.sequence_;
-  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::command::KeySequence&>(::s4wave::command::_KeySequence_default_instance_);
+  return binding_case() == kSequence ? static_cast<const ::s4wave::command::KeySequence&>(*_impl_.binding_.sequence_)
+                     : reinterpret_cast<const ::s4wave::command::KeySequence&>(::s4wave::command::_KeySequence_default_instance_);
 }
 inline const ::s4wave::command::KeySequence& CommandBinding::sequence() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_get:s4wave.command.CommandBinding.sequence)
   return _internal_sequence();
 }
+inline ::s4wave::command::KeySequence* PROTOBUF_NULLABLE CommandBinding::unsafe_arena_release_sequence() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:s4wave.command.CommandBinding.sequence)
+  if (binding_case() == kSequence) {
+    clear_has_binding();
+    auto* temp = _impl_.binding_.sequence_;
+    _impl_.binding_.sequence_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
 inline void CommandBinding::unsafe_arena_set_allocated_sequence(
     ::s4wave::command::KeySequence* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (GetArena() == nullptr) {
-    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.sequence_);
-  }
-  _impl_.sequence_ = reinterpret_cast<::s4wave::command::KeySequence*>(value);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // We rely on the oneof clear method to free the earlier contents
+  // of this oneof. We can directly use the pointer we're given to
+  // set the new value.
+  clear_binding();
+  if (value) {
+    set_has_sequence();
+    _impl_.binding_.sequence_ = value;
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.command.CommandBinding.sequence)
 }
-inline ::s4wave::command::KeySequence* PROTOBUF_NULLABLE CommandBinding::release_sequence() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
-  ::s4wave::command::KeySequence* released = _impl_.sequence_;
-  _impl_.sequence_ = nullptr;
-  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
-    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
-    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
-    if (GetArena() == nullptr) {
-      delete old;
-    }
-  } else {
-    if (GetArena() != nullptr) {
-      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
-    }
-  }
-  return released;
-}
-inline ::s4wave::command::KeySequence* PROTOBUF_NULLABLE CommandBinding::unsafe_arena_release_sequence() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.command.CommandBinding.sequence)
-
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
-  ::s4wave::command::KeySequence* temp = _impl_.sequence_;
-  _impl_.sequence_ = nullptr;
-  return temp;
-}
 inline ::s4wave::command::KeySequence* PROTOBUF_NONNULL CommandBinding::_internal_mutable_sequence() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (_impl_.sequence_ == nullptr) {
-    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::command::KeySequence>(GetArena());
-    _impl_.sequence_ = reinterpret_cast<::s4wave::command::KeySequence*>(p);
+  if (binding_case() != kSequence) {
+    clear_binding();
+    set_has_sequence();
+    _impl_.binding_.sequence_ = 
+        ::google::protobuf::Message::DefaultConstruct<::s4wave::command::KeySequence>(GetArena());
   }
-  return _impl_.sequence_;
+  return _impl_.binding_.sequence_;
 }
 inline ::s4wave::command::KeySequence* PROTOBUF_NONNULL CommandBinding::mutable_sequence()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::s4wave::command::KeySequence* _msg = _internal_mutable_sequence();
   // @@protoc_insertion_point(field_mutable:s4wave.command.CommandBinding.sequence)
   return _msg;
 }
-inline void CommandBinding::set_allocated_sequence(::s4wave::command::KeySequence* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::Arena* message_arena = GetArena();
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (message_arena == nullptr) {
-    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.sequence_);
-  }
 
-  if (value != nullptr) {
-    ::google::protobuf::Arena* submessage_arena = value->GetArena();
-    if (message_arena != submessage_arena) {
-      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
-    }
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
-  }
-
-  _impl_.sequence_ = reinterpret_cast<::s4wave::command::KeySequence*>(value);
-  // @@protoc_insertion_point(field_set_allocated:s4wave.command.CommandBinding.sequence)
-}
-
-// .s4wave.command.CommandFocusContext when = 5;
+// .s4wave.command.CommandFocusContext when = 4;
 inline void CommandBinding::clear_when() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.when_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000004U);
 }
 inline ::s4wave::command::CommandFocusContext CommandBinding::when() const {
   // @@protoc_insertion_point(field_get:s4wave.command.CommandBinding.when)
@@ -1640,7 +1551,7 @@ inline ::s4wave::command::CommandFocusContext CommandBinding::when() const {
 }
 inline void CommandBinding::set_when(::s4wave::command::CommandFocusContext value) {
   _internal_set_when(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   // @@protoc_insertion_point(field_set:s4wave.command.CommandBinding.when)
 }
 inline ::s4wave::command::CommandFocusContext CommandBinding::_internal_when() const {
@@ -1652,7 +1563,7 @@ inline void CommandBinding::_internal_set_when(::s4wave::command::CommandFocusCo
   _impl_.when_ = value;
 }
 
-// string source_label = 6;
+// string source_label = 5;
 inline void CommandBinding::clear_source_label() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.source_label_.ClearToEmpty();
@@ -1717,6 +1628,15 @@ inline void CommandBinding::set_allocated_source_label(::std::string* PROTOBUF_N
   // @@protoc_insertion_point(field_set_allocated:s4wave.command.CommandBinding.source_label)
 }
 
+inline bool CommandBinding::has_binding() const {
+  return binding_case() != BINDING_NOT_SET;
+}
+inline void CommandBinding::clear_has_binding() {
+  _impl_._oneof_case_[0] = BINDING_NOT_SET;
+}
+inline CommandBinding::BindingCase CommandBinding::binding_case() const {
+  return CommandBinding::BindingCase(_impl_._oneof_case_[0]);
+}
 // -------------------------------------------------------------------
 
 // Command
@@ -2254,12 +2174,6 @@ Command::_internal_mutable_default_bindings() {
 namespace google {
 namespace protobuf {
 
-template <>
-struct is_proto_enum<::s4wave::command::CommandBindingKind> : std::true_type {};
-template <>
-inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::command::CommandBindingKind>() {
-  return ::s4wave::command::CommandBindingKind_descriptor();
-}
 template <>
 struct is_proto_enum<::s4wave::command::CommandFocusContext> : std::true_type {};
 template <>

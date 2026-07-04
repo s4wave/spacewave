@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  CommandBindingKind,
   CommandFocusContext,
   type Command,
   type CommandBinding,
@@ -42,8 +41,7 @@ function comboBinding(
 ): CommandBinding {
   return {
     id,
-    kind: CommandBindingKind.COMBO,
-    combo: { combo },
+    binding: { case: 'combo', value: { combo } },
     when,
   }
 }
@@ -55,8 +53,7 @@ function sequenceBinding(
 ): CommandBinding {
   return {
     id,
-    kind: CommandBindingKind.SEQUENCE,
-    sequence: { steps },
+    binding: { case: 'sequence', value: { steps } },
     when,
   }
 }
@@ -97,8 +94,7 @@ describe('KeybindingResolver', () => {
     ).toBe(bindings?.[0])
     expect(bindings?.[0]?.source).toEqual({
       id: 'legacy-keybinding',
-      kind: CommandBindingKind.COMBO,
-      combo: { combo: 'CmdOrCtrl+K' },
+      binding: { case: 'combo', value: { combo: 'CmdOrCtrl+K' } },
       when: CommandFocusContext.GLOBAL,
     })
     expect(graph.conflicts).toEqual([])

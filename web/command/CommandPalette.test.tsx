@@ -2,7 +2,6 @@ import { Window } from 'happy-dom'
 import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, render } from '@testing-library/react'
-import { CommandBindingKind } from '@s4wave/sdk/command/command.pb.js'
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 
 import { CommandPalette } from './CommandPalette.js'
@@ -143,13 +142,14 @@ describe('CommandPalette', () => {
           defaultBindings: [
             {
               id: 'open-combo',
-              kind: CommandBindingKind.COMBO,
-              combo: { combo: 'Ctrl+O' },
+              binding: { case: 'combo', value: { combo: 'Ctrl+O' } },
             },
             {
               id: 'open-sequence',
-              kind: CommandBindingKind.SEQUENCE,
-              sequence: { steps: ['Leader', 'F', 'O'] },
+              binding: {
+                case: 'sequence',
+                value: { steps: ['Leader', 'F', 'O'] },
+              },
             },
           ],
         },

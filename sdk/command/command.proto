@@ -1,15 +1,6 @@
 syntax = "proto3";
 package s4wave.command;
 
-// CommandBindingKind identifies how a command binding is matched.
-enum CommandBindingKind {
-  // COMMAND_BINDING_KIND_UNSPECIFIED is unset.
-  COMMAND_BINDING_KIND_UNSPECIFIED = 0;
-  // COMMAND_BINDING_KIND_COMBO matches one keydown event.
-  COMMAND_BINDING_KIND_COMBO = 1;
-  // COMMAND_BINDING_KIND_SEQUENCE matches ordered key steps.
-  COMMAND_BINDING_KIND_SEQUENCE = 2;
-}
 
 // CommandFocusContext identifies where a command binding applies.
 enum CommandFocusContext {
@@ -47,16 +38,16 @@ message KeySequence {
 message CommandBinding {
   // Id is stable within a command's default bindings.
   string id = 1;
-  // Kind selects the matching grammar.
-  CommandBindingKind kind = 2;
-  // Combo stores a one-event key binding.
-  KeyCombo combo = 3;
-  // Sequence stores an ordered key sequence.
-  KeySequence sequence = 4;
+  oneof binding {
+    // Combo stores a one-event key binding.
+    KeyCombo combo = 2;
+    // Sequence stores an ordered key sequence.
+    KeySequence sequence = 3;
+  }
   // When limits the binding to a focus context.
-  CommandFocusContext when = 5;
+  CommandFocusContext when = 4;
   // SourceLabel is an optional display label for the binding source.
-  string source_label = 6;
+  string source_label = 5;
 }
 
 // Command is the metadata for a registered command.

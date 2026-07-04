@@ -2,7 +2,6 @@ import { Window } from 'happy-dom'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, waitFor } from '@testing-library/react'
-import { CommandBindingKind } from '@s4wave/sdk/command/command.pb.js'
 import type { CommandBinding } from '@s4wave/sdk/command/command.pb.js'
 
 import { useCommand } from './useCommand.js'
@@ -207,14 +206,12 @@ describe('useCommand', () => {
     const defaultBindings: CommandBinding[] = [
       {
         id: 'settings.combo',
-        kind: CommandBindingKind.COMBO,
-        combo: { combo: 'CmdOrCtrl+Shift+,' },
+        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+Shift+,' } },
         sourceLabel: 'Spacewave',
       },
       {
         id: 'settings.sequence',
-        kind: CommandBindingKind.SEQUENCE,
-        sequence: { steps: ['Leader', ','] },
+        binding: { case: 'sequence', value: { steps: ['Leader', ','] } },
         sourceLabel: 'Spacewave',
       },
     ]
@@ -249,8 +246,7 @@ describe('useCommand', () => {
     const defaultBindings: CommandBinding[] = [
       {
         id: 'settings.combo',
-        kind: CommandBindingKind.COMBO,
-        combo: { combo: 'CmdOrCtrl+Alt+,' },
+        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+Alt+,' } },
       },
     ]
 

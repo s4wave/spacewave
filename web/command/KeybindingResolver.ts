@@ -1,5 +1,4 @@
 import {
-  CommandBindingKind,
   CommandFocusContext,
   type Command,
   type CommandBinding,
@@ -168,6 +167,15 @@ export function comboFromKeyboardEvent(event: KeyboardEvent): string {
   return parts.join('+')
 }
 
+export function isModifierKey(event: KeyboardEvent): boolean {
+  return (
+    event.key === 'Shift' ||
+    event.key === 'Control' ||
+    event.key === 'Alt' ||
+    event.key === 'Meta'
+  )
+}
+
 export function createSequenceNode(step?: string): KeybindingSequenceNode {
   return {
     step,
@@ -228,8 +236,7 @@ function commandDefaultBindings(command: Command): CommandBinding[] {
   return [
     {
       id: legacyBindingId,
-      kind: CommandBindingKind.COMBO,
-      combo: { combo: command.keybinding },
+      binding: { case: 'combo', value: { combo: command.keybinding } },
       when: CommandFocusContext.GLOBAL,
     },
   ]
@@ -247,8 +254,9 @@ function resolveCommandBinding(
       ? CommandFocusContext.GLOBAL
       : binding.when
   const bindingId = binding.id || defaultBindingId(binding)
-  if (binding.kind === CommandBindingKind.SEQUENCE) {
-    const sequence = (binding.sequence?.steps ?? []).flatMap((step) => {
+  if (binding.binding?.case === 'sequence') {
+    const sourceSequence = binding.binding.value.steps ?? []
+    const sequence = sourceSequence.flatMap((step) => {
       const normalized =
         step === 'Leader' ? leaderStep : normalizeKeyCombo(step, platform)
       return normalized ? [normalized] : []
@@ -261,13 +269,14 @@ function resolveCommandBinding(
       kind: 'sequence',
       context,
       sequence,
-      display: binding.sequence?.steps?.join(' ') ?? sequence.join(' '),
+      display: sourceSequence.join(' ') || sequence.join(' '),
       command,
       source: binding,
     }
   }
 
-  const comboText = binding.combo?.combo
+  if (binding.binding?.case !== 'combo') return null
+  const comboText = binding.binding.value.combo
   if (!comboText) return null
   const combo = normalizeKeyCombo(comboText, platform)
   if (!combo) return null
@@ -285,7 +294,7 @@ function resolveCommandBinding(
 }
 
 function defaultBindingId(binding: CommandBinding): string {
-  if (binding.kind === CommandBindingKind.SEQUENCE) return 'default-sequence'
+  if (binding.binding?.case === 'sequence') return 'default-sequence'
   return 'default-combo'
 }
 
