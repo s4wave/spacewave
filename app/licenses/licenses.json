@@ -68,7 +68,7 @@
     },
     {
       "name": "@lexical/clipboard",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -76,7 +76,7 @@
     },
     {
       "name": "@lexical/code",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -84,7 +84,7 @@
     },
     {
       "name": "@lexical/code-core",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -92,7 +92,7 @@
     },
     {
       "name": "@lexical/code-prism",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -100,7 +100,7 @@
     },
     {
       "name": "@lexical/code-shiki",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -108,7 +108,7 @@
     },
     {
       "name": "@lexical/dragon",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -116,7 +116,7 @@
     },
     {
       "name": "@lexical/extension",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -124,7 +124,7 @@
     },
     {
       "name": "@lexical/history",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -132,7 +132,7 @@
     },
     {
       "name": "@lexical/html",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -140,7 +140,7 @@
     },
     {
       "name": "@lexical/link",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -148,7 +148,7 @@
     },
     {
       "name": "@lexical/list",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -156,7 +156,7 @@
     },
     {
       "name": "@lexical/markdown",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -164,7 +164,7 @@
     },
     {
       "name": "@lexical/react",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -172,7 +172,7 @@
     },
     {
       "name": "@lexical/rich-text",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -180,7 +180,7 @@
     },
     {
       "name": "@lexical/selection",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -188,7 +188,7 @@
     },
     {
       "name": "@lexical/table",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -196,7 +196,7 @@
     },
     {
       "name": "@lexical/text",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -204,7 +204,7 @@
     },
     {
       "name": "@lexical/utils",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -606,21 +606,7 @@
     },
     {
       "name": "@shikijs/core",
-      "version": "4.0.2",
-      "spdx": "MIT",
-      "source": "js",
-      "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
-    },
-    {
-      "name": "@shikijs/core",
       "version": "4.2.0",
-      "spdx": "MIT",
-      "source": "js",
-      "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
-    },
-    {
-      "name": "@shikijs/engine-javascript",
-      "version": "4.0.2",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
@@ -641,13 +627,6 @@
     },
     {
       "name": "@shikijs/langs",
-      "version": "4.0.2",
-      "spdx": "MIT",
-      "source": "js",
-      "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
-    },
-    {
-      "name": "@shikijs/langs",
       "version": "4.2.0",
       "spdx": "MIT",
       "source": "js",
@@ -655,21 +634,7 @@
     },
     {
       "name": "@shikijs/primitive",
-      "version": "4.0.2",
-      "spdx": "MIT",
-      "source": "js",
-      "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
-    },
-    {
-      "name": "@shikijs/primitive",
       "version": "4.2.0",
-      "spdx": "MIT",
-      "source": "js",
-      "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
-    },
-    {
-      "name": "@shikijs/themes",
-      "version": "4.0.2",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
@@ -684,13 +649,6 @@
     {
       "name": "@shikijs/transformers",
       "version": "3.23.0",
-      "spdx": "MIT",
-      "source": "js",
-      "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
-    },
-    {
-      "name": "@shikijs/types",
-      "version": "4.0.2",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
@@ -838,7 +796,7 @@
     },
     {
       "name": "cnfast",
-      "version": "0.0.7",
+      "version": "0.0.8",
       "spdx": "MIT",
       "source": "js",
       "fullText": "MIT License\n\nCopyright (c) 2026 Aiden Bai\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n\n-------------------------------------------------------------------------------\n\ncnfast bundles and adapts code from the following MIT-licensed projects:\n\nclsx — Copyright (c) Luke Edwards <luke.edwards05@gmail.com> (lukeed.com)\nhttps://github.com/lukeed/clsx\n\ntailwind-merge — Copyright (c) 2021 Dany Castillo\nhttps://github.com/dcastil/tailwind-merge\n\nBoth are distributed under the MIT License, the full text of which is identical\nto the license above (with their respective copyright holders)."
@@ -946,7 +904,7 @@
     },
     {
       "name": "github.com/aperturerobotics/bbolt",
-      "version": "v0.0.0-20260617204204-71b28cbadcb4",
+      "version": "v0.0.0-20260704100202-48a26303ac88",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/etcd-io/bbolt",
@@ -1371,7 +1329,7 @@
     },
     {
       "name": "github.com/klauspost/compress",
-      "version": "v1.18.6",
+      "version": "v1.19.0",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/klauspost/compress",
@@ -1463,6 +1421,14 @@
       "source": "go",
       "repo": "https://github.com/multiformats/go-varint",
       "copyrightNotice": "Copyright (c) 2019 Protocol Labs"
+    },
+    {
+      "name": "github.com/mxschmitt/playwright-go",
+      "version": "v0.6100.0",
+      "spdx": "MIT",
+      "source": "go",
+      "repo": "https://github.com/mxschmitt/playwright-go",
+      "copyrightNotice": "Copyright (c) 2020 Max Schmitt"
     },
     {
       "name": "github.com/ncruces/go-sqlite3",
@@ -1657,14 +1623,6 @@
       "fullText": "Copyright (c) 2015, Dave Cheney <dave@cheney.net>\nAll rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are met:\n\n* Redistributions of source code must retain the above copyright notice, this\n  list of conditions and the following disclaimer.\n\n* Redistributions in binary form must reproduce the above copyright notice,\n  this list of conditions and the following disclaimer in the documentation\n  and/or other materials provided with the distribution.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\"\nAND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE\nIMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE\nDISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE\nFOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL\nDAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR\nSERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER\nCAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,\nOR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\nOF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n"
     },
     {
-      "name": "github.com/playwright-community/playwright-go",
-      "version": "v0.6000.0",
-      "spdx": "MIT",
-      "source": "go",
-      "repo": "https://github.com/playwright-community/playwright-go",
-      "copyrightNotice": "Copyright (c) 2020 Max Schmitt"
-    },
-    {
       "name": "github.com/pmezard/go-difflib",
       "version": "v1.0.1-0.20181226105442-5d4384ee4fb2",
       "spdx": "BSD-3-Clause",
@@ -1682,7 +1640,7 @@
     },
     {
       "name": "github.com/restic/chunker",
-      "version": "v0.4.0",
+      "version": "v0.5.0",
       "spdx": "BSD-2-Clause",
       "source": "go",
       "repo": "https://github.com/restic/chunker",
@@ -1841,7 +1799,7 @@
     },
     {
       "name": "go.starlark.net",
-      "version": "v0.0.0-20260613233743-8ba36ccb83fb",
+      "version": "v0.0.0-20260630144053-529d8e869a14",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "fullText": "Copyright (c) 2017 The Bazel Authors.  All rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are\nmet:\n\n1. Redistributions of source code must retain the above copyright\n   notice, this list of conditions and the following disclaimer.\n\n2. Redistributions in binary form must reproduce the above copyright\n   notice, this list of conditions and the following disclaimer in the\n   documentation and/or other materials provided with the\n   distribution.\n\n3. Neither the name of the copyright holder nor the names of its\n   contributors may be used to endorse or promote products derived\n   from this software without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS\n\"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT\nLIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR\nA PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT\nHOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,\nSPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT\nLIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,\nDATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY\nTHEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT\n(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\nOF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n"
@@ -1949,7 +1907,7 @@
     },
     {
       "name": "gorm.io/gorm",
-      "version": "v1.31.1",
+      "version": "v1.31.2",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://gorm.io/gorm",
@@ -2028,7 +1986,7 @@
     },
     {
       "name": "lexical",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/facebook/lexical",
@@ -2158,13 +2116,6 @@
       "copyrightNotice": "Copyright (c) Meta Platforms, Inc. and affiliates."
     },
     {
-      "name": "react-error-boundary",
-      "version": "6.1.1",
-      "spdx": "MIT",
-      "source": "js",
-      "copyrightNotice": "Copyright (c) 2020 Brian Vaughn"
-    },
-    {
       "name": "react-icons",
       "version": "5.6.0",
       "spdx": "MIT",
@@ -2238,13 +2189,6 @@
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) Meta Platforms, Inc. and affiliates."
-    },
-    {
-      "name": "shiki",
-      "version": "4.0.2",
-      "spdx": "MIT",
-      "source": "js",
-      "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
     },
     {
       "name": "shiki",
