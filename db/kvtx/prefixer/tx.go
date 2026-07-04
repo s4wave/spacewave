@@ -35,6 +35,18 @@ func (t *tx) Get(ctx context.Context, key []byte) (data []byte, found bool, err 
 	return t.lower.Get(ctx, k)
 }
 
+// GetBatch returns values for multiple keys.
+func (t *tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
+	prefixed := make([][]byte, len(keys))
+	for i, key := range keys {
+		if len(key) == 0 {
+			return nil, nil, kvtx.ErrEmptyKey
+		}
+		prefixed[i] = t.getKey(key)
+	}
+	return kvtx.GetBatch(ctx, t.lower, prefixed)
+}
+
 // Size returns the number of keys in the tree.
 func (t *tx) Size(ctx context.Context) (uint64, error) {
 	return t.lower.Size(ctx)

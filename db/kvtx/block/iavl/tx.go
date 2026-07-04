@@ -137,6 +137,32 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	return val, true, nil
 }
 
+// GetBatch returns values for multiple keys.
+func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
+	values := make([][]byte, len(keys))
+	found := make([]bool, len(keys))
+	lookups := make([]batchLookup, 0, len(keys))
+	for i, key := range keys {
+		if len(key) == 0 {
+			return nil, nil, kvtx.ErrEmptyKey
+		}
+		lookups = append(lookups, batchLookup{
+			key:   key,
+			index: i,
+		})
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, nil, err
+	}
+	if t.root.GetSize() == 0 || len(lookups) == 0 {
+		return values, found, nil
+	}
+	if err := t.getBatchFromNode(ctx, t.bcs, t.root, lookups, values, found); err != nil {
+		return nil, nil, err
+	}
+	return values, found, nil
+}
+
 // GetCursorAtKey returns the cursor at the specified key, if it exists.
 // If the key was updated with Set(), points to a Blob.
 //
@@ -390,6 +416,67 @@ func (t *Tx) getFromNode(
 		return nil, nil, err
 	}
 	return t.getFromNode(ctx, lcs, ln, key)
+}
+
+type batchLookup struct {
+	key   []byte
+	index int
+}
+
+func (t *Tx) getBatchFromNode(
+	ctx context.Context,
+	bcs *block.Cursor,
+	n *Node,
+	lookups []batchLookup,
+	values [][]byte,
+	found []bool,
+) error {
+	if n == nil {
+		return nil
+	}
+	if n.IsLeaf() {
+		for _, lookup := range lookups {
+			if !bytes.Equal(n.GetKey(), lookup.key) {
+				continue
+			}
+			value, err := t.nodeToValue(ctx, bcs, n)
+			if err != nil {
+				return err
+			}
+			values[lookup.index] = value
+			found[lookup.index] = true
+		}
+		return nil
+	}
+
+	var leftLookups []batchLookup
+	var rightLookups []batchLookup
+	for _, lookup := range lookups {
+		if bytes.Compare(lookup.key, n.GetKey()) < 0 {
+			leftLookups = append(leftLookups, lookup)
+		} else {
+			rightLookups = append(rightLookups, lookup)
+		}
+	}
+	if len(leftLookups) != 0 {
+		leftNode, leftCursor, err := n.FollowLeft(ctx, bcs)
+		if err != nil {
+			return err
+		}
+		if err := t.getBatchFromNode(ctx, leftCursor, leftNode, leftLookups, values, found); err != nil {
+			return err
+		}
+	}
+	if len(rightLookups) != 0 {
+		rightNode, rightCursor, err := n.FollowRight(ctx, bcs)
+		if err != nil {
+			return err
+		}
+		if err := t.getBatchFromNode(ctx, rightCursor, rightNode, rightLookups, values, found); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // setRootCursor updates the root cursor and object.

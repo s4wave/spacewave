@@ -39,19 +39,26 @@ func (t *Tx) Get(ctx context.Context, key kv.Key) (kv.Value, error) {
 // GetBatch fetches values for multiple keys from the database.
 // A nil element in the slice indicates that the key does not exist.
 func (t *Tx) GetBatch(ctx context.Context, keys []kv.Key) ([]kv.Value, error) {
-	var err error
 	vals := make([]kv.Value, len(keys))
-	for ki, k := range keys {
-		if len(k) == 0 {
+	lowerKeys := make([][]byte, 0, len(keys))
+	lowerIndexes := make([]int, 0, len(keys))
+	for ki, key := range keys {
+		if len(key) == 0 {
 			continue
 		}
-		vals[ki], err = t.Get(ctx, k)
-		if err != nil {
-			if err == kv.ErrNotFound {
-				vals[ki] = nil
-			} else {
-				return nil, err
-			}
+		lowerKeys = append(lowerKeys, key)
+		lowerIndexes = append(lowerIndexes, ki)
+	}
+	if len(lowerKeys) == 0 {
+		return vals, nil
+	}
+	lowerVals, found, err := kvtx.GetBatch(ctx, t.tx, lowerKeys)
+	if err != nil {
+		return nil, err
+	}
+	for i, index := range lowerIndexes {
+		if found[i] {
+			vals[index] = lowerVals[i]
 		}
 	}
 	return vals, nil

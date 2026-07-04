@@ -15,6 +15,15 @@ func (t *Tx) Get(ctx context.Context, key []byte) (data []byte, found bool, err 
 	return tc.Get(ctx, key)
 }
 
+// GetBatch returns values for multiple keys.
+func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
+	tc := t.tc
+	if tc == nil {
+		return nil, nil, kvtx.ErrDiscarded
+	}
+	return tc.GetBatch(ctx, keys)
+}
+
 // Size returns the number of keys in the store.
 func (t *Tx) Size(ctx context.Context) (uint64, error) {
 	tc := t.tc

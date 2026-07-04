@@ -19,6 +19,11 @@ func (o *kvtxTxOps) Get(ctx context.Context, key []byte) (data []byte, found boo
 	return o.m.m.Get(ctx, key)
 }
 
+// GetBatch returns values for multiple keys.
+func (o *kvtxTxOps) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
+	return kvtx.GetBatchFallback(ctx, o, keys)
+}
+
 // Size returns number of keys in the store
 func (o *kvtxTxOps) Size(ctx context.Context) (uint64, error) {
 	return o.m.m.Size(ctx)

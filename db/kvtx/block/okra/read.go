@@ -59,6 +59,68 @@ func (t *Tx) findEntry(ctx context.Context, key []byte) (*Page, *block.Cursor, i
 	return page, pageCursor, idx, nil
 }
 
+type batchLookup struct {
+	key   []byte
+	index int
+}
+
+func (t *Tx) findEntriesBatch(
+	ctx context.Context,
+	page *Page,
+	pageCursor *block.Cursor,
+	lookups []batchLookup,
+	values [][]byte,
+	found []bool,
+) error {
+	if page.GetLevel() == 0 {
+		for _, lookup := range lookups {
+			idx := page.searchEntry(lookup.key)
+			if idx < 0 {
+				continue
+			}
+			ent := page.GetEntries()[idx]
+			if ent.GetAnchor() || !bytes.Equal(ent.GetKey(), lookup.key) {
+				continue
+			}
+			value, err := t.entryToValue(ctx, page, pageCursor, idx)
+			if err != nil {
+				return err
+			}
+			values[lookup.index] = value
+			found[lookup.index] = true
+		}
+		return nil
+	}
+
+	groups := make(map[int][]batchLookup)
+	for _, lookup := range lookups {
+		idx := page.searchEntry(lookup.key)
+		if idx >= 0 {
+			groups[idx] = append(groups[idx], lookup)
+		}
+	}
+	for idx, group := range groups {
+		childCursor := page.FollowChild(pageCursor, idx)
+		childPage, err := loadPage(ctx, childCursor)
+		if err != nil {
+			return err
+		}
+		nextGroup := group[:0]
+		for _, lookup := range group {
+			if childPage.containsKey(lookup.key) {
+				nextGroup = append(nextGroup, lookup)
+			}
+		}
+		if len(nextGroup) == 0 {
+			continue
+		}
+		if err := t.findEntriesBatch(ctx, childPage, childCursor, nextGroup, values, found); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (p *Page) containsKey(key []byte) bool {
 	if !p.GetStartsAtAnchor() && bytes.Compare(key, p.GetLowerBound()) < 0 {
 		return false

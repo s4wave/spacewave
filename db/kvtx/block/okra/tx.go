@@ -145,6 +145,36 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	return value, true, err
 }
 
+// GetBatch returns values for multiple keys.
+func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
+	values := make([][]byte, len(keys))
+	found := make([]bool, len(keys))
+	lookups := make([]batchLookup, 0, len(keys))
+	for i, key := range keys {
+		if len(key) == 0 {
+			return nil, nil, kvtx.ErrEmptyKey
+		}
+		lookups = append(lookups, batchLookup{
+			key:   key,
+			index: i,
+		})
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, nil, err
+	}
+	if t.root.GetSize() == 0 || len(lookups) == 0 {
+		return values, found, nil
+	}
+	page, pageCursor, err := t.getRootPage(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := t.findEntriesBatch(ctx, page, pageCursor, lookups, values, found); err != nil {
+		return nil, nil, err
+	}
+	return values, found, nil
+}
+
 // GetCursorAtKey returns the cursor at the specified key, if it exists.
 func (t *Tx) GetCursorAtKey(ctx context.Context, key []byte) (*block.Cursor, error) {
 	if len(key) == 0 {

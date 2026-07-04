@@ -113,6 +113,46 @@ func (t *TXCache) Get(ctx context.Context, key []byte) (data []byte, found bool,
 	return t.underlying.Get(ctx, key)
 }
 
+// GetBatch returns values for multiple keys.
+func (t *TXCache) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
+	t.mtx.RLock()
+	snapRemove := t.remove
+	snapSet := t.set
+	t.mtx.RUnlock()
+
+	values := make([][]byte, len(keys))
+	found := make([]bool, len(keys))
+	missingKeys := make([][]byte, 0, len(keys))
+	missingIndexes := make([]int, 0, len(keys))
+	for i, key := range keys {
+		if len(key) == 0 {
+			return nil, nil, kvtx.ErrEmptyKey
+		}
+		if checkWasRemoved(snapRemove, key) {
+			continue
+		}
+		if val, ok := checkWasAdded(snapSet, key); ok {
+			values[i] = val
+			found[i] = true
+			continue
+		}
+		missingKeys = append(missingKeys, key)
+		missingIndexes = append(missingIndexes, i)
+	}
+	if len(missingKeys) == 0 {
+		return values, found, nil
+	}
+	missingValues, missingFound, err := kvtx.GetBatch(ctx, t.underlying, missingKeys)
+	if err != nil {
+		return nil, nil, err
+	}
+	for i, index := range missingIndexes {
+		values[index] = missingValues[i]
+		found[index] = missingFound[i]
+	}
+	return values, found, nil
+}
+
 // Size returns the number of keys in the store plus the added keys from the tx.
 func (t *TXCache) Size(ctx context.Context) (uint64, error) {
 	t.mtx.RLock()

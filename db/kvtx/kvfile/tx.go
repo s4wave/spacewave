@@ -40,6 +40,11 @@ func (s *KvfileTx) Get(ctx context.Context, key []byte) (data []byte, found bool
 	return s.rdr.Get(key)
 }
 
+// GetBatch returns values for multiple keys.
+func (s *KvfileTx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
+	return kvtx.GetBatchFallback(ctx, s, keys)
+}
+
 // Exists checks if a key exists.
 func (s *KvfileTx) Exists(ctx context.Context, key []byte) (bool, error) {
 	return s.rdr.Exists(key)

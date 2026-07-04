@@ -48,6 +48,26 @@ func (t *Tx) Get(ctx context.Context, key []byte) (data []byte, found bool, err 
 	return t.Tx.Get(ctx, key)
 }
 
+// GetBatch returns values for multiple keys.
+func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) (values [][]byte, found []bool, err error) {
+	t.le.Debugf("GetBatch(keys=%d) start", len(keys))
+	defer func() {
+		var foundCount int
+		for _, ok := range found {
+			if ok {
+				foundCount++
+			}
+		}
+		t.le.Debugf(
+			"GetBatch(keys=%d) => found(%d) err(%v)",
+			len(keys),
+			foundCount,
+			err,
+		)
+	}()
+	return kvtx.GetBatch(ctx, t.Tx, keys)
+}
+
 // Size returns number of keys in the store.
 func (t *Tx) Size(ctx context.Context) (count uint64, err error) {
 	t.le.Debug("Size() start")

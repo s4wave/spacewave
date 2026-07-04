@@ -47,6 +47,23 @@ func (t *TxStoreTx) Get(ctx context.Context, key []byte) (data []byte, found boo
 	return t.tx.Get(ctx, key)
 }
 
+// GetBatch returns values for multiple keys.
+func (t *TxStoreTx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
+	for _, key := range keys {
+		if len(key) == 0 {
+			return nil, nil, ErrEmptyKey
+		}
+	}
+	t.rmtx.RLock()
+	defer t.rmtx.RUnlock()
+
+	if t.discarded {
+		return nil, nil, tx.ErrDiscarded
+	}
+
+	return GetBatch(ctx, t.tx, keys)
+}
+
 // Size returns the number of keys in the store.
 func (t *TxStoreTx) Size(ctx context.Context) (uint64, error) {
 	t.rmtx.RLock()
