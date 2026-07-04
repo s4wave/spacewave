@@ -3,7 +3,6 @@ import {
   use,
   useEffect,
   useEffectEvent,
-  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -11,7 +10,6 @@ import {
 import {
   comboFromKeyboardEvent,
   isModifierKey,
-  resolveKeybindings,
   selectActiveComboMatch,
   selectActiveSequenceNode,
   type KeybindingConflict,
@@ -19,6 +17,7 @@ import {
 } from './KeybindingResolver.js'
 import { useCommands, useInvokeCommand } from './CommandContext.js'
 import { useFocusContextResolver } from './FocusContext.js'
+import { useKeybindingGraph } from './useKeybindingGraph.js'
 
 export type KeyDispatcherMode = 'idle' | 'prefix'
 
@@ -61,7 +60,7 @@ export function KeyDispatcher({ children }: { children?: ReactNode }) {
   const resolveFocusContexts = useFocusContextResolver()
   const [prefixState, setPrefixState] =
     useState<KeyDispatcherPrefixState>(idlePrefixState)
-  const graph = useMemo(() => resolveKeybindings(commands), [commands])
+  const graph = useKeybindingGraph(commands)
   const prefixRef = useRef<PrefixSession | null>(null)
 
   const clearPrefix = useEffectEvent(() => {

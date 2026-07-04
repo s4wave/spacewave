@@ -23,9 +23,9 @@ import { formatKeybindingHint } from '@s4wave/web/command/CommandPalette.js'
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 import {
   getCommandDisplayBindings,
-  resolveKeybindings,
   type KeybindingGraph,
 } from '@s4wave/web/command/KeybindingResolver.js'
+import { useKeybindingGraph } from '@s4wave/web/command/useKeybindingGraph.js'
 
 // MenuNode represents a node in the menu tree.
 interface MenuNode {
@@ -206,7 +206,7 @@ export function ShellMenuBar() {
   const commands = useCommands()
   const invokeCommand = useInvokeCommand()
   const openCommand = useOpenCommand()
-  const bindingGraph = useMemo(() => resolveKeybindings(commands), [commands])
+  const bindingGraph = useKeybindingGraph(commands)
 
   const menuTree = useMemo(
     () => buildMenuTree(commands, bindingGraph),

@@ -14,6 +14,7 @@ import {
   selectActiveComboMatch,
   selectActiveSequenceNode,
 } from './KeybindingResolver.js'
+import type { KeybindingOverrideLayer } from './keybinding-overrides.js'
 
 function commandState(
   command: Command,
@@ -456,5 +457,239 @@ describe('KeybindingResolver', () => {
     expect(getCommandDisplayBindings(graph, 'notes.insert.link')).toEqual([
       'CmdOrCtrl+K (Editor)',
     ])
+  })
+
+  it('applies a local override layer above defaults for clearing, replacement, addition, disabling, and reset fallback', () => {
+    const commands = [
+      commandState(
+        command('spacewave.palette', {
+          defaultBindings: [
+            comboBinding('palette-default', 'Ctrl+P'),
+            comboBinding('palette-alt', 'Ctrl+Shift+P'),
+          ],
+        }),
+      ),
+      commandState(
+        command('spacewave.quick-open', {
+          defaultBindings: [comboBinding('quick-open-default', 'Ctrl+O')],
+        }),
+      ),
+      commandState(
+        command('spacewave.disabled', {
+          defaultBindings: [comboBinding('disabled-default', 'Ctrl+D')],
+        }),
+      ),
+      commandState(
+        command('spacewave.reset', {
+          defaultBindings: [comboBinding('reset-default', 'Ctrl+R')],
+        }),
+      ),
+    ]
+    const localLayer: KeybindingOverrideLayer = {
+      scope: 'local',
+      label: 'Local',
+      overrideSet: {
+        version: 1,
+        overrides: {
+          'spacewave.palette': {
+            clearedBindingIds: ['palette-alt'],
+            bindings: [comboBinding('palette-local', 'Ctrl+K')],
+          },
+          'spacewave.quick-open': {
+            replaceBindings: true,
+            bindings: [sequenceBinding('quick-open-local', ['Leader', 'O'])],
+          },
+          'spacewave.disabled': {
+            disabled: true,
+          },
+        },
+        settings: {},
+      },
+    }
+
+    const graph = resolveKeybindings(commands, {
+      platform: 'other',
+      overrideLayers: [localLayer],
+    })
+
+    expect(
+      graph.bindingsByCommandId.get('spacewave.palette')?.map((binding) => ({
+        id: binding.bindingId,
+        display: binding.display,
+        layer: binding.sourceLayer,
+        label: binding.sourceLayerLabel,
+      })),
+    ).toEqual([
+      {
+        id: 'palette-default',
+        display: 'Ctrl+P',
+        layer: 'default',
+        label: 'Default',
+      },
+      {
+        id: 'palette-local',
+        display: 'Ctrl+K',
+        layer: 'local',
+        label: 'Local',
+      },
+    ])
+    expect(
+      graph.comboBindings.has(
+        contextKey(CommandFocusContext.GLOBAL, 'ctrl+shift+p'),
+      ),
+    ).toBe(false)
+    expect(
+      graph.bindingsByCommandId.get('spacewave.quick-open')?.map((binding) => ({
+        id: binding.bindingId,
+        sequence: binding.sequence,
+        layer: binding.sourceLayer,
+      })),
+    ).toEqual([
+      {
+        id: 'quick-open-local',
+        sequence: ['ctrl+space', 'o'],
+        layer: 'local',
+      },
+    ])
+    expect(graph.bindingsByCommandId.has('spacewave.disabled')).toBe(false)
+    expect(
+      graph.bindingsByCommandId.get('spacewave.reset')?.map((binding) => ({
+        id: binding.bindingId,
+        layer: binding.sourceLayer,
+      })),
+    ).toEqual([{ id: 'reset-default', layer: 'default' }])
+  })
+
+  it('does not apply account or space layers unless passed and keeps the cascade ready for space over account over local over default', () => {
+    const commands = [
+      commandState(
+        command('spacewave.palette', {
+          defaultBindings: [comboBinding('palette-default', 'Ctrl+P')],
+        }),
+      ),
+    ]
+    const localLayer: KeybindingOverrideLayer = {
+      scope: 'local',
+      label: 'Local',
+      overrideSet: {
+        version: 1,
+        overrides: {
+          'spacewave.palette': {
+            replaceBindings: true,
+            bindings: [comboBinding('palette-local', 'Ctrl+L')],
+          },
+        },
+        settings: {},
+      },
+    }
+    const accountLayer: KeybindingOverrideLayer = {
+      scope: 'account',
+      label: 'Account',
+      overrideSet: {
+        version: 1,
+        overrides: {
+          'spacewave.palette': {
+            replaceBindings: true,
+            bindings: [comboBinding('palette-account', 'Ctrl+A')],
+          },
+        },
+        settings: {},
+      },
+    }
+    const spaceLayer: KeybindingOverrideLayer = {
+      scope: 'space',
+      label: 'Space',
+      overrideSet: {
+        version: 1,
+        overrides: {
+          'spacewave.palette': {
+            replaceBindings: true,
+            bindings: [comboBinding('palette-space', 'Ctrl+S')],
+          },
+        },
+        settings: {},
+      },
+    }
+
+    expect(
+      getCommandDisplayBindings(
+        resolveKeybindings(commands, { platform: 'other' }),
+        'spacewave.palette',
+      ),
+    ).toEqual(['Ctrl+P'])
+    expect(
+      getCommandDisplayBindings(
+        resolveKeybindings(commands, {
+          platform: 'other',
+          overrideLayers: [localLayer],
+        }),
+        'spacewave.palette',
+      ),
+    ).toEqual(['Ctrl+L'])
+
+    const graph = resolveKeybindings(commands, {
+      platform: 'other',
+      overrideLayers: [localLayer, accountLayer, spaceLayer],
+    })
+    const binding = graph.bindingsByCommandId.get('spacewave.palette')?.[0]
+
+    expect(binding?.display).toBe('Ctrl+S')
+    expect(binding?.sourceLayer).toBe('space')
+    expect(binding?.sourceLayerLabel).toBe('Space')
+    expect(
+      graph.comboBindings.has(contextKey(CommandFocusContext.GLOBAL, 'ctrl+l')),
+    ).toBe(false)
+    expect(
+      graph.comboBindings.has(contextKey(CommandFocusContext.GLOBAL, 'ctrl+a')),
+    ).toBe(false)
+  })
+
+  it('records local same-context combo conflicts without dispatching either conflicting binding', () => {
+    const localLayer: KeybindingOverrideLayer = {
+      scope: 'local',
+      label: 'Local',
+      overrideSet: {
+        version: 1,
+        overrides: {
+          'spacewave.first': {
+            bindings: [
+              comboBinding('first-local', 'Ctrl+K', CommandFocusContext.EDITOR),
+            ],
+          },
+          'spacewave.second': {
+            bindings: [
+              comboBinding(
+                'second-local',
+                'Ctrl+K',
+                CommandFocusContext.EDITOR,
+              ),
+            ],
+          },
+        },
+        settings: {},
+      },
+    }
+    const graph = resolveKeybindings(
+      [
+        commandState(command('spacewave.first')),
+        commandState(command('spacewave.second')),
+      ],
+      { platform: 'other', overrideLayers: [localLayer] },
+    )
+    const key = contextKey(CommandFocusContext.EDITOR, 'ctrl+k')
+    const conflict = graph.comboConflicts.get(key)
+
+    expect(graph.comboBindings.has(key)).toBe(false)
+    expect(
+      conflict?.bindings.map((binding) => ({
+        commandId: binding.commandId,
+        layer: binding.sourceLayer,
+        label: binding.sourceLayerLabel,
+      })),
+    ).toEqual([
+      { commandId: 'spacewave.first', layer: 'local', label: 'Local' },
+      { commandId: 'spacewave.second', layer: 'local', label: 'Local' },
+    ])
+    expect(graph.conflicts).toEqual([conflict])
   })
 })

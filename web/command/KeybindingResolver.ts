@@ -4,6 +4,10 @@ import {
   type CommandBinding,
 } from '@s4wave/sdk/command/command.pb.js'
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
+import type {
+  KeybindingOverrideLayer,
+  KeybindingOverrideScope,
+} from './keybinding-overrides.js'
 
 const legacyBindingId = 'legacy-keybinding'
 const defaultLeaderCombo = 'Ctrl+Space'
@@ -15,6 +19,7 @@ export type ResolvedBindingKind = 'combo' | 'sequence'
 export interface KeybindingResolverOptions {
   platform?: KeybindingPlatform
   leaderCombo?: string
+  overrideLayers?: KeybindingOverrideLayer[]
 }
 
 export interface SelectedKeybindingMatch {
@@ -33,6 +38,8 @@ export interface ResolvedCommandBinding {
   display: string
   command: Command
   source: CommandBinding
+  sourceLayer: KeybindingOverrideScope | 'default'
+  sourceLayerLabel: string
 }
 
 export interface KeybindingConflict {
@@ -63,7 +70,12 @@ export function resolveKeybindings(
 ): KeybindingGraph {
   const platform = opts.platform ?? detectPlatform()
   const leaderCombo = opts.leaderCombo ?? defaultLeaderCombo
-  const bindings = collectBindings(commands, platform, leaderCombo)
+  const bindings = collectBindings(
+    commands,
+    platform,
+    leaderCombo,
+    opts.overrideLayers ?? [],
+  )
   const bindingsByCommandId = groupBindingsByCommandId(bindings)
   const comboBuckets = bucketBindings(
     bindings.filter((binding) => binding.kind === 'combo'),
@@ -250,10 +262,17 @@ export function selectActiveSequenceNode(
   return selectSequenceNode(node, activeBindingContexts(activeFocusContexts))
 }
 
+interface LayeredCommandBinding {
+  binding: CommandBinding
+  sourceLayer: KeybindingOverrideScope | 'default'
+  sourceLayerLabel: string
+}
+
 function collectBindings(
   commands: CommandState[],
   platform: KeybindingPlatform,
   leaderCombo: string,
+  overrideLayers: KeybindingOverrideLayer[],
 ): ResolvedCommandBinding[] {
   const bindings: ResolvedCommandBinding[] = []
   const leaderStep = normalizeKeyCombo(leaderCombo, platform)
@@ -265,11 +284,15 @@ function collectBindings(
       continue
     }
 
-    for (const binding of commandDefaultBindings(command)) {
+    for (const layeredBinding of commandEffectiveBindings(
+      command,
+      commandId,
+      overrideLayers,
+    )) {
       const resolved = resolveCommandBinding(
         command,
         commandId,
-        binding,
+        layeredBinding,
         platform,
         leaderStep,
       )
@@ -292,13 +315,54 @@ function commandDefaultBindings(command: Command): CommandBinding[] {
   ]
 }
 
+function commandEffectiveBindings(
+  command: Command,
+  commandId: string,
+  overrideLayers: KeybindingOverrideLayer[],
+): LayeredCommandBinding[] {
+  let bindings: LayeredCommandBinding[] = commandDefaultBindings(command).map(
+    (binding) => ({
+      binding,
+      sourceLayer: 'default',
+      sourceLayerLabel: 'Default',
+    }),
+  )
+
+  for (const layer of overrideLayers) {
+    const override = layer.overrideSet.overrides[commandId]
+    if (!override) continue
+    if (override.disabled) {
+      bindings = []
+      continue
+    }
+    if (override.replaceBindings) bindings = []
+    if (override.clearedBindingIds?.length) {
+      const cleared = new Set(override.clearedBindingIds)
+      bindings = bindings.filter(
+        (binding) =>
+          !cleared.has(binding.binding.id || defaultBindingId(binding.binding)),
+      )
+    }
+    bindings.push(
+      ...(override.bindings ?? []).map((binding) => ({
+        binding,
+        sourceLayer: layer.scope,
+        sourceLayerLabel: layer.label,
+      })),
+    )
+  }
+
+  return bindings
+}
+
 function resolveCommandBinding(
   command: Command,
   commandId: string,
-  binding: CommandBinding,
+  layeredBinding: LayeredCommandBinding,
   platform: KeybindingPlatform,
   leaderStep: string,
 ): ResolvedCommandBinding | null {
+  const binding = layeredBinding.binding
   const context =
     binding.when == null || binding.when === CommandFocusContext.UNSPECIFIED
       ? CommandFocusContext.GLOBAL
@@ -322,6 +386,8 @@ function resolveCommandBinding(
       display: sourceSequence.join(' ') || sequence.join(' '),
       command,
       source: binding,
+      sourceLayer: layeredBinding.sourceLayer,
+      sourceLayerLabel: layeredBinding.sourceLayerLabel,
     }
   }
 
@@ -340,6 +406,8 @@ function resolveCommandBinding(
     display: comboText,
     command,
     source: binding,
+    sourceLayer: layeredBinding.sourceLayer,
+    sourceLayerLabel: layeredBinding.sourceLayerLabel,
   }
 }
 

@@ -23,9 +23,9 @@ import {
 import { useCommand } from './useCommand.js'
 import {
   getCommandDisplayBindings,
-  resolveKeybindings,
   type KeybindingGraph,
 } from './KeybindingResolver.js'
+import { useKeybindingGraph } from './useKeybindingGraph.js'
 
 // isMacPlatform detects whether the current platform is macOS.
 const isMacPlatform =
@@ -257,7 +257,7 @@ export function CommandPalette() {
   }, [subItemCommandId, subQuery, getSubItems])
 
   const grouped = useMemo(() => groupCommands(commands), [commands])
-  const bindingGraph = useMemo(() => resolveKeybindings(commands), [commands])
+  const bindingGraph = useKeybindingGraph(commands)
 
   const handleSelect = useCallback(
     (commandId: string) => {
