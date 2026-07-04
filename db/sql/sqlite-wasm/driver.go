@@ -11,9 +11,9 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"io"
-	"sync"
 
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	hydra_sql "github.com/s4wave/spacewave/db/sql"
 	"github.com/s4wave/spacewave/db/sql/sqlite-wasm/rpc"
@@ -22,11 +22,13 @@ import (
 // driverName is the name registered with database/sql.
 const driverName = "sqlite3-wasm"
 
-// clientMu guards the global RPC client reference.
-var clientMu sync.Mutex
+// database/sql looks up a registered driver by name and constructs every
+// connection through it, so the RPC client the driver dials cannot be threaded
+// through a driver instance; it is package-global by database/sql design and
+// wired once by the runtime that owns the sqlite.wasm Worker via SetClient.
 
-// clientCh is closed when a client becomes available.
-var clientCh = make(chan struct{})
+// clientBcast guards globalClient and wakes getClient waiters on every change.
+var clientBcast broadcast.Broadcast
 
 // globalClient is the current RPC client, set by SetClient.
 var globalClient sql_sqlite_wasm_rpc.SRPCSqliteBridgeClient
@@ -38,43 +40,29 @@ func init() {
 // SetClient sets the RPC client used by the driver.
 // Call with nil to clear the client (e.g. on Worker disconnect).
 func SetClient(client sql_sqlite_wasm_rpc.SRPCSqliteBridgeClient) {
-	clientMu.Lock()
-	globalClient = client
-	if client != nil {
-		// Signal waiters.
-		select {
-		case <-clientCh:
-			// Already closed, make a new channel for future waits.
-		default:
-			close(clientCh)
-		}
-	} else {
-		// Reset the channel so future waiters block.
-		clientCh = make(chan struct{})
-	}
-	clientMu.Unlock()
+	clientBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		globalClient = client
+		broadcast()
+	})
 }
 
 // getClient returns the current RPC client, blocking until one is available.
 func getClient(ctx context.Context) (sql_sqlite_wasm_rpc.SRPCSqliteBridgeClient, error) {
-	clientMu.Lock()
-	c := globalClient
-	ch := clientCh
-	clientMu.Unlock()
-	if c != nil {
-		return c, nil
-	}
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-ch:
-		clientMu.Lock()
-		c = globalClient
-		clientMu.Unlock()
-		if c == nil {
-			return nil, errors.New("sqlite-wasm: client was cleared")
+	for {
+		var c sql_sqlite_wasm_rpc.SRPCSqliteBridgeClient
+		var waitCh <-chan struct{}
+		clientBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			c = globalClient
+			waitCh = getWaitCh()
+		})
+		if c != nil {
+			return c, nil
 		}
-		return c, nil
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-waitCh:
+		}
 	}
 }
 

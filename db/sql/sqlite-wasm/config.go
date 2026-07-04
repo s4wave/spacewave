@@ -72,8 +72,13 @@ func OpenWithPragmas(ctx context.Context, path string, table string, pragmas com
 	return common.OpenWithPragmas(ctx, path, table, pragmas, SqliteWasmBridgeConfig{})
 }
 
-// OpenWithMode opens a sqlite-wasm database with mode and wraps it in a kvtx store.
-func OpenWithMode(ctx context.Context, path string, mode os.FileMode, table string) (*common.Store[SqliteWasmBridgeConfig], error) {
+// OpenWithMode opens a sqlite-wasm database and wraps it in a kvtx store.
+//
+// mode is accepted for signature parity with the host sqlite backends but has
+// no effect here: the database lives in the Worker's OPFS store reached over
+// RPC, not on this process's filesystem, and OPFS has no POSIX file mode. The
+// OpenDb RPC carries only the path, so there is nothing to apply mode to.
+func OpenWithMode(ctx context.Context, path string, _ os.FileMode, table string) (*common.Store[SqliteWasmBridgeConfig], error) {
 	return common.Open(ctx, path, table, SqliteWasmBridgeConfig{})
 }
 
