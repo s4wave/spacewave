@@ -18,5 +18,5 @@ import (
 	// _ imports the object store peer controller
 	_ "github.com/s4wave/spacewave/db/object/peer"
 	// _ imports playwright-go
-	"github.com/playwright-community/playwright-go/cmd/playwright"
+	_ "github.com/mxschmitt/playwright-go/cmd/playwright"
 )

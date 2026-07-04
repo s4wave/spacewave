@@ -48,7 +48,7 @@ jobs:
         run: bun install --frozen-lockfile --ignore-scripts
 
       - name: Install Playwright browsers
-        run: go run github.com/playwright-community/playwright-go/cmd/playwright install --with-deps chromium
+        run: go run github.com/mxschmitt/playwright-go/cmd/playwright install --with-deps chromium
 
       - name: Cache aptre tools
         uses: actions/cache@v6
@@ -234,7 +234,7 @@ jobs:
         run: bun install --frozen-lockfile --ignore-scripts
 
       - name: Install Playwright browsers
-        run: go run github.com/playwright-community/playwright-go/cmd/playwright install --with-deps chromium
+        run: go run github.com/mxschmitt/playwright-go/cmd/playwright install --with-deps chromium
 
       - name: Cache aptre tools
         uses: actions/cache@v6

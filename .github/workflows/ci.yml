@@ -320,7 +320,7 @@ jobs:
 
       - name: Install Playwright browsers for Go tests
         if: ${{ matrix.suite.needs_playwright && matrix.suite.name != 'alpha-browser' }}
-        run: go run github.com/playwright-community/playwright-go/cmd/playwright install --with-deps ${{ matrix.suite.playwright_browsers }}
+        run: go run github.com/mxschmitt/playwright-go/cmd/playwright install --with-deps ${{ matrix.suite.playwright_browsers }}
 
       - name: Install Playwright browsers for Vitest
         if: ${{ matrix.suite.name == 'alpha-browser' }}
@@ -374,7 +374,7 @@ jobs:
 
       - name: Resolve Playwright Go version
         id: playwright-go-version
-        run: echo "version=$(go list -m -f '{{.Version}}' github.com/playwright-community/playwright-go)" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(go list -m -f '{{.Version}}' github.com/mxschmitt/playwright-go)" >> "$GITHUB_OUTPUT"
 
       - name: Cache Playwright browsers
         id: playwright-browser-cache
@@ -387,11 +387,11 @@ jobs:
 
       - name: Install Playwright browser OS dependencies
         if: ${{ steps.playwright-browser-cache.outputs.cache-hit == 'true' }}
-        run: go run github.com/playwright-community/playwright-go/cmd/playwright install-deps chromium
+        run: go run github.com/mxschmitt/playwright-go/cmd/playwright install-deps chromium
 
       - name: Install Playwright browsers for Go tests
         if: ${{ steps.playwright-browser-cache.outputs.cache-hit != 'true' }}
-        run: go run github.com/playwright-community/playwright-go/cmd/playwright install --with-deps chromium
+        run: go run github.com/mxschmitt/playwright-go/cmd/playwright install --with-deps chromium
 
       - name: Cache aptre tools
         uses: actions/cache@v6
