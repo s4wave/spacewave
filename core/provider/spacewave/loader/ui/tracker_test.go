@@ -1,4 +1,4 @@
-package spacewave_loader_ui
+package ui
 
 import (
 	"strings"

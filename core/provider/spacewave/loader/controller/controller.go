@@ -14,7 +14,7 @@ import (
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	launcher_helper "github.com/s4wave/spacewave/core/launcher/helper"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
-	spacewave_loader_ui "github.com/s4wave/spacewave/core/provider/spacewave/loader/ui"
+	"github.com/s4wave/spacewave/core/provider/spacewave/loader/ui"
 	"github.com/sirupsen/logrus"
 )
 
@@ -87,7 +87,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	defer client.Close()
 
 	pluginIDs := c.conf.ResolvedWatchPluginIDs()
-	progress := spacewave_loader_ui.NewTracker(client, c.le, pluginIDs)
+	progress := ui.NewTracker(client, c.le, pluginIDs)
 	progress.Render()
 
 	// Drain helper events: user-clicked Retry redirects into a fresh
@@ -203,11 +203,11 @@ func (c *Controller) drainEvents(ctx context.Context, client *launcher_helper.Cl
 	}
 }
 
-func loaderFetchStatus(status *spacewave_launcher.FetchStatus) *spacewave_loader_ui.FetchStatus {
+func loaderFetchStatus(status *spacewave_launcher.FetchStatus) *ui.FetchStatus {
 	if status == nil {
 		return nil
 	}
-	return &spacewave_loader_ui.FetchStatus{
+	return &ui.FetchStatus{
 		Fetching:    status.Fetching,
 		HasConfig:   status.HasConfig,
 		LastErr:     status.LastErr,
@@ -224,7 +224,7 @@ func resolveHelperPath(overrideName string) (string, bool) {
 	if err != nil {
 		return "", false
 	}
-	return spacewave_loader_ui.ResolveHelperPathFromDirs(
+	return ui.ResolveHelperPathFromDirs(
 		[]string{filepath.Dir(exe), os.Getenv(hostExecutableDirEnv)},
 		overrideName,
 		runtime.GOOS,
@@ -239,7 +239,7 @@ func resolveIconPath(overridePath string) string {
 	if err != nil {
 		return ""
 	}
-	return spacewave_loader_ui.ResolveIconPathFromDirs([]string{
+	return ui.ResolveIconPathFromDirs([]string{
 		filepath.Dir(exe),
 		os.Getenv(hostExecutableDirEnv),
 	})
