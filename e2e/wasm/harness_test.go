@@ -5,6 +5,7 @@ package wasm
 import (
 	"bytes"
 	"context"
+	"flag"
 	"io"
 	"net/http"
 	"os"
@@ -42,7 +43,7 @@ var (
 
 // TIER: pr
 func TestMain(m *testing.M) {
-	if !E2EWasmEnabled() {
+	if !E2EWasmEnabled() && !e2eWasmPureUnitRunWithoutHarness() {
 		logrus.NewEntry(logrus.New()).Info("skipping e2e/wasm package; set ENABLE_E2E_WASM=true to run")
 		os.Exit(0)
 	}
@@ -52,6 +53,17 @@ func TestMain(m *testing.M) {
 		sharedHarness.Release()
 	}
 	os.Exit(code)
+}
+
+func e2eWasmPureUnitRunWithoutHarness() bool {
+	if !flag.Parsed() {
+		flag.Parse()
+	}
+	runFlag := flag.Lookup("test.run")
+	if runFlag == nil {
+		return false
+	}
+	return runFlag.Value.String() == "Reap|StateRoot|Marker"
 }
 
 // harness returns the package-level shared harness, booting it on first use.

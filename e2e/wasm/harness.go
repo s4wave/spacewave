@@ -6,6 +6,7 @@ package wasm
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"maps"
@@ -36,6 +37,7 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/modfile"
+	"golang.org/x/sys/unix"
 )
 
 // Harness boots and manages the bldr start:web:wasm lifecycle for e2e testing.
@@ -86,6 +88,10 @@ type Harness struct {
 	retainedStateResourcePeer   peer.ID
 
 	cloudEndpointClose func()
+
+	stateRoot                 string
+	preserveStartupBuildCache bool
+	stateRootOwner            harnessStateRootOwner
 }
 
 // resolveHeadless determines whether the browser should run headless.
@@ -142,6 +148,16 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 	if err != nil {
 		return nil, err
 	}
+	stableStateRoot, err := buildHarnessStateRoot(repoRoot, true)
+	if err != nil {
+		return nil, err
+	}
+	stateRootOwner, err := newHarnessStateRootOwner()
+	if err != nil {
+		return nil, err
+	}
+	reapHarnessCacheOffStateRoots(le, filepath.Dir(stateRoot), stateRoot, stableStateRoot, stateRootOwner)
+
 	workerMode, err := ResolveE2EWasmWorkerMode(o.workerMode)
 	if err != nil {
 		return nil, err
@@ -163,19 +179,27 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 	}
 
 	h := &Harness{
-		ctx:          hctx,
-		cancel:       cancel,
-		headless:     resolveHeadless(o.headless),
-		browserName:  resolveBrowserName(o.browserName),
-		workerMode:   workerMode,
-		manifestWait: manifestWait,
-		le:           le,
+		ctx:                       hctx,
+		cancel:                    cancel,
+		headless:                  resolveHeadless(o.headless),
+		browserName:               resolveBrowserName(o.browserName),
+		workerMode:                workerMode,
+		manifestWait:              manifestWait,
+		le:                        le,
+		stateRoot:                 stateRoot,
+		preserveStartupBuildCache: preserveStartupBuildCache,
+		stateRootOwner:            stateRootOwner,
 	}
 	defer func() {
 		if retErr != nil {
 			h.Release()
 		}
 	}()
+	if !preserveStartupBuildCache {
+		if err := writeHarnessStateRootOwner(stateRoot, stateRootOwner); err != nil {
+			return nil, err
+		}
+	}
 
 	d, err := devtool.BuildDevtoolBus(hctx, le, repoRoot, stateRoot, false)
 	if err != nil {
@@ -506,6 +530,11 @@ func (h *Harness) Release() {
 	h.releaseManifestFetches()
 	if h.devtool != nil {
 		h.devtool.Release()
+	}
+	if h.stateRoot != "" && !h.preserveStartupBuildCache {
+		if err := os.RemoveAll(h.stateRoot); err != nil && h.le != nil {
+			h.le.WithError(err).WithField("state-root", h.stateRoot).Error("remove e2e wasm state root")
+		}
 	}
 }
 
@@ -1010,6 +1039,163 @@ func resolveLocalModulePath(repoRoot, path string) (string, bool) {
 		return filepath.Clean(filepath.Join(repoRoot, path)), true
 	}
 	return "", false
+}
+
+const (
+	harnessStateRootOwnerName          = ".e2e-owner"
+	harnessMarkerlessStateRootMaxAge   = 24 * time.Hour
+	harnessStateRootTokenBytes         = 16
+	harnessStateRootTokenEncodedLength = harnessStateRootTokenBytes * 2
+)
+
+type harnessStateRootOwner struct {
+	pid             int
+	createdUnixNano int64
+	token           string
+}
+
+func newHarnessStateRootOwner() (harnessStateRootOwner, error) {
+	var token [harnessStateRootTokenBytes]byte
+	if _, err := rand.Read(token[:]); err != nil {
+		return harnessStateRootOwner{}, errors.Wrap(err, "create state root owner token")
+	}
+	return harnessStateRootOwner{
+		pid:             os.Getpid(),
+		createdUnixNano: time.Now().UnixNano(),
+		token:           hex.EncodeToString(token[:]),
+	}, nil
+}
+
+func writeHarnessStateRootOwner(stateRoot string, owner harnessStateRootOwner) error {
+	if err := os.WriteFile(filepath.Join(stateRoot, harnessStateRootOwnerName), marshalHarnessStateRootOwner(owner), 0o644); err != nil {
+		return errors.Wrap(err, "write state root owner marker")
+	}
+	return nil
+}
+
+func marshalHarnessStateRootOwner(owner harnessStateRootOwner) []byte {
+	var b strings.Builder
+	b.WriteString(strconv.Itoa(owner.pid))
+	b.WriteByte('\n')
+	b.WriteString(strconv.FormatInt(owner.createdUnixNano, 10))
+	b.WriteByte('\n')
+	b.WriteString(owner.token)
+	b.WriteByte('\n')
+	return []byte(b.String())
+}
+
+func readHarnessStateRootOwner(stateRoot string) (harnessStateRootOwner, error) {
+	data, err := os.ReadFile(filepath.Join(stateRoot, harnessStateRootOwnerName))
+	if err != nil {
+		return harnessStateRootOwner{}, err
+	}
+	return parseHarnessStateRootOwner(data)
+}
+
+func parseHarnessStateRootOwner(data []byte) (harnessStateRootOwner, error) {
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	if len(lines) != 3 {
+		return harnessStateRootOwner{}, errors.Errorf("state root owner marker has %d fields", len(lines))
+	}
+	pid, err := strconv.Atoi(lines[0])
+	if err != nil {
+		return harnessStateRootOwner{}, errors.Wrap(err, "parse state root owner pid")
+	}
+	createdUnixNano, err := strconv.ParseInt(lines[1], 10, 64)
+	if err != nil {
+		return harnessStateRootOwner{}, errors.Wrap(err, "parse state root owner created time")
+	}
+	token := strings.TrimSpace(lines[2])
+	if len(token) != harnessStateRootTokenEncodedLength {
+		return harnessStateRootOwner{}, errors.Errorf("state root owner token has %d bytes", len(token))
+	}
+	return harnessStateRootOwner{
+		pid:             pid,
+		createdUnixNano: createdUnixNano,
+		token:           token,
+	}, nil
+}
+
+func reapHarnessCacheOffStateRoots(le *logrus.Entry, parent, currentStateRoot, stableStateRoot string, currentOwner harnessStateRootOwner) {
+	entries, err := os.ReadDir(parent)
+	if err != nil {
+		if !os.IsNotExist(err) && le != nil {
+			le.WithError(err).WithField("state-root-parent", parent).Warn("scan e2e wasm state roots")
+		}
+		return
+	}
+	now := time.Now()
+	currentStateRoot = filepath.Clean(currentStateRoot)
+	stableStateRoot = filepath.Clean(stableStateRoot)
+	for _, entry := range entries {
+		if !entry.IsDir() || !isHarnessCacheOffStateRootName(entry.Name()) {
+			continue
+		}
+		stateRoot := filepath.Join(parent, entry.Name())
+		cleanStateRoot := filepath.Clean(stateRoot)
+		if cleanStateRoot == currentStateRoot || cleanStateRoot == stableStateRoot {
+			continue
+		}
+		remove, err := shouldReapHarnessCacheOffStateRoot(stateRoot, entry, now, currentOwner)
+		if err != nil {
+			if le != nil {
+				le.WithError(err).WithField("state-root", stateRoot).Warn("inspect e2e wasm state root")
+			}
+			continue
+		}
+		if !remove {
+			continue
+		}
+		if err := os.RemoveAll(stateRoot); err != nil && le != nil {
+			le.WithError(err).WithField("state-root", stateRoot).Warn("reap e2e wasm state root")
+		}
+	}
+}
+
+func shouldReapHarnessCacheOffStateRoot(stateRoot string, entry os.DirEntry, now time.Time, currentOwner harnessStateRootOwner) (bool, error) {
+	owner, err := readHarnessStateRootOwner(stateRoot)
+	if err == nil {
+		// The marker token is kept in the live Harness owner and disambiguates
+		// stale roots that claim this process's PID after PID reuse. A stale
+		// root whose PID has been recycled by another live process is preserved;
+		// portable start-time checks are not available across this harness's
+		// supported darwin/linux test hosts, so liveness wins over cleanup.
+		if owner.pid == currentOwner.pid && owner.token != currentOwner.token {
+			return true, nil
+		}
+		return !harnessStateRootOwnerAlive(owner.pid), nil
+	}
+	if !os.IsNotExist(err) {
+		return false, err
+	}
+	info, err := entry.Info()
+	if err != nil {
+		return false, err
+	}
+	// Pre-fix cache-off roots have no owner marker. The 24h threshold only
+	// reaps stale markerless wasm roots after the stable cache-on root name has
+	// been excluded; young markerless roots may belong to an older live binary.
+	return now.Sub(info.ModTime()) > harnessMarkerlessStateRootMaxAge, nil
+}
+
+func harnessStateRootOwnerAlive(pid int) bool {
+	if pid <= 0 {
+		return false
+	}
+	err := unix.Kill(pid, 0)
+	return err == nil || err == unix.EPERM
+}
+
+func isHarnessCacheOffStateRootName(name string) bool {
+	if len(name) != len("wasm-")+8 || !strings.HasPrefix(name, "wasm-") {
+		return false
+	}
+	for _, r := range name[len("wasm-"):] {
+		if (r < '0' || r > '9') && (r < 'a' || r > 'f') {
+			return false
+		}
+	}
+	return true
 }
 
 // buildHarnessStateRoot returns a per-package harness state root.
