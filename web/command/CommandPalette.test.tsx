@@ -2,6 +2,7 @@ import { Window } from 'happy-dom'
 import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, render } from '@testing-library/react'
+import { CommandFocusContext } from '@s4wave/sdk/command/command.pb.js'
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 
 import { CommandPalette } from './CommandPalette.js'
@@ -163,5 +164,50 @@ describe('CommandPalette', () => {
 
     expect(view.getByText('Open File')).toBeTruthy()
     expect(view.getByText('Ctrl+O / Leader F O')).toBeTruthy()
+  })
+
+  it('shows context labels when same binding text appears in multiple contexts', () => {
+    mockCommands = [
+      {
+        command: {
+          commandId: 'spacewave.view.palette',
+          label: 'Command Palette',
+          menuPath: 'View/Command Palette',
+          defaultBindings: [
+            {
+              id: 'palette',
+              binding: { case: 'combo', value: { combo: 'CmdOrCtrl+K' } },
+              when: CommandFocusContext.GLOBAL,
+            },
+          ],
+        },
+        active: true,
+        enabled: true,
+      },
+      {
+        command: {
+          commandId: 'notes.insert.link',
+          label: 'Insert Link',
+          menuPath: 'Edit/Insert Link',
+          defaultBindings: [
+            {
+              id: 'insert-link',
+              binding: { case: 'combo', value: { combo: 'CmdOrCtrl+K' } },
+              when: CommandFocusContext.EDITOR,
+            },
+          ],
+        },
+        active: true,
+        enabled: true,
+      },
+    ]
+
+    const view = render(<CommandPalette />)
+    act(() => paletteHandler?.())
+
+    expect(view.getByText('Command Palette')).toBeTruthy()
+    expect(view.getByText('CmdOrCtrl+K (Global)')).toBeTruthy()
+    expect(view.getByText('Insert Link')).toBeTruthy()
+    expect(view.getByText('CmdOrCtrl+K (Editor)')).toBeTruthy()
   })
 })

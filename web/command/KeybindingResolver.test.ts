@@ -8,6 +8,7 @@ import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 
 import {
   contextKey,
+  getCommandDisplayBindings,
   normalizeKeyCombo,
   resolveKeybindings,
 } from './KeybindingResolver.js'
@@ -297,5 +298,102 @@ describe('KeybindingResolver', () => {
         graph.comboBindings.get(contextKey(context, 'alt+k'))?.commandId,
       ).toBe(`spacewave.context.${context}`)
     }
+  })
+
+  it('uses the most specific active focus context before conflict checks', () => {
+    const graph = resolveKeybindings(
+      [
+        commandState(
+          command('spacewave.palette', {
+            defaultBindings: [comboBinding('global-palette', 'CmdOrCtrl+K')],
+          }),
+        ),
+        commandState(
+          command('notes.insert.link', {
+            defaultBindings: [
+              comboBinding(
+                'editor-link',
+                'CmdOrCtrl+K',
+                CommandFocusContext.EDITOR,
+              ),
+            ],
+          }),
+        ),
+      ],
+      {
+        platform: 'mac',
+        activeFocusContexts: [
+          CommandFocusContext.GLOBAL,
+          CommandFocusContext.SHELL_TAB,
+          CommandFocusContext.EDITOR,
+        ],
+      },
+    )
+
+    expect(
+      graph.comboBindings.get(contextKey(CommandFocusContext.EDITOR, 'meta+k'))
+        ?.commandId,
+    ).toBe('notes.insert.link')
+    expect(
+      graph.comboBindings.has(contextKey(CommandFocusContext.GLOBAL, 'meta+k')),
+    ).toBe(false)
+    expect(graph.comboConflicts.size).toBe(0)
+  })
+
+  it('keeps global bindings inert in text inputs without a text-input binding', () => {
+    const graph = resolveKeybindings(
+      [
+        commandState(
+          command('spacewave.palette', {
+            defaultBindings: [comboBinding('global-palette', 'CmdOrCtrl+K')],
+          }),
+        ),
+      ],
+      {
+        platform: 'mac',
+        activeFocusContexts: [
+          CommandFocusContext.GLOBAL,
+          CommandFocusContext.TEXT_INPUT,
+        ],
+      },
+    )
+
+    expect(graph.comboBindings.size).toBe(0)
+    expect(graph.conflicts).toEqual([])
+  })
+
+  it('shows context labels only when same binding text appears in multiple contexts', () => {
+    const graph = resolveKeybindings(
+      [
+        commandState(
+          command('spacewave.palette', {
+            defaultBindings: [
+              comboBinding('global-palette', 'CmdOrCtrl+K'),
+              comboBinding('global-help', 'Ctrl+/', CommandFocusContext.GLOBAL),
+            ],
+          }),
+        ),
+        commandState(
+          command('notes.insert.link', {
+            defaultBindings: [
+              comboBinding(
+                'editor-link',
+                'CmdOrCtrl+K',
+                CommandFocusContext.EDITOR,
+              ),
+            ],
+          }),
+        ),
+      ],
+      { platform: 'mac' },
+    )
+
+    expect(getCommandDisplayBindings(graph, 'spacewave.palette')).toEqual([
+      'CmdOrCtrl+K (Global)',
+      'Ctrl+/',
+    ])
+    expect(getCommandDisplayBindings(graph, 'notes.insert.link')).toEqual([
+      'CmdOrCtrl+K (Editor)',
+    ])
   })
 })

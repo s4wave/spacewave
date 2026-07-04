@@ -15,6 +15,7 @@ export type ResolvedBindingKind = 'combo' | 'sequence'
 export interface KeybindingResolverOptions {
   platform?: KeybindingPlatform
   leaderCombo?: string
+  activeFocusContexts?: readonly CommandFocusContext[]
 }
 
 export interface ResolvedCommandBinding {
@@ -58,7 +59,10 @@ export function resolveKeybindings(
 ): KeybindingGraph {
   const platform = opts.platform ?? detectPlatform()
   const leaderCombo = opts.leaderCombo ?? defaultLeaderCombo
-  const bindings = collectBindings(commands, platform, leaderCombo)
+  const bindings = selectFocusContextBindings(
+    collectBindings(commands, platform, leaderCombo),
+    opts.activeFocusContexts,
+  )
   const bindingsByCommandId = groupBindingsByCommandId(bindings)
   const comboBuckets = bucketBindings(
     bindings.filter((binding) => binding.kind === 'combo'),
@@ -193,11 +197,32 @@ export function getCommandDisplayBindings(
   graph: KeybindingGraph,
   commandId: string,
 ): string[] {
-  return (
-    graph.bindingsByCommandId
-      .get(commandId)
-      ?.map((binding) => binding.display) ?? []
+  const bindings = graph.bindingsByCommandId.get(commandId) ?? []
+  const allBindings = [...graph.bindingsByCommandId.values()].flat()
+  return bindings.map((binding) =>
+    bindingNeedsContextLabel(binding, allBindings)
+      ? `${binding.display} (${focusContextLabel(binding.context)})`
+      : binding.display,
   )
+}
+
+export function focusContextLabel(context: CommandFocusContext): string {
+  switch (context) {
+    case CommandFocusContext.SHELL_TAB:
+      return 'Shell Tab'
+    case CommandFocusContext.EDITOR:
+      return 'Editor'
+    case CommandFocusContext.LIST:
+      return 'List'
+    case CommandFocusContext.CANVAS:
+      return 'Canvas'
+    case CommandFocusContext.MODAL:
+      return 'Modal'
+    case CommandFocusContext.TEXT_INPUT:
+      return 'Text Input'
+    default:
+      return 'Global'
+  }
 }
 
 function collectBindings(
@@ -298,6 +323,79 @@ function defaultBindingId(binding: CommandBinding): string {
   return 'default-combo'
 }
 
+function selectFocusContextBindings(
+  bindings: ResolvedCommandBinding[],
+  activeFocusContexts: readonly CommandFocusContext[] | undefined,
+): ResolvedCommandBinding[] {
+  if (!activeFocusContexts?.length) return bindings
+  const contextRank = new Map<CommandFocusContext, number>()
+  const normalizedContexts = normalizeActiveFocusContexts(activeFocusContexts)
+  for (let index = 0; index < normalizedContexts.length; index++) {
+    contextRank.set(normalizedContexts[index], index)
+  }
+  const textEntryActive =
+    contextRank.has(CommandFocusContext.EDITOR) ||
+    contextRank.has(CommandFocusContext.TEXT_INPUT)
+  const candidates = bindings.filter((binding) => {
+    if (!contextRank.has(binding.context)) return false
+    if (!textEntryActive) return true
+    return (
+      binding.context === CommandFocusContext.EDITOR ||
+      binding.context === CommandFocusContext.TEXT_INPUT
+    )
+  })
+  const buckets = bucketBindingsByMatchKey(candidates)
+  const selected: ResolvedCommandBinding[] = []
+  for (const bucket of buckets.values()) {
+    let bestRank = -1
+    for (const binding of bucket) {
+      bestRank = Math.max(bestRank, contextRank.get(binding.context) ?? -1)
+    }
+    selected.push(
+      ...bucket.filter(
+        (binding) => (contextRank.get(binding.context) ?? -1) === bestRank,
+      ),
+    )
+  }
+  return selected
+}
+
+function normalizeActiveFocusContexts(
+  activeFocusContexts: readonly CommandFocusContext[],
+): CommandFocusContext[] {
+  const normalized: CommandFocusContext[] = []
+  for (const context of [CommandFocusContext.GLOBAL, ...activeFocusContexts]) {
+    if (
+      context === CommandFocusContext.UNSPECIFIED ||
+      normalized.includes(context)
+    ) {
+      continue
+    }
+    normalized.push(context)
+  }
+  return normalized
+}
+
+function bindingNeedsContextLabel(
+  binding: ResolvedCommandBinding,
+  bindings: ResolvedCommandBinding[],
+): boolean {
+  const key = bindingMatchKey(binding)
+  for (const other of bindings) {
+    if (other === binding) continue
+    if (other.context === binding.context) continue
+    if (bindingMatchKey(other) === key) return true
+  }
+  return false
+}
+
+function bindingMatchKey(binding: ResolvedCommandBinding): string {
+  if (binding.kind === 'sequence') {
+    return `${binding.kind}:${(binding.sequence ?? []).join(' ')}`
+  }
+  return `${binding.kind}:${binding.combo ?? ''}`
+}
+
 function groupBindingsByCommandId(
   bindings: ResolvedCommandBinding[],
 ): Map<string, ResolvedCommandBinding[]> {
@@ -311,6 +409,22 @@ function groupBindingsByCommandId(
     list.push(binding)
   }
   return grouped
+}
+
+function bucketBindingsByMatchKey(
+  bindings: ResolvedCommandBinding[],
+): Map<string, ResolvedCommandBinding[]> {
+  const buckets = new Map<string, ResolvedCommandBinding[]>()
+  for (const binding of bindings) {
+    const key = bindingMatchKey(binding)
+    let bucket = buckets.get(key)
+    if (!bucket) {
+      bucket = []
+      buckets.set(key, bucket)
+    }
+    bucket.push(binding)
+  }
+  return buckets
 }
 
 function bucketBindings(

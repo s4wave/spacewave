@@ -2,6 +2,7 @@ import { Window } from 'happy-dom'
 import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
+import { CommandFocusContext } from '@s4wave/sdk/command/command.pb.js'
 
 import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog.js'
 
@@ -118,5 +119,51 @@ describe('KeyboardShortcutsDialog', () => {
 
     expect(view.getByText('Open File')).toBeTruthy()
     expect(view.getByText('Ctrl+O / Leader F O')).toBeTruthy()
+  })
+
+  it('shows context labels when same binding text appears in multiple contexts', () => {
+    mockUseCommands.mockReturnValue([
+      {
+        command: {
+          commandId: 'spacewave.view.palette',
+          label: 'Command Palette',
+          menuPath: 'View/Command Palette',
+          defaultBindings: [
+            {
+              id: 'palette',
+              binding: { case: 'combo', value: { combo: 'CmdOrCtrl+K' } },
+              when: CommandFocusContext.GLOBAL,
+            },
+          ],
+        },
+        active: true,
+        enabled: true,
+      },
+      {
+        command: {
+          commandId: 'notes.insert.link',
+          label: 'Insert Link',
+          menuPath: 'Edit/Insert Link',
+          defaultBindings: [
+            {
+              id: 'insert-link',
+              binding: { case: 'combo', value: { combo: 'CmdOrCtrl+K' } },
+              when: CommandFocusContext.EDITOR,
+            },
+          ],
+        },
+        active: true,
+        enabled: true,
+      },
+    ])
+
+    const view = render(
+      <KeyboardShortcutsDialog open={true} onOpenChange={mockOnOpenChange} />,
+    )
+
+    expect(view.getByText('Command Palette')).toBeTruthy()
+    expect(view.getByText('CmdOrCtrl+K (Global)')).toBeTruthy()
+    expect(view.getByText('Insert Link')).toBeTruthy()
+    expect(view.getByText('CmdOrCtrl+K (Editor)')).toBeTruthy()
   })
 })
