@@ -16,8 +16,8 @@ import (
 	"testing"
 	"time"
 
+	playwright "github.com/mxschmitt/playwright-go"
 	"github.com/pkg/errors"
-	playwright "github.com/playwright-community/playwright-go"
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	space "github.com/s4wave/spacewave/core/space"

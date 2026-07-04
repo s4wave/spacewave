@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	playwright "github.com/playwright-community/playwright-go"
+	playwright "github.com/mxschmitt/playwright-go"
 	session_core "github.com/s4wave/spacewave/core/session"
 )
 

@@ -239,18 +239,16 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
       '.eot',
     ]
 
-    // Only BldrExternal packages go in rolldownOptions.external.
-    // Web pkg IDs are NOT externalized here -- the bldr-pkg-resolve
-    // plugin's resolveId handles them, resolving to the actual file
-    // path and rewriting to /b/pkg/{id}/{file}.mjs URLs.
-    // If web pkg IDs are in rolldownOptions.external, Rolldown's
-    // built-in resolver catches them first and the plugin never fires.
-    if (externalPkgs.length > 0) {
+    // Keep runtime packages and web package imports bare through Rolldown
+    // resolution. Vite 8 resolves tsconfig aliases before the package remap
+    // plugin's resolveId hook, so web package IDs must be externalized here and
+    // then rewritten by renderChunk.
+    if (externalPkgs.length > 0 || webPkgIDs.length > 0) {
       mergedConfig.build.rolldownOptions.external = (id: string) => {
         if (assetExts.some((ext) => id.endsWith(ext))) {
           return false
         }
-        return externalPkgs.some(
+        return [...externalPkgs, ...webPkgIDs].some(
           (pkg) => id === pkg || id.startsWith(pkg + '/'),
         )
       }

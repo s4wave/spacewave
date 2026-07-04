@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"slices"
 
+	"github.com/mxschmitt/playwright-go"
 	"github.com/pkg/errors"
-	"github.com/playwright-community/playwright-go"
 )
 
 // SnapshotSet holds paths to a set of labeled heap snapshots.

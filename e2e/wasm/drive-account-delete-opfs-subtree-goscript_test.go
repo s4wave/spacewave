@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	playwright "github.com/playwright-community/playwright-go"
+	playwright "github.com/mxschmitt/playwright-go"
 )
 
 // opfsFormatMarkerName is the per-volume root marker written at volume open

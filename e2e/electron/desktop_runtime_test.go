@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/fastjson"
+	playwright "github.com/mxschmitt/playwright-go"
 	"github.com/pkg/errors"
-	playwright "github.com/playwright-community/playwright-go"
 )
 
 const desktopRuntimeStateWaitTimeout = 45 * time.Second

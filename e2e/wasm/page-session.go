@@ -2,7 +2,7 @@
 
 package wasm
 
-import playwright "github.com/playwright-community/playwright-go"
+import playwright "github.com/mxschmitt/playwright-go"
 
 // LookupSessionByPage returns the test session associated with a page.
 func (h *Harness) LookupSessionByPage(page playwright.Page) *TestSession {

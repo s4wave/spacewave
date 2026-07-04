@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/fastjson"
-	playwright "github.com/playwright-community/playwright-go"
+	playwright "github.com/mxschmitt/playwright-go"
 )
 
 const v86SmokeTimeoutMS = 600000

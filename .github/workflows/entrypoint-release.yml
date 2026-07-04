@@ -110,7 +110,7 @@ jobs:
 
       - name: Cache manifest pack
         id: manifest_pack_cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: .tmp/entrypoint-manifest-packs/${{ matrix.name }}
           key: entrypoint-manifest-pack-${{ matrix.name }}-${{ needs.prep.outputs.environment_name }}-${{ github.sha }}-reactdev${{ inputs.react_dev }}
@@ -124,7 +124,7 @@ jobs:
 
       - name: Cache trusted Go dependencies
         if: steps.manifest_pack_cache.outputs.cache-hit != 'true'
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cache/go-build
@@ -190,7 +190,7 @@ jobs:
           cache: false
 
       - name: Cache trusted Go dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cache/go-build
@@ -253,7 +253,7 @@ jobs:
 
       - name: Cache Linux handoff part
         id: linux_handoff_cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             .tmp/entrypoint-handoff/linux-${{ matrix.arch }}
@@ -270,7 +270,7 @@ jobs:
 
       - name: Cache trusted Go dependencies
         if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cache/go-build
@@ -293,7 +293,7 @@ jobs:
 
       - name: Cache spacewave-builder zig stubs
         if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ env.BLDR_BUILDER_ZIG_CACHE_DIR }}
           key: spacewave-builder-zig-${{ hashFiles('desktop/Dockerfile', 'desktop/cross/toolchains/*.cmake') }}
@@ -406,7 +406,7 @@ jobs:
 
       - name: Cache browser handoff part
         id: browser_handoff_cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: .tmp/entrypoint-handoff/browser
           key: entrypoint-part-browser-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-${{ github.sha }}-reactdev${{ inputs.react_dev }}
@@ -420,7 +420,7 @@ jobs:
 
       - name: Cache trusted Go dependencies
         if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cache/go-build
@@ -555,7 +555,7 @@ jobs:
 
       - name: Cache Windows handoff part
         id: windows_handoff_cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             .tmp/entrypoint-handoff/windows-${{ matrix.arch }}
@@ -572,7 +572,7 @@ jobs:
 
       - name: Cache trusted Go dependencies
         if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cache/go-build
@@ -616,7 +616,7 @@ jobs:
       - name: Cache TrustedSigning PowerShell module
         if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' }}
         id: cache_trusted_signing
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ steps.trusted_signing_paths.outputs.psmodulepath }}\TrustedSigning\0.5.8
           key: TrustedSigning-0.5.8
@@ -630,7 +630,7 @@ jobs:
       - name: Cache Microsoft.Windows.SDK.BuildTools nuget
         if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' }}
         id: cache_buildtools
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~\AppData\Local\TrustedSigning\Microsoft.Windows.SDK.BuildTools\Microsoft.Windows.SDK.BuildTools.10.0.26100.4188
           key: Microsoft.Windows.SDK.BuildTools-10.0.26100.4188
@@ -638,7 +638,7 @@ jobs:
       - name: Cache Microsoft.Trusted.Signing.Client nuget
         if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' }}
         id: cache_tsclient
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~\AppData\Local\TrustedSigning\Microsoft.Trusted.Signing.Client\Microsoft.Trusted.Signing.Client.1.0.95
           key: Microsoft.Trusted.Signing.Client-1.0.95
@@ -646,7 +646,7 @@ jobs:
       - name: Cache sign dotnet tool
         if: ${{ inputs.sign_artifacts && steps.windows_handoff_cache.outputs.cache-hit != 'true' }}
         id: cache_signcli
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~\AppData\Local\TrustedSigning\sign\sign.0.9.1-beta.24469.1
           key: SignCli-0.9.1-beta.24469.1
@@ -868,7 +868,7 @@ jobs:
 
       - name: Cache macOS handoff part
         id: macos_handoff_cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             .tmp/entrypoint-handoff/macos-${{ matrix.arch }}
@@ -885,7 +885,7 @@ jobs:
 
       - name: Cache trusted Go dependencies
         if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cache/go-build
@@ -1170,7 +1170,7 @@ jobs:
           cache: false
 
       - name: Cache trusted Go dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cache/go-build

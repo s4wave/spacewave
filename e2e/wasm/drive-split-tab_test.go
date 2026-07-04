@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	playwright "github.com/playwright-community/playwright-go"
+	playwright "github.com/mxschmitt/playwright-go"
 	s4wave_layout "github.com/s4wave/spacewave/sdk/layout"
 )
 

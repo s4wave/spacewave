@@ -5,7 +5,7 @@ package wasm
 import (
 	"testing"
 
-	playwright "github.com/playwright-community/playwright-go"
+	playwright "github.com/mxschmitt/playwright-go"
 )
 
 // ForgeScenario records the forge environment created by the quickstart flow.

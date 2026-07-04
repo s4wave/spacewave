@@ -8,8 +8,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/mxschmitt/playwright-go"
 	"github.com/pkg/errors"
-	"github.com/playwright-community/playwright-go"
 )
 
 // CaptureHeapSnapshot captures a Chrome V8 heap snapshot via CDP

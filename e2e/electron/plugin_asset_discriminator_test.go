@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/fastjson"
-	playwright "github.com/playwright-community/playwright-go"
+	playwright "github.com/mxschmitt/playwright-go"
 )
 
 const desktopModuleLoadIssueAssetPath = "/b/pa/spacewave-app/v/b/fe/app/App-Cod_FQyf.mjs"

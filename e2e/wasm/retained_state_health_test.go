@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	playwright "github.com/playwright-community/playwright-go"
+	playwright "github.com/mxschmitt/playwright-go"
 	"github.com/s4wave/spacewave/core/sobject"
 )
 

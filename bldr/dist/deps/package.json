@@ -23,7 +23,7 @@
     "quickjs-wasi-reactor": "0.15.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "rolldown": "1.1.2",
+    "rolldown": "1.1.4",
     "ulid": "^3.0.2",
     "workbox-window": "^7.4.1"
   },

@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
+	playwright "github.com/mxschmitt/playwright-go"
 	"github.com/pkg/errors"
-	playwright "github.com/playwright-community/playwright-go"
 	"github.com/sirupsen/logrus"
 )
 

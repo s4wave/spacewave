@@ -12,7 +12,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/playwright-community/playwright-go"
+	"github.com/mxschmitt/playwright-go"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
 	web_runtime_goscript_build "github.com/s4wave/spacewave/bldr/web/runtime/goscript/build"
 	"github.com/sirupsen/logrus"
@@ -143,6 +143,7 @@ func buildGoScriptFixtureWorker(ctx context.Context, repoRoot, commsDir, distDir
 		outputRoot,
 		filepath.Join(distDir, "workers", outputName),
 		mainPackagePath,
+		false,
 		false,
 		false,
 	)

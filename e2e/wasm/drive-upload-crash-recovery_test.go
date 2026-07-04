@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/fastjson"
-	playwright "github.com/playwright-community/playwright-go"
+	playwright "github.com/mxschmitt/playwright-go"
 )
 
 const largeUploadSize = 8 * 1024 * 1024

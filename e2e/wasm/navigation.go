@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
+	playwright "github.com/mxschmitt/playwright-go"
 	"github.com/pkg/errors"
-	playwright "github.com/playwright-community/playwright-go"
 )
 
 // DriveReadyResult is the browser-observed evidence that the Drive quickstart

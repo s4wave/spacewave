@@ -18,18 +18,33 @@ const bldrDistRoot =
   process.env['BLDR_DIST_ROOT'] || resolve(__dirname, '.bldr/src')
 
 function resolveBldrSourcePath(...segments: string[]) {
-  const isPatternReplacement = segments.some((segment) =>
-    segment.includes('$'),
-  )
+  const isPatternReplacement = segments.some((segment) => segment.includes('$'))
+  const patternProbeSegments = segments
+    .map((segment) => segment.split('$')[0])
+    .filter((segment) => segment.length > 0)
   const monorepoPath = resolve(bldrDistRoot, 'bldr', ...segments)
-  if (existsSync(monorepoPath)) {
+  const monorepoProbePath = resolve(
+    bldrDistRoot,
+    'bldr',
+    ...patternProbeSegments,
+  )
+  if (
+    existsSync(monorepoPath) ||
+    (isPatternReplacement && existsSync(monorepoProbePath))
+  ) {
     return monorepoPath
   }
   const distPath = resolve(bldrDistRoot, ...segments)
-  if (isPatternReplacement || existsSync(distPath)) {
+  const distProbePath = resolve(bldrDistRoot, ...patternProbeSegments)
+  if (
+    existsSync(distPath) ||
+    (isPatternReplacement && existsSync(distProbePath))
+  ) {
     return distPath
   }
-  return resolve(__dirname, 'bldr', ...segments)
+  return isPatternReplacement
+    ? monorepoPath
+    : resolve(__dirname, 'bldr', ...segments)
 }
 
 export default defineConfig({
@@ -97,9 +112,5 @@ export default defineConfig({
     ],
   },
 
-  plugins: [
-    react(),
-    tailwindcss(),
-    goTsResolver(__dirname),
-  ],
+  plugins: [react(), tailwindcss(), goTsResolver(__dirname)],
 })

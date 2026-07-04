@@ -6,7 +6,7 @@ import (
 	"encoding/base64"
 	"testing"
 
-	playwright "github.com/playwright-community/playwright-go"
+	playwright "github.com/mxschmitt/playwright-go"
 )
 
 // UploadViaPicker uploads files through the hidden UnixFS file picker input.

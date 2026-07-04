@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	playwright "github.com/playwright-community/playwright-go"
+	playwright "github.com/mxschmitt/playwright-go"
 )
 
 const objectTypeQuickstartWaitMS = 240000

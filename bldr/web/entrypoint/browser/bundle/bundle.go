@@ -612,10 +612,10 @@ func resolveBldrRuntimePackagePath(bldrDistRoot, importPath string) (string, boo
 		{id: "@aptre/bldr-react", dir: filepath.Join("web", "bldr-react")},
 	} {
 		if importPath == pkg.id {
-			return filepath.Join(bldrDistRoot, pkg.dir, "index.ts"), true
+			return bldr.ResolveDistSourcePath(bldrDistRoot, pkg.dir, "index.ts"), true
 		}
 		if after, ok := strings.CutPrefix(importPath, pkg.id+"/"); ok {
-			return filepath.Join(bldrDistRoot, pkg.dir, after), true
+			return bldr.ResolveDistSourcePath(bldrDistRoot, pkg.dir, after), true
 		}
 	}
 	return "", false

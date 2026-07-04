@@ -18,8 +18,8 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/gitroot"
+	playwright "github.com/mxschmitt/playwright-go"
 	"github.com/pkg/errors"
-	playwright "github.com/playwright-community/playwright-go"
 	"github.com/s4wave/spacewave/bldr/devtool"
 	"github.com/sirupsen/logrus"
 )

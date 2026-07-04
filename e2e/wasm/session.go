@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/starpc/srpc"
+	playwright "github.com/mxschmitt/playwright-go"
 	"github.com/pkg/errors"
-	playwright "github.com/playwright-community/playwright-go"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
