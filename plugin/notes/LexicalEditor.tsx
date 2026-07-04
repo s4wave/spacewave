@@ -22,6 +22,9 @@ import {
   TRANSFORMERS,
 } from '@lexical/markdown'
 import type { Transformer } from '@lexical/markdown'
+import { CommandFocusContext } from '@s4wave/sdk/command/command.pb.js'
+
+import { FocusContextProvider } from '@s4wave/web/command/FocusContext.js'
 
 import editorTheme from './editor/theme.js'
 import {
@@ -128,7 +131,10 @@ function LexicalEditor({
   return (
     <LexicalComposer key={key} initialConfig={initialConfig}>
       <ToolbarPlugin />
-      <div className="relative flex-1 overflow-auto">
+      <FocusContextProvider
+        focusContext={CommandFocusContext.EDITOR}
+        className="relative flex-1 overflow-auto"
+      >
         <RichTextPlugin
           contentEditable={
             <ContentEditable className="text-editor-foreground text-ui min-h-full p-4 outline-none" />
@@ -150,7 +156,7 @@ function LexicalEditor({
         <SlashCommandPlugin />
         <EditorCommandsPlugin />
         <SavePlugin exportString={exportContent} onSave={handleSave} />
-      </div>
+      </FocusContextProvider>
     </LexicalComposer>
   )
 }

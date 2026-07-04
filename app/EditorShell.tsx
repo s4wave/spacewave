@@ -10,6 +10,7 @@ import { NavigatePath } from '@s4wave/web/router/NavigatePath.js'
 import { KeyDispatcher } from '@s4wave/web/command/KeyDispatcher.js'
 import { CommandPalette } from '@s4wave/web/command/CommandPalette.js'
 import { WhichKeyPanel } from '@s4wave/web/command/WhichKeyPanel.js'
+import { ShellTabFocusContextProvider } from '@s4wave/web/command/FocusContext.js'
 import { BuiltinCommands } from '@s4wave/app/BuiltinCommands.js'
 import { DebugCommands } from '@s4wave/app/DebugCommands.js'
 import {
@@ -36,13 +37,15 @@ const noopNavigateTab = () => Promise.resolve({})
 
 function CommandRuntime({ children }: { children?: ReactNode }) {
   return (
-    <KeyDispatcher>
-      <BuiltinCommands />
-      {isDebug && <DebugCommands />}
-      <CommandPalette />
-      <WhichKeyPanel />
-      {children}
-    </KeyDispatcher>
+    <ShellTabFocusContextProvider>
+      <KeyDispatcher>
+        <BuiltinCommands />
+        {isDebug && <DebugCommands />}
+        <CommandPalette />
+        <WhichKeyPanel />
+        {children}
+      </KeyDispatcher>
+    </ShellTabFocusContextProvider>
   )
 }
 

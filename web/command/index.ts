@@ -17,6 +17,15 @@ export {
 } from './KeyDispatcher.js'
 export { WhichKeyPanel } from './WhichKeyPanel.js'
 export {
+  FocusContextProvider,
+  FocusContextStackProvider,
+  ShellTabFocusContextProvider,
+  focusContextDomProps,
+  resolveFocusContextsForTarget,
+  useFocusContextResolver,
+  useFocusContextStack,
+} from './FocusContext.js'
+export {
   CommandPalette,
   formatKeybinding,
   formatKeybindingHint,

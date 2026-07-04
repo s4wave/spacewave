@@ -12,6 +12,7 @@ import {
   CommandShortcut,
 } from '@s4wave/web/ui/command.js'
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
+import { CommandFocusContext } from '@s4wave/sdk/command/command.pb.js'
 
 import {
   type SubItem,
@@ -211,7 +212,13 @@ export function CommandPalette() {
   useCommand({
     commandId: 'spacewave.view.palette',
     label: 'Command Palette',
-    keybinding: 'CmdOrCtrl+K',
+    defaultBindings: [
+      {
+        id: 'global-palette',
+        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+K' } },
+        when: CommandFocusContext.GLOBAL,
+      },
+    ],
     menuPath: 'View/Command Palette',
     menuGroup: 10,
     menuOrder: 1,
