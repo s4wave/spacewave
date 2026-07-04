@@ -1,10 +1,31 @@
+import { useEffect, useState } from 'react'
+
 import { useKeyDispatcherState } from './KeyDispatcher.js'
 
 // WhichKeyPanel renders the active key sequence continuations owned by KeyDispatcher.
 export function WhichKeyPanel() {
   const state = useKeyDispatcherState()
-  if (state.mode !== 'prefix') return null
+  const [visible, setVisible] = useState(state.mode === 'prefix')
 
+  useEffect(() => {
+    if (state.mode !== 'prefix') {
+      setVisible(false)
+      return
+    }
+    if (state.whichKeyDelayMs <= 0) {
+      setVisible(true)
+      return
+    }
+    setVisible(false)
+    const timeout = window.setTimeout(() => {
+      setVisible(true)
+    }, state.whichKeyDelayMs)
+    return () => {
+      window.clearTimeout(timeout)
+    }
+  }, [state.mode, state.activePath, state.whichKeyDelayMs])
+
+  if (state.mode !== 'prefix' || !visible) return null
   const path = state.activePath.map(formatResolvedKey).join(' ')
 
   return (

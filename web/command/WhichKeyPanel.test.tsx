@@ -10,6 +10,7 @@ import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 
 import { KeyDispatcher } from './KeyDispatcher.js'
 import { WhichKeyPanel } from './WhichKeyPanel.js'
+import { resolveKeybindings } from './KeybindingResolver.js'
 
 if (typeof document === 'undefined') {
   const happyDomWindow = new Window({ url: 'http://localhost/' })
@@ -41,10 +42,31 @@ if (typeof document === 'undefined') {
 
 let mockCommands: CommandState[] = []
 const mockInvokeCommand = vi.fn()
+let localKeybindingSettings: {
+  leaderCombo?: string
+  whichKeyDelayMs?: number
+} = {}
 
 vi.mock('./CommandContext.js', () => ({
   useCommands: () => mockCommands,
   useInvokeCommand: () => mockInvokeCommand,
+}))
+
+vi.mock('./useKeybindingGraph.js', () => ({
+  useKeybindingGraph: (commands: CommandState[]) =>
+    resolveKeybindings(commands, {
+      overrideLayers: [
+        {
+          scope: 'local',
+          label: 'Local',
+          overrideSet: {
+            version: 1,
+            overrides: {},
+            settings: localKeybindingSettings,
+          },
+        },
+      ],
+    }),
 }))
 
 function commandState(command: Command): CommandState {
@@ -89,11 +111,13 @@ function dispatchKeydown(init: KeyboardEventInit): KeyboardEvent {
 describe('WhichKeyPanel', () => {
   beforeEach(() => {
     mockCommands = []
+    localKeybindingSettings = {}
   })
 
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
+    vi.useRealTimers()
   })
 
   it('renders prefix continuations from dispatcher state only', async () => {
@@ -169,5 +193,41 @@ describe('WhichKeyPanel', () => {
       expect(panel.textContent).toContain('Conflict')
     })
     expect(mockInvokeCommand).not.toHaveBeenCalled()
+  })
+
+  it('delays only panel visibility while prefix dispatch stays immediate', () => {
+    vi.useFakeTimers()
+    localKeybindingSettings = { whichKeyDelayMs: 100 }
+    mockCommands = [
+      commandState(
+        command('spacewave.file.open', {
+          label: 'Open File',
+          defaultBindings: [sequenceBinding('leader-open', ['Leader', 'O'])],
+        }),
+      ),
+    ]
+
+    const view = render(
+      <KeyDispatcher>
+        <WhichKeyPanel />
+      </KeyDispatcher>,
+    )
+
+    dispatchKeydown({ key: ' ', ctrlKey: true })
+
+    expect(
+      view.queryByRole('region', { name: 'Key sequence continuations' }),
+    ).toBeNull()
+
+    dispatchKeydown({ key: 'o' })
+    expect(mockInvokeCommand).toHaveBeenCalledWith('spacewave.file.open')
+
+    act(() => {
+      vi.advanceTimersByTime(100)
+    })
+    expect(
+      view.queryByRole('region', { name: 'Key sequence continuations' }),
+    ).toBeNull()
+    vi.useRealTimers()
   })
 })

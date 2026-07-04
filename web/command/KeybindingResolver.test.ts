@@ -838,4 +838,60 @@ describe('KeybindingResolver', () => {
     ])
     expect(graph.conflicts).toEqual([conflict])
   })
+  it('resolves leader and which-key settings from the highest override layer', () => {
+    const commands = [
+      commandState(
+        command('spacewave.sequence.open', {
+          defaultBindings: [sequenceBinding('leader-open', ['Leader', 'O'])],
+        }),
+      ),
+    ]
+    const localLayer: KeybindingOverrideLayer = {
+      scope: 'local',
+      label: 'Local',
+      overrideSet: {
+        version: 1,
+        overrides: {},
+        settings: {
+          leaderCombo: 'Alt+Space',
+          whichKeyDelayMs: 25,
+        },
+      },
+    }
+    const accountLayer: KeybindingOverrideLayer = {
+      scope: 'account',
+      label: 'Account',
+      overrideSet: {
+        version: 1,
+        overrides: {},
+        settings: {
+          leaderCombo: 'Ctrl+Alt+Space',
+        },
+      },
+    }
+    const spaceLayer: KeybindingOverrideLayer = {
+      scope: 'space',
+      label: 'Space',
+      overrideSet: {
+        version: 1,
+        overrides: {},
+        settings: {
+          whichKeyDelayMs: 125,
+        },
+      },
+    }
+
+    const graph = resolveKeybindings(commands, {
+      platform: 'other',
+      overrideLayers: [localLayer, accountLayer, spaceLayer],
+    })
+    const leaderNode = graph.sequenceTrie.children.get('ctrl+alt+space')
+
+    expect(graph.leaderCombo).toBe('Ctrl+Alt+Space')
+    expect(graph.whichKeyDelayMs).toBe(125)
+    expect(leaderNode?.children.get('o')?.bindings[0]?.commandId).toBe(
+      'spacewave.sequence.open',
+    )
+    expect(graph.sequenceTrie.children.has('alt+space')).toBe(false)
+  })
 })

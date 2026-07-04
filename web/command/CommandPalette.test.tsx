@@ -1,7 +1,7 @@
 import { Window } from 'happy-dom'
-import React from 'react'
+import type { ReactNode, Ref } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, render } from '@testing-library/react'
+import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { CommandFocusContext } from '@s4wave/sdk/command/command.pb.js'
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 
@@ -58,14 +58,9 @@ vi.mock('./useCommand.js', () => ({
 }))
 
 vi.mock('@s4wave/web/ui/command.js', () => ({
-  CommandDialog: ({
-    open,
-    children,
-  }: {
-    open: boolean
-    children: React.ReactNode
-  }) => (open ? <div role="dialog">{children}</div> : null),
-  CommandEmpty: ({ children }: { children: React.ReactNode }) => (
+  CommandDialog: ({ open, children }: { open: boolean; children: ReactNode }) =>
+    open ? <div role="dialog">{children}</div> : null,
+  CommandEmpty: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),
   CommandFooter: () => <div />,
@@ -74,20 +69,41 @@ vi.mock('@s4wave/web/ui/command.js', () => ({
     children,
   }: {
     heading: string
-    children: React.ReactNode
+    children: ReactNode
   }) => (
     <section>
       <h3>{heading}</h3>
       {children}
     </section>
   ),
-  CommandInput: () => <input aria-label="Command search" />,
+  CommandInput: ({
+    onClick,
+    onValueChange,
+    placeholder,
+    ref,
+    value,
+  }: {
+    onClick?: () => void
+    onValueChange?: (value: string) => void
+    placeholder?: string
+    ref?: Ref<HTMLInputElement>
+    value?: string
+  }) => (
+    <input
+      aria-label="Command search"
+      onChange={(event) => onValueChange?.(event.currentTarget.value)}
+      onClick={onClick}
+      placeholder={placeholder}
+      ref={ref}
+      value={value ?? ''}
+    />
+  ),
   CommandItem: ({
     children,
     disabled,
     onSelect,
   }: {
-    children: React.ReactNode
+    children: ReactNode
     disabled?: boolean
     onSelect?: () => void
   }) => (
@@ -95,13 +111,20 @@ vi.mock('@s4wave/web/ui/command.js', () => ({
       {children}
     </button>
   ),
-  CommandList: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
-  CommandShortcut: ({ children }: { children: React.ReactNode }) => (
+  CommandList: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  CommandShortcut: ({ children }: { children: ReactNode }) => (
     <span>{children}</span>
   ),
 }))
+
+function textContentMatches(...texts: string[]) {
+  return (_content: string, node: Element | null) => {
+    if (!node || !texts.includes(node.textContent?.trim() ?? '')) return false
+    return Array.from(node.children).every(
+      (child) => !texts.includes(child.textContent?.trim() ?? ''),
+    )
+  }
+}
 
 describe('CommandPalette', () => {
   afterEach(() => {
@@ -130,7 +153,7 @@ describe('CommandPalette', () => {
 
     expect(view.getByRole('dialog')).toBeTruthy()
     expect(view.getByText('Open Help')).toBeTruthy()
-    expect(view.getByText('Ctrl+H')).toBeTruthy()
+    expect(view.getByText(textContentMatches('⌃H', 'Ctrl+H'))).toBeTruthy()
   })
 
   it('shows plural typed default bindings on command rows', () => {
@@ -163,7 +186,11 @@ describe('CommandPalette', () => {
     act(() => paletteHandler?.())
 
     expect(view.getByText('Open File')).toBeTruthy()
-    expect(view.getByText('Ctrl+O / Leader F O')).toBeTruthy()
+    expect(
+      view.getByText(
+        textContentMatches('⌃O / Leader F O', 'Ctrl+O / Leader F O'),
+      ),
+    ).toBeTruthy()
   })
 
   it('shows context labels when same binding text appears in multiple contexts', () => {
@@ -206,8 +233,181 @@ describe('CommandPalette', () => {
     act(() => paletteHandler?.())
 
     expect(view.getByText('Command Palette')).toBeTruthy()
-    expect(view.getByText('CmdOrCtrl+K (Global)')).toBeTruthy()
+    expect(
+      view.getByText(textContentMatches('⌘K (Global)', 'CmdOrCtrl+K (Global)')),
+    ).toBeTruthy()
     expect(view.getByText('Insert Link')).toBeTruthy()
-    expect(view.getByText('CmdOrCtrl+K (Editor)')).toBeTruthy()
+    expect(
+      view.getByText(textContentMatches('⌘K (Editor)', 'CmdOrCtrl+K (Editor)')),
+    ).toBeTruthy()
+  })
+
+  it('keeps f as a chord step at the root instead of starting a filter', () => {
+    mockCommands = [
+      {
+        command: {
+          commandId: 'spacewave.file.open',
+          label: 'Open File',
+          menuPath: 'File/Open File',
+          defaultBindings: [
+            {
+              id: 'open-file',
+              binding: {
+                case: 'sequence',
+                value: { steps: ['Leader', 'F', 'O'] },
+              },
+              when: CommandFocusContext.GLOBAL,
+            },
+          ],
+        },
+        active: true,
+        enabled: true,
+      },
+    ]
+
+    const view = render(<CommandPalette />)
+    act(() => paletteHandler?.())
+    const input = view.getByLabelText('Command search')
+
+    act(() => {
+      fireEvent.keyDown(input, { key: 'f' })
+    })
+
+    expect(view.getByText('Chord mode')).toBeTruthy()
+    expect(
+      view.getByText(textContentMatches('Chord path: Leader F')),
+    ).toBeTruthy()
+    expect(view.getByLabelText('Command search')).toHaveProperty('value', '')
+    expect(mockInvokeCommand).not.toHaveBeenCalled()
+  })
+
+  it('enters filter mode from slash and from a non-matching printable key', () => {
+    mockCommands = [
+      {
+        command: {
+          commandId: 'spacewave.file.open',
+          label: 'Open File',
+          menuPath: 'File/Open File',
+          defaultBindings: [
+            {
+              id: 'open-file',
+              binding: { case: 'sequence', value: { steps: ['Leader', 'F'] } },
+              when: CommandFocusContext.GLOBAL,
+            },
+          ],
+        },
+        active: true,
+        enabled: true,
+      },
+    ]
+
+    const slashView = render(<CommandPalette />)
+    act(() => paletteHandler?.())
+    act(() => {
+      fireEvent.keyDown(slashView.getByLabelText('Command search'), {
+        key: '/',
+      })
+    })
+
+    expect(slashView.getByText('Filter mode')).toBeTruthy()
+    expect(slashView.getByLabelText('Command search')).toHaveProperty(
+      'value',
+      '',
+    )
+    slashView.unmount()
+
+    const printableView = render(<CommandPalette />)
+    act(() => paletteHandler?.())
+    act(() => {
+      fireEvent.keyDown(printableView.getByLabelText('Command search'), {
+        key: 'z',
+      })
+    })
+
+    expect(printableView.getByText('Filter mode')).toBeTruthy()
+    expect(printableView.getByLabelText('Command search')).toHaveProperty(
+      'value',
+      'z',
+    )
+  })
+
+  it('restores chord mode when Backspace empties the filter', () => {
+    mockCommands = [
+      {
+        command: {
+          commandId: 'spacewave.file.open',
+          label: 'Open File',
+          menuPath: 'File/Open File',
+          defaultBindings: [
+            {
+              id: 'open-file',
+              binding: { case: 'sequence', value: { steps: ['Leader', 'F'] } },
+              when: CommandFocusContext.GLOBAL,
+            },
+          ],
+        },
+        active: true,
+        enabled: true,
+      },
+    ]
+
+    const view = render(<CommandPalette />)
+    act(() => paletteHandler?.())
+    const input = view.getByLabelText('Command search')
+
+    act(() => {
+      fireEvent.keyDown(input, { key: 'z' })
+    })
+    expect(view.getByText('Filter mode')).toBeTruthy()
+
+    act(() => {
+      fireEvent.keyDown(input, { key: 'Backspace' })
+    })
+
+    expect(view.getByText('Chord mode')).toBeTruthy()
+    expect(
+      view.getByText(textContentMatches('Chord path: Leader')),
+    ).toBeTruthy()
+  })
+
+  it('shows the chord path before dispatching the next key', () => {
+    mockCommands = [
+      {
+        command: {
+          commandId: 'spacewave.file.open',
+          label: 'Open File',
+          menuPath: 'File/Open File',
+          defaultBindings: [
+            {
+              id: 'open-file',
+              binding: {
+                case: 'sequence',
+                value: { steps: ['Leader', 'F', 'O'] },
+              },
+              when: CommandFocusContext.GLOBAL,
+            },
+          ],
+        },
+        active: true,
+        enabled: true,
+      },
+    ]
+
+    const view = render(<CommandPalette />)
+    act(() => paletteHandler?.())
+    const input = view.getByLabelText('Command search')
+
+    act(() => {
+      fireEvent.keyDown(input, { key: 'f' })
+    })
+    expect(
+      view.getByText(textContentMatches('Chord path: Leader F')),
+    ).toBeTruthy()
+    expect(mockInvokeCommand).not.toHaveBeenCalled()
+
+    act(() => {
+      fireEvent.keyDown(input, { key: 'o' })
+    })
+    expect(mockInvokeCommand).toHaveBeenCalledWith('spacewave.file.open')
   })
 })

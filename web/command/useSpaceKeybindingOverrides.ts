@@ -16,9 +16,11 @@ import {
   resetKeybindingCommandOverride,
   setCommandBindingsOverride,
   setKeybindingCommandOverride,
+  setKeybindingOverrideSettings,
   type KeybindingCommandOverride,
   type KeybindingOverrideLayer,
   type KeybindingOverrideSet,
+  type KeybindingOverrideSettings,
 } from './keybinding-overrides.js'
 
 export interface SpaceKeybindingOverridesValue {
@@ -32,6 +34,7 @@ export interface SpaceKeybindingOverridesValue {
     commandId: string,
     override: KeybindingCommandOverride | null,
   ) => void
+  setSettings: (settings: KeybindingOverrideSettings) => void
   setCommandBindings: (commandId: string, bindings: CommandBinding[]) => void
   addCommandBinding: (commandId: string, binding: CommandBinding) => void
   clearCommandBindings: (commandId: string) => void
@@ -72,6 +75,13 @@ export function useSpaceKeybindingOverrides(): SpaceKeybindingOverridesValue {
       )
     },
     [context, readOnly],
+  )
+
+  const setSettings = useCallback(
+    (settings: KeybindingOverrideSettings) => {
+      applyOverrideSet(setKeybindingOverrideSettings(overrideSet, settings))
+    },
+    [applyOverrideSet, overrideSet],
   )
 
   const setCommandOverride = useCallback(
@@ -145,6 +155,7 @@ export function useSpaceKeybindingOverrides(): SpaceKeybindingOverridesValue {
     loading: context?.spaceWorldResource.loading ?? false,
     error: context?.spaceWorldResource.error ?? null,
     setCommandOverride,
+    setSettings,
     setCommandBindings,
     addCommandBinding,
     clearCommandBindings,

@@ -41,6 +41,7 @@ import {
   type KeybindingOverrideLayer,
   type KeybindingOverrideScope,
   type KeybindingOverrideSet,
+  type KeybindingOverrideSettings,
 } from './keybinding-overrides.js'
 import { useAccountKeybindingOverrides } from './useAccountKeybindingOverrides.js'
 import { useLocalKeybindingOverrides } from './useLocalKeybindingOverrides.js'
@@ -78,6 +79,8 @@ interface KeybindingLayerController {
   readOnly: boolean
   loading: boolean
   error: Error | null
+  settingsEditable: boolean
+  setSettings: (settings: KeybindingOverrideSettings) => void
   setCommandBindings: (commandId: string, bindings: CommandBinding[]) => void
   addCommandBinding: (commandId: string, binding: CommandBinding) => void
   clearCommandBindings: (commandId: string) => void
@@ -112,6 +115,8 @@ export function KeybindingEditor({
     readOnly: false,
     loading: false,
     error: null,
+    settingsEditable: true,
+    setSettings: localOverrides.setSettings,
     setCommandBindings: localOverrides.setCommandBindings,
     addCommandBinding: localOverrides.addCommandBinding,
     clearCommandBindings: localOverrides.clearCommandBindings,
@@ -129,6 +134,8 @@ export function KeybindingEditor({
     readOnly: accountOverrides.readOnly,
     loading: accountOverrides.loading,
     error: accountOverrides.error,
+    settingsEditable: false,
+    setSettings: accountOverrides.setSettings,
     setCommandBindings: accountOverrides.setCommandBindings,
     addCommandBinding: accountOverrides.addCommandBinding,
     clearCommandBindings: accountOverrides.clearCommandBindings,
@@ -146,6 +153,8 @@ export function KeybindingEditor({
     readOnly: spaceOverrides.readOnly,
     loading: spaceOverrides.loading,
     error: spaceOverrides.error,
+    settingsEditable: true,
+    setSettings: spaceOverrides.setSettings,
     setCommandBindings: spaceOverrides.setCommandBindings,
     addCommandBinding: spaceOverrides.addCommandBinding,
     clearCommandBindings: spaceOverrides.clearCommandBindings,
@@ -180,6 +189,8 @@ export function KeybindingEditor({
     !selectedController.readOnly &&
     !selectedController.loading &&
     !selectedController.error
+  const selectedSettingsEditable =
+    selectedLayerEditable && selectedController.settingsEditable
   const overrideLayers = useMemo(
     () =>
       [
@@ -384,6 +395,32 @@ export function KeybindingEditor({
     [selectedController, selectedLayerEditable, selectedRow, selectedScope],
   )
 
+  const updateLeaderCombo = useCallback(
+    (leaderCombo: string) => {
+      if (!selectedSettingsEditable) return
+      selectedController.setSettings({
+        ...selectedController.overrideSet.settings,
+        leaderCombo: leaderCombo || undefined,
+      })
+    },
+    [selectedController, selectedSettingsEditable],
+  )
+
+  const updateWhichKeyDelay = useCallback(
+    (value: string) => {
+      if (!selectedSettingsEditable) return
+      const whichKeyDelayMs = value === '' ? undefined : Number(value)
+      selectedController.setSettings({
+        ...selectedController.overrideSet.settings,
+        whichKeyDelayMs:
+          whichKeyDelayMs === undefined || Number.isNaN(whichKeyDelayMs)
+            ? undefined
+            : Math.max(0, whichKeyDelayMs),
+      })
+    },
+    [selectedController, selectedSettingsEditable],
+  )
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[min(44rem,calc(100vh-4rem))] max-w-4xl overflow-hidden p-0">
@@ -483,6 +520,55 @@ export function KeybindingEditor({
                     {selectedLayerStatus}
                   </div>
                 )}
+
+                <div className="space-y-2">
+                  <div className="text-foreground text-xs font-medium">
+                    Discovery settings
+                  </div>
+                  <div className="border-foreground/8 grid gap-3 rounded border p-3">
+                    <label className="grid gap-1 text-xs">
+                      <span className="text-foreground-alt">Leader combo</span>
+                      <input
+                        aria-label="Leader combo"
+                        className="bg-background border-foreground/10 text-foreground rounded border px-2 py-1.5 font-mono text-sm outline-none disabled:opacity-50"
+                        placeholder="Ctrl+Space"
+                        value={
+                          selectedController.overrideSet.settings.leaderCombo ??
+                          ''
+                        }
+                        disabled={!selectedSettingsEditable}
+                        onChange={(event) =>
+                          updateLeaderCombo(event.currentTarget.value)
+                        }
+                      />
+                    </label>
+                    <label className="grid gap-1 text-xs">
+                      <span className="text-foreground-alt">
+                        Which-key delay (ms)
+                      </span>
+                      <input
+                        aria-label="Which-key delay"
+                        className="bg-background border-foreground/10 text-foreground rounded border px-2 py-1.5 font-mono text-sm outline-none disabled:opacity-50"
+                        min={0}
+                        type="number"
+                        value={
+                          selectedController.overrideSet.settings
+                            .whichKeyDelayMs ?? ''
+                        }
+                        disabled={!selectedSettingsEditable}
+                        onChange={(event) =>
+                          updateWhichKeyDelay(event.currentTarget.value)
+                        }
+                      />
+                    </label>
+                    {!selectedController.settingsEditable && (
+                      <div className="text-foreground-alt/60 text-xs">
+                        Account-wide discovery settings need the account
+                        settings service to expose a settings write RPC.
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 <div className="space-y-2">
                   <div className="text-foreground text-xs font-medium">

@@ -16,9 +16,11 @@ import {
   resetKeybindingCommandOverride,
   setCommandBindingsOverride,
   setKeybindingCommandOverride,
+  setKeybindingOverrideSettings,
   type KeybindingCommandOverride,
   type KeybindingOverrideLayer,
   type KeybindingOverrideSet,
+  type KeybindingOverrideSettings,
 } from './keybinding-overrides.js'
 import type { CommandBinding } from '@s4wave/sdk/command/command.pb.js'
 
@@ -29,6 +31,7 @@ export interface LocalKeybindingOverridesValue {
     commandId: string,
     override: KeybindingCommandOverride | null,
   ) => void
+  setSettings: (settings: KeybindingOverrideSettings) => void
   setCommandBindings: (commandId: string, bindings: CommandBinding[]) => void
   addCommandBinding: (commandId: string, binding: CommandBinding) => void
   clearCommandBindings: (commandId: string) => void
@@ -52,6 +55,15 @@ export function useLocalKeybindingOverrides(): LocalKeybindingOverridesValue {
   const layer = useMemo(
     () => createKeybindingOverrideLayer('local', 'Local', overrideSet),
     [overrideSet],
+  )
+
+  const setSettings = useCallback(
+    (settings: KeybindingOverrideSettings) => {
+      setRawOverrideSet((current) =>
+        setKeybindingOverrideSettings(current, settings),
+      )
+    },
+    [setRawOverrideSet],
   )
 
   const setCommandOverride = useCallback(
@@ -125,6 +137,7 @@ export function useLocalKeybindingOverrides(): LocalKeybindingOverridesValue {
     overrideSet,
     layer,
     setCommandOverride,
+    setSettings,
     setCommandBindings,
     addCommandBinding,
     clearCommandBindings,

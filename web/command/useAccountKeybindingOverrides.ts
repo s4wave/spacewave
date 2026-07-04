@@ -21,6 +21,7 @@ import {
   type KeybindingCommandOverride,
   type KeybindingOverrideLayer,
   type KeybindingOverrideSet,
+  type KeybindingOverrideSettings,
 } from './keybinding-overrides.js'
 
 export interface AccountKeybindingOverridesValue {
@@ -34,6 +35,7 @@ export interface AccountKeybindingOverridesValue {
     commandId: string,
     override: KeybindingCommandOverride | null,
   ) => void
+  setSettings: (settings: KeybindingOverrideSettings) => void
   setCommandBindings: (commandId: string, bindings: CommandBinding[]) => void
   addCommandBinding: (commandId: string, binding: CommandBinding) => void
   clearCommandBindings: (commandId: string) => void
@@ -87,6 +89,11 @@ export function useAccountKeybindingOverrides(): AccountKeybindingOverridesValue
     },
     [accountResource.value, overrideSet, readOnly],
   )
+
+  const setSettings = useCallback((_settings: KeybindingOverrideSettings) => {
+    // Account-scope command overrides are writable today; account-wide
+    // settings need the account settings RPC added before this can persist.
+  }, [])
 
   const setCommandBindings = useCallback(
     (commandId: string, bindings: CommandBinding[]) => {
@@ -164,6 +171,7 @@ export function useAccountKeybindingOverrides(): AccountKeybindingOverridesValue
     error:
       sessionResource.error ?? accountResource.error ?? accountOverrides.error,
     setCommandOverride: applyOverride,
+    setSettings,
     setCommandBindings,
     addCommandBinding,
     clearCommandBindings,

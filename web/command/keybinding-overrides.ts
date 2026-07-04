@@ -17,6 +17,17 @@ export interface KeybindingOverrideSettings {
   display?: KeybindingDisplaySettings
 }
 
+export interface EffectiveKeybindingSettings {
+  leaderCombo: string
+  whichKeyDelayMs: number
+  display?: KeybindingDisplaySettings
+}
+
+export const defaultKeybindingSettings: EffectiveKeybindingSettings = {
+  leaderCombo: 'Ctrl+Space',
+  whichKeyDelayMs: 0,
+}
+
 export interface KeybindingCommandOverride {
   replaceBindings?: boolean
   disabled?: boolean
@@ -124,6 +135,34 @@ export function normalizeKeybindingOverrideSet(
     overrides,
     settings: normalizeKeybindingSettings(value.settings),
   }
+}
+
+export function setKeybindingOverrideSettings(
+  overrideSet: KeybindingOverrideSet,
+  settings: KeybindingOverrideSettings,
+): KeybindingOverrideSet {
+  const normalized = normalizeKeybindingOverrideSet(overrideSet)
+  return {
+    ...normalized,
+    settings: normalizeKeybindingSettings(settings),
+  }
+}
+
+export function resolveKeybindingSettings(
+  overrideLayers: readonly KeybindingOverrideLayer[] = [],
+  defaults: EffectiveKeybindingSettings = defaultKeybindingSettings,
+): EffectiveKeybindingSettings {
+  let settings: EffectiveKeybindingSettings = { ...defaults }
+  for (const layer of overrideLayers) {
+    const layerSettings = layer.overrideSet.settings
+    settings = {
+      leaderCombo: layerSettings.leaderCombo ?? settings.leaderCombo,
+      whichKeyDelayMs:
+        layerSettings.whichKeyDelayMs ?? settings.whichKeyDelayMs,
+      display: layerSettings.display ?? settings.display,
+    }
+  }
+  return settings
 }
 
 export function setKeybindingCommandOverride(

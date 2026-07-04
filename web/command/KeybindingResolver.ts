@@ -4,13 +4,14 @@ import {
   type CommandBinding,
 } from '@s4wave/sdk/command/command.pb.js'
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
-import type {
-  KeybindingOverrideLayer,
-  KeybindingOverrideScope,
+import {
+  defaultKeybindingSettings,
+  resolveKeybindingSettings,
+  type KeybindingOverrideLayer,
+  type KeybindingOverrideScope,
 } from './keybinding-overrides.js'
 
 const legacyBindingId = 'legacy-keybinding'
-const defaultLeaderCombo = 'Ctrl+Space'
 
 export type KeybindingPlatform = 'mac' | 'other'
 
@@ -62,6 +63,8 @@ export interface KeybindingGraph {
   comboConflicts: Map<string, KeybindingConflict>
   sequenceTrie: KeybindingSequenceNode
   conflicts: KeybindingConflict[]
+  leaderCombo: string
+  whichKeyDelayMs: number
 }
 
 export function resolveKeybindings(
@@ -69,12 +72,17 @@ export function resolveKeybindings(
   opts: KeybindingResolverOptions = {},
 ): KeybindingGraph {
   const platform = opts.platform ?? detectPlatform()
-  const leaderCombo = opts.leaderCombo ?? defaultLeaderCombo
+  const overrideLayers = opts.overrideLayers ?? []
+  const settings = resolveKeybindingSettings(overrideLayers, {
+    ...defaultKeybindingSettings,
+    leaderCombo: opts.leaderCombo ?? defaultKeybindingSettings.leaderCombo,
+  })
+  const leaderCombo = settings.leaderCombo
   const bindings = collectBindings(
     commands,
     platform,
     leaderCombo,
-    opts.overrideLayers ?? [],
+    overrideLayers,
   )
   const bindingsByCommandId = groupBindingsByCommandId(bindings)
   const comboBuckets = bucketBindings(
@@ -116,6 +124,8 @@ export function resolveKeybindings(
     comboConflicts,
     sequenceTrie,
     conflicts,
+    leaderCombo,
+    whichKeyDelayMs: settings.whichKeyDelayMs,
   }
 }
 

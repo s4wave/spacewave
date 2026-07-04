@@ -33,6 +33,7 @@ export interface KeyDispatcherPrefixState {
   activePath: string[]
   continuations: KeyDispatcherContinuation[]
   conflicts: KeybindingConflict[]
+  whichKeyDelayMs: number
 }
 
 interface PrefixSession {
@@ -45,6 +46,7 @@ const idlePrefixState: KeyDispatcherPrefixState = {
   activePath: [],
   continuations: [],
   conflicts: [],
+  whichKeyDelayMs: 0,
 }
 
 const KeyDispatcherContext =
@@ -76,6 +78,7 @@ export function KeyDispatcher({ children }: { children?: ReactNode }) {
         activePath,
         continuations: continuationsFromNode(node),
         conflicts: node.conflicts,
+        whichKeyDelayMs: graph.whichKeyDelayMs,
       })
     },
   )
