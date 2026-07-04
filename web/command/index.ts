@@ -8,6 +8,13 @@ export {
 } from './CommandContext.js'
 export { useCommand } from './useCommand.js'
 export { KeyboardManager } from './KeyboardManager.js'
+export {
+  KeyDispatcher,
+  useKeyDispatcherState,
+  type KeyDispatcherContinuation,
+  type KeyDispatcherMode,
+  type KeyDispatcherPrefixState,
+} from './KeyDispatcher.js'
 export { CommandPalette, formatKeybinding } from './CommandPalette.js'
 export {
   comboFromKeyboardEvent,

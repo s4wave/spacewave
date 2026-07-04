@@ -347,9 +347,8 @@ function insertSequence(
 }
 
 function normalizeKey(key: string): string {
-  const trimmed = key.trim()
-  if (trimmed === ' ') return 'space'
-  return trimmed.toLowerCase()
+  if (key === ' ') return 'space'
+  return key.trim().toLowerCase()
 }
 
 function detectPlatform(): KeybindingPlatform {
