@@ -49,6 +49,7 @@ import {
   iconStateForRuntimeHealth,
 } from './desktop-tray-runtime-projection.js'
 import { DesktopTrayController } from './desktop-tray.js'
+import { buildApplicationMenuTemplate } from './app-menu.js'
 
 export const isMac = os.platform() === 'darwin'
 // BLDR_DEBUG is set if this is a debug build.
@@ -217,32 +218,18 @@ export class BldrElectronApp {
 
   // onAppReady handles when the app becomes ready.
   private onAppReady() {
-    // Set a custom application menu to prevent the default Electron/macOS
-    // menu from intercepting keyboard shortcuts (e.g. Cmd+K) before they
-    // reach the renderer's KeyboardManager.
-    const menuTemplate: Electron.MenuItemConstructorOptions[] = [
-      ...(isMac ? [{ role: 'appMenu' as const }] : []),
-      { role: 'editMenu' as const },
-      {
-        label: 'View',
-        submenu: [
-          ...(isDebug
-            ? [
-                { role: 'toggleDevTools' as const },
-                { type: 'separator' as const },
-              ]
-            : []),
-          { role: 'resetZoom' as const },
-          { role: 'zoomIn' as const },
-          { role: 'zoomOut' as const },
-          { type: 'separator' as const },
-          { role: 'togglefullscreen' as const },
-        ],
-      },
-      { role: 'windowMenu' as const },
-    ]
+    // Menu roles keep native click behavior, but renderer keydown handling owns
+    // every in-app shortcut. Registering Electron accelerators here would let
+    // the main process steal configurable keybindings before KeyDispatcher sees
+    // them.
     electron.Menu.setApplicationMenu(
-      electron.Menu.buildFromTemplate(menuTemplate),
+      electron.Menu.buildFromTemplate(
+        buildApplicationMenuTemplate({
+          appName: this.app.getName(),
+          isDebug,
+          isMac,
+        }),
+      ),
     )
 
     // init the app protocol for fetching index.html and .js.map files
