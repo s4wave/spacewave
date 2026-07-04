@@ -1,0 +1,175 @@
+import { Window } from 'happy-dom'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, cleanup, render, waitFor } from '@testing-library/react'
+import {
+  CommandBindingKind,
+  CommandFocusContext,
+  type Command,
+  type CommandBinding,
+} from '@s4wave/sdk/command/command.pb.js'
+import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
+
+import { KeyDispatcher } from './KeyDispatcher.js'
+import { WhichKeyPanel } from './WhichKeyPanel.js'
+
+if (typeof document === 'undefined') {
+  const happyDomWindow = new Window({ url: 'http://localhost/' })
+
+  Object.defineProperties(globalThis, {
+    window: { value: happyDomWindow, configurable: true },
+    document: { value: happyDomWindow.document, configurable: true },
+    HTMLElement: { value: happyDomWindow.HTMLElement, configurable: true },
+    Element: { value: happyDomWindow.Element, configurable: true },
+    Node: { value: happyDomWindow.Node, configurable: true },
+    Text: { value: happyDomWindow.Text, configurable: true },
+    DocumentFragment: {
+      value: happyDomWindow.DocumentFragment,
+      configurable: true,
+    },
+    SVGElement: { value: happyDomWindow.SVGElement, configurable: true },
+    Event: { value: happyDomWindow.Event, configurable: true },
+    CustomEvent: { value: happyDomWindow.CustomEvent, configurable: true },
+    KeyboardEvent: { value: happyDomWindow.KeyboardEvent, configurable: true },
+    MouseEvent: { value: happyDomWindow.MouseEvent, configurable: true },
+    FocusEvent: { value: happyDomWindow.FocusEvent, configurable: true },
+    InputEvent: { value: happyDomWindow.InputEvent, configurable: true },
+    MutationObserver: {
+      value: happyDomWindow.MutationObserver,
+      configurable: true,
+    },
+  })
+}
+
+let mockCommands: CommandState[] = []
+const mockInvokeCommand = vi.fn()
+
+vi.mock('./CommandContext.js', () => ({
+  useCommands: () => mockCommands,
+  useInvokeCommand: () => mockInvokeCommand,
+}))
+
+function commandState(command: Command): CommandState {
+  return {
+    active: true,
+    enabled: true,
+    command,
+  }
+}
+
+function command(
+  commandId: string,
+  overrides: Omit<Command, 'commandId'> = {},
+): Command {
+  return {
+    commandId,
+    label: commandId,
+    ...overrides,
+  }
+}
+
+function sequenceBinding(id: string, steps: string[]): CommandBinding {
+  return {
+    id,
+    kind: CommandBindingKind.SEQUENCE,
+    sequence: { steps },
+    when: CommandFocusContext.GLOBAL,
+  }
+}
+
+function dispatchKeydown(init: KeyboardEventInit): KeyboardEvent {
+  const event = new KeyboardEvent('keydown', {
+    bubbles: true,
+    cancelable: true,
+    ...init,
+  })
+  act(() => {
+    document.dispatchEvent(event)
+  })
+  return event
+}
+
+describe('WhichKeyPanel', () => {
+  beforeEach(() => {
+    mockCommands = []
+  })
+
+  afterEach(() => {
+    cleanup()
+    vi.clearAllMocks()
+  })
+
+  it('renders prefix continuations from dispatcher state only', async () => {
+    mockCommands = [
+      commandState(
+        command('spacewave.file.open', {
+          label: 'Open File',
+          defaultBindings: [sequenceBinding('leader-open', ['Leader', 'O'])],
+        }),
+      ),
+    ]
+
+    const view = render(
+      <KeyDispatcher>
+        <WhichKeyPanel />
+      </KeyDispatcher>,
+    )
+
+    expect(
+      view.queryByRole('region', { name: 'Key sequence continuations' }),
+    ).toBeNull()
+
+    dispatchKeydown({ key: ' ', ctrlKey: true })
+
+    const panel = await view.findByRole('region', {
+      name: 'Key sequence continuations',
+    })
+    expect(panel.textContent).toContain('Ctrl+Space')
+    expect(panel.textContent).toContain('O')
+    expect(panel.textContent).toContain('Open File')
+    expect(panel.textContent).toContain('spacewave.file.open')
+
+    dispatchKeydown({ key: 'o' })
+
+    await waitFor(() => {
+      expect(
+        view.queryByRole('region', { name: 'Key sequence continuations' }),
+      ).toBeNull()
+    })
+  })
+
+  it('renders conflict hints without dispatching duplicate sequences', async () => {
+    mockCommands = [
+      commandState(
+        command('spacewave.first', {
+          defaultBindings: [sequenceBinding('first-open', ['Leader', 'O'])],
+        }),
+      ),
+      commandState(
+        command('spacewave.second', {
+          defaultBindings: [sequenceBinding('second-open', ['Leader', 'O'])],
+        }),
+      ),
+    ]
+
+    const view = render(
+      <KeyDispatcher>
+        <WhichKeyPanel />
+      </KeyDispatcher>,
+    )
+
+    dispatchKeydown({ key: ' ', ctrlKey: true })
+
+    const panel = await view.findByRole('region', {
+      name: 'Key sequence continuations',
+    })
+    expect(panel.textContent).toContain('O')
+    expect(panel.textContent).toContain('Conflict')
+
+    dispatchKeydown({ key: 'o' })
+
+    await waitFor(() => {
+      expect(panel.textContent).toContain('Conflict')
+    })
+    expect(mockInvokeCommand).not.toHaveBeenCalled()
+  })
+})

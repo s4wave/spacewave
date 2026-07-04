@@ -7,8 +7,9 @@ import { useStateAtom, useStateNamespace } from '@s4wave/web/state/index.js'
 import { HashRouter } from '@s4wave/web/router/HashRouter.js'
 import { Routes, Route } from '@s4wave/web/router/router.js'
 import { NavigatePath } from '@s4wave/web/router/NavigatePath.js'
-import { KeyboardManager } from '@s4wave/web/command/KeyboardManager.js'
+import { KeyDispatcher } from '@s4wave/web/command/KeyDispatcher.js'
 import { CommandPalette } from '@s4wave/web/command/CommandPalette.js'
+import { WhichKeyPanel } from '@s4wave/web/command/WhichKeyPanel.js'
 import { BuiltinCommands } from '@s4wave/app/BuiltinCommands.js'
 import { DebugCommands } from '@s4wave/app/DebugCommands.js'
 import {
@@ -33,6 +34,18 @@ const isDebug = typeof BLDR_DEBUG === 'boolean' && BLDR_DEBUG
 const noopAddTab = () => Promise.resolve({ tabId: '' })
 const noopNavigateTab = () => Promise.resolve({})
 
+function CommandRuntime({ children }: { children?: ReactNode }) {
+  return (
+    <KeyDispatcher>
+      <BuiltinCommands />
+      {isDebug && <DebugCommands />}
+      <CommandPalette />
+      <WhichKeyPanel />
+      {children}
+    </KeyDispatcher>
+  )
+}
+
 // ActiveTabCommandScope provides command system components scoped to
 // the currently active tab. Wraps children in ShellTabStateProvider
 // and TabContextProvider so useTabId() works from either context.
@@ -49,11 +62,7 @@ function ActiveTabCommandScope({ children }: { children: ReactNode }) {
   return (
     <ShellTabStateProvider tabId={activeTabId}>
       <TabContextProvider value={tabContext}>
-        <KeyboardManager />
-        <BuiltinCommands />
-        {isDebug && <DebugCommands />}
-        <CommandPalette />
-        {children}
+        <CommandRuntime>{children}</CommandRuntime>
       </TabContextProvider>
     </ShellTabStateProvider>
   )
@@ -87,7 +96,7 @@ export function EditorShell() {
 
   // In grid mode, render ShellGridLayout directly without ShellTabStrip's Layout.
   // ShellTabStateProvider scopes command components to the active tab so
-  // useTabId() works for KeyboardManager, BuiltinCommands, and CommandPalette.
+  // useTabId() works for the command runtime.
   if (isGridMode) {
     return (
       <ShellProvider isGridMode={true}>
@@ -125,11 +134,9 @@ export function EditorShell() {
     <ShellProvider isGridMode={false}>
       <BottomBarRoot openMenu={openMenu} setOpenMenu={setOpenMenu}>
         <ShellTabStrip>
-          <ShellMenuBar />
-          <KeyboardManager />
-          <BuiltinCommands />
-          {isDebug && <DebugCommands />}
-          <CommandPalette />
+          <CommandRuntime>
+            <ShellMenuBar />
+          </CommandRuntime>
         </ShellTabStrip>
       </BottomBarRoot>
     </ShellProvider>

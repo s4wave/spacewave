@@ -11,6 +11,7 @@
 import '@s4wave/web/command/CommandPalette.js'
 import '@s4wave/web/command/index.js'
 import '@s4wave/web/command/KeyboardManager.js'
+import '@s4wave/web/command/WhichKeyPanel.js'
 import '@s4wave/web/command/useCommand.js'
 
 // contexts/
