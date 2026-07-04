@@ -113,6 +113,30 @@ func lookupGraphQuadsBatch(ctx context.Context, h world.CayleyHandle, filters []
 	return results, nil
 }
 
+type graphQuadBatchCollector interface {
+	CollectFilteredQuadsBatch(ctx context.Context, filters []quad.Quad, limitPerFilter uint32) ([][]quad.Quad, error)
+}
+
+func (t *WorldState) graphQuadExists(ctx context.Context, cq quad.Quad) (bool, error) {
+	if collector, ok := t.graphHd.QuadStore.(graphQuadBatchCollector); ok {
+		filters := [1]quad.Quad{cq}
+		results, err := collector.CollectFilteredQuadsBatch(ctx, filters[:], 1)
+		if err != nil {
+			return false, err
+		}
+		if len(results) == 0 {
+			return false, nil
+		}
+		for _, q := range results[0] {
+			if q.IsValid() && world.QuadEqual(q, cq) {
+				return true, nil
+			}
+		}
+		return false, nil
+	}
+	return world.CheckQuadExists(ctx, t.graphHd, cq)
+}
+
 // QueryGraphPath executes a bounded graph traversal.
 func (t *WorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
 	if t.discarded.Load() {
@@ -178,8 +202,7 @@ func (t *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error 
 		return err
 	}
 
-	// check if already exists
-	ex, err := world.CheckQuadExists(ctx, t.graphHd, cq)
+	ex, err := t.graphQuadExists(ctx, cq)
 	if err != nil {
 		return err
 	}
