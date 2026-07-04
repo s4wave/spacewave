@@ -2090,6 +2090,13 @@
       "copyrightNotice": "Copyright (c) 2024-2026 Steven Levithan"
     },
     {
+      "name": "orga",
+      "version": "4.7.1",
+      "spdx": "MIT",
+      "source": "js",
+      "copyrightNotice": "Copyright (c) 2015 gatsbyjs"
+    },
+    {
       "name": "p-defer",
       "version": "4.0.1",
       "spdx": "MIT",
@@ -2280,6 +2287,13 @@
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2020 Simon Knott and superjson contributors"
+    },
+    {
+      "name": "text-kit",
+      "version": "4.5.1",
+      "spdx": "MIT",
+      "source": "js",
+      "copyrightNotice": "Copyright (c) 2015 gatsbyjs"
     },
     {
       "name": "tiny-invariant",
