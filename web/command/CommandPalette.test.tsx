@@ -276,11 +276,23 @@ describe('CommandPalette', () => {
 
     expect(view.getByText('Command Palette')).toBeTruthy()
     expect(
-      view.getByText(textContentMatches('⌘K (Global)', 'CmdOrCtrl+K (Global)')),
+      view.getByText(
+        textContentMatches(
+          '⌘K (Global)',
+          'CmdOrCtrl+K (Global)',
+          'Ctrl+K (Global)',
+        ),
+      ),
     ).toBeTruthy()
     expect(view.getByText('Insert Link')).toBeTruthy()
     expect(
-      view.getByText(textContentMatches('⌘K (Editor)', 'CmdOrCtrl+K (Editor)')),
+      view.getByText(
+        textContentMatches(
+          '⌘K (Editor)',
+          'CmdOrCtrl+K (Editor)',
+          'Ctrl+K (Editor)',
+        ),
+      ),
     ).toBeTruthy()
   })
 

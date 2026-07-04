@@ -61,15 +61,16 @@ vi.mock('@s4wave/web/contexts/contexts.js', () => ({
 }))
 
 vi.mock('@s4wave/web/hooks/useSessionInfo.js', () => ({
-  useSessionInfo: hookState.useSessionInfo,
+  useSessionInfo: () => hookState.useSessionInfo(),
 }))
 
 vi.mock('@s4wave/web/hooks/useMountAccount.js', () => ({
-  useMountAccount: hookState.useMountAccount,
+  useMountAccount: (providerId: string, accountId: string, enabled: boolean) =>
+    hookState.useMountAccount(providerId, accountId, enabled),
 }))
 
 vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
-  useStreamingResource: hookState.useStreamingResource,
+  useStreamingResource: () => hookState.useStreamingResource(),
 }))
 
 function comboBinding(id: string, combo: string): CommandBinding {
