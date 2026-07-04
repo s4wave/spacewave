@@ -312,7 +312,9 @@ func EncodeBinaryFrame(msg *V86FsMessage) ([]byte, error) {
 		r := body.ReadlinkReply
 		w := newBinaryFrameWriter(v86fsMsgReadlinkReply, tag, 4+2+len(r.GetTarget()))
 		w.u32(r.GetStatus())
-		w.string(r.GetTarget())
+		if err := w.string(r.GetTarget()); err != nil {
+			return nil, err
+		}
 		return w.bytes(), nil
 	case *V86FsMessage_StatfsReply:
 		r := body.StatfsReply
@@ -340,13 +342,19 @@ func EncodeBinaryFrame(msg *V86FsMessage) ([]byte, error) {
 	case *V86FsMessage_MountNotify:
 		r := body.MountNotify
 		w := newBinaryFrameWriter(v86fsMsgMountNotify, 0, 2+len(r.GetName())+2+len(r.GetMountPath()))
-		w.string(r.GetName())
-		w.string(r.GetMountPath())
+		if err := w.string(r.GetName()); err != nil {
+			return nil, err
+		}
+		if err := w.string(r.GetMountPath()); err != nil {
+			return nil, err
+		}
 		return w.bytes(), nil
 	case *V86FsMessage_UmountNotify:
 		r := body.UmountNotify
 		w := newBinaryFrameWriter(v86fsMsgUmountNotify, 0, 2+len(r.GetMountPath()))
-		w.string(r.GetMountPath())
+		if err := w.string(r.GetMountPath()); err != nil {
+			return nil, err
+		}
 		return w.bytes(), nil
 	case *V86FsMessage_ErrorReply:
 		return encodeStatusReply(v86fsMsgErrorReply, tag, body.ErrorReply.GetStatus()), nil
@@ -445,12 +453,16 @@ func (w *binaryFrameWriter) raw(data []byte) {
 	w.data = append(w.data, data...)
 }
 
-func (w *binaryFrameWriter) string(value string) {
+// string writes a uint16 length prefix followed by the raw bytes. It errors
+// when the value exceeds the uint16 length field, which can happen for
+// guest-controlled strings such as a symlink target read back through READLINK.
+func (w *binaryFrameWriter) string(value string) error {
 	if len(value) > math.MaxUint16 {
-		panic("v86fs binary string exceeds uint16 length")
+		return errors.Errorf("v86fs binary string exceeds uint16 length: %d bytes", len(value))
 	}
 	w.u16(uint16(len(value)))
 	w.raw([]byte(value))
+	return nil
 }
 
 func (w *binaryFrameWriter) u16(value uint16) {
@@ -493,9 +505,6 @@ func encodeInodeModeReply(typ byte, tag uint16, status uint32, inodeID uint64, m
 func encodeReaddirReply(tag uint16, reply *V86FsReaddirReply) ([]byte, error) {
 	payloadSize := 8
 	for _, ent := range reply.GetEntries() {
-		if len(ent.GetName()) > math.MaxUint16 {
-			return nil, errors.Errorf("v86fs dirent name too long: %q", ent.GetName())
-		}
 		payloadSize += 8 + 1 + 2 + len(ent.GetName())
 	}
 	w := newBinaryFrameWriter(v86fsMsgReaddirReply, tag, payloadSize)
@@ -504,7 +513,9 @@ func encodeReaddirReply(tag uint16, reply *V86FsReaddirReply) ([]byte, error) {
 	for _, ent := range reply.GetEntries() {
 		w.u64(ent.GetInodeId())
 		w.raw([]byte{byte(ent.GetDtType())})
-		w.string(ent.GetName())
+		if err := w.string(ent.GetName()); err != nil {
+			return nil, err
+		}
 	}
 	return w.bytes(), nil
 }
