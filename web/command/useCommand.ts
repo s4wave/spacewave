@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useState } from 'react'
+import { useEffect, useEffectEvent, useRef } from 'react'
 import { createHandler } from 'starpc'
 import { newResourceMux } from '@aptre/bldr-sdk/resource/server/index.js'
 import { ResourceClientError } from '@aptre/bldr-sdk/resource/client.js'
@@ -53,7 +53,10 @@ interface UseCommandOpts {
 // a client-side handler. Manages registration, activation, and cleanup.
 export function useCommand(opts: UseCommandOpts): void {
   const { service, releaseResource, attachResource } = useCommandContext()
-  const [registrationResourceId, setRegistrationResourceId] = useState(0)
+  const registrationResourceIdRef = useRef(0)
+  const defaultBindingsRef = useRef(opts.defaultBindings)
+  defaultBindingsRef.current = opts.defaultBindings
+  const defaultBindingsSignature = JSON.stringify(opts.defaultBindings ?? null)
   const handleCommand = useEffectEvent((args: Record<string, string>) => {
     opts.handler(args)
   })
@@ -61,6 +64,30 @@ export function useCommand(opts: UseCommandOpts): void {
     async (query: string, signal: AbortSignal): Promise<SubItem[]> => {
       const items = await opts.subItems?.(query, signal)
       return items ?? []
+    },
+  )
+  const syncCommandState = useEffectEvent(
+    (registrationResourceId: number, signal: AbortSignal) => {
+      const currentService = service
+      if (!currentService || registrationResourceId === 0) return
+
+      const commandId = opts.commandId
+      const active = opts.active ?? true
+      const enabled = opts.enabled ?? true
+      currentService
+        .SetActive({ resourceId: registrationResourceId, active }, signal)
+        .catch((err) => {
+          if (!signal.aborted) {
+            console.error('SetActive failed:', commandId, err)
+          }
+        })
+      currentService
+        .SetEnabled({ resourceId: registrationResourceId, enabled }, signal)
+        .catch((err) => {
+          if (!signal.aborted) {
+            console.error('SetEnabled failed:', commandId, err)
+          }
+        })
     },
   )
 
@@ -95,6 +122,11 @@ export function useCommand(opts: UseCommandOpts): void {
       abort.signal,
     )
       .then(async ({ resourceId, cleanup }) => {
+        if (abort.signal.aborted) {
+          cleanup()
+          return
+        }
+
         detachHandlerResource = cleanup
         const resp = await service.RegisterCommand(
           {
@@ -102,7 +134,7 @@ export function useCommand(opts: UseCommandOpts): void {
               commandId: opts.commandId,
               label: opts.label,
               keybinding: opts.keybinding,
-              defaultBindings: opts.defaultBindings,
+              defaultBindings: defaultBindingsRef.current,
               menuPath: opts.menuPath,
               menuGroup: opts.menuGroup,
               menuOrder: opts.menuOrder,
@@ -115,7 +147,13 @@ export function useCommand(opts: UseCommandOpts): void {
           abort.signal,
         )
         registrationId = resp.resourceId ?? 0
-        setRegistrationResourceId(registrationId)
+        if (abort.signal.aborted) {
+          if (registrationId !== 0) releaseResource(registrationId)
+          return
+        }
+
+        registrationResourceIdRef.current = registrationId
+        syncCommandState(registrationId, abort.signal)
       })
       .catch((err) => {
         if (
@@ -129,12 +167,10 @@ export function useCommand(opts: UseCommandOpts): void {
     return () => {
       abort.abort()
       detachHandlerResource?.()
-      setRegistrationResourceId((current) =>
-        current === registrationId ? 0 : current,
-      )
-      if (registrationId !== 0) {
-        releaseResource(registrationId)
+      if (registrationResourceIdRef.current === registrationId) {
+        registrationResourceIdRef.current = 0
       }
+      if (registrationId !== 0) releaseResource(registrationId)
     }
   }, [
     attachResource,
@@ -143,7 +179,7 @@ export function useCommand(opts: UseCommandOpts): void {
     opts.commandId,
     opts.label,
     opts.keybinding,
-    opts.defaultBindings,
+    defaultBindingsSignature,
     opts.menuPath,
     opts.menuGroup,
     opts.menuOrder,
@@ -153,6 +189,7 @@ export function useCommand(opts: UseCommandOpts): void {
   ])
 
   useEffect(() => {
+    const registrationResourceId = registrationResourceIdRef.current
     if (!service || registrationResourceId === 0) return
 
     const abort = new AbortController()
@@ -166,9 +203,10 @@ export function useCommand(opts: UseCommandOpts): void {
     return () => {
       abort.abort()
     }
-  }, [service, registrationResourceId, opts.commandId, active])
+  }, [service, opts.commandId, active])
 
   useEffect(() => {
+    const registrationResourceId = registrationResourceIdRef.current
     if (!service || registrationResourceId === 0) return
 
     const abort = new AbortController()
@@ -182,7 +220,7 @@ export function useCommand(opts: UseCommandOpts): void {
     return () => {
       abort.abort()
     }
-  }, [service, registrationResourceId, opts.commandId, enabled])
+  }, [service, opts.commandId, enabled])
 }
 
 function isCommandRegistrationLifecycleError(err: unknown): boolean {

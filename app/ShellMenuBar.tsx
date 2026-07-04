@@ -226,8 +226,8 @@ export function ShellMenuBar() {
   )
 
   const handleLogoClick = useCallback(() => {
-    invokeCommand('spacewave.view.palette')
-  }, [invokeCommand])
+    openCommand('spacewave.view.palette')
+  }, [openCommand])
 
   return (
     <div className="flex h-full shrink-0 items-center gap-px pr-1 pl-1.5">

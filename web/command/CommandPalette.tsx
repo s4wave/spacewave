@@ -323,6 +323,11 @@ export function CommandPalette() {
         binding: { case: 'combo', value: { combo: 'CmdOrCtrl+K' } },
         when: CommandFocusContext.GLOBAL,
       },
+      {
+        id: 'global-palette-sequence',
+        binding: { case: 'sequence', value: { steps: ['Leader', 'Space'] } },
+        when: CommandFocusContext.GLOBAL,
+      },
     ],
     menuPath: 'View/Command Palette',
     menuGroup: 10,

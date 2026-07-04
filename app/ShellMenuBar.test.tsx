@@ -133,6 +133,17 @@ describe('ShellMenuBar', () => {
     expect(mockInvokeCommand).not.toHaveBeenCalled()
   })
 
+  it('opens the palette logo through the local palette owner', () => {
+    mockUseCommands.mockReturnValue([])
+
+    const view = render(<ShellMenuBar />)
+
+    fireEvent.click(view.getByRole('button', { name: 'Open command palette' }))
+
+    expect(mockOpenCommand).toHaveBeenCalledWith('spacewave.view.palette')
+    expect(mockInvokeCommand).not.toHaveBeenCalled()
+  })
+
   it('invokes regular menu commands directly', () => {
     mockUseCommands.mockReturnValue([
       {

@@ -1,7 +1,7 @@
 import { Window } from 'happy-dom'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import type { CommandBinding } from '@s4wave/sdk/command/command.pb.js'
 
 import { useCommand } from './useCommand.js'
@@ -281,6 +281,83 @@ describe('useCommand', () => {
     ])
   })
 
+  it('does not churn registration when semantically stable options get new identities during unrelated rerenders', async () => {
+    const handled = vi.fn()
+    let registerAttempt = 0
+    mockRegisterCommand.mockImplementation(() => {
+      registerAttempt += 1
+      if (registerAttempt > 3) {
+        return Promise.reject(new Error('registration churn guard tripped'))
+      }
+      return Promise.resolve({ resourceId: 100 + registerAttempt })
+    })
+
+    const stableDefaultBindings: CommandBinding[] = [
+      {
+        id: 'settings.combo',
+        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+,' } },
+        sourceLabel: 'Spacewave',
+      },
+    ]
+    const makeDefaultBindings = vi.fn(() =>
+      stableDefaultBindings.map((binding) => ({ ...binding })),
+    )
+    function CommandOwner() {
+      const [version, setVersion] = React.useState(0)
+      const defaultBindings = makeDefaultBindings()
+
+      return (
+        <>
+          <TestCommand
+            defaultBindings={defaultBindings}
+            handler={(args) => handled({ args, version })}
+          />
+          <button
+            type="button"
+            onClick={() => setVersion((value) => value + 1)}
+          >
+            unrelated rerender {version}
+          </button>
+        </>
+      )
+    }
+
+    const view = render(<CommandOwner />)
+
+    await waitFor(() => {
+      expect(mockRegisterCommand).toHaveBeenCalledTimes(1)
+      expect(attachedHandlerService.current).not.toBeNull()
+    })
+    await waitFor(() => {
+      expect(mockSetActive).toHaveBeenCalledWith(
+        { resourceId: 101, active: true },
+        expect.any(AbortSignal),
+      )
+    })
+
+    fireEvent.click(view.getByRole('button', { name: /unrelated rerender 0/ }))
+    expect(view.getByRole('button').textContent).toBe('unrelated rerender 1')
+    view.rerender(<CommandOwner />)
+    await waitFor(
+      () => {
+        expect(mockRegisterCommand).toHaveBeenCalledTimes(2)
+      },
+      { timeout: 500 },
+    ).catch(() => undefined)
+
+    await attachedHandlerService.current?.HandleCommand?.({
+      args: { source: 'rerender' },
+    })
+
+    expect(handled).toHaveBeenCalledWith({
+      args: { source: 'rerender' },
+      version: 1,
+    })
+    expect(mockRegisterCommand).toHaveBeenCalledTimes(1)
+    expect(mockReleaseResource).not.toHaveBeenCalled()
+    expect(mockAttachResource).toHaveBeenCalledTimes(1)
+  })
+
   it('uses the latest handler and sub-items callbacks without re-registering', async () => {
     const firstHandler = vi.fn()
     const secondHandler = vi.fn()
@@ -318,5 +395,36 @@ describe('useCommand', () => {
     expect(firstSubItems).not.toHaveBeenCalled()
     expect(secondSubItems).toHaveBeenCalledWith('next', expect.any(AbortSignal))
     expect(mockRegisterCommand.mock.calls.length).toBe(registerCount)
+  })
+  it('does not re-register when inline default bindings keep the same command shape', async () => {
+    function InlineDefaultBindingsCommand() {
+      useCommand({
+        commandId: 'spacewave.view.palette',
+        label: 'Command Palette',
+        defaultBindings: [
+          {
+            id: 'global-palette',
+            binding: { case: 'combo', value: { combo: 'CmdOrCtrl+K' } },
+          },
+        ],
+        handler: vi.fn(),
+      })
+      return null
+    }
+
+    const view = render(<InlineDefaultBindingsCommand />)
+
+    await waitFor(() => {
+      expect(mockRegisterCommand).toHaveBeenCalled()
+    })
+
+    const registerCount = mockRegisterCommand.mock.calls.length
+    view.rerender(<InlineDefaultBindingsCommand />)
+
+    await Promise.resolve()
+
+    expect(mockRegisterCommand.mock.calls.length).toBe(registerCount)
+    expect(mockCleanup).not.toHaveBeenCalled()
+    expect(mockReleaseResource).not.toHaveBeenCalled()
   })
 })

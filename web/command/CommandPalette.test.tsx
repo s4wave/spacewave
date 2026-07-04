@@ -2,7 +2,10 @@ import { Window } from 'happy-dom'
 import type { ReactNode, Ref } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
-import { CommandFocusContext } from '@s4wave/sdk/command/command.pb.js'
+import {
+  CommandFocusContext,
+  type CommandBinding,
+} from '@s4wave/sdk/command/command.pb.js'
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 
 import { CommandPalette } from './CommandPalette.js'
@@ -36,6 +39,12 @@ if (typeof document === 'undefined') {
 }
 
 let mockCommands: CommandState[] = []
+let registeredPaletteCommand:
+  | {
+      commandId: string
+      defaultBindings?: CommandBinding[]
+    }
+  | undefined
 let paletteHandler: (() => void) | undefined
 const mockInvokeCommand = vi.fn()
 const mockGetSubItems = vi.fn()
@@ -51,9 +60,15 @@ vi.mock('./CommandContext.js', () => ({
 }))
 
 vi.mock('./useCommand.js', () => ({
-  useCommand: (opts: { commandId: string; handler: () => void }) => {
-    if (opts.commandId === 'spacewave.view.palette')
+  useCommand: (opts: {
+    commandId: string
+    defaultBindings?: CommandBinding[]
+    handler: () => void
+  }) => {
+    if (opts.commandId === 'spacewave.view.palette') {
+      registeredPaletteCommand = opts
       paletteHandler = opts.handler
+    }
   },
 }))
 
@@ -131,7 +146,26 @@ describe('CommandPalette', () => {
     cleanup()
     mockCommands = []
     paletteHandler = undefined
+    registeredPaletteCommand = undefined
     vi.clearAllMocks()
+  })
+
+  it('registers the palette command with combo and leader-sequence bindings', () => {
+    render(<CommandPalette />)
+
+    expect(registeredPaletteCommand?.commandId).toBe('spacewave.view.palette')
+    expect(registeredPaletteCommand?.defaultBindings).toEqual([
+      {
+        id: 'global-palette',
+        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+K' } },
+        when: CommandFocusContext.GLOBAL,
+      },
+      {
+        id: 'global-palette-sequence',
+        binding: { case: 'sequence', value: { steps: ['Leader', 'Space'] } },
+        when: CommandFocusContext.GLOBAL,
+      },
+    ])
   })
 
   it('shows legacy keybinding display through the resolver migration path', () => {
