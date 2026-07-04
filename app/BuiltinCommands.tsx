@@ -4,6 +4,10 @@ import { isDesktop, quitDesktopRuntime } from '@aptre/bldr'
 import { getAppPath, setAppPath } from '@s4wave/web/router/app-path.js'
 import { useCommand } from '@s4wave/web/command/useCommand.js'
 import { KeyboardShortcutsDialog } from '@s4wave/web/command/KeyboardShortcutsDialog.js'
+import {
+  KeybindingEditor,
+  type KeybindingEditorScope,
+} from '@s4wave/web/command/KeybindingEditor.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { AboutDialog } from '@s4wave/app/AboutDialog.js'
 import { EmailSupportDialog } from '@s4wave/app/EmailSupportDialog.js'
@@ -17,6 +21,12 @@ import { useShellTabs } from '@s4wave/app/ShellTabContext.js'
 export function BuiltinCommands() {
   const { activeTabId, openPathInNewTab } = useShellTabs()
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
+  const [keybindingEditorOpen, setKeybindingEditorOpen] = useState(false)
+  const [keybindingEditorScope, setKeybindingEditorScope] =
+    useState<KeybindingEditorScope>('local')
+  const [keybindingEditorCommandId, setKeybindingEditorCommandId] = useState<
+    string | undefined
+  >()
   const [aboutOpen, setAboutOpen] = useState(false)
   const [emailSupportOpen, setEmailSupportOpen] = useState(false)
   const { add: addRootAlias, canAdd: canAddRootAlias } = useAddSpaceRootAlias()
@@ -29,6 +39,15 @@ export function BuiltinCommands() {
       })
     },
     [activeTabId, openPathInNewTab],
+  )
+
+  const openKeybindingEditor = useCallback(
+    (scope: KeybindingEditorScope = 'local', commandId?: string) => {
+      setKeybindingEditorScope(scope)
+      setKeybindingEditorCommandId(commandId)
+      setKeybindingEditorOpen(true)
+    },
+    [],
   )
 
   useCommand({
@@ -94,6 +113,25 @@ export function BuiltinCommands() {
     menuGroup: 10,
     menuOrder: 2,
     handler: useCallback(() => setShortcutsOpen(true), []),
+  })
+
+  useCommand({
+    commandId: 'spacewave.preferences.keyboard-shortcuts',
+    label: 'Edit Keyboard Shortcuts',
+    description: 'Customize local keyboard shortcuts',
+    menuPath: 'Tools/Keyboard Shortcuts',
+    menuGroup: 10,
+    menuOrder: 1,
+    handler: useCallback(
+      (args: Record<string, string>) => {
+        const scope =
+          args.scope === 'account' || args.scope === 'space'
+            ? args.scope
+            : 'local'
+        openKeybindingEditor(scope, args.commandId || undefined)
+      },
+      [openKeybindingEditor],
+    ),
   })
 
   useCommand({
@@ -164,6 +202,16 @@ export function BuiltinCommands() {
       <KeyboardShortcutsDialog
         open={shortcutsOpen}
         onOpenChange={setShortcutsOpen}
+        onEditCommand={(commandId) => {
+          setShortcutsOpen(false)
+          openKeybindingEditor('local', commandId)
+        }}
+      />
+      <KeybindingEditor
+        open={keybindingEditorOpen}
+        onOpenChange={setKeybindingEditorOpen}
+        initialScope={keybindingEditorScope}
+        initialCommandId={keybindingEditorCommandId}
       />
       <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
       <EmailSupportDialog

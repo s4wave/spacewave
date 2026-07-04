@@ -1,10 +1,11 @@
 import { useMemo, useCallback } from 'react'
-import { LuPencil, LuSettings } from 'react-icons/lu'
+import { LuKeyboard, LuPencil, LuSettings } from 'react-icons/lu'
 
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { ObjectKeySelector } from '@s4wave/web/ui/ObjectKeySelector.js'
 
+import { useInvokeCommand } from '@s4wave/web/command/index.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { buildObjectTree } from '@s4wave/web/space/object-tree.js'
 import { applySpaceIndexPath } from './space-settings.js'
@@ -26,6 +27,7 @@ export function SpaceSettingsEditor({
   onRenameStart,
 }: SpaceSettingsEditorProps) {
   const { spaceState, spaceWorld } = SpaceContainerContext.useContext()
+  const invokeCommand = useInvokeCommand()
 
   const indexPath = spaceState.settings?.indexPath ?? ''
   const worldObjects = spaceState.worldContents?.objects
@@ -106,6 +108,27 @@ export function SpaceSettingsEditor({
           </div>
         </div>
       </InfoCard>
+      <button
+        type="button"
+        className="border-foreground/10 bg-foreground/5 hover:border-brand/30 hover:bg-brand/5 group mt-2 flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors"
+        onClick={() =>
+          invokeCommand('spacewave.preferences.keyboard-shortcuts', {
+            scope: 'space',
+          })
+        }
+      >
+        <div className="bg-foreground/10 group-hover:bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+          <LuKeyboard className="text-foreground-alt group-hover:text-brand size-3.5 transition-colors" />
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <h4 className="text-foreground text-xs font-medium select-none">
+            Space Overrides
+          </h4>
+          <p className="text-foreground-alt text-xs select-none">
+            Open keyboard shortcut overrides for this Space
+          </p>
+        </div>
+      </button>
     </>
   )
 

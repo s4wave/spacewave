@@ -1,7 +1,15 @@
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, waitFor } from '@testing-library/react'
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  waitFor,
+} from '@testing-library/react'
 
+import type { KeybindingEditorProps } from '@s4wave/web/command/KeybindingEditor.js'
+import type { KeyboardShortcutsDialogProps } from '@s4wave/web/command/KeyboardShortcutsDialog.js'
 import { BuiltinCommands } from './BuiltinCommands.js'
 
 interface RegisteredCommand {
@@ -16,41 +24,61 @@ interface RegisteredCommand {
   handler: (args: Record<string, string>) => void
 }
 
+interface ShellTabOpenOptions {
+  afterTabId: string
+  focusExisting: boolean
+}
+
 interface BuiltinCommandMocks {
   isDesktop: boolean
   commands: RegisteredCommand[]
-  quitDesktopRuntime: ReturnType<typeof vi.fn<() => Promise<void>>>
-  addRootAlias: ReturnType<typeof vi.fn>
-  openPathInNewTab: ReturnType<typeof vi.fn>
+  quitDesktopRuntime: () => Promise<void>
+  addRootAlias: () => void
+  openPathInNewTab: (path: string, opts: ShellTabOpenOptions) => void
   appPath: string
-  setAppPath: ReturnType<typeof vi.fn>
+  setAppPath: (path: string) => void
+  keyboardShortcutsDialogs: KeyboardShortcutsDialogProps[]
+  keybindingEditors: KeybindingEditorProps[]
 }
 
-const mocks = vi.hoisted<BuiltinCommandMocks>(() => ({
-  isDesktop: true,
-  commands: [],
-  quitDesktopRuntime: vi.fn(() => Promise.resolve()),
-  addRootAlias: vi.fn(),
-  openPathInNewTab: vi.fn(),
-  appPath: '/',
-  setAppPath: vi.fn(),
-}))
+let builtinCommandMocks: BuiltinCommandMocks
 
 vi.mock('@aptre/bldr', () => ({
   get isDesktop() {
-    return mocks.isDesktop
+    return builtinCommandMocks.isDesktop
   },
-  quitDesktopRuntime: mocks.quitDesktopRuntime,
+  quitDesktopRuntime: () => builtinCommandMocks.quitDesktopRuntime(),
 }))
 
 vi.mock('@s4wave/web/command/useCommand.js', () => ({
   useCommand: (opts: RegisteredCommand) => {
-    mocks.commands.push(opts)
+    builtinCommandMocks.commands.push(opts)
   },
 }))
 
 vi.mock('@s4wave/web/command/KeyboardShortcutsDialog.js', () => ({
-  KeyboardShortcutsDialog: () => null,
+  KeyboardShortcutsDialog: (props: KeyboardShortcutsDialogProps) => {
+    builtinCommandMocks.keyboardShortcutsDialogs.push(props)
+    return props.open ? (
+      <button
+        type="button"
+        onClick={() => props.onEditCommand?.('spacewave.file.open')}
+      >
+        Edit Open File
+      </button>
+    ) : null
+  },
+}))
+
+vi.mock('@s4wave/web/command/KeybindingEditor.js', () => ({
+  KeybindingEditor: (props: KeybindingEditorProps) => {
+    builtinCommandMocks.keybindingEditors.push(props)
+    return props.open ? (
+      <div data-testid="keybinding-editor">
+        {props.initialScope}:{props.initialCommandId}
+      </div>
+    ) : null
+  },
 }))
 
 vi.mock('@s4wave/web/ui/toaster.js', () => ({
@@ -79,7 +107,7 @@ vi.mock('@s4wave/app/urls.js', () => ({
 
 vi.mock('@s4wave/app/hooks/useAddSpaceRootAlias.js', () => ({
   useAddSpaceRootAlias: () => ({
-    add: mocks.addRootAlias,
+    add: builtinCommandMocks.addRootAlias,
     canAdd: true,
   }),
 }))
@@ -87,25 +115,32 @@ vi.mock('@s4wave/app/hooks/useAddSpaceRootAlias.js', () => ({
 vi.mock('@s4wave/app/ShellTabContext.js', () => ({
   useShellTabs: () => ({
     activeTabId: 'home',
-    openPathInNewTab: mocks.openPathInNewTab,
+    openPathInNewTab: builtinCommandMocks.openPathInNewTab,
   }),
 }))
 
 vi.mock('@s4wave/web/router/app-path.js', () => ({
-  getAppPath: () => mocks.appPath,
-  setAppPath: mocks.setAppPath,
+  getAppPath: () => builtinCommandMocks.appPath,
+  setAppPath: (path: string) => builtinCommandMocks.setAppPath(path),
 }))
 
 function findCommand(commandId: string): RegisteredCommand | undefined {
-  return mocks.commands.find((cmd) => cmd.commandId === commandId)
+  return builtinCommandMocks.commands.find((cmd) => cmd.commandId === commandId)
 }
 
 describe('BuiltinCommands', () => {
   beforeEach(() => {
-    mocks.isDesktop = true
-    mocks.appPath = '/'
-    mocks.commands.length = 0
-    mocks.quitDesktopRuntime.mockResolvedValue(undefined)
+    builtinCommandMocks = {
+      isDesktop: true,
+      commands: [],
+      quitDesktopRuntime: vi.fn(() => Promise.resolve()),
+      addRootAlias: vi.fn(),
+      openPathInNewTab: vi.fn(),
+      appPath: '/',
+      setAppPath: vi.fn(),
+      keyboardShortcutsDialogs: [],
+      keybindingEditors: [],
+    }
   })
 
   afterEach(() => {
@@ -133,7 +168,7 @@ describe('BuiltinCommands', () => {
   })
 
   it('omits desktop commands outside desktop mode', () => {
-    mocks.isDesktop = false
+    builtinCommandMocks.isDesktop = false
 
     render(<BuiltinCommands />)
 
@@ -142,7 +177,7 @@ describe('BuiltinCommands', () => {
   })
 
   it('deactivates Add State Root outside desktop mode', () => {
-    mocks.isDesktop = false
+    builtinCommandMocks.isDesktop = false
 
     render(<BuiltinCommands />)
 
@@ -157,33 +192,80 @@ describe('BuiltinCommands', () => {
     findCommand('spacewave.file.quit')?.handler({})
 
     await waitFor(() => {
-      expect(mocks.quitDesktopRuntime).toHaveBeenCalledTimes(1)
+      expect(builtinCommandMocks.quitDesktopRuntime).toHaveBeenCalledTimes(1)
     })
   })
 
   it('opens Documentation through provider Shell Tab semantics inside a session', () => {
-    mocks.appPath = '/u/1'
+    builtinCommandMocks.appPath = '/u/1'
     render(<BuiltinCommands />)
 
     findCommand('spacewave.help.docs')?.handler({})
 
-    expect(mocks.openPathInNewTab).toHaveBeenCalledWith('/docs', {
+    expect(builtinCommandMocks.openPathInNewTab).toHaveBeenCalledWith('/docs', {
       afterTabId: 'home',
       focusExisting: true,
     })
-    expect(mocks.setAppPath).not.toHaveBeenCalled()
+    expect(builtinCommandMocks.setAppPath).not.toHaveBeenCalled()
   })
 
   it('opens Documentation through provider Shell Tab semantics from home', () => {
-    mocks.appPath = '/'
+    builtinCommandMocks.appPath = '/'
     render(<BuiltinCommands />)
 
     findCommand('spacewave.help.docs')?.handler({})
 
-    expect(mocks.openPathInNewTab).toHaveBeenCalledWith('/docs', {
+    expect(builtinCommandMocks.openPathInNewTab).toHaveBeenCalledWith('/docs', {
       afterTabId: 'home',
       focusExisting: true,
     })
-    expect(mocks.setAppPath).not.toHaveBeenCalled()
+    expect(builtinCommandMocks.setAppPath).not.toHaveBeenCalled()
+  })
+
+  it('registers the keyboard shortcut preference command and opens the keybinding editor for its target command', () => {
+    render(<BuiltinCommands />)
+
+    expect(
+      findCommand('spacewave.preferences.keyboard-shortcuts'),
+    ).toMatchObject({
+      label: 'Edit Keyboard Shortcuts',
+      menuPath: 'Tools/Keyboard Shortcuts',
+      menuGroup: 10,
+      menuOrder: 1,
+    })
+
+    act(() => {
+      findCommand('spacewave.preferences.keyboard-shortcuts')?.handler({
+        commandId: 'spacewave.file.open',
+        scope: 'space',
+      })
+    })
+
+    expect(builtinCommandMocks.keybindingEditors.at(-1)).toMatchObject({
+      open: true,
+      initialScope: 'space',
+      initialCommandId: 'spacewave.file.open',
+    })
+  })
+
+  it('opens the local keybinding editor from the shortcuts dialog row edit affordance', () => {
+    render(<BuiltinCommands />)
+
+    act(() => {
+      findCommand('spacewave.help.shortcuts')?.handler({})
+    })
+    expect(
+      builtinCommandMocks.keyboardShortcutsDialogs.some((props) => props.open),
+    ).toBe(true)
+    fireEvent.click(document.querySelector('button') as HTMLButtonElement)
+
+    expect(builtinCommandMocks.keyboardShortcutsDialogs.at(-1)).toMatchObject({
+      open: false,
+    })
+    expect(builtinCommandMocks.keybindingEditors.at(-1)).toMatchObject({
+      open: true,
+      initialScope: 'local',
+      initialCommandId: 'spacewave.file.open',
+    })
   })
 })

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import {
   LuArrowLeft,
   LuCloud,
+  LuKeyboard,
   LuLock,
   LuLogOut,
   LuMerge,
@@ -29,6 +30,7 @@ import {
   useSessionNavigate,
 } from '@s4wave/web/contexts/contexts.js'
 import { useMountAccount } from '@s4wave/web/hooks/useMountAccount.js'
+import { useInvokeCommand } from '@s4wave/web/command/index.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import {
   resolvePath,
@@ -95,6 +97,7 @@ export function SessionDetails({
   const session = useResourceValue(sessionResource)
   const navigate = useNavigate()
   const navigateSession = useSessionNavigate()
+  const invokeCommand = useInvokeCommand()
   const [locking, setLocking] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
@@ -620,6 +623,32 @@ export function SessionDetails({
                         </div>
                       </button>
                     )}
+
+                    <button
+                      onClick={() =>
+                        invokeCommand(
+                          'spacewave.preferences.keyboard-shortcuts',
+                          {
+                            scope: 'account',
+                          },
+                        )
+                      }
+                      className={cn(
+                        'border-foreground/20 bg-foreground/5 hover:border-foreground/35 hover:bg-foreground/10 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors',
+                      )}
+                    >
+                      <div className="bg-foreground/10 group-hover:bg-foreground/15 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                        <LuKeyboard className="text-foreground-alt size-3.5 transition-colors" />
+                      </div>
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        <h4 className="text-foreground text-xs font-medium select-none">
+                          Keyboard Shortcuts
+                        </h4>
+                        <p className="text-foreground-alt text-xs select-none">
+                          Open account keyboard shortcut overrides
+                        </p>
+                      </div>
+                    </button>
 
                     <button
                       onClick={() => navigateSession({ path: 'settings/cli' })}

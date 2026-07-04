@@ -197,7 +197,8 @@ export function KeybindingEditor({
   )
 
   const savePendingBinding = useCallback(() => {
-    if (!selectedRow || !pendingBinding || pendingConflict) return
+    if (!localEnabled || !selectedRow || !pendingBinding || pendingConflict)
+      return
     if (pendingReplace) {
       localOverrides.setCommandBindings(selectedRow.commandId, [pendingBinding])
     } else {
@@ -206,6 +207,7 @@ export function KeybindingEditor({
     setPendingBinding(null)
     setCapture(null)
   }, [
+    localEnabled,
     localOverrides,
     pendingBinding,
     pendingConflict,
@@ -463,7 +465,11 @@ export function KeybindingEditor({
                   <Button
                     type="button"
                     size="sm"
-                    disabled={!pendingBinding || Boolean(pendingConflict)}
+                    disabled={
+                      !localEnabled ||
+                      !pendingBinding ||
+                      Boolean(pendingConflict)
+                    }
                     onClick={savePendingBinding}
                   >
                     Save binding

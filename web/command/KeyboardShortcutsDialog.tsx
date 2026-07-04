@@ -12,9 +12,9 @@ import { useCommands } from './CommandContext.js'
 import { formatKeybindingHint } from './CommandPalette.js'
 import {
   getCommandDisplayBindings,
-  resolveKeybindings,
   type KeybindingGraph,
 } from './KeybindingResolver.js'
+import { useKeybindingGraph } from './useKeybindingGraph.js'
 
 interface ShortcutCommand {
   state: CommandState
@@ -83,16 +83,18 @@ function containsText(value: string, query: string): boolean {
 export interface KeyboardShortcutsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onEditCommand?: (commandId?: string) => void
 }
 
 // KeyboardShortcutsDialog renders a dialog listing all commands with keybindings.
 export function KeyboardShortcutsDialog({
   open,
   onOpenChange,
+  onEditCommand,
 }: KeyboardShortcutsDialogProps) {
   const commands = useCommands()
   const [query, setQuery] = useState('')
-  const bindingGraph = useMemo(() => resolveKeybindings(commands), [commands])
+  const bindingGraph = useKeybindingGraph(commands)
   const handleFilterRef = useCallback(
     (node: HTMLInputElement | null) => {
       if (open) node?.focus()
@@ -119,6 +121,15 @@ export function KeyboardShortcutsDialog({
         <DialogHeader>
           <DialogTitle>Keyboard Shortcuts</DialogTitle>
         </DialogHeader>
+        {onEditCommand && (
+          <button
+            type="button"
+            className="border-foreground/10 bg-foreground/5 hover:border-brand/30 hover:bg-brand/5 text-foreground mb-3 rounded border px-3 py-1.5 text-sm transition-colors"
+            onClick={() => onEditCommand()}
+          >
+            Edit Keyboard Shortcuts
+          </button>
+        )}
         <input
           ref={handleFilterRef}
           className="bg-background border-foreground/8 text-foreground mb-3 w-full rounded border px-3 py-1.5 text-sm outline-none"
@@ -140,7 +151,7 @@ export function KeyboardShortcutsDialog({
               {g.commands.map(({ state: cmd, displayBindings }) => (
                 <div
                   key={cmd.command?.commandId}
-                  className="flex items-center justify-between gap-3 py-1"
+                  className="hover:bg-foreground/5 flex items-center justify-between gap-3 rounded px-1 py-1 transition-colors"
                 >
                   <span className="text-foreground text-sm">
                     {cmd.command?.label}
@@ -148,6 +159,15 @@ export function KeyboardShortcutsDialog({
                   <kbd className="bg-foreground/5 text-foreground-alt rounded px-2 py-0.5 font-mono text-xs">
                     {formatKeybindingHint(displayBindings)}
                   </kbd>
+                  {onEditCommand && (
+                    <button
+                      type="button"
+                      className="text-brand hover:text-brand-highlight text-xs"
+                      onClick={() => onEditCommand(cmd.command?.commandId)}
+                    >
+                      Edit
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

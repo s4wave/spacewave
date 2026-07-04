@@ -17,7 +17,10 @@ import {
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 
 import { StateNamespaceProvider, atom } from '@s4wave/web/state/index.js'
-import { KeybindingEditor } from './KeybindingEditor.js'
+import {
+  KeybindingEditor,
+  type KeybindingEditorScope,
+} from './KeybindingEditor.js'
 
 if (typeof document === 'undefined') {
   const happyDomWindow = new Window({ url: 'http://localhost/' })
@@ -106,14 +109,17 @@ function command(commandId: string, overrides: Partial<Command>): Command {
   }
 }
 
-function renderEditor(initialCommandId?: string, initialScope = 'local') {
+function renderEditor(
+  initialCommandId?: string,
+  initialScope: KeybindingEditorScope = 'local',
+) {
   return render(
     <StateNamespaceProvider rootAtom={atom({})}>
       <KeybindingEditor
         open={true}
         onOpenChange={vi.fn()}
         initialCommandId={initialCommandId}
-        initialScope={initialScope as 'local'}
+        initialScope={initialScope}
       />
     </StateNamespaceProvider>,
   )
@@ -211,6 +217,49 @@ describe('KeybindingEditor', () => {
       expect(view.queryByText('Special Command')).toBeNull()
     })
     view.unmount()
+  })
+
+  it('opens account and Space scopes as disabled views until persistence layers land', () => {
+    commandStates = [
+      commandState(
+        command('spacewave.open', {
+          label: 'Open File',
+          defaultBindings: [comboBinding('open-default', 'Ctrl+O')],
+        }),
+      ),
+    ]
+
+    const accountView = renderEditor('spacewave.open', 'account')
+    const accountScope = accountView.container.querySelector(
+      'select',
+    ) as HTMLSelectElement
+
+    expect(accountScope.value).toBe('account')
+    expect(
+      accountView.getByText(/Account overrides are visible here/),
+    ).toBeTruthy()
+    expect(
+      accountView.getByRole('button', { name: 'Replace with combo' }),
+    ).toHaveProperty('disabled', true)
+    expect(
+      accountView.getByRole('button', { name: 'Save binding' }),
+    ).toHaveProperty('disabled', true)
+    accountView.unmount()
+
+    const spaceView = renderEditor('spacewave.open', 'space')
+    const spaceScope = spaceView.container.querySelector(
+      'select',
+    ) as HTMLSelectElement
+
+    expect(spaceScope.value).toBe('space')
+    expect(spaceView.getByText(/Space overrides are visible here/)).toBeTruthy()
+    expect(
+      spaceView.getByRole('button', { name: 'Replace with combo' }),
+    ).toHaveProperty('disabled', true)
+    expect(
+      spaceView.getByRole('button', { name: 'Save binding' }),
+    ).toHaveProperty('disabled', true)
+    spaceView.unmount()
   })
 
   it('captures combos and Leader sequences, mutates the local layer, clears defaults, and resets overrides', () => {

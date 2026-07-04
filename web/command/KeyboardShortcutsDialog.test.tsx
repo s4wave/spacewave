@@ -1,7 +1,7 @@
 import { Window } from 'happy-dom'
 import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, fireEvent, render } from '@testing-library/react'
 import { CommandFocusContext } from '@s4wave/sdk/command/command.pb.js'
 
 import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog.js'
@@ -165,5 +165,40 @@ describe('KeyboardShortcutsDialog', () => {
     expect(view.getByText('CmdOrCtrl+K (Global)')).toBeTruthy()
     expect(view.getByText('Insert Link')).toBeTruthy()
     expect(view.getByText('CmdOrCtrl+K (Editor)')).toBeTruthy()
+  })
+
+  it('renders editor entrypoints and passes the row command id to the edit callback', () => {
+    mockUseCommands.mockReturnValue([
+      {
+        command: {
+          commandId: 'spacewave.file.open',
+          label: 'Open File',
+          menuPath: 'File/Open File',
+          defaultBindings: [
+            {
+              id: 'open-default',
+              binding: { case: 'combo', value: { combo: 'Ctrl+O' } },
+            },
+          ],
+        },
+        active: true,
+        enabled: true,
+      },
+    ])
+    const onEditCommand = vi.fn()
+
+    const view = render(
+      <KeyboardShortcutsDialog
+        open={true}
+        onOpenChange={mockOnOpenChange}
+        onEditCommand={onEditCommand}
+      />,
+    )
+
+    fireEvent.click(view.getByText('Edit Keyboard Shortcuts'))
+    expect(onEditCommand).toHaveBeenCalledWith()
+
+    fireEvent.click(view.getByText('Edit'))
+    expect(onEditCommand).toHaveBeenLastCalledWith('spacewave.file.open')
   })
 })
