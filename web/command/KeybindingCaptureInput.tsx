@@ -7,6 +7,7 @@ export function KeybindingCaptureInput() {
     captureError,
     handleCaptureKeyDown,
     pendingBinding,
+    pendingConflict,
     pendingReplace,
   } = useKeybindingEditorContext()
 
@@ -14,8 +15,24 @@ export function KeybindingCaptureInput() {
     <>
       {pendingBinding && (
         <div className="border-brand/20 bg-brand/10 rounded border px-3 py-2 text-sm">
-          Pending {pendingReplace ? 'replacement' : 'addition'}:{' '}
-          <span className="font-mono">{bindingDisplay(pendingBinding)}</span>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              Pending {pendingReplace ? 'replacement' : 'addition'}:{' '}
+              <span className="text-brand font-mono">
+                {bindingDisplay(pendingBinding)}
+              </span>
+            </div>
+            <div className="min-h-5 shrink-0">
+              {pendingConflict && (
+                <span className="text-warning text-xs">
+                  Conflicts with{' '}
+                  {pendingConflict.bindings
+                    .map((binding) => binding.label)
+                    .join(', ')}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -23,12 +40,18 @@ export function KeybindingCaptureInput() {
         <div
           role="button"
           tabIndex={0}
-          className="border-brand/30 bg-brand/10 text-foreground rounded border px-3 py-4 text-sm outline-none"
+          className="border-brand/30 bg-brand/10 text-foreground ring-brand/20 rounded border px-3 py-3 text-sm ring-1 outline-none"
           onKeyDown={handleCaptureKeyDown}
         >
-          Press {capture.kind === 'combo' ? 'one combo' : 'sequence keys'}.
+          <div className="text-brand flex items-center gap-2 text-xs font-medium">
+            <span className="bg-brand h-2 w-2 rounded-full" />
+            Recording · press keys now
+          </div>
+          <div className="mt-2">
+            Press {capture.kind === 'combo' ? 'one combo' : 'sequence keys'}.
+          </div>
           {capture.kind === 'sequence' && (
-            <div className="text-foreground-alt/60 mt-1 font-mono text-xs">
+            <div className="text-brand/90 mt-1 font-mono text-xs">
               {capture.steps.join(' ')}
             </div>
           )}

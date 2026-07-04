@@ -20,8 +20,8 @@ export function KeybindingConflictList({
             className="text-foreground-alt text-xs"
           >
             {focusContextLabel(conflict.context)} {conflict.kind}{' '}
-            <span className="font-mono">{conflict.key}</span> is used by{' '}
-            {conflict.bindings.map((binding) => binding.label).join(', ')}.
+            <span className="text-brand font-mono">{conflict.key}</span> is used
+            by {conflict.bindings.map((binding) => binding.label).join(', ')}.
           </div>
         ))}
       </div>

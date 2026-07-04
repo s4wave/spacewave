@@ -26,7 +26,7 @@ export function KeybindingCommandDetails() {
   const conflicts = pendingConflict ? [pendingConflict] : commandConflicts
 
   return (
-    <section className="min-h-0 overflow-auto p-4">
+    <section className="min-h-0 overflow-auto p-4 pb-6">
       <div className="space-y-4">
         <div>
           <div className="text-foreground text-sm font-semibold">

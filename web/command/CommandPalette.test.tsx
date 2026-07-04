@@ -1,7 +1,13 @@
 import { Window } from 'happy-dom'
 import type { ReactNode, Ref } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, fireEvent, render } from '@testing-library/react'
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  waitFor,
+} from '@testing-library/react'
 import {
   CommandFocusContext,
   type CommandBinding,
@@ -107,6 +113,7 @@ vi.mock('@s4wave/web/ui/command.js', () => ({
     <input
       aria-label="Command search"
       onChange={(event) => onValueChange?.(event.currentTarget.value)}
+      onInput={(event) => onValueChange?.(event.currentTarget.value)}
       onClick={onClick}
       placeholder={placeholder}
       ref={ref}
@@ -121,6 +128,7 @@ vi.mock('@s4wave/web/ui/command.js', () => ({
     children: ReactNode
     disabled?: boolean
     onSelect?: () => void
+    value?: string
   }) => (
     <button disabled={disabled} onClick={onSelect} type="button">
       {children}
@@ -274,6 +282,47 @@ describe('CommandPalette', () => {
     expect(
       view.getByText(textContentMatches('⌘K (Editor)', 'CmdOrCtrl+K (Editor)')),
     ).toBeTruthy()
+  })
+
+  it('finds the keyboard shortcut editor by keybind search text', async () => {
+    mockCommands = [
+      {
+        command: {
+          commandId: 'spacewave.preferences.keyboard-shortcuts',
+          label: 'Edit Keyboard Shortcuts',
+          description: 'Customize local keybindings',
+          menuPath: 'Tools/Keyboard Shortcuts',
+        },
+        active: true,
+        enabled: true,
+      },
+      {
+        command: {
+          commandId: 'spacewave.view.banana',
+          label: 'Launch Banana',
+          description: 'Open the unrelated banana surface',
+          menuPath: 'Tools/Banana',
+        },
+        active: true,
+        enabled: true,
+      },
+    ]
+
+    const view = render(<CommandPalette />)
+    act(() => paletteHandler?.())
+
+    act(() => {
+      fireEvent.input(view.getByLabelText('Command search'), {
+        target: { value: 'keybind' },
+      })
+    })
+
+    await waitFor(() => {
+      expect(
+        view.getByText(textContentMatches('Edit Keyboard Shortcuts')),
+      ).toBeTruthy()
+      expect(view.queryByText('Launch Banana')).toBeNull()
+    })
   })
 
   it('keeps f as a chord step at the root instead of starting a filter', () => {

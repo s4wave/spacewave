@@ -18,7 +18,7 @@ export function KeybindingDiscoverySettings() {
           <span className="text-foreground-alt">Leader combo</span>
           <input
             aria-label="Leader combo"
-            className="bg-background border-foreground/10 text-foreground rounded border px-2 py-1.5 font-mono text-sm outline-none disabled:opacity-50"
+            className="bg-background border-foreground/10 text-brand rounded border px-2 py-1.5 font-mono text-sm outline-none disabled:opacity-50"
             placeholder="Ctrl+Space"
             value={selectedController.overrideSet.settings.leaderCombo ?? ''}
             disabled={!selectedSettingsEditable}
@@ -29,8 +29,9 @@ export function KeybindingDiscoverySettings() {
           <span className="text-foreground-alt">Which-key delay (ms)</span>
           <input
             aria-label="Which-key delay"
-            className="bg-background border-foreground/10 text-foreground rounded border px-2 py-1.5 font-mono text-sm outline-none disabled:opacity-50"
+            className="bg-background border-foreground/10 text-brand rounded border px-2 py-1.5 font-mono text-sm outline-none disabled:opacity-50"
             min={0}
+            placeholder="0"
             type="number"
             value={
               selectedController.overrideSet.settings.whichKeyDelayMs ?? ''

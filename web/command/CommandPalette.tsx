@@ -82,6 +82,90 @@ export function formatKeybindingHint(bindings: string[]): string {
   return bindings.map(formatKeybinding).join(' / ')
 }
 
+function commandSearchValue(
+  cmd: CommandState,
+  displayBindings: readonly string[] = [],
+): string {
+  const command = cmd.command
+  const text = [
+    command?.label,
+    command?.description,
+    command?.commandId,
+    command?.menuPath,
+    ...displayBindings,
+  ]
+    .filter(Boolean)
+    .join(' ')
+  return [text, keyboardShortcutAliases(text)].filter(Boolean).join(' ')
+}
+
+function keyboardShortcutAliases(text: string): string {
+  const normalized = text.toLowerCase()
+  if (!normalized.includes('keyboard') && !normalized.includes('shortcut')) {
+    return ''
+  }
+  return 'keybind keybinding keybindings hotkey hotkeys'
+}
+
+function normalizeSearchText(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, '')
+}
+
+function commandMatchesQuery(
+  cmd: CommandState,
+  bindingGraph: KeybindingGraph,
+  query: string,
+): boolean {
+  const normalizedQuery = normalizeSearchText(query)
+  if (!normalizedQuery) return true
+  const commandId = cmd.command?.commandId
+  const displayBindings = commandId
+    ? getCommandDisplayBindings(bindingGraph, commandId)
+    : []
+  return normalizeSearchText(commandSearchValue(cmd, displayBindings)).includes(
+    normalizedQuery,
+  )
+}
+
+function highlightQueryText(text: string, query: string) {
+  const trimmedQuery = query.trim()
+  if (!trimmedQuery) return text
+
+  const lowerText = text.toLowerCase()
+  const lowerQuery = trimmedQuery.toLowerCase()
+  const start = lowerText.indexOf(lowerQuery)
+  if (start >= 0) {
+    const end = start + trimmedQuery.length
+    return [
+      text.slice(0, start),
+      <span key="match" className="text-brand font-semibold">
+        {text.slice(start, end)}
+      </span>,
+      text.slice(end),
+    ]
+  }
+
+  const matched = new Set<number>()
+  let queryIndex = 0
+  for (let textIndex = 0; textIndex < text.length; textIndex++) {
+    if (text[textIndex]?.toLowerCase() !== lowerQuery[queryIndex]) continue
+    matched.add(textIndex)
+    queryIndex++
+    if (queryIndex === lowerQuery.length) break
+  }
+  if (queryIndex !== lowerQuery.length) return text
+
+  return [...text].map((char, index) =>
+    matched.has(index) ? (
+      <span key={index} className="text-brand font-semibold">
+        {char}
+      </span>
+    ) : (
+      char
+    ),
+  )
+}
+
 // GroupedCommands groups commands by the first segment of their menu path.
 interface GroupedCommands {
   group: string
@@ -163,35 +247,43 @@ function isCommandEnabled(cmd: CommandState): boolean {
 function CommandPaletteItem({
   cmd,
   bindingGraph,
+  query,
   onSelect,
 }: {
   cmd: CommandState
   bindingGraph: KeybindingGraph
+  query: string
   onSelect: (commandId: string) => void
 }) {
   const commandId = cmd.command?.commandId
   if (!commandId) return null
   const enabled = isCommandEnabled(cmd)
   const displayBindings = getCommandDisplayBindings(bindingGraph, commandId)
+  const label = cmd.command?.label ?? commandId
 
   return (
     <CommandItem
       key={commandId}
-      value={`${cmd.command?.label ?? ''} ${commandId}`}
+      value={commandSearchValue(cmd, displayBindings)}
       onSelect={() => enabled && onSelect(commandId)}
       disabled={!enabled}
-      className={cn(!enabled && 'cursor-default opacity-50')}
+      className={cn(
+        'min-h-12 rounded-none border-b border-foreground/6 px-3 py-2 data-[selected=true]:bg-brand/15',
+        !enabled && 'cursor-default opacity-50',
+      )}
     >
-      <span className="flex flex-col">
-        <span>{cmd.command?.label}</span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate text-sm font-medium">
+          {highlightQueryText(label, query)}
+        </span>
         {cmd.command?.description && (
-          <span className="text-foreground-alt text-xs">
+          <span className="text-foreground-alt/60 truncate text-xs">
             {cmd.command.description}
           </span>
         )}
       </span>
       {displayBindings.length > 0 && (
-        <CommandShortcut>
+        <CommandShortcut className="text-brand/90 shrink-0 pl-4">
           {formatKeybindingHint(displayBindings)}
         </CommandShortcut>
       )}
@@ -214,18 +306,20 @@ function CommandChordItem({
       onSelect={() => onSelect(continuation)}
       className={cn(continuation.conflict && 'text-warning')}
     >
-      <kbd className="bg-foreground/5 text-foreground min-w-10 rounded px-2 py-0.5 text-center font-mono text-xs">
+      <kbd className="bg-brand/10 text-brand min-w-10 rounded px-2 py-0.5 text-center font-mono text-xs">
         {formatResolvedKey(continuation.key)}
       </kbd>
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate">{continuation.label}</span>
         {continuation.commandId && (
-          <span className="text-foreground-alt truncate font-mono text-xs">
+          <span className="text-foreground-alt/60 truncate font-mono text-xs">
             {continuation.commandId}
           </span>
         )}
       </span>
-      {continuation.conflict && <CommandShortcut>Conflict</CommandShortcut>}
+      {continuation.conflict && (
+        <CommandShortcut className="text-warning">Conflict</CommandShortcut>
+      )}
     </CommandItem>
   )
 }
@@ -267,6 +361,19 @@ export function CommandPalette() {
     () => (chordNode ? continuationsFromNode(chordNode) : []),
     [chordNode],
   )
+  const filteredGrouped = useMemo(() => {
+    if (subItemCommandId || paletteMode === 'chord' || !query.trim()) {
+      return grouped
+    }
+    return grouped
+      .map((group) => ({
+        ...group,
+        commands: group.commands.filter((cmd) =>
+          commandMatchesQuery(cmd, bindingGraph, query),
+        ),
+      }))
+      .filter((group) => group.commands.length > 0)
+  }, [bindingGraph, grouped, paletteMode, query, subItemCommandId])
 
   const resetChord = useCallback(() => {
     setPaletteMode('chord')
@@ -526,12 +633,30 @@ export function CommandPalette() {
       : 'Type a command or search...'
   const inputValue = subItemCommandId ? subQuery : query
   const inputChange = subItemCommandId ? setSubQuery : handlePaletteQueryChange
+  const visibleCommandCount = filteredGrouped.reduce(
+    (count, group) => count + group.commands.length,
+    0,
+  )
+  const totalCommandCount = grouped.reduce(
+    (count, group) => count + group.commands.length,
+    0,
+  )
+  const resultSummary = subItemCommandId
+    ? `${subItems.length} ${subItems.length === 1 ? 'item' : 'items'}`
+    : paletteMode === 'chord' && !query
+      ? `${chordContinuations.length} ${
+          chordContinuations.length === 1 ? 'chord' : 'chords'
+        } · ${totalCommandCount} commands`
+      : `${visibleCommandCount} ${
+          visibleCommandCount === 1 ? 'match' : 'matches'
+        }`
 
   return (
     <CommandDialog
       open={open}
       onOpenChange={handleOpenChange}
       showCloseButton={false}
+      className="border-foreground/10 bg-background-card/95 top-auto bottom-4 max-h-[min(34rem,calc(100vh-4rem))] w-[min(64rem,calc(100vw-2rem))] translate-y-0 overflow-hidden shadow-none sm:max-w-none"
     >
       <div onKeyDownCapture={handlePaletteKeyDown}>
         <CommandInput
@@ -541,7 +666,17 @@ export function CommandPalette() {
           onClick={() => !subItemCommandId && enterFilterMode(query)}
           onValueChange={inputChange}
         />
-        <CommandList>
+        <div className="border-foreground/8 text-foreground-alt/60 flex h-7 items-center justify-between gap-3 border-b px-3 font-mono text-[10px]">
+          <span>{resultSummary}</span>
+          <span className="truncate">
+            {subItemCommandId
+              ? activeSubItemCommand?.command?.label
+              : paletteMode === 'chord'
+                ? `Chord · ${chordPath.map(formatResolvedKey).join(' ')}`
+                : 'Filtering'}
+          </span>
+        </div>
+        <CommandList className="max-h-[min(24rem,calc(100vh-12rem))] scroll-py-2 pb-2">
           {subItemCommandId ? (
             <>
               <CommandEmpty>No items found.</CommandEmpty>
@@ -593,7 +728,7 @@ export function CommandPalette() {
                     />
                   ))}
               </CommandGroup>
-              {grouped.map((g) => (
+              {filteredGrouped.map((g) => (
                 <CommandGroup key={g.group} heading={g.group}>
                   {g.commands.map((cmd) => {
                     const commandId = cmd.command?.commandId
@@ -604,6 +739,7 @@ export function CommandPalette() {
                         cmd={cmd}
                         onSelect={handleSelect}
                         bindingGraph={bindingGraph}
+                        query={query}
                       />
                     )
                   })}

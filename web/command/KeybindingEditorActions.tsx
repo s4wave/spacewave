@@ -63,6 +63,7 @@ export function KeybindingEditorActions() {
         <Button
           type="button"
           size="sm"
+          className="bg-brand text-background hover:bg-brand-highlight"
           disabled={
             !selectedLayerEditable ||
             !pendingBinding ||
@@ -74,7 +75,7 @@ export function KeybindingEditorActions() {
         </Button>
         <Button
           type="button"
-          variant="outline"
+          variant="destructive"
           size="sm"
           disabled={!selectedLayerEditable}
           onClick={clearSelectedBindings}
