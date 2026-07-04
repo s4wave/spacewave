@@ -122,6 +122,17 @@ function AccountOverridesProbe() {
       <button type="button" onClick={() => overrides.resetLayer()}>
         reset layer
       </button>
+      <button
+        type="button"
+        onClick={() =>
+          overrides.setSettings({
+            leaderCombo: 'Alt+Space',
+            whichKeyDelayMs: 125,
+          })
+        }
+      >
+        set discovery settings
+      </button>
     </section>
   )
 }
@@ -191,6 +202,7 @@ describe('useAccountKeybindingOverrides', () => {
       watchKeybindingOverrides: vi.fn(),
       upsertKeybindingOverride: vi.fn(),
       removeKeybindingOverride: vi.fn(),
+      setKeybindingSettings: vi.fn(),
     }
     hookState.sessionResource = {
       value: { id: 'session-1' },
@@ -264,6 +276,15 @@ describe('useAccountKeybindingOverrides', () => {
     expect(account.removeKeybindingOverride).toHaveBeenCalledWith({
       commandId: 'spacewave.viewer',
     })
+
+    fireEvent.click(view.getByText('set discovery settings'))
+    expect(account.setKeybindingSettings).toHaveBeenLastCalledWith({
+      settings: {
+        leaderCombo: 'Alt+Space',
+        whichKeyDelayMs: 125,
+        display: undefined,
+      },
+    })
   })
 
   it('keeps a mounted account read-only when account settings reports read-only state', () => {
@@ -271,6 +292,7 @@ describe('useAccountKeybindingOverrides', () => {
       watchKeybindingOverrides: vi.fn(),
       upsertKeybindingOverride: vi.fn(),
       removeKeybindingOverride: vi.fn(),
+      setKeybindingSettings: vi.fn(),
     }
     hookState.accountResource = { value: account, loading: false, error: null }
     hookState.accountOverrides = {
@@ -300,5 +322,6 @@ describe('useAccountKeybindingOverrides', () => {
 
     expect(account.upsertKeybindingOverride).not.toHaveBeenCalled()
     expect(account.removeKeybindingOverride).not.toHaveBeenCalled()
+    expect(account.setKeybindingSettings).not.toHaveBeenCalled()
   })
 })

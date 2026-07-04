@@ -78,6 +78,8 @@ pub trait AccountResourceServiceClient: Send + Sync {
     async fn upsert_keybinding_override(&self, request: &UpsertKeybindingOverrideRequest) -> starpc::Result<UpsertKeybindingOverrideResponse>;
     /// RemoveKeybindingOverride.
     async fn remove_keybinding_override(&self, request: &RemoveKeybindingOverrideRequest) -> starpc::Result<RemoveKeybindingOverrideResponse>;
+    /// SetKeybindingSettings.
+    async fn set_keybinding_settings(&self, request: &SetKeybindingSettingsRequest) -> starpc::Result<SetKeybindingSettingsResponse>;
     /// AddAuthMethod.
     async fn add_auth_method(&self, request: &AddAuthMethodRequest) -> starpc::Result<AddAuthMethodResponse>;
     /// RemoveAuthMethod.
@@ -159,6 +161,9 @@ impl<C: starpc::Client + 'static> AccountResourceServiceClient for AccountResour
     }
     async fn remove_keybinding_override(&self, request: &RemoveKeybindingOverrideRequest) -> starpc::Result<RemoveKeybindingOverrideResponse> {
         self.client.exec_call("s4wave.account.AccountResourceService", "RemoveKeybindingOverride", request).await
+    }
+    async fn set_keybinding_settings(&self, request: &SetKeybindingSettingsRequest) -> starpc::Result<SetKeybindingSettingsResponse> {
+        self.client.exec_call("s4wave.account.AccountResourceService", "SetKeybindingSettings", request).await
     }
     async fn add_auth_method(&self, request: &AddAuthMethodRequest) -> starpc::Result<AddAuthMethodResponse> {
         self.client.exec_call("s4wave.account.AccountResourceService", "AddAuthMethod", request).await
@@ -314,6 +319,8 @@ pub trait AccountResourceServiceServer: Send + Sync {
     async fn upsert_keybinding_override(&self, request: UpsertKeybindingOverrideRequest) -> starpc::Result<UpsertKeybindingOverrideResponse>;
     /// RemoveKeybindingOverride.
     async fn remove_keybinding_override(&self, request: RemoveKeybindingOverrideRequest) -> starpc::Result<RemoveKeybindingOverrideResponse>;
+    /// SetKeybindingSettings.
+    async fn set_keybinding_settings(&self, request: SetKeybindingSettingsRequest) -> starpc::Result<SetKeybindingSettingsResponse>;
     /// AddAuthMethod.
     async fn add_auth_method(&self, request: AddAuthMethodRequest) -> starpc::Result<AddAuthMethodResponse>;
     /// RemoveAuthMethod.
@@ -355,6 +362,7 @@ const ACCOUNT_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "WatchKeybindingOverrides",
     "UpsertKeybindingOverride",
     "RemoveKeybindingOverride",
+    "SetKeybindingSettings",
     "AddAuthMethod",
     "RemoveAuthMethod",
     "SetSecurityLevel",
@@ -448,6 +456,21 @@ impl<S: AccountResourceServiceServer + 'static> starpc::Invoker for AccountResou
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.remove_keybinding_override(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "SetKeybindingSettings" => {
+                let request: SetKeybindingSettingsRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.set_keybinding_settings(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

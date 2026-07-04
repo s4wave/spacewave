@@ -13,6 +13,7 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import {
   KeybindingCommandOverride,
   KeybindingOverrideSet,
+  KeybindingOverrideSettings,
 } from '../command/command.pb.js'
 import type { AccountAuthMethodKind } from '../../core/provider/spacewave/api/api.pb.js'
 import {
@@ -346,6 +347,47 @@ export interface RemoveKeybindingOverrideResponse {}
 export const RemoveKeybindingOverrideResponse: MessageType<RemoveKeybindingOverrideResponse> =
   /* @__PURE__ */ createEmptyMessageType<RemoveKeybindingOverrideResponse>(
     's4wave.account.RemoveKeybindingOverrideResponse',
+    true,
+  )
+
+/**
+ * SetKeybindingSettingsRequest is the request type for SetKeybindingSettings.
+ *
+ * @generated from message s4wave.account.SetKeybindingSettingsRequest
+ */
+export interface SetKeybindingSettingsRequest {
+  /**
+   * Settings is the layer-wide account keybinding settings to persist.
+   *
+   * @generated from field: s4wave.command.KeybindingOverrideSettings settings = 1;
+   */
+  settings?: KeybindingOverrideSettings
+}
+
+export const SetKeybindingSettingsRequest: MessageType<SetKeybindingSettingsRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.account.SetKeybindingSettingsRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'settings',
+        kind: 'message',
+        T: () => KeybindingOverrideSettings,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SetKeybindingSettingsResponse is the response type for SetKeybindingSettings.
+ *
+ * @generated from message s4wave.account.SetKeybindingSettingsResponse
+ */
+export interface SetKeybindingSettingsResponse {}
+
+export const SetKeybindingSettingsResponse: MessageType<SetKeybindingSettingsResponse> =
+  /* @__PURE__ */ createEmptyMessageType<SetKeybindingSettingsResponse>(
+    's4wave.account.SetKeybindingSettingsResponse',
     true,
   )
 

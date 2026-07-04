@@ -59,6 +59,17 @@ pub struct RemoveKeybindingOverrideRequest {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RemoveKeybindingOverrideResponse {
 }
+/// SetKeybindingSettingsRequest is the request type for SetKeybindingSettings.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SetKeybindingSettingsRequest {
+    /// Settings is the layer-wide account keybinding settings to persist.
+    #[prost(message, optional, tag="1")]
+    pub settings: ::core::option::Option<super::command::KeybindingOverrideSettings>,
+}
+/// SetKeybindingSettingsResponse is the response type for SetKeybindingSettings.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SetKeybindingSettingsResponse {
+}
 /// WatchAuthMethodsRequest is the request type for WatchAuthMethods.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WatchAuthMethodsRequest {

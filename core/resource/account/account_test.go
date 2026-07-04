@@ -14,6 +14,7 @@ import (
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	s4wave_account "github.com/s4wave/spacewave/sdk/account"
+	s4wave_command "github.com/s4wave/spacewave/sdk/command"
 	"github.com/s4wave/spacewave/testbed"
 )
 
@@ -265,6 +266,90 @@ func TestRevokeSessionLocalReturnsUnsupported(t *testing.T) {
 	}
 }
 
+func TestSetKeybindingSettingsLocalPersistsSettingsAndPreservesOverrides(t *testing.T) {
+	ctx := t.Context()
+
+	_, _, _, acc, release := setupLocalProviderAccount(ctx, t)
+	defer release()
+
+	ar := resource_account.NewAccountResource(acc)
+	if ar == nil {
+		t.Fatal("expected local account resource")
+	}
+	_, err := ar.UpsertKeybindingOverride(ctx, &s4wave_account.UpsertKeybindingOverrideRequest{
+		Override: &s4wave_command.KeybindingCommandOverride{
+			CommandId:       "spacewave.palette",
+			ReplaceBindings: true,
+			Bindings: []*s4wave_command.CommandBinding{{
+				Id: "palette-account",
+				Binding: &s4wave_command.CommandBinding_Combo{
+					Combo: &s4wave_command.KeyCombo{Combo: "Ctrl+K"},
+				},
+				When: s4wave_command.CommandFocusContext_COMMAND_FOCUS_CONTEXT_GLOBAL,
+			}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = ar.SetKeybindingSettings(ctx, &s4wave_account.SetKeybindingSettingsRequest{
+		Settings: &s4wave_command.KeybindingOverrideSettings{
+			LeaderCombo:     "Alt+Space",
+			WhichKeyDelayMs: 175,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rpcCtx, rpcCancel := context.WithCancel(ctx)
+	defer rpcCancel()
+
+	var received *s4wave_account.WatchKeybindingOverridesResponse
+	strm := &testWatchKeybindingOverridesStream{
+		ctx: rpcCtx,
+		onSend: func(resp *s4wave_account.WatchKeybindingOverridesResponse) error {
+			overrideSet := resp.GetOverrideSet()
+			settings := overrideSet.GetSettings()
+			overrides := overrideSet.GetOverrides()
+			if settings.GetLeaderCombo() == "Alt+Space" &&
+				settings.GetWhichKeyDelayMs() == 175 &&
+				len(overrides) == 1 &&
+				overrides[0].GetCommandId() == "spacewave.palette" {
+				received = resp
+				rpcCancel()
+			}
+			return nil
+		},
+	}
+	err = ar.WatchKeybindingOverrides(&s4wave_account.WatchKeybindingOverridesRequest{}, strm)
+	if err != nil && rpcCtx.Err() == nil {
+		t.Fatal(err)
+	}
+	if received == nil {
+		t.Fatal("expected account keybinding settings snapshot")
+	}
+	overrideSet := received.GetOverrideSet()
+	settings := overrideSet.GetSettings()
+	if settings.GetLeaderCombo() != "Alt+Space" {
+		t.Fatalf("leader combo = %q", settings.GetLeaderCombo())
+	}
+	if settings.GetWhichKeyDelayMs() != 175 {
+		t.Fatalf("which-key delay = %d", settings.GetWhichKeyDelayMs())
+	}
+	overrides := overrideSet.GetOverrides()
+	if len(overrides) != 1 {
+		t.Fatalf("expected existing command override to remain, got %#v", overrides)
+	}
+	palette := overrides[0]
+	if !palette.GetReplaceBindings() {
+		t.Fatal("command override replace flag was dropped")
+	}
+	if bindings := palette.GetBindings(); len(bindings) != 1 || bindings[0].GetId() != "palette-account" || bindings[0].GetCombo().GetCombo() != "Ctrl+K" {
+		t.Fatalf("command override bindings changed: %#v", bindings)
+	}
+}
+
 func setupLocalProviderAccount(
 	ctx context.Context,
 	t *testing.T,
@@ -377,6 +462,26 @@ func (s *testWatchSessionsStream) Send(resp *s4wave_account.WatchSessionsRespons
 }
 
 func (s *testWatchSessionsStream) SendAndClose(resp *s4wave_account.WatchSessionsResponse) error {
+	return s.onSend(resp)
+}
+
+type testWatchKeybindingOverridesStream struct {
+	ctx    context.Context
+	onSend func(*s4wave_account.WatchKeybindingOverridesResponse) error
+}
+
+func (s *testWatchKeybindingOverridesStream) Context() context.Context { return s.ctx }
+func (s *testWatchKeybindingOverridesStream) MsgRecv(_ srpc.Message) error {
+	return nil
+}
+func (s *testWatchKeybindingOverridesStream) CloseSend() error             { return nil }
+func (s *testWatchKeybindingOverridesStream) Close() error                 { return nil }
+func (s *testWatchKeybindingOverridesStream) MsgSend(_ srpc.Message) error { return nil }
+func (s *testWatchKeybindingOverridesStream) Send(resp *s4wave_account.WatchKeybindingOverridesResponse) error {
+	return s.onSend(resp)
+}
+
+func (s *testWatchKeybindingOverridesStream) SendAndClose(resp *s4wave_account.WatchKeybindingOverridesResponse) error {
 	return s.onSend(resp)
 }
 

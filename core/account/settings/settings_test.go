@@ -671,3 +671,86 @@ func TestKeybindingOverrideCRUD(t *testing.T) {
 		t.Fatalf("remove should leave only the existing override, got %#v", remaining)
 	}
 }
+
+func TestSetKeybindingSettingsPreservesCommandOverrides(t *testing.T) {
+	ctx := t.Context()
+	peerID := "12D3KooWL2DEcvqSXXrrCmUxMdPbqFcqzhHBvqseZWHwjAt7aXfW"
+	initial := &account_settings.AccountSettings{
+		KeybindingOverrides: &s4wave_command.KeybindingOverrideSet{
+			Version: 1,
+			Overrides: []*s4wave_command.KeybindingCommandOverride{{
+				CommandId:       "spacewave.palette",
+				ReplaceBindings: true,
+				Bindings: []*s4wave_command.CommandBinding{{
+					Id: "palette-account",
+					Binding: &s4wave_command.CommandBinding_Combo{
+						Combo: &s4wave_command.KeyCombo{Combo: "Ctrl+K"},
+					},
+					When: s4wave_command.CommandFocusContext_COMMAND_FOCUS_CONTEXT_GLOBAL,
+				}},
+			}},
+			Settings: &s4wave_command.KeybindingOverrideSettings{
+				LeaderCombo:     "Ctrl+Space",
+				WhichKeyDelayMs: 25,
+			},
+		},
+	}
+	currentData, err := initial.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	settingsOp, err := (&account_settings.AccountSettingsOp{
+		Op: &account_settings.AccountSettingsOp_SetKeybindingSettings{
+			SetKeybindingSettings: &s4wave_command.KeybindingOverrideSettings{
+				LeaderCombo:     "Alt+Space",
+				WhichKeyDelayMs: 175,
+			},
+		},
+	}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nextData, results, err := account_settings.ProcessAccountSettingsOps(
+		ctx,
+		nil,
+		currentData,
+		[]*sobject.SOOperationInner{{PeerId: peerID, Nonce: 1, OpData: settingsOp}},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if nextData == nil {
+		t.Fatal("expected settings write to change account settings")
+	}
+	if len(results) != 1 || !results[0].GetSuccess() {
+		t.Fatalf("expected settings write to succeed, got %#v", results)
+	}
+
+	next := &account_settings.AccountSettings{}
+	if err := next.UnmarshalVT(*nextData); err != nil {
+		t.Fatal(err)
+	}
+	overrideSet := next.GetKeybindingOverrides()
+	settings := overrideSet.GetSettings()
+	if settings.GetLeaderCombo() != "Alt+Space" {
+		t.Fatalf("leader combo = %q", settings.GetLeaderCombo())
+	}
+	if settings.GetWhichKeyDelayMs() != 175 {
+		t.Fatalf("which-key delay = %d", settings.GetWhichKeyDelayMs())
+	}
+	overrides := overrideSet.GetOverrides()
+	if len(overrides) != 1 {
+		t.Fatalf("expected existing command override to remain, got %#v", overrides)
+	}
+	palette := overrides[0]
+	if palette.GetCommandId() != "spacewave.palette" {
+		t.Fatalf("command override command_id = %q", palette.GetCommandId())
+	}
+	if !palette.GetReplaceBindings() {
+		t.Fatal("command override replace flag was dropped")
+	}
+	if bindings := palette.GetBindings(); len(bindings) != 1 || bindings[0].GetId() != "palette-account" || bindings[0].GetCombo().GetCombo() != "Ctrl+K" {
+		t.Fatalf("command override bindings changed: %#v", bindings)
+	}
+}

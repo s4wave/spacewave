@@ -134,7 +134,7 @@ export function KeybindingEditor({
     readOnly: accountOverrides.readOnly,
     loading: accountOverrides.loading,
     error: accountOverrides.error,
-    settingsEditable: false,
+    settingsEditable: true,
     setSettings: accountOverrides.setSettings,
     setCommandBindings: accountOverrides.setCommandBindings,
     addCommandBinding: accountOverrides.addCommandBinding,
@@ -561,12 +561,6 @@ export function KeybindingEditor({
                         }
                       />
                     </label>
-                    {!selectedController.settingsEditable && (
-                      <div className="text-foreground-alt/60 text-xs">
-                        Account-wide discovery settings need the account
-                        settings service to expose a settings write RPC.
-                      </div>
-                    )}
                   </div>
                 </div>
 

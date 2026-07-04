@@ -9,6 +9,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import {
   CommandFocusContext,
   type Command,
@@ -287,7 +288,7 @@ describe('KeybindingEditor', () => {
     view.unmount()
   })
 
-  it('enables Account scope when the account hook is writable and saves and resets the selected account layer', () => {
+  it('enables Account scope when the account hook is writable, edits account discovery settings, and saves and resets the selected account layer', async () => {
     commandStates = [
       commandState(
         command('spacewave.open', {
@@ -321,6 +322,51 @@ describe('KeybindingEditor', () => {
       true,
     )
     expect(scope.value).toBe('account')
+    const leaderInput = view.getByLabelText('Leader combo') as HTMLInputElement
+    const delayInput = view.getByLabelText(
+      'Which-key delay',
+    ) as HTMLInputElement
+    expect(leaderInput.disabled).toBe(false)
+    expect(delayInput.disabled).toBe(false)
+    expect(leaderInput.readOnly).toBe(false)
+    expect(delayInput.readOnly).toBe(false)
+    expect(options.some((option) => option.text?.includes('next phase'))).toBe(
+      false,
+    )
+    expect(view.queryByText(/account settings are read-only/i)).toBeNull()
+
+    const user = userEvent.setup({ document })
+    sharedLayerHookState.account.setSettings.mockImplementation((settings) => {
+      sharedLayerHookState.account.overrideSet = {
+        ...sharedLayerHookState.account.overrideSet,
+        settings,
+      }
+      sharedLayerHookState.account.layer = {
+        scope: 'account',
+        label: 'Account',
+        overrideSet: sharedLayerHookState.account.overrideSet,
+      }
+      view.rerender(
+        <StateNamespaceProvider rootAtom={atom({})}>
+          <KeybindingEditor
+            open={true}
+            onOpenChange={vi.fn()}
+            initialCommandId="spacewave.open"
+            initialScope="account"
+          />
+        </StateNamespaceProvider>,
+      )
+    })
+
+    await user.type(leaderInput, 'Alt+Space')
+    expect(sharedLayerHookState.account.setSettings).toHaveBeenLastCalledWith({
+      leaderCombo: 'Alt+Space',
+    })
+    await user.type(delayInput, '125')
+    expect(sharedLayerHookState.account.setSettings).toHaveBeenLastCalledWith({
+      leaderCombo: 'Alt+Space',
+      whichKeyDelayMs: 125,
+    })
 
     fireEvent.click(view.getByRole('button', { name: 'Replace with combo' }))
     fireEvent.keyDown(view.getByRole('button', { name: /Press one combo/ }), {

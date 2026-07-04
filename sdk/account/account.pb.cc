@@ -313,6 +313,24 @@ struct SetSecurityLevelResponseDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SetSecurityLevelResponseDefaultTypeInternal _SetSecurityLevelResponse_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR SetKeybindingSettingsResponse::SetKeybindingSettingsResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(SetKeybindingSettingsResponse_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct SetKeybindingSettingsResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SetKeybindingSettingsResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SetKeybindingSettingsResponseDefaultTypeInternal() {}
+  union {
+    SetKeybindingSettingsResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SetKeybindingSettingsResponseDefaultTypeInternal _SetKeybindingSettingsResponse_default_instance_;
 
 inline constexpr SSOCodeExchangeResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -1258,6 +1276,31 @@ struct WatchAuthMethodsResponseDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchAuthMethodsResponseDefaultTypeInternal _WatchAuthMethodsResponse_default_instance_;
 
+inline constexpr SetKeybindingSettingsRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        settings_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SetKeybindingSettingsRequest::SetKeybindingSettingsRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SetKeybindingSettingsRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SetKeybindingSettingsRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SetKeybindingSettingsRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SetKeybindingSettingsRequestDefaultTypeInternal() {}
+  union {
+    SetKeybindingSettingsRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SetKeybindingSettingsRequestDefaultTypeInternal _SetKeybindingSettingsRequest_default_instance_;
+
 inline constexpr UpsertKeybindingOverrideRequest::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -1349,6 +1392,12 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::account::RemoveKeybindingOverrideRequest, _impl_._has_bits_),
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::account::RemoveKeybindingOverrideRequest, _impl_.command_id_),
+        0,
+        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::account::SetKeybindingSettingsRequest, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::account::SetKeybindingSettingsRequest, _impl_.settings_),
         0,
         0x000, // bitmap
         0x000, // bitmap
@@ -1623,48 +1672,50 @@ static const ::_pbi::MigrationSchema
         {27, sizeof(::s4wave::account::UpsertKeybindingOverrideResponse)},
         {28, sizeof(::s4wave::account::RemoveKeybindingOverrideRequest)},
         {33, sizeof(::s4wave::account::RemoveKeybindingOverrideResponse)},
-        {34, sizeof(::s4wave::account::WatchAuthMethodsRequest)},
-        {35, sizeof(::s4wave::account::WatchAuthMethodsResponse)},
-        {40, sizeof(::s4wave::account::AccountSession)},
-        {63, sizeof(::s4wave::account::WatchSessionsRequest)},
-        {64, sizeof(::s4wave::account::WatchSessionsResponse)},
-        {69, sizeof(::s4wave::account::AddAuthMethodRequest)},
-        {76, sizeof(::s4wave::account::AddAuthMethodResponse)},
-        {77, sizeof(::s4wave::account::RemoveAuthMethodRequest)},
-        {84, sizeof(::s4wave::account::RemoveAuthMethodResponse)},
-        {85, sizeof(::s4wave::account::SetSecurityLevelRequest)},
-        {92, sizeof(::s4wave::account::SetSecurityLevelResponse)},
-        {93, sizeof(::s4wave::account::RevokeSessionRequest)},
-        {100, sizeof(::s4wave::account::RevokeSessionResponse)},
-        {101, sizeof(::s4wave::account::GenerateBackupKeyRequest)},
-        {106, sizeof(::s4wave::account::GenerateBackupKeyResponse)},
-        {113, sizeof(::s4wave::account::ChangePasswordRequest)},
-        {120, sizeof(::s4wave::account::ChangePasswordResponse)},
-        {121, sizeof(::s4wave::account::EntityKeypairState)},
-        {128, sizeof(::s4wave::account::WatchEntityKeypairsRequest)},
-        {129, sizeof(::s4wave::account::WatchEntityKeypairsResponse)},
-        {136, sizeof(::s4wave::account::AccountEscalationIntent)},
-        {151, sizeof(::s4wave::account::AccountEscalationMethod)},
-        {166, sizeof(::s4wave::account::AccountEscalationRequirement)},
-        {177, sizeof(::s4wave::account::AccountEscalationState)},
-        {186, sizeof(::s4wave::account::UnlockEntityKeypairRequest)},
-        {193, sizeof(::s4wave::account::UnlockEntityKeypairResponse)},
-        {194, sizeof(::s4wave::account::LockEntityKeypairRequest)},
-        {199, sizeof(::s4wave::account::LockEntityKeypairResponse)},
-        {200, sizeof(::s4wave::account::LockAllEntityKeypairsRequest)},
-        {201, sizeof(::s4wave::account::LockAllEntityKeypairsResponse)},
-        {202, sizeof(::s4wave::account::SSOCodeExchangeRequest)},
-        {211, sizeof(::s4wave::account::SSOCodeExchangeResponse)},
-        {230, sizeof(::s4wave::account::LinkSSORequest)},
-        {243, sizeof(::s4wave::account::LinkSSOResponse)},
-        {244, sizeof(::s4wave::account::StartDesktopPasskeyRegisterRequest)},
-        {245, sizeof(::s4wave::account::StartDesktopPasskeyRegisterResponse)},
-        {254, sizeof(::s4wave::account::StartDesktopPasskeyRegisterHandoffRequest)},
-        {255, sizeof(::s4wave::account::StartDesktopPasskeyRegisterHandoffResponse)},
-        {268, sizeof(::s4wave::account::PasskeyRegisterOptionsRequest)},
-        {269, sizeof(::s4wave::account::PasskeyRegisterOptionsResponse)},
-        {274, sizeof(::s4wave::account::PasskeyRegisterVerifyRequest)},
-        {289, sizeof(::s4wave::account::PasskeyRegisterVerifyResponse)},
+        {34, sizeof(::s4wave::account::SetKeybindingSettingsRequest)},
+        {39, sizeof(::s4wave::account::SetKeybindingSettingsResponse)},
+        {40, sizeof(::s4wave::account::WatchAuthMethodsRequest)},
+        {41, sizeof(::s4wave::account::WatchAuthMethodsResponse)},
+        {46, sizeof(::s4wave::account::AccountSession)},
+        {69, sizeof(::s4wave::account::WatchSessionsRequest)},
+        {70, sizeof(::s4wave::account::WatchSessionsResponse)},
+        {75, sizeof(::s4wave::account::AddAuthMethodRequest)},
+        {82, sizeof(::s4wave::account::AddAuthMethodResponse)},
+        {83, sizeof(::s4wave::account::RemoveAuthMethodRequest)},
+        {90, sizeof(::s4wave::account::RemoveAuthMethodResponse)},
+        {91, sizeof(::s4wave::account::SetSecurityLevelRequest)},
+        {98, sizeof(::s4wave::account::SetSecurityLevelResponse)},
+        {99, sizeof(::s4wave::account::RevokeSessionRequest)},
+        {106, sizeof(::s4wave::account::RevokeSessionResponse)},
+        {107, sizeof(::s4wave::account::GenerateBackupKeyRequest)},
+        {112, sizeof(::s4wave::account::GenerateBackupKeyResponse)},
+        {119, sizeof(::s4wave::account::ChangePasswordRequest)},
+        {126, sizeof(::s4wave::account::ChangePasswordResponse)},
+        {127, sizeof(::s4wave::account::EntityKeypairState)},
+        {134, sizeof(::s4wave::account::WatchEntityKeypairsRequest)},
+        {135, sizeof(::s4wave::account::WatchEntityKeypairsResponse)},
+        {142, sizeof(::s4wave::account::AccountEscalationIntent)},
+        {157, sizeof(::s4wave::account::AccountEscalationMethod)},
+        {172, sizeof(::s4wave::account::AccountEscalationRequirement)},
+        {183, sizeof(::s4wave::account::AccountEscalationState)},
+        {192, sizeof(::s4wave::account::UnlockEntityKeypairRequest)},
+        {199, sizeof(::s4wave::account::UnlockEntityKeypairResponse)},
+        {200, sizeof(::s4wave::account::LockEntityKeypairRequest)},
+        {205, sizeof(::s4wave::account::LockEntityKeypairResponse)},
+        {206, sizeof(::s4wave::account::LockAllEntityKeypairsRequest)},
+        {207, sizeof(::s4wave::account::LockAllEntityKeypairsResponse)},
+        {208, sizeof(::s4wave::account::SSOCodeExchangeRequest)},
+        {217, sizeof(::s4wave::account::SSOCodeExchangeResponse)},
+        {236, sizeof(::s4wave::account::LinkSSORequest)},
+        {249, sizeof(::s4wave::account::LinkSSOResponse)},
+        {250, sizeof(::s4wave::account::StartDesktopPasskeyRegisterRequest)},
+        {251, sizeof(::s4wave::account::StartDesktopPasskeyRegisterResponse)},
+        {260, sizeof(::s4wave::account::StartDesktopPasskeyRegisterHandoffRequest)},
+        {261, sizeof(::s4wave::account::StartDesktopPasskeyRegisterHandoffResponse)},
+        {274, sizeof(::s4wave::account::PasskeyRegisterOptionsRequest)},
+        {275, sizeof(::s4wave::account::PasskeyRegisterOptionsResponse)},
+        {280, sizeof(::s4wave::account::PasskeyRegisterVerifyRequest)},
+        {295, sizeof(::s4wave::account::PasskeyRegisterVerifyResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::account::_WatchAccountInfoRequest_default_instance_._instance,
@@ -1675,6 +1726,8 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::account::_UpsertKeybindingOverrideResponse_default_instance_._instance,
     &::s4wave::account::_RemoveKeybindingOverrideRequest_default_instance_._instance,
     &::s4wave::account::_RemoveKeybindingOverrideResponse_default_instance_._instance,
+    &::s4wave::account::_SetKeybindingSettingsRequest_default_instance_._instance,
+    &::s4wave::account::_SetKeybindingSettingsResponse_default_instance_._instance,
     &::s4wave::account::_WatchAuthMethodsRequest_default_instance_._instance,
     &::s4wave::account::_WatchAuthMethodsResponse_default_instance_._instance,
     &::s4wave::account::_AccountSession_default_instance_._instance,
@@ -1740,176 +1793,182 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fa
     "mandOverride\"\"\n UpsertKeybindingOverride"
     "Response\"5\n\037RemoveKeybindingOverrideRequ"
     "est\022\022\n\ncommand_id\030\001 \001(\t\"\"\n RemoveKeybind"
-    "ingOverrideResponse\"\031\n\027WatchAuthMethodsR"
-    "equest\"[\n\030WatchAuthMethodsResponse\022\?\n\014au"
-    "th_methods\030\001 \003(\0132).provider.spacewave.ap"
-    "i.AccountAuthMethod\"\245\002\n\016AccountSession\022\017"
-    "\n\007peer_id\030\001 \001(\t\022\027\n\017current_session\030\002 \001(\010"
-    "\0220\n\004kind\030\003 \001(\0162\".s4wave.account.AccountS"
-    "essionKind\022\r\n\005label\030\004 \001(\t\022\023\n\013device_type"
-    "\030\005 \001(\t\022\023\n\013client_name\030\006 \001(\t\022\n\n\002os\030\007 \001(\t\022"
-    "\020\n\010location\030\010 \001(\t\022.\n\ncreated_at\030\t \001(\0132\032."
-    "google.protobuf.Timestamp\0220\n\014last_seen_a"
-    "t\030\n \001(\0132\032.google.protobuf.Timestamp\"\026\n\024W"
-    "atchSessionsRequest\"I\n\025WatchSessionsResp"
-    "onse\0220\n\010sessions\030\001 \003(\0132\036.s4wave.account."
-    "AccountSession\"n\n\024AddAuthMethodRequest\022\'"
-    "\n\007keypair\030\001 \001(\0132\026.session.EntityKeypair\022"
-    "-\n\ncredential\030\002 \001(\0132\031.session.EntityCred"
-    "ential\"\027\n\025AddAuthMethodResponse\"Y\n\027Remov"
-    "eAuthMethodRequest\022\017\n\007peer_id\030\001 \001(\t\022-\n\nc"
-    "redential\030\002 \001(\0132\031.session.EntityCredenti"
-    "al\"\032\n\030RemoveAuthMethodResponse\"[\n\027SetSec"
-    "urityLevelRequest\022\021\n\tthreshold\030\001 \001(\r\022-\n\n"
-    "credential\030\002 \001(\0132\031.session.EntityCredent"
-    "ial\"\032\n\030SetSecurityLevelResponse\"^\n\024Revok"
-    "eSessionRequest\022\027\n\017session_peer_id\030\001 \001(\t"
-    "\022-\n\ncredential\030\002 \001(\0132\031.session.EntityCre"
-    "dential\"\027\n\025RevokeSessionResponse\"I\n\030Gene"
-    "rateBackupKeyRequest\022-\n\ncredential\030\001 \001(\013"
-    "2\031.session.EntityCredential\">\n\031GenerateB"
-    "ackupKeyResponse\022\020\n\010pem_data\030\001 \001(\014\022\017\n\007pe"
-    "er_id\030\002 \001(\t\"C\n\025ChangePasswordRequest\022\024\n\014"
-    "old_password\030\001 \001(\t\022\024\n\014new_password\030\002 \001(\t"
-    "\"\030\n\026ChangePasswordResponse\"O\n\022EntityKeyp"
-    "airState\022\'\n\007keypair\030\001 \001(\0132\026.session.Enti"
-    "tyKeypair\022\020\n\010unlocked\030\002 \001(\010\"\034\n\032WatchEnti"
-    "tyKeypairsRequest\"k\n\033WatchEntityKeypairs"
-    "Response\0224\n\010keypairs\030\001 \003(\0132\".s4wave.acco"
-    "unt.EntityKeypairState\022\026\n\016unlocked_count"
-    "\030\002 \001(\r\"\270\001\n\027AccountEscalationIntent\0229\n\004ki"
-    "nd\030\001 \001(\0162+.s4wave.account.AccountEscalat"
-    "ionIntentKind\022\r\n\005title\030\002 \001(\t\022\023\n\013descript"
-    "ion\030\003 \001(\t\022\024\n\014target_label\030\004 \001(\t\022\026\n\016targe"
-    "t_peer_id\030\005 \001(\t\022\020\n\010provider\030\006 \001(\t\"\263\001\n\027Ac"
-    "countEscalationMethod\022\017\n\007peer_id\030\001 \001(\t\022;"
-    "\n\004kind\030\002 \001(\0162-.provider.spacewave.api.Ac"
-    "countAuthMethodKind\022\r\n\005label\030\003 \001(\t\022\027\n\017se"
-    "condary_label\030\004 \001(\t\022\020\n\010provider\030\005 \001(\t\022\020\n"
-    "\010unlocked\030\006 \001(\010\"\201\001\n\034AccountEscalationReq"
-    "uirement\022\026\n\016auth_threshold\030\001 \001(\r\022\030\n\020requ"
-    "ired_signers\030\002 \001(\r\022\030\n\020unlocked_signers\030\003"
-    " \001(\r\022\025\n\rtotal_methods\030\004 \001(\r\"\316\001\n\026AccountE"
-    "scalationState\0227\n\006intent\030\001 \001(\0132\'.s4wave."
-    "account.AccountEscalationIntent\022A\n\013requi"
-    "rement\030\002 \001(\0132,.s4wave.account.AccountEsc"
-    "alationRequirement\0228\n\007methods\030\003 \003(\0132\'.s4"
-    "wave.account.AccountEscalationMethod\"\\\n\032"
-    "UnlockEntityKeypairRequest\022\017\n\007peer_id\030\001 "
-    "\001(\t\022-\n\ncredential\030\002 \001(\0132\031.session.Entity"
-    "Credential\"\035\n\033UnlockEntityKeypairRespons"
-    "e\"+\n\030LockEntityKeypairRequest\022\017\n\007peer_id"
-    "\030\001 \001(\t\"\033\n\031LockEntityKeypairResponse\"\036\n\034L"
-    "ockAllEntityKeypairsRequest\"\037\n\035LockAllEn"
-    "tityKeypairsResponse\"N\n\026SSOCodeExchangeR"
-    "equest\022\020\n\010provider\030\001 \001(\t\022\014\n\004code\030\002 \001(\t\022\024"
-    "\n\014redirect_uri\030\003 \001(\t\"\267\001\n\027SSOCodeExchange"
-    "Response\022\016\n\006linked\030\001 \001(\010\022\022\n\naccount_id\030\002"
-    " \001(\t\022\021\n\tentity_id\030\003 \001(\t\022\026\n\016encrypted_blo"
-    "b\030\004 \001(\t\022\023\n\013pin_wrapped\030\005 \001(\010\022\023\n\013auth_par"
-    "ams\030\006 \001(\t\022\024\n\014sso_provider\030\007 \001(\t\022\r\n\005email"
-    "\030\010 \001(\t\"\202\001\n\016LinkSSORequest\022\020\n\010provider\030\001 "
-    "\001(\t\022\014\n\004code\030\002 \001(\t\022\024\n\014redirect_uri\030\003 \001(\t\022"
-    "\013\n\003pin\030\004 \001(\014\022-\n\ncredential\030\005 \001(\0132\031.sessi"
-    "on.EntityCredential\"\021\n\017LinkSSOResponse\"$"
-    "\n\"StartDesktopPasskeyRegisterRequest\"Y\n#"
-    "StartDesktopPasskeyRegisterResponse\022\r\n\005n"
-    "once\030\001 \001(\t\022\021\n\tws_ticket\030\002 \001(\t\022\020\n\010open_ur"
-    "l\030\003 \001(\t\"+\n)StartDesktopPasskeyRegisterHa"
-    "ndoffRequest\"\222\001\n*StartDesktopPasskeyRegi"
-    "sterHandoffResponse\022\020\n\010username\030\001 \001(\t\022\027\n"
-    "\017credential_json\030\002 \001(\t\022\023\n\013prf_capable\030\003 "
-    "\001(\010\022\020\n\010prf_salt\030\004 \001(\t\022\022\n\nprf_output\030\005 \001("
-    "\t\"\037\n\035PasskeyRegisterOptionsRequest\"6\n\036Pa"
-    "sskeyRegisterOptionsResponse\022\024\n\014options_"
-    "json\030\001 \001(\t\"\245\001\n\034PasskeyRegisterVerifyRequ"
-    "est\022\027\n\017credential_json\030\001 \001(\t\022\023\n\013prf_capa"
-    "ble\030\002 \001(\010\022\031\n\021encrypted_privkey\030\003 \001(\t\022\017\n\007"
-    "peer_id\030\005 \001(\t\022\023\n\013auth_params\030\006 \001(\t\022\020\n\010pr"
-    "f_salt\030\007 \001(\tJ\004\010\004\020\005\"6\n\035PasskeyRegisterVer"
-    "ifyResponse\022\025\n\rcredential_id\030\001 \001(\t*\310\001\n\022A"
-    "ccountSessionKind\0227\n3AccountSessionKind_"
-    "ACCOUNT_SESSION_KIND_UNSPECIFIED\020\000\0229\n5Ac"
-    "countSessionKind_ACCOUNT_SESSION_KIND_LO"
-    "CAL_SESSION\020\001\022>\n:AccountSessionKind_ACCO"
-    "UNT_SESSION_KIND_CLOUD_AUTH_SESSION\020\002*\306\004"
-    "\n\033AccountEscalationIntentKind\022J\nFAccount"
-    "EscalationIntentKind_ACCOUNT_ESCALATION_"
-    "INTENT_KIND_UNSPECIFIED\020\000\022M\nIAccountEsca"
-    "lationIntentKind_ACCOUNT_ESCALATION_INTE"
-    "NT_KIND_REVOKE_SESSION\020\001\022Q\nMAccountEscal"
-    "ationIntentKind_ACCOUNT_ESCALATION_INTEN"
-    "T_KIND_REMOVE_AUTH_METHOD\020\002\022M\nIAccountEs"
-    "calationIntentKind_ACCOUNT_ESCALATION_IN"
-    "TENT_KIND_ADD_BACKUP_KEY\020\003\022G\nCAccountEsc"
+    "ingOverrideResponse\"\\\n\034SetKeybindingSett"
+    "ingsRequest\022<\n\010settings\030\001 \001(\0132*.s4wave.c"
+    "ommand.KeybindingOverrideSettings\"\037\n\035Set"
+    "KeybindingSettingsResponse\"\031\n\027WatchAuthM"
+    "ethodsRequest\"[\n\030WatchAuthMethodsRespons"
+    "e\022\?\n\014auth_methods\030\001 \003(\0132).provider.space"
+    "wave.api.AccountAuthMethod\"\245\002\n\016AccountSe"
+    "ssion\022\017\n\007peer_id\030\001 \001(\t\022\027\n\017current_sessio"
+    "n\030\002 \001(\010\0220\n\004kind\030\003 \001(\0162\".s4wave.account.A"
+    "ccountSessionKind\022\r\n\005label\030\004 \001(\t\022\023\n\013devi"
+    "ce_type\030\005 \001(\t\022\023\n\013client_name\030\006 \001(\t\022\n\n\002os"
+    "\030\007 \001(\t\022\020\n\010location\030\010 \001(\t\022.\n\ncreated_at\030\t"
+    " \001(\0132\032.google.protobuf.Timestamp\0220\n\014last"
+    "_seen_at\030\n \001(\0132\032.google.protobuf.Timesta"
+    "mp\"\026\n\024WatchSessionsRequest\"I\n\025WatchSessi"
+    "onsResponse\0220\n\010sessions\030\001 \003(\0132\036.s4wave.a"
+    "ccount.AccountSession\"n\n\024AddAuthMethodRe"
+    "quest\022\'\n\007keypair\030\001 \001(\0132\026.session.EntityK"
+    "eypair\022-\n\ncredential\030\002 \001(\0132\031.session.Ent"
+    "ityCredential\"\027\n\025AddAuthMethodResponse\"Y"
+    "\n\027RemoveAuthMethodRequest\022\017\n\007peer_id\030\001 \001"
+    "(\t\022-\n\ncredential\030\002 \001(\0132\031.session.EntityC"
+    "redential\"\032\n\030RemoveAuthMethodResponse\"[\n"
+    "\027SetSecurityLevelRequest\022\021\n\tthreshold\030\001 "
+    "\001(\r\022-\n\ncredential\030\002 \001(\0132\031.session.Entity"
+    "Credential\"\032\n\030SetSecurityLevelResponse\"^"
+    "\n\024RevokeSessionRequest\022\027\n\017session_peer_i"
+    "d\030\001 \001(\t\022-\n\ncredential\030\002 \001(\0132\031.session.En"
+    "tityCredential\"\027\n\025RevokeSessionResponse\""
+    "I\n\030GenerateBackupKeyRequest\022-\n\ncredentia"
+    "l\030\001 \001(\0132\031.session.EntityCredential\">\n\031Ge"
+    "nerateBackupKeyResponse\022\020\n\010pem_data\030\001 \001("
+    "\014\022\017\n\007peer_id\030\002 \001(\t\"C\n\025ChangePasswordRequ"
+    "est\022\024\n\014old_password\030\001 \001(\t\022\024\n\014new_passwor"
+    "d\030\002 \001(\t\"\030\n\026ChangePasswordResponse\"O\n\022Ent"
+    "ityKeypairState\022\'\n\007keypair\030\001 \001(\0132\026.sessi"
+    "on.EntityKeypair\022\020\n\010unlocked\030\002 \001(\010\"\034\n\032Wa"
+    "tchEntityKeypairsRequest\"k\n\033WatchEntityK"
+    "eypairsResponse\0224\n\010keypairs\030\001 \003(\0132\".s4wa"
+    "ve.account.EntityKeypairState\022\026\n\016unlocke"
+    "d_count\030\002 \001(\r\"\270\001\n\027AccountEscalationInten"
+    "t\0229\n\004kind\030\001 \001(\0162+.s4wave.account.Account"
+    "EscalationIntentKind\022\r\n\005title\030\002 \001(\t\022\023\n\013d"
+    "escription\030\003 \001(\t\022\024\n\014target_label\030\004 \001(\t\022\026"
+    "\n\016target_peer_id\030\005 \001(\t\022\020\n\010provider\030\006 \001(\t"
+    "\"\263\001\n\027AccountEscalationMethod\022\017\n\007peer_id\030"
+    "\001 \001(\t\022;\n\004kind\030\002 \001(\0162-.provider.spacewave"
+    ".api.AccountAuthMethodKind\022\r\n\005label\030\003 \001("
+    "\t\022\027\n\017secondary_label\030\004 \001(\t\022\020\n\010provider\030\005"
+    " \001(\t\022\020\n\010unlocked\030\006 \001(\010\"\201\001\n\034AccountEscala"
+    "tionRequirement\022\026\n\016auth_threshold\030\001 \001(\r\022"
+    "\030\n\020required_signers\030\002 \001(\r\022\030\n\020unlocked_si"
+    "gners\030\003 \001(\r\022\025\n\rtotal_methods\030\004 \001(\r\"\316\001\n\026A"
+    "ccountEscalationState\0227\n\006intent\030\001 \001(\0132\'."
+    "s4wave.account.AccountEscalationIntent\022A"
+    "\n\013requirement\030\002 \001(\0132,.s4wave.account.Acc"
+    "ountEscalationRequirement\0228\n\007methods\030\003 \003"
+    "(\0132\'.s4wave.account.AccountEscalationMet"
+    "hod\"\\\n\032UnlockEntityKeypairRequest\022\017\n\007pee"
+    "r_id\030\001 \001(\t\022-\n\ncredential\030\002 \001(\0132\031.session"
+    ".EntityCredential\"\035\n\033UnlockEntityKeypair"
+    "Response\"+\n\030LockEntityKeypairRequest\022\017\n\007"
+    "peer_id\030\001 \001(\t\"\033\n\031LockEntityKeypairRespon"
+    "se\"\036\n\034LockAllEntityKeypairsRequest\"\037\n\035Lo"
+    "ckAllEntityKeypairsResponse\"N\n\026SSOCodeEx"
+    "changeRequest\022\020\n\010provider\030\001 \001(\t\022\014\n\004code\030"
+    "\002 \001(\t\022\024\n\014redirect_uri\030\003 \001(\t\"\267\001\n\027SSOCodeE"
+    "xchangeResponse\022\016\n\006linked\030\001 \001(\010\022\022\n\naccou"
+    "nt_id\030\002 \001(\t\022\021\n\tentity_id\030\003 \001(\t\022\026\n\016encryp"
+    "ted_blob\030\004 \001(\t\022\023\n\013pin_wrapped\030\005 \001(\010\022\023\n\013a"
+    "uth_params\030\006 \001(\t\022\024\n\014sso_provider\030\007 \001(\t\022\r"
+    "\n\005email\030\010 \001(\t\"\202\001\n\016LinkSSORequest\022\020\n\010prov"
+    "ider\030\001 \001(\t\022\014\n\004code\030\002 \001(\t\022\024\n\014redirect_uri"
+    "\030\003 \001(\t\022\013\n\003pin\030\004 \001(\014\022-\n\ncredential\030\005 \001(\0132"
+    "\031.session.EntityCredential\"\021\n\017LinkSSORes"
+    "ponse\"$\n\"StartDesktopPasskeyRegisterRequ"
+    "est\"Y\n#StartDesktopPasskeyRegisterRespon"
+    "se\022\r\n\005nonce\030\001 \001(\t\022\021\n\tws_ticket\030\002 \001(\t\022\020\n\010"
+    "open_url\030\003 \001(\t\"+\n)StartDesktopPasskeyReg"
+    "isterHandoffRequest\"\222\001\n*StartDesktopPass"
+    "keyRegisterHandoffResponse\022\020\n\010username\030\001"
+    " \001(\t\022\027\n\017credential_json\030\002 \001(\t\022\023\n\013prf_cap"
+    "able\030\003 \001(\010\022\020\n\010prf_salt\030\004 \001(\t\022\022\n\nprf_outp"
+    "ut\030\005 \001(\t\"\037\n\035PasskeyRegisterOptionsReques"
+    "t\"6\n\036PasskeyRegisterOptionsResponse\022\024\n\014o"
+    "ptions_json\030\001 \001(\t\"\245\001\n\034PasskeyRegisterVer"
+    "ifyRequest\022\027\n\017credential_json\030\001 \001(\t\022\023\n\013p"
+    "rf_capable\030\002 \001(\010\022\031\n\021encrypted_privkey\030\003 "
+    "\001(\t\022\017\n\007peer_id\030\005 \001(\t\022\023\n\013auth_params\030\006 \001("
+    "\t\022\020\n\010prf_salt\030\007 \001(\tJ\004\010\004\020\005\"6\n\035PasskeyRegi"
+    "sterVerifyResponse\022\025\n\rcredential_id\030\001 \001("
+    "\t*\310\001\n\022AccountSessionKind\0227\n3AccountSessi"
+    "onKind_ACCOUNT_SESSION_KIND_UNSPECIFIED\020"
+    "\000\0229\n5AccountSessionKind_ACCOUNT_SESSION_"
+    "KIND_LOCAL_SESSION\020\001\022>\n:AccountSessionKi"
+    "nd_ACCOUNT_SESSION_KIND_CLOUD_AUTH_SESSI"
+    "ON\020\002*\306\004\n\033AccountEscalationIntentKind\022J\nF"
+    "AccountEscalationIntentKind_ACCOUNT_ESCA"
+    "LATION_INTENT_KIND_UNSPECIFIED\020\000\022M\nIAcco"
+    "untEscalationIntentKind_ACCOUNT_ESCALATI"
+    "ON_INTENT_KIND_REVOKE_SESSION\020\001\022Q\nMAccou"
+    "ntEscalationIntentKind_ACCOUNT_ESCALATIO"
+    "N_INTENT_KIND_REMOVE_AUTH_METHOD\020\002\022M\nIAc"
+    "countEscalationIntentKind_ACCOUNT_ESCALA"
+    "TION_INTENT_KIND_ADD_BACKUP_KEY\020\003\022G\nCAcc"
+    "ountEscalationIntentKind_ACCOUNT_ESCALAT"
+    "ION_INTENT_KIND_LINK_SSO\020\004\022Q\nMAccountEsc"
     "alationIntentKind_ACCOUNT_ESCALATION_INT"
-    "ENT_KIND_LINK_SSO\020\004\022Q\nMAccountEscalation"
-    "IntentKind_ACCOUNT_ESCALATION_INTENT_KIN"
-    "D_SET_SECURITY_LEVEL\020\005\022N\nJAccountEscalat"
-    "ionIntentKind_ACCOUNT_ESCALATION_INTENT_"
-    "KIND_CHANGE_PASSWORD\020\0062\246\023\n\026AccountResour"
-    "ceService\022g\n\020WatchAccountInfo\022\'.s4wave.a"
-    "ccount.WatchAccountInfoRequest\032(.s4wave."
-    "account.WatchAccountInfoResponse0\001\022g\n\020Wa"
-    "tchAuthMethods\022\'.s4wave.account.WatchAut"
-    "hMethodsRequest\032(.s4wave.account.WatchAu"
-    "thMethodsResponse0\001\022^\n\rWatchSessions\022$.s"
-    "4wave.account.WatchSessionsRequest\032%.s4w"
-    "ave.account.WatchSessionsResponse0\001\022\177\n\030W"
-    "atchKeybindingOverrides\022/.s4wave.account"
-    ".WatchKeybindingOverridesRequest\0320.s4wav"
-    "e.account.WatchKeybindingOverridesRespon"
-    "se0\001\022}\n\030UpsertKeybindingOverride\022/.s4wav"
-    "e.account.UpsertKeybindingOverrideReques"
-    "t\0320.s4wave.account.UpsertKeybindingOverr"
-    "ideResponse\022}\n\030RemoveKeybindingOverride\022"
-    "/.s4wave.account.RemoveKeybindingOverrid"
-    "eRequest\0320.s4wave.account.RemoveKeybindi"
-    "ngOverrideResponse\022\\\n\rAddAuthMethod\022$.s4"
-    "wave.account.AddAuthMethodRequest\032%.s4wa"
-    "ve.account.AddAuthMethodResponse\022e\n\020Remo"
-    "veAuthMethod\022\'.s4wave.account.RemoveAuth"
-    "MethodRequest\032(.s4wave.account.RemoveAut"
-    "hMethodResponse\022e\n\020SetSecurityLevel\022\'.s4"
-    "wave.account.SetSecurityLevelRequest\032(.s"
-    "4wave.account.SetSecurityLevelResponse\022\\"
-    "\n\rRevokeSession\022$.s4wave.account.RevokeS"
-    "essionRequest\032%.s4wave.account.RevokeSes"
-    "sionResponse\022h\n\021GenerateBackupKey\022(.s4wa"
-    "ve.account.GenerateBackupKeyRequest\032).s4"
-    "wave.account.GenerateBackupKeyResponse\022_"
-    "\n\016ChangePassword\022%.s4wave.account.Change"
-    "PasswordRequest\032&.s4wave.account.ChangeP"
-    "asswordResponse\022p\n\023WatchEntityKeypairs\022*"
-    ".s4wave.account.WatchEntityKeypairsReque"
-    "st\032+.s4wave.account.WatchEntityKeypairsR"
-    "esponse0\001\022n\n\023UnlockEntityKeypair\022*.s4wav"
-    "e.account.UnlockEntityKeypairRequest\032+.s"
-    "4wave.account.UnlockEntityKeypairRespons"
-    "e\022h\n\021LockEntityKeypair\022(.s4wave.account."
-    "LockEntityKeypairRequest\032).s4wave.accoun"
-    "t.LockEntityKeypairResponse\022t\n\025LockAllEn"
-    "tityKeypairs\022,.s4wave.account.LockAllEnt"
-    "ityKeypairsRequest\032-.s4wave.account.Lock"
-    "AllEntityKeypairsResponse\022b\n\017SSOCodeExch"
-    "ange\022&.s4wave.account.SSOCodeExchangeReq"
-    "uest\032\'.s4wave.account.SSOCodeExchangeRes"
-    "ponse\022J\n\007LinkSSO\022\036.s4wave.account.LinkSS"
-    "ORequest\032\037.s4wave.account.LinkSSORespons"
-    "e\022\206\001\n\033StartDesktopPasskeyRegister\0222.s4wa"
-    "ve.account.StartDesktopPasskeyRegisterRe"
-    "quest\0323.s4wave.account.StartDesktopPassk"
-    "eyRegisterResponse\022\233\001\n\"StartDesktopPassk"
-    "eyRegisterHandoff\0229.s4wave.account.Start"
-    "DesktopPasskeyRegisterHandoffRequest\032:.s"
-    "4wave.account.StartDesktopPasskeyRegiste"
-    "rHandoffResponse\022w\n\026PasskeyRegisterOptio"
-    "ns\022-.s4wave.account.PasskeyRegisterOptio"
-    "nsRequest\032..s4wave.account.PasskeyRegist"
-    "erOptionsResponse\022t\n\025PasskeyRegisterVeri"
-    "fy\022,.s4wave.account.PasskeyRegisterVerif"
-    "yRequest\032-.s4wave.account.PasskeyRegiste"
-    "rVerifyResponseb\006proto3"
+    "ENT_KIND_SET_SECURITY_LEVEL\020\005\022N\nJAccount"
+    "EscalationIntentKind_ACCOUNT_ESCALATION_"
+    "INTENT_KIND_CHANGE_PASSWORD\020\0062\234\024\n\026Accoun"
+    "tResourceService\022g\n\020WatchAccountInfo\022\'.s"
+    "4wave.account.WatchAccountInfoRequest\032(."
+    "s4wave.account.WatchAccountInfoResponse0"
+    "\001\022g\n\020WatchAuthMethods\022\'.s4wave.account.W"
+    "atchAuthMethodsRequest\032(.s4wave.account."
+    "WatchAuthMethodsResponse0\001\022^\n\rWatchSessi"
+    "ons\022$.s4wave.account.WatchSessionsReques"
+    "t\032%.s4wave.account.WatchSessionsResponse"
+    "0\001\022\177\n\030WatchKeybindingOverrides\022/.s4wave."
+    "account.WatchKeybindingOverridesRequest\032"
+    "0.s4wave.account.WatchKeybindingOverride"
+    "sResponse0\001\022}\n\030UpsertKeybindingOverride\022"
+    "/.s4wave.account.UpsertKeybindingOverrid"
+    "eRequest\0320.s4wave.account.UpsertKeybindi"
+    "ngOverrideResponse\022}\n\030RemoveKeybindingOv"
+    "erride\022/.s4wave.account.RemoveKeybinding"
+    "OverrideRequest\0320.s4wave.account.RemoveK"
+    "eybindingOverrideResponse\022t\n\025SetKeybindi"
+    "ngSettings\022,.s4wave.account.SetKeybindin"
+    "gSettingsRequest\032-.s4wave.account.SetKey"
+    "bindingSettingsResponse\022\\\n\rAddAuthMethod"
+    "\022$.s4wave.account.AddAuthMethodRequest\032%"
+    ".s4wave.account.AddAuthMethodResponse\022e\n"
+    "\020RemoveAuthMethod\022\'.s4wave.account.Remov"
+    "eAuthMethodRequest\032(.s4wave.account.Remo"
+    "veAuthMethodResponse\022e\n\020SetSecurityLevel"
+    "\022\'.s4wave.account.SetSecurityLevelReques"
+    "t\032(.s4wave.account.SetSecurityLevelRespo"
+    "nse\022\\\n\rRevokeSession\022$.s4wave.account.Re"
+    "vokeSessionRequest\032%.s4wave.account.Revo"
+    "keSessionResponse\022h\n\021GenerateBackupKey\022("
+    ".s4wave.account.GenerateBackupKeyRequest"
+    "\032).s4wave.account.GenerateBackupKeyRespo"
+    "nse\022_\n\016ChangePassword\022%.s4wave.account.C"
+    "hangePasswordRequest\032&.s4wave.account.Ch"
+    "angePasswordResponse\022p\n\023WatchEntityKeypa"
+    "irs\022*.s4wave.account.WatchEntityKeypairs"
+    "Request\032+.s4wave.account.WatchEntityKeyp"
+    "airsResponse0\001\022n\n\023UnlockEntityKeypair\022*."
+    "s4wave.account.UnlockEntityKeypairReques"
+    "t\032+.s4wave.account.UnlockEntityKeypairRe"
+    "sponse\022h\n\021LockEntityKeypair\022(.s4wave.acc"
+    "ount.LockEntityKeypairRequest\032).s4wave.a"
+    "ccount.LockEntityKeypairResponse\022t\n\025Lock"
+    "AllEntityKeypairs\022,.s4wave.account.LockA"
+    "llEntityKeypairsRequest\032-.s4wave.account"
+    ".LockAllEntityKeypairsResponse\022b\n\017SSOCod"
+    "eExchange\022&.s4wave.account.SSOCodeExchan"
+    "geRequest\032\'.s4wave.account.SSOCodeExchan"
+    "geResponse\022J\n\007LinkSSO\022\036.s4wave.account.L"
+    "inkSSORequest\032\037.s4wave.account.LinkSSORe"
+    "sponse\022\206\001\n\033StartDesktopPasskeyRegister\0222"
+    ".s4wave.account.StartDesktopPasskeyRegis"
+    "terRequest\0323.s4wave.account.StartDesktop"
+    "PasskeyRegisterResponse\022\233\001\n\"StartDesktop"
+    "PasskeyRegisterHandoff\0229.s4wave.account."
+    "StartDesktopPasskeyRegisterHandoffReques"
+    "t\032:.s4wave.account.StartDesktopPasskeyRe"
+    "gisterHandoffResponse\022w\n\026PasskeyRegister"
+    "Options\022-.s4wave.account.PasskeyRegister"
+    "OptionsRequest\032..s4wave.account.PasskeyR"
+    "egisterOptionsResponse\022t\n\025PasskeyRegiste"
+    "rVerify\022,.s4wave.account.PasskeyRegister"
+    "VerifyRequest\032-.s4wave.account.PasskeyRe"
+    "gisterVerifyResponseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto_deps[4] = {
@@ -1922,13 +1981,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto = {
     false,
     false,
-    7583,
+    7828,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto,
     "github.com/s4wave/spacewave/sdk/account/account.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto_deps,
     4,
-    50,
+    52,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto::offsets,
@@ -3694,6 +3753,392 @@ RemoveKeybindingOverrideResponse::_table_ = {
 
 
 ::google::protobuf::Metadata RemoveKeybindingOverrideResponse::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SetKeybindingSettingsRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SetKeybindingSettingsRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SetKeybindingSettingsRequest, _impl_._has_bits_);
+};
+
+void SetKeybindingSettingsRequest::clear_settings() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.settings_ != nullptr) _impl_.settings_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+SetKeybindingSettingsRequest::SetKeybindingSettingsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SetKeybindingSettingsRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.account.SetKeybindingSettingsRequest)
+}
+PROTOBUF_NDEBUG_INLINE SetKeybindingSettingsRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::account::SetKeybindingSettingsRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0} {}
+
+SetKeybindingSettingsRequest::SetKeybindingSettingsRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SetKeybindingSettingsRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SetKeybindingSettingsRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SetKeybindingSettingsRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.settings_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.settings_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.account.SetKeybindingSettingsRequest)
+}
+PROTOBUF_NDEBUG_INLINE SetKeybindingSettingsRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void SetKeybindingSettingsRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.settings_ = {};
+}
+SetKeybindingSettingsRequest::~SetKeybindingSettingsRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.account.SetKeybindingSettingsRequest)
+  SharedDtor(*this);
+}
+inline void SetKeybindingSettingsRequest::SharedDtor(MessageLite& self) {
+  SetKeybindingSettingsRequest& this_ = static_cast<SetKeybindingSettingsRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.settings_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SetKeybindingSettingsRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SetKeybindingSettingsRequest(arena);
+}
+constexpr auto SetKeybindingSettingsRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(SetKeybindingSettingsRequest),
+                                            alignof(SetKeybindingSettingsRequest));
+}
+constexpr auto SetKeybindingSettingsRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SetKeybindingSettingsRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SetKeybindingSettingsRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SetKeybindingSettingsRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SetKeybindingSettingsRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SetKeybindingSettingsRequest>(), &SetKeybindingSettingsRequest::ByteSizeLong,
+              &SetKeybindingSettingsRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SetKeybindingSettingsRequest, _impl_._cached_size_),
+          false,
+      },
+      &SetKeybindingSettingsRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SetKeybindingSettingsRequest_class_data_ =
+        SetKeybindingSettingsRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SetKeybindingSettingsRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SetKeybindingSettingsRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SetKeybindingSettingsRequest_class_data_.tc_table);
+  return SetKeybindingSettingsRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+SetKeybindingSettingsRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SetKeybindingSettingsRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    SetKeybindingSettingsRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::account::SetKeybindingSettingsRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .s4wave.command.KeybindingOverrideSettings settings = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SetKeybindingSettingsRequest, _impl_.settings_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .s4wave.command.KeybindingOverrideSettings settings = 1;
+    {PROTOBUF_FIELD_OFFSET(SetKeybindingSettingsRequest, _impl_.settings_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::command::KeybindingOverrideSettings>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void SetKeybindingSettingsRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.account.SetKeybindingSettingsRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(_impl_.settings_ != nullptr);
+    _impl_.settings_->Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SetKeybindingSettingsRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SetKeybindingSettingsRequest& this_ = static_cast<const SetKeybindingSettingsRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SetKeybindingSettingsRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SetKeybindingSettingsRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.account.SetKeybindingSettingsRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.command.KeybindingOverrideSettings settings = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.settings_, this_._impl_.settings_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.account.SetKeybindingSettingsRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SetKeybindingSettingsRequest::ByteSizeLong(const MessageLite& base) {
+  const SetKeybindingSettingsRequest& this_ = static_cast<const SetKeybindingSettingsRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SetKeybindingSettingsRequest::ByteSizeLong() const {
+  const SetKeybindingSettingsRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.account.SetKeybindingSettingsRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .s4wave.command.KeybindingOverrideSettings settings = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.settings_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SetKeybindingSettingsRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SetKeybindingSettingsRequest*>(&to_msg);
+  auto& from = static_cast<const SetKeybindingSettingsRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.account.SetKeybindingSettingsRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(from._impl_.settings_ != nullptr);
+    if (_this->_impl_.settings_ == nullptr) {
+      _this->_impl_.settings_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.settings_);
+    } else {
+      _this->_impl_.settings_->MergeFrom(*from._impl_.settings_);
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SetKeybindingSettingsRequest::CopyFrom(const SetKeybindingSettingsRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.account.SetKeybindingSettingsRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SetKeybindingSettingsRequest::InternalSwap(SetKeybindingSettingsRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.settings_, other->_impl_.settings_);
+}
+
+::google::protobuf::Metadata SetKeybindingSettingsRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SetKeybindingSettingsResponse::_Internal {
+ public:
+};
+
+SetKeybindingSettingsResponse::SetKeybindingSettingsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, SetKeybindingSettingsResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:s4wave.account.SetKeybindingSettingsResponse)
+}
+SetKeybindingSettingsResponse::SetKeybindingSettingsResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SetKeybindingSettingsResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, SetKeybindingSettingsResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SetKeybindingSettingsResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.account.SetKeybindingSettingsResponse)
+}
+
+inline void* PROTOBUF_NONNULL SetKeybindingSettingsResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SetKeybindingSettingsResponse(arena);
+}
+constexpr auto SetKeybindingSettingsResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(SetKeybindingSettingsResponse),
+                                            alignof(SetKeybindingSettingsResponse));
+}
+constexpr auto SetKeybindingSettingsResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SetKeybindingSettingsResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SetKeybindingSettingsResponse::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<SetKeybindingSettingsResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SetKeybindingSettingsResponse::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<SetKeybindingSettingsResponse>(), &SetKeybindingSettingsResponse::ByteSizeLong,
+              &SetKeybindingSettingsResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SetKeybindingSettingsResponse, _impl_._cached_size_),
+          false,
+      },
+      &SetKeybindingSettingsResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SetKeybindingSettingsResponse_class_data_ =
+        SetKeybindingSettingsResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SetKeybindingSettingsResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SetKeybindingSettingsResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SetKeybindingSettingsResponse_class_data_.tc_table);
+  return SetKeybindingSettingsResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+SetKeybindingSettingsResponse::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    SetKeybindingSettingsResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::account::SetKeybindingSettingsResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata SetKeybindingSettingsResponse::GetMetadata() const {
   return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

@@ -1653,6 +1653,7 @@ class AccountSettingsOp final : public ::google::protobuf::Message
     kRemoveSessionPresentation = 7,
     kUpsertKeybindingOverride = 8,
     kRemoveKeybindingOverride = 9,
+    kSetKeybindingSettings = 10,
     OP_NOT_SET = 0,
   };
   static constexpr int kIndexInFileMessages = 3;
@@ -1751,6 +1752,7 @@ class AccountSettingsOp final : public ::google::protobuf::Message
     kRemoveSessionPresentationFieldNumber = 7,
     kUpsertKeybindingOverrideFieldNumber = 8,
     kRemoveKeybindingOverrideFieldNumber = 9,
+    kSetKeybindingSettingsFieldNumber = 10,
   };
   // .account.settings.UpdateDisplayNameOp update_display_name = 1;
   bool has_update_display_name() const;
@@ -1923,6 +1925,25 @@ class AccountSettingsOp final : public ::google::protobuf::Message
   ::account::settings::RemoveKeybindingOverrideOp* PROTOBUF_NONNULL _internal_mutable_remove_keybinding_override();
 
   public:
+  // .s4wave.command.KeybindingOverrideSettings set_keybinding_settings = 10;
+  bool has_set_keybinding_settings() const;
+  private:
+  bool _internal_has_set_keybinding_settings() const;
+
+  public:
+  void clear_set_keybinding_settings() ;
+  const ::s4wave::command::KeybindingOverrideSettings& set_keybinding_settings() const;
+  [[nodiscard]] ::s4wave::command::KeybindingOverrideSettings* PROTOBUF_NULLABLE release_set_keybinding_settings();
+  ::s4wave::command::KeybindingOverrideSettings* PROTOBUF_NONNULL mutable_set_keybinding_settings();
+  void set_allocated_set_keybinding_settings(::s4wave::command::KeybindingOverrideSettings* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_set_keybinding_settings(::s4wave::command::KeybindingOverrideSettings* PROTOBUF_NULLABLE value);
+  ::s4wave::command::KeybindingOverrideSettings* PROTOBUF_NULLABLE unsafe_arena_release_set_keybinding_settings();
+
+  private:
+  const ::s4wave::command::KeybindingOverrideSettings& _internal_set_keybinding_settings() const;
+  ::s4wave::command::KeybindingOverrideSettings* PROTOBUF_NONNULL _internal_mutable_set_keybinding_settings();
+
+  public:
   void clear_op();
   OpCase op_case() const;
   // @@protoc_insertion_point(class_scope:account.settings.AccountSettingsOp)
@@ -1937,11 +1958,12 @@ class AccountSettingsOp final : public ::google::protobuf::Message
   void set_has_remove_session_presentation();
   void set_has_upsert_keybinding_override();
   void set_has_remove_keybinding_override();
+  void set_has_set_keybinding_settings();
   inline bool has_op() const;
   inline void clear_has_op();
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 9,
-                                   9, 0,
+  static const ::google::protobuf::internal::TcParseTable<0, 10,
+                                   10, 0,
                                    2>
       _table_;
 
@@ -1972,6 +1994,7 @@ class AccountSettingsOp final : public ::google::protobuf::Message
       ::google::protobuf::Message* PROTOBUF_NULLABLE remove_session_presentation_;
       ::google::protobuf::Message* PROTOBUF_NULLABLE upsert_keybinding_override_;
       ::google::protobuf::Message* PROTOBUF_NULLABLE remove_keybinding_override_;
+      ::google::protobuf::Message* PROTOBUF_NULLABLE set_keybinding_settings_;
     } op_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::uint32_t _oneof_case_[1];
@@ -3858,6 +3881,77 @@ inline ::account::settings::RemoveKeybindingOverrideOp* PROTOBUF_NONNULL Account
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   ::account::settings::RemoveKeybindingOverrideOp* _msg = _internal_mutable_remove_keybinding_override();
   // @@protoc_insertion_point(field_mutable:account.settings.AccountSettingsOp.remove_keybinding_override)
+  return _msg;
+}
+
+// .s4wave.command.KeybindingOverrideSettings set_keybinding_settings = 10;
+inline bool AccountSettingsOp::has_set_keybinding_settings() const {
+  return op_case() == kSetKeybindingSettings;
+}
+inline bool AccountSettingsOp::_internal_has_set_keybinding_settings() const {
+  return op_case() == kSetKeybindingSettings;
+}
+inline void AccountSettingsOp::set_has_set_keybinding_settings() {
+  _impl_._oneof_case_[0] = kSetKeybindingSettings;
+}
+inline ::s4wave::command::KeybindingOverrideSettings* PROTOBUF_NULLABLE AccountSettingsOp::release_set_keybinding_settings() {
+  // @@protoc_insertion_point(field_release:account.settings.AccountSettingsOp.set_keybinding_settings)
+  if (op_case() == kSetKeybindingSettings) {
+    clear_has_op();
+    auto* temp = reinterpret_cast<::s4wave::command::KeybindingOverrideSettings*>(_impl_.op_.set_keybinding_settings_);
+    if (GetArena() != nullptr) {
+      temp = ::google::protobuf::internal::DuplicateIfNonNull(temp);
+    }
+    _impl_.op_.set_keybinding_settings_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::s4wave::command::KeybindingOverrideSettings& AccountSettingsOp::_internal_set_keybinding_settings() const {
+  return op_case() == kSetKeybindingSettings ? static_cast<const ::s4wave::command::KeybindingOverrideSettings&>(*reinterpret_cast<::s4wave::command::KeybindingOverrideSettings*>(_impl_.op_.set_keybinding_settings_))
+                     : reinterpret_cast<const ::s4wave::command::KeybindingOverrideSettings&>(::s4wave::command::_KeybindingOverrideSettings_default_instance_);
+}
+inline const ::s4wave::command::KeybindingOverrideSettings& AccountSettingsOp::set_keybinding_settings() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:account.settings.AccountSettingsOp.set_keybinding_settings)
+  return _internal_set_keybinding_settings();
+}
+inline ::s4wave::command::KeybindingOverrideSettings* PROTOBUF_NULLABLE AccountSettingsOp::unsafe_arena_release_set_keybinding_settings() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:account.settings.AccountSettingsOp.set_keybinding_settings)
+  if (op_case() == kSetKeybindingSettings) {
+    clear_has_op();
+    auto* temp = reinterpret_cast<::s4wave::command::KeybindingOverrideSettings*>(_impl_.op_.set_keybinding_settings_);
+    _impl_.op_.set_keybinding_settings_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void AccountSettingsOp::unsafe_arena_set_allocated_set_keybinding_settings(
+    ::s4wave::command::KeybindingOverrideSettings* PROTOBUF_NULLABLE value) {
+  // We rely on the oneof clear method to free the earlier contents
+  // of this oneof. We can directly use the pointer we're given to
+  // set the new value.
+  clear_op();
+  if (value) {
+    set_has_set_keybinding_settings();
+    _impl_.op_.set_keybinding_settings_ = reinterpret_cast<::google::protobuf::Message*>(value);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:account.settings.AccountSettingsOp.set_keybinding_settings)
+}
+inline ::s4wave::command::KeybindingOverrideSettings* PROTOBUF_NONNULL AccountSettingsOp::_internal_mutable_set_keybinding_settings() {
+  if (op_case() != kSetKeybindingSettings) {
+    clear_op();
+    set_has_set_keybinding_settings();
+    _impl_.op_.set_keybinding_settings_ = reinterpret_cast<::google::protobuf::Message*>(
+        ::google::protobuf::Message::DefaultConstruct<::s4wave::command::KeybindingOverrideSettings>(GetArena()));
+  }
+  return reinterpret_cast<::s4wave::command::KeybindingOverrideSettings*>(_impl_.op_.set_keybinding_settings_);
+}
+inline ::s4wave::command::KeybindingOverrideSettings* PROTOBUF_NONNULL AccountSettingsOp::mutable_set_keybinding_settings()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::s4wave::command::KeybindingOverrideSettings* _msg = _internal_mutable_set_keybinding_settings();
+  // @@protoc_insertion_point(field_mutable:account.settings.AccountSettingsOp.set_keybinding_settings)
   return _msg;
 }
 

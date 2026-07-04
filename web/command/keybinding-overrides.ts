@@ -97,7 +97,7 @@ export function keybindingOverrideSetToProto(
       ([commandId, override]) =>
         keybindingCommandOverrideToProto(commandId, override),
     ),
-    settings: keybindingSettingsToProto(normalized.settings),
+    settings: keybindingOverrideSettingsToProto(normalized.settings),
   }
 }
 
@@ -316,7 +316,7 @@ function normalizeKeybindingSettings(
   return settings
 }
 
-function keybindingSettingsToProto(
+export function keybindingOverrideSettingsToProto(
   settings: KeybindingOverrideSettings,
 ): NonNullable<ProtoKeybindingOverrideSet['settings']> {
   const mode = settings.display?.mode

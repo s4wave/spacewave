@@ -18,6 +18,7 @@ service AccountResourceService {
   rpc UpsertKeybindingOverride(UpsertKeybindingOverrideRequest) returns (UpsertKeybindingOverrideResponse);
 
   rpc RemoveKeybindingOverride(RemoveKeybindingOverrideRequest) returns (RemoveKeybindingOverrideResponse);
+  rpc SetKeybindingSettings(SetKeybindingSettingsRequest) returns (SetKeybindingSettingsResponse);
 
   rpc AddAuthMethod(AddAuthMethodRequest) returns (AddAuthMethodResponse);
 
@@ -96,6 +97,15 @@ message RemoveKeybindingOverrideRequest {
 
 // RemoveKeybindingOverrideResponse is the response type for RemoveKeybindingOverride.
 message RemoveKeybindingOverrideResponse {}
+
+// SetKeybindingSettingsRequest is the request type for SetKeybindingSettings.
+message SetKeybindingSettingsRequest {
+  // Settings is the layer-wide account keybinding settings to persist.
+  .s4wave.command.KeybindingOverrideSettings settings = 1;
+}
+
+// SetKeybindingSettingsResponse is the response type for SetKeybindingSettings.
+message SetKeybindingSettingsResponse {}
 
 // WatchAuthMethodsRequest is the request type for WatchAuthMethods.
 message WatchAuthMethodsRequest {}

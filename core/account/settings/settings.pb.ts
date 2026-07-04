@@ -10,6 +10,7 @@ import { EntityKeypair } from '../../session/session.pb.js'
 import {
   KeybindingCommandOverride,
   KeybindingOverrideSet,
+  KeybindingOverrideSettings,
 } from '../../../sdk/command/command.pb.js'
 
 export const protobufPackage = 'account.settings'
@@ -397,6 +398,15 @@ export interface AccountSettingsOp {
         value: RemoveKeybindingOverrideOp
         case: 'removeKeybindingOverride'
       }
+    | {
+        /**
+         * SetKeybindingSettings replaces layer-wide keybinding settings.
+         *
+         * @generated from field: s4wave.command.KeybindingOverrideSettings set_keybinding_settings = 10;
+         */
+        value: KeybindingOverrideSettings
+        case: 'setKeybindingSettings'
+      }
 }
 
 export const AccountSettingsOp: MessageType<AccountSettingsOp> =
@@ -464,6 +474,13 @@ export const AccountSettingsOp: MessageType<AccountSettingsOp> =
         name: 'remove_keybinding_override',
         kind: 'message',
         T: () => RemoveKeybindingOverrideOp,
+        oneof: 'op',
+      },
+      {
+        no: 10,
+        name: 'set_keybinding_settings',
+        kind: 'message',
+        T: () => KeybindingOverrideSettings,
         oneof: 'op',
       },
     ] satisfies readonly PartialFieldInfo[],

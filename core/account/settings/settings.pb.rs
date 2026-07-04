@@ -61,7 +61,7 @@ pub struct SessionPresentation {
 /// Stored as SOOperationInner.OpData.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AccountSettingsOp {
-    #[prost(oneof="account_settings_op::Op", tags="1, 2, 3, 4, 5, 6, 7, 8, 9")]
+    #[prost(oneof="account_settings_op::Op", tags="1, 2, 3, 4, 5, 6, 7, 8, 9, 10")]
     pub op: ::core::option::Option<account_settings_op::Op>,
 }
 /// Nested message and enum types in `AccountSettingsOp`.
@@ -95,6 +95,9 @@ pub mod account_settings_op {
         /// RemoveKeybindingOverride removes one keybinding override by command_id.
         #[prost(message, tag="9")]
         RemoveKeybindingOverride(super::RemoveKeybindingOverrideOp),
+        /// SetKeybindingSettings replaces layer-wide keybinding settings.
+        #[prost(message, tag="10")]
+        SetKeybindingSettings(super::super::super::s4wave::command::KeybindingOverrideSettings),
     }
 }
 /// UpdateDisplayNameOp changes the local provider account display name.

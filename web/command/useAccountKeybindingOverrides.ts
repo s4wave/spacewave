@@ -12,11 +12,13 @@ import {
   clearCommandBindingsOverride,
   createKeybindingOverrideLayer,
   keybindingCommandOverrideToProto,
+  keybindingOverrideSettingsToProto,
   keybindingOverrideSetFromProto,
   normalizeKeybindingOverrideSet,
   removeLocalCommandBindingOverride,
   resetKeybindingCommandOverride,
   setCommandBindingsOverride,
+  setKeybindingOverrideSettings,
   setKeybindingCommandOverride,
   type KeybindingCommandOverride,
   type KeybindingOverrideLayer,
@@ -90,10 +92,17 @@ export function useAccountKeybindingOverrides(): AccountKeybindingOverridesValue
     [accountResource.value, overrideSet, readOnly],
   )
 
-  const setSettings = useCallback((_settings: KeybindingOverrideSettings) => {
-    // Account-scope command overrides are writable today; account-wide
-    // settings need the account settings RPC added before this can persist.
-  }, [])
+  const setSettings = useCallback(
+    (settings: KeybindingOverrideSettings) => {
+      const account = accountResource.value
+      if (!account || readOnly) return
+      const next = setKeybindingOverrideSettings(overrideSet, settings)
+      void account.setKeybindingSettings({
+        settings: keybindingOverrideSettingsToProto(next.settings),
+      })
+    },
+    [accountResource.value, overrideSet, readOnly],
+  )
 
   const setCommandBindings = useCallback(
     (commandId: string, bindings: CommandBinding[]) => {
@@ -157,6 +166,9 @@ export function useAccountKeybindingOverrides(): AccountKeybindingOverridesValue
     for (const commandId of Object.keys(overrideSet.overrides)) {
       void account.removeKeybindingOverride({ commandId })
     }
+    void account.setKeybindingSettings({
+      settings: keybindingOverrideSettingsToProto({}),
+    })
   }, [accountResource.value, overrideSet.overrides, readOnly])
 
   return {

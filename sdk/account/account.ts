@@ -26,6 +26,8 @@ import {
   RemoveKeybindingOverrideResponse,
   RevokeSessionRequest,
   RevokeSessionResponse,
+  SetKeybindingSettingsRequest,
+  SetKeybindingSettingsResponse,
   SetSecurityLevelRequest,
   SetSecurityLevelResponse,
   UnlockEntityKeypairResponse,
@@ -100,6 +102,14 @@ export class Account extends Resource {
     abortSignal?: AbortSignal,
   ): Promise<RemoveKeybindingOverrideResponse> {
     return this.service.RemoveKeybindingOverride(req, abortSignal)
+  }
+
+  // setKeybindingSettings replaces account-scope keybinding settings.
+  public setKeybindingSettings(
+    req: SetKeybindingSettingsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetKeybindingSettingsResponse> {
+    return this.service.SetKeybindingSettings(req, abortSignal)
   }
 
   // addAuthMethod adds a new entity keypair (auth method) to the account.

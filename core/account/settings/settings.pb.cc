@@ -351,6 +351,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::account::settings::AccountSettingsOp, _impl_.op_),
         PROTOBUF_FIELD_OFFSET(::account::settings::AccountSettingsOp, _impl_.op_),
         PROTOBUF_FIELD_OFFSET(::account::settings::AccountSettingsOp, _impl_.op_),
+        PROTOBUF_FIELD_OFFSET(::account::settings::AccountSettingsOp, _impl_.op_),
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::account::settings::UpdateDisplayNameOp, _impl_._has_bits_),
         4, // hasbit index offset
@@ -384,11 +385,11 @@ static const ::_pbi::MigrationSchema
         {13, sizeof(::account::settings::PairedDevice)},
         {22, sizeof(::account::settings::SessionPresentation)},
         {37, sizeof(::account::settings::AccountSettingsOp)},
-        {49, sizeof(::account::settings::UpdateDisplayNameOp)},
-        {54, sizeof(::account::settings::RemoveEntityKeypairOp)},
-        {59, sizeof(::account::settings::RemovePairedDeviceOp)},
-        {64, sizeof(::account::settings::RemoveSessionPresentationOp)},
-        {69, sizeof(::account::settings::RemoveKeybindingOverrideOp)},
+        {50, sizeof(::account::settings::UpdateDisplayNameOp)},
+        {55, sizeof(::account::settings::RemoveEntityKeypairOp)},
+        {60, sizeof(::account::settings::RemovePairedDeviceOp)},
+        {65, sizeof(::account::settings::RemoveSessionPresentationOp)},
+        {70, sizeof(::account::settings::RemoveKeybindingOverrideOp)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::account::settings::_AccountSettings_default_instance_._instance,
@@ -420,7 +421,7 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2f
     "essionPresentation\022\017\n\007peer_id\030\001 \001(\t\022\r\n\005l"
     "abel\030\002 \001(\t\022\023\n\013device_type\030\003 \001(\t\022\023\n\013clien"
     "t_name\030\004 \001(\t\022\n\n\002os\030\005 \001(\t\022\020\n\010location\030\006 \001"
-    "(\t\"\255\005\n\021AccountSettingsOp\022D\n\023update_displ"
+    "(\t\"\374\005\n\021AccountSettingsOp\022D\n\023update_displ"
     "ay_name\030\001 \001(\0132%.account.settings.UpdateD"
     "isplayNameOpH\000\022;\n\021add_paired_device\030\002 \001("
     "\0132\036.account.settings.PairedDeviceH\000\022F\n\024r"
@@ -437,13 +438,15 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2f
     "wave.command.KeybindingCommandOverrideH\000"
     "\022R\n\032remove_keybinding_override\030\t \001(\0132,.a"
     "ccount.settings.RemoveKeybindingOverride"
-    "OpH\000B\004\n\002op\"+\n\023UpdateDisplayNameOp\022\024\n\014dis"
-    "play_name\030\001 \001(\t\"(\n\025RemoveEntityKeypairOp"
-    "\022\017\n\007peer_id\030\001 \001(\t\"\'\n\024RemovePairedDeviceO"
-    "p\022\017\n\007peer_id\030\001 \001(\t\".\n\033RemoveSessionPrese"
-    "ntationOp\022\017\n\007peer_id\030\001 \001(\t\"0\n\032RemoveKeyb"
-    "indingOverrideOp\022\022\n\ncommand_id\030\001 \001(\tb\006pr"
-    "oto3"
+    "OpH\000\022M\n\027set_keybinding_settings\030\n \001(\0132*."
+    "s4wave.command.KeybindingOverrideSetting"
+    "sH\000B\004\n\002op\"+\n\023UpdateDisplayNameOp\022\024\n\014disp"
+    "lay_name\030\001 \001(\t\"(\n\025RemoveEntityKeypairOp\022"
+    "\017\n\007peer_id\030\001 \001(\t\"\'\n\024RemovePairedDeviceOp"
+    "\022\017\n\007peer_id\030\001 \001(\t\".\n\033RemoveSessionPresen"
+    "tationOp\022\017\n\007peer_id\030\001 \001(\t\"0\n\032RemoveKeybi"
+    "ndingOverrideOp\022\022\n\ncommand_id\030\001 \001(\tb\006pro"
+    "to3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2faccount_2fsettings_2fsettings_2eproto_deps[2] = {
@@ -454,7 +457,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fco
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2faccount_2fsettings_2fsettings_2eproto = {
     false,
     false,
-    1604,
+    1683,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2faccount_2fsettings_2fsettings_2eproto,
     "github.com/s4wave/spacewave/core/account/settings/settings.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2faccount_2fsettings_2fsettings_2eproto_once,
@@ -1919,6 +1922,30 @@ void AccountSettingsOp::set_allocated_remove_keybinding_override(::account::sett
   }
   // @@protoc_insertion_point(field_set_allocated:account.settings.AccountSettingsOp.remove_keybinding_override)
 }
+void AccountSettingsOp::set_allocated_set_keybinding_settings(::s4wave::command::KeybindingOverrideSettings* PROTOBUF_NULLABLE set_keybinding_settings) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  clear_op();
+  if (set_keybinding_settings) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(set_keybinding_settings)->GetArena();
+    if (message_arena != submessage_arena) {
+      set_keybinding_settings = ::google::protobuf::internal::GetOwnedMessage(message_arena, set_keybinding_settings, submessage_arena);
+    }
+    set_has_set_keybinding_settings();
+    _impl_.op_.set_keybinding_settings_ = set_keybinding_settings;
+  }
+  // @@protoc_insertion_point(field_set_allocated:account.settings.AccountSettingsOp.set_keybinding_settings)
+}
+void AccountSettingsOp::clear_set_keybinding_settings() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (op_case() == kSetKeybindingSettings) {
+    if (GetArena() == nullptr) {
+      delete _impl_.op_.set_keybinding_settings_;
+    } else if (::google::protobuf::internal::DebugHardenClearOneofMessageOnArena()) {
+      ::google::protobuf::internal::MaybePoisonAfterClear(_impl_.op_.set_keybinding_settings_);
+    }
+    clear_has_op();
+  }
+}
 AccountSettingsOp::AccountSettingsOp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::Message(arena, AccountSettingsOp_class_data_.base()) {
@@ -1978,6 +2005,9 @@ AccountSettingsOp::AccountSettingsOp(
         break;
       case kRemoveKeybindingOverride:
         _impl_.op_.remove_keybinding_override_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.op_.remove_keybinding_override_);
+        break;
+      case kSetKeybindingSettings:
+        _impl_.op_.set_keybinding_settings_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.op_.set_keybinding_settings_);
         break;
   }
 
@@ -2086,6 +2116,14 @@ void AccountSettingsOp::clear_op() {
       }
       break;
     }
+    case kSetKeybindingSettings: {
+      if (GetArena() == nullptr) {
+        delete _impl_.op_.set_keybinding_settings_;
+      } else if (::google::protobuf::internal::DebugHardenClearOneofMessageOnArena()) {
+        ::google::protobuf::internal::MaybePoisonAfterClear(_impl_.op_.set_keybinding_settings_);
+      }
+      break;
+    }
     case OP_NOT_SET: {
       break;
     }
@@ -2137,17 +2175,17 @@ AccountSettingsOp::GetClassData() const {
   return AccountSettingsOp_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 9, 9, 0, 2>
+const ::_pbi::TcParseTable<0, 10, 10, 0, 2>
 AccountSettingsOp::_table_ = {
   {
     0,  // no _has_bits_
     0, // no _extensions_
-    9, 0,  // max_field_number, fast_idx_mask
+    10, 0,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294966784,  // skipmap
+    4294966272,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    9,  // num_field_entries
-    9,  // num_aux_entries
+    10,  // num_field_entries
+    10,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     AccountSettingsOp_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -2178,6 +2216,8 @@ AccountSettingsOp::_table_ = {
     {PROTOBUF_FIELD_OFFSET(AccountSettingsOp, _impl_.op_.upsert_keybinding_override_), _Internal::kOneofCaseOffset + 0, 7, (0 | ::_fl::kFcOneof | ::_fl::kMessage | ::_fl::kTvTable)},
     // .account.settings.RemoveKeybindingOverrideOp remove_keybinding_override = 9;
     {PROTOBUF_FIELD_OFFSET(AccountSettingsOp, _impl_.op_.remove_keybinding_override_), _Internal::kOneofCaseOffset + 0, 8, (0 | ::_fl::kFcOneof | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .s4wave.command.KeybindingOverrideSettings set_keybinding_settings = 10;
+    {PROTOBUF_FIELD_OFFSET(AccountSettingsOp, _impl_.op_.set_keybinding_settings_), _Internal::kOneofCaseOffset + 0, 9, (0 | ::_fl::kFcOneof | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::account::settings::UpdateDisplayNameOp>()},
@@ -2189,6 +2229,7 @@ AccountSettingsOp::_table_ = {
       {::_pbi::TcParser::GetTable<::account::settings::RemoveSessionPresentationOp>()},
       {::_pbi::TcParser::GetTable<::s4wave::command::KeybindingCommandOverride>()},
       {::_pbi::TcParser::GetTable<::account::settings::RemoveKeybindingOverrideOp>()},
+      {::_pbi::TcParser::GetTable<::s4wave::command::KeybindingOverrideSettings>()},
   }},
   {{
   }},
@@ -2277,6 +2318,12 @@ PROTOBUF_NOINLINE void AccountSettingsOp::Clear() {
           stream);
       break;
     }
+    case kSetKeybindingSettings: {
+      target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+          10, *this_._impl_.op_.set_keybinding_settings_, this_._impl_.op_.set_keybinding_settings_->GetCachedSize(), target,
+          stream);
+      break;
+    }
     default:
       break;
   }
@@ -2356,6 +2403,12 @@ PROTOBUF_NOINLINE void AccountSettingsOp::Clear() {
     case kRemoveKeybindingOverride: {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.op_.remove_keybinding_override_);
+      break;
+    }
+    // .s4wave.command.KeybindingOverrideSettings set_keybinding_settings = 10;
+    case kSetKeybindingSettings: {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.op_.set_keybinding_settings_);
       break;
     }
     case OP_NOT_SET: {
@@ -2461,6 +2514,14 @@ void AccountSettingsOp::MergeImpl(::google::protobuf::MessageLite& to_msg,
           _this->_impl_.op_.remove_keybinding_override_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.op_.remove_keybinding_override_);
         } else {
           _this->_impl_.op_.remove_keybinding_override_->MergeFrom(*from._impl_.op_.remove_keybinding_override_);
+        }
+        break;
+      }
+      case kSetKeybindingSettings: {
+        if (oneof_needs_init) {
+          _this->_impl_.op_.set_keybinding_settings_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.op_.set_keybinding_settings_);
+        } else {
+          _this->_impl_.op_.set_keybinding_settings_->MergeFrom(*from._impl_.op_.set_keybinding_settings_);
         }
         break;
       }

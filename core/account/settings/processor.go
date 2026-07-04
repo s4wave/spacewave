@@ -194,6 +194,16 @@ func ProcessAccountSettingsOps(
 			}
 			results = append(results, sobject.BuildSOOperationResult(peerIDStr, opInner.GetNonce(), true, nil))
 
+		case *AccountSettingsOp_SetKeybindingSettings:
+			if state.KeybindingOverrides == nil {
+				state.KeybindingOverrides = &s4wave_command.KeybindingOverrideSet{Version: 1}
+			}
+			state.KeybindingOverrides.Settings = body.SetKeybindingSettings.CloneVT()
+			if state.KeybindingOverrides.GetVersion() == 0 {
+				state.KeybindingOverrides.Version = 1
+			}
+			results = append(results, sobject.BuildSOOperationResult(peerIDStr, opInner.GetNonce(), true, nil))
+
 		default:
 			results = append(results, sobject.BuildSOOperationResult(
 				peerIDStr, opInner.GetNonce(), false,

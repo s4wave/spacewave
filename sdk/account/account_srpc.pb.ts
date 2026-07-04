@@ -25,6 +25,8 @@ import {
   RemoveKeybindingOverrideResponse,
   RevokeSessionRequest,
   RevokeSessionResponse,
+  SetKeybindingSettingsRequest,
+  SetKeybindingSettingsResponse,
   SetSecurityLevelRequest,
   SetSecurityLevelResponse,
   SSOCodeExchangeRequest,
@@ -109,6 +111,15 @@ export const AccountResourceServiceDefinition = {
       name: 'RemoveKeybindingOverride',
       I: RemoveKeybindingOverrideRequest,
       O: RemoveKeybindingOverrideResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.account.AccountResourceService.SetKeybindingSettings
+     */
+    SetKeybindingSettings: {
+      name: 'SetKeybindingSettings',
+      I: SetKeybindingSettingsRequest,
+      O: SetKeybindingSettingsResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -311,6 +322,14 @@ export interface AccountResourceService {
   ): Promise<RemoveKeybindingOverrideResponse>
 
   /**
+   * @generated from rpc s4wave.account.AccountResourceService.SetKeybindingSettings
+   */
+  SetKeybindingSettings(
+    request: SetKeybindingSettingsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetKeybindingSettingsResponse>
+
+  /**
    * @generated from rpc s4wave.account.AccountResourceService.AddAuthMethod
    */
   AddAuthMethod(
@@ -454,6 +473,7 @@ export class AccountResourceServiceClient implements AccountResourceService {
     this.WatchKeybindingOverrides = this.WatchKeybindingOverrides.bind(this)
     this.UpsertKeybindingOverride = this.UpsertKeybindingOverride.bind(this)
     this.RemoveKeybindingOverride = this.RemoveKeybindingOverride.bind(this)
+    this.SetKeybindingSettings = this.SetKeybindingSettings.bind(this)
     this.AddAuthMethod = this.AddAuthMethod.bind(this)
     this.RemoveAuthMethod = this.RemoveAuthMethod.bind(this)
     this.SetSecurityLevel = this.SetSecurityLevel.bind(this)
@@ -573,6 +593,23 @@ export class AccountResourceServiceClient implements AccountResourceService {
       abortSignal || undefined,
     )
     return RemoveKeybindingOverrideResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.SetKeybindingSettings
+   */
+  async SetKeybindingSettings(
+    request: SetKeybindingSettingsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetKeybindingSettingsResponse> {
+    const requestMsg = SetKeybindingSettingsRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      AccountResourceServiceDefinition.methods.SetKeybindingSettings.name,
+      SetKeybindingSettingsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SetKeybindingSettingsResponse.fromBinary(result)
   }
 
   /**

@@ -26,6 +26,8 @@ type SRPCAccountResourceServiceClient interface {
 
 	RemoveKeybindingOverride(ctx context.Context, in *RemoveKeybindingOverrideRequest) (*RemoveKeybindingOverrideResponse, error)
 
+	SetKeybindingSettings(ctx context.Context, in *SetKeybindingSettingsRequest) (*SetKeybindingSettingsResponse, error)
+
 	AddAuthMethod(ctx context.Context, in *AddAuthMethodRequest) (*AddAuthMethodResponse, error)
 
 	RemoveAuthMethod(ctx context.Context, in *RemoveAuthMethodRequest) (*RemoveAuthMethodResponse, error)
@@ -231,6 +233,15 @@ func (c *srpcAccountResourceServiceClient) RemoveKeybindingOverride(ctx context.
 	return out, nil
 }
 
+func (c *srpcAccountResourceServiceClient) SetKeybindingSettings(ctx context.Context, in *SetKeybindingSettingsRequest) (*SetKeybindingSettingsResponse, error) {
+	out := new(SetKeybindingSettingsResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "SetKeybindingSettings", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcAccountResourceServiceClient) AddAuthMethod(ctx context.Context, in *AddAuthMethodRequest) (*AddAuthMethodResponse, error) {
 	out := new(AddAuthMethodResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "AddAuthMethod", in, out)
@@ -413,6 +424,8 @@ type SRPCAccountResourceServiceServer interface {
 
 	RemoveKeybindingOverride(context.Context, *RemoveKeybindingOverrideRequest) (*RemoveKeybindingOverrideResponse, error)
 
+	SetKeybindingSettings(context.Context, *SetKeybindingSettingsRequest) (*SetKeybindingSettingsResponse, error)
+
 	AddAuthMethod(context.Context, *AddAuthMethodRequest) (*AddAuthMethodResponse, error)
 
 	RemoveAuthMethod(context.Context, *RemoveAuthMethodRequest) (*RemoveAuthMethodResponse, error)
@@ -478,6 +491,7 @@ func (SRPCAccountResourceServiceHandler) GetMethodIDs() []string {
 		"WatchKeybindingOverrides",
 		"UpsertKeybindingOverride",
 		"RemoveKeybindingOverride",
+		"SetKeybindingSettings",
 		"AddAuthMethod",
 		"RemoveAuthMethod",
 		"SetSecurityLevel",
@@ -518,6 +532,8 @@ func (d *SRPCAccountResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_UpsertKeybindingOverride(d.impl, strm)
 	case "RemoveKeybindingOverride":
 		return true, d.InvokeMethod_RemoveKeybindingOverride(d.impl, strm)
+	case "SetKeybindingSettings":
+		return true, d.InvokeMethod_SetKeybindingSettings(d.impl, strm)
 	case "AddAuthMethod":
 		return true, d.InvokeMethod_AddAuthMethod(d.impl, strm)
 	case "RemoveAuthMethod":
@@ -609,6 +625,18 @@ func (SRPCAccountResourceServiceHandler) InvokeMethod_RemoveKeybindingOverride(i
 		return err
 	}
 	out, err := impl.RemoveKeybindingOverride(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCAccountResourceServiceHandler) InvokeMethod_SetKeybindingSettings(impl SRPCAccountResourceServiceServer, strm srpc.Stream) error {
+	req := new(SetKeybindingSettingsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.SetKeybindingSettings(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -909,6 +937,14 @@ type SRPCAccountResourceService_RemoveKeybindingOverrideStream interface {
 }
 
 type srpcAccountResourceService_RemoveKeybindingOverrideStream struct {
+	srpc.Stream
+}
+
+type SRPCAccountResourceService_SetKeybindingSettingsStream interface {
+	srpc.Stream
+}
+
+type srpcAccountResourceService_SetKeybindingSettingsStream struct {
 	srpc.Stream
 }
 

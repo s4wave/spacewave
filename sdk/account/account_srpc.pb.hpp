@@ -51,6 +51,8 @@ class SRPCAccountResourceServiceClient {
   virtual starpc::Error UpsertKeybindingOverride(const s4wave::account::UpsertKeybindingOverrideRequest& in, s4wave::account::UpsertKeybindingOverrideResponse* out) = 0;
   // RemoveKeybindingOverride
   virtual starpc::Error RemoveKeybindingOverride(const s4wave::account::RemoveKeybindingOverrideRequest& in, s4wave::account::RemoveKeybindingOverrideResponse* out) = 0;
+  // SetKeybindingSettings
+  virtual starpc::Error SetKeybindingSettings(const s4wave::account::SetKeybindingSettingsRequest& in, s4wave::account::SetKeybindingSettingsResponse* out) = 0;
   // AddAuthMethod
   virtual starpc::Error AddAuthMethod(const s4wave::account::AddAuthMethodRequest& in, s4wave::account::AddAuthMethodResponse* out) = 0;
   // RemoveAuthMethod
@@ -105,6 +107,8 @@ class SRPCAccountResourceServiceClientImpl : public SRPCAccountResourceServiceCl
   virtual starpc::Error UpsertKeybindingOverride(const s4wave::account::UpsertKeybindingOverrideRequest& in, s4wave::account::UpsertKeybindingOverrideResponse* out) override;
   // RemoveKeybindingOverride
   virtual starpc::Error RemoveKeybindingOverride(const s4wave::account::RemoveKeybindingOverrideRequest& in, s4wave::account::RemoveKeybindingOverrideResponse* out) override;
+  // SetKeybindingSettings
+  virtual starpc::Error SetKeybindingSettings(const s4wave::account::SetKeybindingSettingsRequest& in, s4wave::account::SetKeybindingSettingsResponse* out) override;
   // AddAuthMethod
   virtual starpc::Error AddAuthMethod(const s4wave::account::AddAuthMethodRequest& in, s4wave::account::AddAuthMethodResponse* out) override;
   // RemoveAuthMethod
@@ -165,6 +169,8 @@ class SRPCAccountResourceServiceServer {
   virtual starpc::Error UpsertKeybindingOverride(const s4wave::account::UpsertKeybindingOverrideRequest& req, s4wave::account::UpsertKeybindingOverrideResponse* resp) = 0;
   // RemoveKeybindingOverride
   virtual starpc::Error RemoveKeybindingOverride(const s4wave::account::RemoveKeybindingOverrideRequest& req, s4wave::account::RemoveKeybindingOverrideResponse* resp) = 0;
+  // SetKeybindingSettings
+  virtual starpc::Error SetKeybindingSettings(const s4wave::account::SetKeybindingSettingsRequest& req, s4wave::account::SetKeybindingSettingsResponse* resp) = 0;
   // AddAuthMethod
   virtual starpc::Error AddAuthMethod(const s4wave::account::AddAuthMethodRequest& req, s4wave::account::AddAuthMethodResponse* resp) = 0;
   // RemoveAuthMethod

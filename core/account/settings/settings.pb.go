@@ -194,6 +194,7 @@ type AccountSettingsOp struct {
 	//	*AccountSettingsOp_RemoveSessionPresentation
 	//	*AccountSettingsOp_UpsertKeybindingOverride
 	//	*AccountSettingsOp_RemoveKeybindingOverride
+	//	*AccountSettingsOp_SetKeybindingSettings
 	Op isAccountSettingsOp_Op `protobuf_oneof:"op"`
 }
 
@@ -273,6 +274,13 @@ func (x *AccountSettingsOp) GetRemoveKeybindingOverride() *RemoveKeybindingOverr
 	return nil
 }
 
+func (x *AccountSettingsOp) GetSetKeybindingSettings() *command.KeybindingOverrideSettings {
+	if x, ok := x.GetOp().(*AccountSettingsOp_SetKeybindingSettings); ok {
+		return x.SetKeybindingSettings
+	}
+	return nil
+}
+
 type isAccountSettingsOp_Op interface {
 	isAccountSettingsOp_Op()
 }
@@ -322,6 +330,11 @@ type AccountSettingsOp_RemoveKeybindingOverride struct {
 	RemoveKeybindingOverride *RemoveKeybindingOverrideOp `protobuf:"bytes,9,opt,name=remove_keybinding_override,json=removeKeybindingOverride,proto3,oneof"`
 }
 
+type AccountSettingsOp_SetKeybindingSettings struct {
+	// SetKeybindingSettings replaces layer-wide keybinding settings.
+	SetKeybindingSettings *command.KeybindingOverrideSettings `protobuf:"bytes,10,opt,name=set_keybinding_settings,json=setKeybindingSettings,proto3,oneof"`
+}
+
 func (*AccountSettingsOp_UpdateDisplayName) isAccountSettingsOp_Op() {}
 
 func (*AccountSettingsOp_AddPairedDevice) isAccountSettingsOp_Op() {}
@@ -339,6 +352,8 @@ func (*AccountSettingsOp_RemoveSessionPresentation) isAccountSettingsOp_Op() {}
 func (*AccountSettingsOp_UpsertKeybindingOverride) isAccountSettingsOp_Op() {}
 
 func (*AccountSettingsOp_RemoveKeybindingOverride) isAccountSettingsOp_Op() {}
+
+func (*AccountSettingsOp_SetKeybindingSettings) isAccountSettingsOp_Op() {}
 
 // UpdateDisplayNameOp changes the local provider account display name.
 type UpdateDisplayNameOp struct {
@@ -446,7 +461,6 @@ func (m *AccountSettings) CloneVT() *AccountSettings {
 	}
 	r := new(AccountSettings)
 	r.DisplayName = m.DisplayName
-	r.KeybindingOverrides = m.KeybindingOverrides.CloneVT()
 	if rhs := m.PairedDevices; rhs != nil {
 		r.PairedDevices = make([]*PairedDevice, len(rhs))
 		for k, v := range rhs {
@@ -464,6 +478,9 @@ func (m *AccountSettings) CloneVT() *AccountSettings {
 		for k, v := range rhs {
 			r.SessionPresentations[k] = v.CloneVT()
 		}
+	}
+	if rhs := m.KeybindingOverrides; rhs != nil {
+		r.KeybindingOverrides = rhs.CloneVT()
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -646,6 +663,19 @@ func (m *AccountSettingsOp_RemoveKeybindingOverride) CloneVT() *AccountSettingsO
 }
 
 func (m *AccountSettingsOp_RemoveKeybindingOverride) CloneOneofVT() isAccountSettingsOp_Op {
+	return m.CloneVT()
+}
+
+func (m *AccountSettingsOp_SetKeybindingSettings) CloneVT() *AccountSettingsOp_SetKeybindingSettings {
+	if m == nil {
+		return (*AccountSettingsOp_SetKeybindingSettings)(nil)
+	}
+	r := new(AccountSettingsOp_SetKeybindingSettings)
+	r.SetKeybindingSettings = m.SetKeybindingSettings.CloneVT()
+	return r
+}
+
+func (m *AccountSettingsOp_SetKeybindingSettings) CloneOneofVT() isAccountSettingsOp_Op {
 	return m.CloneVT()
 }
 
@@ -1118,6 +1148,31 @@ func (this *AccountSettingsOp_RemoveKeybindingOverride) EqualVT(thatIface isAcco
 	return true
 }
 
+func (this *AccountSettingsOp_SetKeybindingSettings) EqualVT(thatIface isAccountSettingsOp_Op) bool {
+	that, ok := thatIface.(*AccountSettingsOp_SetKeybindingSettings)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if p, q := this.SetKeybindingSettings, that.SetKeybindingSettings; p != q {
+		if p == nil {
+			p = &command.KeybindingOverrideSettings{}
+		}
+		if q == nil {
+			q = &command.KeybindingOverrideSettings{}
+		}
+		if !p.EqualVT(q) {
+			return false
+		}
+	}
+	return true
+}
+
 func (this *UpdateDisplayNameOp) EqualVT(that *UpdateDisplayNameOp) bool {
 	if this == that {
 		return true
@@ -1545,6 +1600,10 @@ func (x *AccountSettingsOp) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteMoreIf(&wroteField)
 			s.WriteObjectField("removeKeybindingOverride")
 			ov.RemoveKeybindingOverride.MarshalProtoJSON(s.WithField("removeKeybindingOverride"))
+		case *AccountSettingsOp_SetKeybindingSettings:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("setKeybindingSettings")
+			ov.SetKeybindingSettings.MarshalProtoJSON(s.WithField("setKeybindingSettings"))
 		}
 	}
 	s.WriteObjectEnd()
@@ -1645,6 +1704,15 @@ func (x *AccountSettingsOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			ov.RemoveKeybindingOverride = &RemoveKeybindingOverrideOp{}
 			ov.RemoveKeybindingOverride.UnmarshalProtoJSON(s.WithField("remove_keybinding_override", true))
+		case "set_keybinding_settings", "setKeybindingSettings":
+			ov := &AccountSettingsOp_SetKeybindingSettings{}
+			x.Op = ov
+			if s.ReadNil() {
+				ov.SetKeybindingSettings = nil
+				return
+			}
+			ov.SetKeybindingSettings = &command.KeybindingOverrideSettings{}
+			ov.SetKeybindingSettings.UnmarshalProtoJSON(s.WithField("set_keybinding_settings", true))
 		}
 	})
 }
@@ -2335,6 +2403,30 @@ func (m *AccountSettingsOp_RemoveKeybindingOverride) MarshalToSizedBufferVT(dAtA
 	return len(dAtA) - i, nil
 }
 
+func (m *AccountSettingsOp_SetKeybindingSettings) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AccountSettingsOp_SetKeybindingSettings) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.SetKeybindingSettings != nil {
+		size, err := m.SetKeybindingSettings.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x52
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x52
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *UpdateDisplayNameOp) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2774,6 +2866,21 @@ func (m *AccountSettingsOp_RemoveKeybindingOverride) SizeVT() (n int) {
 	return n
 }
 
+func (m *AccountSettingsOp_SetKeybindingSettings) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.SetKeybindingSettings != nil {
+		l = m.SetKeybindingSettings.SizeVT()
+		n += 1 + l + protobuf_go_lite.SizeOfVarint(uint64(l))
+	} else {
+		n += 2
+	}
+	return n
+}
+
 func (m *UpdateDisplayNameOp) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -3098,6 +3205,16 @@ func (x *AccountSettingsOp) MarshalProtoText() string {
 			sb.WriteString((&RemoveKeybindingOverrideOp{}).MarshalProtoText())
 		} else {
 			sb.WriteString(body.RemoveKeybindingOverride.MarshalProtoText())
+		}
+	case *AccountSettingsOp_SetKeybindingSettings:
+		if sb.Len() > 19 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("set_keybinding_settings: ")
+		if body.SetKeybindingSettings == nil {
+			sb.WriteString((&command.KeybindingOverrideSettings{}).MarshalProtoText())
+		} else {
+			sb.WriteString(body.SetKeybindingSettings.MarshalProtoText())
 		}
 	}
 	sb.WriteString("}")
@@ -3955,6 +4072,39 @@ func (m *AccountSettingsOp) UnmarshalVT(dAtA []byte) error {
 					return err
 				}
 				m.Op = &AccountSettingsOp_RemoveKeybindingOverride{RemoveKeybindingOverride: v}
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SetKeybindingSettings", wireType)
+			}
+			var msglen int
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			msglen = int(_v)
+			if err != nil {
+				return err
+			}
+			if msglen < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.Op.(*AccountSettingsOp_SetKeybindingSettings); ok {
+				if err := oneof.SetKeybindingSettings.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &command.KeybindingOverrideSettings{}
+				if err := v.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.Op = &AccountSettingsOp_SetKeybindingSettings{SetKeybindingSettings: v}
 			}
 			iNdEx = postIndex
 		default:
