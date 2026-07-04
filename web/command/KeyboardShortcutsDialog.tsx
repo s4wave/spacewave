@@ -9,49 +9,57 @@ import {
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 
 import { useCommands } from './CommandContext.js'
-import { formatKeybinding } from './CommandPalette.js'
+import { formatKeybindingHint } from './CommandPalette.js'
+import {
+  getCommandDisplayBindings,
+  resolveKeybindings,
+  type KeybindingGraph,
+} from './KeybindingResolver.js'
+
+interface ShortcutCommand {
+  state: CommandState
+  displayBindings: string[]
+}
 
 // GroupedShortcuts groups commands with keybindings by menu path.
 interface GroupedShortcuts {
   group: string
-  commands: CommandState[]
+  commands: ShortcutCommand[]
 }
 
 // groupByMenuPath groups commands that have keybindings by their
 // first menu path segment.
 function groupByMenuPath(
   commands: CommandState[],
+  bindingGraph: KeybindingGraph,
   query: string,
 ): GroupedShortcuts[] {
   const q = query.toLowerCase()
-  const groups = new Map<string, CommandState[]>()
+  const groups = new Map<string, ShortcutCommand[]>()
   const groupOrder = ['File', 'Edit', 'View', 'Tools', 'Help']
   const seen = new Set<string>()
 
   for (const cmd of commands) {
     const commandId = cmd.command?.commandId
-    if (
-      !cmd.active ||
-      !cmd.command?.keybinding ||
-      !commandId ||
-      seen.has(commandId)
-    ) {
+    if (!cmd.active || !commandId || seen.has(commandId)) {
       continue
     }
+    const displayBindings = getCommandDisplayBindings(bindingGraph, commandId)
+    if (!displayBindings.length) continue
     if (q) {
-      const label = (cmd.command.label ?? '').toLowerCase()
-      const binding = cmd.command.keybinding.toLowerCase()
-      if (!containsText(label, q) && !containsText(binding, q)) continue
+      const label = (cmd.command?.label ?? '').toLowerCase()
+      const bindings = displayBindings.join(' ').toLowerCase()
+      if (!containsText(label, q) && !containsText(bindings, q)) continue
     }
     seen.add(commandId)
-    const menuPath = cmd.command.menuPath
+    const menuPath = cmd.command?.menuPath
     const group = menuPath ? (menuPath.split('/')[0] ?? 'Other') : 'Other'
     let list = groups.get(group)
     if (!list) {
       list = []
       groups.set(group, list)
     }
-    list.push(cmd)
+    list.push({ state: cmd, displayBindings })
   }
 
   const result: GroupedShortcuts[] = []
@@ -84,6 +92,7 @@ export function KeyboardShortcutsDialog({
 }: KeyboardShortcutsDialogProps) {
   const commands = useCommands()
   const [query, setQuery] = useState('')
+  const bindingGraph = useMemo(() => resolveKeybindings(commands), [commands])
   const handleFilterRef = useCallback(
     (node: HTMLInputElement | null) => {
       if (open) node?.focus()
@@ -92,8 +101,8 @@ export function KeyboardShortcutsDialog({
   )
 
   const grouped = useMemo(
-    () => groupByMenuPath(commands, query),
-    [commands, query],
+    () => groupByMenuPath(commands, bindingGraph, query),
+    [commands, bindingGraph, query],
   )
 
   const handleOpenChange = useCallback(
@@ -128,16 +137,16 @@ export function KeyboardShortcutsDialog({
               <div className="text-foreground-alt mb-1 text-xs font-medium tracking-wider uppercase">
                 {g.group}
               </div>
-              {g.commands.map((cmd) => (
+              {g.commands.map(({ state: cmd, displayBindings }) => (
                 <div
                   key={cmd.command?.commandId}
-                  className="flex items-center justify-between py-1"
+                  className="flex items-center justify-between gap-3 py-1"
                 >
                   <span className="text-foreground text-sm">
                     {cmd.command?.label}
                   </span>
                   <kbd className="bg-foreground/5 text-foreground-alt rounded px-2 py-0.5 font-mono text-xs">
-                    {formatKeybinding(cmd.command!.keybinding!)}
+                    {formatKeybindingHint(displayBindings)}
                   </kbd>
                 </div>
               ))}

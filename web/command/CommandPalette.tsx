@@ -20,6 +20,11 @@ import {
   useInvokeCommand,
 } from './CommandContext.js'
 import { useCommand } from './useCommand.js'
+import {
+  getCommandDisplayBindings,
+  resolveKeybindings,
+  type KeybindingGraph,
+} from './KeybindingResolver.js'
 
 // isMacPlatform detects whether the current platform is macOS.
 const isMacPlatform =
@@ -59,6 +64,10 @@ export function formatKeybinding(binding: string): string {
   }
 
   return display.join(isMacPlatform ? '' : '+')
+}
+
+export function formatKeybindingHint(bindings: string[]): string {
+  return bindings.map(formatKeybinding).join(' / ')
 }
 
 // GroupedCommands groups commands by the first segment of their menu path.
@@ -131,14 +140,17 @@ function isCommandEnabled(cmd: CommandState): boolean {
 // CommandPaletteItem renders a single command in the palette.
 function CommandPaletteItem({
   cmd,
+  bindingGraph,
   onSelect,
 }: {
   cmd: CommandState
+  bindingGraph: KeybindingGraph
   onSelect: (commandId: string) => void
 }) {
   const commandId = cmd.command?.commandId
   if (!commandId) return null
   const enabled = isCommandEnabled(cmd)
+  const displayBindings = getCommandDisplayBindings(bindingGraph, commandId)
 
   return (
     <CommandItem
@@ -156,9 +168,9 @@ function CommandPaletteItem({
           </span>
         )}
       </span>
-      {cmd.command?.keybinding && (
+      {displayBindings.length > 0 && (
         <CommandShortcut>
-          {formatKeybinding(cmd.command.keybinding)}
+          {formatKeybindingHint(displayBindings)}
         </CommandShortcut>
       )}
     </CommandItem>
@@ -238,6 +250,7 @@ export function CommandPalette() {
   }, [subItemCommandId, subQuery, getSubItems])
 
   const grouped = useMemo(() => groupCommands(commands), [commands])
+  const bindingGraph = useMemo(() => resolveKeybindings(commands), [commands])
 
   const handleSelect = useCallback(
     (commandId: string) => {
@@ -333,6 +346,7 @@ export function CommandPalette() {
                       key={commandId}
                       cmd={cmd}
                       onSelect={handleSelect}
+                      bindingGraph={bindingGraph}
                     />
                   )
                 })}

@@ -181,6 +181,17 @@ export function contextKey(context: CommandFocusContext, key: string): string {
   return `${context}:${key}`
 }
 
+export function getCommandDisplayBindings(
+  graph: KeybindingGraph,
+  commandId: string,
+): string[] {
+  return (
+    graph.bindingsByCommandId
+      .get(commandId)
+      ?.map((binding) => binding.display) ?? []
+  )
+}
+
 function collectBindings(
   commands: CommandState[],
   platform: KeybindingPlatform,

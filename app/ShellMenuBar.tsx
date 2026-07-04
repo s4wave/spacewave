@@ -19,14 +19,19 @@ import {
   useInvokeCommand,
   useOpenCommand,
 } from '@s4wave/web/command/index.js'
-import { formatKeybinding } from '@s4wave/web/command/CommandPalette.js'
+import { formatKeybindingHint } from '@s4wave/web/command/CommandPalette.js'
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
+import {
+  getCommandDisplayBindings,
+  resolveKeybindings,
+  type KeybindingGraph,
+} from '@s4wave/web/command/KeybindingResolver.js'
 
 // MenuNode represents a node in the menu tree.
 interface MenuNode {
   label: string
   commandId?: string
-  keybinding?: string
+  keybindings?: string[]
   hasSubItems?: boolean
   enabled?: boolean
   children: Map<string, MenuNode>
@@ -42,7 +47,10 @@ interface MenuSeparatorNode {
 const topLevelMenus = ['File', 'Edit', 'View', 'Tools', 'Help']
 
 // buildMenuTree builds a tree of MenuNode from the active commands.
-function buildMenuTree(commands: CommandState[]): Map<string, MenuNode> {
+function buildMenuTree(
+  commands: CommandState[],
+  bindingGraph: KeybindingGraph,
+): Map<string, MenuNode> {
   const root = new Map<string, MenuNode>()
   const seen = new Set<string>()
 
@@ -79,7 +87,7 @@ function buildMenuTree(commands: CommandState[]): Map<string, MenuNode> {
         parent.children.set(seg, {
           label: seg,
           commandId,
-          keybinding: cmd.command?.keybinding,
+          keybindings: getCommandDisplayBindings(bindingGraph, commandId),
           hasSubItems: cmd.command?.hasSubItems,
           enabled: nodeEnabled,
           children: new Map(),
@@ -174,8 +182,10 @@ function MenuItemRenderer({
       className={cn(disabled && 'opacity-50')}
     >
       {node.label}
-      {node.keybinding && (
-        <MenubarShortcut>{formatKeybinding(node.keybinding)}</MenubarShortcut>
+      {node.keybindings && node.keybindings.length > 0 && (
+        <MenubarShortcut>
+          {formatKeybindingHint(node.keybindings)}
+        </MenubarShortcut>
       )}
     </MenubarItem>
   )
@@ -196,8 +206,12 @@ export function ShellMenuBar() {
   const commands = useCommands()
   const invokeCommand = useInvokeCommand()
   const openCommand = useOpenCommand()
+  const bindingGraph = useMemo(() => resolveKeybindings(commands), [commands])
 
-  const menuTree = useMemo(() => buildMenuTree(commands), [commands])
+  const menuTree = useMemo(
+    () => buildMenuTree(commands, bindingGraph),
+    [commands, bindingGraph],
+  )
 
   const handleSelectCommand = useCallback(
     (node: MenuNode) => {

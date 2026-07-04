@@ -16,10 +16,15 @@ export {
   type KeyDispatcherPrefixState,
 } from './KeyDispatcher.js'
 export { WhichKeyPanel } from './WhichKeyPanel.js'
-export { CommandPalette, formatKeybinding } from './CommandPalette.js'
+export {
+  CommandPalette,
+  formatKeybinding,
+  formatKeybindingHint,
+} from './CommandPalette.js'
 export {
   comboFromKeyboardEvent,
   contextKey,
+  getCommandDisplayBindings,
   createSequenceNode,
   normalizeKeyCombo,
   resolveKeybindings,
