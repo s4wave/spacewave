@@ -1597,6 +1597,76 @@ func TestCollectDirectManifestForManifestID(t *testing.T) {
 	}
 }
 
+func TestSetManifestBucketRelocationDoesNotBumpLinkedRev(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const storeKey = "plugin-host"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const manifestKey = "plugin-host/ref/spacewave-web/js"
+
+	// Seed the manifest in the dist bucket and record the linked store rev.
+	distRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
+	distRef.GetManifestRef().BucketId = "dist/spacewave"
+	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{storeKey}, distRef); err != nil {
+		t.Fatal(err.Error())
+	}
+	seededRev := objectRev(t, ctx, ws, storeKey)
+
+	// Relocate the identical manifest into the persisted world bucket. Only the
+	// bucket id differs, so the stored ref must follow the relocated copy while
+	// the linked store rev every plugin watches must stay put (issue 20260705).
+	relocatedRef := distRef.CloneVT()
+	relocatedRef.GetManifestRef().BucketId = "entrypoint/spacewave"
+	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{storeKey}, relocatedRef); err != nil {
+		t.Fatal(err.Error())
+	}
+	if got := objectRev(t, ctx, ws, storeKey); got != seededRev {
+		t.Fatalf("linked store rev after bucket relocation = %d, want unchanged %d", got, seededRev)
+	}
+	storedRef := objectRootRef(t, ctx, ws, manifestKey)
+	if storedRef.GetBucketId() != "entrypoint/spacewave" {
+		t.Fatalf("stored manifest ref bucket = %q, want relocated entrypoint/spacewave", storedRef.GetBucketId())
+	}
+	if !ManifestObjectRefsSameExecutable(storedRef, relocatedRef.GetManifestRef()) {
+		t.Fatalf("stored manifest ref did not follow the relocated copy")
+	}
+
+	// A genuinely different executable (different manifest content, so a
+	// different root ref) must bump the linked store rev.
+	newExecutableRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 8)
+	newExecutableRef.GetManifestRef().BucketId = "entrypoint/spacewave"
+	if ManifestObjectRefsSameExecutable(relocatedRef.GetManifestRef(), newExecutableRef.GetManifestRef()) {
+		t.Fatal("test setup: expected a distinct executable root ref")
+	}
+	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{storeKey}, newExecutableRef); err != nil {
+		t.Fatal(err.Error())
+	}
+	if got := objectRev(t, ctx, ws, storeKey); got <= seededRev {
+		t.Fatalf("linked store rev after executable change = %d, want > %d", got, seededRev)
+	}
+}
+
 func createTestManifestRef(
 	t *testing.T,
 	ctx context.Context,
@@ -1644,6 +1714,38 @@ func storeTestManifestRefObject(
 	}); err != nil {
 		t.Fatal(err.Error())
 	}
+}
+
+func objectRev(t *testing.T, ctx context.Context, ws world.WorldState, objKey string) uint64 {
+	t.Helper()
+	obj, ok, err := ws.GetObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ok {
+		t.Fatalf("object %q not found", objKey)
+	}
+	_, rev, err := obj.GetRootRef(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return rev
+}
+
+func objectRootRef(t *testing.T, ctx context.Context, ws world.WorldState, objKey string) *bucket.ObjectRef {
+	t.Helper()
+	obj, ok, err := ws.GetObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ok {
+		t.Fatalf("object %q not found", objKey)
+	}
+	ref, _, err := obj.GetRootRef(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return ref
 }
 
 func createStartupGraphBuildResultMarker(ctx context.Context, ws world.WorldState, manifestKey string) error {

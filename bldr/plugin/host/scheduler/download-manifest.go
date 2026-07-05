@@ -40,7 +40,7 @@ func (t *pluginInstance) classifyManifestCopy(manifestSnapshot *bldr_manifest.Ma
 	if execState == nil || execState.manifestSnapshot == nil {
 		return manifestCopyClassImmediate
 	}
-	if !manifestObjectRefsSameExecutable(execState.manifestSnapshot.GetManifestRef(), manifestSnapshot.GetManifestRef()) {
+	if !bldr_manifest_world.ManifestObjectRefsSameExecutable(execState.manifestSnapshot.GetManifestRef(), manifestSnapshot.GetManifestRef()) {
 		return manifestCopyClassImmediate
 	}
 	if t.runningPluginCtr.GetValue() != nil {

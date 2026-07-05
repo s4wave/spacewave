@@ -192,6 +192,30 @@ func logUnsupportedHashManifestStoreReset(le *logrus.Entry, objKeys []string, er
 		Warn("unsupported hash in persisted manifest state; resetting")
 }
 
+// ManifestObjectRefsSameExecutable reports whether two manifest object refs
+// resolve to the same executable content, ignoring which bucket holds the
+// blocks. A manifest relocated between buckets (for example from the dist
+// bucket into the persisted world bucket) keeps the same executable identity.
+// Store-side change accounting (SetManifest) and the plugin-host scheduler
+// executor share this comparison so they can never disagree about what counts
+// as a manifest change.
+//
+// If either ref has an empty root block, the refs are compared with full
+// equality including bucket id.
+func ManifestObjectRefsSameExecutable(a, b *bucket.ObjectRef) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	if a.GetRootRef().GetEmpty() || b.GetRootRef().GetEmpty() {
+		return a.EqualVT(b)
+	}
+	aCopy := a.Clone()
+	bCopy := b.Clone()
+	aCopy.BucketId = ""
+	bCopy.BucketId = ""
+	return aCopy.EqualVT(bCopy)
+}
+
 // SetManifest creates a Manifest object in the world.
 //
 // Checks if the object exists already, and updates it if so.
@@ -214,8 +238,20 @@ func SetManifest(
 			return nil, false, err
 		}
 		if !currRootRef.EqualVT(rootRef) {
+			// Store and executor must agree on what counts as a manifest
+			// change. Update the stored ref so reads follow a relocated copy
+			// (for example a manifest DAG copied from the dist bucket into the
+			// persisted world bucket), but only report changed, which
+			// increments the linked object rev, when the executable identity
+			// differs. The scheduler executor ignores bucket id via the same
+			// comparison; bumping rev on a pure relocation it treats as
+			// unchanged would fan a spurious rev bump to every plugin watching
+			// the shared plugin-host object and restart them for no real change
+			// (issue 20260705).
 			_, err = obj.SetRootRef(ctx, rootRef)
-			changed = err == nil
+			if err == nil {
+				changed = !ManifestObjectRefsSameExecutable(currRootRef, rootRef)
+			}
 		}
 	} else {
 		_, err = ws.CreateObject(ctx, objKey, rootRef)

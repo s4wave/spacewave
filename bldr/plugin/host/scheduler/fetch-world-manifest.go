@@ -356,7 +356,7 @@ func directFetchCandidateMatchesState(candidate *directFetchCandidate, currentSt
 		return false
 	}
 
-	return manifestObjectRefsSameExecutable(
+	return bldr_manifest_world.ManifestObjectRefsSameExecutable(
 		currentState.manifestSnapshot.GetManifestRef(),
 		candidate.ref.GetManifestRef(),
 	)
