@@ -24,18 +24,6 @@ function run(command: string, args: string[]) {
   }
 }
 
-function output(command: string, args: string[]): string {
-  const result = spawnSync(command, args, {
-    cwd: process.cwd(),
-    encoding: 'utf8',
-  })
-  if (result.status !== 0) {
-    process.stderr.write(result.stderr)
-    throw new Error(`${command} ${args.join(' ')} exited ${result.status}`)
-  }
-  return result.stdout.trim()
-}
-
 function removeTools(reason: string) {
   console.log(`prepare: removing .tools: ${reason}`)
   rmSync(join(process.cwd(), '.tools'), { recursive: true, force: true })
@@ -53,11 +41,17 @@ function validateTools() {
     return
   }
 
-  const commonDir = output('go', ['list', '-m', '-f', '{{.Dir}}', commonModule])
+  // Compare against the vendored common module: go mod vendor has already run,
+  // so vendor/ always holds the pinned version, unlike the module cache.
+  const commonDir = join(repoRoot, 'vendor', commonModule)
+  if (!existsSync(commonDir)) {
+    removeTools(`${commonModule} missing from vendor`)
+    return
+  }
   const staleFiles = generatedFiles.filter(({ actual, expected }) => {
     const actualPath = join(toolsDir, actual)
     const expectedPath = join(commonDir, expected)
-    if (!existsSync(actualPath)) {
+    if (!existsSync(actualPath) || !existsSync(expectedPath)) {
       return true
     }
     return !readFileSync(actualPath).equals(readFileSync(expectedPath))
