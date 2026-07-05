@@ -47,8 +47,9 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 		var manifestErrs []error
 		var err error
 		// empty means match any platform
-		manifests, manifestErrs, err = bldr_manifest_world.CollectManifestsForManifestID(
+		manifests, manifestErrs, err = bldr_manifest_world.CollectManifestsForManifestIDResettingUnsupportedHash(
 			ctx,
+			r.c.le,
 			ws,
 			r.dir.GetManifestId(),
 			r.dir.GetPlatformIds(),

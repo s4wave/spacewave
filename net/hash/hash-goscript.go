@@ -7,8 +7,6 @@ import (
 	"crypto/sha1" //nolint:gosec // Git object storage requires SHA-1.
 	"crypto/sha256"
 	"hash"
-
-	"github.com/pkg/errors"
 )
 
 func init() {
@@ -30,7 +28,7 @@ func (h HashType) Validate() error {
 	case HashType_HashType_SHA256, HashType_HashType_SHA1:
 		return nil
 	default:
-		return errors.Errorf("hash type unsupported in goscript: %v", h.String())
+		return newUnsupportedHashTypeError(h, "hash type unsupported in goscript: "+h.String())
 	}
 }
 
@@ -53,6 +51,6 @@ func (h HashType) BuildHasher() (hash.Hash, error) {
 	case HashType_HashType_SHA1:
 		return sha1.New(), nil
 	default:
-		return nil, errors.Errorf("hash type unsupported in goscript: %v", h.String())
+		return nil, newUnsupportedHashTypeError(h, "hash type unsupported in goscript: "+h.String())
 	}
 }

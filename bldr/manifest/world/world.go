@@ -17,7 +17,9 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -97,6 +99,97 @@ func CreateManifestStoreInEngine(ctx context.Context, eng world.Engine, objKey s
 // CheckManifestStoreType checks the type graph quad for a ManifestStore.
 func CheckManifestStoreType(ctx context.Context, ws world.WorldState, objKey string) error {
 	return world_types.CheckObjectType(ctx, ws, objKey, ManifestStoreTypeID)
+}
+
+// ResetManifestStore deletes the manifest-store surface and recreates an empty store.
+func ResetManifestStore(ctx context.Context, ws world.WorldState, objKey string) error {
+	if objKey == "" {
+		return world.ErrEmptyObjectKey
+	}
+	candidates, err := ListManifestCandidates(ctx, ws, objKey)
+	if err != nil {
+		return errors.Wrap(err, "list manifest store candidates")
+	}
+	seen := make(map[string]struct{}, len(candidates)+1)
+	for _, candidate := range candidates {
+		if candidate == "" || candidate == objKey {
+			continue
+		}
+		if _, ok := seen[candidate]; ok {
+			continue
+		}
+		seen[candidate] = struct{}{}
+		if _, err := ws.DeleteObject(ctx, candidate); err != nil {
+			return errors.Wrapf(err, "delete manifest candidate %s", candidate)
+		}
+	}
+	if _, err := ws.DeleteObject(ctx, objKey); err != nil {
+		return errors.Wrapf(err, "delete manifest store %s", objKey)
+	}
+	if _, err := CreateManifestStore(ctx, ws, objKey); err != nil {
+		return errors.Wrapf(err, "recreate manifest store %s", objKey)
+	}
+	return nil
+}
+
+// ResetManifestStores deletes and recreates manifest-store surfaces.
+func ResetManifestStores(ctx context.Context, ws world.WorldState, objKeys ...string) error {
+	for _, objKey := range objKeys {
+		if err := ResetManifestStore(ctx, ws, objKey); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// CollectManifestsForManifestIDResettingUnsupportedHash collects manifests and clears stale stores.
+func CollectManifestsForManifestIDResettingUnsupportedHash(
+	ctx context.Context,
+	le *logrus.Entry,
+	ws world.WorldState,
+	manifestID string,
+	filterPlatformIDs []string,
+	objKeys ...string,
+) ([]*CollectedManifest, []error, error) {
+	out, manifestErrs, err := CollectManifestsForManifestID(ctx, ws, manifestID, filterPlatformIDs, objKeys...)
+	if !hasUnsupportedHashError(err, manifestErrs) {
+		return out, manifestErrs, err
+	}
+	logUnsupportedHashManifestStoreReset(le, objKeys, err, manifestErrs)
+	if resetErr := ResetManifestStores(ctx, ws, objKeys...); resetErr != nil {
+		return nil, manifestErrs, resetErr
+	}
+	return nil, nil, nil
+}
+
+func hasUnsupportedHashError(err error, manifestErrs []error) bool {
+	if stderrors.Is(err, hash.ErrHashTypeUnsupported) {
+		return true
+	}
+	for _, manifestErr := range manifestErrs {
+		if stderrors.Is(manifestErr, hash.ErrHashTypeUnsupported) {
+			return true
+		}
+	}
+	return false
+}
+
+func logUnsupportedHashManifestStoreReset(le *logrus.Entry, objKeys []string, err error, manifestErrs []error) {
+	if le == nil {
+		return
+	}
+	logErr := err
+	if logErr == nil {
+		for _, manifestErr := range manifestErrs {
+			if stderrors.Is(manifestErr, hash.ErrHashTypeUnsupported) {
+				logErr = manifestErr
+				break
+			}
+		}
+	}
+	le.WithError(logErr).
+		WithField("object-keys", objKeys).
+		Warn("unsupported hash in persisted manifest state; resetting")
 }
 
 // SetManifest creates a Manifest object in the world.

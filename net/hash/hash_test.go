@@ -30,6 +30,23 @@ func TestRecommendedHashType(t *testing.T) {
 	}
 }
 
+func TestUnsupportedHashTypeErrorClassifiesUnknownCodes(t *testing.T) {
+	err := HashType(999).Validate()
+	if err == nil {
+		t.Fatal("expected unsupported hash type error")
+	}
+	if !errors.Is(err, ErrHashTypeUnsupported) {
+		t.Fatalf("Validate() error = %v, want ErrHashTypeUnsupported", err)
+	}
+	var unsupported *UnsupportedHashTypeError
+	if !errors.As(err, &unsupported) {
+		t.Fatalf("Validate() error = %T, want UnsupportedHashTypeError", err)
+	}
+	if unsupported.HashType != HashType(999) {
+		t.Fatalf("unsupported hash type = %v, want 999", unsupported.HashType)
+	}
+}
+
 // TestJSON tests marshal and unmarshal hash from json.
 func TestJSON(t *testing.T) {
 	h, err := Sum(HashType_HashType_SHA256, []byte("hello world"))

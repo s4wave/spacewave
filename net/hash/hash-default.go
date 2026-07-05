@@ -7,7 +7,6 @@ import (
 	"crypto/sha256"
 	"hash"
 
-	"github.com/pkg/errors"
 	"github.com/zeebo/blake3"
 )
 
@@ -30,7 +29,7 @@ func (h HashType) Validate() error {
 	case HashType_HashType_BLAKE3:
 		return nil
 	default:
-		return errors.Errorf("hash type unknown: %v", h.String())
+		return newUnsupportedHashTypeError(h, "hash type unknown: "+h.String())
 	}
 }
 
@@ -57,6 +56,6 @@ func (h HashType) BuildHasher() (hash.Hash, error) {
 	case HashType_HashType_BLAKE3:
 		return blake3.New(), nil
 	default:
-		return nil, errors.Errorf("hash type unknown: %v", h.String())
+		return nil, newUnsupportedHashTypeError(h, "hash type unknown: "+h.String())
 	}
 }

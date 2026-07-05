@@ -6,7 +6,6 @@ import (
 	"crypto/sha1" //nolint:gosec // Git object storage requires SHA-1.
 	"crypto/sha256"
 
-	"github.com/pkg/errors"
 	"github.com/zeebo/blake3"
 )
 
@@ -22,6 +21,6 @@ func sumHashType(h HashType, data []byte) ([]byte, error) {
 		h := blake3.Sum256(data)
 		return h[:], nil
 	default:
-		return nil, errors.Errorf("hash type unknown: %v", h.String())
+		return nil, newUnsupportedHashTypeError(h, "hash type unknown: "+h.String())
 	}
 }

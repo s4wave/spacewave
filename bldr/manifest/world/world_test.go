@@ -22,6 +22,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_types "github.com/s4wave/spacewave/db/world/types"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -123,6 +124,80 @@ func TestCollectReleaseWorldManifestsForManifestID(t *testing.T) {
 	}
 	if !got[0].ManifestRef.EqualVT(ref.GetManifestRef()) {
 		t.Fatalf("manifest ref was not preserved")
+	}
+}
+
+func TestCollectManifestsResetsStoreWithUnsupportedHashRef(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const storeKey = "plugin-host"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const badManifestKey = "plugin-host/manifest/bad"
+	badRef := &bucket.ObjectRef{
+		RootRef: block.NewBlockRef(hash.NewHash(hash.HashType(999), []byte{1, 2, 3})),
+	}
+	if _, err := ws.CreateObject(ctx, badManifestKey, badRef); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := world_types.SetObjectType(ctx, ws, badManifestKey, ManifestTypeID); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, badManifestKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	got, errs, err := CollectManifestsForManifestIDResettingUnsupportedHash(
+		ctx,
+		le,
+		ws,
+		"spacewave-web",
+		[]string{"js"},
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(errs) != 0 {
+		t.Fatalf("manifest errors after reset = %v, want none", errs)
+	}
+	if len(got) != 0 {
+		t.Fatalf("manifest count after reset = %d, want 0", len(got))
+	}
+	if err := CheckManifestStoreType(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, found, err := ws.GetObject(ctx, badManifestKey); err != nil {
+		t.Fatal(err.Error())
+	} else if found {
+		t.Fatal("stale manifest object still exists after reset")
+	}
+	candidates, err := ListManifestCandidates(ctx, ws, storeKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(candidates) != 0 {
+		t.Fatalf("manifest candidates after reset = %v, want none", candidates)
 	}
 }
 

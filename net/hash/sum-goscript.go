@@ -18,7 +18,7 @@ func sumHashType(h HashType, data []byte) ([]byte, error) {
 		h := sha1.Sum(data)
 		return h[:], nil
 	default:
-		return nil, errors.Errorf("hash type unsupported in goscript: %v", h.String())
+		return nil, newUnsupportedHashTypeError(h, "hash type unsupported in goscript: "+h.String())
 	}
 }
 
