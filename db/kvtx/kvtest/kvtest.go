@@ -217,6 +217,56 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		return err
 	}
 
+	// GetBatch must return values and found flags aligned with the requested
+	// keys, identical to calling Get for each key in the same transaction. A
+	// wrapper that transforms keys (prefixer) or serves values from an overlay
+	// (txcache) has to keep that alignment through its batch path, including
+	// absent keys interleaved with present ones.
+	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
+		batchKeys := [][]byte{
+			[]byte("a/1"),
+			[]byte("missing/1"),
+			[]byte("b/2"),
+			[]byte("foo-1"),
+			[]byte("missing/2"),
+		}
+		values, found, err := kvtx.GetBatch(ctx, tx, batchKeys)
+		if err != nil {
+			return err
+		}
+		if len(values) != len(batchKeys) || len(found) != len(batchKeys) {
+			return errors.Errorf("GetBatch returned %d values %d found for %d keys", len(values), len(found), len(batchKeys))
+		}
+		for i, k := range batchKeys {
+			wantVal, wantFound, err := tx.Get(ctx, k)
+			if err != nil {
+				return err
+			}
+			if found[i] != wantFound {
+				return errors.Errorf("GetBatch found[%d]=%v for %s, want %v", i, found[i], string(k), wantFound)
+			}
+			if !bytes.Equal(values[i], wantVal) {
+				return errors.Errorf("GetBatch value[%d] mismatch for %s", i, string(k))
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	// GetBatch must reject an empty key in the batch with ErrEmptyKey, matching
+	// Get's single-key contract.
+	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
+		if _, _, err := kvtx.GetBatch(ctx, tx, [][]byte{[]byte("a/1"), {}}); err != kvtx.ErrEmptyKey {
+			return errors.Errorf("expected empty key error from GetBatch but got %v", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
 	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
 		if _, err := kvtx.MustGet(ctx, tx, []byte("foo-1")); err != nil {
 			return err

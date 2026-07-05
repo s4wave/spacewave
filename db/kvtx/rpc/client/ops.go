@@ -54,6 +54,14 @@ func (o *Ops) Get(ctx context.Context, key []byte) (data []byte, found bool, err
 	return resp.GetData(), resp.GetFound(), nil
 }
 
+// Ops deliberately does not implement kvtx.BatchTxOps. The store is reached
+// only through the generated KvtxOps RPC methods, which expose no batch KeyData
+// call, so a GetBatch here would still issue one round trip per key and could
+// not collapse the async read hops the batch seam exists to remove. Adding a
+// batch would extend the wire protocol, which is out of scope; until such an
+// RPC exists, kvtx.GetBatch falls back to serial Get calls for the remote
+// store, preserving current behavior.
+
 // Set sets a key in the store.
 func (o *Ops) Set(ctx context.Context, key []byte, value []byte) error {
 	if o.released.Load() {
