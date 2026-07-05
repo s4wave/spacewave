@@ -117,6 +117,8 @@ func AnalyzePackages(
 		// NeedName adds Name and PkgPath.
 		packages.NeedName |
 		// NeedFiles adds GoFiles and OtherFiles.
+		// NeedCompiledGoFiles adds CompiledGoFiles for packages loaded by the driver.
+		packages.NeedCompiledGoFiles |
 		packages.NeedFiles |
 		// NeedImports adds Imports. If NeedDeps is not set, the Imports field will contain
 		// "placeholder" Packages with only the ID set.
@@ -131,6 +133,8 @@ func AnalyzePackages(
 		packages.NeedSyntax |
 		// NeedTypesInfo adds TypesInfo.
 		packages.NeedTypesInfo |
+		// NeedTypesSizes adds the effective type sizes for the target build.
+		packages.NeedTypesSizes |
 		// NeedModule adds Module.
 		packages.NeedModule
 
@@ -162,6 +166,9 @@ func AnalyzePackages(
 	// Load the packages
 	loadedPackages, err := packages.Load(&conf, packagesToLoad...)
 	if err != nil {
+		return nil, err
+	}
+	if err := packageLoadFailureError(loadedPackages, packagesToLoad, buildTags, goos, goarch, workDir); err != nil {
 		return nil, err
 	}
 	res.fset = conf.Fset
@@ -272,6 +279,42 @@ func AnalyzePackages(
 	}
 
 	return res, nil
+}
+
+func packageLoadFailureError(loadedPackages []*packages.Package, patterns []string, buildTags []string, goos, goarch, workDir string) error {
+	var details strings.Builder
+	if len(loadedPackages) == 0 {
+		details.WriteString("no packages loaded")
+	}
+	for _, pkg := range loadedPackages {
+		for _, pkgErr := range pkg.Errors {
+			if details.Len() != 0 {
+				details.WriteString("; ")
+			}
+			pkgName := pkg.PkgPath
+			if pkgName == "" {
+				pkgName = pkg.ID
+			}
+			if pkgName == "" {
+				pkgName = "<unknown>"
+			}
+			details.WriteString(pkgName)
+			details.WriteString(": ")
+			details.WriteString(pkgErr.Error())
+		}
+	}
+	if details.Len() == 0 {
+		return nil
+	}
+	return errors.Errorf(
+		"package load failed: %s (patterns=%s; tags=%s; GOOS=%s; GOARCH=%s; workDir=%s)",
+		details.String(),
+		strings.Join(patterns, ","),
+		strings.Join(buildTags, ","),
+		goos,
+		goarch,
+		workDir,
+	)
 }
 
 // GetPackagePaths returns the resolved root package paths.

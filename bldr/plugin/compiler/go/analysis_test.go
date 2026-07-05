@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -323,6 +324,58 @@ type WebBundlerOutput struct{}
 	helperPath := filepath.ToSlash(filepath.Join("..", "spacewave", "bldr", "web", "bundler", "output.go"))
 	if slices.Contains(programRelPaths, helperPath) {
 		t.Fatalf("program files include analysis helper module: %v", programRelPaths)
+	}
+}
+
+func TestAnalyzePackagesReportsLoadFailureContext(t *testing.T) {
+	ctx := context.Background()
+	workDir := t.TempDir()
+
+	writeFile(t, workDir, "go.mod", `module github.com/s4wave/spacewave
+
+go 1.26.2
+`)
+	writeFile(t, workDir, "bldr/web/bundler/output.go", `package bundler
+
+type WebBundlerOutput struct{}
+`)
+	writeFile(t, workDir, "plugin/root/root.go", `package root
+
+import "example.invalid/missing"
+
+var Value = missing.Value
+`)
+
+	le := logrus.NewEntry(logrus.New())
+	_, err := AnalyzePackages(
+		ctx,
+		le,
+		workDir,
+		[]string{"./plugin/root"},
+		[]string{"build_type_dev"},
+		"js",
+		"wasm",
+		false,
+	)
+	if err == nil {
+		t.Fatal("expected package load failure")
+	}
+	errText := err.Error()
+	for _, want := range []string{
+		"package load failed",
+		"patterns=github.com/s4wave/spacewave/bldr/web/bundler,github.com/s4wave/spacewave/plugin/root",
+		"tags=bldr_analyze,build_type_dev",
+		"GOOS=js",
+		"GOARCH=wasm",
+		"workDir=" + workDir,
+		"example.invalid/missing",
+	} {
+		if !strings.Contains(errText, want) {
+			t.Fatalf("load failure error missing %q:\n%s", want, errText)
+		}
+	}
+	if strings.Contains(errText, "could not find "+EsbuildOutputPkgPath+"."+EsbuildOutputTypeName) {
+		t.Fatalf("load failure was reported as a missing type:\n%s", errText)
 	}
 }
 

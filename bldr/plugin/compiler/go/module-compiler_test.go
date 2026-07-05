@@ -13,6 +13,7 @@ import (
 
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/mod/modfile"
 )
 
 func TestGenerateModuleWritesReadonlyBuildableHiddenModule(t *testing.T) {
@@ -23,22 +24,7 @@ func TestGenerateModuleWritesReadonlyBuildableHiddenModule(t *testing.T) {
 	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	spacewaveRel, err := filepath.Rel(sourceDir, spacewaveRoot)
-	if err != nil {
-		t.Fatal(err)
-	}
 
-	writeFile(t, sourceDir, "go.mod", `module example.com/openmind
-
-go 1.26.3
-
-require (
-	github.com/aperturerobotics/controllerbus v0.53.5-0.20260620224135-5f6015d2a8b0
-	github.com/s4wave/spacewave v0.0.0
-)
-
-replace github.com/s4wave/spacewave => `+filepath.ToSlash(spacewaveRel)+`
-`)
 	writeFile(t, sourceDir, "plugin/root/root.go", `package root
 
 import (
@@ -50,6 +36,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 	return nil
 }
 `)
+	writeModuleCompilerFixtureGoMod(t, sourceDir, spacewaveRoot)
 
 	le := logrus.NewEntry(logrus.New())
 	analysis, err := AnalyzePackages(
@@ -113,6 +100,73 @@ func NewFactory(b bus.Bus) controller.Factory {
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("go list -mod=readonly failed: %v\n%s", err, out)
 	}
+}
+
+func writeModuleCompilerFixtureGoMod(t *testing.T, sourceDir, spacewaveRoot string) {
+	t.Helper()
+
+	rootGoModPath := filepath.Join(spacewaveRoot, "go.mod")
+	rootGoModData, err := os.ReadFile(rootGoModPath)
+	if err != nil {
+		t.Fatalf("read repo go.mod: %v", err)
+	}
+	rootGoMod, err := modfile.Parse(rootGoModPath, rootGoModData, nil)
+	if err != nil {
+		t.Fatalf("parse repo go.mod: %v", err)
+	}
+	if rootGoMod.Go == nil {
+		t.Fatal("repo go.mod missing go directive")
+	}
+	controllerbusVersion := rootRequireVersion(t, rootGoMod, "github.com/aperturerobotics/controllerbus")
+
+	fixtureGoMod := new(modfile.File)
+	if err := fixtureGoMod.AddModuleStmt("example.com/openmind"); err != nil {
+		t.Fatalf("add fixture module directive: %v", err)
+	}
+	if err := fixtureGoMod.AddGoStmt(rootGoMod.Go.Version); err != nil {
+		t.Fatalf("add fixture go directive: %v", err)
+	}
+	fixtureGoMod.AddNewRequire("github.com/aperturerobotics/controllerbus", controllerbusVersion, false)
+	fixtureGoMod.AddNewRequire("github.com/s4wave/spacewave", "v0.0.0", false)
+	if err := fixtureGoMod.AddReplace("github.com/s4wave/spacewave", "", filepath.ToSlash(spacewaveRoot), ""); err != nil {
+		t.Fatalf("add spacewave fixture replace: %v", err)
+	}
+	fixtureGoModData, err := fixtureGoMod.Format()
+	if err != nil {
+		t.Fatalf("format fixture go.mod: %v", err)
+	}
+	writeFile(t, sourceDir, "go.mod", string(fixtureGoModData))
+	writeFile(t, sourceDir, "tools/tools.go", `//go:build tools
+
+package tools
+
+import _ "github.com/s4wave/spacewave/bldr/web/bundler"
+`)
+
+	cmd := exec.Command("go", "mod", "tidy")
+	cmd.Dir = sourceDir
+	cmd.Env = append(os.Environ(),
+		"GO111MODULE=on",
+		"GOPROXY=direct",
+		"GOWORK=off",
+	)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("go mod tidy fixture module: %v\n%s", err, out)
+	}
+	if err := os.RemoveAll(filepath.Join(sourceDir, "tools")); err != nil {
+		t.Fatalf("remove fixture tidy tools package: %v", err)
+	}
+}
+
+func rootRequireVersion(t *testing.T, modFile *modfile.File, modulePath string) string {
+	t.Helper()
+	for _, req := range modFile.Require {
+		if req.Mod.Path == modulePath {
+			return req.Mod.Version
+		}
+	}
+	t.Fatalf("repo go.mod missing required fixture module %s", modulePath)
+	return ""
 }
 
 func testSpacewaveRoot(t *testing.T) string {
