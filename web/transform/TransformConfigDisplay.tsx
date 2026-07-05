@@ -61,11 +61,17 @@ function decodeBlockEnc(config?: Uint8Array): {
   detail: string
   tooltip: string
 } {
-  let name = 'XChaCha20-Poly1305'
+  let name = 'Unknown'
   if (config && config.length > 0) {
     try {
       const decoded = BlockEncCfg.fromBinary(config)
       switch (decoded.blockEnc) {
+        case BlockEnc.BlockEnc_AES_256_GCM:
+          name = 'AES-256-GCM'
+          break
+        case BlockEnc.BlockEnc_XCHACHA20_POLY1305:
+          name = 'XChaCha20-Poly1305'
+          break
         case BlockEnc.BlockEnc_SECRET_BOX:
           name = 'SecretBox'
           break
@@ -74,7 +80,7 @@ function decodeBlockEnc(config?: Uint8Array): {
           break
       }
     } catch {
-      // fall back to default name
+      // fall back to unknown when the redacted config cannot be decoded
     }
   }
   return {
