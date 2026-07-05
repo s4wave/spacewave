@@ -56,6 +56,12 @@ choice first.
 - Fix the owner of the invariant, state machine, lifecycle, resource, cache,
   storage, wire format, or UI data flow. Do not add caller-side guards that
   reconstruct owner state.
+- A GoScript codegen or typecheck failure is a GoScript compiler bug. Fix it in
+  the `github.com/s4wave/goscript` compiler (lowering, runtime override, or
+  barrel emission) with a compliance fixture, then bump the `go.mod` pin. Never
+  work around it by reshaping the spacewave Go source to dodge the compiler,
+  hand-editing generated `.gs.ts`, or swapping to a different API only because
+  GoScript mistranslates the first. The spacewave source stays idiomatic Go.
 - No fixed-interval polling for state. Owners expose waits, watches, broadcasts,
   conditions, event streams, or context-aware blocking calls.
 - No fire-and-forget goroutines from callbacks, handlers, WebSocket frames, or
