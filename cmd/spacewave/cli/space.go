@@ -20,8 +20,8 @@ import (
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	"github.com/s4wave/spacewave/db/volume"
+	"github.com/s4wave/spacewave/sdk/cli/runner"
 	s4wave_deploy "github.com/s4wave/spacewave/sdk/deploy"
-	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	"github.com/sirupsen/logrus"
 )
@@ -53,85 +53,8 @@ func newSpaceCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 }
 
 // newSpaceListCommand builds the space list subcommand.
-func newSpaceListCommand(statePath *string, sessionIdx *uint) *cli.Command {
-	var watch bool
-	return &cli.Command{
-		Name:  "list",
-		Usage: "list spaces in the current session",
-		Flags: []cli.Flag{
-			&cli.BoolFlag{
-				Name:        "watch",
-				Aliases:     []string{"w"},
-				Usage:       "watch for changes (append mode)",
-				EnvVars:     []string{"SPACEWAVE_WATCH"},
-				Destination: &watch,
-			},
-		},
-		Action: func(c *cli.Context) error {
-			return runSpaceList(c, *statePath, c.String("output"), uint32(*sessionIdx), watch)
-		},
-	}
-}
-
-// runSpaceList executes the space list command.
-func runSpaceList(c *cli.Context, statePath, outputFormat string, sessionIdx uint32, watch bool) error {
-	ctx := c.Context
-	client, err := connectDaemonFromContext(ctx, c, statePath)
-	if err != nil {
-		return err
-	}
-	defer client.close()
-
-	sess, err := client.mountSession(ctx, sessionIdx)
-	if err != nil {
-		return err
-	}
-	defer sess.Release()
-
-	strm, err := sess.WatchResourcesList(ctx)
-	if err != nil {
-		return errors.Wrap(err, "watch resources list")
-	}
-	defer strm.Close()
-
-	resp, err := strm.Recv()
-	if err != nil {
-		return errors.Wrap(err, "recv resources list")
-	}
-
-	switch outputFormat {
-	case "json", "yaml":
-		if data, jerr := resp.MarshalJSON(); jerr != nil {
-			return jerr
-		} else if err := formatOutput(data, outputFormat); err != nil {
-			return err
-		}
-	default:
-		printSpacesList(resp)
-	}
-
-	if !watch {
-		return nil
-	}
-
-	for {
-		resp, err = strm.Recv()
-		if err != nil {
-			return errors.Wrap(err, "recv resources list")
-		}
-		w := os.Stdout
-		w.WriteString("\n--- " + time.Now().Format(time.RFC3339) + " ---\n")
-		switch outputFormat {
-		case "json", "yaml":
-			if data, jerr := resp.MarshalJSON(); jerr != nil {
-				return jerr
-			} else if err := formatOutput(data, outputFormat); err != nil {
-				return err
-			}
-		default:
-			printSpacesList(resp)
-		}
-	}
+func newSpaceListCommand(_ *string, sessionIdx *uint) *cli.Command {
+	return runner.NewSpaceListCommand(nativeRunnerConfig(), sessionIdx)
 }
 
 // newSpaceCreateCommand builds the space create subcommand.
@@ -789,21 +712,4 @@ func printSpaceSettings(settings *space_world.SpaceSettings) {
 	} else if len(fields) == 0 {
 		w.WriteString("no settings\n")
 	}
-}
-
-// printSpacesList prints the spaces list to stdout.
-func printSpacesList(resp *s4wave_session.WatchResourcesListResponse) {
-	spaces := resp.GetSpacesList()
-	if len(spaces) == 0 {
-		os.Stdout.WriteString("no spaces\n")
-		return
-	}
-	rows := [][]string{{"ID", "NAME"}}
-	for _, sp := range spaces {
-		rows = append(rows, []string{
-			truncateID(sp.GetEntry().GetRef().GetProviderResourceRef().GetId(), 8),
-			sp.GetSpaceMeta().GetName(),
-		})
-	}
-	writeTable(os.Stdout, "", rows)
 }

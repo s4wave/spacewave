@@ -10,6 +10,7 @@ import (
 	hydra_cliutil "github.com/s4wave/spacewave/db/cli/util"
 	bifrost_cli "github.com/s4wave/spacewave/net/cli"
 	bifrost_cliutil "github.com/s4wave/spacewave/net/cli/util"
+	"github.com/s4wave/spacewave/sdk/cli/runner"
 )
 
 // NewCliCommands builds the spacewave CLI commands.
@@ -46,6 +47,19 @@ func NewCliCommands(getBus func() cli_entrypoint.CliBus) []*cli.Command {
 		newSessionCommand(getBus),
 		newProviderCommand(getBus),
 	}
+}
+
+func nativeRunnerConfig() runner.Config {
+	return runner.Config{
+		ClientFactory:       nativeClientFactory{},
+		ClientFlags:         nativeRunnerClientFlags,
+		MountSessionTimeout: getStatusMountSessionTimeout,
+	}
+}
+
+func nativeRunnerClientFlags(sessionIdx *uint) []cli.Flag {
+	var statePath string
+	return clientFlags(&statePath, sessionIdx)
 }
 
 // newBifrostCommand embeds the bifrost CLI command set.

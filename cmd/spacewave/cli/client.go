@@ -20,6 +20,7 @@ import (
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	s4wave_space_core "github.com/s4wave/spacewave/core/space"
 	s4wave_account "github.com/s4wave/spacewave/sdk/account"
+	"github.com/s4wave/spacewave/sdk/cli/runner"
 	s4wave_provider "github.com/s4wave/spacewave/sdk/provider"
 	s4wave_provider_local "github.com/s4wave/spacewave/sdk/provider/local"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
@@ -53,6 +54,16 @@ type sdkClient struct {
 	srpc      srpc.Client
 	resClient *resource_client.Client
 	root      *s4wave_root.Root
+}
+
+type nativeClientFactory struct{}
+
+type nativeClient struct {
+	client *sdkClient
+}
+
+type nativeSession struct {
+	*s4wave_session.Session
 }
 
 var (
@@ -216,6 +227,45 @@ func buildSDKClientFromInvoker(ctx context.Context, invoker srpc.Invoker) (*sdkC
 		resClient: resClient,
 		root:      root,
 	}, nil
+}
+
+func (nativeClientFactory) NewClient(ctx context.Context, c *cli.Context) (runner.Client, error) {
+	client, err := connectDaemonFromContext(ctx, c, defaultStatePath)
+	if err != nil {
+		return nil, err
+	}
+	return &nativeClient{client: client}, nil
+}
+
+func (nativeClientFactory) StatusEndpoint(ctx context.Context, c *cli.Context) (string, error) {
+	if sockPath := effectiveSocketPath(c, ""); sockPath != "" {
+		return sockPath, nil
+	}
+	resolved, err := resolveStatePathFromContext(c, defaultStatePath)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(resolved, socketName), nil
+}
+
+func (c *nativeClient) Close() {
+	c.client.close()
+}
+
+func (c *nativeClient) MountSession(ctx context.Context, idx uint32) (runner.Session, error) {
+	sess, err := c.client.mountSession(ctx, idx)
+	if err != nil {
+		return nil, err
+	}
+	return &nativeSession{Session: sess}, nil
+}
+
+func (s *nativeSession) WatchResourcesList(ctx context.Context) (runner.ResourcesListStream, error) {
+	return s.Session.WatchResourcesList(ctx)
+}
+
+func (s *nativeSession) WatchLockState(ctx context.Context) (runner.LockStateStream, error) {
+	return s.Session.WatchLockState(ctx)
 }
 
 // mountSession mounts a session by index and returns the Session SDK wrapper.
