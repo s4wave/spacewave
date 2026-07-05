@@ -220,6 +220,17 @@ func (e *engineWorldState) DeleteGraphObject(ctx context.Context, value string) 
 	})
 }
 
+// TypeObjectEnsured always reports the type object as not ensured. Each
+// operation runs in its own short-lived transaction, so no transaction-local
+// type knowledge survives between calls.
+func (e *engineWorldState) TypeObjectEnsured(typeObjectKey string) bool {
+	return false
+}
+
+// MarkTypeObjectEnsured does nothing. Per-operation transactions keep no
+// transaction-local type knowledge across calls.
+func (e *engineWorldState) MarkTypeObjectEnsured(typeObjectKey string) {}
+
 // performOp performs an operation.
 func (e *engineWorldState) performOp(ctx context.Context, write bool, cb func(tx Tx) error) error {
 	if !e.write && write {

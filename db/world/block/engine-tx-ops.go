@@ -198,6 +198,26 @@ func (e *EngineTx) DeleteGraphObject(ctx context.Context, value string) error {
 	})
 }
 
+// TypeObjectEnsured reports whether the persistent write transaction already
+// ensured the type object. Read-only engine transactions keep no persistent
+// transaction-local state, so they report the object as not ensured.
+func (e *EngineTx) TypeObjectEnsured(typeObjectKey string) bool {
+	if e.writeTx == nil {
+		return false
+	}
+	return e.writeTx.TypeObjectEnsured(typeObjectKey)
+}
+
+// MarkTypeObjectEnsured records on the persistent write transaction that the
+// type object exists for the rest of the transaction. No-op for read-only
+// engine transactions.
+func (e *EngineTx) MarkTypeObjectEnsured(typeObjectKey string) {
+	if e.writeTx == nil {
+		return
+	}
+	e.writeTx.MarkTypeObjectEnsured(typeObjectKey)
+}
+
 // GarbageCollect sweeps unreferenced nodes from the GC ref graph.
 // Only valid on writable EngineTx instances with GC enabled.
 func (e *EngineTx) GarbageCollect(ctx context.Context) error {

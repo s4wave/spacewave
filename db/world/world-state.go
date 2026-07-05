@@ -131,6 +131,20 @@ type WorldStateObject interface {
 	// Calls DeleteGraphObject internally.
 	// Returns false, nil if not found.
 	DeleteObject(ctx context.Context, key string) (bool, error)
+
+	// TypeObjectEnsured reports whether a type object key is known to already
+	// exist for the current write transaction, letting EnsureTypeExists skip a
+	// redundant type-object read. States that keep no transaction-local
+	// knowledge (read-only, remote, or per-operation states) return false so the
+	// caller falls back to reading the object.
+	TypeObjectEnsured(typeObjectKey string) bool
+
+	// MarkTypeObjectEnsured records that a type object key exists for the rest of
+	// the current write transaction. States that keep no transaction-local
+	// knowledge do nothing; the memo is reset when the transaction rebuilds or
+	// discards its block state and invalidated when the object is deleted or
+	// renamed.
+	MarkTypeObjectEnsured(typeObjectKey string)
 }
 
 // ObjectIterator iterates over objects in a WorldState.

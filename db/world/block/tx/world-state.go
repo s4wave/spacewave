@@ -288,6 +288,32 @@ func (w *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 	return true, nil
 }
 
+// TypeObjectEnsured reports whether the wrapped state already ensured the type
+// object for the current transaction. Returns false once discarded.
+func (w *WorldState) TypeObjectEnsured(typeObjectKey string) bool {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+
+	if w.discarded {
+		return false
+	}
+
+	return w.world.TypeObjectEnsured(typeObjectKey)
+}
+
+// MarkTypeObjectEnsured records on the wrapped state that the type object exists
+// for the rest of the transaction. No-op once discarded.
+func (w *WorldState) MarkTypeObjectEnsured(typeObjectKey string) {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+
+	if w.discarded {
+		return
+	}
+
+	w.world.MarkTypeObjectEnsured(typeObjectKey)
+}
+
 // AccessCayleyGraph calls a callback with a temporary Cayley graph handle.
 // All accesses of the handle should complete before returning cb.
 // Try to make access (queries) as short as possible.

@@ -256,6 +256,16 @@ func (t *TrackedWorldState) ApplyWorldOp(ctx context.Context, op world.Operation
 	return t.ws.ApplyWorldOp(ctx, op, opSender)
 }
 
+// TypeObjectEnsured forwards the type-object memo query to the wrapped state.
+func (t *TrackedWorldState) TypeObjectEnsured(typeObjectKey string) bool {
+	return t.ws.TypeObjectEnsured(typeObjectKey)
+}
+
+// MarkTypeObjectEnsured forwards the type-object memo record to the wrapped state.
+func (t *TrackedWorldState) MarkTypeObjectEnsured(typeObjectKey string) {
+	t.ws.MarkTypeObjectEnsured(typeObjectKey)
+}
+
 // watchTrackedChanges is a StateRoutine that monitors a TrackedWorldStateSnapshot for changes.
 // Returns nil when any tracked resource changes.
 func watchTrackedChanges(ctx context.Context, snapshot *s4wave_world.TrackedWorldStateSnapshot, ws world.WorldState) error {

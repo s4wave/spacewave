@@ -73,6 +73,12 @@ type WorldState struct {
 	storage  world.WorldStorage
 	lookupOp world.LookupOp
 
+	// typeObjectMemo remembers type object keys (types/<id>) ensured to exist
+	// during the current write transaction so repeated EnsureTypeExists calls
+	// skip redundant type-object reads. Reset whenever the transaction rebuilds
+	// its block state (SetBlockTransaction, Discard).
+	typeObjectMemo map[string]struct{}
+
 	pendingChanges []*block.Cursor // *WorldChange
 
 	// seqnoBcast guards below fields
@@ -462,6 +468,8 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 	t.objTree, t.graphTree, t.graphHd = objTree, graphTree, graphHandle
 	t.gcTree, t.gcTreeIsolated, t.refGraph = gcTree, gcTreeIsolated, activeRefGraph
 	t.gcJournalTree, t.gcJournal = journalTree, journal
+	// The rebuilt block state supersedes any transaction-local type memo.
+	t.typeObjectMemo = nil
 	subtask.End()
 
 	// Initialize the permanent gcroot -> world edge only when the
@@ -506,6 +514,7 @@ func (t *WorldState) Discard() {
 		t.readRelease()
 		t.readRelease = nil
 	}
+	t.typeObjectMemo = nil
 	t.seqnoBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		broadcast()
 	})

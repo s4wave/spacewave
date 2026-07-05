@@ -189,6 +189,8 @@ func (t *WorldState) renameObjectSingle(ctx context.Context, oldKey, newKey stri
 	if err := ot.Delete(ctx, oldTreeKey); err != nil {
 		return nil, err
 	}
+	// The old key no longer resolves; drop any stale type memo entry.
+	t.forgetTypeObject(oldKey)
 
 	changeBcs, err := t.queueWorldChange(ctx, &WorldChange{
 		Key:        oldKey,
@@ -370,6 +372,8 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 	if err != nil {
 		return true, err
 	}
+	// A deleted object no longer exists; drop any stale type memo entry.
+	t.forgetTypeObject(key)
 
 	// update the changelog
 	changeBcs, err := t.queueWorldChange(ctx, &WorldChange{
