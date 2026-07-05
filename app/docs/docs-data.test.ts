@@ -44,12 +44,8 @@ describe('docs data', () => {
     )
 
     expect(
-      docs.some(
-        (doc) =>
-          doc.site === 'developers' &&
-          doc.section === 'platform' &&
-          doc.slug === 'space-native-docs-boundaries' &&
-          doc.body.includes('notes/docs'),
+      docs.every((doc) =>
+        doc.body.trimStart().startsWith('TODO: Rewrite this page'),
       ),
     ).toBe(true)
   })
