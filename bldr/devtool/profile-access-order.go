@@ -200,20 +200,19 @@ func (r *startupAccessRecorder) add(filesystem packfile_order.AccessOrderFilesys
 
 func recordDynamicImports(ctx context.Context, r *startupAccessRecorder, distFS *unixfs.FSHandle, entrypoint string) error {
 	if entrypoint != "" {
-		entrypointHandle, _, err := distFS.LookupPath(ctx, entrypoint)
-		if err != nil {
-			if !stderrors.Is(err, fs.ErrNotExist) {
-				return errors.Wrap(err, "lookup entrypoint")
-			}
-		} else {
-			defer entrypointHandle.Release()
-			dat, err := unixfs.ReadFile(ctx, entrypointHandle)
-			if err != nil {
-				return errors.Wrap(err, "read entrypoint")
-			}
-			for _, match := range chunkImportPattern.FindAllString(string(dat), -1) {
-				r.add(packfile_order.AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST, match, packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, match)
-			}
+		if err := recordDynamicImportsFromFile(ctx, r, distFS, entrypoint); err != nil {
+			return err
+		}
+	}
+
+	workerPaths, err := listRuntimeWorkerPaths(ctx, distFS)
+	if err != nil {
+		return err
+	}
+	for _, workerPath := range workerPaths {
+		r.add(packfile_order.AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST, workerPath, packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_ENTRYPOINT, "worker")
+		if err := recordDynamicImportsFromFile(ctx, r, distFS, workerPath); err != nil {
+			return err
 		}
 	}
 
@@ -223,6 +222,27 @@ func recordDynamicImports(ctx context.Context, r *startupAccessRecorder, distFS 
 	}
 	for _, chunkPath := range chunkPaths {
 		r.add(packfile_order.AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST, chunkPath, packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, chunkPath)
+	}
+	return nil
+}
+
+func recordDynamicImportsFromFile(ctx context.Context, r *startupAccessRecorder, distFS *unixfs.FSHandle, filePath string) error {
+	fileHandle, _, err := distFS.LookupPath(ctx, filePath)
+	if err != nil {
+		if stderrors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+		return errors.Wrap(err, "lookup startup module")
+	}
+	defer fileHandle.Release()
+
+	dat, err := unixfs.ReadFile(ctx, fileHandle)
+	if err != nil {
+		return errors.Wrap(err, "read startup module")
+	}
+	baseDir := path.Dir(filePath)
+	for _, match := range chunkImportPattern.FindAllString(string(dat), -1) {
+		r.add(packfile_order.AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST, path.Join(baseDir, match), packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, match)
 	}
 	return nil
 }
@@ -244,22 +264,66 @@ func recordAssetRoot(ctx context.Context, r *startupAccessRecorder, assetsFS *un
 	return nil
 }
 
-func listChunkModulePaths(ctx context.Context, distFS *unixfs.FSHandle) ([]string, error) {
-	entries, err := readDirNames(ctx, distFS, "chunks")
+func listRuntimeWorkerPaths(ctx context.Context, distFS *unixfs.FSHandle) ([]string, error) {
+	var paths []string
+	err := walkManifestFiles(ctx, distFS, "", func(fpath string) {
+		switch path.Base(fpath) {
+		case "runtime-goscript.mjs":
+			paths = append(paths, fpath)
+		}
+	})
 	if err != nil {
-		if stderrors.Is(err, fs.ErrNotExist) {
-			return nil, nil
-		}
 		return nil, err
-	}
-	paths := make([]string, 0, len(entries))
-	for _, name := range entries {
-		if strings.HasSuffix(name, ".mjs") {
-			paths = append(paths, path.Join("chunks", name))
-		}
 	}
 	slices.Sort(paths)
 	return paths, nil
+}
+
+func listChunkModulePaths(ctx context.Context, distFS *unixfs.FSHandle) ([]string, error) {
+	var paths []string
+	err := walkManifestFiles(ctx, distFS, "", func(fpath string) {
+		if strings.HasSuffix(fpath, ".mjs") && (strings.HasPrefix(fpath, "chunks/") || strings.Contains(fpath, "/chunks/")) {
+			paths = append(paths, fpath)
+		}
+	})
+	if err != nil {
+		return nil, err
+	}
+	slices.Sort(paths)
+	return paths, nil
+}
+
+func walkManifestFiles(ctx context.Context, root *unixfs.FSHandle, dirPath string, cb func(string)) error {
+	dir := root
+	if dirPath != "" {
+		var err error
+		dir, _, err = root.LookupPath(ctx, dirPath)
+		if err != nil {
+			if stderrors.Is(err, fs.ErrNotExist) {
+				return nil
+			}
+			return err
+		}
+		defer dir.Release()
+	}
+
+	_, ops, err := dir.GetOps(ctx)
+	if err != nil {
+		return err
+	}
+	return ops.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
+		if ent.GetName() == "" {
+			return nil
+		}
+		fpath := path.Join(dirPath, ent.GetName())
+		if ent.GetIsDirectory() {
+			return walkManifestFiles(ctx, root, fpath, cb)
+		}
+		if ent.GetIsFile() {
+			cb(fpath)
+		}
+		return nil
+	})
 }
 
 func readDirNames(ctx context.Context, root *unixfs.FSHandle, dirPath string) ([]string, error) {

@@ -76,6 +76,31 @@ func TestReplayAccessOrderRecordPrioritizesProfileThenFallback(t *testing.T) {
 	assertRefOrder(t, got.MissingRefs, []*block.BlockRef{staleRef})
 }
 
+func TestReplayAccessOrderRecordMissingRefsDoNotMakeRecordStale(t *testing.T) {
+	ctx := context.Background()
+	present := testRef(t, "present-profiled")
+	absent := testRef(t, "already-published")
+
+	record := testAccessOrderRecord(t, []*AccessOrderEntry{
+		{
+			Filesystem:   AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST,
+			Path:         "entrypoint.mjs",
+			ResolvedRefs: []*block.BlockRef{present, absent},
+		},
+	})
+
+	got, err := ReplayAccessOrderRecord(ctx, newTestRefGraph(), AccessOrderManifestIdentityFromRecord(record), record, []*block.BlockRef{present}, nil)
+	if err != nil {
+		t.Fatalf("ReplayAccessOrderRecord: %v", err)
+	}
+
+	assertRefOrder(t, got.Refs, []*block.BlockRef{present})
+	if got.StaleRecord {
+		t.Fatal("StaleRecord = true, want false for refs outside the candidate set")
+	}
+	assertRefOrder(t, got.MissingRefs, []*block.BlockRef{absent})
+}
+
 func TestReplayAccessOrderRecordStaleMetadataUsesFallbackOrder(t *testing.T) {
 	ctx := context.Background()
 	root := testRef(t, "stale-fallback-root")

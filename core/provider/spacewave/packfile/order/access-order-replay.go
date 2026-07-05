@@ -56,7 +56,6 @@ func ReplayAccessOrderRecord(
 			}
 			candidate, ok := candidates[key]
 			if !ok {
-				res.StaleRecord = true
 				res.MissingRefs = append(res.MissingRefs, ref)
 				continue
 			}

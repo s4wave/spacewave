@@ -24,10 +24,13 @@ import("chunks/zeta.mjs");
 import("chunks/alpha.mjs");
 import("chunks/not-js.css");
 `),
-		"chunks/alpha.mjs":  []byte("export const alpha = true\n"),
-		"chunks/beta.mjs":   []byte("export const beta = true\n"),
-		"chunks/ignored.js": []byte("export const ignored = true\n"),
-		"chunks/zeta.mjs":   []byte("export const zeta = true\n"),
+		"chunks/alpha.mjs":                          []byte("export const alpha = true\n"),
+		"chunks/beta.mjs":                           []byte("export const beta = true\n"),
+		"chunks/ignored.js":                         []byte("export const ignored = true\n"),
+		"chunks/zeta.mjs":                           []byte("export const zeta = true\n"),
+		"entrypoint/abc123/runtime-goscript.mjs":    []byte(`runGoScriptRuntime(async () => (await import("./chunks/main.mjs")).main); import("chunks/worker-extra.mjs");`),
+		"entrypoint/abc123/chunks/main.mjs":         []byte("export const main = true\n"),
+		"entrypoint/abc123/chunks/worker-extra.mjs": []byte("export const workerExtra = true\n"),
 	})
 	defer distFS.Release()
 
@@ -43,14 +46,17 @@ import("chunks/not-js.css");
 	}
 
 	entries := recorder.entries
-	if len(entries) != 5 {
-		t.Fatalf("got %d entries, want 5", len(entries))
+	if len(entries) != 8 {
+		t.Fatalf("got %d entries, want 8", len(entries))
 	}
 	assertProfileAccessEntry(t, entries[0], 0, "entrypoint.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_ENTRYPOINT, "startup", 1)
 	assertProfileAccessEntry(t, entries[1], 1, "chunks/dot.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "./chunks/dot.mjs", 1)
 	assertProfileAccessEntry(t, entries[2], 2, "chunks/zeta.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "chunks/zeta.mjs", 3)
 	assertProfileAccessEntry(t, entries[3], 3, "chunks/alpha.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "chunks/alpha.mjs", 2)
-	assertProfileAccessEntry(t, entries[4], 4, "chunks/beta.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "chunks/beta.mjs", 1)
+	assertProfileAccessEntry(t, entries[4], 4, "entrypoint/abc123/runtime-goscript.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_ENTRYPOINT, "worker", 1)
+	assertProfileAccessEntry(t, entries[5], 5, "entrypoint/abc123/chunks/main.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "./chunks/main.mjs", 2)
+	assertProfileAccessEntry(t, entries[6], 6, "entrypoint/abc123/chunks/worker-extra.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "chunks/worker-extra.mjs", 2)
+	assertProfileAccessEntry(t, entries[7], 7, "chunks/beta.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "chunks/beta.mjs", 1)
 }
 
 func assertProfileAccessEntry(
