@@ -83,6 +83,13 @@ type DevtoolArgs struct {
 	// PublishCsv is the list of publish IDs.
 	PublishCsv string
 
+	// AccessOrderManifestID is the manifest ID to profile for startup access order.
+	AccessOrderManifestID string
+	// AccessOrderPlatformID is the manifest platform ID to profile.
+	AccessOrderPlatformID string
+	// AccessOrderOutputPath is the .bin profile output path.
+	AccessOrderOutputPath string
+
 	// DisableCleanup disables cleaning up the build files.
 	DisableCleanup bool
 
@@ -290,6 +297,7 @@ func (a *DevtoolArgs) BuildSubCommands() []*cli.Command {
 		a.BuildStaticHttpCommand(),
 		a.BuildBuildCommand(),
 		a.BuildPublishCommand(),
+		a.BuildProfileAccessOrderCommand(),
 		a.BuildTargetsCommand(),
 	}
 }
