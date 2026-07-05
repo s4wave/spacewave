@@ -43,11 +43,8 @@ describe('docs data', () => {
       ]),
     )
 
-    expect(
-      docs.every((doc) =>
-        doc.body.trimStart().startsWith('TODO: Rewrite this page'),
-      ),
-    ).toBe(true)
+    expect(docs.every((doc) => doc.body.trim().length > 0)).toBe(true)
+    expect(docs.some((doc) => /TODO/.test(doc.body))).toBe(false)
   })
 
   it('uses site-owned labels and current raw source URLs', () => {
