@@ -45,6 +45,50 @@ describe('useUploadManager', () => {
     expect(entries[2]).toMatchObject({ kind: 'file', path: 'top.txt' })
   })
 
+  it('emits a started event when files are added', () => {
+    const uploadTree = vi
+      .fn<FSHandle['uploadTree']>()
+      .mockReturnValue(new Promise(() => {}))
+    const handle = { uploadTree } as Pick<FSHandle, 'uploadTree'> as FSHandle
+
+    const { result } = renderHook(() => useUploadManager(handle))
+    act(() => {
+      result.current.addFiles([buildFile('a.txt', 'hi')])
+    })
+
+    expect(result.current.lastEvent).toMatchObject({
+      kind: 'started',
+      fileCount: 1,
+      errorCount: 0,
+    })
+  })
+
+  it('emits a completed event when all uploads finish', async () => {
+    const uploadTree = vi.fn<FSHandle['uploadTree']>().mockResolvedValue({
+      bytesWritten: 8n,
+      filesWritten: 2n,
+      directoriesWritten: 0n,
+    })
+    const handle = { uploadTree } as Pick<FSHandle, 'uploadTree'> as FSHandle
+
+    const { result } = renderHook(() => useUploadManager(handle))
+    act(() => {
+      result.current.addFiles([
+        buildFile('a.txt', 'hi'),
+        buildFile('b.txt', 'yo'),
+      ])
+    })
+
+    await waitFor(() => {
+      expect(result.current.lastEvent?.kind).toBe('completed')
+    })
+    expect(result.current.lastEvent).toMatchObject({
+      kind: 'completed',
+      fileCount: 2,
+      errorCount: 0,
+    })
+  })
+
   it('uploads directories-only selections as a tree batch', async () => {
     const uploadTree = vi.fn<FSHandle['uploadTree']>().mockResolvedValue({
       bytesWritten: 0n,

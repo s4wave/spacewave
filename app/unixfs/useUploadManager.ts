@@ -19,10 +19,28 @@ export interface UploadItem {
   abortController: AbortController
 }
 
+// UploadEvent is a transient upload-lifecycle notification for the UI: a burst
+// starting (from addFiles) or every item in progress reaching a terminal state.
+export interface UploadEvent {
+  // id increments per event so a consumer reacts to each event even when the
+  // kind repeats across successive bursts.
+  id: number
+  kind: 'started' | 'completed'
+  // fileCount is the number of files in the started burst, or the number of
+  // items that completed successfully at completion.
+  fileCount: number
+  // errorCount is the number of failed items at completion; always 0 for
+  // 'started'.
+  errorCount: number
+}
+
 // UploadManager provides the interface for managing file uploads.
 export interface UploadManager {
   items: UploadItem[]
   activeCount: number
+  // lastEvent is the most recent upload-lifecycle event, or null before any
+  // upload has started this session. Consumers dedupe on lastEvent.id.
+  lastEvent: UploadEvent | null
   addFiles: (files: File[], directories?: string[]) => void
   cancelUpload: (id: string) => void
   cancelAll: () => void
@@ -35,6 +53,7 @@ export function useUploadManager(
   concurrency = 1,
 ): UploadManager {
   const [items, setItems] = useState<UploadItem[]>([])
+  const [lastEvent, setLastEvent] = useState<UploadEvent | null>(null)
   const handleRef = useRef(handle)
   useEffect(() => {
     handleRef.current = handle
@@ -42,6 +61,8 @@ export function useUploadManager(
 
   const nextIdRef = useRef(0)
   const nextGroupIdRef = useRef(0)
+  const eventSeqRef = useRef(0)
+  const wasInProgressRef = useRef(false)
   const startedRef = useRef(new Set<string>())
   const groupDirsRef = useRef(new Map<string, string[]>())
 
@@ -178,6 +199,32 @@ export function useUploadManager(
     }
   }, [items])
 
+  // Emit a completion event on the transition from any in-progress items to
+  // every item reaching a terminal state. Runs before the auto-clear below, so
+  // items are still present and consumers can anchor feedback to the indicator.
+  useEffect(() => {
+    const inProgress = items.some(
+      (i) => i.status === 'queued' || i.status === 'uploading',
+    )
+    if (inProgress) {
+      wasInProgressRef.current = true
+      return
+    }
+    if (!wasInProgressRef.current || items.length === 0) {
+      wasInProgressRef.current = false
+      return
+    }
+    wasInProgressRef.current = false
+    const fileCount = items.filter((i) => i.status === 'done').length
+    const errorCount = items.filter((i) => i.status === 'error').length
+    setLastEvent({
+      id: ++eventSeqRef.current,
+      kind: 'completed',
+      fileCount,
+      errorCount,
+    })
+  }, [items])
+
   // Auto-clear completed uploads after a delay.
   useEffect(() => {
     if (items.length === 0) return
@@ -232,7 +279,15 @@ export function useUploadManager(
         abortController,
       })
     }
+    if (newItems.length === 0) return
     setItems((prev) => [...prev, ...newItems])
+    const fileCount = files.length || (directories?.length ?? 0)
+    setLastEvent({
+      id: ++eventSeqRef.current,
+      kind: 'started',
+      fileCount,
+      errorCount: 0,
+    })
   }, [])
 
   const cancelUpload = useCallback((id: string) => {
@@ -279,11 +334,20 @@ export function useUploadManager(
     () => ({
       items,
       activeCount,
+      lastEvent,
       addFiles,
       cancelUpload,
       cancelAll,
       clearDone,
     }),
-    [items, activeCount, addFiles, cancelUpload, cancelAll, clearDone],
+    [
+      items,
+      activeCount,
+      lastEvent,
+      addFiles,
+      cancelUpload,
+      cancelAll,
+      clearDone,
+    ],
   )
 }

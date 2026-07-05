@@ -1,10 +1,10 @@
 import React from 'react'
-import { describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { cleanup, render, screen } from '@testing-library/react'
 
 import { BottomBarRoot } from '@s4wave/web/frame/bottom-bar-root.js'
 import { ViewerFrame } from '@s4wave/web/frame/ViewerFrame.js'
-import type { UploadManager } from './useUploadManager.js'
+import type { UploadItem, UploadManager } from './useUploadManager.js'
 import { UploadProgressBottomBar } from './UploadProgressBottomBar.js'
 
 function buildUploadManager(
@@ -13,6 +13,7 @@ function buildUploadManager(
   return {
     items: [],
     activeCount: 0,
+    lastEvent: null,
     addFiles: vi.fn(),
     cancelUpload: vi.fn(),
     cancelAll: vi.fn(),
@@ -21,7 +22,41 @@ function buildUploadManager(
   }
 }
 
+function uploadingItem(): UploadItem {
+  return {
+    id: 'upload-1',
+    groupId: 'group-1',
+    kind: 'file',
+    file: null,
+    name: 'alpha.txt',
+    path: 'docs/alpha.txt',
+    totalSize: 100,
+    bytesWritten: 40,
+    status: 'uploading',
+    abortController: new AbortController(),
+  }
+}
+
+function doneItem(id: string, name: string): UploadItem {
+  return {
+    id,
+    groupId: id,
+    kind: 'file',
+    file: null,
+    name,
+    path: `docs/${name}`,
+    totalSize: 100,
+    bytesWritten: 100,
+    status: 'done',
+    abortController: new AbortController(),
+  }
+}
+
 describe('UploadProgressBottomBar', () => {
+  afterEach(() => {
+    cleanup()
+  })
+
   it('renders a full-view overlay with aggregate upload progress', () => {
     const uploadManager = buildUploadManager({
       activeCount: 1,
@@ -167,5 +202,51 @@ describe('UploadProgressBottomBar', () => {
     expect(label).toBeTruthy()
     expect(button?.className).toContain('whitespace-nowrap')
     expect(button?.className).toContain('shrink-0')
+  })
+
+  it('shows an anchored start notification on an upload started event', async () => {
+    const uploadManager = buildUploadManager({
+      activeCount: 1,
+      items: [uploadingItem()],
+      lastEvent: { id: 1, kind: 'started', fileCount: 2, errorCount: 0 },
+    })
+
+    render(
+      <BottomBarRoot openMenu="" setOpenMenu={() => {}}>
+        <UploadProgressBottomBar uploadManager={uploadManager} />
+        <ViewerFrame>
+          <div>Browser</div>
+        </ViewerFrame>
+      </BottomBarRoot>,
+    )
+
+    expect(await screen.findByTestId('upload-feedback-popover')).toBeTruthy()
+    expect(screen.getByText('Upload started')).toBeTruthy()
+    expect(
+      screen.getByText('Uploading 2 files. Track progress here.'),
+    ).toBeTruthy()
+  })
+
+  it('shows an anchored completion notification on an all-finished event', async () => {
+    const uploadManager = buildUploadManager({
+      items: [
+        doneItem('upload-1', 'alpha.txt'),
+        doneItem('upload-2', 'beta.txt'),
+      ],
+      lastEvent: { id: 1, kind: 'completed', fileCount: 2, errorCount: 0 },
+    })
+
+    render(
+      <BottomBarRoot openMenu="" setOpenMenu={() => {}}>
+        <UploadProgressBottomBar uploadManager={uploadManager} />
+        <ViewerFrame>
+          <div>Browser</div>
+        </ViewerFrame>
+      </BottomBarRoot>,
+    )
+
+    expect(await screen.findByTestId('upload-feedback-popover')).toBeTruthy()
+    expect(screen.getByText('Upload complete')).toBeTruthy()
+    expect(screen.getByText('2 files added to this folder.')).toBeTruthy()
   })
 })

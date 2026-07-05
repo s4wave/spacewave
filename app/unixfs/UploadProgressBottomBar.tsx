@@ -1,11 +1,26 @@
-import { useCallback, useMemo } from 'react'
-import { LuCheck, LuFolder, LuUpload, LuX } from 'react-icons/lu'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { LuCheck, LuCircleAlert, LuFolder, LuUpload, LuX } from 'react-icons/lu'
 
 import { BottomBarLevel } from '@s4wave/web/frame/bottom-bar-level.js'
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+} from '@s4wave/web/ui/Popover.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 
-import type { UploadManager, UploadItem } from './useUploadManager.js'
+import type {
+  UploadEvent,
+  UploadManager,
+  UploadItem,
+} from './useUploadManager.js'
+
+// Auto-dismiss windows for the anchored feedback popover. Completion lingers
+// slightly longer so the "added" confirmation reads before it fades; both are
+// capped by the indicator itself unmounting once the manager clears its items.
+const STARTED_DISMISS_MS = 3500
+const COMPLETED_DISMISS_MS = 5000
 
 // formatBytes formats a byte count into a human-readable string.
 function formatBytes(bytes: number, decimals = 1): string {
@@ -243,6 +258,53 @@ function UploadItemRow({
   )
 }
 
+// UploadFeedbackContent renders the anchored start/completion notification copy.
+function UploadFeedbackContent({ feedback }: { feedback: UploadEvent }) {
+  const started = feedback.kind === 'started'
+  const hasErrors = feedback.errorCount > 0
+  const title = started
+    ? 'Upload started'
+    : hasErrors
+      ? 'Upload finished with errors'
+      : 'Upload complete'
+  const detail = started
+    ? `Uploading ${feedback.fileCount} ${
+        feedback.fileCount === 1 ? 'file' : 'files'
+      }. Track progress here.`
+    : hasErrors
+      ? `${feedback.fileCount} uploaded, ${feedback.errorCount} failed.`
+      : `${feedback.fileCount} ${
+          feedback.fileCount === 1 ? 'file' : 'files'
+        } added to this folder.`
+
+  return (
+    <div className="flex items-start gap-3" data-testid="upload-feedback">
+      <div
+        className={cn(
+          'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg',
+          started && 'bg-brand/10 text-brand',
+          !started && !hasErrors && 'bg-green-500/10 text-green-500',
+          hasErrors && 'bg-destructive/10 text-destructive',
+        )}
+      >
+        {started ? (
+          <LuUpload className="size-4" />
+        ) : hasErrors ? (
+          <LuCircleAlert className="size-4" />
+        ) : (
+          <LuCheck className="size-4" />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-foreground text-sm font-semibold">{title}</div>
+        <div className="text-foreground-alt/70 mt-0.5 text-xs leading-relaxed">
+          {detail}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // UploadProgressBottomBar renders an upload progress indicator in the bottom bar.
 export function UploadProgressBottomBar({
   uploadManager,
@@ -256,27 +318,60 @@ export function UploadProgressBottomBar({
     [uploadManager.items],
   )
 
+  // Surface each upload-lifecycle event as a temporary popover anchored to the
+  // indicator, then auto-dismiss. Deduping on event id keeps a re-render from
+  // reopening a dismissed notification.
+  const [feedback, setFeedback] = useState<UploadEvent | null>(null)
+  const seenEventIdRef = useRef(0)
+  const lastEvent = uploadManager.lastEvent
+  useEffect(() => {
+    if (!lastEvent || lastEvent.id === seenEventIdRef.current) return
+    seenEventIdRef.current = lastEvent.id
+    setFeedback(lastEvent)
+    const dismissMs =
+      lastEvent.kind === 'started' ? STARTED_DISMISS_MS : COMPLETED_DISMISS_MS
+    const timer = setTimeout(() => setFeedback(null), dismissMs)
+    return () => clearTimeout(timer)
+  }, [lastEvent])
+
   const buttonRender = useCallback(
     (selected: boolean, onClick: () => void, className?: string) => (
-      <button
-        onClick={onClick}
-        className={cn(
-          'flex h-full shrink-0 items-center gap-1.5 px-2 text-xs whitespace-nowrap',
-          selected && 'text-foreground',
-          className,
+      <Popover open={feedback !== null}>
+        <PopoverAnchor asChild>
+          <button
+            onClick={onClick}
+            className={cn(
+              'flex h-full shrink-0 items-center gap-1.5 px-2 text-xs whitespace-nowrap',
+              selected && 'text-foreground',
+              className,
+            )}
+          >
+            {activeUploading > 0 ? (
+              <Spinner size="sm" />
+            ) : (
+              <LuUpload className="size-3" />
+            )}
+            {activeUploading > 0
+              ? `Uploading ${activeUploading}/${totalCount}`
+              : `${doneCount}/${totalCount} uploaded`}
+          </button>
+        </PopoverAnchor>
+        {feedback !== null && (
+          <PopoverContent
+            side="top"
+            align="end"
+            sideOffset={6}
+            onOpenAutoFocus={(e) => e.preventDefault()}
+            onCloseAutoFocus={(e) => e.preventDefault()}
+            data-testid="upload-feedback-popover"
+            className="w-72 p-3"
+          >
+            <UploadFeedbackContent feedback={feedback} />
+          </PopoverContent>
         )}
-      >
-        {activeUploading > 0 ? (
-          <Spinner size="sm" />
-        ) : (
-          <LuUpload className="size-3" />
-        )}
-        {activeUploading > 0
-          ? `Uploading ${activeUploading}/${totalCount}`
-          : `${doneCount}/${totalCount} uploaded`}
-      </button>
+      </Popover>
     ),
-    [activeUploading, totalCount, doneCount],
+    [activeUploading, totalCount, doneCount, feedback],
   )
 
   if (totalCount === 0) return null
@@ -286,7 +381,9 @@ export function UploadProgressBottomBar({
       id="upload-progress"
       position="right"
       button={buttonRender}
-      buttonKey={`${activeUploading}-${totalCount}-${doneCount}`}
+      buttonKey={`${activeUploading}-${totalCount}-${doneCount}-${
+        feedback ? feedback.id : 'none'
+      }`}
       overlay={<UploadProgressOverlay uploadManager={uploadManager} />}
       overlayKey={`${totalCount}-${activeUploading}-${doneCount}`}
     >
