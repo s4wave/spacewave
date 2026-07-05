@@ -27,8 +27,9 @@ import { useNavigate, useParams } from '@s4wave/web/router/router.js'
 
 import { ShellGridPanel } from './ShellGridPanel.js'
 import { ShellTabLabel } from './ShellTabLabel.js'
-import { useShellTabs } from './ShellTabContext.js'
+import { useShellTabs, type OpenShellTabOptions } from './ShellTabContext.js'
 import {
+  addShellModelTab,
   addAndSelectShellModelTab,
   buildContextualShellTab,
   buildPathTab,
@@ -68,6 +69,7 @@ export function ShellGridLayout() {
     selectShellTab,
     retainShellTabs,
     startRenaming,
+    registerActiveTabsetPathOpener,
   } = useShellTabs()
 
   // Decode layout from URL - only on initial mount or when URL changes externally
@@ -243,6 +245,45 @@ export function ShellGridLayout() {
       addAndSelectShellModelTab(model, tabsetId, newTab, 'shell-panel')
     },
     [model, tabs, addShellTab],
+  )
+
+  const openPathInGridTabset = useCallback(
+    (path: string, options: OpenShellTabOptions = {}) => {
+      if (!model) return null
+      const select = options.select ?? true
+      const existingTab = options.focusExisting
+        ? tabs.find((tab) => tab.path === path && model.getNodeById(tab.id))
+        : undefined
+
+      if (existingTab) {
+        if (select) {
+          selectShellTab(existingTab.id)
+          model.doAction(Actions.selectTab(existingTab.id))
+        }
+        return existingTab.id
+      }
+
+      const activeTabsetId = getActiveTabsetId(model)
+      if (!activeTabsetId) return null
+
+      const newTab = buildPathTab(path)
+      addShellTab(newTab, {
+        afterTabId: options.afterTabId,
+        select,
+      })
+      if (select) {
+        addAndSelectShellModelTab(model, activeTabsetId, newTab, 'shell-panel')
+      } else {
+        addShellModelTab(model, activeTabsetId, newTab, 'shell-panel')
+      }
+      return newTab.id
+    },
+    [addShellTab, model, selectShellTab, tabs],
+  )
+
+  useEffect(
+    () => registerActiveTabsetPathOpener(openPathInGridTabset),
+    [openPathInGridTabset, registerActiveTabsetPathOpener],
   )
 
   // Handle closing a tab

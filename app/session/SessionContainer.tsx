@@ -29,6 +29,7 @@ import { ProviderSetup } from './setup/ProviderSetup.js'
 import { LocalSessionSetup } from './setup/LocalSessionSetup.js'
 import { LinkDeviceWizard } from './setup/LinkDeviceWizard.js'
 import { CommandLineSetupPage } from './settings/CommandLineSetupPage.js'
+import { CliTerminalPage } from './settings/CliTerminalPage.js'
 import { TransferWizard } from './settings/TransferWizard.js'
 import { BillingAccountDetailRoute } from '@s4wave/app/billing/BillingAccountDetailRoute.js'
 import { BillingAccountsRoute } from '@s4wave/app/billing/BillingAccountsRoute.js'
@@ -411,6 +412,9 @@ export function SessionContainer(props: {
                   {spacewaveSessionRoutes(props.metadata, {
                     fallbackPath: currentLevelPath,
                   })}
+                  <Route path="/settings/cli/terminal">
+                    <CliTerminalPage />
+                  </Route>
                   <Route path="/settings/cli">
                     <CommandLineSetupPage />
                   </Route>

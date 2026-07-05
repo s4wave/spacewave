@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   DesktopCLIInstallActionKind,
@@ -7,13 +7,101 @@ import {
   type DesktopCLIInstallState,
 } from '@go/github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime/desktop-runtime.pb.js'
 
+const commandLinePageMocks = vi.hoisted(() => ({
+  isDesktop: false,
+  activeTabId: 'tab-settings',
+  openPathInActiveTabset: vi.fn(),
+  navigate: vi.fn(),
+  sessionIndex: 7,
+  listenerStatus: {
+    listening: true,
+    socketPath: '/run/spacewave-session-7.sock',
+    connectedClients: 2,
+  },
+  rootResource: { value: null },
+  cliInstallResource: {
+    value: undefined as { state?: DesktopCLIInstallState } | undefined,
+    loading: false,
+    error: null as Error | null,
+  },
+  runtimeHandoff: { active: false, requesterName: '' },
+  stateAtomSetter: vi.fn(),
+}))
+
+vi.mock('@aptre/bldr', () => ({
+  get isDesktop() {
+    return commandLinePageMocks.isDesktop
+  },
+}))
+
+vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
+  useStreamingResource: () => commandLinePageMocks.cliInstallResource,
+}))
+
+vi.mock('@s4wave/app/hooks/useListenerStatus.js', () => ({
+  useListenerStatus: () => commandLinePageMocks.listenerStatus,
+}))
+
+vi.mock('@s4wave/app/listener/RuntimeHandoffContext.js', () => ({
+  useRuntimeHandoff: () => commandLinePageMocks.runtimeHandoff,
+}))
+
+vi.mock('@s4wave/app/prerender/StaticContext.js', () => ({
+  useStaticHref: (path: string) => path,
+}))
+
+vi.mock('@s4wave/app/ShellTabContext.js', () => ({
+  useShellTabs: () => ({
+    activeTabId: commandLinePageMocks.activeTabId,
+    openPathInActiveTabset: commandLinePageMocks.openPathInActiveTabset,
+  }),
+}))
+
+vi.mock('@s4wave/web/contexts/contexts.js', () => ({
+  useSessionIndex: () => commandLinePageMocks.sessionIndex,
+}))
+
+vi.mock('@s4wave/web/hooks/useRootResource.js', () => ({
+  useRootResource: () => commandLinePageMocks.rootResource,
+}))
+
+vi.mock('@s4wave/web/router/router.js', () => ({
+  useNavigate: () => commandLinePageMocks.navigate,
+}))
+
+vi.mock('@s4wave/web/state/persist.js', () => ({
+  useStateNamespace: (parts: string[]) => parts.join('/'),
+  useStateAtom: () => [false, commandLinePageMocks.stateAtomSetter],
+}))
+
 import {
+  CommandLineSetupPage,
   DesktopCLIInstallCard,
   WalkthroughSection,
 } from './CommandLineSetupPage.js'
 
 describe('DesktopCLIInstallCard', () => {
   afterEach(() => cleanup())
+  beforeEach(() => {
+    commandLinePageMocks.isDesktop = false
+    commandLinePageMocks.activeTabId = 'tab-settings'
+    commandLinePageMocks.openPathInActiveTabset.mockReset()
+    commandLinePageMocks.navigate.mockReset()
+    commandLinePageMocks.sessionIndex = 7
+    commandLinePageMocks.listenerStatus = {
+      listening: true,
+      socketPath: '/run/spacewave-session-7.sock',
+      connectedClients: 2,
+    }
+    commandLinePageMocks.rootResource = { value: null }
+    commandLinePageMocks.cliInstallResource = {
+      value: { state: state({}) },
+      loading: false,
+      error: null,
+    }
+    commandLinePageMocks.runtimeHandoff = { active: false, requesterName: '' }
+    commandLinePageMocks.stateAtomSetter.mockReset()
+  })
 
   it('renders missing CLI target and release identity from resource state', () => {
     render(
@@ -173,6 +261,58 @@ describe('DesktopCLIInstallCard', () => {
         "spacewave --socket-path '/run/spacewave-session-4.sock' --session-index 4 space list",
       ),
     ).toBeDefined()
+  })
+
+  it('opens the session-local in-app terminal in browser composition without desktop install state', () => {
+    commandLinePageMocks.isDesktop = false
+    commandLinePageMocks.cliInstallResource = {
+      value: undefined,
+      loading: false,
+      error: new Error('desktop install state should not be required'),
+    }
+
+    render(<CommandLineSetupPage />)
+
+    expect(screen.getByRole('heading', { name: 'Command Line' })).toBeDefined()
+    expect(
+      screen.getByText(
+        'Run the Spacewave CLI in this browser tab without installing a desktop command first.',
+      ),
+    ).toBeDefined()
+    expect(screen.queryByText('Desktop CLI install')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open CLI terminal' }))
+
+    expect(commandLinePageMocks.openPathInActiveTabset).toHaveBeenCalledWith(
+      '/u/7/settings/cli/terminal',
+      {
+        afterTabId: 'tab-settings',
+        focusExisting: true,
+        select: true,
+      },
+    )
+  })
+
+  it('keeps desktop install affordances while launching the same in-app terminal path', () => {
+    commandLinePageMocks.isDesktop = true
+
+    render(<CommandLineSetupPage />)
+
+    expect(screen.getByText('Desktop CLI install')).toBeDefined()
+    expect(screen.getByText('Ready')).toBeDefined()
+    expect(screen.getByText('/run/spacewave-session-7.sock')).toBeDefined()
+    expect(screen.getByText('Try it out')).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open CLI terminal' }))
+
+    expect(commandLinePageMocks.openPathInActiveTabset).toHaveBeenCalledWith(
+      '/u/7/settings/cli/terminal',
+      {
+        afterTabId: 'tab-settings',
+        focusExisting: true,
+        select: true,
+      },
+    )
   })
 })
 

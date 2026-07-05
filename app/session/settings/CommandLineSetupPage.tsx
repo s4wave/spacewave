@@ -23,6 +23,7 @@ import { DesktopCLIInstallResourceServiceClient } from '@go/github.com/s4wave/sp
 
 import { useRuntimeHandoff } from '@s4wave/app/listener/RuntimeHandoffContext.js'
 import { useListenerStatus } from '@s4wave/app/hooks/useListenerStatus.js'
+import { useShellTabs } from '@s4wave/app/ShellTabContext.js'
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
@@ -45,11 +46,24 @@ export function CommandLineSetupPage() {
   const sessionIdx = useSessionIndex()
   const status = useListenerStatus()
   const rootResource = useRootResource()
+  const { activeTabId, openPathInActiveTabset } = useShellTabs()
   const cliInstall = useDesktopCLIInstallState(rootResource)
 
   const handleBack = useCallback(() => {
     navigate({ path: '../../' })
   }, [navigate])
+
+  const handleOpenTerminal = useCallback(() => {
+    const terminalPath =
+      sessionIdx != null
+        ? `/u/${sessionIdx}/settings/cli/terminal`
+        : '/settings/cli/terminal'
+    openPathInActiveTabset(terminalPath, {
+      afterTabId: activeTabId,
+      focusExisting: true,
+      select: true,
+    })
+  }, [activeTabId, openPathInActiveTabset, sessionIdx])
 
   const handleCLIInstallAction = useCallback(
     async (action: DesktopCLIInstallActionItem) => {
@@ -98,19 +112,53 @@ export function CommandLineSetupPage() {
         </div>
 
         <div className="space-y-4">
-          <DesktopCLIInstallCard
-            state={cliInstall.value?.state}
-            loading={cliInstall.loading}
-            error={cliInstall.error}
-            onInvokeAction={handleCLIInstallAction}
-          />
-          <ListenerStatusChip />
-          <WalkthroughSection opts={opts} />
+          <InAppTerminalLauncher onOpen={handleOpenTerminal} />
+          {isDesktop && (
+            <DesktopCLIInstallCard
+              state={cliInstall.value?.state}
+              loading={cliInstall.loading}
+              error={cliInstall.error}
+              onInvokeAction={handleCLIInstallAction}
+            />
+          )}
+          {isDesktop && <ListenerStatusChip />}
+          {isDesktop && <WalkthroughSection opts={opts} />}
           <InstallGuidanceSection />
-          <MoreCommandsSection opts={opts} />
+          {isDesktop && <MoreCommandsSection opts={opts} />}
         </div>
       </div>
     </div>
+  )
+}
+
+function InAppTerminalLauncher({ onOpen }: { onOpen: () => void }) {
+  return (
+    <section className="border-brand/20 bg-brand/5 rounded-lg border p-4 backdrop-blur-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="bg-brand/10 flex size-9 shrink-0 items-center justify-center rounded-md">
+            <LuTerminal className="text-brand size-4" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-foreground text-sm font-semibold tracking-tight">
+              Open CLI terminal
+            </h2>
+            <p className="text-foreground-alt mt-1 text-xs">
+              Run the Spacewave CLI in this browser tab without installing a
+              desktop command first.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onOpen}
+          className="bg-brand text-brand-foreground hover:bg-brand/90 inline-flex shrink-0 items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition-colors"
+        >
+          <LuTerminal className="size-3.5" />
+          Open CLI terminal
+        </button>
+      </div>
+    </section>
   )
 }
 

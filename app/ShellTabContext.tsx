@@ -79,6 +79,11 @@ export interface OpenShellTabOptions {
   focusExisting?: boolean
 }
 
+export type ActiveTabsetPathOpener = (
+  path: string,
+  options?: OpenShellTabOptions,
+) => string | null
+
 export interface AddShellTabOptions {
   afterTabId?: string
   select?: boolean
@@ -334,6 +339,11 @@ export interface ShellTabsContextValue {
   activeTabId: string
   setActiveTabId: React.Dispatch<React.SetStateAction<string>>
   openPathInNewTab: (path: string, options?: OpenShellTabOptions) => string
+  openPathInActiveTabset: (
+    path: string,
+    options?: OpenShellTabOptions,
+  ) => string
+  registerActiveTabsetPathOpener: (opener: ActiveTabsetPathOpener) => () => void
   addShellTab: (tab: ShellTab, options?: AddShellTabOptions) => string
   selectShellTab: (tabId: string) => void
   retainShellTabs: (tabIds: Set<string>, fallbackActiveTabId?: string) => void
@@ -396,6 +406,8 @@ export function ShellTabsProvider({ children }: { children: ReactNode }) {
     initializeShellTabsProviderState,
   )
   const { tabs, activeTabId, renamingTabId } = state
+  const [activeTabsetPathOpener, setActiveTabsetPathOpener] =
+    useState<ActiveTabsetPathOpener | null>(null)
 
   const setTabs = useCallback((update: React.SetStateAction<ShellTab[]>) => {
     dispatch({ type: 'set_tabs', update })
@@ -431,6 +443,27 @@ export function ShellTabsProvider({ children }: { children: ReactNode }) {
       return tabId
     },
     [tabs],
+  )
+
+  const registerActiveTabsetPathOpener = useCallback(
+    (opener: ActiveTabsetPathOpener) => {
+      setActiveTabsetPathOpener(() => opener)
+      return () => {
+        setActiveTabsetPathOpener((current: ActiveTabsetPathOpener | null) =>
+          current === opener ? null : current,
+        )
+      }
+    },
+    [],
+  )
+
+  const openPathInActiveTabset = useCallback(
+    (path: string, options: OpenShellTabOptions = {}) => {
+      const tabId = activeTabsetPathOpener?.(path, options)
+      if (tabId) return tabId
+      return openPathInNewTab(path, options)
+    },
+    [activeTabsetPathOpener, openPathInNewTab],
   )
 
   const addShellTab = useCallback(
@@ -484,6 +517,8 @@ export function ShellTabsProvider({ children }: { children: ReactNode }) {
       activeTabId,
       setActiveTabId,
       openPathInNewTab,
+      openPathInActiveTabset,
+      registerActiveTabsetPathOpener,
       addShellTab,
       selectShellTab,
       retainShellTabs,
@@ -500,6 +535,8 @@ export function ShellTabsProvider({ children }: { children: ReactNode }) {
       activeTabId,
       setActiveTabId,
       openPathInNewTab,
+      openPathInActiveTabset,
+      registerActiveTabsetPathOpener,
       addShellTab,
       selectShellTab,
       retainShellTabs,

@@ -428,6 +428,24 @@ function GridDocsCommandProbe() {
   )
 }
 
+function GridCliCommandProbe() {
+  const { activeTabId, openPathInActiveTabset } = useShellTabs()
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        openPathInActiveTabset('/u/7/settings/cli/terminal', {
+          afterTabId: activeTabId,
+          focusExisting: true,
+          select: true,
+        })
+      }
+    >
+      Open CLI terminal
+    </button>
+  )
+}
+
 function createUnixFSRowDragEvent() {
   const envelope = buildUnixFSEntryAppDragEnvelope({
     entry: {
@@ -753,6 +771,51 @@ describe('ShellGridLayout', () => {
         path: '/g/encoded-grid',
         replace: true,
       })
+    })
+  })
+
+  it('projects command-line terminal tabs into the active grid tabset', async () => {
+    sessionStorage.setItem(
+      SHELL_TABS_STORAGE_KEY,
+      JSON.stringify({
+        tabs: [
+          { id: 'tab-2', name: 'Home', path: '/' },
+          { id: 'tab-3', name: 'Blog', path: '/blog' },
+        ],
+        activeTabId: 'tab-2',
+      }),
+    )
+
+    render(
+      <ShellTabsProvider>
+        <GridCliCommandProbe />
+        <ShellGridLayout />
+      </ShellTabsProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open CLI terminal' }))
+
+    await waitFor(() => {
+      const stored = JSON.parse(
+        sessionStorage.getItem(SHELL_TABS_STORAGE_KEY) ?? 'null',
+      ) as {
+        activeTabId: string
+        tabs: Array<{ id: string; name: string; path: string }>
+      }
+      const activeTab = stored.tabs.find((tab) => tab.id === stored.activeTabId)
+      expect(activeTab).toMatchObject({
+        name: 'Settings',
+        path: '/u/7/settings/cli/terminal',
+      })
+
+      const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0]
+      const activeGridTab = props?.model.tabs.find(
+        (tab) => tab.id === stored.activeTabId,
+      )
+      const selectedGridTab =
+        props?.model.tabsets[0]?.children[props.model.tabsets[0].selected ?? -1]
+      expect(activeGridTab).toBeDefined()
+      expect(selectedGridTab?.id).toBe(stored.activeTabId)
     })
   })
 

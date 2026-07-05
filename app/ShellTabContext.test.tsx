@@ -85,6 +85,28 @@ function OpenDocsProbe() {
   )
 }
 
+function OpenCliInActiveTabsetProbe() {
+  const { activeTabId, openPathInActiveTabset, tabs } = useShellTabs()
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() =>
+          openPathInActiveTabset('/u/7/settings/cli/terminal', {
+            afterTabId: activeTabId,
+            focusExisting: true,
+            select: true,
+          })
+        }
+      >
+        Open CLI terminal
+      </button>
+      <div data-testid="active-tab-id">{activeTabId}</div>
+      <div data-testid="tabs-json">{JSON.stringify(tabs)}</div>
+    </>
+  )
+}
+
 describe('ShellTabContext', () => {
   afterEach(() => {
     cleanup()
@@ -274,6 +296,43 @@ describe('ShellTabContext', () => {
         customName: 'Reference',
       })
       expect(screen.getByTestId('active-tab-id').textContent).toBe('docs-tab')
+    })
+  })
+
+  it('falls back to opening a selected new tab when no active-tabset opener is registered', async () => {
+    sessionStorage.setItem(
+      SHELL_TABS_STORAGE_KEY,
+      JSON.stringify({
+        tabs: [
+          { id: 'settings-tab', name: 'Settings', path: '/u/7/settings/cli' },
+        ],
+        activeTabId: 'settings-tab',
+      }),
+    )
+
+    render(
+      <ShellTabsProvider>
+        <OpenCliInActiveTabsetProbe />
+      </ShellTabsProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open CLI terminal' }))
+
+    await waitFor(() => {
+      const tabs = JSON.parse(
+        screen.getByTestId('tabs-json').textContent ?? '[]',
+      )
+      const terminalTab = tabs.find(
+        (tab: { path: string }) => tab.path === '/u/7/settings/cli/terminal',
+      )
+      expect(tabs).toHaveLength(2)
+      expect(terminalTab).toMatchObject({
+        name: 'Settings',
+        path: '/u/7/settings/cli/terminal',
+      })
+      expect(screen.getByTestId('active-tab-id').textContent).toBe(
+        terminalTab.id,
+      )
     })
   })
 })
