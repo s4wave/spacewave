@@ -1,44 +1,35 @@
+import { useCallback, useMemo } from 'react'
+import { LuTerminal } from 'react-icons/lu'
+
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
-import { Terminal as XTerm } from '@xterm/xterm'
-import { FitAddon } from '@xterm/addon-fit'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { LuTerminal } from 'react-icons/lu'
-import type { MessageStream } from 'starpc'
 
 import {
-  TerminalFrameKind,
   TerminalSessionState,
   TerminalTargetKind,
   type Terminal,
-  type TerminalFrame,
 } from '@s4wave/sdk/terminal/terminal.pb.js'
 import {
   TerminalHandle,
   TerminalTypeID,
 } from '@s4wave/sdk/terminal/terminal.js'
+import {
+  TerminalPane,
+  type TerminalPaneConnector,
+  type TerminalPaneTrustChallengeRenderer,
+} from './TerminalPane.js'
 import { TerminalSshTrustPanel } from './TerminalSshTrustPanel.js'
 
 export { TerminalTypeID }
-
-const terminalEncoder = new TextEncoder()
-const terminalDecoder = new TextDecoder()
-
-type TerminalFrameQueue = ReturnType<typeof createTerminalFrameQueue>
 
 export function TerminalViewer({
   objectInfo,
   worldState,
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
-  const terminalHostRef = useRef<HTMLDivElement | null>(null)
-  const terminalQueueRef = useRef<TerminalFrameQueue | null>(null)
-  const [trustChallenge, setTrustChallenge] = useState<TerminalFrame | null>(
-    null,
-  )
 
   const handle = useAccessTypedHandle(
     worldState,
@@ -46,6 +37,7 @@ export function TerminalViewer({
     TerminalHandle,
     TerminalTypeID,
   )
+  const terminalHandle = handle.value
 
   const streamFactory = useCallback(
     (h: TerminalHandle, signal: AbortSignal) => h.watchTerminalState(signal),
@@ -54,88 +46,19 @@ export function TerminalViewer({
   const stateResource = useStreamingResource(handle, streamFactory, [])
   const state: Terminal | undefined = stateResource.value ?? undefined
 
-  useEffect(() => {
-    const terminalHandle = handle.value
-    const host = terminalHostRef.current
-    if (!terminalHandle || !host) return
+  const connectTerminal = useMemo<TerminalPaneConnector | undefined>(() => {
+    if (!terminalHandle) return undefined
+    return (frames, signal) => terminalHandle.connectTerminal(frames, signal)
+  }, [terminalHandle])
 
-    const rpcAbort = new AbortController()
-    const renderAbort = new AbortController()
-    const queue = createTerminalFrameQueue()
-    terminalQueueRef.current = queue
-    const term = new XTerm({
-      cursorBlink: true,
-      fontFamily:
-        'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-      fontSize: 13,
-      theme: {
-        background: '#09090b',
-        foreground: '#f4f4f5',
-      },
-    })
-    const fit = new FitAddon()
-    term.loadAddon(fit)
-    term.open(host)
-    fit.fit()
-    queue.push({
-      kind: TerminalFrameKind.RESIZE,
-      cols: term.cols,
-      rows: term.rows,
-    })
-
-    const disposeInput = term.onData((chunk) => {
-      if (!chunk) return
-      queue.push({
-        kind: TerminalFrameKind.INPUT,
-        data: terminalEncoder.encode(chunk),
-      })
-    })
-
-    const handleResize = () => {
-      try {
-        fit.fit()
-      } catch {
-        return
-      }
-      queue.push({
-        kind: TerminalFrameKind.RESIZE,
-        cols: term.cols,
-        rows: term.rows,
-      })
-    }
-    window.addEventListener('resize', handleResize)
-
-    const terminalDone = readTerminalFrames(
-      terminalHandle.connectTerminal(queue.stream(), rpcAbort.signal),
-      term,
-      renderAbort.signal,
-      setTrustChallenge,
-    )
-
-    return () => {
-      renderAbort.abort()
-      if (terminalQueueRef.current === queue) {
-        terminalQueueRef.current = null
-      }
-      void queue
-        .close()
-        .then(() => terminalDone)
-        .finally(() => rpcAbort.abort())
-      window.removeEventListener('resize', handleResize)
-      disposeInput.dispose()
-      term.dispose()
-    }
-  }, [handle.value])
-
-  const respondToSshTrust = useCallback((accepted: boolean) => {
-    const queue = terminalQueueRef.current
-    if (!queue) return
-    queue.push({
-      kind: TerminalFrameKind.SSH_HOST_KEY_TRUST_RESPONSE,
-      sshTrustAccepted: accepted,
-    })
-    setTrustChallenge(null)
-  }, [])
+  const renderTrustChallenge = useCallback<TerminalPaneTrustChallengeRenderer>(
+    (challenge, onRespond) => {
+      return (
+        <TerminalSshTrustPanel challenge={challenge} onRespond={onRespond} />
+      )
+    },
+    [],
+  )
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
@@ -177,116 +100,12 @@ export function TerminalViewer({
           {state.error}
         </div>
       )}
-      {trustChallenge && (
-        <TerminalSshTrustPanel
-          challenge={trustChallenge}
-          onRespond={respondToSshTrust}
-        />
-      )}
-      <div
-        ref={terminalHostRef}
-        className="min-h-0 flex-1 overflow-hidden bg-zinc-950"
+      <TerminalPane
+        connectTerminal={connectTerminal}
+        renderTrustChallenge={renderTrustChallenge}
       />
     </div>
   )
-}
-
-async function readTerminalFrames(
-  frames: MessageStream<TerminalFrame>,
-  term: XTerm,
-  signal: AbortSignal,
-  onSshTrustChallenge: (frame: TerminalFrame | null) => void,
-) {
-  try {
-    for await (const frame of frames) {
-      switch (frame.kind) {
-        case TerminalFrameKind.OUTPUT:
-          if (!signal.aborted) {
-            term.write(terminalDecoder.decode(frame.data))
-          }
-          break
-        case TerminalFrameKind.READY:
-          onSshTrustChallenge(null)
-          break
-        case TerminalFrameKind.SSH_HOST_KEY_TRUST_CHALLENGE:
-          onSshTrustChallenge(frame)
-          break
-        case TerminalFrameKind.ERROR:
-          onSshTrustChallenge(null)
-          if (!signal.aborted) {
-            term.writeln(`\r\n${frame.error || 'terminal error'}`)
-          }
-          return
-        case TerminalFrameKind.EXIT:
-          onSshTrustChallenge(null)
-          if (!signal.aborted) {
-            term.writeln(`\r\nprocess exited ${frame.exitCode ?? 0}`)
-          }
-          return
-      }
-    }
-  } catch (err) {
-    if (!signal.aborted) {
-      term.writeln(`\r\n${err instanceof Error ? err.message : String(err)}`)
-    }
-  }
-}
-
-function createTerminalFrameQueue(): {
-  push: (frame: TerminalFrame) => void
-  close: () => Promise<void>
-  stream: () => MessageStream<TerminalFrame>
-} {
-  const frames: TerminalFrame[] = []
-  const waiters: Array<() => void> = []
-  const closeWaiters: Array<() => void> = []
-  const closed = { value: false }
-  const wake = () => {
-    while (waiters.length !== 0) {
-      waiters.shift()?.()
-    }
-  }
-  const closePromise = new Promise<void>((resolve) => {
-    closeWaiters.push(resolve)
-  })
-  const resolveClose = () => {
-    closed.value = true
-    while (closeWaiters.length !== 0) {
-      closeWaiters.shift()?.()
-    }
-  }
-  return {
-    push(frame) {
-      if (closed.value) return
-      frames.push(frame)
-      wake()
-    },
-    close() {
-      if (!closed.value) {
-        closed.value = true
-        frames.push({ kind: TerminalFrameKind.CLOSE })
-        wake()
-      }
-      return closePromise
-    },
-    async *stream() {
-      for (;;) {
-        const frame = frames.shift()
-        if (frame) {
-          yield frame
-          if (frame.kind === TerminalFrameKind.CLOSE) {
-            resolveClose()
-            return
-          }
-          continue
-        }
-        if (closed.value) return
-        await new Promise<void>((resolve) => {
-          waiters.push(resolve)
-        })
-      }
-    },
-  }
 }
 
 function formatTerminalTargetLabel(state?: Terminal): string {
