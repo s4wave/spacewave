@@ -920,7 +920,7 @@
     },
     {
       "name": "github.com/aperturerobotics/cayley",
-      "version": "v0.15.1-0.20260705010846-96538bc83910",
+      "version": "v0.15.1-0.20260705021747-c5ec5d20d2b6",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/cayley",
@@ -1648,7 +1648,7 @@
     },
     {
       "name": "github.com/s4wave/goscript",
-      "version": "v0.2.14-0.20260705013227-eed25656b358",
+      "version": "v0.2.14-0.20260705030140-b14856463ca0",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/s4wave/goscript",
