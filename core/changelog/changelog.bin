@@ -1,4 +1,10 @@
 
+±
+0.53.1
+2026-07-05ÝSpacewave 0.53.1 is a reliability patch for browser startup and local file storage. It helps older browser profiles recover from stale local app cache data and fixes a rare storage stall in ephemeral and browser sessions."ÝSpacewave 0.53.1 is a reliability patch for browser startup and local file storage. It helps older browser profiles recover from stale local app cache data and fixes a rare storage stall in ephemeral and browser sessions.2–
+ˆFixed browser startup for profiles created on older Spacewave versions. When old local app cache data uses a hash format the current browser build cannot read, Spacewave now resets that cache automatically and starts fresh instead of staying on the loading screen.ˆFixed browser startup for profiles created on older Spacewave versions. When old local app cache data uses a hash format the current browser build cannot read, Spacewave now resets that cache automatically and starts fresh instead of staying on the loading screen.2¸
+™Fixed a rare permanent stall in in-memory file storage where a cancelled write could leave later reads blocked, affecting ephemeral and browser sessions.™Fixed a rare permanent stall in in-memory file storage where a cancelled write could leave later reads blocked, affecting ephemeral and browser sessions.:†
+€Browser sessions now switch context more smoothly under load, reducing cases where busy work could delay other browser activity.€Browser sessions now switch context more smoothly under load, reducing cases where busy work could delay other browser activity.
 â&
 0.53.0
 2026-07-04‘Spacewave 0.53.0 adds editable keyboard shortcuts, richer Command Palette discovery, and Org file support for notes and docs. It also improves Drive Quickstart reliability, browser startup, session recovery, desktop shortcut handling, and object-heavy Space responsiveness."‘Spacewave 0.53.0 adds editable keyboard shortcuts, richer Command Palette discovery, and Org file support for notes and docs. It also improves Drive Quickstart reliability, browser startup, session recovery, desktop shortcut handling, and object-heavy Space responsiveness.*„
