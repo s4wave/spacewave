@@ -21,8 +21,10 @@ type Store struct {
 	nreaders int
 	// writing indicates there's a write tx active
 	writing bool
-	// writeWaiting indicates a write tx is waiting
-	writeWaiting bool
+	// writeWaiting is the number of write tx waiting to acquire.
+	// Readers are held while this is non-zero so waiting writers are not
+	// starved; each waiter releases its own registration on acquire or cancel.
+	writeWaiting int
 }
 
 // NewStore constructs a new key-value store.
@@ -34,37 +36,70 @@ func NewStore() *Store {
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
 func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
-	for {
-		var tx kvtx.Tx
-		var waitCh <-chan struct{}
-		s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-			if write {
-				if s.nreaders != 0 || s.writing {
-					s.writeWaiting = true
-				} else {
-					s.writing = true
-					s.writeWaiting = false
-					tx = newTx(s, true)
-				}
+	var tx kvtx.Tx
+	// waiting indicates this call registered as a waiting writer and still
+	// owns a writeWaiting increment it must release on any early exit.
+	var waiting bool
+	var waitCh <-chan struct{}
+	s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		if write {
+			if s.nreaders != 0 || s.writing {
+				s.writeWaiting++
+				waiting = true
+				waitCh = getWaitCh()
 			} else {
-				if !s.writing && !s.writeWaiting {
-					s.nreaders++
-					tx = newTx(s, false)
-				}
+				s.writing = true
+				tx = newTx(s, true)
 			}
-			if tx == nil {
+		} else if !s.writing && s.writeWaiting == 0 {
+			s.nreaders++
+			tx = newTx(s, false)
+		} else {
+			waitCh = getWaitCh()
+		}
+	})
+
+	if tx != nil {
+		return tx, nil
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			// A cancelled write waiter must release its admission block on
+			// readers. writeWaiting gates reader admission, so leaking this
+			// registration permanently starves every subsequent reader on the
+			// shared store (the tx is nil, so the caller's Discard never runs).
+			if waiting {
+				s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+					s.writeWaiting--
+					broadcast()
+				})
+			}
+			return nil, context.Canceled
+		case <-waitCh:
+		}
+
+		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			if write {
+				if s.nreaders == 0 && !s.writing {
+					s.writeWaiting--
+					waiting = false
+					s.writing = true
+					tx = newTx(s, true)
+				} else {
+					waitCh = getWaitCh()
+				}
+			} else if !s.writing && s.writeWaiting == 0 {
+				s.nreaders++
+				tx = newTx(s, false)
+			} else {
 				waitCh = getWaitCh()
 			}
 		})
 
 		if tx != nil {
 			return tx, nil
-		}
-
-		select {
-		case <-ctx.Done():
-			return nil, context.Canceled
-		case <-waitCh:
 		}
 	}
 }
