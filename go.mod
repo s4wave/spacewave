@@ -2,14 +2,14 @@ module github.com/s4wave/spacewave
 
 go 1.26.3
 
-require github.com/s4wave/goscript v0.2.14-0.20260705010111-b3ed22738efd // master
+require github.com/s4wave/goscript v0.2.14-0.20260705013227-eed25656b358 // master
 
 replace (
 	// aperture: use compatibility forks
 	// https://github.com/dgraph-io/badger/pull/2048
 	github.com/cloudflare/circl => github.com/aperturerobotics/circl v1.6.4-0.20260621010139-e3e5c81ebc40
-	github.com/dgraph-io/badger/v4 => github.com/aperturerobotics/badger-go/v4 v4.0.0-20241029084129-c1a1dbed1aac // main
-	github.com/dgraph-io/ristretto/v2 => github.com/aperturerobotics/ristretto/v2 v2.0.0-20260619193556-b7aa4f19bce9 // main
+	github.com/dgraph-io/badger/v4 => github.com/aperturerobotics/badger-go/v4 v4.0.0-20260705010846-938e2bd5962c // main
+	github.com/dgraph-io/ristretto/v2 => github.com/aperturerobotics/ristretto/v2 v2.0.0-20260705010935-8d0c8a34b53e // main
 
 	// aperture: use ext-engines forks
 	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260621171526-1e2167d387d8 // aperture-7
@@ -26,19 +26,19 @@ replace (
 
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
-	github.com/aperturerobotics/bbolt v0.0.0-20260704155049-d1668b64c0f6 // master
+	github.com/aperturerobotics/bbolt v0.0.0-20260705010846-0a20b604a410 // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
-	github.com/aperturerobotics/cayley v0.15.1-0.20260705010235-94926de15f71 // master
+	github.com/aperturerobotics/cayley v0.15.1-0.20260705010846-96538bc83910 // master
 	github.com/aperturerobotics/cli v1.1.0 // latest
 	github.com/aperturerobotics/common v0.34.1 // latest
-	github.com/aperturerobotics/controllerbus v0.53.5-0.20260620224135-5f6015d2a8b0 // master
+	github.com/aperturerobotics/controllerbus v0.53.5-0.20260705010846-96899d3b0492 // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 	github.com/aperturerobotics/fastjson v0.1.2-0.20260619070337-5d150feb5e98
 	github.com/aperturerobotics/fsnotify v1.9.1-0.20260506231828-931cb4bf1761 // master
 	github.com/aperturerobotics/go-brotli-decoder v1.2.2
 	github.com/aperturerobotics/go-indexeddb v0.2.4-0.20260329113533-333005693662 // master
-	github.com/aperturerobotics/go-kvfile v0.10.1-0.20260423183349-fcbaa93292c0 // master
+	github.com/aperturerobotics/go-kvfile v0.10.1-0.20260705010911-5c5ed949ddfe // master
 	github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5
 	github.com/aperturerobotics/go-multibase v0.4.0 // indirect
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0 // indirect
@@ -49,10 +49,10 @@ require (
 	github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
-	github.com/aperturerobotics/protobuf-go-lite v0.15.0 // master
+	github.com/aperturerobotics/protobuf-go-lite v0.15.1-0.20260705010935-4becd1e3d6d3 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
 	github.com/aperturerobotics/starpc v0.49.18 // latest
-	github.com/aperturerobotics/util v1.34.10-0.20260610174257-740fe32c1ea1 // master
+	github.com/aperturerobotics/util v1.34.10-0.20260705010935-dceeac6053fb // master
 )
 
 require (
