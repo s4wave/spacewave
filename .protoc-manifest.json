@@ -1354,6 +1354,17 @@
       ],
       "protoFiles": ["core/provider/spacewave/packfile/packfile.proto"]
     },
+    "github.com/s4wave/spacewave/core/provider/spacewave/packfile/order": {
+      "hash": "b21b2db0d44fb1d3b358da72e041052e5bdb5ad8471e56dc0950cc9d4a8bc713",
+      "generatedFiles": [
+        "core/provider/spacewave/packfile/order/order.pb.cc",
+        "core/provider/spacewave/packfile/order/order.pb.go",
+        "core/provider/spacewave/packfile/order/order.pb.h",
+        "core/provider/spacewave/packfile/order/order.pb.rs",
+        "core/provider/spacewave/packfile/order/order.pb.ts"
+      ],
+      "protoFiles": ["core/provider/spacewave/packfile/order/order.proto"]
+    },
     "github.com/s4wave/spacewave/core/provider/transfer": {
       "hash": "03c61d4fe8572de99642e96c26a40a740d2589f99f9f14d0eca1ece9d467e054",
       "generatedFiles": [

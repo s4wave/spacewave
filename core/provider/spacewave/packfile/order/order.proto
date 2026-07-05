@@ -1,0 +1,76 @@
+syntax = "proto3";
+package provider.spacewave.packfile.order;
+option go_package = "github.com/s4wave/spacewave/core/provider/spacewave/packfile/order;order";
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "google/protobuf/timestamp.proto";
+
+// AccessOrderFilesystem identifies which manifest filesystem a path came from.
+enum AccessOrderFilesystem {
+  // ACCESS_ORDER_FILESYSTEM_UNKNOWN indicates the filesystem was not recorded.
+  ACCESS_ORDER_FILESYSTEM_UNKNOWN = 0;
+  // ACCESS_ORDER_FILESYSTEM_DIST identifies the manifest distribution filesystem.
+  ACCESS_ORDER_FILESYSTEM_DIST = 1;
+  // ACCESS_ORDER_FILESYSTEM_ASSETS identifies the manifest assets filesystem.
+  ACCESS_ORDER_FILESYSTEM_ASSETS = 2;
+}
+
+// AccessOrderReason identifies why a path was recorded.
+enum AccessOrderReason {
+  // ACCESS_ORDER_REASON_UNKNOWN indicates no reason was recorded.
+  ACCESS_ORDER_REASON_UNKNOWN = 0;
+  // ACCESS_ORDER_REASON_ENTRYPOINT identifies the startup entrypoint file.
+  ACCESS_ORDER_REASON_ENTRYPOINT = 1;
+  // ACCESS_ORDER_REASON_DYNAMIC_IMPORT identifies a dynamic import edge.
+  ACCESS_ORDER_REASON_DYNAMIC_IMPORT = 2;
+  // ACCESS_ORDER_REASON_ASSET identifies an asset file access.
+  ACCESS_ORDER_REASON_ASSET = 3;
+}
+
+// AccessOrderMetadata stores one build metadata key/value pair.
+message AccessOrderMetadata {
+  // Key is the metadata key.
+  string key = 1;
+  // Value is the metadata value.
+  string value = 2;
+}
+
+// AccessOrderEntry stores one observed file access.
+message AccessOrderEntry {
+  // Ordinal is the first observed access index for this entry.
+  uint64 ordinal = 1;
+  // Filesystem is the manifest filesystem containing path.
+  AccessOrderFilesystem filesystem = 2;
+  // Path is the slash-separated path inside the manifest filesystem.
+  string path = 3;
+  // Reason identifies why the access was recorded.
+  AccessOrderReason reason = 4;
+  // ReasonDetail stores an entrypoint path, import specifier, or other label.
+  string reason_detail = 5;
+  // AccessCount is the number of times this path was observed.
+  uint64 access_count = 6;
+  // ResolvedRefs are optional block refs resolved when the record was written.
+  repeated block.BlockRef resolved_refs = 7;
+}
+
+// AccessOrderRecord stores profile-guided manifest startup file access order.
+message AccessOrderRecord {
+  // ManifestId is the manifest id the profile was recorded for.
+  string manifest_id = 1;
+  // PlatformId is the manifest platform id the profile was recorded for.
+  string platform_id = 2;
+  // BuildType is the manifest build type the profile was recorded for.
+  string build_type = 3;
+  // ManifestRootRef is the manifest root ref the profile was recorded against.
+  block.BlockRef manifest_root_ref = 4;
+  // ManifestRev is the manifest revision the profile was recorded against.
+  uint64 manifest_rev = 5;
+  // GenerationId identifies the profiling run or build input that wrote this record.
+  string generation_id = 6;
+  // GeneratedAt is when this record was written.
+  .google.protobuf.Timestamp generated_at = 7;
+  // Entries are ordered file accesses observed during startup profiling.
+  repeated AccessOrderEntry entries = 8;
+  // BuildMetadata stores optional build metadata attached by the profiling run.
+  repeated AccessOrderMetadata build_metadata = 9;
+}
