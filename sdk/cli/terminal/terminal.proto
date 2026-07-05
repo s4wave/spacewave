@@ -1,0 +1,11 @@
+syntax = "proto3";
+package s4wave.cli.terminal;
+
+import "github.com/s4wave/spacewave/sdk/terminal/terminal.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/cli/terminal;s4wave_cli_terminal";
+
+// CliTerminalService runs the browser-safe Spacewave CLI over terminal frames.
+service CliTerminalService {
+  rpc RunCli(stream .s4wave.terminal.TerminalFrame) returns (stream .s4wave.terminal.TerminalFrame);
+}

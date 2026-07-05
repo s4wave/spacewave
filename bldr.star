@@ -289,6 +289,22 @@ manifest("spacewave-debug",
     },
 )
 
+manifest("spacewave-cli-plugin",
+    builder="bldr/plugin/compiler/go",
+    rev=1,
+    config={
+        "goPkgs": ["./plugin/cli"],
+        "configSet": {
+            "spacewave-cli-plugin": config_entry("plugin/cli", 1),
+        },
+        "platformTypes": {
+            "web": {
+                "goCompiler": "GO_COMPILER_GOSCRIPT",
+            },
+        },
+    },
+)
+
 manifest("spacewave",
     builder="bldr/cli/compiler",
     config={
@@ -420,7 +436,7 @@ manifest("spacewave-cli",
 
 DEV_MANIFESTS = [
     "web", "spacewave-core", "spacewave-web",
-    "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-debug",
+    "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-cli-plugin", "spacewave-debug",
 ]
 BROWSER_RELEASE_MANIFESTS = [
     # The browser release should not even build spacewave-loader: it is a
@@ -587,6 +603,7 @@ build("release-web-e2e-goscript",
         ),
     },
 )
+build("cli-plugin",  manifests=["spacewave-cli-plugin"], targets=["browser"])
 build("cli",         manifests=["spacewave"])
 
 # plugin-release-browser builds the browser-side plugin channel surface: the
