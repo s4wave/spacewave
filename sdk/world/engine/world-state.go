@@ -418,16 +418,12 @@ func (ws *SDKWorldState) ApplyWorldOp(ctx context.Context, op world.Operation, s
 	return resp.Seqno, resp.SysErr, nil
 }
 
-// TypeObjectEnsured always reports the type object as not ensured. The remote
-// resource owns the type-object memo for its own transaction; this client keeps
-// no local transaction-local knowledge and falls back to the remote read.
-func (ws *SDKWorldState) TypeObjectEnsured(typeObjectKey string) bool {
-	return false
+// HasObject reports whether an object exists at key. The client keeps no
+// transaction-local knowledge, so it queries the remote resource directly.
+func (ws *SDKWorldState) HasObject(ctx context.Context, key string) (bool, error) {
+	_, found, err := ws.GetObject(ctx, key)
+	return found, err
 }
-
-// MarkTypeObjectEnsured does nothing. The remote resource maintains its own
-// transaction-local type knowledge.
-func (ws *SDKWorldState) MarkTypeObjectEnsured(typeObjectKey string) {}
 
 var _ world.WorldState = (*SDKWorldState)(nil)
 

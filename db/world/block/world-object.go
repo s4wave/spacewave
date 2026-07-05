@@ -124,6 +124,9 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 		}
 	}
 
+	// The object now exists for the rest of the transaction.
+	t.markObjectExists(key)
+
 	return objState, nil
 }
 
@@ -189,8 +192,8 @@ func (t *WorldState) renameObjectSingle(ctx context.Context, oldKey, newKey stri
 	if err := ot.Delete(ctx, oldTreeKey); err != nil {
 		return nil, err
 	}
-	// The old key no longer resolves; drop any stale type memo entry.
-	t.forgetTypeObject(oldKey)
+	// The old key no longer resolves; drop any stale object memo entry.
+	t.forgetObject(oldKey)
 
 	changeBcs, err := t.queueWorldChange(ctx, &WorldChange{
 		Key:        oldKey,
@@ -372,8 +375,8 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 	if err != nil {
 		return true, err
 	}
-	// A deleted object no longer exists; drop any stale type memo entry.
-	t.forgetTypeObject(key)
+	// A deleted object no longer exists; drop any stale object memo entry.
+	t.forgetObject(key)
 
 	// update the changelog
 	changeBcs, err := t.queueWorldChange(ctx, &WorldChange{

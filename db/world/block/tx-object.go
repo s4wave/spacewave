@@ -88,24 +88,17 @@ func (t *Tx) DeleteObject(ctx context.Context, key string) (bool, error) {
 	return t.state.DeleteObject(ctx, key)
 }
 
-// TypeObjectEnsured reports whether the underlying state already ensured the
-// type object for the current transaction.
-func (t *Tx) TypeObjectEnsured(typeObjectKey string) bool {
-	lkr := t.rmtx.RLocker()
-	lkr.Lock()
-	defer lkr.Unlock()
+// HasObject reports whether an object exists at key. It takes the write lock
+// because a miss may populate the underlying state's transaction-local object
+// memo, which the single-threaded state does not guard on its own.
+func (t *Tx) HasObject(ctx context.Context, key string) (bool, error) {
+	unlock, err := t.rmtx.Lock(ctx, true)
+	if err != nil {
+		return false, err
+	}
+	defer unlock()
 
-	return t.state.TypeObjectEnsured(typeObjectKey)
-}
-
-// MarkTypeObjectEnsured records on the underlying state that the type object
-// exists for the rest of the transaction.
-func (t *Tx) MarkTypeObjectEnsured(typeObjectKey string) {
-	lkr := t.rmtx.Locker()
-	lkr.Lock()
-	defer lkr.Unlock()
-
-	t.state.MarkTypeObjectEnsured(typeObjectKey)
+	return t.state.HasObject(ctx, key)
 }
 
 // _ is a type assertion

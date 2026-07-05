@@ -142,26 +142,22 @@ func SetObjectType(ctx context.Context, ws world.WorldState, key, typeID string)
 
 // EnsureTypeExists creates the object representing the type ID if it doesn't exist.
 //
-// The WorldState remembers ensured type objects for the transaction via
-// TypeObjectEnsured/MarkTypeObjectEnsured, so repeated calls with the same type
-// within one write transaction avoid re-reading the type object. States that
-// keep no transaction-local knowledge report the object as not ensured and fall
-// back to the read.
+// The world state answers HasObject from transaction-local knowledge when it
+// can, so repeated calls with the same type within one transaction avoid
+// re-reading the type object. Creating the object only when HasObject reports it
+// absent is safe under the single-writer transaction discipline; concurrent
+// creation is not a concern within one transaction.
 func EnsureTypeExists(ctx context.Context, ws world.WorldState, typeID string) (created bool, err error) {
 	objKey := BuildTypeObjectKey(typeID)
-	if ws.TypeObjectEnsured(objKey) {
-		return true, nil
-	}
-	_, existed, err := ws.GetObject(ctx, objKey)
+	exists, err := ws.HasObject(ctx, objKey)
 	if err != nil {
 		return false, err
 	}
-	if !existed {
+	if !exists {
 		if _, err = ws.CreateObject(ctx, objKey, nil); err != nil {
 			return false, err
 		}
 	}
-	ws.MarkTypeObjectEnsured(objKey)
 	return true, nil
 }
 

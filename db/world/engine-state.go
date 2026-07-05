@@ -220,16 +220,18 @@ func (e *engineWorldState) DeleteGraphObject(ctx context.Context, value string) 
 	})
 }
 
-// TypeObjectEnsured always reports the type object as not ensured. Each
-// operation runs in its own short-lived transaction, so no transaction-local
-// type knowledge survives between calls.
-func (e *engineWorldState) TypeObjectEnsured(typeObjectKey string) bool {
-	return false
+// HasObject reports whether an object exists at key. Each operation runs in its
+// own short-lived transaction, so this is a plain object-existence lookup with
+// no transaction-local knowledge to draw on.
+func (e *engineWorldState) HasObject(ctx context.Context, key string) (bool, error) {
+	var found bool
+	err := e.performOp(ctx, false, func(tx Tx) error {
+		var berr error
+		found, berr = tx.HasObject(ctx, key)
+		return berr
+	})
+	return found, err
 }
-
-// MarkTypeObjectEnsured does nothing. Per-operation transactions keep no
-// transaction-local type knowledge across calls.
-func (e *engineWorldState) MarkTypeObjectEnsured(typeObjectKey string) {}
 
 // performOp performs an operation.
 func (e *engineWorldState) performOp(ctx context.Context, write bool, cb func(tx Tx) error) error {
