@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { ObjectViewerComponent } from '@s4wave/web/object/object.js'
 
 import { getObjectViewersForType } from './viewers.js'
+import { IntroWizardTypeID } from './wizard/intro.js'
 
 describe('getObjectViewersForType', () => {
   it('keeps the UnixFS browser ahead of the gallery in default order', () => {
@@ -47,12 +48,10 @@ describe('getObjectViewersForType', () => {
     ).toEqual(['Debug Viewer'])
   })
 
-  it('keeps the Drive intro wizard ahead of the generic wizard viewer', () => {
+  it('keeps the intro wizard ahead of the generic wizard viewer', () => {
     expect(
-      getObjectViewersForType('wizard/drive/intro').map(
-        (viewer) => viewer.name,
-      ),
-    ).toEqual(['Drive Intro', 'Wizard', 'Debug Viewer'])
+      getObjectViewersForType(IntroWizardTypeID).map((viewer) => viewer.name),
+    ).toEqual(['New User Intro', 'Wizard', 'Debug Viewer'])
   })
 
   it('registers the Device viewer as a typed Space object surface', () => {
@@ -107,11 +106,11 @@ describe('getObjectViewersForType', () => {
 
   it('lets wizard viewers open through their typed resource handle', () => {
     expect(
-      getObjectViewersForType('wizard/drive/intro')
+      getObjectViewersForType(IntroWizardTypeID)
         .filter((viewer) => viewer.typeID.startsWith('wizard/'))
         .map((viewer) => [viewer.name, viewer.requiresObjectState]),
     ).toEqual([
-      ['Drive Intro', false],
+      ['New User Intro', false],
       ['Wizard', false],
     ])
     expect(
