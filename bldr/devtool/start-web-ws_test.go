@@ -99,10 +99,11 @@ func TestExecuteWebWsProjectStartsProjectStartupAfterNativePluginHost(t *testing
 func TestWriteWebWsBuildManifest(t *testing.T) {
 	dir := t.TempDir()
 	err := writeWebWsBuildManifest(dir, &entrypoint_browser_bundle.BrowserBundleResult{
-		EntrypointPath:        "entrypoint/entrypoint.mjs",
-		ServiceWorkerFilename: "sw.mjs",
-		SharedWorkerFilename:  "shw.mjs",
-		CSSPaths:              []string{"entrypoint/app.css"},
+		EntrypointPath:             "entrypoint/entrypoint.mjs",
+		EntrypointDecompressedSize: 1234,
+		ServiceWorkerFilename:      "sw.mjs",
+		SharedWorkerFilename:       "shw.mjs",
+		CSSPaths:                   []string{"entrypoint/app.css"},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -119,6 +120,9 @@ func TestWriteWebWsBuildManifest(t *testing.T) {
 	}
 	if got := string(v.GetStringBytes("shellAssets", "entrypoint")); got != "entrypoint/entrypoint.mjs" {
 		t.Fatalf("unexpected entrypoint: %q", got)
+	}
+	if got := v.GetInt("shellAssets", "entrypointDecompressedSize"); got != 1234 {
+		t.Fatalf("unexpected entrypointDecompressedSize: %d", got)
 	}
 	if got := string(v.GetStringBytes("shellAssets", "wasm")); got != "entrypoint/runtime-ws.mjs" {
 		t.Fatalf("unexpected websocket runtime asset: %q", got)

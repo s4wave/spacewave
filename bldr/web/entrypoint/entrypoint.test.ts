@@ -1,5 +1,6 @@
 import React, { act, type ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { writeBrowserBootStatus } from './boot-status.js'
 
 const renderedRootElements = vi.hoisted<unknown[]>(() => [])
 
@@ -78,37 +79,6 @@ function createStartupModuleURL() {
     'export default function StartupTestComponent() { return null }',
   ].join('\n')
   return `data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`
-}
-
-function installStartupFetch(contentLength: string | null) {
-  let controller: ReadableStreamDefaultController<Uint8Array> | undefined
-  const body = new ReadableStream<Uint8Array>({
-    start(nextController) {
-      controller = nextController
-    },
-  })
-  const headers = new Headers()
-  if (contentLength !== null) {
-    headers.set('content-length', contentLength)
-  }
-  const source = createStartupModuleURL()
-  const fetchMock = vi.fn(() =>
-    Promise.resolve(new Response(body, { status: 200, headers })),
-  )
-  vi.stubGlobal('BLDR_STARTUP_JS', source)
-  vi.stubGlobal('fetch', fetchMock)
-  if (!controller) {
-    throw new Error('startup fetch stream controller was not initialized')
-  }
-  return { source, controller, fetchMock }
-}
-
-function installStartupFetchMiss(status: number) {
-  const source = createStartupModuleURL()
-  const fetchMock = vi.fn(() => Promise.resolve(new Response(null, { status })))
-  vi.stubGlobal('BLDR_STARTUP_JS', source)
-  vi.stubGlobal('fetch', fetchMock)
-  return { source, fetchMock }
 }
 
 async function drainMicrotasks(count = 5) {
@@ -277,123 +247,104 @@ describe('browser entrypoint boot readiness', () => {
     )
   })
 
-  it('preloads the startup module stream and reports determinate app download progress', async () => {
+  it('imports injected startup module without fetching BLDR_STARTUP_JS from the entrypoint', async () => {
+    document.body.innerHTML = '<div id="bldr-root"></div>'
+    const source = createStartupModuleURL()
+    const fetchMock = vi.fn(() =>
+      Promise.reject(new Error('entrypoint must not fetch startup module')),
+    )
+    vi.stubGlobal('BLDR_STARTUP_JS', source)
+    vi.stubGlobal('fetch', fetchMock)
+
+    await importEntrypoint()
+    const root = await renderCapturedRoot()
+
+    try {
+      await waitForAssertion(() => {
+        expect(globalThis.__swStartupModuleImportedFrom).toBe(source)
+      })
+      expect(fetchMock).not.toHaveBeenCalled()
+    } finally {
+      await act(async () => {
+        root.unmount()
+      })
+    }
+  })
+
+  it('clamps determinate app progress UI between 0 and 100', () => {
     document.body.innerHTML = `
       <div id="bldr-root"></div>
       <div data-sw-boot-progress role="progressbar" aria-valuemin="0" aria-valuemax="100"></div>
       <span data-sw-boot-progress-label></span>
     `
-    const startup = installStartupFetch('10')
 
-    await importEntrypoint()
-    const root = await renderCapturedRoot()
+    writeBrowserBootStatus({
+      phase: 'app',
+      detail:
+        'Downloading the app bundle. This can take a while the first time.',
+      state: 'loading',
+      progress: -0.25,
+    })
 
-    try {
-      expect(startup.fetchMock).toHaveBeenCalledWith(startup.source, {
-        method: 'GET',
-        credentials: 'same-origin',
-      })
-
-      startup.controller.enqueue(new Uint8Array(4))
-      await waitForAssertion(() => {
-        expect(globalThis.__swBootStatus).toMatchObject({
-          phase: 'app',
-          detail:
-            'Downloading the app bundle. This can take a while the first time.',
-          state: 'loading',
-        })
-        expect(globalThis.__swBootStatus?.progress).toBeCloseTo(0.4)
-      })
-      const progress = document.querySelector('[data-sw-boot-progress]')
-      if (!(progress instanceof HTMLElement)) {
-        throw new Error('missing boot progress target')
-      }
-      expect(progress.style.width).toBe('40%')
-      expect(progress.getAttribute('aria-valuenow')).toBe('40')
-
-      startup.controller.enqueue(new Uint8Array(6))
-      startup.controller.close()
-      await waitForAssertion(() => {
-        expect(globalThis.__swStartupModuleImportedFrom).toBe(startup.source)
-      })
-
-      expect(globalThis.__swBootStatus?.progress).toBe(1)
-      expect(
-        document.querySelector('[data-sw-boot-progress-label]')?.textContent,
-      ).toBe('100%')
-    } finally {
-      await act(async () => {
-        root.unmount()
-      })
+    const progress = document.querySelector('[data-sw-boot-progress]')
+    if (!(progress instanceof HTMLElement)) {
+      throw new Error('missing boot progress target')
     }
+    expect(progress.style.width).toBe('0%')
+    expect(progress.getAttribute('aria-valuenow')).toBe('0')
+    expect(
+      document.querySelector('[data-sw-boot-progress-label]')?.textContent,
+    ).toBe('0%')
+    expect(globalThis.__swBootStatus?.progress).toBe(0)
+
+    writeBrowserBootStatus({
+      phase: 'app',
+      detail:
+        'Downloading the app bundle. This can take a while the first time.',
+      state: 'loading',
+      progress: 1.25,
+    })
+
+    expect(progress.style.width).toBe('100%')
+    expect(progress.getAttribute('aria-valuenow')).toBe('100')
+    expect(
+      document.querySelector('[data-sw-boot-progress-label]')?.textContent,
+    ).toBe('100%')
+    expect(globalThis.__swBootStatus?.progress).toBe(1)
   })
 
-  it('imports the bundled startup module even when preload returns 404', async () => {
-    document.body.innerHTML = '<div id="bldr-root"></div>'
-    const startup = installStartupFetchMiss(404)
+  it('keeps app progress indeterminate with no percent label until a positive total is known', () => {
+    document.body.innerHTML = `
+      <div id="bldr-root"></div>
+      <div data-sw-boot-progress role="progressbar" aria-valuemin="0" aria-valuemax="100"></div>
+      <span data-sw-boot-progress-label></span>
+    `
 
-    await importEntrypoint()
-    const root = await renderCapturedRoot()
+    writeBrowserBootStatus({
+      phase: 'app',
+      detail:
+        'Downloading the app bundle. This can take a while the first time.',
+      state: 'loading',
+    })
 
-    try {
-      expect(startup.fetchMock).toHaveBeenCalledTimes(1)
-      await waitForAssertion(() => {
-        expect(globalThis.__swStartupModuleImportedFrom).toBe(startup.source)
-      })
-    } finally {
-      await act(async () => {
-        root.unmount()
-      })
+    expect(globalThis.__swBootStatus).toEqual({
+      phase: 'app',
+      detail:
+        'Downloading the app bundle. This can take a while the first time.',
+      state: 'loading',
+    })
+    const progress = document.querySelector('[data-sw-boot-progress]')
+    if (!(progress instanceof HTMLElement)) {
+      throw new Error('missing boot progress target')
     }
+    expect(progress.classList.contains('animate-progress-indeterminate')).toBe(
+      true,
+    )
+    expect(progress.style.width).toBe('33%')
+    expect(progress.getAttribute('aria-valuenow')).toBeNull()
+    expect(progress.getAttribute('aria-valuetext')).toBe('Loading')
+    expect(
+      document.querySelector('[data-sw-boot-progress-label]')?.textContent,
+    ).toBe('')
   })
-
-  it.each([
-    { name: 'missing content-length', contentLength: null },
-    { name: 'zero content-length', contentLength: '0' },
-  ])(
-    'keeps startup module preload progress indeterminate with $name',
-    async ({ contentLength }) => {
-      document.body.innerHTML = `
-        <div id="bldr-root"></div>
-        <div data-sw-boot-progress role="progressbar" aria-valuemin="0" aria-valuemax="100"></div>
-        <span data-sw-boot-progress-label></span>
-      `
-      const startup = installStartupFetch(contentLength)
-
-      await importEntrypoint()
-      const root = await renderCapturedRoot()
-
-      try {
-        await waitForAssertion(() => {
-          expect(globalThis.__swBootStatus).toEqual({
-            phase: 'app',
-            detail:
-              'Downloading the app bundle. This can take a while the first time.',
-            state: 'loading',
-          })
-        })
-
-        startup.controller.enqueue(new Uint8Array(4))
-        startup.controller.close()
-        await drainMicrotasks()
-        const progress = document.querySelector('[data-sw-boot-progress]')
-        if (!(progress instanceof HTMLElement)) {
-          throw new Error('missing boot progress target')
-        }
-        expect(
-          progress.classList.contains('animate-progress-indeterminate'),
-        ).toBe(true)
-        expect(progress.style.width).toBe('33%')
-        expect(progress.getAttribute('aria-valuenow')).toBeNull()
-        expect(progress.getAttribute('aria-valuetext')).toBe('Loading')
-        expect(
-          document.querySelector('[data-sw-boot-progress-label]')?.textContent,
-        ).toBe('')
-      } finally {
-        await act(async () => {
-          root.unmount()
-        })
-      }
-    },
-  )
 })

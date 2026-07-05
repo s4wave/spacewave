@@ -495,12 +495,13 @@ func BuildDistBundle(
 
 		// write manifest.json for the prerender build script
 		manifest := &entrypoint_browser_bundle.BuildManifest{
-			Entrypoint:    bundleResult.EntrypointPath,
-			ServiceWorker: bundleResult.ServiceWorkerFilename,
-			SharedWorker:  bundleResult.SharedWorkerFilename,
-			OpfsWorker:    bundleResult.OpfsWorkerFilename,
-			Wasm:          wasmManifestPath,
-			CSS:           bundleResult.CSSPaths,
+			Entrypoint:                 bundleResult.EntrypointPath,
+			EntrypointDecompressedSize: bundleResult.EntrypointDecompressedSize,
+			ServiceWorker:              bundleResult.ServiceWorkerFilename,
+			SharedWorker:               bundleResult.SharedWorkerFilename,
+			OpfsWorker:                 bundleResult.OpfsWorkerFilename,
+			Wasm:                       wasmManifestPath,
+			CSS:                        bundleResult.CSSPaths,
 		}
 		if err := entrypoint_browser_bundle.WriteBuildManifest(outputPath, manifest); err != nil {
 			return err

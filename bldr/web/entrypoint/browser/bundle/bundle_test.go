@@ -266,12 +266,13 @@ func TestApplyTinyGoNodeFallbacks(t *testing.T) {
 func TestWriteBuildManifestIncludesServiceWorker(t *testing.T) {
 	dir := t.TempDir()
 	manifest := &BuildManifest{
-		Entrypoint:    "entrypoint/abc123/entrypoint.mjs",
-		ServiceWorker: "sw-deadbeef.mjs",
-		SharedWorker:  "shw-beadfeed.mjs",
-		OpfsWorker:    "opfs-worker-c0ffee.mjs",
-		Wasm:          "entrypoint/abc123/runtime.wasm",
-		CSS:           []string{"static/app.css"},
+		Entrypoint:                 "entrypoint/abc123/entrypoint.mjs",
+		EntrypointDecompressedSize: 14004885,
+		ServiceWorker:              "sw-deadbeef.mjs",
+		SharedWorker:               "shw-beadfeed.mjs",
+		OpfsWorker:                 "opfs-worker-c0ffee.mjs",
+		Wasm:                       "entrypoint/abc123/runtime.wasm",
+		CSS:                        []string{"static/app.css"},
 		DefaultManifestBundle: &DefaultManifestBundle{
 			Metadata: "/manifest-pack.json",
 			Pack:     "/manifest.pack.kvf",
@@ -297,6 +298,9 @@ func TestWriteBuildManifestIncludesServiceWorker(t *testing.T) {
 	if got := string(v.GetStringBytes("entrypoint")); got != manifest.Entrypoint {
 		t.Fatalf("unexpected entrypoint: %q", got)
 	}
+	if got := v.GetInt("entrypointDecompressedSize"); got != int(manifest.EntrypointDecompressedSize) {
+		t.Fatalf("unexpected entrypointDecompressedSize: %d", got)
+	}
 	if got := string(v.GetStringBytes("wasm")); got != manifest.Wasm {
 		t.Fatalf("unexpected wasm: %q", got)
 	}
@@ -320,6 +324,9 @@ func TestWriteBuildManifestIncludesServiceWorker(t *testing.T) {
 	}
 	if got := string(v.GetStringBytes("shellAssets", "entrypoint")); got != manifest.Entrypoint {
 		t.Fatalf("unexpected release entrypoint: %q", got)
+	}
+	if got := v.GetInt("shellAssets", "entrypointDecompressedSize"); got != int(manifest.EntrypointDecompressedSize) {
+		t.Fatalf("unexpected release entrypointDecompressedSize: %d", got)
 	}
 	if got := string(v.GetStringBytes("shellAssets", "wasm")); got != manifest.Wasm {
 		t.Fatalf("unexpected release wasm: %q", got)

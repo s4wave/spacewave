@@ -91,6 +91,12 @@ func TestBuildElectronRendererIndexUsesStableBoot(t *testing.T) {
 
 func TestWriteElectronStableBootFiles(t *testing.T) {
 	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "entrypoint"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "entrypoint", "entrypoint.mjs"), []byte("export default null"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	if err := WriteElectronStableBootFiles(dir, "sw-electron.mjs", "shw-electron.mjs"); err != nil {
 		t.Fatal(err)
 	}
@@ -117,6 +123,7 @@ func TestWriteElectronStableBootFiles(t *testing.T) {
 	releaseJSON := string(release)
 	for _, want := range []string{
 		`"entrypoint":"entrypoint/entrypoint.mjs"`,
+		`"entrypointDecompressedSize":19`,
 		`"wasm":"entrypoint/entrypoint.mjs"`,
 		`"serviceWorker":"sw-electron.mjs"`,
 		`"sharedWorker":"shw-electron.mjs"`,

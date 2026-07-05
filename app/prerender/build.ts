@@ -55,6 +55,7 @@ const OUTPUT_DIR = join(prerenderDir, 'dist')
 
 interface BldrManifest {
   entrypoint: string
+  entrypointDecompressedSize?: number
   serviceWorker: string
   sharedWorker: string
   wasm?: string
@@ -286,6 +287,7 @@ export function buildPrerenderContext(
   const browserRelease = buildBrowserReleaseDescriptor(
     {
       entrypoint: manifest.entrypoint,
+      entrypointDecompressedSize: manifest.entrypointDecompressedSize,
       serviceWorker: manifest.serviceWorker,
       sharedWorker: manifest.sharedWorker,
       wasm: manifest.wasm,

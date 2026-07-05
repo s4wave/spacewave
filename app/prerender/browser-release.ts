@@ -4,6 +4,7 @@ import { createHash } from 'crypto'
 // browser release generation.
 export interface BrowserReleaseShellAssets {
   entrypoint: string
+  entrypointDecompressedSize?: number
   serviceWorker: string
   sharedWorker: string
   wasm?: string

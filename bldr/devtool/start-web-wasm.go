@@ -343,12 +343,13 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		return err
 	}
 	manifest := &entrypoint_browser_bundle.BuildManifest{
-		Entrypoint:    bundleResult.EntrypointPath,
-		ServiceWorker: bundleResult.ServiceWorkerFilename,
-		SharedWorker:  bundleResult.SharedWorkerFilename,
-		OpfsWorker:    bundleResult.OpfsWorkerFilename,
-		Wasm:          "entrypoint/runtime.wasm",
-		CSS:           bundleResult.CSSPaths,
+		Entrypoint:                 bundleResult.EntrypointPath,
+		EntrypointDecompressedSize: bundleResult.EntrypointDecompressedSize,
+		ServiceWorker:              bundleResult.ServiceWorkerFilename,
+		SharedWorker:               bundleResult.SharedWorkerFilename,
+		OpfsWorker:                 bundleResult.OpfsWorkerFilename,
+		Wasm:                       "entrypoint/runtime.wasm",
+		CSS:                        bundleResult.CSSPaths,
 	}
 	if err := entrypoint_browser_bundle.WriteBuildManifest(entrypointDir, manifest); err != nil {
 		return err

@@ -287,10 +287,11 @@ func (d *DevtoolBus) ExecuteWebWs(
 
 func writeWebWsBuildManifest(entrypointDir string, bundleResult *entrypoint_browser_bundle.BrowserBundleResult) error {
 	return entrypoint_browser_bundle.WriteBuildManifest(entrypointDir, &entrypoint_browser_bundle.BuildManifest{
-		Entrypoint:    bundleResult.EntrypointPath,
-		ServiceWorker: bundleResult.ServiceWorkerFilename,
-		SharedWorker:  bundleResult.SharedWorkerFilename,
-		OpfsWorker:    bundleResult.OpfsWorkerFilename,
+		Entrypoint:                 bundleResult.EntrypointPath,
+		EntrypointDecompressedSize: bundleResult.EntrypointDecompressedSize,
+		ServiceWorker:              bundleResult.ServiceWorkerFilename,
+		SharedWorker:               bundleResult.SharedWorkerFilename,
+		OpfsWorker:                 bundleResult.OpfsWorkerFilename,
 		// The websocket dev runtime has no runtime.wasm. boot.mjs still
 		// preloads the shellAssets.wasm path, so point it at the runtime asset
 		// that this server actually serves.

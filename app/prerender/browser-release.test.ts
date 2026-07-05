@@ -6,6 +6,7 @@ describe('buildBrowserReleaseDescriptor', () => {
   it('builds a deterministic generation descriptor from shell assets and routes', () => {
     const shellAssets = {
       entrypoint: 'entrypoint/abc123/entrypoint.mjs',
+      entrypointDecompressedSize: 14004885,
       serviceWorker: 'sw-deadbeef.mjs',
       sharedWorker: 'shw-def456.mjs',
       wasm: 'entrypoint/abc123/runtime.wasm',

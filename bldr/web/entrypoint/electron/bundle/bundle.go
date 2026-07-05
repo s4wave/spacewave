@@ -184,14 +184,19 @@ func WriteElectronStableBootFiles(buildDir, serviceWorkerFilename, sharedWorkerF
 	if err := entrypoint_browser_bundle.WriteStableBootAsset(buildDir); err != nil {
 		return err
 	}
+	entrypointInfo, err := os.Stat(filepath.Join(buildDir, electronRendererEntrypointPath))
+	if err != nil {
+		return errors.Wrap(err, "stat electron entrypoint bundle")
+	}
 	return entrypoint_browser_bundle.WriteBuildManifest(
 		buildDir,
 		&entrypoint_browser_bundle.BuildManifest{
-			Entrypoint:    electronRendererEntrypointPath,
-			ServiceWorker: serviceWorkerFilename,
-			SharedWorker:  sharedWorkerFilename,
-			Wasm:          electronRendererEntrypointPath,
-			AutoStart:     true,
+			Entrypoint:                 electronRendererEntrypointPath,
+			EntrypointDecompressedSize: entrypointInfo.Size(),
+			ServiceWorker:              serviceWorkerFilename,
+			SharedWorker:               sharedWorkerFilename,
+			Wasm:                       electronRendererEntrypointPath,
+			AutoStart:                  true,
 		},
 	)
 }

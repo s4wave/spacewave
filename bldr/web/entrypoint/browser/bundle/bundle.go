@@ -28,6 +28,8 @@ import (
 type BrowserBundleResult struct {
 	// EntrypointPath is the path to the entrypoint mjs relative to the build dir.
 	EntrypointPath string
+	// EntrypointDecompressedSize is the byte size of EntrypointPath after HTTP decompression.
+	EntrypointDecompressedSize int64
 	// ServiceWorkerFilename is the output filename of the service worker.
 	ServiceWorkerFilename string
 	// SharedWorkerFilename is the output filename of the shared worker.
@@ -48,14 +50,16 @@ type DefaultManifestBundle struct {
 // BuildManifest is the manifest.json structure written alongside index.html.
 // The prerender build script reads this to discover asset URLs.
 type BuildManifest struct {
-	Entrypoint            string                 `json:"entrypoint"`
-	ServiceWorker         string                 `json:"serviceWorker"`
-	SharedWorker          string                 `json:"sharedWorker"`
-	Wasm                  string                 `json:"wasm,omitempty"`
-	OpfsWorker            string                 `json:"opfsWorker,omitempty"`
-	CSS                   []string               `json:"css"`
-	AutoStart             bool                   `json:"autoStart,omitempty"`
-	DefaultManifestBundle *DefaultManifestBundle `json:"defaultManifestBundle,omitempty"`
+	Entrypoint string `json:"entrypoint"`
+	// EntrypointDecompressedSize is the byte size of Entrypoint after HTTP decompression.
+	EntrypointDecompressedSize int64                  `json:"entrypointDecompressedSize,omitempty"`
+	ServiceWorker              string                 `json:"serviceWorker"`
+	SharedWorker               string                 `json:"sharedWorker"`
+	Wasm                       string                 `json:"wasm,omitempty"`
+	OpfsWorker                 string                 `json:"opfsWorker,omitempty"`
+	CSS                        []string               `json:"css"`
+	AutoStart                  bool                   `json:"autoStart,omitempty"`
+	DefaultManifestBundle      *DefaultManifestBundle `json:"defaultManifestBundle,omitempty"`
 }
 
 const stableBootFilename = "boot.mjs"
@@ -69,6 +73,9 @@ func WriteBuildManifest(dir string, manifest *BuildManifest) error {
 	var a fastjson.Arena
 	obj := a.NewObject()
 	obj.Set("entrypoint", a.NewString(manifest.Entrypoint))
+	if manifest.EntrypointDecompressedSize > 0 {
+		obj.Set("entrypointDecompressedSize", a.NewNumberString(strconv.FormatInt(manifest.EntrypointDecompressedSize, 10)))
+	}
 	obj.Set("serviceWorker", a.NewString(manifest.ServiceWorker))
 	obj.Set("sharedWorker", a.NewString(manifest.SharedWorker))
 	if manifest.Wasm != "" {
@@ -97,6 +104,9 @@ func writeBrowserReleaseManifest(dir string, manifest *BuildManifest) error {
 
 	shellAssets := a.NewObject()
 	shellAssets.Set("entrypoint", a.NewString(manifest.Entrypoint))
+	if manifest.EntrypointDecompressedSize > 0 {
+		shellAssets.Set("entrypointDecompressedSize", a.NewNumberString(strconv.FormatInt(manifest.EntrypointDecompressedSize, 10)))
+	}
 	shellAssets.Set("serviceWorker", a.NewString(manifest.ServiceWorker))
 	shellAssets.Set("sharedWorker", a.NewString(manifest.SharedWorker))
 	if manifest.Wasm != "" {
@@ -166,7 +176,7 @@ let bootLastResetDecision='unknown';
 let releasePromise;
 let primePromise;
 let nextStartupMarkSequence=1;
-const phaseProgress={loading:.04,manifest:.12,'manifest-ready':.22,wasm:.38,entrypoint:.54,runtime:.76,ready:.9,app:.96};
+const phaseProgress={loading:.04,manifest:.12,'manifest-ready':.22,wasm:.38,entrypoint:.54,runtime:.76,ready:.9};
 const startupPhaseInfo={
   prepare:{label:'Prepare',detail:'Preparing browser files.',progress:.08},
   connect:{label:'Connect',detail:'Connecting the app shell.',progress:.3},
@@ -176,10 +186,21 @@ const startupPhaseInfo={
 };
 const startupPhaseOrder=['prepare','connect','runtime','frame','done'];
 const bootPhaseStartupPhase={loading:'prepare',manifest:'prepare','manifest-ready':'prepare','manifest-error':'prepare',wasm:'connect',entrypoint:'connect','entrypoint-error':'connect',runtime:'runtime',ready:'runtime','runtime-error':'runtime',app:'frame'};
-function startupDisplayForBootPhase(phase,state){
-  const id=bootPhaseStartupPhase[phase]||'prepare';
+function clampBootProgress(progress){
+  if(progress===undefined||!Number.isFinite(progress))return undefined;
+  return Math.max(0,Math.min(1,progress));
+}
+function parsePositiveByteLength(value){
+  if(value===null||value===undefined)return undefined;
+  const parsed=Number(value);
+  if(!Number.isFinite(parsed)||parsed<=0)return undefined;
+  return parsed;
+}
+function startupDisplayForBootStatus(status){
+  const id=bootPhaseStartupPhase[status.phase]||'prepare';
   const info=startupPhaseInfo[id];
-  return {id:id,detail:info.label+': '+info.detail,progress:info.progress,indeterminate:id==='frame',error:state==='error'};
+  const progress=id==='frame'?status.progress:info.progress;
+  return {id:id,detail:info.label+': '+info.detail,progress:progress,indeterminate:id==='frame'&&progress===undefined&&status.state!=='error',error:status.state==='error'};
 }
 function markStartupBoundary(label,detail){
   const name=startupMarkPrefix+label;
@@ -194,18 +215,18 @@ function markStartupBoundary(label,detail){
   window.dispatchEvent(new CustomEvent(startupMarkEvent,{detail:{name:name,detail:markDetail}}));
   return name;
 }
-function setBootStatus(phase,detail,state){
-  const progress=phaseProgress[phase];
+function setBootStatus(phase,detail,state,progress){
   const status={phase,detail:detail||phase,state:state||'loading',compatibilityVersion:bootStateVersion,lastResetDecision:bootLastResetDecision};
-  const display=startupDisplayForBootPhase(phase,status.state);
-  if(progress!==undefined)status.progress=progress;
+  const clampedProgress=clampBootProgress(progress!==undefined?progress:phaseProgress[phase]);
+  if(clampedProgress!==undefined)status.progress=clampedProgress;
+  const display=startupDisplayForBootStatus(status);
   g.__swBootStatus=status;
   const target=document.querySelector('[data-sw-boot-status]');
   if(canMutateBootStatusTarget(target))target.textContent=display.detail;
   const stateTarget=document.querySelector('[data-sw-boot-state]');
   if(canMutateBootStatusTarget(stateTarget))stateTarget.setAttribute('data-sw-boot-state',status.state);
-  if(display.progress!==undefined){
-    const pct=Math.round(display.progress*100);
+  if(display.progress!==undefined||display.indeterminate){
+    const pct=Math.round((display.progress??0)*100);
     const progressTarget=document.querySelector('[data-sw-boot-progress]');
     if(canMutateBootStatusTarget(progressTarget)){
       progressTarget.style.width=display.indeterminate?'33%':pct+'%';
@@ -374,13 +395,14 @@ function loadRelease(){
     const entrypoint=absPath(shellAssets.entrypoint);
     const wasm=absPath(shellAssets.wasm);
     const serviceWorker=absPath(shellAssets.serviceWorker);
+    const entrypointDecompressedSize=parsePositiveByteLength(shellAssets.entrypointDecompressedSize);
     if(!entrypoint)throw new Error('browser release manifest missing shellAssets.entrypoint');
     if(!serviceWorker)throw new Error('browser release manifest missing shellAssets.serviceWorker');
     g.__swEntry=entrypoint;
     g.__swServiceWorker=serviceWorker;
     g.__swGenerationId=release.generationId||'';
     setBootStatus('manifest-ready','Browser release found.');
-    return {entrypoint,wasm,serviceWorker,autoStart:release.autoStart===true};
+    return {entrypoint,entrypointDecompressedSize,wasm,serviceWorker,autoStart:release.autoStart===true};
   });
   return releasePromise;
 }
@@ -395,6 +417,50 @@ function primeRelease(){
   });
   return primePromise;
 }
+let entrypointModuleURLPromise;
+async function fetchEntrypointModule(release){
+  const response=await fetch(release.entrypoint,{credentials:'same-origin'});
+  if(!response.ok)throw new Error('failed to load entrypoint bundle: '+response.status);
+  const total=release.entrypointDecompressedSize||parsePositiveByteLength(response.headers&&response.headers.get?response.headers.get('content-length'):undefined);
+  const parts=[];
+  let loaded=0;
+  if(total!==undefined)setBootStatus('app',startupPhaseInfo.frame.detail,'loading',0);
+  else setBootStatus('app',startupPhaseInfo.frame.detail);
+  if(response.body&&response.body.getReader){
+    const reader=response.body.getReader();
+    try{
+      for(;;){
+        const read=await reader.read();
+        if(read.done)break;
+        const value=read.value;
+        if(!value||value.byteLength===0)continue;
+        parts.push(value);
+        loaded+=value.byteLength;
+        if(total!==undefined)setBootStatus('app',startupPhaseInfo.frame.detail,'loading',loaded/total);
+      }
+    }finally{
+      reader.releaseLock();
+    }
+  }else{
+    const body=await response.arrayBuffer();
+    parts.push(body);
+    loaded=body.byteLength;
+  }
+  if(total!==undefined)setBootStatus('app',startupPhaseInfo.frame.detail,'loading',1);
+  return URL.createObjectURL(new Blob(parts,{type:'application/javascript'}));
+}
+function primeEntrypoint(release){
+  if(!entrypointModuleURLPromise)entrypointModuleURLPromise=fetchEntrypointModule(release);
+  return entrypointModuleURLPromise;
+}
+async function importEntrypoint(release){
+  const moduleURL=await primeEntrypoint(release);
+  try{
+    return await import(moduleURL);
+  }finally{
+    try{URL.revokeObjectURL(moduleURL)}catch(_){}
+  }
+}
 function startBoot(){
   rewriteStaticHandoffLinks();
   let readyResolve;
@@ -407,7 +473,7 @@ function startBoot(){
     imported=true;
     setBootStatus('entrypoint','Starting application...');
     void primeRelease()
-      .then(function(release){return import(release.entrypoint)})
+      .then(function(release){return importEntrypoint(release)})
       .catch(function(err){setBootError('entrypoint-error',err);console.error('boot.mjs: failed to import entrypoint',err)});
   }
   void primeRelease()
@@ -420,7 +486,7 @@ function startBoot(){
         doImport();
         return;
       }
-      fetch(release.entrypoint);
+      void primeEntrypoint(release).catch(function(err){console.error('boot.mjs: failed to preload entrypoint',err)});
       function onInteract(){
         doImport();
         document.removeEventListener('click',onInteract);
@@ -977,12 +1043,18 @@ func BuildBrowserBundle(
 	}
 	entrypointPath += "/entrypoint.mjs"
 
+	entrypointInfo, err := os.Stat(filepath.Join(buildDir, entrypointPath))
+	if err != nil {
+		return nil, errors.Wrap(err, "stat browser entrypoint bundle")
+	}
+
 	return &BrowserBundleResult{
-		EntrypointPath:        entrypointPath,
-		ServiceWorkerFilename: swFilename,
-		SharedWorkerFilename:  shwFilename,
-		CSSPaths:              cssPaths,
-		OpfsWorkerFilename:    opfsWorkerFilename,
+		EntrypointPath:             entrypointPath,
+		EntrypointDecompressedSize: entrypointInfo.Size(),
+		ServiceWorkerFilename:      swFilename,
+		SharedWorkerFilename:       shwFilename,
+		CSSPaths:                   cssPaths,
+		OpfsWorkerFilename:         opfsWorkerFilename,
 	}, nil
 }
 

@@ -18,6 +18,10 @@ func TestStableBootGateRunsOnceBeforeEntrypointImport(t *testing.T) {
 	runStableBootFixture(t, stableBootImportOrderFixtureScript)
 }
 
+func TestStableBootEntrypointStreamProgress(t *testing.T) {
+	runStableBootFixture(t, stableBootEntrypointStreamProgressFixtureScript)
+}
+
 func runStableBootFixture(t *testing.T, fixtureScript string) {
 	t.Helper()
 	if _, err := exec.LookPath("bun"); err != nil {
@@ -321,7 +325,7 @@ function installEnvironment({ events, localStorage, sessionStorage, autoStart, e
         },
       })
     }
-    return new Response('asset')
+    return new Response('export default null')
   }
 }
 
@@ -376,10 +380,11 @@ async function runCase({ name, autoStart, hash }) {
   const reloadIndex = events.indexOf('reload')
   const releaseFetchIndex = events.indexOf('fetch:/browser-release.json')
   const entrypointIndex = events.indexOf('status:entrypoint')
+  const entrypointAssetFetchIndex = events.indexOf('fetch:' + entrypointURL)
   assert(reloadIndex !== -1, name + ' missing reload event')
   assert(releaseFetchIndex > reloadIndex, name + ' release fetch did not wait for reset reload: ' + events.join(','))
   assert(entrypointIndex > releaseFetchIndex, name + ' entrypoint phase did not wait for release fetch: ' + events.join(','))
-  assert(globalThis.__swBootStatus?.phase === 'entrypoint', name + ' did not reach entrypoint phase: ' + events.join(','))
+  assert(entrypointAssetFetchIndex > entrypointIndex, name + ' entrypoint asset fetch did not wait for entrypoint phase: ' + events.join(','))
   assert(localStorage.getItem('spacewave-browser-app-state-version') === '1000000', name + ' reached entrypoint before current version')
 }
 
@@ -387,4 +392,300 @@ await runCase({ name: 'browser-hash', autoStart: false, hash: '#/u/1' })
 await runCase({ name: 'electron-autostart', autoStart: true, hash: '' })
 
 console.log('boot-import-order-fixture=passed')
+`
+
+const stableBootEntrypointStreamProgressFixtureScript = `
+const bootPath = process.argv[2]
+if (!bootPath) throw new Error('missing boot asset path')
+
+const script = await Bun.file(bootPath).text()
+
+class StorageFixture {
+  constructor(entries) {
+    this.map = new Map(Object.entries(entries))
+  }
+  get length() {
+    return this.map.size
+  }
+  getItem(key) {
+    return this.map.has(key) ? this.map.get(key) : null
+  }
+  setItem(key, value) {
+    this.map.set(key, String(value))
+  }
+  removeItem(key) {
+    this.map.delete(key)
+  }
+  key(index) {
+    return Array.from(this.map.keys())[index] ?? null
+  }
+}
+
+class ElementFixture {
+  constructor() {
+    this.style = {}
+    this.attributes = new Map()
+    this.textContent = ''
+    const classes = new Set()
+    this.classList = {
+      toggle(name, force) {
+        if (force) {
+          classes.add(name)
+        } else {
+          classes.delete(name)
+        }
+      },
+      contains(name) {
+        return classes.has(name)
+      },
+    }
+  }
+  closest() {
+    return null
+  }
+  querySelector() {
+    return null
+  }
+  querySelectorAll() {
+    return []
+  }
+  setAttribute(name, value) {
+    this.attributes.set(name, String(value))
+  }
+  getAttribute(name) {
+    return this.attributes.has(name) ? this.attributes.get(name) : null
+  }
+  removeAttribute(name) {
+    this.attributes.delete(name)
+  }
+  replaceChildren(...children) {
+    this.textContent = children.join('')
+  }
+}
+
+function assert(condition, message) {
+  if (!condition) throw new Error(message)
+}
+
+async function waitFor(predicate, label) {
+  const deadline = Date.now() + 2000
+  while (Date.now() < deadline) {
+    if (predicate()) return
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+  throw new Error('timeout waiting for ' + label + ': ' + (globalThis.__fixtureEvents ?? []).join(','))
+}
+
+function streamChunks(chunks) {
+  return new ReadableStream({
+    start(controller) {
+      for (const size of chunks) {
+        controller.enqueue(new Uint8Array(size))
+      }
+      controller.close()
+    },
+  })
+}
+
+async function runCase(testCase) {
+  const events = []
+  const progress = new ElementFixture()
+  const progressLabel = new ElementFixture()
+  const localStorage = new StorageFixture({
+    'spacewave-browser-app-state-version': '1000000',
+  })
+  const sessionStorage = new StorageFixture({
+    'spacewave-browser-tab-state-version': '1000000',
+  })
+  const entrypointPath = '/entrypoint-' + testCase.name + '.mjs'
+  const originalCreateObjectURL = URL.createObjectURL
+  const originalRevokeObjectURL = URL.revokeObjectURL
+
+  globalThis.__fixtureEvents = events
+  Object.defineProperty(URL, 'createObjectURL', {
+    configurable: true,
+    value() {
+      events.push('object-url')
+      const source = "globalThis.__fixtureEvents.push('import:object-url:" + testCase.name + "'); export default null"
+      return 'data:text/javascript;charset=utf-8,' + encodeURIComponent(source)
+    },
+  })
+  Object.defineProperty(URL, 'revokeObjectURL', {
+    configurable: true,
+    value() {
+      events.push('revoke:object-url')
+    },
+  })
+  globalThis.localStorage = localStorage
+  globalThis.sessionStorage = sessionStorage
+  globalThis.CustomEvent = class CustomEvent {
+    constructor(type, init) {
+      this.type = type
+      this.detail = init?.detail
+    }
+  }
+  globalThis.performance = { mark() {} }
+  const location = {
+    href: 'https://spacewave.test/',
+    hash: '',
+    reload() {
+      events.push('reload')
+    },
+    replace(next) {
+      events.push('replace:' + next)
+      this.href = String(next)
+    },
+  }
+  globalThis.window = {
+    location,
+    history: {
+      state: null,
+      replaceState(state, title, next) {
+        events.push('history:replaceState:' + next)
+        location.href = String(next)
+      },
+    },
+    dispatchEvent(event) {
+      if (event?.type === 'spacewave:boot-status') {
+        const statusProgress = event.detail.progress
+        events.push(
+          'status:' +
+            event.detail.phase +
+            ':' +
+            (statusProgress === undefined
+              ? 'indeterminate'
+              : String(Math.round(statusProgress * 100))),
+        )
+      }
+    },
+    addEventListener() {},
+    removeEventListener() {},
+  }
+  globalThis.document = {
+    querySelector(selector) {
+      if (selector === '[data-sw-boot-progress]') return progress
+      if (selector === '[data-sw-boot-progress-label]') return progressLabel
+      return null
+    },
+    getElementById(id) {
+      if (id === 'sw-landing') return new ElementFixture()
+      if (id === 'sw-loading') return new ElementFixture()
+      return null
+    },
+    addEventListener() {},
+    removeEventListener() {},
+  }
+  globalThis.navigator = {
+    serviceWorker: {
+      async getRegistrations() {
+        events.push('cleanup:service-workers')
+        return []
+      },
+    },
+  }
+  globalThis.caches = {
+    async keys() {
+      events.push('cleanup:caches')
+      return []
+    },
+    async delete() {
+      return true
+    },
+  }
+  globalThis.fetch = async (url) => {
+    events.push('fetch:' + url)
+    if (url === '/browser-release.json') {
+      const shellAssets = {
+        entrypoint: entrypointPath,
+        serviceWorker: 'sw-fixture.mjs',
+        sharedWorker: 'shw-fixture.mjs',
+        wasm: 'runtime-fixture.wasm',
+        css: [],
+      }
+      if (testCase.sizeHint !== undefined) {
+        shellAssets.entrypointDecompressedSize = testCase.sizeHint
+      }
+      return Response.json({
+        schemaVersion: 1,
+        generationId: 'fixture-generation',
+        autoStart: true,
+        shellAssets,
+      })
+    }
+    if (url === '/runtime-fixture.wasm') {
+      return new Response('wasm')
+    }
+    if (url === entrypointPath) {
+      return new Response(streamChunks(testCase.chunks), {
+        status: 200,
+        headers: testCase.contentLength
+          ? { 'content-length': String(testCase.contentLength) }
+          : {},
+      })
+    }
+    throw new Error('unexpected fetch ' + url)
+  }
+
+  try {
+    new Function(script)()
+    await waitFor(
+      () => events.includes('revoke:object-url'),
+      testCase.name + ' entrypoint object URL import completion',
+    )
+
+    const manifestIndex = events.indexOf('fetch:/browser-release.json')
+    const entrypointFetchIndex = events.indexOf('fetch:' + entrypointPath)
+    const objectURLIndex = events.indexOf('object-url')
+    const importIndex = events.indexOf('revoke:object-url')
+    assert(manifestIndex !== -1, testCase.name + ' did not fetch release manifest: ' + events.join(','))
+    assert(entrypointFetchIndex > manifestIndex, testCase.name + ' did not fetch entrypoint after manifest: ' + events.join(','))
+    assert(objectURLIndex > entrypointFetchIndex, testCase.name + ' did not create object URL after entrypoint fetch: ' + events.join(','))
+    assert(importIndex > objectURLIndex, testCase.name + ' did not complete object URL import: ' + events.join(','))
+
+    const progressEvents = events.filter((event) => event.startsWith('status:app:'))
+    if (testCase.expectedProgressEvents) {
+      for (const expected of testCase.expectedProgressEvents) {
+        assert(progressEvents.includes(expected), testCase.name + ' missing progress event ' + expected + ': ' + events.join(','))
+      }
+      assert(progress.style.width === '100%', testCase.name + ' did not finish progress at 100%')
+      assert(progress.getAttribute('aria-valuenow') === '100', testCase.name + ' aria-valuenow did not finish at 100')
+      assert(progressLabel.textContent === '100%', testCase.name + ' progress label did not finish at 100%')
+    } else {
+      assert(progressEvents.includes('status:app:indeterminate'), testCase.name + ' did not report indeterminate app progress: ' + events.join(','))
+      assert(!progressEvents.some((event) => event !== 'status:app:indeterminate'), testCase.name + ' reported determinate app progress without a positive total: ' + events.join(','))
+      assert(progress.classList.contains('animate-progress-indeterminate'), testCase.name + ' progress bar is not indeterminate')
+      assert(progress.getAttribute('aria-valuenow') === null, testCase.name + ' indeterminate progress exposed aria-valuenow')
+      assert(progress.getAttribute('aria-valuetext') === 'Loading', testCase.name + ' indeterminate progress missing aria-valuetext')
+      assert(progressLabel.textContent === '', testCase.name + ' indeterminate progress showed a percent label')
+    }
+  } finally {
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: originalCreateObjectURL,
+    })
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: originalRevokeObjectURL,
+    })
+  }
+}
+
+await runCase({
+  name: 'manifest-size',
+  sizeHint: 10,
+  chunks: [4, 6],
+  expectedProgressEvents: ['status:app:40', 'status:app:100'],
+})
+await runCase({
+  name: 'content-length',
+  contentLength: 8,
+  chunks: [2, 6],
+  expectedProgressEvents: ['status:app:25', 'status:app:100'],
+})
+await runCase({
+  name: 'indeterminate',
+  chunks: [3, 5],
+})
+
+console.log('boot-entrypoint-stream-progress-fixture=passed')
 `

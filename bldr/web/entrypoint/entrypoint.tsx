@@ -5,7 +5,8 @@ import {
   IBldrRootProps,
   WebViewErrorBoundary,
 } from '@aptre/bldr-react'
-import { WebDocument as BldrWebDocument, WebDocumentOptions } from '@aptre/bldr'
+import { WebDocument as BldrWebDocument } from '@aptre/bldr'
+import type { WebDocumentOptions } from '@aptre/bldr'
 
 import { initBrowserReleaseAutoReload } from '../bldr/browser-release-update.js'
 import { markStartupBoundary } from '../bldr/startup-marks.js'
@@ -100,88 +101,12 @@ function setBrowserBootStatus(
   writeBrowserBootStatus({ phase, detail, state, progress })
 }
 
-const startupBundleDetail =
-  'Downloading the app bundle. This can take a while the first time.'
-
-function parseContentLength(raw: string | null): number | undefined {
-  if (raw === null) return undefined
-  const contentLength = Number(raw)
-  if (!Number.isFinite(contentLength) || contentLength <= 0) return undefined
-  return contentLength
-}
-
-function clampDownloadProgress(progress: number): number | undefined {
-  if (!Number.isFinite(progress)) return undefined
-  return Math.max(0, Math.min(1, progress))
-}
-
-function resolveStartupModuleURL(source: string): string {
-  return new URL(source, import.meta.url).href
-}
-
-async function preloadStartupModule(source: string): Promise<void> {
-  const response = await fetch(source, {
-    method: 'GET',
-    credentials: 'same-origin',
-  })
-  if (!response.ok) {
-    await response.body
-      ?.cancel(`startup module preload returned status ${response.status}`)
-      .catch(() => undefined)
-    return
-  }
-
-  const contentLength = parseContentLength(
-    response.headers.get('content-length'),
-  )
-  if (contentLength === undefined) {
-    setBrowserBootStatus('app', startupBundleDetail)
-  }
-
-  if (!response.body) {
-    await response.arrayBuffer()
-    return
-  }
-
-  const reader = response.body.getReader()
-  let loaded = 0
-  try {
-    for (;;) {
-      const { done, value } = await reader.read()
-      if (done) {
-        break
-      }
-      if (!value || value.byteLength === 0) {
-        continue
-      }
-      loaded += value.byteLength
-      if (contentLength === undefined) {
-        continue
-      }
-      const progress = clampDownloadProgress(loaded / contentLength)
-      if (progress !== undefined) {
-        setBrowserBootStatus('app', startupBundleDetail, 'loading', progress)
-      }
-    }
-  } finally {
-    reader.releaseLock()
-  }
-}
-
-async function preloadConfiguredStartupModule(source: string): Promise<void> {
-  const moduleURL = resolveStartupModuleURL(source)
-  await preloadStartupModule(moduleURL).catch(() => undefined)
-}
-
-// BLDR_STARTUP_JS is an injected variable with the path to the startup js component
+// BLDR_STARTUP_JS is build-injected per bundle with the startup component
+// module specifier, so it is not known at author time.
 declare const BLDR_STARTUP_JS: string | undefined
 if (typeof BLDR_STARTUP_JS === 'string') {
-  const importStartupModule = async (): Promise<StartupModule> => {
-    await preloadConfiguredStartupModule(BLDR_STARTUP_JS)
-    // BLDR_STARTUP_JS is build-injected by Bldr so this is the bundler-owned
-    // startup boundary, not an author-time module path.
-    return (await import(BLDR_STARTUP_JS)) as StartupModule
-  }
+  const importStartupModule = async (): Promise<StartupModule> =>
+    (await import(BLDR_STARTUP_JS)) as StartupModule
   const BldrWebStartupContainer: React.FC = () => {
     const LoadedComponent = useMemo(
       () =>
