@@ -34,6 +34,11 @@ const LazySessionRoutes = lazy(async () => {
   return { default: createRouteGroup(SessionRoutes) }
 })
 
+const LazyDisplayRoutes = lazy(async () => {
+  const { DisplayRoutes } = await import('../display/DisplayRoutes.js')
+  return { default: createRouteGroup(DisplayRoutes) }
+})
+
 const LazyAppSession = lazy(async () => {
   const { AppSession } = await import('../AppSession.js')
   return { default: AppSession }
@@ -116,6 +121,9 @@ export function AppRoutes() {
       </Route>
       <Route path="/pair/*">
         <LazyRoute component={LazySessionRoutes} />
+      </Route>
+      <Route path="/display/*">
+        <LazyRoute component={LazyDisplayRoutes} />
       </Route>
       <Route path="/quickstart/*">
         <LazyRoute component={LazySessionRoutes} />

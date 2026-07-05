@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { getAppPath, normalizeAppPath, setAppPath } from './app-path.js'
+import {
+  getAppPath,
+  isPathnameAppRoute,
+  normalizeAppPath,
+  setAppPath,
+} from './app-path.js'
 
 describe('app path helpers', () => {
   afterEach(() => {
@@ -29,6 +34,20 @@ describe('app path helpers', () => {
     window.history.replaceState({}, '', '/login')
 
     expect(getAppPath()).toBe('/login')
+  })
+
+  it('keeps display query pathnames as app routes after OTP hash wipe', () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/display?path=docs%2Fhello&component=viewer.markdown',
+    )
+
+    expect(getAppPath()).toBe('/display')
+  })
+
+  it('allowlists display child pathnames as app routes', () => {
+    expect(isPathnameAppRoute('/display/child')).toBe(true)
   })
 
   it('preserves literal percent characters in already-decoded paths', () => {

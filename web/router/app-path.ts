@@ -11,7 +11,9 @@ export function isPathnameAppRoute(pathname: string): boolean {
     pathname === '/join' ||
     pathname.startsWith('/join/') ||
     pathname.startsWith('/auth/') ||
-    pathname.startsWith('/checkout/')
+    pathname.startsWith('/checkout/') ||
+    pathname === '/display' ||
+    pathname.startsWith('/display/')
   )
 }
 

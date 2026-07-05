@@ -37,6 +37,8 @@ const webCapabilityCookie = "spacewave_local_cap"
 
 const webCapabilityTTL = 10 * time.Minute
 
+const webListenerReadHeaderTimeout = 5 * time.Second
+
 // AccessWebListener creates or reuses a localhost web listener.
 func (s *CoreRootServer) AccessWebListener(
 	ctx context.Context,
@@ -306,7 +308,10 @@ func newWebListenerWithSpec(
 		bootstrapKeys:   make(map[string]time.Time),
 		capabilities:    make(map[string]time.Time),
 	}
-	listener.server = &http.Server{Handler: listener}
+	listener.server = &http.Server{
+		Handler:           listener,
+		ReadHeaderTimeout: webListenerReadHeaderTimeout,
+	}
 	go func() {
 		err := listener.server.Serve(lis)
 		if err != nil && err != http.ErrServerClosed {
@@ -368,7 +373,7 @@ func (l *webListener) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		l.exchangeBootstrap(rw, req)
 		return
 	}
-	if req.URL.Path == "/" || req.URL.Path == "/index.html" {
+	if isWebListenerBootShellPath(req.URL.Path) {
 		l.serveBootShell(rw, req)
 		return
 	}
@@ -472,6 +477,10 @@ func (l *webListener) isAuthorized(req *http.Request) bool {
 	return ok
 }
 
+func isWebListenerBootShellPath(path string) bool {
+	return path == "/" || path == "/index.html" || path == "/display" || strings.HasPrefix(path, "/display/")
+}
+
 func (l *webListener) serveBootShell(rw http.ResponseWriter, req *http.Request) {
 	html, err := l.fetchReleaseRootHTML(req.Context())
 	if err != nil {
@@ -569,7 +578,7 @@ if (otp) {
   try { localStorage.setItem('spacewave-has-session', '1'); } catch (_) {}
   history.replaceState(null, '', location.pathname + location.search);
 }
-const stylesheetLinks = ` + string(stylesheetLinks) + `;
+const stylesheetLinks = ` + stylesheetLinks + `;
 if (stylesheetLinks) document.head.insertAdjacentHTML('beforeend', stylesheetLinks);
 await import('/boot.mjs');
 </script>`), nil

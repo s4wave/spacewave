@@ -4,6 +4,7 @@ package spacewave_cli
 
 import (
 	"net"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -21,6 +22,8 @@ func newWebCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 	var port uint
 	var background bool
 	var printURL bool
+	var displayPath string
+	var displayComponent string
 	return &cli.Command{
 		Name:  "web",
 		Usage: "start a localhost web listener for the native runtime",
@@ -58,9 +61,29 @@ func newWebCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 				Usage:       "print only the resolved browser URL to stdout",
 				Destination: &printURL,
 			},
+			&cli.StringFlag{
+				Name:        "display",
+				Usage:       "open web in kiosk display mode for the given object path",
+				Destination: &displayPath,
+			},
+			&cli.StringFlag{
+				Name:        "display-component",
+				Usage:       "preferred object viewer component id for kiosk display mode",
+				Destination: &displayComponent,
+			},
 		),
 		Action: func(c *cli.Context) error {
-			return runWeb(c, statePath, host, port, listenMultiaddr, background, printURL)
+			return runWeb(
+				c,
+				statePath,
+				host,
+				port,
+				listenMultiaddr,
+				background,
+				printURL,
+				displayPath,
+				displayComponent,
+			)
 		},
 	}
 }
@@ -103,10 +126,15 @@ func runWeb(
 	listenMultiaddr string,
 	background bool,
 	printURL bool,
+	displayPath string,
+	displayComponent string,
 ) error {
 	ctx := c.Context
 	if port > 65535 {
 		return errors.New("port must be <= 65535")
+	}
+	if displayPath == "" && displayComponent != "" {
+		return errors.New("--display-component requires --display")
 	}
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
@@ -130,9 +158,20 @@ func runWeb(
 		defer release()
 	}
 
-	url := resp.GetUrl() + "/#otp=" + resp.GetBootstrapSecret()
+	queryParts := make([]string, 0, 2)
+	if displayPath != "" {
+		queryParts = append(queryParts, "path="+url.QueryEscape(displayPath))
+	}
+	if displayComponent != "" {
+		queryParts = append(queryParts, "component="+url.QueryEscape(displayComponent))
+	}
+	webPath := "/"
+	if len(queryParts) != 0 {
+		webPath = "/display?" + strings.Join(queryParts, "&")
+	}
+	browserURL := resp.GetUrl() + webPath + "#otp=" + resp.GetBootstrapSecret()
 	if printURL {
-		os.Stdout.WriteString(url + "\n")
+		os.Stdout.WriteString(browserURL + "\n")
 		if background {
 			return nil
 		}
@@ -141,14 +180,14 @@ func runWeb(
 	}
 	if background {
 		if resp.GetReused() {
-			os.Stdout.WriteString("Reusing background Spacewave web session:\n  " + url + "\n")
+			os.Stdout.WriteString("Reusing background Spacewave web session:\n  " + browserURL + "\n")
 		} else {
-			os.Stdout.WriteString("Spacewave is running in the background:\n  " + url + "\n")
+			os.Stdout.WriteString("Spacewave is running in the background:\n  " + browserURL + "\n")
 		}
 		os.Stdout.WriteString("Use `spacewave web list` to see listeners or `spacewave web stop <listener-id>` to stop one.\n")
 		return nil
 	}
-	os.Stdout.WriteString("Spacewave is ready in your browser:\n  " + url + "\n")
+	os.Stdout.WriteString("Spacewave is ready in your browser:\n  " + browserURL + "\n")
 	os.Stdout.WriteString("Press Ctrl-C to stop this listener.\n")
 	<-ctx.Done()
 	return nil

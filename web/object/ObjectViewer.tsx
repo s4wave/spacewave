@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, type ReactNode } from 'react'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
@@ -32,6 +32,11 @@ export interface ObjectViewerProps {
   onBreadcrumbClick?: () => void
   stateNamespace?: string[]
   preferredComponentID?: string
+  renderMissingComponent?: (
+    componentID: string,
+    objectKey: string,
+    typeID: string,
+  ) => ReactNode
 }
 
 export function ObjectViewer({
@@ -46,6 +51,7 @@ export function ObjectViewer({
   onBreadcrumbClick,
   stateNamespace,
   preferredComponentID,
+  renderMissingComponent,
 }: ObjectViewerProps) {
   const barId = bottomBarId ?? 'objectViewer'
 
@@ -83,6 +89,12 @@ export function ObjectViewer({
     content = <ObjectViewerNotFoundState objectKey={barLabel} />
   } else if (loading || viewer.typeID === undefined) {
     content = <ObjectViewerLoadingState />
+  } else if (viewer.missingComponentID && renderMissingComponent) {
+    content = renderMissingComponent(
+      viewer.missingComponentID,
+      barLabel,
+      viewer.typeID,
+    )
   } else {
     content = (
       <HistoryRouter path={routerPath} onNavigate={navigateHandler}>

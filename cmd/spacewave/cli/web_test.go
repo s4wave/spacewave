@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -197,12 +198,22 @@ func TestWebBackgroundPrintURLWritesMachineReadableURL(t *testing.T) {
 		t.Fatalf("stdout = %q, want exactly one URL line", stdout)
 	}
 	urlLine := strings.TrimSuffix(stdout, "\n")
-	if !strings.HasPrefix(urlLine, "http://") && !strings.HasPrefix(urlLine, "https://") {
+	parsedURL, err := url.Parse(urlLine)
+	if err != nil {
+		t.Fatalf("stdout URL = %q, parse: %v", urlLine, err)
+	}
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
 		t.Fatalf("stdout URL = %q, want http or https URL", urlLine)
 	}
-	_, secret, ok := strings.Cut(urlLine, "/#otp=")
-	if !ok {
-		t.Fatalf("stdout URL = %q, want OTP fragment", urlLine)
+	if parsedURL.Path != "/" {
+		t.Fatalf("stdout URL path = %q, want /", parsedURL.Path)
+	}
+	if parsedURL.RawQuery != "" {
+		t.Fatalf("stdout URL query = %q, want empty", parsedURL.RawQuery)
+	}
+	fragmentKey, secret, ok := strings.Cut(parsedURL.Fragment, "=")
+	if !ok || fragmentKey != "otp" {
+		t.Fatalf("stdout URL fragment = %q, want otp secret", parsedURL.Fragment)
 	}
 	if secret == "" {
 		t.Fatalf("stdout URL = %q, want non-empty OTP secret", urlLine)
@@ -217,6 +228,110 @@ func TestWebBackgroundPrintURLWritesMachineReadableURL(t *testing.T) {
 		if strings.Contains(stdoutWithoutSecret, text) {
 			t.Fatalf("stdout = %q, must not contain banner text %q", stdout, text)
 		}
+	}
+}
+
+func TestWebBackgroundPrintURLWritesDisplayURLBeforeOTPFragment(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	daemon := startInProcessWebDaemon(t, ctx)
+	statePath := daemon.statePath
+	displayPath := "docs/hello world/-/child.txt"
+	displayComponent := "viewer.markdown/primary"
+
+	stdout, stderr := runStatePathWebAppCapture(t, ctx, []string{
+		"--state-path", statePath,
+		"web",
+		"--background",
+		"--print-url",
+		"--display", displayPath,
+		"--display-component", displayComponent,
+	})
+	if stderr != "" {
+		t.Fatalf("stderr = %q, want empty", stderr)
+	}
+	if !strings.HasSuffix(stdout, "\n") || strings.Count(stdout, "\n") != 1 {
+		t.Fatalf("stdout = %q, want exactly one URL line", stdout)
+	}
+	urlLine := strings.TrimSuffix(stdout, "\n")
+	parsedURL, err := url.Parse(urlLine)
+	if err != nil {
+		t.Fatalf("stdout URL = %q, parse: %v", urlLine, err)
+	}
+	if parsedURL.Path != "/display" {
+		t.Fatalf("stdout URL path = %q, want /display", parsedURL.Path)
+	}
+	query := parsedURL.Query()
+	if query.Get("path") != displayPath {
+		t.Fatalf("display path query = %q, want %q", query.Get("path"), displayPath)
+	}
+	if query.Get("component") != displayComponent {
+		t.Fatalf("display component query = %q, want %q", query.Get("component"), displayComponent)
+	}
+	fragmentKey, secret, ok := strings.Cut(parsedURL.Fragment, "=")
+	if !ok || fragmentKey != "otp" {
+		t.Fatalf("stdout URL fragment = %q, want otp secret", parsedURL.Fragment)
+	}
+	if secret == "" {
+		t.Fatalf("stdout URL = %q, want non-empty OTP secret", urlLine)
+	}
+}
+
+func TestWebBackgroundPrintURLWritesDisplayPathWithoutComponent(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	daemon := startInProcessWebDaemon(t, ctx)
+	statePath := daemon.statePath
+	displayPath := "docs/hello"
+
+	stdout, stderr := runStatePathWebAppCapture(t, ctx, []string{
+		"--state-path", statePath,
+		"web",
+		"--background",
+		"--print-url",
+		"--display", displayPath,
+	})
+	if stderr != "" {
+		t.Fatalf("stderr = %q, want empty", stderr)
+	}
+	urlLine := strings.TrimSuffix(stdout, "\n")
+	parsedURL, err := url.Parse(urlLine)
+	if err != nil {
+		t.Fatalf("stdout URL = %q, parse: %v", urlLine, err)
+	}
+	if parsedURL.Path != "/display" {
+		t.Fatalf("stdout URL path = %q, want /display", parsedURL.Path)
+	}
+	query := parsedURL.Query()
+	if query.Get("path") != displayPath {
+		t.Fatalf("display path query = %q, want %q", query.Get("path"), displayPath)
+	}
+	if query.Has("component") {
+		t.Fatalf("display component query = %q, want omitted", query.Get("component"))
+	}
+}
+
+func TestWebDisplayComponentRequiresDisplayPath(t *testing.T) {
+	var rootStatePath string
+	app := cli.NewApp()
+	app.Name = "spacewave"
+	app.HideVersion = true
+	app.Flags = []cli.Flag{statePathFlag(&rootStatePath)}
+	app.Commands = []*cli.Command{
+		newWebCommand(nil),
+	}
+	err := app.RunContext(t.Context(), []string{
+		"spacewave",
+		"web",
+		"--background",
+		"--print-url",
+		"--display-component",
+		"viewer.markdown",
+	})
+	if err == nil || !strings.Contains(err.Error(), "--display-component requires --display") {
+		t.Fatalf("error = %v, want --display-component requires --display", err)
 	}
 }
 

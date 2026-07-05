@@ -18,6 +18,7 @@ declare global {
 import { StaticProvider } from './StaticContext.js'
 import { getStaticPageComponent } from './static-pages.js'
 import { isStaticRoute } from '@s4wave/web/router/static-routes.js'
+import { isPathnameAppRoute } from '@s4wave/web/router/app-path.js'
 import { markInteracted } from '@s4wave/web/state/interaction.js'
 import { RouterProvider, type To } from '@s4wave/web/router/router.js'
 import { markBrowserStartupBoundary } from '@s4wave/app/prerender/boot-status.js'
@@ -176,9 +177,12 @@ if (pathname === '/' && window.location.hash.length > 1) {
       awaitBoot('#' + pathname)
     }
   }
+} else if (isPathnameAppRoute(pathname)) {
+  // App pathnames such as /display keep their query params outside the hash so
+  // browser boot can consume #otp while the app still reads location.search.
+  awaitBoot(pathname + window.location.search)
 } else {
-  // Other static pages: the server renders the component directly
-  // inside bldr-root. Hydrate the full container.
+  // Other static pages: the server renders the component directly inside bldr-root.
   const container = document.getElementById('bldr-root')
   if (container?.hasAttribute('data-prerendered')) {
     const Component = getStaticPageComponent(pathname)

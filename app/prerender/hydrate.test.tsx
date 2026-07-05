@@ -151,6 +151,29 @@ describe('hydrate root hash boot', () => {
     expect(boot).toHaveBeenCalledWith('#/quickstart/drive')
   }, 15000)
 
+  it('auto-boots display pathnames with query params after OTP hash wipe', async () => {
+    const ready = createReady()
+    globalThis.__swReady = ready.promise
+    window.history.replaceState(
+      {},
+      '',
+      '/display?path=docs%2Fhello&component=viewer.markdown#otp=secret',
+    )
+
+    await import('./hydrate.js')
+    expect(mockHydrateRoot).not.toHaveBeenCalled()
+
+    const boot = vi.fn()
+    globalThis.__swBoot = boot
+    ready.resolve()
+    await ready.promise
+    await Promise.resolve()
+
+    expect(boot).toHaveBeenCalledWith(
+      '/display?path=docs%2Fhello&component=viewer.markdown',
+    )
+  }, 15000)
+
   it('boots returning root visitors into the app without hydrating the landing page', async () => {
     const ready = createReady()
     globalThis.__swReady = ready.promise

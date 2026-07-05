@@ -99,6 +99,42 @@ func TestWebListenerServesBootShell(t *testing.T) {
 	}
 }
 
+func TestWebListenerServesDisplayBootShellBeforeCapability(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		if req.URL.Path != "/" {
+			t.Fatalf("upstream path = %s, want /", req.URL.Path)
+		}
+		_, _ = rw.Write([]byte(`<!doctype html>
+<script type="importmap">{"imports":{"react":"/entrypoint/release/pkgs/react/index.mjs"}}</script>
+<script type="module" src="/boot.mjs"></script>`))
+	}))
+	defer upstream.Close()
+	t.Setenv("SPACEWAVE_WEB_ENDPOINT", upstream.URL)
+
+	listener, err := newWebListener(t.Context(), logrus.NewEntry(logrus.New()), nil, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+
+	resp, err := http.Get(listener.url + "/display?path=docs%2Fhello")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("display boot shell status = %d, want 200", resp.StatusCode)
+	}
+	if !strings.Contains(text, "/_spacewave/bootstrap") || !strings.Contains(text, "await import('/boot.mjs')") {
+		t.Fatalf("display boot shell missing bootstrap/release wiring: %s", text)
+	}
+}
+
 func TestWebListenerBootstrapSetsSingleUseCapability(t *testing.T) {
 	listener, err := newWebListener(t.Context(), logrus.NewEntry(logrus.New()), nil, "")
 	if err != nil {
