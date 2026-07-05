@@ -215,7 +215,7 @@
     "bldr:vendor": "go mod vendor"
   },
   "devDependencies": {
-    "@aptre/common": "0.34.1",
+    "@aptre/common": "0.34.2",
     "@google/design.md": "^0.3.0",
     "@playwright/test": "^1.61.0",
     "@tailwindcss/vite": "^4.3.1",

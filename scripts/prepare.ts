@@ -6,9 +6,9 @@ const commonModule = 'github.com/aperturerobotics/common'
 
 const generatedFiles = [
   { actual: '.gitignore', expected: '.gitignore' },
-  { actual: '.prettierrc.yaml', expected: '.prettierrc.yaml' },
+  { actual: '.oxfmtrc.json', expected: '.oxfmtrc.json' },
+  { actual: '.oxlintrc.json', expected: '.oxlintrc.json' },
   { actual: 'deps.go', expected: 'deps.go.tools' },
-  { actual: 'eslint.config.js', expected: 'eslint.config.js' },
   { actual: 'go.mod', expected: 'go.mod.tools' },
   { actual: 'go.sum', expected: 'go.sum.tools' },
   { actual: 'tsconfig.json', expected: 'tsconfig.json' },
