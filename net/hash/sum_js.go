@@ -9,6 +9,7 @@ import (
 	"sync"
 	"syscall/js"
 
+	"github.com/pkg/errors"
 	"github.com/zeebo/blake3"
 )
 
