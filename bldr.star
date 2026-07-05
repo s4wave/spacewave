@@ -443,7 +443,8 @@ BROWSER_RELEASE_MANIFESTS = [
     # native helper-window plugin, and loading it in WASM shows up as an
     # extra shared worker that exits after helper lookup fails.
     "spacewave-launcher",
-    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "web",
+    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86",
+    "spacewave-cli-plugin", "web",
     "spacewave-browser",
 ]
 BROWSER_RELEASE_E2E_MANIFESTS = [
@@ -466,7 +467,8 @@ CLI_RELEASE_MANIFESTS = [
 # reliable first boot; plugin-promote can replace them after launch by updating
 # the remote plugin world.
 REMOTE_WORLD_MANIFESTS = [
-    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "web",
+    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86",
+    "spacewave-cli-plugin", "web",
 ]
 BROWSER_RELEASE_EMBED_MANIFESTS = [
     {"manifestId": "spacewave-launcher",
