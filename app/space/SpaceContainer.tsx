@@ -51,6 +51,7 @@ import { DeleteSpaceDialog } from '@s4wave/app/sobject/DeleteSpaceDialog.js'
 import { RenameSpaceDialog } from '@s4wave/app/sobject/RenameSpaceDialog.js'
 import { useBottomBarSetOpenMenu } from '@s4wave/web/frame/bottom-bar-context.js'
 import { useOpenCommand } from '@s4wave/web/command/CommandContext.js'
+import { toast } from '@s4wave/web/ui/toaster.js'
 
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { pluginPathPrefix } from '@s4wave/app/urls.js'
@@ -534,6 +535,7 @@ export function SpaceContainer() {
   const handleExportClick = useCallback(() => {
     void downloadURL(buildExportUrl()).catch((err: unknown) => {
       console.error('failed to export space', err)
+      toast.error('Export failed', { description: String(err) })
     })
   }, [buildExportUrl])
   const handleCreateObject = useCallback(() => {

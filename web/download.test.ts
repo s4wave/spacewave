@@ -117,7 +117,7 @@ describe('downloadURL', () => {
     expect(anchor.click).toHaveBeenCalledTimes(1)
   })
 
-  it('falls back to a direct anchor download when same-origin fetch fails', async () => {
+  it('falls back to a direct anchor download when servable same-origin fetch fails', async () => {
     const anchor = {
       click: vi.fn(),
       download: '',
@@ -134,7 +134,37 @@ describe('downloadURL', () => {
       throw new Error('offline')
     }) as typeof fetch
 
-    await downloadURL('/p/spacewave-core/fs/missing', 'missing.txt')
+    await downloadURL('/downloads/missing.zip', 'missing.txt')
+
+    expect(globalThis.fetch).toHaveBeenCalledWith('/downloads/missing.zip', {
+      cache: 'no-store',
+    })
+    expect(anchor.href).toBe('/downloads/missing.zip')
+    expect(anchor.download).toBe('missing.txt')
+    expect(anchor.click).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects failed runtime-internal downloads without falling back to an anchor', async () => {
+    const anchor = {
+      click: vi.fn(),
+      download: '',
+      href: '',
+    } as unknown as HTMLAnchorElement
+    const createElement = vi.fn(() => anchor)
+    globalThis.document = {
+      body: {
+        appendChild: vi.fn(),
+        removeChild: vi.fn(),
+      },
+      createElement,
+    } as unknown as Document
+    globalThis.fetch = vi.fn(async () => {
+      throw new Error('offline')
+    }) as typeof fetch
+
+    await expect(
+      downloadURL('/p/spacewave-core/fs/missing', 'missing.txt'),
+    ).rejects.toThrow()
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
       '/p/spacewave-core/fs/missing',
@@ -142,9 +172,43 @@ describe('downloadURL', () => {
         cache: 'no-store',
       },
     )
-    expect(anchor.href).toBe('/p/spacewave-core/fs/missing')
-    expect(anchor.download).toBe('missing.txt')
-    expect(anchor.click).toHaveBeenCalledTimes(1)
+    expect(createElement).not.toHaveBeenCalled()
+    expect(anchor.click).not.toHaveBeenCalled()
+  })
+
+  it('rejects non-ok runtime-internal downloads without falling back to an anchor', async () => {
+    const anchor = {
+      click: vi.fn(),
+      download: '',
+      href: '',
+    } as unknown as HTMLAnchorElement
+    const createElement = vi.fn(() => anchor)
+    globalThis.document = {
+      body: {
+        appendChild: vi.fn(),
+        removeChild: vi.fn(),
+      },
+      createElement,
+    } as unknown as Document
+    globalThis.fetch = vi.fn(async () => {
+      return new Response('missing', {
+        status: 503,
+        statusText: 'Service Unavailable',
+      })
+    }) as typeof fetch
+
+    await expect(
+      downloadURL('/p/spacewave-core/fs/missing', 'missing.txt'),
+    ).rejects.toThrow()
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/p/spacewave-core/fs/missing',
+      {
+        cache: 'no-store',
+      },
+    )
+    expect(createElement).not.toHaveBeenCalled()
+    expect(anchor.click).not.toHaveBeenCalled()
   })
 
   it('keeps direct anchor downloads for known-large same-origin responses', async () => {

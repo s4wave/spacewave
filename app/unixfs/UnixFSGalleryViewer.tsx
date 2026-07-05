@@ -12,6 +12,7 @@ import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { downloadURL } from '@s4wave/web/download.js'
+import { toast } from '@s4wave/web/ui/toaster.js'
 
 import { joinUnixFSDisplayPath } from '@s4wave/sdk/unixfs/path.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
@@ -247,6 +248,9 @@ function UnixFSGalleryBody({
                         item.name,
                       ).catch((err: unknown) => {
                         console.error('failed to download unixfs file', err)
+                        toast.error('Download failed', {
+                          description: String(err),
+                        })
                       })
                     }}
                     title="Download"

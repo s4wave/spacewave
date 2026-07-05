@@ -46,6 +46,7 @@ import {
   DialogTitle,
 } from '@s4wave/web/ui/dialog.js'
 import { cn } from '@s4wave/web/style/utils.js'
+import { toast } from '@s4wave/web/ui/toaster.js'
 import {
   LuCheck,
   LuCircleAlert,
@@ -628,6 +629,7 @@ export function UnixFSBrowser({
         entries,
       }).catch((err: unknown) => {
         console.error('failed to download unixfs selection', err)
+        toast.error('Download failed', { description: String(err) })
       })
     },
     [displayPath, sessionIndex, spaceId, unixfsId],

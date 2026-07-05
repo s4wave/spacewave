@@ -81,6 +81,7 @@ export function SpaceCommands({
       `${pluginPathPrefix}/export/u/${sessionIndex}/so/${encodeURIComponent(sharedObjectId)}`,
     ).catch((err: unknown) => {
       console.error('failed to export space', err)
+      toast.error('Export failed', { description: String(err) })
     })
   }, [sessionIndex, sharedObjectId])
 

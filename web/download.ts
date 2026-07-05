@@ -19,29 +19,51 @@ export function downloadPemFile(
 const maxBlobDownloadBytes = 64 * 1024 * 1024
 
 export async function downloadURL(url: string, filename = ''): Promise<void> {
-  if (isCrossOriginURL(url)) {
+  const resolvedURL = new URL(url, window.location.href)
+  if (resolvedURL.origin !== window.location.origin) {
     clickDownloadLink(url, filename)
     return
   }
 
+  const runtimeInternalURL = resolvedURL.pathname.startsWith('/p/')
+  let response: Response
   try {
-    const response = await fetch(url, { cache: 'no-store' })
-    if (!response.ok) {
-      clickDownloadLink(url, filename)
-      return
+    response = await fetch(url, { cache: 'no-store' })
+  } catch (err) {
+    if (runtimeInternalURL) {
+      throw new Error(
+        `Download failed for runtime URL ${resolvedURL.pathname}: ${String(err)}`,
+        { cause: err },
+      )
     }
-    if (isKnownLargeResponse(response)) {
-      clickDownloadLink(url, filename)
-      return
+    clickDownloadLink(url, filename)
+    return
+  }
+
+  if (!response.ok) {
+    if (runtimeInternalURL) {
+      throw new Error(
+        `Download failed for runtime URL ${resolvedURL.pathname}: HTTP ${response.status}`,
+      )
     }
+    clickDownloadLink(url, filename)
+    return
+  }
+  if (isKnownLargeResponse(response)) {
+    clickDownloadLink(url, filename)
+    return
+  }
+  try {
     await downloadBlobResponse(response, filename, url)
-  } catch {
+  } catch (err) {
+    if (runtimeInternalURL) {
+      throw new Error(
+        `Download failed for runtime URL ${resolvedURL.pathname}: ${String(err)}`,
+        { cause: err },
+      )
+    }
     clickDownloadLink(url, filename)
   }
-}
-
-function isCrossOriginURL(url: string): boolean {
-  return new URL(url, window.location.href).origin !== window.location.origin
 }
 
 function isKnownLargeResponse(response: Response): boolean {

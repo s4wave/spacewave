@@ -7,6 +7,7 @@ import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
 import { downloadURL } from '@s4wave/web/download.js'
 import { cn } from '@s4wave/web/style/utils.js'
+import { toast } from '@s4wave/web/ui/toaster.js'
 import {
   Tooltip,
   TooltipContent,
@@ -141,6 +142,7 @@ function ExportDataSection({ exportUrl }: { exportUrl: string }) {
   const handleExport = useCallback(() => {
     void downloadURL(exportUrl).catch((err: unknown) => {
       console.error('failed to export object data', err)
+      toast.error('Export failed', { description: String(err) })
     })
   }, [exportUrl])
 

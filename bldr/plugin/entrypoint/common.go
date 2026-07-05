@@ -128,7 +128,7 @@ func ExecutePluginEntrypoint(
 
 	// handle Fetch requests via bus Fetch
 	webFetchViaBus := web_fetch_service.NewController(le, b, &web_fetch_service.Config{
-		// NotFoundIfIdle: true,
+		NotFoundIfIdle: true,
 	})
 	webFetchViaBusRel, err := b.AddController(ctx, webFetchViaBus, nil)
 	if err != nil {

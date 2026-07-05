@@ -151,7 +151,7 @@ func TestDirectLookupHTTPHandlerThroughBus(t *testing.T) {
 }
 
 func TestServeHTTPReturnsNotFoundWhenLookupIsIdle(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	le := logrus.NewEntry(logrus.New())
@@ -166,7 +166,22 @@ func TestServeHTTPReturnsNotFoundWhenLookupIsIdle(t *testing.T) {
 		t.Fatal(err)
 	}
 	rw := httptest.NewRecorder()
-	ctrl.ServeHTTP(rw, req)
+	done := make(chan struct{})
+	go func() {
+		ctrl.ServeHTTP(rw, req)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-ctx.Done():
+		select {
+		case <-done:
+			t.Fatal("ServeHTTP waited for request context cancellation; want idle lookup to return 404 before the guard context expires")
+		case <-time.After(time.Second):
+			t.Fatal("ServeHTTP did not return after the guard context expired")
+		}
+	}
 
 	if rw.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d", rw.Code, http.StatusNotFound)
