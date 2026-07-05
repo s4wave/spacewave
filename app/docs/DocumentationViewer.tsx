@@ -4,6 +4,7 @@ import Markdown from 'markdown-to-jsx'
 import {
   LuBookOpen,
   LuFile,
+  LuMenu,
   LuPenLine,
   LuPlus,
   LuSearch,
@@ -11,8 +12,14 @@ import {
 } from 'react-icons/lu'
 
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { PreBlock } from '@s4wave/app/docs/CodeBlock.js'
 import '@s4wave/app/docs/docs-prose.css'
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from '@s4wave/web/ui/sheet.js'
 import { Documentation } from '@s4wave/sdk/docs/docs.pb.js'
 import { MknodType } from '@s4wave/sdk/unixfs/index.js'
 import { keyToIRI, iriToKey } from '@s4wave/sdk/world/graph-utils.js'
@@ -32,20 +39,12 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 
-import { MarkdownLink } from './MarkdownLink.js'
+import { docsMarkdownOverrides } from './markdown-overrides.js'
 
 export const DocumentationTypeID = 'spacewave-docs/documentation'
 
 // DOC_SOURCE_PREDICATE is the graph predicate linking documentation to its UnixFS source.
 const DOC_SOURCE_PREDICATE = '<doc/source>'
-
-// markdownOverrides configures markdown-to-jsx for code blocks and internal links.
-const markdownOverrides = {
-  overrides: {
-    a: { component: MarkdownLink },
-    pre: { component: PreBlock },
-  },
-}
 
 // DocumentationViewer displays a Documentation world object with a file sidebar
 // and markdown content viewer.
@@ -120,6 +119,13 @@ export function DocumentationViewer({
 
   // Edit state for the textarea content.
   const [editContent, setEditContent] = useState<string | null>(null)
+
+  // Narrow-width navigation drawer state. portalContainer scopes the drawer
+  // overlay to this viewer so it stays inside a resizable pane.
+  const [navOpen, setNavOpen] = useState(false)
+  const [portalContainer, setPortalContainer] = useState<HTMLDivElement | null>(
+    null,
+  )
 
   const handleSelectPage = useCallback(
     (name: string) => {
@@ -224,163 +230,223 @@ export function DocumentationViewer({
     )
   }
 
+  // sidebarBody is the search, create, and page listing shared by the desktop
+  // rail and the narrow-width drawer. Selecting or creating a page closes the
+  // drawer; on desktop the drawer is already closed so the call is a no-op.
+  const sidebarBody = (
+    <>
+      {/* Search and create */}
+      <div className="border-border flex items-center gap-1 border-b px-2 py-1.5">
+        <div className="bg-muted flex flex-1 items-center gap-1.5 rounded px-2 py-1">
+          <LuSearch className="text-muted-foreground size-3 shrink-0" />
+          <input
+            type="text"
+            placeholder="Search pages..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="text-foreground placeholder:text-muted-foreground w-full border-none bg-transparent text-xs outline-none"
+          />
+        </div>
+        <button
+          type="button"
+          className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex items-center justify-center rounded p-1.5"
+          onClick={() => {
+            setNavOpen(false)
+            void handleCreatePage()
+          }}
+          title="New page"
+        >
+          <LuPlus className="size-3.5" />
+        </button>
+      </div>
+
+      {/* File listing */}
+      <div className="flex-1 overflow-y-auto">
+        {filteredEntries.length === 0 ? (
+          <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 p-6 text-center">
+            {mdEntries.length === 0 ? (
+              <>
+                <span className="text-xs">No pages yet</span>
+                <button
+                  type="button"
+                  className="bg-brand text-brand-foreground rounded-md px-3 py-1.5 text-xs font-medium hover:opacity-90"
+                  onClick={() => {
+                    setNavOpen(false)
+                    void handleCreatePage()
+                  }}
+                >
+                  Create first page
+                </button>
+              </>
+            ) : (
+              <span className="text-xs">No matching pages</span>
+            )}
+          </div>
+        ) : (
+          filteredEntries.map((entry) => {
+            const label = entry.name.replace(/\.md$/, '')
+            const selected = selectedPage === entry.name
+            return (
+              <button
+                key={entry.name}
+                type="button"
+                className={cn(
+                  'flex w-full items-center gap-2 px-3 py-2 text-left text-xs',
+                  'hover:bg-list-hover-background',
+                  selected &&
+                    'bg-list-active-selection-background text-list-active-selection-foreground',
+                )}
+                onClick={() => {
+                  setNavOpen(false)
+                  handleSelectPage(entry.name)
+                }}
+              >
+                <LuFile className="size-3 shrink-0" />
+                <span className="truncate">{label}</span>
+              </button>
+            )
+          })
+        )}
+      </div>
+    </>
+  )
+
   return (
-    <div className="bg-background-primary flex h-full w-full overflow-hidden">
-      {/* Sidebar */}
-      <div
-        className="border-border flex flex-col border-r"
-        style={{ width: 220, minWidth: 220 }}
-      >
-        {/* Header */}
-        <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-3">
+    <div
+      ref={setPortalContainer}
+      className="bg-background-primary @container relative flex h-full w-full flex-col overflow-hidden"
+    >
+      {/* Navigation drawer - narrow widths only */}
+      <Sheet open={navOpen} onOpenChange={setNavOpen}>
+        <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-3 @lg:hidden">
+          <SheetTrigger asChild>
+            <button
+              type="button"
+              aria-label="Open documentation pages"
+              className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground -ml-1 flex items-center justify-center rounded p-1.5"
+            >
+              <LuMenu className="size-4" />
+            </button>
+          </SheetTrigger>
           <LuBookOpen className="text-foreground size-4 shrink-0" />
           <span className="text-foreground truncate text-sm font-semibold tracking-tight">
             {title}
           </span>
         </div>
-
-        {/* Search and create */}
-        <div className="border-border flex items-center gap-1 border-b px-2 py-1.5">
-          <div className="bg-muted flex flex-1 items-center gap-1.5 rounded px-2 py-1">
-            <LuSearch className="text-muted-foreground size-3 shrink-0" />
-            <input
-              type="text"
-              placeholder="Search pages..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="text-foreground placeholder:text-muted-foreground w-full border-none bg-transparent text-xs outline-none"
-            />
+        <SheetContent
+          side="left"
+          position="absolute"
+          portalContainer={portalContainer}
+          showCloseButton={false}
+          className="w-[240px] max-w-[85%] gap-0 p-0"
+        >
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="border-foreground/8 flex items-center justify-between border-b px-3 py-2.5">
+              <SheetTitle className="text-foreground flex items-center gap-2 text-sm font-semibold tracking-tight">
+                <LuBookOpen className="size-4 shrink-0" />
+                {title}
+              </SheetTitle>
+              <SheetClose asChild>
+                <button
+                  type="button"
+                  aria-label="Close documentation pages"
+                  className="text-foreground-alt hover:text-foreground rounded-md p-1.5 transition-colors"
+                >
+                  <LuX className="size-4" />
+                </button>
+              </SheetClose>
+            </div>
+            {sidebarBody}
           </div>
-          <button
-            type="button"
-            className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex items-center justify-center rounded p-1.5"
-            onClick={() => {
-              void handleCreatePage()
-            }}
-            title="New page"
-          >
-            <LuPlus className="size-3.5" />
-          </button>
+        </SheetContent>
+      </Sheet>
+
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {/* Sidebar - wide widths only */}
+        <div className="border-border hidden w-[220px] shrink-0 flex-col border-r @lg:flex">
+          {/* Header */}
+          <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-3">
+            <LuBookOpen className="text-foreground size-4 shrink-0" />
+            <span className="text-foreground truncate text-sm font-semibold tracking-tight">
+              {title}
+            </span>
+          </div>
+          {sidebarBody}
         </div>
 
-        {/* File listing */}
-        <div className="flex-1 overflow-y-auto">
-          {filteredEntries.length === 0 ? (
-            <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 p-6 text-center">
-              {mdEntries.length === 0 ? (
-                <>
-                  <span className="text-xs">No pages yet</span>
-                  <button
-                    type="button"
-                    className="bg-brand text-brand-foreground rounded-md px-3 py-1.5 text-xs font-medium hover:opacity-90"
-                    onClick={() => {
-                      void handleCreatePage()
-                    }}
-                  >
-                    Create first page
-                  </button>
-                </>
-              ) : (
-                <span className="text-xs">No matching pages</span>
-              )}
-            </div>
-          ) : (
-            filteredEntries.map((entry) => {
-              const label = entry.name.replace(/\.md$/, '')
-              const selected = selectedPage === entry.name
-              return (
-                <button
-                  key={entry.name}
-                  type="button"
-                  className={cn(
-                    'flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs',
-                    'hover:bg-list-hover-background',
-                    selected &&
-                      'bg-list-active-selection-background text-list-active-selection-foreground',
-                  )}
-                  onClick={() => handleSelectPage(entry.name)}
-                >
-                  <LuFile className="size-3 shrink-0" />
-                  <span className="truncate">{label}</span>
-                </button>
-              )
-            })
-          )}
-        </div>
-      </div>
-
-      {/* Content area */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        {selectedPage ? (
-          <>
-            {/* Content header */}
-            <div className="border-border flex items-center justify-between border-b px-3 py-1.5">
-              <span className="text-xs font-medium">
-                {selectedPage.replace(/\.md$/, '')}
-              </span>
-              <div className="flex items-center gap-1">
-                {editing && (
-                  <button
-                    type="button"
-                    className="text-foreground-alt hover:bg-list-hover-background flex items-center gap-1 rounded px-2 py-0.5 text-xs"
-                    onClick={handleCancelEdit}
-                    title="Cancel editing"
-                  >
-                    <LuX className="size-3" />
-                    Cancel
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className={cn(
-                    'flex items-center gap-1 rounded px-2 py-0.5 text-xs',
-                    'hover:bg-list-hover-background',
-                    editing ? 'text-brand' : 'text-foreground-alt',
-                  )}
-                  onClick={handleToggleEdit}
-                  title={editing ? 'Save and preview' : 'Edit page'}
-                >
-                  <LuPenLine className="size-3" />
-                  {editing ? 'Save' : 'Edit'}
-                </button>
-              </div>
-            </div>
-
-            {/* Content body */}
-            {textResource.loading ? (
-              <div className="flex flex-1 items-center justify-center p-4">
-                <LoadingInline label="Loading page" tone="muted" size="sm" />
-              </div>
-            ) : textResource.error ? (
-              <div className="text-destructive flex flex-1 flex-col items-center justify-center gap-2 p-4 text-xs">
-                <span>Failed to load page</span>
-                <span className="text-foreground-alt/50 text-xs">
-                  {textResource.error.message}
+        {/* Content area */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          {selectedPage ? (
+            <>
+              {/* Content header */}
+              <div className="border-border flex items-center justify-between border-b px-3 py-1.5">
+                <span className="text-xs font-medium">
+                  {selectedPage.replace(/\.md$/, '')}
                 </span>
-              </div>
-            ) : editing ? (
-              <div className="flex-1 overflow-auto">
-                <textarea
-                  className="bg-background-primary text-editor-foreground h-full w-full resize-none border-none p-4 font-mono text-xs outline-none"
-                  value={editContent ?? textResource.value ?? ''}
-                  onChange={(e) => setEditContent(e.target.value)}
-                />
-              </div>
-            ) : (
-              <div className="flex-1 overflow-auto p-4">
-                <div className="docs-prose">
-                  <Markdown options={markdownOverrides}>
-                    {textResource.value ?? ''}
-                  </Markdown>
+                <div className="flex items-center gap-1">
+                  {editing && (
+                    <button
+                      type="button"
+                      className="text-foreground-alt hover:bg-list-hover-background flex items-center gap-1 rounded px-2 py-0.5 text-xs"
+                      onClick={handleCancelEdit}
+                      title="Cancel editing"
+                    >
+                      <LuX className="size-3" />
+                      Cancel
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className={cn(
+                      'flex items-center gap-1 rounded px-2 py-0.5 text-xs',
+                      'hover:bg-list-hover-background',
+                      editing ? 'text-brand' : 'text-foreground-alt',
+                    )}
+                    onClick={handleToggleEdit}
+                    title={editing ? 'Save and preview' : 'Edit page'}
+                  >
+                    <LuPenLine className="size-3" />
+                    {editing ? 'Save' : 'Edit'}
+                  </button>
                 </div>
               </div>
-            )}
-          </>
-        ) : (
-          <div className="text-muted-foreground flex flex-1 items-center justify-center text-xs">
-            Select a page to view
-          </div>
-        )}
+
+              {/* Content body */}
+              {textResource.loading ? (
+                <div className="flex flex-1 items-center justify-center p-4">
+                  <LoadingInline label="Loading page" tone="muted" size="sm" />
+                </div>
+              ) : textResource.error ? (
+                <div className="text-destructive flex flex-1 flex-col items-center justify-center gap-2 p-4 text-xs">
+                  <span>Failed to load page</span>
+                  <span className="text-foreground-alt/50 text-xs">
+                    {textResource.error.message}
+                  </span>
+                </div>
+              ) : editing ? (
+                <div className="flex-1 overflow-auto">
+                  <textarea
+                    className="bg-background-primary text-editor-foreground h-full w-full resize-none border-none p-4 font-mono text-xs outline-none"
+                    value={editContent ?? textResource.value ?? ''}
+                    onChange={(e) => setEditContent(e.target.value)}
+                  />
+                </div>
+              ) : (
+                <div className="flex-1 overflow-auto p-4">
+                  <div className="docs-prose">
+                    <Markdown options={docsMarkdownOverrides}>
+                      {textResource.value ?? ''}
+                    </Markdown>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-muted-foreground flex flex-1 items-center justify-center text-xs">
+              Select a page to view
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

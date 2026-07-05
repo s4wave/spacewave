@@ -18,8 +18,7 @@ import {
 } from '@s4wave/web/ui/DropdownMenu.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { ExternalLink } from '@s4wave/app/landing/ExternalLink.js'
-import { PreBlock } from './CodeBlock.js'
-import { MarkdownLink } from './MarkdownLink.js'
+import { docsMarkdownOverrides } from './markdown-overrides.js'
 import { getSectionLabel, siteDefs } from './sections.js'
 import { getRawMarkdownUrl } from './source-url.js'
 import type { DocPage as DocPageType } from './types.js'
@@ -35,13 +34,15 @@ export interface DocsPageProps {
 // siteLabels maps site IDs to display labels, derived from siteDefs.
 const siteLabels = new Map(siteDefs.map((s) => [s.id, s.label]))
 
-// markdownOverrides configures markdown-to-jsx for code blocks and internal links.
-const markdownOverrides = {
-  overrides: {
-    a: { component: MarkdownLink },
-    pre: { component: PreBlock },
-  },
-}
+// toolbarActionBase sizes a header action to a 44px touch target while it is
+// icon-only on narrow displays, then relaxes to a compact inline control once
+// the @lg label appears.
+const toolbarActionBase =
+  'flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-md px-2 text-xs transition-colors @lg:h-8 @lg:min-w-0 @lg:justify-start'
+
+// toolbarActionIdle is the resting color treatment shared by the header actions.
+const toolbarActionIdle =
+  'text-foreground-alt/40 hover:text-foreground-alt hover:bg-foreground/5'
 
 // DocsPage renders a single documentation page with markdown content.
 export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
@@ -89,25 +90,28 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
   return (
     <article>
       {/* Header bar: breadcrumb + utility actions */}
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <div className="text-foreground-alt/50 flex items-center gap-2 text-xs">
-          <span>{siteLabels.get(doc.site) ?? doc.site}</span>
-          <span className="text-foreground-alt/30">/</span>
-          <span>{getSectionLabel(doc.site, doc.section)}</span>
-          <span className="text-foreground-alt/30">/</span>
-          <span className="text-foreground-alt">{doc.title}</span>
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <div className="text-foreground-alt/50 flex min-w-0 flex-1 items-center gap-2 text-xs">
+          <span className="hidden @lg:inline">
+            {siteLabels.get(doc.site) ?? doc.site}
+          </span>
+          <span className="text-foreground-alt/30 hidden @lg:inline">/</span>
+          <span className="hidden @lg:inline">
+            {getSectionLabel(doc.site, doc.section)}
+          </span>
+          <span className="text-foreground-alt/30 hidden @lg:inline">/</span>
+          <span className="text-foreground-alt truncate">{doc.title}</span>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           <button
             onClick={handleCopyMarkdown}
             className={cn(
-              'flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors',
-              copied
-                ? 'text-brand'
-                : 'text-foreground-alt/40 hover:text-foreground-alt hover:bg-foreground/5',
+              toolbarActionBase,
+              copied ? 'text-brand' : toolbarActionIdle,
             )}
             title="Copy as Markdown"
+            aria-label="Copy page as Markdown"
           >
             {copied ? (
               <LuCheck className="size-3" />
@@ -121,8 +125,9 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
 
           <ExternalLink
             href={rawGitHubUrl}
-            className="text-foreground-alt/40 hover:text-foreground-alt hover:bg-foreground/5 flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors"
+            className={cn(toolbarActionBase, toolbarActionIdle)}
             title="Open raw Markdown on GitHub"
+            aria-label="Open raw Markdown on GitHub"
           >
             <LuFileText className="size-3" />
             <span className="hidden @lg:inline">Open MD</span>
@@ -131,8 +136,9 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="text-foreground-alt/40 hover:text-foreground-alt hover:bg-foreground/5 flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors"
+                className={cn(toolbarActionBase, toolbarActionIdle)}
                 title="Open in AI"
+                aria-label="Open page in an AI assistant"
               >
                 <LuSparkles className="size-3" />
                 <span className="hidden @lg:inline">AI</span>
@@ -166,16 +172,16 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
 
       {/* Page body */}
       <div className="docs-prose">
-        <Markdown options={markdownOverrides}>{doc.body}</Markdown>
+        <Markdown options={docsMarkdownOverrides}>{doc.body}</Markdown>
       </div>
 
       {/* Previous / Next navigation */}
       {(prevDoc || nextDoc) && (
-        <nav className="mt-12 grid grid-cols-2 gap-4">
+        <nav className="mt-12 grid grid-cols-1 gap-3 @sm:grid-cols-2 @sm:gap-4">
           {prevDoc ? (
             <button
               onClick={navigatePrev}
-              className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-1.5 rounded-xl border p-5 text-left transition-all duration-200"
+              className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-1.5 rounded-xl border p-4 text-left transition-all duration-200 @lg:p-5"
             >
               <span className="text-foreground-alt/50 flex items-center gap-1.5 text-xs">
                 <LuArrowLeft className="size-3 transition-transform duration-200 group-hover:-translate-x-0.5" />
@@ -192,7 +198,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
           {nextDoc ? (
             <button
               onClick={navigateNext}
-              className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-end gap-1.5 rounded-xl border p-5 text-right transition-all duration-200"
+              className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-end gap-1.5 rounded-xl border p-4 text-right transition-all duration-200 @lg:p-5"
             >
               <span className="text-foreground-alt/50 flex items-center gap-1.5 text-xs">
                 Next

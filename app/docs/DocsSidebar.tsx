@@ -86,7 +86,7 @@ export function DocsSidebar({ sections, currentDoc }: DocsSidebarProps) {
                       <button
                         onClick={() => goToPage(page.url)}
                         className={cn(
-                          'w-full cursor-pointer border-l-2 py-1.5 pl-3 text-left text-sm transition-colors',
+                          'w-full cursor-pointer border-l-2 py-2 pl-3 text-left text-sm transition-colors',
                           currentDoc?.url === page.url
                             ? 'border-brand text-brand'
                             : 'text-foreground-alt/70 hover:text-foreground hover:border-foreground-alt/20 border-transparent',

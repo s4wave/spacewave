@@ -31,7 +31,7 @@ export function DocsIndexRoute() {
   )
 
   return (
-    <DocsLayout sidebar={sidebar}>
+    <DocsLayout sidebar={sidebar} contentWidth="wide">
       <DocsHub />
     </DocsLayout>
   )

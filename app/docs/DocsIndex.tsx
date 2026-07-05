@@ -32,7 +32,7 @@ export function DocsIndex({ sections }: DocsIndexProps) {
       </header>
 
       {/* Section cards */}
-      <div className="grid gap-5 @lg:grid-cols-2">
+      <div className="grid gap-5 @lg:grid-cols-2 @5xl:grid-cols-3">
         {sections.map((section) => {
           const firstPage = section.pages[0]
           return (

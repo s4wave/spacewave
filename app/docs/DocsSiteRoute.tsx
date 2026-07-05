@@ -49,7 +49,7 @@ export function DocsSiteRoute() {
   )
 
   return (
-    <DocsLayout sidebar={sidebar}>
+    <DocsLayout sidebar={sidebar} contentWidth="wide">
       <SiteHome siteId={site} sections={sections} />
     </DocsLayout>
   )
