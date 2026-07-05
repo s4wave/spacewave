@@ -21,8 +21,16 @@ func BuildViteBundleMeta(bundles []*ViteBundleMeta) ([]*ViteBundleMeta, error) {
 
 		existingBundle, exists := bundleMap[bundleID]
 		if exists {
-			// Merge the bundles by appending entrypoints
+			// Merge duplicate bundle declarations into the bundle owner. Project
+			// config may define the entrypoints while compiler shortcuts add
+			// runtime externals for the same id.
 			existingBundle.Entrypoints = append(existingBundle.Entrypoints, bundle.GetEntrypoints()...)
+			existingBundle.ExternalPkgs = appendMissingStrings(existingBundle.ExternalPkgs, bundle.GetExternalPkgs())
+			existingBundle.ViteConfigPaths = appendMissingStrings(existingBundle.ViteConfigPaths, bundle.GetViteConfigPaths())
+			existingBundle.DisableProjectConfig = existingBundle.GetDisableProjectConfig() || bundle.GetDisableProjectConfig()
+			if existingBundle.GetPublicPath() == "" {
+				existingBundle.PublicPath = bundle.GetPublicPath()
+			}
 		} else {
 			bundleMap[bundleID] = bundle
 		}
@@ -33,6 +41,15 @@ func BuildViteBundleMeta(bundles []*ViteBundleMeta) ([]*ViteBundleMeta, error) {
 		return strings.Compare(a.GetId(), b.GetId())
 	})
 	return out, nil
+}
+
+func appendMissingStrings(base, extra []string) []string {
+	for _, value := range extra {
+		if !slices.Contains(base, value) {
+			base = append(base, value)
+		}
+	}
+	return base
 }
 
 // Validate validates the EsbuildBundleEntrypoint configuration.

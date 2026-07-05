@@ -557,6 +557,7 @@ async function buildWebPkg(
           ? [
               createWebPkgRemapPlugin({
                 webPkgIDs: remapSiblingIds,
+                webPkgBasePath: request.webPkgBasePath || '/b/pkg',
                 debug: verboseDebug,
               }),
             ]
