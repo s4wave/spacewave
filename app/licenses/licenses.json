@@ -920,7 +920,7 @@
     },
     {
       "name": "github.com/aperturerobotics/cayley",
-      "version": "v0.14.1-0.20260705001814-9a449c999701",
+      "version": "v0.14.1-0.20260705003605-e5a917c4fd48",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/cayley",
