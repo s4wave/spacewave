@@ -19,12 +19,10 @@ over any transport with extensive and flexible configuration.
 
 ## Overview
 
-[![Go Reference Widget]][Go Reference] [![Go Report Card Widget]][Go Report Card]
+[![Go Reference Widget]][Go Reference]
 
 [Go Reference]: https://pkg.go.dev/github.com/s4wave/spacewave/net
 [Go Reference Widget]: https://pkg.go.dev/badge/github.com/s4wave/spacewave/net.svg
-[Go Report Card Widget]: https://goreportcard.com/badge/github.com/s4wave/spacewave/net
-[Go Report Card]: https://goreportcard.com/report/github.com/s4wave/spacewave/net
 
 Bifrost is designed around the following core concepts:
 
