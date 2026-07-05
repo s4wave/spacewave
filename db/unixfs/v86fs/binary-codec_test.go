@@ -3,6 +3,8 @@ package unixfs_v86fs
 import (
 	"bytes"
 	"encoding/binary"
+	"math"
+	"strings"
 	"testing"
 )
 
@@ -140,6 +142,64 @@ func TestEncodeBinaryFrameReplies(t *testing.T) {
 				t.Fatalf("encoded frame\n got %x\nwant %x", got, test.want)
 			}
 		})
+	}
+}
+
+func TestEncodeBinaryFrameOversizedStringErrors(t *testing.T) {
+	// A guest-controlled string longer than the uint16 length prefix must
+	// return an error, not panic the host relay goroutine. A readlink target is
+	// read back from the guest filesystem and a readdir entry name comes from a
+	// guest-created directory entry, neither bounded to MaxUint16.
+	oversized := strings.Repeat("a", math.MaxUint16+1)
+	tests := []struct {
+		name string
+		msg  *V86FsMessage
+	}{
+		{
+			name: "readlink target",
+			msg: &V86FsMessage{
+				Tag:  1,
+				Body: &V86FsMessage_ReadlinkReply{ReadlinkReply: &V86FsReadlinkReply{Target: oversized}},
+			},
+		},
+		{
+			name: "readdir entry name",
+			msg: &V86FsMessage{
+				Tag: 2,
+				Body: &V86FsMessage_ReaddirReply{ReaddirReply: &V86FsReaddirReply{
+					Entries: []*V86FsDirEntry{{InodeId: 1, DtType: dtReg, Name: oversized}},
+				}},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := EncodeBinaryFrame(test.msg)
+			if err == nil {
+				t.Fatalf("encode oversized %s: want error, got %d bytes", test.name, len(got))
+			}
+			if got != nil {
+				t.Fatalf("encode oversized %s: want nil frame on error, got %d bytes", test.name, len(got))
+			}
+		})
+	}
+}
+
+func TestEncodeBinaryFrameMaxLengthStringSucceeds(t *testing.T) {
+	// A target at exactly the uint16 limit still encodes; the guard is len >
+	// math.MaxUint16, so MaxUint16 is the largest accepted length.
+	target := strings.Repeat("a", math.MaxUint16)
+	msg := &V86FsMessage{
+		Tag:  1,
+		Body: &V86FsMessage_ReadlinkReply{ReadlinkReply: &V86FsReadlinkReply{Target: target}},
+	}
+	got, err := EncodeBinaryFrame(msg)
+	if err != nil {
+		t.Fatalf("encode max-length target: %v", err)
+	}
+	want := frame(v86fsMsgReadlinkReply, 1, u32(0), str(target))
+	if !bytes.Equal(got, want) {
+		t.Fatalf("encoded max-length frame: got %d bytes, want %d bytes", len(got), len(want))
 	}
 }
 
