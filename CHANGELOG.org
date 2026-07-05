@@ -1,5 +1,56 @@
 #+TITLE: Spacewave Changelog
 
+* v0.53.0
+<2026-07-04 Sat>
+
+Spacewave 0.53.0 adds editable keyboard shortcuts, richer Command Palette
+discovery, and Org file support for notes and docs. It also improves Drive
+Quickstart reliability, browser startup, session recovery, desktop shortcut
+handling, and object-heavy Space responsiveness.
+
+** Features
+- Keyboard Shortcuts can now be edited from Tools, account settings, and Space
+  settings, with Local, Account, and Space scopes, conflict warnings, reset
+  actions, and custom leader-key settings.
+- Command Palette now combines command search and key-sequence discovery:
+  Cmd/Ctrl+K opens the palette, typing filters commands, and key paths show the
+  next available actions.
+- Notebooks and Docs now recognize Org files. You can create Org notes, open
+  index.org docs pages, and edit supported Org content in WYSIWYG or source mode
+  while preserving Org metadata.
+
+** Fixes
+- Fixed a Drive Quickstart stall where command setup could loop after the Space
+  was created, leaving a blank Space view instead of the file browser.
+- Fixed Quickstart wizard name fields so clearing a suggested name and typing a
+  replacement no longer restores or appends the old name.
+- Fixed local session recovery after unlock or reconnect so Spacewave retries
+  the current session connection instead of waiting on one that was already
+  replaced.
+- Fixed browser startup paths that could leave some Notebooks, Blog, and Forge
+  views stuck before the view appeared after browser updates.
+- Fixed desktop keyboard shortcuts so native menu accelerators no longer take
+  over Command Palette and custom shortcut keys before Spacewave can handle
+  them.
+
+** Improvements
+- Drive Quickstart, Space creation, and object-heavy views do fewer duplicate
+  storage lookups and writes, improving responsiveness during creation and
+  navigation.
+- Command Palette result matching and selection are more predictable, with
+  highlighted alias matches and clearer shortcut and conflict hints.
+- Keyboard shortcut lists, menus, and Command Palette rows now show the
+  effective shortcuts after Local, Account, or Space overrides.
+- Browser startup after updates is less likely to be blocked by stale local
+  startup state, reducing stuck loading screens.
+- Browser sessions start faster and use less memory, keeping Drive, object
+  views, and Quickstart flows more responsive during startup and navigation.
+
+** Security
+- Experimental VM file storage now rejects oversized filesystem strings instead
+  of crashing the VM file bridge, reducing an availability risk in VM file
+  sharing.
+
 * v0.52.0
 <2026-07-02 Thu>
 
