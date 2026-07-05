@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -133,83 +134,12 @@ func TestBackgroundWebListenerSurvivesClientDisconnectPastIdle(t *testing.T) {
 }
 
 func TestGlobalStatePathWebBackgroundAndFollowupUseSameSocket(t *testing.T) {
-	clearStatePathEnv(t)
-
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	tmpRoot, err := filepath.Abs(".tmp")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(tmpRoot, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	statePath, err := os.MkdirTemp(tmpRoot, "web-state-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		_ = os.RemoveAll(statePath)
-	})
-
-	le := logrus.NewEntry(logrus.New())
-	rootMux := srpc.NewMux()
-	rootServer := resource_root.NewCoreRootServer(le, nil)
-	defer rootServer.Close()
-	if err := rootServer.Register(rootMux); err != nil {
-		t.Fatal(err)
-	}
-
-	resourceSrv := resource_server.NewResourceServer(rootMux)
-	resourceMux := srpc.NewMux()
-	if err := resourceSrv.Register(resourceMux); err != nil {
-		t.Fatal(err)
-	}
-
-	idleTracker := newDaemonIdleTracker(time.Minute, func() {})
-	defer idleTracker.close()
-
-	resetKeepalive := resource_root.SetWebListenerKeepaliveFunc(func(listenerID string) func() {
-		return idleTracker.serviceAttached()
-	})
-	defer resetKeepalive()
-
-	lis, err := net.Listen("unix", filepath.Join(statePath, socketName))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer lis.Close()
-
-	accepted := make(chan struct{}, 8)
-	server := srpc.NewServer(srpc.NewMux(resourceMux))
-	go func() {
-		for {
-			conn, err := lis.Accept()
-			if err != nil {
-				return
-			}
-			accepted <- struct{}{}
-			idleTracker.clientAttached()
-			go func() {
-				defer idleTracker.clientDetached()
-				mp, err := srpc.NewMuxedConn(conn, false, nil)
-				if err != nil {
-					conn.Close()
-					return
-				}
-				_ = server.AcceptMuxedConn(ctx, mp)
-			}()
-		}
-	}()
-
-	oldStart := connectDaemonStart
-	connectDaemonStart = func(ctx context.Context, statePath string) error {
-		return stderrors.New("unexpected daemon autostart")
-	}
-	t.Cleanup(func() {
-		connectDaemonStart = oldStart
-	})
+	daemon := startInProcessWebDaemon(t, ctx)
+	statePath := daemon.statePath
+	accepted := daemon.accepted
 
 	runStatePathWebApp(t, ctx, []string{
 		"--state-path", statePath,
@@ -247,6 +177,141 @@ func TestGlobalStatePathWebBackgroundAndFollowupUseSameSocket(t *testing.T) {
 	}
 }
 
+func TestWebBackgroundPrintURLWritesMachineReadableURL(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	daemon := startInProcessWebDaemon(t, ctx)
+	statePath := daemon.statePath
+
+	stdout, stderr := runStatePathWebAppCapture(t, ctx, []string{
+		"--state-path", statePath,
+		"web",
+		"--background",
+		"--print-url",
+	})
+	if stderr != "" {
+		t.Fatalf("stderr = %q, want empty", stderr)
+	}
+	if !strings.HasSuffix(stdout, "\n") || strings.Count(stdout, "\n") != 1 {
+		t.Fatalf("stdout = %q, want exactly one URL line", stdout)
+	}
+	urlLine := strings.TrimSuffix(stdout, "\n")
+	if !strings.HasPrefix(urlLine, "http://") && !strings.HasPrefix(urlLine, "https://") {
+		t.Fatalf("stdout URL = %q, want http or https URL", urlLine)
+	}
+	_, secret, ok := strings.Cut(urlLine, "/#otp=")
+	if !ok {
+		t.Fatalf("stdout URL = %q, want OTP fragment", urlLine)
+	}
+	if secret == "" {
+		t.Fatalf("stdout URL = %q, want non-empty OTP secret", urlLine)
+	}
+	stdoutWithoutSecret := strings.Replace(stdout, secret, "<secret>", 1)
+	for _, text := range []string{
+		"Spacewave is running",
+		"Reusing background",
+		"Use",
+		"Press Ctrl-C",
+	} {
+		if strings.Contains(stdoutWithoutSecret, text) {
+			t.Fatalf("stdout = %q, must not contain banner text %q", stdout, text)
+		}
+	}
+}
+
+type testWebDaemon struct {
+	statePath string
+	accepted  <-chan struct{}
+}
+
+func startInProcessWebDaemon(t *testing.T, ctx context.Context) testWebDaemon {
+	t.Helper()
+
+	clearStatePathEnv(t)
+	clearSocketPathEnv(t)
+
+	tmpRoot, err := filepath.Abs(".tmp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(tmpRoot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	statePath, err := os.MkdirTemp(tmpRoot, "web-state-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = os.RemoveAll(statePath)
+	})
+
+	le := logrus.NewEntry(logrus.New())
+	rootMux := srpc.NewMux()
+	rootServer := resource_root.NewCoreRootServer(le, nil)
+	t.Cleanup(rootServer.Close)
+	if err := rootServer.Register(rootMux); err != nil {
+		t.Fatal(err)
+	}
+
+	resourceSrv := resource_server.NewResourceServer(rootMux)
+	resourceMux := srpc.NewMux()
+	if err := resourceSrv.Register(resourceMux); err != nil {
+		t.Fatal(err)
+	}
+
+	idleTracker := newDaemonIdleTracker(time.Minute, func() {})
+	t.Cleanup(idleTracker.close)
+
+	resetKeepalive := resource_root.SetWebListenerKeepaliveFunc(func(listenerID string) func() {
+		return idleTracker.serviceAttached()
+	})
+	t.Cleanup(resetKeepalive)
+
+	lis, err := net.Listen("unix", filepath.Join(statePath, socketName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = lis.Close()
+	})
+
+	accepted := make(chan struct{}, 8)
+	server := srpc.NewServer(srpc.NewMux(resourceMux))
+	go func() {
+		for {
+			conn, err := lis.Accept()
+			if err != nil {
+				return
+			}
+			accepted <- struct{}{}
+			idleTracker.clientAttached()
+			go func() {
+				defer idleTracker.clientDetached()
+				mp, err := srpc.NewMuxedConn(conn, false, nil)
+				if err != nil {
+					conn.Close()
+					return
+				}
+				_ = server.AcceptMuxedConn(ctx, mp)
+			}()
+		}
+	}()
+
+	oldStart := connectDaemonStart
+	connectDaemonStart = func(ctx context.Context, statePath string) error {
+		return stderrors.New("unexpected daemon autostart")
+	}
+	t.Cleanup(func() {
+		connectDaemonStart = oldStart
+	})
+
+	return testWebDaemon{
+		statePath: statePath,
+		accepted:  accepted,
+	}
+}
+
 func getWebListeners(t *testing.T, ctx context.Context, statePath string) []*s4wave_root.WebListenerInfo {
 	t.Helper()
 
@@ -276,4 +341,68 @@ func runStatePathWebApp(t *testing.T, ctx context.Context, args []string) {
 	if err := app.RunContext(ctx, append([]string{"spacewave"}, args...)); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func runStatePathWebAppCapture(t *testing.T, ctx context.Context, args []string) (string, string) {
+	t.Helper()
+
+	var rootStatePath string
+	app := cli.NewApp()
+	app.Name = "spacewave"
+	app.HideVersion = true
+	app.Flags = []cli.Flag{statePathFlag(&rootStatePath)}
+	app.Commands = []*cli.Command{
+		newWebCommand(nil),
+	}
+	stdout, stderr, err := captureStdoutStderr(t, func() error {
+		return app.RunContext(ctx, append([]string{"spacewave"}, args...))
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return stdout, stderr
+}
+
+func captureStdoutStderr(t *testing.T, fn func() error) (string, string, error) {
+	t.Helper()
+
+	oldStdout := os.Stdout
+	oldStderr := os.Stderr
+	stdoutR, stdoutW, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("stdout pipe: %v", err)
+	}
+	stderrR, stderrW, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("stderr pipe: %v", err)
+	}
+	os.Stdout = stdoutW
+	os.Stderr = stderrW
+	defer func() {
+		os.Stdout = oldStdout
+		os.Stderr = oldStderr
+	}()
+
+	runErr := fn()
+	if err := stdoutW.Close(); err != nil {
+		t.Fatalf("close stdout writer: %v", err)
+	}
+	if err := stderrW.Close(); err != nil {
+		t.Fatalf("close stderr writer: %v", err)
+	}
+	stdout, err := io.ReadAll(stdoutR)
+	if err != nil {
+		t.Fatalf("read stdout: %v", err)
+	}
+	stderr, err := io.ReadAll(stderrR)
+	if err != nil {
+		t.Fatalf("read stderr: %v", err)
+	}
+	if err := stdoutR.Close(); err != nil {
+		t.Fatalf("close stdout reader: %v", err)
+	}
+	if err := stderrR.Close(); err != nil {
+		t.Fatalf("close stderr reader: %v", err)
+	}
+	return string(stdout), string(stderr), runErr
 }

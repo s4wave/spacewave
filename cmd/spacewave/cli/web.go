@@ -20,6 +20,7 @@ func newWebCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 	var listenMultiaddr string
 	var port uint
 	var background bool
+	var printURL bool
 	return &cli.Command{
 		Name:  "web",
 		Usage: "start a localhost web listener for the native runtime",
@@ -27,7 +28,8 @@ func newWebCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 			newWebListCommand(),
 			newWebStopCommand(),
 		},
-		Flags: append(daemonClientFlags(&statePath),
+		Flags: append(
+			daemonClientFlags(&statePath),
 			&cli.StringFlag{
 				Name:        "host",
 				Usage:       "localhost hostname or loopback address to bind",
@@ -51,9 +53,14 @@ func newWebCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 				Usage:       "keep the listener in the daemon after this command exits",
 				Destination: &background,
 			},
+			&cli.BoolFlag{
+				Name:        "print-url",
+				Usage:       "print only the resolved browser URL to stdout",
+				Destination: &printURL,
+			},
 		),
 		Action: func(c *cli.Context) error {
-			return runWeb(c, statePath, host, port, listenMultiaddr, background)
+			return runWeb(c, statePath, host, port, listenMultiaddr, background, printURL)
 		},
 	}
 }
@@ -95,6 +102,7 @@ func runWeb(
 	port uint,
 	listenMultiaddr string,
 	background bool,
+	printURL bool,
 ) error {
 	ctx := c.Context
 	if port > 65535 {
@@ -123,6 +131,14 @@ func runWeb(
 	}
 
 	url := resp.GetUrl() + "/#otp=" + resp.GetBootstrapSecret()
+	if printURL {
+		os.Stdout.WriteString(url + "\n")
+		if background {
+			return nil
+		}
+		<-ctx.Done()
+		return nil
+	}
 	if background {
 		if resp.GetReused() {
 			os.Stdout.WriteString("Reusing background Spacewave web session:\n  " + url + "\n")
@@ -134,10 +150,8 @@ func runWeb(
 	}
 	os.Stdout.WriteString("Spacewave is ready in your browser:\n  " + url + "\n")
 	os.Stdout.WriteString("Press Ctrl-C to stop this listener.\n")
-	select {
-	case <-ctx.Done():
-		return nil
-	}
+	<-ctx.Done()
+	return nil
 }
 
 func runWebList(c *cli.Context, statePath string) error {
