@@ -86,13 +86,14 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession, a
 		peerStart := time.Now()
 		for {
 			attemptCtx, attemptCancel := context.WithTimeout(ctx, attemptTimeout)
-			clientCtx, clientCancel := context.WithCancel(ctx)
+			clientCtx, clientLifetime := newSessionResourceClientContext(ctx)
 			attemptStartedAt := time.Now()
 			conn, err := h.tryConnectSessionWithTimeout(attemptCtx, clientCtx, browserPeer)
 			attemptCompletedAt := time.Now()
 			s.recordResourceConnectionAttemptTiming(attemptStartedAt, attemptCompletedAt, browserPeer, err)
 			attemptCancel()
 			if err == nil {
+				clientLifetime.Retain()
 				s.browserClient = conn.browserClient
 				s.resClient = conn.resClient
 				s.root = conn.root
@@ -110,7 +111,7 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession, a
 				}).Info("connected browser resources")
 				return nil
 			}
-			clientCancel()
+			clientLifetime.Cancel()
 
 			lastErr = err
 			entry := le.WithField("peer", browserPeer.String()).WithError(err)
@@ -170,13 +171,14 @@ func (h *Harness) tryConnectRetainedStatePeer(
 
 	attemptTimeout := 15 * time.Second
 	attemptCtx, attemptCancel := context.WithTimeout(ctx, attemptTimeout)
-	clientCtx, clientCancel := context.WithCancel(ctx)
+	clientCtx, clientLifetime := newSessionResourceClientContext(ctx)
 	attemptStartedAt := time.Now()
 	conn, err := h.tryConnectSessionWithTimeout(attemptCtx, clientCtx, browserPeer)
 	attemptCompletedAt := time.Now()
 	s.recordResourceConnectionAttemptTiming(attemptStartedAt, attemptCompletedAt, browserPeer, err)
 	attemptCancel()
 	if err == nil {
+		clientLifetime.Retain()
 		s.browserClient = conn.browserClient
 		s.resClient = conn.resClient
 		s.root = conn.root
@@ -188,7 +190,7 @@ func (h *Harness) tryConnectRetainedStatePeer(
 		}).Info("connected retained-state browser resources")
 		return true, nil
 	}
-	clientCancel()
+	clientLifetime.Cancel()
 	h.releaseBrowserPeerLease(s, browserPeer)
 
 	entry := le.WithField("peer", browserPeer.String()).WithError(err)
@@ -211,6 +213,29 @@ type sessionResourceConnection struct {
 type sessionResourceConnectionResult struct {
 	conn *sessionResourceConnection
 	err  error
+}
+
+type sessionResourceClientContext struct {
+	cancel context.CancelFunc
+}
+
+func newSessionResourceClientContext(ctx context.Context) (context.Context, *sessionResourceClientContext) {
+	clientCtx, clientCancel := context.WithCancel(ctx)
+	return clientCtx, &sessionResourceClientContext{cancel: clientCancel}
+}
+
+func (c *sessionResourceClientContext) Cancel() {
+	if c.cancel == nil {
+		return
+	}
+	c.cancel()
+	c.cancel = nil
+}
+
+func (c *sessionResourceClientContext) Retain() {
+	// The retained resource client owns its own child context; canceling this
+	// parent would close the session immediately instead of on Client.Release.
+	c.cancel = nil
 }
 
 func (c *sessionResourceConnection) Release() {
