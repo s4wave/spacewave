@@ -46,7 +46,9 @@ func (s *cliSubprocessSupervisor) start() error {
 	if err := s.ctx.Err(); err != nil {
 		return err
 	}
-	cmd := exec.Command(s.binaryPath, s.args...)
+	// The supervisor launches the devtool-configured CLI binary with its own
+	// configured arguments, not caller-supplied input.
+	cmd := exec.Command(s.binaryPath, s.args...) //nolint:gosec // G204: binary path and args are devtool-owned config
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = s.newStderrWriter()

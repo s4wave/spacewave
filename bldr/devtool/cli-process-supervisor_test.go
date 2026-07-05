@@ -81,7 +81,7 @@ func TestCliSubprocessSupervisorClosesStderrAfterStartError(t *testing.T) {
 	supervisor := newCliSubprocessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
 	stderr := newCliSubprocessSupervisorCloseRecorder()
 	supervisor.stderr = stderr
-	err := supervisor.startCommand(exec.Command(filepath.Join(t.TempDir(), "missing")))
+	err := supervisor.startCommand(exec.Command(filepath.Join(t.TempDir(), "missing"))) //nolint:gosec // G204: test path is a temp dir under test control
 	if err == nil {
 		t.Fatal("start missing helper returned nil, want error")
 	}
