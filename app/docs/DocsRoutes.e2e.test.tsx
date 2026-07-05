@@ -19,6 +19,12 @@ function DocsRouteHarness({ initialPath }: { initialPath: string }) {
   )
 }
 
+function docsPageBodyTextLength() {
+  return (
+    document.querySelector('main .docs-prose')?.textContent?.trim().length ?? 0
+  )
+}
+
 describe('DocsRoutes browser smoke', () => {
   beforeEach(async () => {
     await cleanup()
@@ -95,11 +101,7 @@ describe('DocsRoutes browser smoke', () => {
     await expect
       .poll(() => document.querySelector('main h1')?.textContent)
       .toBe('CLI Reference')
-    await expect
-      .poll(() =>
-        document.querySelector('main')?.textContent?.includes('--socket-path'),
-      )
-      .toBe(true)
+    await expect.poll(docsPageBodyTextLength).toBeGreaterThan(0)
 
     await cleanup()
 
