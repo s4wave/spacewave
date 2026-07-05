@@ -21,7 +21,11 @@ const phaseProgress: Record<string, number> = {
   entrypoint: 0.54,
   runtime: 0.76,
   ready: 0.9,
-  app: 0.96,
+}
+
+function clampProgress(progress: number | undefined): number | undefined {
+  if (progress === undefined || !Number.isFinite(progress)) return undefined
+  return Math.max(0, Math.min(1, progress))
 }
 
 const startupPhaseInfo = {
@@ -76,25 +80,37 @@ const bootPhaseStartupPhase: Record<string, StartupPhase> = {
   app: 'frame',
 }
 
-function canMutateBootStatusTarget(
-  target: Element | null,
-): target is Element {
+function canMutateBootStatusTarget(target: Element | null): target is Element {
   if (!target) return false
   const root = target.closest('#bldr-root[data-prerendered]')
   if (!root) return true
   return !!target.closest('#sw-loading')
 }
 
-function startupDisplayForBootPhase(phase: string, state: string) {
-  const id = bootPhaseStartupPhase[phase] ?? 'prepare'
+function startupDisplayForBootStatus(status: BrowserBootStatus) {
+  const id = bootPhaseStartupPhase[status.phase] ?? 'prepare'
   const info = startupPhaseInfo[id]
+  const progress = id === 'frame' ? status.progress : info.progress
   return {
     id,
     detail: `${info.label}: ${info.detail}`,
-    progress: info.progress,
-    indeterminate: id === 'frame',
-    error: state === 'error',
+    progress,
+    indeterminate:
+      id === 'frame' && progress === undefined && status.state !== 'error',
+    error: status.state === 'error',
   }
+}
+
+function withBootProgress(status: BrowserBootStatus): BrowserBootStatus {
+  const progress = clampProgress(status.progress ?? phaseProgress[status.phase])
+  if (progress === undefined) {
+    return {
+      phase: status.phase,
+      detail: status.detail,
+      state: status.state,
+    }
+  }
+  return { ...status, progress }
 }
 
 function updateProgressTarget(
@@ -169,8 +185,8 @@ function updateStaticPhaseRail(currentID: StartupPhase, bootState: string) {
           : phaseState === 'current'
             ? 'var(--color-foreground,#fafafa)'
             : phaseState === 'complete'
-              ? 'color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 70%,transparent)'
-              : 'color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 40%,transparent)'
+              ? 'color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 85%,transparent)'
+              : 'color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 55%,transparent)'
     }
   }
 }
@@ -224,9 +240,8 @@ function updateStaticErrorState(status: BrowserBootStatus) {
 }
 
 export function writeBrowserBootStatus(status: BrowserBootStatus): void {
-  const progress = status.progress ?? phaseProgress[status.phase]
-  const next = progress === undefined ? status : { ...status, progress }
-  const display = startupDisplayForBootPhase(next.phase, next.state)
+  const next = withBootProgress(status)
+  const display = startupDisplayForBootStatus(next)
   globalThis.__swBootStatus = next
 
   const detailTarget = document.querySelector('[data-sw-boot-status]')
@@ -239,16 +254,18 @@ export function writeBrowserBootStatus(status: BrowserBootStatus): void {
     stateTarget.setAttribute('data-sw-boot-state', next.state)
   }
 
-  updateProgressTarget(
-    document.querySelector('[data-sw-boot-progress]'),
-    display.progress,
-    display.indeterminate,
-  )
-  updateProgressLabel(
-    document.querySelector('[data-sw-boot-progress-label]'),
-    display.progress,
-    display.indeterminate,
-  )
+  if (display.progress !== undefined || display.indeterminate) {
+    updateProgressTarget(
+      document.querySelector('[data-sw-boot-progress]'),
+      display.progress,
+      display.indeterminate,
+    )
+    updateProgressLabel(
+      document.querySelector('[data-sw-boot-progress-label]'),
+      display.progress,
+      display.indeterminate,
+    )
+  }
   updateStaticPhaseRail(display.id, next.state)
   updateStaticErrorState(next)
 

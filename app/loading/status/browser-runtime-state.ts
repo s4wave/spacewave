@@ -168,6 +168,12 @@ const bootFailurePhase: Record<string, BrowserRuntimeStartupPhaseID> = {
   'runtime-error': 'runtime',
 }
 
+export function browserBootStatusStartupPhase(
+  phase: string,
+): BrowserRuntimeStartupPhaseID | undefined {
+  return bootPhaseToStartupPhase[phase]
+}
+
 const startupMarkToPhase: Record<string, BrowserRuntimeStartupPhaseID> = {
   'boot-status.loading': 'prepare',
   'boot-status.manifest': 'prepare',

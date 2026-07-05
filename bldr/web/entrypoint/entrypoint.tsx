@@ -87,12 +87,96 @@ const bldrRootProps: IBldrRootProps = { webDocumentOpts }
 initBrowserReleaseAutoReload()
 markStartupBoundary('shell.entrypoint-loaded', { source: 'browser' })
 
+type StartupModule = {
+  default: React.LazyExoticComponent<React.ComponentType>
+}
+
 function setBrowserBootStatus(
   phase: string,
   detail: string,
   state: 'loading' | 'error' = 'loading',
+  progress?: number,
 ) {
-  writeBrowserBootStatus({ phase, detail, state })
+  writeBrowserBootStatus({ phase, detail, state, progress })
+}
+
+const startupBundleDetail =
+  'Downloading the app bundle. This can take a while the first time.'
+
+function parseContentLength(raw: string | null): number | undefined {
+  if (raw === null) return undefined
+  const contentLength = Number(raw)
+  if (!Number.isFinite(contentLength) || contentLength <= 0) return undefined
+  return contentLength
+}
+
+function clampDownloadProgress(progress: number): number | undefined {
+  if (!Number.isFinite(progress)) return undefined
+  return Math.max(0, Math.min(1, progress))
+}
+
+function resolveStartupModuleURL(source: string): string {
+  return new URL(source, import.meta.url).href
+}
+
+async function preloadStartupModule(source: string): Promise<void> {
+  const response = await fetch(source, {
+    method: 'GET',
+    credentials: 'same-origin',
+  })
+  if (!response.ok) {
+    await response.body
+      ?.cancel(`startup module preload returned status ${response.status}`)
+      .catch(() => undefined)
+    return
+  }
+
+  const contentLength = parseContentLength(
+    response.headers.get('content-length'),
+  )
+  if (contentLength === undefined) {
+    setBrowserBootStatus('app', startupBundleDetail)
+  }
+
+  if (!response.body) {
+    await response.arrayBuffer()
+    return
+  }
+
+  const reader = response.body.getReader()
+  let loaded = 0
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) {
+        break
+      }
+      if (!value || value.byteLength === 0) {
+        continue
+      }
+      loaded += value.byteLength
+      if (contentLength === undefined) {
+        continue
+      }
+      const progress = clampDownloadProgress(loaded / contentLength)
+      if (progress !== undefined) {
+        setBrowserBootStatus('app', startupBundleDetail, 'loading', progress)
+      }
+    }
+  } finally {
+    reader.releaseLock()
+  }
+}
+
+async function importStartupModule(source: string): Promise<StartupModule> {
+  const moduleURL = resolveStartupModuleURL(source)
+  // Preload only feeds progress; the module loader remains the load authority
+  // so a preload miss does not change import semantics.
+  await preloadStartupModule(moduleURL).catch(() => undefined)
+
+  // BLDR_STARTUP_JS is runtime-injected by Bldr, so the startup module cannot
+  // be statically imported.
+  return (await import(moduleURL)) as StartupModule
 }
 
 // BLDR_STARTUP_JS is an injected variable with the path to the startup js component
@@ -102,12 +186,8 @@ if (typeof BLDR_STARTUP_JS === 'string') {
     const LoadedComponent = useMemo(
       () =>
         React.lazy(
-          async (): Promise<{
-            default: React.LazyExoticComponent<React.ComponentType>
-          }> =>
-            (await import(BLDR_STARTUP_JS)) as {
-              default: React.LazyExoticComponent<React.ComponentType>
-            },
+          async (): Promise<StartupModule> =>
+            importStartupModule(BLDR_STARTUP_JS),
         ),
       [],
     )

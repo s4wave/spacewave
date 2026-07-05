@@ -3,7 +3,10 @@ import { page } from 'vitest/browser'
 import { cleanup, render } from 'vitest-browser-react'
 import type { ReactNode } from 'react'
 
-import { resetBrowserStartupMarksForTest } from './boot-status.js'
+import {
+  markBrowserStartupBoundary,
+  resetBrowserStartupMarksForTest,
+} from './boot-status.js'
 import { Pricing } from '@s4wave/app/landing/Pricing.js'
 import { AppLoadingScreen } from '@s4wave/app/loading/AppLoadingScreen.js'
 import { QuickstartLoading } from '@s4wave/app/quickstart/QuickstartLoading.js'
@@ -22,9 +25,18 @@ function setBootPhase(phase: string, state: 'loading' | 'error' = 'loading') {
   }
 }
 
+function setBootPhaseProgress(phase: string, progress: number) {
+  globalThis.__swBootStatus = {
+    phase,
+    detail: `${phase} detail`,
+    state: 'loading',
+    progress,
+  }
+}
+
 async function renderSurface(children: ReactNode) {
   await render(
-    <div className="bg-background text-foreground h-full min-h-0">
+    <div className="bg-background text-foreground h-screen min-h-screen">
       {children}
     </div>,
   )
@@ -112,6 +124,54 @@ describe('browser startup progress surfaces', () => {
     expect(typeof bounds?.height).toBe('number')
 
     await captureStartupEvidence('returning-user-runtime-desktop')
+  })
+
+  it('renders the cold-cache app download with real byte progress', async () => {
+    localStorage.setItem('spacewave-has-session', '1')
+    setBootPhaseProgress('app', 0.37)
+
+    await renderSurface(<AppLoadingScreen />)
+
+    await expect
+      .element(
+        page.getByText(
+          'App: Downloading the app bundle. This can take a while the first time.',
+        ),
+      )
+      .toBeInTheDocument()
+    await expect.element(page.getByText('37%')).toBeInTheDocument()
+
+    await captureStartupEvidence('frame-download-progress-desktop')
+  })
+
+  it('reaches the ready handoff at full progress', async () => {
+    localStorage.setItem('spacewave-has-session', '1')
+    setBootPhase('app')
+    markBrowserStartupBoundary('webview.revealed', { startupRelevant: true })
+
+    await renderSurface(<AppLoadingScreen />)
+
+    await expect
+      .element(page.getByText('Done: Spacewave is ready.'))
+      .toBeInTheDocument()
+    await expect.element(page.getByText('100%')).toBeInTheDocument()
+
+    await captureStartupEvidence('frame-ready-handoff-desktop')
+  })
+
+  it('renders an early prepare phase on the quickstart handoff', async () => {
+    setBootPhase('loading')
+
+    await renderStaticSurface('/quickstart/drive', <QuickstartLoading />)
+
+    await expect
+      .element(page.getByText('Prepare: Preparing browser files.'))
+      .toBeInTheDocument()
+    await expect
+      .element(page.getByText('Prepare', { exact: true }))
+      .toBeInTheDocument()
+
+    await captureStartupEvidence('quickstart-prepare-early')
   })
 
   it('keeps static routes on their prerendered handoff surface', async () => {

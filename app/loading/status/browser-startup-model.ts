@@ -1,6 +1,7 @@
 import type { LoadingView } from '@s4wave/web/ui/loading/types.js'
 
 import {
+  browserBootStatusStartupPhase,
   buildBrowserRuntimeState,
   projectBrowserRuntimeStartupPhase,
   type BrowserRuntimeState,
@@ -98,11 +99,10 @@ const phaseProgress: Record<string, number> = {
   entrypoint: 0.54,
   runtime: 0.76,
   ready: 0.9,
-  app: 0.96,
 }
 
 function clampProgress(progress: number | undefined): number | undefined {
-  if (progress === undefined || Number.isNaN(progress)) return undefined
+  if (progress === undefined || !Number.isFinite(progress)) return undefined
   return Math.max(0, Math.min(1, progress))
 }
 
@@ -116,6 +116,13 @@ export function withBrowserBootProgress(
   const progress = clampProgress(
     status.progress ?? browserBootPhaseProgress(status.phase),
   )
+  if (progress === undefined) {
+    return {
+      phase: status.phase,
+      detail: status.detail,
+      state: status.state,
+    }
+  }
   if (status.progress === progress) return status
   return {
     ...status,
@@ -134,21 +141,33 @@ export function projectBrowserStartup(
       phaseIndex(projectBrowserRuntimeStartupPhase(runtime))
     ]
   const failed = boot.state === 'error' || !!runtime.terminalFailure
+  const frameHasBootProgress =
+    phase.id === 'frame' &&
+    browserBootStatusStartupPhase(boot.phase) === 'frame'
+  const progress =
+    phase.id === 'frame'
+      ? frameHasBootProgress
+        ? boot.progress
+        : undefined
+      : phase.progress
+  const baseView = {
+    title: 'Spacewave',
+    detail: `${phase.label}: ${phase.detail}`,
+    ...(progress === undefined ? {} : { progress }),
+  }
   const view: LoadingView = failed
     ? {
         state: 'error',
-        title: 'Spacewave',
-        detail: `${phase.label}: ${phase.detail}`,
-        progress: phase.progress,
+        ...baseView,
         error:
           'Startup did not finish. Check the browser console or startup marks for details.',
       }
     : {
         state: phase.id === 'done' ? 'synced' : 'loading',
-        title: 'Spacewave',
-        detail: `${phase.label}: ${phase.detail}`,
-        progress: phase.progress,
-        ...(phase.id === 'frame' ? { progressIndeterminate: true } : {}),
+        ...baseView,
+        ...(phase.id === 'frame' && progress === undefined
+          ? { progressIndeterminate: true }
+          : {}),
       }
 
   return {

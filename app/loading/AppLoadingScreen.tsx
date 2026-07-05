@@ -31,7 +31,7 @@ export function AppLoadingScreen() {
             reduceMotion={reducedMotion}
           />
         }
-        showShineBorder={!reducedMotion}
+        showShineBorder={false}
       >
         <div
           className="flex w-[min(30rem,calc(100vw-2rem))] flex-col items-center gap-5"
@@ -93,36 +93,78 @@ export function BrowserStartupPhaseRail({
 }: {
   phases: BrowserStartupPhaseView[]
 }) {
+  const failed = phases.some((phase) => phase.state === 'error')
+  const activeIndex = phaseRailActiveIndex(phases)
+  const fillPct =
+    phases.length > 1 ? (activeIndex / (phases.length - 1)) * 100 : 0
   return (
-    <ol className="grid w-full grid-cols-5 gap-2" aria-label="Startup phases">
-      {phases.map((phase) => (
-        <li key={phase.id} className="min-w-0">
-          <div className="flex h-6 items-center justify-center">
-            <span
+    <div className="relative w-full">
+      {/* Connecting track: the filled portion reaches the current dot so the
+          rail reads as one continuous journey (goal-gradient), not five
+          disconnected lamps. Ends inset to sit under the outer dot centers. */}
+      <div
+        aria-hidden="true"
+        className="bg-foreground/10 pointer-events-none absolute inset-x-[10%] top-3 h-px -translate-y-1/2 overflow-hidden rounded-full"
+      >
+        <div
+          className={cn(
+            'h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none',
+            failed ? 'bg-destructive/70' : 'bg-brand',
+          )}
+          style={{ width: `${fillPct}%` }}
+        />
+      </div>
+      <ol
+        className="relative grid grid-cols-5 gap-2"
+        aria-label="Startup phases"
+      >
+        {phases.map((phase) => (
+          <li key={phase.id} className="min-w-0">
+            <div className="flex h-6 items-center justify-center">
+              <span
+                className={cn(
+                  'block rounded-full transition-all duration-300 motion-reduce:transition-none',
+                  phase.state === 'complete' && 'bg-brand size-2.5',
+                  phase.state === 'current' &&
+                    'bg-brand ring-brand/25 animate-pulse-subtle size-3 ring-4 motion-reduce:animate-none',
+                  phase.state === 'error' &&
+                    'bg-destructive ring-destructive/25 size-3 ring-4',
+                  phase.state === 'pending' &&
+                    'border-foreground/25 bg-background size-2.5 border',
+                )}
+              />
+            </div>
+            <div
               className={cn(
-                'block size-2.5 rounded-full transition-colors motion-reduce:transition-none',
-                phase.state === 'complete' && 'bg-brand',
-                phase.state === 'current' && 'bg-brand',
-                phase.state === 'error' && 'bg-destructive',
-                phase.state === 'pending' && 'bg-foreground/15',
+                'truncate text-center text-[0.65rem] font-medium transition-colors motion-reduce:transition-none',
+                phase.state === 'pending' && 'text-foreground-alt/55',
+                phase.state === 'complete' && 'text-foreground-alt/85',
+                phase.state === 'current' && 'text-foreground',
+                phase.state === 'error' && 'text-destructive',
               )}
-            />
-          </div>
-          <div
-            className={cn(
-              'truncate text-center text-[0.65rem] font-medium',
-              phase.state === 'pending' && 'text-foreground-alt/40',
-              phase.state === 'complete' && 'text-foreground-alt/70',
-              phase.state === 'current' && 'text-foreground',
-              phase.state === 'error' && 'text-destructive',
-            )}
-          >
-            {phase.label}
-          </div>
-        </li>
-      ))}
-    </ol>
+            >
+              {phase.label}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
   )
+}
+
+// phaseRailActiveIndex returns the index the connecting track should fill to:
+// the current or errored phase when present, otherwise the last completed
+// phase (0 while nothing has completed yet).
+function phaseRailActiveIndex(phases: BrowserStartupPhaseView[]): number {
+  const current = phases.findIndex(
+    (phase) => phase.state === 'current' || phase.state === 'error',
+  )
+  if (current >= 0) return current
+  let lastComplete = 0
+  for (const [index, phase] of phases.entries()) {
+    if (phase.state === 'complete') lastComplete = index
+  }
+  return lastComplete
 }
 
 function BrowserStartupPreviewSurface({
@@ -139,22 +181,18 @@ function BrowserStartupPreviewSurface({
       className="border-foreground/8 bg-background-card/35 shadow-background-dark/45 relative h-30 w-full overflow-hidden rounded-lg border shadow-2xl backdrop-blur-sm"
     >
       <div className="border-foreground/8 bg-background-card/70 flex h-7 items-center gap-1.5 border-b px-3">
-        <span className="bg-destructive/75 size-2 rounded-full" />
-        <span className="bg-warning/75 size-2 rounded-full" />
-        <span className="bg-success/75 size-2 rounded-full" />
+        <span className="bg-foreground/15 size-2 rounded-full" />
+        <span className="bg-foreground/15 size-2 rounded-full" />
+        <span className="bg-foreground/15 size-2 rounded-full" />
         <div className="bg-foreground/8 ml-2 h-2 w-18 rounded-full" />
       </div>
 
       <div className="grid h-[calc(100%-1.75rem)] grid-cols-[4.25rem_1fr]">
         <div className="border-foreground/6 bg-background-dark/35 flex flex-col gap-2 border-r p-2">
-          {previewNavItems.map((item, index) => (
-            <span
-              key={item}
-              className={cn(
-                'h-2 rounded-full transition-colors duration-300 motion-reduce:transition-none',
-                index <= phaseIndex ? 'bg-brand/55' : 'bg-foreground/10',
-              )}
-            />
+          {previewNavItems.map((item) => (
+            // Neutral chrome: the sidebar stays inert gray so the eye rests on
+            // the progress UI, not a second brand-colored focal point.
+            <span key={item} className="bg-foreground/12 h-2 rounded-full" />
           ))}
         </div>
 

@@ -41,9 +41,49 @@ describe('projectBrowserStartupView', () => {
       title: 'Spacewave',
       detail:
         'App: Downloading the app bundle. This can take a while the first time.',
-      progress: 0.84,
       progressIndeterminate: true,
     })
+  })
+
+  it('uses app bundle download progress as determinate frame progress', () => {
+    const view = projectBrowserStartupView({
+      phase: 'app',
+      detail: 'Downloading app bundle...',
+      state: 'loading',
+      progress: 0.42,
+    })
+
+    expect(view).toEqual({
+      state: 'loading',
+      title: 'Spacewave',
+      detail:
+        'App: Downloading the app bundle. This can take a while the first time.',
+      progress: 0.42,
+    })
+    expect(view).not.toHaveProperty('progressIndeterminate')
+  })
+
+  it('keeps app frame progress indeterminate without a valid download progress value', () => {
+    const statuses = [
+      {
+        phase: 'app',
+        detail: 'Downloading app bundle...',
+        state: 'loading' as const,
+      },
+      {
+        phase: 'app',
+        detail: 'Downloading app bundle...',
+        state: 'loading' as const,
+        progress: Number.NaN,
+      },
+    ]
+
+    for (const status of statuses) {
+      const view = projectBrowserStartupView(status)
+
+      expect(view.progress).toBeUndefined()
+      expect(view.progressIndeterminate).toBe(true)
+    }
   })
 
   it('uses only startup-relevant WebView marks to advance the projection', () => {

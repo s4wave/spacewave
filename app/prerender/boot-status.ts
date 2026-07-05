@@ -130,8 +130,8 @@ function updateStaticPhaseRail(
           : phase.state === 'current'
             ? 'var(--color-foreground,#fafafa)'
             : phase.state === 'complete'
-              ? 'color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 70%,transparent)'
-              : 'color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 40%,transparent)'
+              ? 'color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 85%,transparent)'
+              : 'color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 55%,transparent)'
     }
   }
 }

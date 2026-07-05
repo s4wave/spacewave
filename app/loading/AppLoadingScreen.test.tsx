@@ -124,6 +124,57 @@ describe('AppLoadingScreen', () => {
     ).toBe('runtime')
   })
 
+  it('renders app bundle progress as determinate frame progress', () => {
+    mockProjection.current = {
+      ...mockProjection.current,
+      view: {
+        state: 'loading',
+        title: 'Spacewave',
+        detail:
+          'App: Downloading the app bundle. This can take a while the first time.',
+        progress: 0.42,
+      },
+      phase: {
+        id: 'frame',
+        label: 'App',
+        detail:
+          'Downloading the app bundle. This can take a while the first time.',
+        progress: 0.84,
+      },
+      phases: mockProjection.current.phases.map((phase) => ({
+        ...phase,
+        state:
+          phase.id === 'done'
+            ? 'pending'
+            : phase.id === 'frame'
+              ? 'current'
+              : 'complete',
+      })),
+      evidence: {
+        ...mockProjection.current.evidence,
+        status: {
+          phase: 'app',
+          detail: 'Downloading app bundle...',
+          state: 'loading',
+          progress: 0.42,
+        },
+      },
+    }
+
+    const { container } = render(<AppLoadingScreen />)
+
+    expect(screen.getByText('42%')).toBeDefined()
+    expect(screen.queryByText('84%')).toBeNull()
+    expect(
+      container.querySelector('.animate-progress-indeterminate'),
+    ).toBeNull()
+    expect(
+      container
+        .querySelector('[data-sw-startup-preview]')
+        ?.getAttribute('data-sw-startup-preview-phase'),
+    ).toBe('frame')
+  })
+
   it('renders retry and back affordances for startup errors', () => {
     mockProjection.current = {
       ...mockProjection.current,
