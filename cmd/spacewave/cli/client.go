@@ -673,8 +673,3 @@ func (c *sdkClient) lookupLocalProvider(ctx context.Context) (*s4wave_provider_l
 	}
 	return prov, cleanup, nil
 }
-
-// resolveSpaceByName resolves a space name to a space ID by iterating spaces.
-func (c *sdkClient) resolveSpaceByName(ctx context.Context, sess *s4wave_session.Session, name string) (string, error) {
-	return c.getSpaceByName(ctx, sess, name)
-}

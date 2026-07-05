@@ -131,7 +131,8 @@ func newAuthBackupGenerateCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "generate",
 		Usage: "generate a backup key and save the PEM file",
-		Flags: append(clientFlags(&statePath, &sessionIdx),
+		Flags: append(
+			clientFlags(&statePath, &sessionIdx),
 			pemFileFlag(&pemFile),
 			&cli.StringFlag{
 				Name:  "output",
@@ -290,7 +291,8 @@ func newAuthMethodListCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "list",
 		Usage: "list registered entity keypairs",
-		Flags: append(clientFlags(&statePath, &sessionIdx),
+		Flags: append(
+			clientFlags(&statePath, &sessionIdx),
 			&cli.StringFlag{
 				Name:    "output",
 				Aliases: []string{"o"},
@@ -432,7 +434,8 @@ func newAuthMethodAddPemCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "pem",
 		Usage: "add a PEM backup key as an auth method",
-		Flags: append(clientFlags(&statePath, &sessionIdx),
+		Flags: append(
+			clientFlags(&statePath, &sessionIdx),
 			pemFileFlag(&authPemFile),
 			&cli.StringFlag{
 				Name:     "file",
@@ -553,7 +556,8 @@ func newAuthMethodAddBackupCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "backup",
 		Usage: "generate a backup key, register it, and save the PEM file",
-		Flags: append(clientFlags(&statePath, &sessionIdx),
+		Flags: append(
+			clientFlags(&statePath, &sessionIdx),
 			pemFileFlag(&pemFile),
 			&cli.StringFlag{
 				Name:  "output-file",
@@ -960,7 +964,7 @@ func runAuthUnlock(c *cli.Context, statePath string, sessionIdx uint32) error {
 	}
 	defer client.close()
 
-	err = client.root.UnlockSession(ctx, uint32(sessionIdx), pin)
+	err = client.root.UnlockSession(ctx, sessionIdx, pin)
 	if err != nil {
 		return errors.Wrap(err, "unlock session")
 	}

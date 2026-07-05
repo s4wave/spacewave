@@ -41,11 +41,6 @@ func formatOutput(jsonData []byte, format string) error {
 	}
 }
 
-// writeStderr writes a message to stderr.
-func writeStderr(msg string) {
-	os.Stderr.WriteString(msg)
-}
-
 // writeFields writes aligned label: value pairs to w.
 // Labels are right-padded so all values start at the same column.
 func writeFields(w io.Writer, pairs [][2]string) {

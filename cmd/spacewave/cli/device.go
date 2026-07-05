@@ -9,7 +9,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -18,6 +17,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/cli"
+	"github.com/aperturerobotics/fastjson"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
@@ -165,7 +165,8 @@ func newDeviceSetupCommand() *cli.Command {
 		Subcommands: []*cli.Command{
 			newDeviceSetupDockerCommand(),
 		},
-		Flags: append(daemonClientFlags(&statePath),
+		Flags: append(
+			daemonClientFlags(&statePath),
 			&cli.StringFlag{
 				Name:        "label",
 				Usage:       "operator-visible Device label",
@@ -209,7 +210,8 @@ func newDeviceSetupDockerCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "docker",
 		Usage: "show the Docker daemon setup seed",
-		Flags: append(daemonClientFlags(&statePath),
+		Flags: append(
+			daemonClientFlags(&statePath),
 			&cli.StringFlag{
 				Name:        "label",
 				Usage:       "managed Device label",
@@ -234,7 +236,8 @@ func newDeviceCompleteCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "complete",
 		Usage: "import SpaceLink approval completion",
-		Flags: append(daemonClientFlags(&statePath),
+		Flags: append(
+			daemonClientFlags(&statePath),
 			&cli.StringFlag{
 				Name:        "completion",
 				Usage:       "base64 SpaceLink completion payload",
@@ -985,6 +988,123 @@ func deviceSessionID(pid peer.ID) string {
 	return "device-" + hex.EncodeToString(sum[:])[:32]
 }
 
+func marshalDeviceSetupRecord(record *deviceSetupRecord) []byte {
+	var arena fastjson.Arena
+	obj := arena.NewObject()
+	obj.Set("setupState", arena.NewString(record.SetupState))
+	setDeviceJSONString(&arena, obj, "peerId", record.PeerID)
+	setDeviceJSONString(&arena, obj, "label", record.Label)
+	setDeviceJSONString(&arena, obj, "requestedRole", record.RequestedRole)
+	setDeviceJSONString(&arena, obj, "targetHint", record.TargetHint)
+	setDeviceJSONString(&arena, obj, "completionMode", record.CompletionMode)
+	setDeviceJSONString(&arena, obj, "completion", record.Completion)
+	setDeviceJSONInt64(&arena, obj, "completionAt", record.CompletionAt)
+	setDeviceJSONString(&arena, obj, "completionStatus", record.CompletionStatus)
+	setDeviceJSONString(&arena, obj, "accountId", record.AccountID)
+	setDeviceJSONString(&arena, obj, "resourceId", record.ResourceID)
+	setDeviceJSONString(&arena, obj, "sessionId", record.SessionID)
+	setDeviceJSONUint32(&arena, obj, "sessionIndex", record.SessionIndex)
+	setDeviceJSONString(&arena, obj, "sessionPeerId", record.SessionPeerID)
+	setDeviceJSONString(&arena, obj, "deviceObjectKey", record.DeviceObjectKey)
+	setDeviceJSONString(&arena, obj, "failureReason", record.FailureReason)
+	setDeviceJSONInt64(&arena, obj, "expiresAt", record.ExpiresAt)
+	setDeviceJSONString(&arena, obj, "ticket", record.Ticket)
+	return obj.MarshalTo(nil)
+}
+
+func parseDeviceSetupRecord(data []byte) (*deviceSetupRecord, error) {
+	var parser fastjson.Parser
+	v, err := parser.ParseBytes(data)
+	if err != nil {
+		return nil, err
+	}
+	if v.Type() != fastjson.TypeObject {
+		return nil, errors.New("device setup state must be object")
+	}
+	return &deviceSetupRecord{
+		SetupState:       string(v.GetStringBytes("setupState")),
+		PeerID:           string(v.GetStringBytes("peerId")),
+		Label:            string(v.GetStringBytes("label")),
+		RequestedRole:    string(v.GetStringBytes("requestedRole")),
+		TargetHint:       string(v.GetStringBytes("targetHint")),
+		CompletionMode:   string(v.GetStringBytes("completionMode")),
+		Completion:       string(v.GetStringBytes("completion")),
+		CompletionAt:     v.GetInt64("completionAt"),
+		CompletionStatus: string(v.GetStringBytes("completionStatus")),
+		AccountID:        string(v.GetStringBytes("accountId")),
+		ResourceID:       string(v.GetStringBytes("resourceId")),
+		SessionID:        string(v.GetStringBytes("sessionId")),
+		SessionIndex:     uint32(v.GetUint("sessionIndex")),
+		SessionPeerID:    string(v.GetStringBytes("sessionPeerId")),
+		DeviceObjectKey:  string(v.GetStringBytes("deviceObjectKey")),
+		FailureReason:    string(v.GetStringBytes("failureReason")),
+		ExpiresAt:        v.GetInt64("expiresAt"),
+		Ticket:           string(v.GetStringBytes("ticket")),
+	}, nil
+}
+
+func marshalDeviceStatusOutput(out deviceStatusOutput) []byte {
+	var arena fastjson.Arena
+	obj := arena.NewObject()
+	obj.Set("daemonStatus", arena.NewString(out.DaemonStatus))
+	obj.Set("setupState", arena.NewString(out.SetupState))
+	obj.Set("statePath", arena.NewString(out.StatePath))
+	obj.Set("socket", arena.NewString(out.Socket))
+	setDeviceJSONString(&arena, obj, "peerId", out.PeerID)
+	setDeviceJSONString(&arena, obj, "label", out.Label)
+	setDeviceJSONString(&arena, obj, "requestedRole", out.RequestedRole)
+	setDeviceJSONString(&arena, obj, "targetHint", out.TargetHint)
+	setDeviceJSONString(&arena, obj, "completionMode", out.CompletionMode)
+	setDeviceJSONInt64(&arena, obj, "completionAt", out.CompletionAt)
+	setDeviceJSONString(&arena, obj, "completionStatus", out.CompletionStatus)
+	setDeviceJSONString(&arena, obj, "accountId", out.AccountID)
+	setDeviceJSONString(&arena, obj, "resourceId", out.ResourceID)
+	setDeviceJSONString(&arena, obj, "sessionId", out.SessionID)
+	setDeviceJSONUint32(&arena, obj, "sessionIndex", out.SessionIndex)
+	setDeviceJSONString(&arena, obj, "sessionPeerId", out.SessionPeerID)
+	setDeviceJSONString(&arena, obj, "deviceObjectKey", out.DeviceObjectKey)
+	setDeviceJSONString(&arena, obj, "failureReason", out.FailureReason)
+	setDeviceJSONInt64(&arena, obj, "expiresAt", out.ExpiresAt)
+	setDeviceJSONString(&arena, obj, "ticket", out.Ticket)
+	if out.IdentityCreated {
+		obj.Set("identityCreated", arena.NewTrue())
+	}
+	return obj.MarshalTo(nil)
+}
+
+func marshalDeviceDockerSetupReport(report *deviceDockerSetupReport) []byte {
+	var arena fastjson.Arena
+	obj := arena.NewObject()
+	obj.Set("label", arena.NewString(report.Label))
+	obj.Set("statePath", arena.NewString(report.StatePath))
+	obj.Set("socket", arena.NewString(report.Socket))
+	obj.Set("containerStatePath", arena.NewString(report.ContainerStatePath))
+	obj.Set("sessionType", arena.NewString(report.SessionType))
+	obj.Set("requestedRole", arena.NewString(report.RequestedRole))
+	obj.Set("completion", arena.NewString(report.Completion))
+	obj.Set("enrollment", arena.NewString(report.Enrollment))
+	obj.Set("ticket", arena.NewString(report.Ticket))
+	return obj.MarshalTo(nil)
+}
+
+func setDeviceJSONString(arena *fastjson.Arena, obj *fastjson.Value, key, value string) {
+	if value != "" {
+		obj.Set(key, arena.NewString(value))
+	}
+}
+
+func setDeviceJSONInt64(arena *fastjson.Arena, obj *fastjson.Value, key string, value int64) {
+	if value != 0 {
+		obj.Set(key, arena.NewNumberString(strconv.FormatInt(value, 10)))
+	}
+}
+
+func setDeviceJSONUint32(arena *fastjson.Arena, obj *fastjson.Value, key string, value uint32) {
+	if value != 0 {
+		obj.Set(key, arena.NewNumberString(strconv.FormatUint(uint64(value), 10)))
+	}
+}
+
 func writeDeviceSetupRecord(statePath string, record *deviceSetupRecord) error {
 	if record == nil {
 		record = &deviceSetupRecord{SetupState: deviceSetupStateNotConfigured}
@@ -992,10 +1112,7 @@ func writeDeviceSetupRecord(statePath string, record *deviceSetupRecord) error {
 	if record.SetupState == "" {
 		record.SetupState = deviceSetupStateNotConfigured
 	}
-	data, err := json.MarshalIndent(record, "", "  ")
-	if err != nil {
-		return errors.Wrap(err, "marshal device setup state")
-	}
+	data := marshalDeviceSetupRecord(record)
 	data = append(data, '\n')
 	path := deviceSetupRecordPath(statePath)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -1015,14 +1132,14 @@ func readDeviceSetupRecord(statePath string) (*deviceSetupRecord, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "read device setup state")
 	}
-	var record deviceSetupRecord
-	if err := json.Unmarshal(data, &record); err != nil {
+	record, err := parseDeviceSetupRecord(data)
+	if err != nil {
 		return nil, errors.Wrap(err, "parse device setup state")
 	}
 	if record.SetupState == "" {
 		record.SetupState = deviceSetupStateNotConfigured
 	}
-	return &record, nil
+	return record, nil
 }
 
 func deviceSetupRecordPath(statePath string) string {
@@ -1032,10 +1149,7 @@ func deviceSetupRecordPath(statePath string) string {
 func writeDeviceStatusOutput(out deviceStatusOutput, outputFormat string) error {
 	switch outputFormat {
 	case "json", "yaml":
-		data, err := json.Marshal(out)
-		if err != nil {
-			return errors.Wrap(err, "marshal device status output")
-		}
+		data := marshalDeviceStatusOutput(out)
 		return formatOutput(data, outputFormat)
 	case "text", "table":
 		fields := [][2]string{
@@ -1102,10 +1216,7 @@ func writeDeviceStatusOutput(out deviceStatusOutput, outputFormat string) error 
 func writeDeviceDockerSetupReport(report *deviceDockerSetupReport, outputFormat string) error {
 	switch outputFormat {
 	case "json", "yaml":
-		data, err := json.Marshal(report)
-		if err != nil {
-			return errors.Wrap(err, "marshal device docker setup output")
-		}
+		data := marshalDeviceDockerSetupReport(report)
 		return formatOutput(data, outputFormat)
 	case "text", "table":
 		writeFields(os.Stdout, [][2]string{

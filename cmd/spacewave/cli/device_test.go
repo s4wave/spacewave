@@ -5,7 +5,6 @@ package spacewave_cli
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"net"
 	"os"
@@ -15,6 +14,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/cli"
+	"github.com/aperturerobotics/fastjson"
 	core_provider "github.com/s4wave/spacewave/core/provider"
 	core_session "github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -169,7 +169,7 @@ func TestDeviceSetupUsesGlobalStatePathFlag(t *testing.T) {
 		t.Fatalf("dialed socket = %q, want state-path socket", dialed)
 	}
 	var got deviceStatusOutput
-	if err := json.Unmarshal([]byte(out), &got); err != nil {
+	if err := parseDeviceStatusOutputJSON([]byte(out), &got); err != nil {
 		t.Fatalf("parse setup json: %v: %s", err, out)
 	}
 	if got.StatePath != statePath {
@@ -205,7 +205,7 @@ func TestDeviceSetupUsesEnvStatePath(t *testing.T) {
 		t.Fatalf("device setup: %v", err)
 	}
 	var got deviceStatusOutput
-	if err := json.Unmarshal([]byte(out), &got); err != nil {
+	if err := parseDeviceStatusOutputJSON([]byte(out), &got); err != nil {
 		t.Fatalf("parse setup json: %v: %s", err, out)
 	}
 	if got.StatePath != statePath {
@@ -251,7 +251,7 @@ func TestDeviceSetupOutputsSignedDeviceTicketAndReusesIdentity(t *testing.T) {
 		t.Fatalf("device setup: %v", err)
 	}
 	var first deviceStatusOutput
-	if err := json.Unmarshal([]byte(out), &first); err != nil {
+	if err := parseDeviceStatusOutputJSON([]byte(out), &first); err != nil {
 		t.Fatalf("parse setup json: %v: %s", err, out)
 	}
 	if !first.IdentityCreated {
@@ -287,7 +287,7 @@ func TestDeviceSetupOutputsSignedDeviceTicketAndReusesIdentity(t *testing.T) {
 		t.Fatalf("second device setup: %v", err)
 	}
 	var second deviceStatusOutput
-	if err := json.Unmarshal([]byte(out), &second); err != nil {
+	if err := parseDeviceStatusOutputJSON([]byte(out), &second); err != nil {
 		t.Fatalf("parse second setup json: %v: %s", err, out)
 	}
 	if second.IdentityCreated {
@@ -327,7 +327,7 @@ func TestDeviceCompleteImportsApprovalCompletionIntoSetupState(t *testing.T) {
 		t.Fatalf("device setup: %v", err)
 	}
 	var setup deviceStatusOutput
-	if err := json.Unmarshal([]byte(setupOut), &setup); err != nil {
+	if err := parseDeviceStatusOutputJSON([]byte(setupOut), &setup); err != nil {
 		t.Fatalf("parse setup json: %v: %s", err, setupOut)
 	}
 	var mountReq *s4wave_provider_spacewave.MountLinkedDeviceSessionRequest
@@ -379,7 +379,7 @@ func TestDeviceCompleteImportsApprovalCompletionIntoSetupState(t *testing.T) {
 		t.Fatalf("device complete: %v", err)
 	}
 	var got deviceStatusOutput
-	if err := json.Unmarshal([]byte(out), &got); err != nil {
+	if err := parseDeviceStatusOutputJSON([]byte(out), &got); err != nil {
 		t.Fatalf("parse complete json: %v: %s", err, out)
 	}
 	if got.SetupState != deviceSetupStateSessionReady {
@@ -465,7 +465,7 @@ func TestDeviceCompletePersistsCompletionWhenSessionMountFails(t *testing.T) {
 		t.Fatalf("device setup: %v", err)
 	}
 	var setup deviceStatusOutput
-	if err := json.Unmarshal([]byte(setupOut), &setup); err != nil {
+	if err := parseDeviceStatusOutputJSON([]byte(setupOut), &setup); err != nil {
 		t.Fatalf("parse setup json: %v: %s", err, setupOut)
 	}
 	withDeviceMountSessionStub(t, func(
@@ -519,7 +519,7 @@ func TestDeviceCompletePreservesCompletionWhenDeviceObjectUpsertFails(t *testing
 		t.Fatalf("device setup: %v", err)
 	}
 	var setup deviceStatusOutput
-	if err := json.Unmarshal([]byte(setupOut), &setup); err != nil {
+	if err := parseDeviceStatusOutputJSON([]byte(setupOut), &setup); err != nil {
 		t.Fatalf("parse setup json: %v: %s", err, setupOut)
 	}
 	withDeviceMountSessionStub(t, func(
@@ -581,7 +581,7 @@ func TestDeviceCompleteRecordsRetryableFailureAndSetupCanRegenerateTicket(t *tes
 		t.Fatalf("device setup: %v", err)
 	}
 	var setup deviceStatusOutput
-	if err := json.Unmarshal([]byte(setupOut), &setup); err != nil {
+	if err := parseDeviceStatusOutputJSON([]byte(setupOut), &setup); err != nil {
 		t.Fatalf("parse setup json: %v: %s", err, setupOut)
 	}
 
@@ -598,7 +598,7 @@ func TestDeviceCompleteRecordsRetryableFailureAndSetupCanRegenerateTicket(t *tes
 		t.Fatalf("device complete denied: %v", err)
 	}
 	var failed deviceStatusOutput
-	if err := json.Unmarshal([]byte(out), &failed); err != nil {
+	if err := parseDeviceStatusOutputJSON([]byte(out), &failed); err != nil {
 		t.Fatalf("parse failed completion json: %v: %s", err, out)
 	}
 	if failed.SetupState != deviceSetupStateFailed {
@@ -615,7 +615,7 @@ func TestDeviceCompleteRecordsRetryableFailureAndSetupCanRegenerateTicket(t *tes
 		t.Fatalf("retry setup: %v", err)
 	}
 	var retry deviceStatusOutput
-	if err := json.Unmarshal([]byte(retryOut), &retry); err != nil {
+	if err := parseDeviceStatusOutputJSON([]byte(retryOut), &retry); err != nil {
 		t.Fatalf("parse retry setup json: %v: %s", err, retryOut)
 	}
 	if retry.SetupState != deviceSetupStateWaiting {
@@ -651,7 +651,7 @@ func TestDeviceCompleteRejectsMismatchedNonceWithoutChangingState(t *testing.T) 
 		t.Fatalf("device setup: %v", err)
 	}
 	var setup deviceStatusOutput
-	if err := json.Unmarshal([]byte(setupOut), &setup); err != nil {
+	if err := parseDeviceStatusOutputJSON([]byte(setupOut), &setup); err != nil {
 		t.Fatalf("parse setup json: %v: %s", err, setupOut)
 	}
 	completion := buildDeviceCompletion(
@@ -725,7 +725,7 @@ func TestDeviceStatusUsesSocketOverrideWithoutAutostart(t *testing.T) {
 		t.Fatalf("dialed socket = %q, want %q", dialed, socketPath)
 	}
 	var got deviceStatusOutput
-	if err := json.Unmarshal([]byte(out), &got); err != nil {
+	if err := parseDeviceStatusOutputJSON([]byte(out), &got); err != nil {
 		t.Fatalf("parse status json: %v: %s", err, out)
 	}
 	if got.SetupState != deviceSetupStateLocalReady {
@@ -906,6 +906,39 @@ func assertDeviceTicket(
 	if time.Unix(payload.GetExpiresAt(), 0).Before(time.Now()) {
 		t.Fatalf("ticket already expired at %d", payload.GetExpiresAt())
 	}
+}
+
+func parseDeviceStatusOutputJSON(data []byte, out *deviceStatusOutput) error {
+	var parser fastjson.Parser
+	v, err := parser.ParseBytes(data)
+	if err != nil {
+		return err
+	}
+	if v.Type() != fastjson.TypeObject {
+		return errors.New("device status output must be object")
+	}
+	out.DaemonStatus = string(v.GetStringBytes("daemonStatus"))
+	out.SetupState = string(v.GetStringBytes("setupState"))
+	out.StatePath = string(v.GetStringBytes("statePath"))
+	out.Socket = string(v.GetStringBytes("socket"))
+	out.PeerID = string(v.GetStringBytes("peerId"))
+	out.Label = string(v.GetStringBytes("label"))
+	out.RequestedRole = string(v.GetStringBytes("requestedRole"))
+	out.TargetHint = string(v.GetStringBytes("targetHint"))
+	out.CompletionMode = string(v.GetStringBytes("completionMode"))
+	out.CompletionAt = v.GetInt64("completionAt")
+	out.CompletionStatus = string(v.GetStringBytes("completionStatus"))
+	out.AccountID = string(v.GetStringBytes("accountId"))
+	out.ResourceID = string(v.GetStringBytes("resourceId"))
+	out.SessionID = string(v.GetStringBytes("sessionId"))
+	out.SessionIndex = uint32(v.GetUint("sessionIndex"))
+	out.SessionPeerID = string(v.GetStringBytes("sessionPeerId"))
+	out.DeviceObjectKey = string(v.GetStringBytes("deviceObjectKey"))
+	out.FailureReason = string(v.GetStringBytes("failureReason"))
+	out.ExpiresAt = v.GetInt64("expiresAt")
+	out.Ticket = string(v.GetStringBytes("ticket"))
+	out.IdentityCreated = v.GetBool("identityCreated")
+	return nil
 }
 
 func withDeviceDaemonStub(

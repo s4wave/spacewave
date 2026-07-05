@@ -157,7 +157,7 @@ func runSessionInfo(c *cli.Context, statePath, outputFormat string, sessionIdx u
 		ms.WriteString(acctID)
 		ms.WriteMoreIf(&f)
 		ms.WriteObjectField("sessionIndex")
-		ms.WriteUint32(uint32(sessionIdx))
+		ms.WriteUint32(sessionIdx)
 		ms.WriteMoreIf(&f)
 		ms.WriteObjectField("spaceCount")
 		ms.WriteInt32(int32(len(spaces)))
@@ -233,7 +233,8 @@ type sessionLogoutTarget struct {
 }
 
 func sessionLogoutFlags(statePath *string, sessionIdx *uint, sessionID *string, accountID *string, yes *bool) []cli.Flag {
-	return append(clientFlags(statePath, sessionIdx),
+	return append(
+		clientFlags(statePath, sessionIdx),
 		&cli.StringFlag{
 			Name:        "session-id",
 			Usage:       "session id to sign out",
