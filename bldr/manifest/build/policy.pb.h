@@ -223,6 +223,7 @@ class BuildPolicy final : public ::google::protobuf::Message
   enum : int {
     kJsMinificationFieldNumber = 1,
     kJsSourcemapsFieldNumber = 2,
+    kGoscriptCodeSplittingFieldNumber = 3,
   };
   // .enabled.Enabled js_minification = 1;
   void clear_js_minification() ;
@@ -244,11 +245,21 @@ class BuildPolicy final : public ::google::protobuf::Message
   void _internal_set_js_sourcemaps(::enabled::Enabled value);
 
   public:
+  // .enabled.Enabled goscript_code_splitting = 3;
+  void clear_goscript_code_splitting() ;
+  ::enabled::Enabled goscript_code_splitting() const;
+  void set_goscript_code_splitting(::enabled::Enabled value);
+
+  private:
+  ::enabled::Enabled _internal_goscript_code_splitting() const;
+  void _internal_set_goscript_code_splitting(::enabled::Enabled value);
+
+  public:
   // @@protoc_insertion_point(class_scope:bldr.manifest.build.BuildPolicy)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
                                    0, 0,
                                    2>
       _table_;
@@ -272,6 +283,7 @@ class BuildPolicy final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     int js_minification_;
     int js_sourcemaps_;
+    int goscript_code_splitting_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -344,6 +356,31 @@ inline ::enabled::Enabled BuildPolicy::_internal_js_sourcemaps() const {
 inline void BuildPolicy::_internal_set_js_sourcemaps(::enabled::Enabled value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.js_sourcemaps_ = value;
+}
+
+// .enabled.Enabled goscript_code_splitting = 3;
+inline void BuildPolicy::clear_goscript_code_splitting() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.goscript_code_splitting_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::enabled::Enabled BuildPolicy::goscript_code_splitting() const {
+  // @@protoc_insertion_point(field_get:bldr.manifest.build.BuildPolicy.goscript_code_splitting)
+  return _internal_goscript_code_splitting();
+}
+inline void BuildPolicy::set_goscript_code_splitting(::enabled::Enabled value) {
+  _internal_set_goscript_code_splitting(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:bldr.manifest.build.BuildPolicy.goscript_code_splitting)
+}
+inline ::enabled::Enabled BuildPolicy::_internal_goscript_code_splitting() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::enabled::Enabled>(_impl_.goscript_code_splitting_);
+}
+inline void BuildPolicy::_internal_set_goscript_code_splitting(::enabled::Enabled value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.goscript_code_splitting_ = value;
 }
 
 #ifdef __GNUC__

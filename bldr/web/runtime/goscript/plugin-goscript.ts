@@ -10,13 +10,12 @@ type GoPushableSink = {
 }
 
 export type GoScriptPluginMain = () => void | Promise<void>
+export type GoScriptPluginMainLoader = () => Promise<GoScriptPluginMain>
 
 declare global {
   var BLDR_BASE_URL: string
   var BLDR_PLUGIN_START_INFO: string | undefined
-  var BLDR_PLUGIN_REPORT_RUNTIME_FAILURE:
-    | ((err: unknown) => void)
-    | undefined
+  var BLDR_PLUGIN_REPORT_RUNTIME_FAILURE: ((err: unknown) => void) | undefined
   var BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME:
     | ((
         onMessage: (message: Uint8Array) => void,
@@ -35,19 +34,21 @@ const baseURL = import.meta?.url
 globalScope.BLDR_BASE_URL = baseURL
 
 class GoScriptPluginGeneration {
-  private readonly activeAcceptedStreams = new Set<
-    BrowserMessagePortDuplex
-  >()
+  private readonly activeAcceptedStreams = new Set<BrowserMessagePortDuplex>()
   private terminalError?: Error
 
   public constructor(private readonly api: BackendAPI) {}
 
-  public start(startInfo: PluginStartInfo, pluginMain: GoScriptPluginMain) {
+  public start(
+    startInfo: PluginStartInfo,
+    loadPluginMain: GoScriptPluginMainLoader,
+  ) {
     const pluginStartInfoJsonB64 = btoa(PluginStartInfo.toJsonString(startInfo))
     globalScope.BLDR_PLUGIN_START_INFO = pluginStartInfoJsonB64
 
     void Promise.resolve()
-      .then(() => pluginMain())
+      .then(() => loadPluginMain())
+      .then((pluginMain) => pluginMain())
       .then(
         () => this.fail(new Error('GoScript plugin process exited')),
         (err) => this.fail(err),
@@ -99,7 +100,10 @@ class GoScriptPluginGeneration {
 
     const terminalError = castToError(err, 'GoScript plugin process failed')
     this.terminalError = terminalError
-    console.warn('plugin-goscript: GoScript plugin process exited', terminalError)
+    console.warn(
+      'plugin-goscript: GoScript plugin process exited',
+      terminalError,
+    )
     this.closeActiveAcceptedStreams()
     this.installTerminalAcceptHandler(terminalError)
     globalScope.BLDR_PLUGIN_REPORT_RUNTIME_FAILURE?.(terminalError)
@@ -121,7 +125,7 @@ class GoScriptPluginGeneration {
 
 export default async function main(
   api: BackendAPI,
-  pluginMain: GoScriptPluginMain,
+  loadPluginMain: GoScriptPluginMainLoader,
 ): Promise<void> {
   const generation = new GoScriptPluginGeneration(api)
 
@@ -193,7 +197,7 @@ export default async function main(
     generation.setAcceptStream(acceptStrm)
   }
 
-  generation.start(api.startInfo, pluginMain)
+  generation.start(api.startInfo, loadPluginMain)
 }
 
 class BrowserMessagePortDuplex {

@@ -390,6 +390,7 @@ func ConfigureGoScriptBrowserStartup(conf *bldr_project.ProjectConfig) error {
 	build.BuildPolicy = build.GetBuildPolicy().Merge(manifest_build.NewBuildPolicy(
 		enabled.Enabled_ENABLE,
 		enabled.Enabled_DISABLE,
+		enabled.Enabled_DEFAULT,
 	))
 	for _, manifestID := range goScriptBrowserGoManifests {
 		if err := ConfigureGoScriptForManifest(manifestID)(conf); err != nil {

@@ -15,5 +15,11 @@ pub struct BuildPolicy {
     /// builders previously did, while release builds do not emit sourcemaps.
     #[prost(enumeration="super::super::super::enabled::Enabled", tag="2")]
     pub js_sourcemaps: i32,
+    /// GoScriptCodeSplitting controls Rolldown code splitting for GoScript
+    /// wrapper bundles.
+    /// DEFAULT emits split GoScript wrapper bundles. ENABLE also permits chunk
+    /// output; DISABLE forces single-file output.
+    #[prost(enumeration="super::super::super::enabled::Enabled", tag="3")]
+    pub goscript_code_splitting: i32,
 }
 // @@protoc_insertion_point(module)

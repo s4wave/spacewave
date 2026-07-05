@@ -300,6 +300,7 @@ func (c *Controller) BuildManifest(
 			buildType,
 			builderConf.GetBuildPolicy().ResolveJsMinification(buildType),
 			builderConf.GetBuildPolicy().ResolveJsSourcemaps(buildType),
+			builderConf.GetBuildPolicy().ResolveGoScriptCodeSplitting(buildType),
 			buildPlatform,
 			outBinName,
 			workingPath,
@@ -382,6 +383,7 @@ func (c *Controller) BuildPlugin(
 	buildType bldr_manifest.BuildType,
 	jsMinification bool,
 	jsSourcemaps bool,
+	goScriptCodeSplitting bool,
 	buildPlatform bldr_platform.Platform,
 	outBinName,
 	workingPath,
@@ -899,6 +901,7 @@ func (c *Controller) BuildPlugin(
 				mainPackagePath,
 				goScriptJSMinification,
 				goScriptJSSourcemaps,
+				goScriptCodeSplitting,
 			)
 			if err != nil {
 				return err

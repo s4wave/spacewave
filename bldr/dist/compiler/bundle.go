@@ -77,6 +77,7 @@ func BuildDistBundle(
 	isWebPlatform := bldr_platform.IsWebPlatform(buildPlatform)
 	jsMinify := buildPolicy.ResolveJsMinification(buildType)
 	jsSourcemaps := buildPolicy.ResolveJsSourcemaps(buildType)
+	goScriptCodeSplitting := buildPolicy.ResolveGoScriptCodeSplitting(buildType)
 
 	// disable cgo on default
 	enableCgo := enableCgoOpt.IsEnabled(false)
@@ -458,6 +459,7 @@ func BuildDistBundle(
 				mainPackagePath,
 				jsMinify,
 				jsSourcemaps,
+				goScriptCodeSplitting,
 			)
 			if err != nil {
 				return err

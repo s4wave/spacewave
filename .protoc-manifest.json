@@ -140,7 +140,7 @@
       "protoFiles": ["bldr/manifest/manifest.proto"]
     },
     "github.com/s4wave/spacewave/bldr/manifest/build": {
-      "hash": "3d00731bb389cd7283569d27494feeb1cb5aa1735dec1f92f7657bbec2df27e6",
+      "hash": "f417a6a5108266ea1d6c1d71ef96491c6cf2784bfbb9a7431e6fec92a8689a6a",
       "generatedFiles": [
         "bldr/manifest/build/policy.pb.cc",
         "bldr/manifest/build/policy.pb.go",
@@ -1035,7 +1035,7 @@
       "protoFiles": ["bldr/web/view/observer/config.proto"]
     },
     "github.com/s4wave/spacewave/core/account/settings": {
-      "hash": "bfe3ba04f278efea683bdb068022506502a0591ab90fd128180357fb63a0c738",
+      "hash": "52c05de97ce4559a3f53471c41e58b6c6c50afca9d874d1e56a7b83a9a14698c",
       "generatedFiles": [
         "core/account/settings/settings.pb.cc",
         "core/account/settings/settings.pb.go",
@@ -1547,7 +1547,7 @@
       "protoFiles": ["core/space/sobject/config.proto"]
     },
     "github.com/s4wave/spacewave/core/space/world": {
-      "hash": "496340a7c05ba8dc4ed37c1d33c93d123ecea7db308b0f2663b904e92e00bbfc",
+      "hash": "5c4a209a5a8db64ab97b62a5d6e3dee5df432c646af58f88346187965d21bc2e",
       "generatedFiles": [
         "core/space/world/world.pb.cc",
         "core/space/world/world.pb.go",
@@ -2856,6 +2856,17 @@
       ],
       "protoFiles": ["forge/job/job.proto"]
     },
+    "github.com/s4wave/spacewave/forge/lib/docker": {
+      "hash": "c16d3c5ffb37c7d864f73dc3839248a1b68e4e0196686190e0ba708ba7551b2c",
+      "generatedFiles": [
+        "forge/lib/docker/config.pb.cc",
+        "forge/lib/docker/config.pb.go",
+        "forge/lib/docker/config.pb.h",
+        "forge/lib/docker/config.pb.rs",
+        "forge/lib/docker/config.pb.ts"
+      ],
+      "protoFiles": ["forge/lib/docker/config.proto"]
+    },
     "github.com/s4wave/spacewave/forge/lib/git/clone": {
       "hash": "dacd57a37858e38b08cedfd2027e576a0b57cb25d68ab6da8c662e3bce5ca06e",
       "generatedFiles": [
@@ -3696,7 +3707,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/account": {
-      "hash": "6f327fd53b5df8517d227c6481de022d20b7810504edb61558122c781a7044ae",
+      "hash": "f67e45e8e9000e171697e510b6d739d75b93fd9a22a6c0120cd03a86fa4ca65a",
       "generatedFiles": [
         "sdk/account/account.pb.cc",
         "sdk/account/account.pb.go",
@@ -3830,7 +3841,7 @@
       "protoFiles": ["sdk/chat/rpc/rpc.proto"]
     },
     "github.com/s4wave/spacewave/sdk/command": {
-      "hash": "ed4e8e63e597dd5fa8307d661e8a7c68a4a312b59e43098b565df7f8ee69ab28",
+      "hash": "fa0be9272aa697790c4904119bc1ae5ea033fa263d4a8d18ca03f5f19a593534",
       "generatedFiles": [
         "sdk/command/command.pb.cc",
         "sdk/command/command.pb.go",

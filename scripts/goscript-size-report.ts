@@ -50,6 +50,10 @@ interface ProductionWrapperReport {
   outputPath: string
   outputBytes: number
   outputGzipBytes: number
+  totalOutputBytes?: number
+  totalOutputGzipBytes?: number
+  outputFileCount?: number
+  codeSplitting?: boolean
   minify: boolean
   sourcemaps: boolean
   inputCount: number
@@ -531,6 +535,14 @@ async function readProductionWrapperReport(
     !isPositiveSafeInteger(parsed.outputGzipBytes) ||
     typeof parsed.minify !== 'boolean' ||
     typeof parsed.sourcemaps !== 'boolean' ||
+    (parsed.totalOutputBytes !== undefined &&
+      !isPositiveSafeInteger(parsed.totalOutputBytes)) ||
+    (parsed.totalOutputGzipBytes !== undefined &&
+      !isPositiveSafeInteger(parsed.totalOutputGzipBytes)) ||
+    (parsed.outputFileCount !== undefined &&
+      !isPositiveSafeInteger(parsed.outputFileCount)) ||
+    (parsed.codeSplitting !== undefined &&
+      typeof parsed.codeSplitting !== 'boolean') ||
     !isNonNegativeSafeInteger(parsed.inputCount) ||
     !Array.isArray(parsed.inputPaths) ||
     parsed.inputCount !== parsed.inputPaths.length ||
@@ -584,6 +596,8 @@ async function renderMarkdown(report: any): Promise<string> {
       '| --- | --- |',
       `| Report path | \`${report.paths.productionWrapperReport}\` |`,
       `| Output path | \`${report.productionWrapperReport.outputPath}\` |`,
+      `| Code splitting | ${report.productionWrapperReport.codeSplitting ?? false} |`,
+      `| Output files | ${report.productionWrapperReport.outputFileCount ?? 1} |`,
       `| Minify | ${report.productionWrapperReport.minify} |`,
       `| Sourcemaps | ${report.productionWrapperReport.sourcemaps} |`,
       `| Dependency inputs | ${report.productionWrapperReport.inputCount} |`,
@@ -685,14 +699,24 @@ async function main(): Promise<void> {
   if (productionWrapperReport) {
     sizeRows.push(
       {
-        name: 'Production Bldr GoScript wrapper bundle',
-        bytes: productionWrapperReport.outputBytes,
-        mib: miB(productionWrapperReport.outputBytes),
+        name: 'Production Bldr GoScript wrapper JavaScript outputs',
+        bytes:
+          productionWrapperReport.totalOutputBytes ??
+          productionWrapperReport.outputBytes,
+        mib: miB(
+          productionWrapperReport.totalOutputBytes ??
+            productionWrapperReport.outputBytes,
+        ),
       },
       {
-        name: 'Production Bldr GoScript wrapper bundle gzip',
-        bytes: productionWrapperReport.outputGzipBytes,
-        mib: miB(productionWrapperReport.outputGzipBytes),
+        name: 'Production Bldr GoScript wrapper JavaScript outputs gzip',
+        bytes:
+          productionWrapperReport.totalOutputGzipBytes ??
+          productionWrapperReport.outputGzipBytes,
+        mib: miB(
+          productionWrapperReport.totalOutputGzipBytes ??
+            productionWrapperReport.outputGzipBytes,
+        ),
       },
     )
   }

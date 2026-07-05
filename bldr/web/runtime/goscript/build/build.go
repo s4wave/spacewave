@@ -35,22 +35,36 @@ type rolldownGoScriptBundleOptions struct {
 	SourceRoot          string `json:"sourceRoot"`
 	GoScriptOutputRoot  string `json:"goScriptOutputRoot"`
 	OutPath             string `json:"outPath"`
+	OutDir              string `json:"outDir"`
+	EntryFileName       string `json:"entryFileName"`
 	InputsPath          string `json:"inputsPath"`
 	UndefinedImportPath string `json:"undefinedImportPath"`
 	Banner              string `json:"banner"`
 	Minify              bool   `json:"minify"`
 	Sourcemaps          bool   `json:"sourcemaps"`
+	CodeSplitting       bool   `json:"codeSplitting"`
 }
 
 type goScriptBundleReport struct {
-	SchemaVersion   int      `json:"schemaVersion"`
-	OutputPath      string   `json:"outputPath"`
-	OutputBytes     int64    `json:"outputBytes"`
-	OutputGzipBytes int64    `json:"outputGzipBytes"`
-	Minify          bool     `json:"minify"`
-	Sourcemaps      bool     `json:"sourcemaps"`
-	InputCount      int      `json:"inputCount"`
-	InputPaths      []string `json:"inputPaths"`
+	SchemaVersion        int                        `json:"schemaVersion"`
+	OutputPath           string                     `json:"outputPath"`
+	OutputBytes          int64                      `json:"outputBytes"`
+	OutputGzipBytes      int64                      `json:"outputGzipBytes"`
+	TotalOutputBytes     int64                      `json:"totalOutputBytes"`
+	TotalOutputGzipBytes int64                      `json:"totalOutputGzipBytes"`
+	OutputFileCount      int                        `json:"outputFileCount"`
+	OutputFiles          []goScriptBundleOutputFile `json:"outputFiles"`
+	Minify               bool                       `json:"minify"`
+	Sourcemaps           bool                       `json:"sourcemaps"`
+	CodeSplitting        bool                       `json:"codeSplitting"`
+	InputCount           int                        `json:"inputCount"`
+	InputPaths           []string                   `json:"inputPaths"`
+}
+
+type goScriptBundleOutputFile struct {
+	Path      string `json:"path"`
+	Bytes     int64  `json:"bytes"`
+	GzipBytes int64  `json:"gzipBytes"`
 }
 
 // BuildWebGoScriptPluginScript builds the web plugin runtime entrypoint script.
@@ -63,7 +77,8 @@ func BuildWebGoScriptPluginScript(
 	outPath,
 	mainPackagePath string,
 	minify,
-	sourcemaps bool,
+	sourcemaps,
+	codeSplitting bool,
 ) ([]string, error) {
 	if strings.TrimSpace(mainPackagePath) == "" {
 		return nil, errors.New("plugin-goscript: main package path cannot be empty")
@@ -82,13 +97,19 @@ func BuildWebGoScriptPluginScript(
 	entrypoint := "import runGoScriptPlugin from " + strconv.Quote(runtimeImport) + "\n" +
 		"import { main as pluginMain } from " + strconv.Quote(mainImport) + "\n\n" +
 		"export default async function main(api) {\n" +
-		"  await runGoScriptPlugin(api, pluginMain)\n" +
+		"  await runGoScriptPlugin(api, () => Promise.resolve(pluginMain))\n" +
 		"}\n"
+	if codeSplitting {
+		entrypoint = "import runGoScriptPlugin from " + strconv.Quote(runtimeImport) + "\n\n" +
+			"export default async function main(api) {\n" +
+			"  await runGoScriptPlugin(api, async () => (await import(" + strconv.Quote(mainImport) + ")).main)\n" +
+			"}\n"
+	}
 	if err := os.WriteFile(entrypointPath, []byte(entrypoint), 0o644); err != nil {
 		return nil, errors.Wrap(err, "write goscript entrypoint")
 	}
 
-	return runRolldownGoScriptBundle(ctx, le, bldrDistRoot, workDir, goScriptOutputRoot, entrypointPath, outPath, minify, sourcemaps)
+	return runRolldownGoScriptBundle(ctx, le, bldrDistRoot, workDir, goScriptOutputRoot, entrypointPath, outPath, minify, sourcemaps, codeSplitting)
 }
 
 // BuildWebGoScriptRuntimeScript builds the browser shell runtime entrypoint.
@@ -101,7 +122,8 @@ func BuildWebGoScriptRuntimeScript(
 	outPath,
 	mainPackagePath string,
 	minify,
-	sourcemaps bool,
+	sourcemaps,
+	codeSplitting bool,
 ) ([]string, error) {
 	if strings.TrimSpace(mainPackagePath) == "" {
 		return nil, errors.New("runtime-goscript: main package path cannot be empty")
@@ -119,12 +141,16 @@ func BuildWebGoScriptRuntimeScript(
 	mainImport := "@goscript/" + strings.Trim(mainPackagePath, "/") + "/main.gs.js"
 	entrypoint := "import runGoScriptRuntime from " + strconv.Quote(runtimeImport) + "\n" +
 		"import { main as distMain } from " + strconv.Quote(mainImport) + "\n\n" +
-		"runGoScriptRuntime(distMain)\n"
+		"runGoScriptRuntime(() => Promise.resolve(distMain))\n"
+	if codeSplitting {
+		entrypoint = "import runGoScriptRuntime from " + strconv.Quote(runtimeImport) + "\n\n" +
+			"runGoScriptRuntime(async () => (await import(" + strconv.Quote(mainImport) + ")).main)\n"
+	}
 	if err := os.WriteFile(entrypointPath, []byte(entrypoint), 0o644); err != nil {
 		return nil, errors.Wrap(err, "write goscript runtime entrypoint")
 	}
 
-	return runRolldownGoScriptBundle(ctx, le, bldrDistRoot, workDir, goScriptOutputRoot, entrypointPath, outPath, minify, sourcemaps)
+	return runRolldownGoScriptBundle(ctx, le, bldrDistRoot, workDir, goScriptOutputRoot, entrypointPath, outPath, minify, sourcemaps, codeSplitting)
 }
 
 func runRolldownGoScriptBundle(
@@ -136,7 +162,8 @@ func runRolldownGoScriptBundle(
 	entrypointPath,
 	outPath string,
 	minify,
-	sourcemaps bool,
+	sourcemaps,
+	codeSplitting bool,
 ) ([]string, error) {
 	le.Infof("building plugin-goscript-entrypoint.ts with Rolldown/Oxc to %v", filepath.Base(outPath))
 	if err := os.MkdirAll(filepath.Dir(outPath), 0o755); err != nil {
@@ -153,11 +180,14 @@ func runRolldownGoScriptBundle(
 		SourceRoot:          resolveGoScriptSourceRoot(bldrDistRoot),
 		GoScriptOutputRoot:  goScriptOutputRoot,
 		OutPath:             outPath,
+		OutDir:              filepath.Dir(outPath),
+		EntryFileName:       filepath.Base(outPath),
 		InputsPath:          inputsPath,
 		UndefinedImportPath: undefinedImportPath,
 		Banner:              banner,
 		Minify:              minify,
 		Sourcemaps:          sourcemaps,
+		CodeSplitting:       codeSplitting,
 	}
 	if err := os.WriteFile(configPath, renderRolldownGoScriptConfig(options), 0o644); err != nil {
 		return nil, errors.Wrap(err, "write goscript rolldown config")
@@ -183,7 +213,7 @@ func runRolldownGoScriptBundle(
 		}
 		return nil, err
 	}
-	if sourcemaps {
+	if sourcemaps && !codeSplitting {
 		if err := inlineAndExternalSourceMap(outPath); err != nil {
 			return nil, err
 		}
@@ -192,7 +222,7 @@ func runRolldownGoScriptBundle(
 	if err != nil {
 		return nil, err
 	}
-	if err := writeGoScriptBundleReport(GoScriptBundleReportPath(workDir), outPath, inputPaths, minify, sourcemaps); err != nil {
+	if err := writeGoScriptBundleReport(GoScriptBundleReportPath(workDir), outPath, inputPaths, minify, sourcemaps, codeSplitting); err != nil {
 		return nil, err
 	}
 	return inputPaths, nil
@@ -354,29 +384,86 @@ func readRolldownInputPaths(absWorkingDir, inputsPath string) ([]string, error) 
 	return inputPaths, nil
 }
 
-func writeGoScriptBundleReport(reportPath, outPath string, inputPaths []string, minify, sourcemaps bool) error {
-	outBytes, err := os.ReadFile(outPath)
-	if err != nil {
-		return errors.Wrap(err, "read goscript bundle for report")
-	}
-	gzipBytes, err := gzipBytesLen(outBytes)
+func writeGoScriptBundleReport(reportPath, outPath string, inputPaths []string, minify, sourcemaps, codeSplitting bool) error {
+	outputFiles, err := readGoScriptBundleOutputFiles(outPath, codeSplitting)
 	if err != nil {
 		return err
 	}
+	var totalBytes, totalGzipBytes int64
+	for _, outputFile := range outputFiles {
+		totalBytes += outputFile.Bytes
+		totalGzipBytes += outputFile.GzipBytes
+	}
+	var entryFile goScriptBundleOutputFile
+	for _, outputFile := range outputFiles {
+		if outputFile.Path == outPath {
+			entryFile = outputFile
+			break
+		}
+	}
+	if entryFile.Path == "" {
+		return errors.Errorf("goscript bundle entry output missing from report: %s", outPath)
+	}
 	reportBytes := marshalGoScriptBundleReport(goScriptBundleReport{
-		SchemaVersion:   1,
-		OutputPath:      outPath,
-		OutputBytes:     int64(len(outBytes)),
-		OutputGzipBytes: gzipBytes,
-		Minify:          minify,
-		Sourcemaps:      sourcemaps,
-		InputCount:      len(inputPaths),
-		InputPaths:      slices.Clone(inputPaths),
+		SchemaVersion:        1,
+		OutputPath:           outPath,
+		OutputBytes:          entryFile.Bytes,
+		OutputGzipBytes:      entryFile.GzipBytes,
+		TotalOutputBytes:     totalBytes,
+		TotalOutputGzipBytes: totalGzipBytes,
+		OutputFileCount:      len(outputFiles),
+		OutputFiles:          outputFiles,
+		Minify:               minify,
+		Sourcemaps:           sourcemaps,
+		CodeSplitting:        codeSplitting,
+		InputCount:           len(inputPaths),
+		InputPaths:           slices.Clone(inputPaths),
 	})
 	if err := os.WriteFile(reportPath, reportBytes, 0o644); err != nil {
 		return errors.Wrap(err, "write goscript bundle report")
 	}
 	return nil
+}
+
+func readGoScriptBundleOutputFiles(outPath string, codeSplitting bool) ([]goScriptBundleOutputFile, error) {
+	var outputPaths []string
+	if codeSplitting {
+		if err := filepath.WalkDir(filepath.Dir(outPath), func(path string, entry os.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if entry.Type().IsRegular() && strings.HasSuffix(entry.Name(), ".mjs") {
+				outputPaths = append(outputPaths, path)
+			}
+			return nil
+		}); err != nil {
+			return nil, errors.Wrap(err, "scan goscript bundle outputs")
+		}
+	} else {
+		outputPaths = []string{outPath}
+	}
+	slices.Sort(outputPaths)
+	if len(outputPaths) == 0 {
+		return nil, errors.Errorf("no goscript bundle outputs under %s", filepath.Dir(outPath))
+	}
+
+	outputFiles := make([]goScriptBundleOutputFile, 0, len(outputPaths))
+	for _, outputPath := range outputPaths {
+		outBytes, err := os.ReadFile(outputPath)
+		if err != nil {
+			return nil, errors.Wrap(err, "read goscript bundle for report")
+		}
+		gzipBytes, err := gzipBytesLen(outBytes)
+		if err != nil {
+			return nil, err
+		}
+		outputFiles = append(outputFiles, goScriptBundleOutputFile{
+			Path:      outputPath,
+			Bytes:     int64(len(outBytes)),
+			GzipBytes: gzipBytes,
+		})
+	}
+	return outputFiles, nil
 }
 
 func marshalGoScriptBundleReport(report goScriptBundleReport) []byte {
@@ -386,6 +473,18 @@ func marshalGoScriptBundleReport(report goScriptBundleReport) []byte {
 	root.Set("outputPath", arena.NewString(report.OutputPath))
 	root.Set("outputBytes", arena.NewNumberString(strconv.FormatInt(report.OutputBytes, 10)))
 	root.Set("outputGzipBytes", arena.NewNumberString(strconv.FormatInt(report.OutputGzipBytes, 10)))
+	root.Set("totalOutputBytes", arena.NewNumberString(strconv.FormatInt(report.TotalOutputBytes, 10)))
+	root.Set("totalOutputGzipBytes", arena.NewNumberString(strconv.FormatInt(report.TotalOutputGzipBytes, 10)))
+	root.Set("outputFileCount", arena.NewNumberInt(report.OutputFileCount))
+	outputFiles := arena.NewArray()
+	for idx, outputFile := range report.OutputFiles {
+		outputFileValue := arena.NewObject()
+		outputFileValue.Set("path", arena.NewString(outputFile.Path))
+		outputFileValue.Set("bytes", arena.NewNumberString(strconv.FormatInt(outputFile.Bytes, 10)))
+		outputFileValue.Set("gzipBytes", arena.NewNumberString(strconv.FormatInt(outputFile.GzipBytes, 10)))
+		outputFiles.SetArrayItem(idx, outputFileValue)
+	}
+	root.Set("outputFiles", outputFiles)
 	if report.Minify {
 		root.Set("minify", arena.NewTrue())
 	} else {
@@ -395,6 +494,11 @@ func marshalGoScriptBundleReport(report goScriptBundleReport) []byte {
 		root.Set("sourcemaps", arena.NewTrue())
 	} else {
 		root.Set("sourcemaps", arena.NewFalse())
+	}
+	if report.CodeSplitting {
+		root.Set("codeSplitting", arena.NewTrue())
+	} else {
+		root.Set("codeSplitting", arena.NewFalse())
 	}
 	root.Set("inputCount", arena.NewNumberInt(report.InputCount))
 	inputPaths := arena.NewArray()
@@ -429,11 +533,14 @@ func renderRolldownGoScriptConfig(options rolldownGoScriptBundleOptions) []byte 
 	writeConfigString(&builder, "sourceRoot", options.SourceRoot)
 	writeConfigString(&builder, "goScriptOutputRoot", options.GoScriptOutputRoot)
 	writeConfigString(&builder, "outPath", options.OutPath)
+	writeConfigString(&builder, "outDir", options.OutDir)
+	writeConfigString(&builder, "entryFileName", options.EntryFileName)
 	writeConfigString(&builder, "inputsPath", options.InputsPath)
 	writeConfigString(&builder, "undefinedImportPath", options.UndefinedImportPath)
 	writeConfigString(&builder, "banner", options.Banner)
 	writeConfigBool(&builder, "minify", options.Minify)
 	writeConfigBool(&builder, "sourcemaps", options.Sourcemaps)
+	writeConfigBool(&builder, "codeSplitting", options.CodeSplitting)
 	builder.WriteString("}\n")
 	builder.WriteString(rolldownGoScriptConfig)
 	return []byte(builder.String())
@@ -649,11 +756,18 @@ export default {
     defaultHandler(level, log)
   },
   output: {
-    file: opts.outPath,
+    ...(opts.codeSplitting ? {
+      dir: opts.outDir,
+      entryFileNames: opts.entryFileName,
+      chunkFileNames: "chunks/[name]-[hash].mjs",
+      codeSplitting: true,
+    } : {
+      file: opts.outPath,
+      codeSplitting: false,
+    }),
     format: "esm",
     sourcemap: opts.sourcemaps ? true : false,
     minify: opts.minify,
-    codeSplitting: false,
     banner: opts.banner,
   },
 }

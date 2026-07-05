@@ -119,7 +119,7 @@ func TestBuildTargetsOverrideSelection(t *testing.T) {
 	manifestOverrides := map[string]*configset_proto.ControllerConfig{
 		"spacewave-dist": override,
 	}
-	buildPolicy := manifest_build.NewBuildPolicy(enabled.Enabled_DISABLE, enabled.Enabled_ENABLE)
+	buildPolicy := manifest_build.NewBuildPolicy(enabled.Enabled_DISABLE, enabled.Enabled_ENABLE, enabled.Enabled_ENABLE)
 
 	var gotOverride *configset_proto.ControllerConfig
 	var gotPolicy *manifest_build.BuildPolicy
@@ -161,6 +161,9 @@ func TestBuildTargetsOverrideSelection(t *testing.T) {
 	if gotPolicy.GetJsMinification() != enabled.Enabled_DISABLE {
 		t.Fatalf("js_minification: got %s, want DISABLE", gotPolicy.GetJsMinification())
 	}
+	if gotPolicy.GetGoscriptCodeSplitting() != enabled.Enabled_ENABLE {
+		t.Fatalf("goscript_code_splitting: got %s, want ENABLE", gotPolicy.GetGoscriptCodeSplitting())
+	}
 	if gotPolicy == buildPolicy {
 		t.Fatal("build policy should be cloned, not aliased")
 	}
@@ -172,11 +175,13 @@ func TestResolveBuildTargetMergesBuildPolicy(t *testing.T) {
 		BuildPolicy: manifest_build.NewBuildPolicy(
 			enabled.Enabled_ENABLE,
 			enabled.Enabled_DISABLE,
+			enabled.Enabled_DISABLE,
 		),
 	}
 	override := manifest_build.NewBuildPolicy(
 		enabled.Enabled_DISABLE,
 		enabled.Enabled_DEFAULT,
+		enabled.Enabled_ENABLE,
 	)
 
 	resolved, err := ResolveBuildTarget(buildTarget, nil, override)
@@ -189,6 +194,9 @@ func TestResolveBuildTargetMergesBuildPolicy(t *testing.T) {
 	if resolved.BuildPolicy.GetJsSourcemaps() != enabled.Enabled_DISABLE {
 		t.Fatalf("js_sourcemaps: got %s, want DISABLE", resolved.BuildPolicy.GetJsSourcemaps())
 	}
+	if resolved.BuildPolicy.GetGoscriptCodeSplitting() != enabled.Enabled_ENABLE {
+		t.Fatalf("goscript_code_splitting: got %s, want ENABLE", resolved.BuildPolicy.GetGoscriptCodeSplitting())
+	}
 	if len(resolved.PlatformIDs) == 0 {
 		t.Fatal("expected platform ids from browser target")
 	}
@@ -197,7 +205,7 @@ func TestResolveBuildTargetMergesBuildPolicy(t *testing.T) {
 func TestResolveBuildTargetRejectsInvalidBuildPolicy(t *testing.T) {
 	buildTarget := &bldr_project.BuildConfig{
 		Targets:     []string{"browser"},
-		BuildPolicy: manifest_build.NewBuildPolicy(enabled.Enabled(99), enabled.Enabled_DEFAULT),
+		BuildPolicy: manifest_build.NewBuildPolicy(enabled.Enabled(99), enabled.Enabled_DEFAULT, enabled.Enabled_DEFAULT),
 	}
 
 	if _, err := ResolveBuildTarget(buildTarget, nil, nil); err == nil {

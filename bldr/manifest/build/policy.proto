@@ -19,8 +19,7 @@ message BuildPolicy {
 
   // GoScriptCodeSplitting controls Rolldown code splitting for GoScript
   // wrapper bundles.
-  //
-  // DEFAULT preserves build-type defaults: release builds split GoScript
-  // wrapper bundles, while dev builds keep the single-file wrapper.
+  // DEFAULT emits split GoScript wrapper bundles. ENABLE also permits chunk
+  // output; DISABLE forces single-file output.
   .enabled.Enabled goscript_code_splitting = 3;
 }

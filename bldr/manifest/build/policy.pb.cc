@@ -34,7 +34,8 @@ inline constexpr BuildPolicy::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
         js_minification_{static_cast< ::enabled::Enabled >(0)},
-        js_sourcemaps_{static_cast< ::enabled::Enabled >(0)} {}
+        js_sourcemaps_{static_cast< ::enabled::Enabled >(0)},
+        goscript_code_splitting_{static_cast< ::enabled::Enabled >(0)} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR BuildPolicy::BuildPolicy(::_pbi::ConstantInitialized)
@@ -67,11 +68,13 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::build::BuildPolicy, _impl_._has_bits_),
-        5, // hasbit index offset
+        6, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::build::BuildPolicy, _impl_.js_minification_),
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::build::BuildPolicy, _impl_.js_sourcemaps_),
+        PROTOBUF_FIELD_OFFSET(::bldr::manifest::build::BuildPolicy, _impl_.goscript_code_splitting_),
         0,
         1,
+        2,
 };
 
 static const ::_pbi::MigrationSchema
@@ -86,10 +89,11 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "\n<github.com/s4wave/spacewave/bldr/manif"
     "est/build/policy.proto\022\023bldr.manifest.bu"
     "ild\0326github.com/aperturerobotics/util/en"
-    "abled/enabled.proto\"a\n\013BuildPolicy\022)\n\017js"
-    "_minification\030\001 \001(\0162\020.enabled.Enabled\022\'\n"
-    "\rjs_sourcemaps\030\002 \001(\0162\020.enabled.Enabledb\006"
-    "proto3"
+    "abled/enabled.proto\"\224\001\n\013BuildPolicy\022)\n\017j"
+    "s_minification\030\001 \001(\0162\020.enabled.Enabled\022\'"
+    "\n\rjs_sourcemaps\030\002 \001(\0162\020.enabled.Enabled\022"
+    "1\n\027goscript_code_splitting\030\003 \001(\0162\020.enabl"
+    "ed.Enabledb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuild_2fpolicy_2eproto_deps[1] = {
@@ -99,7 +103,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbl
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuild_2fpolicy_2eproto = {
     false,
     false,
-    246,
+    298,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuild_2fpolicy_2eproto,
     "github.com/s4wave/spacewave/bldr/manifest/build/policy.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuild_2fpolicy_2eproto_once,
@@ -155,9 +159,9 @@ inline void BuildPolicy::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, js_minification_),
            0,
-           offsetof(Impl_, js_sourcemaps_) -
+           offsetof(Impl_, goscript_code_splitting_) -
                offsetof(Impl_, js_minification_) +
-               sizeof(Impl_::js_sourcemaps_));
+               sizeof(Impl_::goscript_code_splitting_));
 }
 BuildPolicy::~BuildPolicy() {
   // @@protoc_insertion_point(destructor:bldr.manifest.build.BuildPolicy)
@@ -216,16 +220,16 @@ BuildPolicy::GetClassData() const {
   return BuildPolicy_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 0, 0, 2>
+const ::_pbi::TcParseTable<2, 3, 0, 0, 2>
 BuildPolicy::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(BuildPolicy, _impl_._has_bits_),
     0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
+    3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967288,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
+    3,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     BuildPolicy_class_data_.base(),
@@ -235,14 +239,19 @@ BuildPolicy::_table_ = {
     ::_pbi::TcParser::GetTable<::bldr::manifest::build::BuildPolicy>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // .enabled.Enabled js_sourcemaps = 2;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(BuildPolicy, _impl_.js_sourcemaps_), 1>(),
-     {16, 1, 0,
-      PROTOBUF_FIELD_OFFSET(BuildPolicy, _impl_.js_sourcemaps_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // .enabled.Enabled js_minification = 1;
     {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(BuildPolicy, _impl_.js_minification_), 0>(),
      {8, 0, 0,
       PROTOBUF_FIELD_OFFSET(BuildPolicy, _impl_.js_minification_)}},
+    // .enabled.Enabled js_sourcemaps = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(BuildPolicy, _impl_.js_sourcemaps_), 1>(),
+     {16, 1, 0,
+      PROTOBUF_FIELD_OFFSET(BuildPolicy, _impl_.js_sourcemaps_)}},
+    // .enabled.Enabled goscript_code_splitting = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(BuildPolicy, _impl_.goscript_code_splitting_), 2>(),
+     {24, 2, 0,
+      PROTOBUF_FIELD_OFFSET(BuildPolicy, _impl_.goscript_code_splitting_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -250,6 +259,8 @@ BuildPolicy::_table_ = {
     {PROTOBUF_FIELD_OFFSET(BuildPolicy, _impl_.js_minification_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // .enabled.Enabled js_sourcemaps = 2;
     {PROTOBUF_FIELD_OFFSET(BuildPolicy, _impl_.js_sourcemaps_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // .enabled.Enabled goscript_code_splitting = 3;
+    {PROTOBUF_FIELD_OFFSET(BuildPolicy, _impl_.goscript_code_splitting_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
   }},
   // no aux_entries
   {{
@@ -263,10 +274,10 @@ PROTOBUF_NOINLINE void BuildPolicy::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     ::memset(&_impl_.js_minification_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.js_sourcemaps_) -
-        reinterpret_cast<char*>(&_impl_.js_minification_)) + sizeof(_impl_.js_sourcemaps_));
+        reinterpret_cast<char*>(&_impl_.goscript_code_splitting_) -
+        reinterpret_cast<char*>(&_impl_.js_minification_)) + sizeof(_impl_.goscript_code_splitting_));
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -309,6 +320,15 @@ PROTOBUF_NOINLINE void BuildPolicy::Clear() {
     }
   }
 
+  // .enabled.Enabled goscript_code_splitting = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_goscript_code_splitting() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          3, this_._internal_goscript_code_splitting(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -334,7 +354,7 @@ PROTOBUF_NOINLINE void BuildPolicy::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     // .enabled.Enabled js_minification = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (this_._internal_js_minification() != 0) {
@@ -347,6 +367,13 @@ PROTOBUF_NOINLINE void BuildPolicy::Clear() {
       if (this_._internal_js_sourcemaps() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_js_sourcemaps());
+      }
+    }
+    // .enabled.Enabled goscript_code_splitting = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_goscript_code_splitting() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_goscript_code_splitting());
       }
     }
   }
@@ -368,7 +395,7 @@ void BuildPolicy::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (from._internal_js_minification() != 0) {
         _this->_impl_.js_minification_ = from._impl_.js_minification_;
@@ -377,6 +404,11 @@ void BuildPolicy::MergeImpl(::google::protobuf::MessageLite& to_msg,
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       if (from._internal_js_sourcemaps() != 0) {
         _this->_impl_.js_sourcemaps_ = from._impl_.js_sourcemaps_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_goscript_code_splitting() != 0) {
+        _this->_impl_.goscript_code_splitting_ = from._impl_.goscript_code_splitting_;
       }
     }
   }
@@ -398,8 +430,8 @@ void BuildPolicy::InternalSwap(BuildPolicy* PROTOBUF_RESTRICT PROTOBUF_NONNULL o
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(BuildPolicy, _impl_.js_sourcemaps_)
-      + sizeof(BuildPolicy::_impl_.js_sourcemaps_)
+      PROTOBUF_FIELD_OFFSET(BuildPolicy, _impl_.goscript_code_splitting_)
+      + sizeof(BuildPolicy::_impl_.goscript_code_splitting_)
       - PROTOBUF_FIELD_OFFSET(BuildPolicy, _impl_.js_minification_)>(
           reinterpret_cast<char*>(&_impl_.js_minification_),
           reinterpret_cast<char*>(&other->_impl_.js_minification_));

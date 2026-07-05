@@ -17,5 +17,9 @@ func (a *DevtoolArgs) BuildPolicyOverride() (*manifest_build.BuildPolicy, error)
 	if err != nil {
 		return nil, errors.Wrap(err, "js-sourcemaps")
 	}
-	return manifest_build.NewBuildPolicy(jsMinification, jsSourcemaps), nil
+	goScriptCodeSplitting, err := manifest_build.ParseEnabled(a.GoScriptCodeSplitting)
+	if err != nil {
+		return nil, errors.Wrap(err, "goscript-code-splitting")
+	}
+	return manifest_build.NewBuildPolicy(jsMinification, jsSourcemaps, goScriptCodeSplitting), nil
 }

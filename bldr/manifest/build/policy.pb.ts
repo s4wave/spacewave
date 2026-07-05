@@ -34,6 +34,15 @@ export interface BuildPolicy {
    * @generated from field: enabled.Enabled js_sourcemaps = 2;
    */
   jsSourcemaps?: Enabled
+  /**
+   * GoScriptCodeSplitting controls Rolldown code splitting for GoScript
+   * wrapper bundles.
+   * DEFAULT emits split GoScript wrapper bundles. ENABLE also permits chunk
+   * output; DISABLE forces single-file output.
+   *
+   * @generated from field: enabled.Enabled goscript_code_splitting = 3;
+   */
+  goscriptCodeSplitting?: Enabled
 }
 
 export const BuildPolicy: MessageType<BuildPolicy> =
@@ -42,6 +51,7 @@ export const BuildPolicy: MessageType<BuildPolicy> =
     fields: [
       { no: 1, name: 'js_minification', kind: 'enum', T: Enabled_Enum },
       { no: 2, name: 'js_sourcemaps', kind: 'enum', T: Enabled_Enum },
+      { no: 3, name: 'goscript_code_splitting', kind: 'enum', T: Enabled_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

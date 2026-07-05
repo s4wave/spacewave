@@ -67,6 +67,8 @@ type DevtoolArgs struct {
 	JSMinification string
 	// JSSourcemaps controls build-scoped JavaScript sourcemap emission.
 	JSSourcemaps string
+	// GoScriptCodeSplitting controls GoScript bundle code splitting.
+	GoScriptCodeSplitting string
 	// WebListenAddr is the address to listen for start:web
 	WebListenAddr string
 	// WebUseWasm compiles browser Go plugins with standard Go/WASM.
@@ -132,6 +134,7 @@ func (a *DevtoolArgs) FillDefaults() {
 	a.MinifyEntrypoint = true
 	a.JSMinification = "default"
 	a.JSSourcemaps = "default"
+	a.GoScriptCodeSplitting = "default"
 	a.Watch = true
 
 	if buildInfo, ok := debug.ReadBuildInfo(); ok && buildInfo.Main.Version != "(devel)" {
@@ -235,6 +238,13 @@ func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 			EnvVars:     []string{"BLDR_JS_SOURCEMAPS"},
 			Value:       a.JSSourcemaps,
 			Destination: &a.JSSourcemaps,
+		},
+		&cli.StringFlag{
+			Name:        "goscript-code-splitting",
+			Usage:       "GoScript bundle code-splitting policy: default, enable, or disable",
+			EnvVars:     []string{"BLDR_GOSCRIPT_CODE_SPLITTING"},
+			Value:       a.GoScriptCodeSplitting,
+			Destination: &a.GoScriptCodeSplitting,
 		},
 
 		&cli.StringFlag{

@@ -1,6 +1,7 @@
 package bldr_manifest_build
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/aperturerobotics/util/enabled"
@@ -36,15 +37,43 @@ func TestParseEnabledRejectsInvalidValue(t *testing.T) {
 }
 
 func TestBuildPolicyValidateRejectsInvalidEnum(t *testing.T) {
-	policy := NewBuildPolicy(enabled.Enabled(99), enabled.Enabled_DEFAULT)
-	if err := policy.Validate(); err == nil {
-		t.Fatal("expected invalid enum error")
+	tests := []struct {
+		name        string
+		policy      *BuildPolicy
+		wantInError string
+	}{
+		{
+			name:        "js minification",
+			policy:      NewBuildPolicy(enabled.Enabled(99), enabled.Enabled_DEFAULT, enabled.Enabled_DEFAULT),
+			wantInError: "js_minification",
+		},
+		{
+			name:        "js sourcemaps",
+			policy:      NewBuildPolicy(enabled.Enabled_DEFAULT, enabled.Enabled(99), enabled.Enabled_DEFAULT),
+			wantInError: "js_sourcemaps",
+		},
+		{
+			name:        "goscript code splitting",
+			policy:      NewBuildPolicy(enabled.Enabled_DEFAULT, enabled.Enabled_DEFAULT, enabled.Enabled(99)),
+			wantInError: "goscript_code_splitting",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := test.policy.Validate()
+			if err == nil {
+				t.Fatal("expected invalid enum error")
+			}
+			if !strings.Contains(err.Error(), test.wantInError) {
+				t.Fatalf("error = %q, want field %q", err, test.wantInError)
+			}
+		})
 	}
 }
 
 func TestBuildPolicyMerge(t *testing.T) {
-	base := NewBuildPolicy(enabled.Enabled_ENABLE, enabled.Enabled_DISABLE)
-	override := NewBuildPolicy(enabled.Enabled_DEFAULT, enabled.Enabled_ENABLE)
+	base := NewBuildPolicy(enabled.Enabled_ENABLE, enabled.Enabled_DISABLE, enabled.Enabled_DISABLE)
+	override := NewBuildPolicy(enabled.Enabled_DEFAULT, enabled.Enabled_ENABLE, enabled.Enabled_ENABLE)
 
 	got := base.Merge(override)
 	if got.GetJsMinification() != enabled.Enabled_ENABLE {
@@ -53,10 +82,26 @@ func TestBuildPolicyMerge(t *testing.T) {
 	if got.GetJsSourcemaps() != enabled.Enabled_ENABLE {
 		t.Fatalf("js_sourcemaps: got %s, want ENABLE", got.GetJsSourcemaps())
 	}
+	if got.GetGoscriptCodeSplitting() != enabled.Enabled_ENABLE {
+		t.Fatalf("goscript_code_splitting: got %s, want ENABLE", got.GetGoscriptCodeSplitting())
+	}
+
+	disabled := NewBuildPolicy(enabled.Enabled_DEFAULT, enabled.Enabled_DEFAULT, enabled.Enabled_ENABLE).Merge(
+		NewBuildPolicy(enabled.Enabled_DEFAULT, enabled.Enabled_DEFAULT, enabled.Enabled_DISABLE),
+	)
+	if disabled.GetGoscriptCodeSplitting() != enabled.Enabled_DISABLE {
+		t.Fatalf("goscript_code_splitting: got %s, want DISABLE", disabled.GetGoscriptCodeSplitting())
+	}
+	defaulted := NewBuildPolicy(enabled.Enabled_DEFAULT, enabled.Enabled_DEFAULT, enabled.Enabled_DISABLE).Merge(
+		NewBuildPolicy(enabled.Enabled_DEFAULT, enabled.Enabled_DEFAULT, enabled.Enabled_DEFAULT),
+	)
+	if defaulted.GetGoscriptCodeSplitting() != enabled.Enabled_DISABLE {
+		t.Fatalf("goscript_code_splitting: got %s, want existing DISABLE when override is DEFAULT", defaulted.GetGoscriptCodeSplitting())
+	}
 }
 
 func TestBuildPolicyResolveDefaultsByBuildType(t *testing.T) {
-	policy := NewBuildPolicy(enabled.Enabled_DEFAULT, enabled.Enabled_DEFAULT)
+	policy := NewBuildPolicy(enabled.Enabled_DEFAULT, enabled.Enabled_DEFAULT, enabled.Enabled_DEFAULT)
 
 	if !policy.ResolveJsMinification(bldr_manifest.BuildType_RELEASE) {
 		t.Fatal("release DEFAULT should minify JavaScript")
@@ -70,15 +115,31 @@ func TestBuildPolicyResolveDefaultsByBuildType(t *testing.T) {
 	if !policy.ResolveJsSourcemaps(bldr_manifest.BuildType_DEV) {
 		t.Fatal("dev DEFAULT should emit sourcemaps")
 	}
+	if !policy.ResolveGoScriptCodeSplitting(bldr_manifest.BuildType_RELEASE) {
+		t.Fatal("release DEFAULT should split GoScript bundles")
+	}
+	if !policy.ResolveGoScriptCodeSplitting(bldr_manifest.BuildType_DEV) {
+		t.Fatal("dev DEFAULT should split GoScript bundles")
+	}
 }
 
 func TestBuildPolicyResolveExplicitValues(t *testing.T) {
-	policy := NewBuildPolicy(enabled.Enabled_DISABLE, enabled.Enabled_ENABLE)
+	policy := NewBuildPolicy(enabled.Enabled_DISABLE, enabled.Enabled_ENABLE, enabled.Enabled_ENABLE)
 
 	if policy.ResolveJsMinification(bldr_manifest.BuildType_RELEASE) {
 		t.Fatal("explicit DISABLE should keep release JavaScript readable")
 	}
 	if !policy.ResolveJsSourcemaps(bldr_manifest.BuildType_RELEASE) {
 		t.Fatal("explicit ENABLE should emit release sourcemaps")
+	}
+	if !policy.ResolveGoScriptCodeSplitting(bldr_manifest.BuildType_RELEASE) {
+		t.Fatal("explicit ENABLE should split release GoScript bundles")
+	}
+	disabled := NewBuildPolicy(enabled.Enabled_DEFAULT, enabled.Enabled_DEFAULT, enabled.Enabled_DISABLE)
+	if disabled.ResolveGoScriptCodeSplitting(bldr_manifest.BuildType_RELEASE) {
+		t.Fatal("explicit DISABLE should keep release GoScript bundles single-file")
+	}
+	if disabled.ResolveGoScriptCodeSplitting(bldr_manifest.BuildType_DEV) {
+		t.Fatal("explicit DISABLE should keep dev GoScript bundles single-file")
 	}
 }

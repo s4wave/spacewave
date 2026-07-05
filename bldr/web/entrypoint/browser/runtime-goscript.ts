@@ -13,6 +13,7 @@ import {
 import { RuntimeOpfsBridge } from './runtime-opfs-bridge.js'
 
 export type GoScriptRuntimeMain = () => void | Promise<void>
+export type GoScriptRuntimeMainLoader = () => Promise<GoScriptRuntimeMain>
 
 const isSharedWorker =
   typeof SharedWorkerGlobalScope !== 'undefined' &&
@@ -65,7 +66,7 @@ function startGoRpcStreams() {
 
 let goStarted = false
 async function startGoScriptRuntime(
-  distMain: GoScriptRuntimeMain,
+  loadDistMain: GoScriptRuntimeMainLoader,
   webRuntimeId: string,
 ) {
   if (goStarted) {
@@ -78,6 +79,7 @@ async function startGoScriptRuntime(
   })
   startGoRpcStreams()
 
+  const distMain = await loadDistMain()
   await Promise.resolve()
     .then(() => distMain())
     .then(
@@ -98,7 +100,9 @@ const runtimeOpfsBridge = isSharedWorker
   : null
 
 let runtimeStarted = false
-export default function runGoScriptRuntime(distMain: GoScriptRuntimeMain) {
+export default function runGoScriptRuntime(
+  loadDistMain: GoScriptRuntimeMainLoader,
+) {
   function handlePortMessage(msgEvent: MessageEvent) {
     if (msgEvent.data === 'close') {
       return
@@ -139,7 +143,7 @@ export default function runGoScriptRuntime(distMain: GoScriptRuntimeMain) {
           return
         }
         runtimeStarted = true
-        await startGoScriptRuntime(distMain, webRuntimeId)
+        await startGoScriptRuntime(loadDistMain, webRuntimeId)
       })().catch((err) => {
         console.warn('runtime-goscript: error running web runtime', err)
       })

@@ -14,13 +14,8 @@ describe('plugin-goscript generation lifecycle', () => {
     globalThis.MessageChannel = originalMessageChannel
     console.warn = vi.fn()
     reportedFailures = []
-    delete (globalThis as { BLDR_PLUGIN_START_INFO?: string })
-      .BLDR_PLUGIN_START_INFO
-    ;(
-      globalThis as {
-        BLDR_PLUGIN_REPORT_RUNTIME_FAILURE?: (err: unknown) => void
-      }
-    ).BLDR_PLUGIN_REPORT_RUNTIME_FAILURE = (err: unknown) => {
+    delete globalThis.BLDR_PLUGIN_START_INFO
+    globalThis.BLDR_PLUGIN_REPORT_RUNTIME_FAILURE = (err: unknown) => {
       reportedFailures.push(err)
     }
   })
@@ -33,32 +28,36 @@ describe('plugin-goscript generation lifecycle', () => {
   it('publishes start info and reports plugin main failure', async () => {
     const err = new Error('fatal goscript exit')
     const api = buildBackendAPI()
+    const failureReported = new Promise<void>((resolve) => {
+      globalThis.BLDR_PLUGIN_REPORT_RUNTIME_FAILURE = (
+        reportedErr: unknown,
+      ) => {
+        reportedFailures.push(reportedErr)
+        resolve()
+      }
+    })
 
-    await main(api, async () => {
+    await main(api, async () => async () => {
       throw err
     })
-    await Promise.resolve()
-    await Promise.resolve()
-    await new Promise((resolve) => setTimeout(resolve, 0))
+    await failureReported
 
-    expect(
-      (globalThis as { BLDR_PLUGIN_START_INFO?: string })
-        .BLDR_PLUGIN_START_INFO,
-    ).toBe(btoa(PluginStartInfo.toJsonString(api.startInfo)))
+    expect(globalThis.BLDR_PLUGIN_START_INFO).toBe(
+      btoa(PluginStartInfo.toJsonString(api.startInfo)),
+    )
     expect(reportedFailures).toEqual([err])
   })
 
   it('turns accept-stream into a terminal error after the GoScript plugin exits', async () => {
     let rejectPluginMain!: (err: unknown) => void
+    const pluginMainExited = new Promise<void>((_resolve, reject) => {
+      rejectPluginMain = reject
+    })
     const api = buildBackendAPI()
 
-    await main(
-      api,
-      () =>
-        new Promise<void>((_resolve, reject) => {
-          rejectPluginMain = reject
-        }),
-    )
+    await main(api, async () => () => pluginMainExited)
+    await Promise.resolve()
+    await Promise.resolve()
 
     const err = new Error('runtime exited')
     rejectPluginMain(err)
@@ -73,26 +72,19 @@ describe('plugin-goscript generation lifecycle', () => {
   it('closes active accepted streams when the GoScript plugin exits', async () => {
     let rejectPluginMain!: (err: unknown) => void
 
+    const pluginMainExited = new Promise<void>((_resolve, reject) => {
+      rejectPluginMain = reject
+    })
     const api = buildBackendAPI()
-    await main(
-      api,
-      () =>
-        new Promise<void>((_resolve, reject) => {
-          rejectPluginMain = reject
-        }),
-    )
+    await main(api, async () => () => pluginMainExited)
+    await Promise.resolve()
+    await Promise.resolve()
 
     const acceptedChannel = buildMessageChannel()
     globalThis.MessageChannel = vi.fn(function () {
       return acceptedChannel
     })
-    const setAcceptStream = (
-      globalThis as {
-        BLDR_PLUGIN_SET_ACCEPT_STREAM?: (
-          acceptStream: (localPort: MessagePort) => void,
-        ) => void
-      }
-    ).BLDR_PLUGIN_SET_ACCEPT_STREAM
+    const setAcceptStream = globalThis.BLDR_PLUGIN_SET_ACCEPT_STREAM
     expect(setAcceptStream).toBeTypeOf('function')
     const acceptStream = vi.fn()
     if (!setAcceptStream) {
@@ -107,6 +99,8 @@ describe('plugin-goscript generation lifecycle', () => {
     expect(acceptedChannel.port2.close).not.toHaveBeenCalled()
 
     rejectPluginMain(new Error('fatal goscript exit'))
+    await Promise.resolve()
+    await Promise.resolve()
     await Promise.resolve()
     await Promise.resolve()
 

@@ -28,6 +28,11 @@ type BuildPolicy struct {
 	// DEFAULT preserves build-type defaults: dev builds emit sourcemaps where
 	// builders previously did, while release builds do not emit sourcemaps.
 	JsSourcemaps enabled.Enabled `protobuf:"varint,2,opt,name=js_sourcemaps,json=jsSourcemaps,proto3" json:"jsSourcemaps,omitempty"`
+	// GoScriptCodeSplitting controls Rolldown code splitting for GoScript
+	// wrapper bundles.
+	// DEFAULT emits split GoScript wrapper bundles. ENABLE also permits chunk
+	// output; DISABLE forces single-file output.
+	GoscriptCodeSplitting enabled.Enabled `protobuf:"varint,3,opt,name=goscript_code_splitting,json=goscriptCodeSplitting,proto3" json:"goscriptCodeSplitting,omitempty"`
 }
 
 func (x *BuildPolicy) Reset() {
@@ -50,6 +55,13 @@ func (x *BuildPolicy) GetJsSourcemaps() enabled.Enabled {
 	return enabled.Enabled(0)
 }
 
+func (x *BuildPolicy) GetGoscriptCodeSplitting() enabled.Enabled {
+	if x != nil {
+		return x.GoscriptCodeSplitting
+	}
+	return enabled.Enabled(0)
+}
+
 func (m *BuildPolicy) CloneVT() *BuildPolicy {
 	if m == nil {
 		return (*BuildPolicy)(nil)
@@ -57,6 +69,7 @@ func (m *BuildPolicy) CloneVT() *BuildPolicy {
 	r := new(BuildPolicy)
 	r.JsMinification = m.JsMinification
 	r.JsSourcemaps = m.JsSourcemaps
+	r.GoscriptCodeSplitting = m.GoscriptCodeSplitting
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -77,6 +90,9 @@ func (this *BuildPolicy) EqualVT(that *BuildPolicy) bool {
 		return false
 	}
 	if this.JsSourcemaps != that.JsSourcemaps {
+		return false
+	}
+	if this.GoscriptCodeSplitting != that.GoscriptCodeSplitting {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -108,6 +124,11 @@ func (x *BuildPolicy) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("jsSourcemaps")
 		x.JsSourcemaps.MarshalProtoJSON(s)
 	}
+	if x.GoscriptCodeSplitting != 0 || s.HasField("goscriptCodeSplitting") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("goscriptCodeSplitting")
+		x.GoscriptCodeSplitting.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -131,6 +152,9 @@ func (x *BuildPolicy) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "js_sourcemaps", "jsSourcemaps":
 			s.AddField("js_sourcemaps")
 			x.JsSourcemaps.UnmarshalProtoJSON(s)
+		case "goscript_code_splitting", "goscriptCodeSplitting":
+			s.AddField("goscript_code_splitting")
+			x.GoscriptCodeSplitting.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -170,6 +194,11 @@ func (m *BuildPolicy) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.GoscriptCodeSplitting != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.GoscriptCodeSplitting))
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.JsSourcemaps != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.JsSourcemaps))
 		i--
@@ -195,6 +224,9 @@ func (m *BuildPolicy) SizeVT() (n int) {
 	if m.JsSourcemaps != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.JsSourcemaps))
 	}
+	if m.GoscriptCodeSplitting != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.GoscriptCodeSplitting))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -218,6 +250,15 @@ func (x *BuildPolicy) MarshalProtoText() string {
 		sb.WriteString("js_sourcemaps: ")
 		sb.WriteString("\"")
 		sb.WriteString(enabled.Enabled(x.JsSourcemaps).String())
+		sb.WriteString("\"")
+	}
+	if x.GoscriptCodeSplitting != 0 {
+		if sb.Len() > 13 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("goscript_code_splitting: ")
+		sb.WriteString("\"")
+		sb.WriteString(enabled.Enabled(x.GoscriptCodeSplitting).String())
 		sb.WriteString("\"")
 	}
 	sb.WriteString("}")
@@ -267,6 +308,17 @@ func (m *BuildPolicy) UnmarshalVT(dAtA []byte) error {
 			var _v uint64
 			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			m.JsSourcemaps = enabled.Enabled(_v)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GoscriptCodeSplitting", wireType)
+			}
+			m.GoscriptCodeSplitting = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.GoscriptCodeSplitting = enabled.Enabled(_v)
 			if err != nil {
 				return err
 			}
