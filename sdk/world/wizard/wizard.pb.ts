@@ -60,6 +60,60 @@ export const GitCloneProgressState_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * IntroWizardRegion is a region of the object viewer frame an intro callout
+ * points at.
+ *
+ * @generated from enum s4wave.wizard.IntroWizardRegion
+ */
+export enum IntroWizardRegion {
+  /**
+   * INTRO_WIZARD_REGION_UNSPECIFIED is an unset region.
+   *
+   * @generated from enum value: INTRO_WIZARD_REGION_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * INTRO_WIZARD_REGION_TOP points at the top toolbar area.
+   *
+   * @generated from enum value: INTRO_WIZARD_REGION_TOP = 1;
+   */
+  TOP = 1,
+
+  /**
+   * INTRO_WIZARD_REGION_CENTER points at the main content area.
+   *
+   * @generated from enum value: INTRO_WIZARD_REGION_CENTER = 2;
+   */
+  CENTER = 2,
+
+  /**
+   * INTRO_WIZARD_REGION_BOTTOM_RIGHT points at the bottom-right status area.
+   *
+   * @generated from enum value: INTRO_WIZARD_REGION_BOTTOM_RIGHT = 3;
+   */
+  BOTTOM_RIGHT = 3,
+
+  /**
+   * INTRO_WIZARD_REGION_LEFT points at the left navigation area.
+   *
+   * @generated from enum value: INTRO_WIZARD_REGION_LEFT = 4;
+   */
+  LEFT = 4,
+}
+
+export const IntroWizardRegion_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.wizard.IntroWizardRegion',
+  [
+    [0, 'INTRO_WIZARD_REGION_UNSPECIFIED'],
+    [1, 'INTRO_WIZARD_REGION_TOP'],
+    [2, 'INTRO_WIZARD_REGION_CENTER'],
+    [3, 'INTRO_WIZARD_REGION_BOTTOM_RIGHT'],
+    [4, 'INTRO_WIZARD_REGION_LEFT'],
+  ],
+)
+
+/**
  * WatchWizardStateRequest is the request for WatchWizardState.
  *
  * @generated from message s4wave.wizard.WatchWizardStateRequest
@@ -680,6 +734,95 @@ export const CreateWizardObjectOp: MessageType<CreateWizardObjectOp> =
         kind: 'scalar',
         T: ScalarType.BYTES,
       },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * IntroWizardCallout labels one part of the introduced object's UI.
+ *
+ * @generated from message s4wave.wizard.IntroWizardCallout
+ */
+export interface IntroWizardCallout {
+  /**
+   * Region is the frame region this callout points at.
+   *
+   * @generated from field: s4wave.wizard.IntroWizardRegion region = 1;
+   */
+  region?: IntroWizardRegion
+  /**
+   * Title names the UI part.
+   *
+   * @generated from field: string title = 2;
+   */
+  title?: string
+  /**
+   * Detail explains what the part is for.
+   *
+   * @generated from field: string detail = 3;
+   */
+  detail?: string
+}
+
+export const IntroWizardCallout: MessageType<IntroWizardCallout> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.wizard.IntroWizardCallout',
+    fields: [
+      { no: 1, name: 'region', kind: 'enum', T: IntroWizardRegion_Enum },
+      { no: 2, name: 'title', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * IntroWizardConfig is the config_data payload for a wizard/intro object. It
+ * supplies the per-quickstart new-user introduction drawn around the target
+ * object frame, so one intro viewer parameterizes over every quickstart.
+ *
+ * @generated from message s4wave.wizard.IntroWizardConfig
+ */
+export interface IntroWizardConfig {
+  /**
+   * Headline is the introduction title shown in the control panel.
+   *
+   * @generated from field: string headline = 1;
+   */
+  headline?: string
+  /**
+   * Subhead is the one-line description under the headline.
+   *
+   * @generated from field: string subhead = 2;
+   */
+  subhead?: string
+  /**
+   * Callouts are the labeled pointers drawn at regions of the object frame.
+   *
+   * @generated from field: repeated s4wave.wizard.IntroWizardCallout callouts = 3;
+   */
+  callouts?: IntroWizardCallout[]
+  /**
+   * FinishLabel is the primary button label that ends the introduction.
+   *
+   * @generated from field: string finish_label = 4;
+   */
+  finishLabel?: string
+}
+
+export const IntroWizardConfig: MessageType<IntroWizardConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.wizard.IntroWizardConfig',
+    fields: [
+      { no: 1, name: 'headline', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'subhead', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'callouts',
+        kind: 'message',
+        T: () => IntroWizardCallout,
+        repeated: true,
+      },
+      { no: 4, name: 'finish_label', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

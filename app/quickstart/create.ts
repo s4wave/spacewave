@@ -63,8 +63,15 @@ import { CREATE_COMPUTERS_DASHBOARD_OP_ID } from '@s4wave/sdk/device/computers/c
 import { Query } from '@s4wave/sdk/sql/query/query.pb.js'
 import { CreateVmV86Op, SetV86StateOp, VmState } from '@s4wave/sdk/vm/v86.pb.js'
 import { CREATE_VM_V86_OP_ID } from '@s4wave/sdk/vm/create-vm-v86.js'
-import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
+import {
+  CreateWizardObjectOp,
+  IntroWizardConfig,
+} from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
+import {
+  IntroWizardTypeID,
+  driveIntroConfig,
+} from '@s4wave/app/wizard/intro.js'
 import { InitForgeQuickstartOp } from '@s4wave/core/forge/dashboard/dashboard.pb.js'
 import { INIT_FORGE_QUICKSTART_OP_ID } from '@s4wave/sdk/forge/dashboard/init-forge-quickstart.js'
 import { markInteracted } from '@s4wave/web/state/interaction.js'
@@ -1365,11 +1372,32 @@ export async function createDrive(
     initUnixFS(spaceWorld, abortSignal, timing),
   )
   await writeDriveStarterGuide(spaceWorld, abortSignal, timing)
+  // Wrap the raw files object in the new-user intro: index the Space at a
+  // wizard/intro object carrying the introduced key and the Drive intro
+  // content. Finishing the intro sets the index to UNIXFS_OBJECT_KEY.
+  const introKey = buildWizardObjectKey('Welcome')
+  await applyQuickstartWorldOp(
+    spaceWorld,
+    CREATE_WIZARD_OBJECT_OP_ID,
+    CreateWizardObjectOp.toBinary({
+      objectKey: introKey,
+      wizardTypeId: IntroWizardTypeID,
+      targetTypeId: UnixFSTypeID,
+      targetKeyPrefix: UNIXFS_OBJECT_KEY,
+      name: 'Welcome',
+      timestamp: new Date(),
+      initialConfigData: IntroWizardConfig.toBinary(driveIntroConfig()),
+    }),
+    '',
+    abortSignal,
+    timing,
+    'create-drive-intro-wizard',
+  )
   await timeQuickstartPhase(timing, 'create-drive-settings', () =>
     createSpaceSettingsObject(
       spaceWorld,
       abortSignal,
-      UNIXFS_OBJECT_KEY,
+      introKey,
       undefined,
       timing,
       'create-drive-settings',

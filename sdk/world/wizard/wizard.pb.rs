@@ -209,6 +209,37 @@ pub struct CreateWizardObjectOp {
     #[prost(bytes="vec", tag="8")]
     pub initial_config_data: ::prost::alloc::vec::Vec<u8>,
 }
+/// IntroWizardConfig is the config_data payload for a wizard/intro object. It
+/// supplies the per-quickstart new-user introduction drawn around the target
+/// object frame, so one intro viewer parameterizes over every quickstart.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct IntroWizardConfig {
+    /// Headline is the introduction title shown in the control panel.
+    #[prost(string, tag="1")]
+    pub headline: ::prost::alloc::string::String,
+    /// Subhead is the one-line description under the headline.
+    #[prost(string, tag="2")]
+    pub subhead: ::prost::alloc::string::String,
+    /// Callouts are the labeled pointers drawn at regions of the object frame.
+    #[prost(message, repeated, tag="3")]
+    pub callouts: ::prost::alloc::vec::Vec<IntroWizardCallout>,
+    /// FinishLabel is the primary button label that ends the introduction.
+    #[prost(string, tag="4")]
+    pub finish_label: ::prost::alloc::string::String,
+}
+/// IntroWizardCallout labels one part of the introduced object's UI.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct IntroWizardCallout {
+    /// Region is the frame region this callout points at.
+    #[prost(enumeration="IntroWizardRegion", tag="1")]
+    pub region: i32,
+    /// Title names the UI part.
+    #[prost(string, tag="2")]
+    pub title: ::prost::alloc::string::String,
+    /// Detail explains what the part is for.
+    #[prost(string, tag="3")]
+    pub detail: ::prost::alloc::string::String,
+}
 /// GitCloneProgressState is the lifecycle state for a wizard Git clone.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -242,6 +273,48 @@ impl GitCloneProgressState {
             "GIT_CLONE_PROGRESS_STATE_RUNNING" => Some(Self::Running),
             "GIT_CLONE_PROGRESS_STATE_DONE" => Some(Self::Done),
             "GIT_CLONE_PROGRESS_STATE_FAILED" => Some(Self::Failed),
+            _ => None,
+        }
+    }
+}
+/// IntroWizardRegion is a region of the object viewer frame an intro callout
+/// points at.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum IntroWizardRegion {
+    /// INTRO_WIZARD_REGION_UNSPECIFIED is an unset region.
+    Unspecified = 0,
+    /// INTRO_WIZARD_REGION_TOP points at the top toolbar area.
+    Top = 1,
+    /// INTRO_WIZARD_REGION_CENTER points at the main content area.
+    Center = 2,
+    /// INTRO_WIZARD_REGION_BOTTOM_RIGHT points at the bottom-right status area.
+    BottomRight = 3,
+    /// INTRO_WIZARD_REGION_LEFT points at the left navigation area.
+    Left = 4,
+}
+impl IntroWizardRegion {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "INTRO_WIZARD_REGION_UNSPECIFIED",
+            Self::Top => "INTRO_WIZARD_REGION_TOP",
+            Self::Center => "INTRO_WIZARD_REGION_CENTER",
+            Self::BottomRight => "INTRO_WIZARD_REGION_BOTTOM_RIGHT",
+            Self::Left => "INTRO_WIZARD_REGION_LEFT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "INTRO_WIZARD_REGION_UNSPECIFIED" => Some(Self::Unspecified),
+            "INTRO_WIZARD_REGION_TOP" => Some(Self::Top),
+            "INTRO_WIZARD_REGION_CENTER" => Some(Self::Center),
+            "INTRO_WIZARD_REGION_BOTTOM_RIGHT" => Some(Self::BottomRight),
+            "INTRO_WIZARD_REGION_LEFT" => Some(Self::Left),
             _ => None,
         }
     }

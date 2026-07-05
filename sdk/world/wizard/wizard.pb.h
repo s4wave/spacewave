@@ -61,6 +61,8 @@ namespace s4wave {
 namespace wizard {
 enum GitCloneProgressState : int;
 extern const uint32_t GitCloneProgressState_internal_data_[];
+enum IntroWizardRegion : int;
+extern const uint32_t IntroWizardRegion_internal_data_[];
 class CreateWizardObjectOp;
 struct CreateWizardObjectOpDefaultTypeInternal;
 extern CreateWizardObjectOpDefaultTypeInternal _CreateWizardObjectOp_default_instance_;
@@ -69,6 +71,14 @@ class GitCloneProgress;
 struct GitCloneProgressDefaultTypeInternal;
 extern GitCloneProgressDefaultTypeInternal _GitCloneProgress_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull GitCloneProgress_class_data_;
+class IntroWizardCallout;
+struct IntroWizardCalloutDefaultTypeInternal;
+extern IntroWizardCalloutDefaultTypeInternal _IntroWizardCallout_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull IntroWizardCallout_class_data_;
+class IntroWizardConfig;
+struct IntroWizardConfigDefaultTypeInternal;
+extern IntroWizardConfigDefaultTypeInternal _IntroWizardConfig_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull IntroWizardConfig_class_data_;
 class ListWizardsRequest;
 struct ListWizardsRequestDefaultTypeInternal;
 extern ListWizardsRequestDefaultTypeInternal _ListWizardsRequest_default_instance_;
@@ -140,6 +150,9 @@ namespace protobuf {
 template <>
 internal::EnumTraitsT<::s4wave::wizard::GitCloneProgressState_internal_data_>
     internal::EnumTraitsImpl::value<::s4wave::wizard::GitCloneProgressState>;
+template <>
+internal::EnumTraitsT<::s4wave::wizard::IntroWizardRegion_internal_data_>
+    internal::EnumTraitsImpl::value<::s4wave::wizard::IntroWizardRegion>;
 }  // namespace protobuf
 }  // namespace google
 
@@ -181,6 +194,45 @@ inline const ::std::string& GitCloneProgressState_Name(GitCloneProgressState val
 inline bool GitCloneProgressState_Parse(
     ::absl::string_view name, GitCloneProgressState* PROTOBUF_NONNULL value) {
   return ::google::protobuf::internal::ParseNamedEnum<GitCloneProgressState>(GitCloneProgressState_descriptor(), name,
+                                           value);
+}
+enum IntroWizardRegion : int {
+  INTRO_WIZARD_REGION_UNSPECIFIED = 0,
+  INTRO_WIZARD_REGION_TOP = 1,
+  INTRO_WIZARD_REGION_CENTER = 2,
+  INTRO_WIZARD_REGION_BOTTOM_RIGHT = 3,
+  INTRO_WIZARD_REGION_LEFT = 4,
+  IntroWizardRegion_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  IntroWizardRegion_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t IntroWizardRegion_internal_data_[];
+inline constexpr IntroWizardRegion IntroWizardRegion_MIN =
+    static_cast<IntroWizardRegion>(0);
+inline constexpr IntroWizardRegion IntroWizardRegion_MAX =
+    static_cast<IntroWizardRegion>(4);
+inline bool IntroWizardRegion_IsValid(int value) {
+  return 0 <= value && value <= 4;
+}
+inline constexpr int IntroWizardRegion_ARRAYSIZE = 4 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL IntroWizardRegion_descriptor();
+template <typename T>
+const ::std::string& IntroWizardRegion_Name(T value) {
+  static_assert(::std::is_same<T, IntroWizardRegion>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to IntroWizardRegion_Name().");
+  return IntroWizardRegion_Name(static_cast<IntroWizardRegion>(value));
+}
+template <>
+inline const ::std::string& IntroWizardRegion_Name(IntroWizardRegion value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<IntroWizardRegion_descriptor, 0, 4>(
+      static_cast<int>(value));
+}
+inline bool IntroWizardRegion_Parse(
+    ::absl::string_view name, IntroWizardRegion* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<IntroWizardRegion>(IntroWizardRegion_descriptor(), name,
                                            value);
 }
 
@@ -2022,6 +2074,230 @@ class ListWizardsRequest final : public ::google::protobuf::internal::ZeroFields
 extern const ::google::protobuf::internal::ClassDataFull ListWizardsRequest_class_data_;
 // -------------------------------------------------------------------
 
+class IntroWizardCallout final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.wizard.IntroWizardCallout) */ {
+ public:
+  inline IntroWizardCallout() : IntroWizardCallout(nullptr) {}
+  ~IntroWizardCallout() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(IntroWizardCallout* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(IntroWizardCallout));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR IntroWizardCallout(::google::protobuf::internal::ConstantInitialized);
+
+  inline IntroWizardCallout(const IntroWizardCallout& from) : IntroWizardCallout(nullptr, from) {}
+  inline IntroWizardCallout(IntroWizardCallout&& from) noexcept
+      : IntroWizardCallout(nullptr, ::std::move(from)) {}
+  inline IntroWizardCallout& operator=(const IntroWizardCallout& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline IntroWizardCallout& operator=(IntroWizardCallout&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const IntroWizardCallout& default_instance() {
+    return *reinterpret_cast<const IntroWizardCallout*>(
+        &_IntroWizardCallout_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 19;
+  friend void swap(IntroWizardCallout& a, IntroWizardCallout& b) { a.Swap(&b); }
+  inline void Swap(IntroWizardCallout* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(IntroWizardCallout* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  IntroWizardCallout* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<IntroWizardCallout>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const IntroWizardCallout& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const IntroWizardCallout& from) { IntroWizardCallout::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(IntroWizardCallout* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.wizard.IntroWizardCallout"; }
+
+  explicit IntroWizardCallout(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  IntroWizardCallout(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const IntroWizardCallout& from);
+  IntroWizardCallout(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, IntroWizardCallout&& from) noexcept
+      : IntroWizardCallout(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kTitleFieldNumber = 2,
+    kDetailFieldNumber = 3,
+    kRegionFieldNumber = 1,
+  };
+  // string title = 2;
+  void clear_title() ;
+  const ::std::string& title() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_title(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_title();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_title();
+  void set_allocated_title(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_title() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_title(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_title();
+
+  public:
+  // string detail = 3;
+  void clear_detail() ;
+  const ::std::string& detail() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_detail(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_detail();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_detail();
+  void set_allocated_detail(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_detail() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_detail(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_detail();
+
+  public:
+  // .s4wave.wizard.IntroWizardRegion region = 1;
+  void clear_region() ;
+  ::s4wave::wizard::IntroWizardRegion region() const;
+  void set_region(::s4wave::wizard::IntroWizardRegion value);
+
+  private:
+  ::s4wave::wizard::IntroWizardRegion _internal_region() const;
+  void _internal_set_region(::s4wave::wizard::IntroWizardRegion value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.wizard.IntroWizardCallout)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   0, 52,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const IntroWizardCallout& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr title_;
+    ::google::protobuf::internal::ArenaStringPtr detail_;
+    int region_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fwizard_2fwizard_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull IntroWizardCallout_class_data_;
+// -------------------------------------------------------------------
+
 class GitCloneProgress final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.wizard.GitCloneProgress) */ {
  public:
@@ -3630,6 +3906,254 @@ class ListWizardsResponse final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ListWizardsResponse_class_data_;
+// -------------------------------------------------------------------
+
+class IntroWizardConfig final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.wizard.IntroWizardConfig) */ {
+ public:
+  inline IntroWizardConfig() : IntroWizardConfig(nullptr) {}
+  ~IntroWizardConfig() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(IntroWizardConfig* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(IntroWizardConfig));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR IntroWizardConfig(::google::protobuf::internal::ConstantInitialized);
+
+  inline IntroWizardConfig(const IntroWizardConfig& from) : IntroWizardConfig(nullptr, from) {}
+  inline IntroWizardConfig(IntroWizardConfig&& from) noexcept
+      : IntroWizardConfig(nullptr, ::std::move(from)) {}
+  inline IntroWizardConfig& operator=(const IntroWizardConfig& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline IntroWizardConfig& operator=(IntroWizardConfig&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const IntroWizardConfig& default_instance() {
+    return *reinterpret_cast<const IntroWizardConfig*>(
+        &_IntroWizardConfig_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 18;
+  friend void swap(IntroWizardConfig& a, IntroWizardConfig& b) { a.Swap(&b); }
+  inline void Swap(IntroWizardConfig* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(IntroWizardConfig* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  IntroWizardConfig* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<IntroWizardConfig>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const IntroWizardConfig& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const IntroWizardConfig& from) { IntroWizardConfig::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(IntroWizardConfig* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.wizard.IntroWizardConfig"; }
+
+  explicit IntroWizardConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  IntroWizardConfig(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const IntroWizardConfig& from);
+  IntroWizardConfig(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, IntroWizardConfig&& from) noexcept
+      : IntroWizardConfig(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kCalloutsFieldNumber = 3,
+    kHeadlineFieldNumber = 1,
+    kSubheadFieldNumber = 2,
+    kFinishLabelFieldNumber = 4,
+  };
+  // repeated .s4wave.wizard.IntroWizardCallout callouts = 3;
+  int callouts_size() const;
+  private:
+  int _internal_callouts_size() const;
+
+  public:
+  void clear_callouts() ;
+  ::s4wave::wizard::IntroWizardCallout* PROTOBUF_NONNULL mutable_callouts(int index);
+  ::google::protobuf::RepeatedPtrField<::s4wave::wizard::IntroWizardCallout>* PROTOBUF_NONNULL mutable_callouts();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::s4wave::wizard::IntroWizardCallout>& _internal_callouts() const;
+  ::google::protobuf::RepeatedPtrField<::s4wave::wizard::IntroWizardCallout>* PROTOBUF_NONNULL _internal_mutable_callouts();
+  public:
+  const ::s4wave::wizard::IntroWizardCallout& callouts(int index) const;
+  ::s4wave::wizard::IntroWizardCallout* PROTOBUF_NONNULL add_callouts();
+  const ::google::protobuf::RepeatedPtrField<::s4wave::wizard::IntroWizardCallout>& callouts() const;
+  // string headline = 1;
+  void clear_headline() ;
+  const ::std::string& headline() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_headline(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_headline();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_headline();
+  void set_allocated_headline(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_headline() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_headline(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_headline();
+
+  public:
+  // string subhead = 2;
+  void clear_subhead() ;
+  const ::std::string& subhead() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_subhead(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_subhead();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_subhead();
+  void set_allocated_subhead(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_subhead() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_subhead(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_subhead();
+
+  public:
+  // string finish_label = 4;
+  void clear_finish_label() ;
+  const ::std::string& finish_label() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_finish_label(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_finish_label();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_finish_label();
+  void set_allocated_finish_label(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_finish_label() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_finish_label(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_finish_label();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.wizard.IntroWizardConfig)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   1, 67,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const IntroWizardConfig& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::s4wave::wizard::IntroWizardCallout > callouts_;
+    ::google::protobuf::internal::ArenaStringPtr headline_;
+    ::google::protobuf::internal::ArenaStringPtr subhead_;
+    ::google::protobuf::internal::ArenaStringPtr finish_label_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fwizard_2fwizard_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull IntroWizardConfig_class_data_;
 // -------------------------------------------------------------------
 
 class CreateWizardObjectOp final : public ::google::protobuf::Message
@@ -6769,6 +7293,420 @@ inline void CreateWizardObjectOp::set_allocated_initial_config_data(::std::strin
   // @@protoc_insertion_point(field_set_allocated:s4wave.wizard.CreateWizardObjectOp.initial_config_data)
 }
 
+// -------------------------------------------------------------------
+
+// IntroWizardConfig
+
+// string headline = 1;
+inline void IntroWizardConfig::clear_headline() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.headline_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& IntroWizardConfig::headline() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.wizard.IntroWizardConfig.headline)
+  return _internal_headline();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void IntroWizardConfig::set_headline(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.headline_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.wizard.IntroWizardConfig.headline)
+}
+inline ::std::string* PROTOBUF_NONNULL IntroWizardConfig::mutable_headline()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_headline();
+  // @@protoc_insertion_point(field_mutable:s4wave.wizard.IntroWizardConfig.headline)
+  return _s;
+}
+inline const ::std::string& IntroWizardConfig::_internal_headline() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.headline_.Get();
+}
+inline void IntroWizardConfig::_internal_set_headline(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.headline_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL IntroWizardConfig::_internal_mutable_headline() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.headline_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE IntroWizardConfig::release_headline() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.wizard.IntroWizardConfig.headline)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.headline_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.headline_.Set("", GetArena());
+  }
+  return released;
+}
+inline void IntroWizardConfig::set_allocated_headline(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.headline_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.headline_.IsDefault()) {
+    _impl_.headline_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.wizard.IntroWizardConfig.headline)
+}
+
+// string subhead = 2;
+inline void IntroWizardConfig::clear_subhead() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.subhead_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& IntroWizardConfig::subhead() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.wizard.IntroWizardConfig.subhead)
+  return _internal_subhead();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void IntroWizardConfig::set_subhead(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.subhead_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.wizard.IntroWizardConfig.subhead)
+}
+inline ::std::string* PROTOBUF_NONNULL IntroWizardConfig::mutable_subhead()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_subhead();
+  // @@protoc_insertion_point(field_mutable:s4wave.wizard.IntroWizardConfig.subhead)
+  return _s;
+}
+inline const ::std::string& IntroWizardConfig::_internal_subhead() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.subhead_.Get();
+}
+inline void IntroWizardConfig::_internal_set_subhead(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.subhead_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL IntroWizardConfig::_internal_mutable_subhead() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.subhead_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE IntroWizardConfig::release_subhead() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.wizard.IntroWizardConfig.subhead)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.subhead_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.subhead_.Set("", GetArena());
+  }
+  return released;
+}
+inline void IntroWizardConfig::set_allocated_subhead(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.subhead_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.subhead_.IsDefault()) {
+    _impl_.subhead_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.wizard.IntroWizardConfig.subhead)
+}
+
+// repeated .s4wave.wizard.IntroWizardCallout callouts = 3;
+inline int IntroWizardConfig::_internal_callouts_size() const {
+  return _internal_callouts().size();
+}
+inline int IntroWizardConfig::callouts_size() const {
+  return _internal_callouts_size();
+}
+inline void IntroWizardConfig::clear_callouts() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.callouts_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::s4wave::wizard::IntroWizardCallout* PROTOBUF_NONNULL IntroWizardConfig::mutable_callouts(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.wizard.IntroWizardConfig.callouts)
+  return _internal_mutable_callouts()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::wizard::IntroWizardCallout>* PROTOBUF_NONNULL IntroWizardConfig::mutable_callouts()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.wizard.IntroWizardConfig.callouts)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_callouts();
+}
+inline const ::s4wave::wizard::IntroWizardCallout& IntroWizardConfig::callouts(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.wizard.IntroWizardConfig.callouts)
+  return _internal_callouts().Get(index);
+}
+inline ::s4wave::wizard::IntroWizardCallout* PROTOBUF_NONNULL IntroWizardConfig::add_callouts()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::s4wave::wizard::IntroWizardCallout* _add =
+      _internal_mutable_callouts()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.wizard.IntroWizardConfig.callouts)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::wizard::IntroWizardCallout>& IntroWizardConfig::callouts() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.wizard.IntroWizardConfig.callouts)
+  return _internal_callouts();
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::wizard::IntroWizardCallout>&
+IntroWizardConfig::_internal_callouts() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.callouts_;
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::wizard::IntroWizardCallout>* PROTOBUF_NONNULL
+IntroWizardConfig::_internal_mutable_callouts() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.callouts_;
+}
+
+// string finish_label = 4;
+inline void IntroWizardConfig::clear_finish_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.finish_label_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& IntroWizardConfig::finish_label() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.wizard.IntroWizardConfig.finish_label)
+  return _internal_finish_label();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void IntroWizardConfig::set_finish_label(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.finish_label_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.wizard.IntroWizardConfig.finish_label)
+}
+inline ::std::string* PROTOBUF_NONNULL IntroWizardConfig::mutable_finish_label()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_finish_label();
+  // @@protoc_insertion_point(field_mutable:s4wave.wizard.IntroWizardConfig.finish_label)
+  return _s;
+}
+inline const ::std::string& IntroWizardConfig::_internal_finish_label() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.finish_label_.Get();
+}
+inline void IntroWizardConfig::_internal_set_finish_label(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.finish_label_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL IntroWizardConfig::_internal_mutable_finish_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.finish_label_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE IntroWizardConfig::release_finish_label() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.wizard.IntroWizardConfig.finish_label)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.finish_label_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.finish_label_.Set("", GetArena());
+  }
+  return released;
+}
+inline void IntroWizardConfig::set_allocated_finish_label(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.finish_label_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.finish_label_.IsDefault()) {
+    _impl_.finish_label_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.wizard.IntroWizardConfig.finish_label)
+}
+
+// -------------------------------------------------------------------
+
+// IntroWizardCallout
+
+// .s4wave.wizard.IntroWizardRegion region = 1;
+inline void IntroWizardCallout::clear_region() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.region_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::s4wave::wizard::IntroWizardRegion IntroWizardCallout::region() const {
+  // @@protoc_insertion_point(field_get:s4wave.wizard.IntroWizardCallout.region)
+  return _internal_region();
+}
+inline void IntroWizardCallout::set_region(::s4wave::wizard::IntroWizardRegion value) {
+  _internal_set_region(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.wizard.IntroWizardCallout.region)
+}
+inline ::s4wave::wizard::IntroWizardRegion IntroWizardCallout::_internal_region() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::wizard::IntroWizardRegion>(_impl_.region_);
+}
+inline void IntroWizardCallout::_internal_set_region(::s4wave::wizard::IntroWizardRegion value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.region_ = value;
+}
+
+// string title = 2;
+inline void IntroWizardCallout::clear_title() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.title_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& IntroWizardCallout::title() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.wizard.IntroWizardCallout.title)
+  return _internal_title();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void IntroWizardCallout::set_title(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.title_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.wizard.IntroWizardCallout.title)
+}
+inline ::std::string* PROTOBUF_NONNULL IntroWizardCallout::mutable_title()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_title();
+  // @@protoc_insertion_point(field_mutable:s4wave.wizard.IntroWizardCallout.title)
+  return _s;
+}
+inline const ::std::string& IntroWizardCallout::_internal_title() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.title_.Get();
+}
+inline void IntroWizardCallout::_internal_set_title(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.title_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL IntroWizardCallout::_internal_mutable_title() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.title_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE IntroWizardCallout::release_title() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.wizard.IntroWizardCallout.title)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.title_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.title_.Set("", GetArena());
+  }
+  return released;
+}
+inline void IntroWizardCallout::set_allocated_title(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.title_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.title_.IsDefault()) {
+    _impl_.title_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.wizard.IntroWizardCallout.title)
+}
+
+// string detail = 3;
+inline void IntroWizardCallout::clear_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& IntroWizardCallout::detail() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.wizard.IntroWizardCallout.detail)
+  return _internal_detail();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void IntroWizardCallout::set_detail(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.detail_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.wizard.IntroWizardCallout.detail)
+}
+inline ::std::string* PROTOBUF_NONNULL IntroWizardCallout::mutable_detail()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_detail();
+  // @@protoc_insertion_point(field_mutable:s4wave.wizard.IntroWizardCallout.detail)
+  return _s;
+}
+inline const ::std::string& IntroWizardCallout::_internal_detail() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.detail_.Get();
+}
+inline void IntroWizardCallout::_internal_set_detail(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.detail_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL IntroWizardCallout::_internal_mutable_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.detail_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE IntroWizardCallout::release_detail() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.wizard.IntroWizardCallout.detail)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.detail_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  return released;
+}
+inline void IntroWizardCallout::set_allocated_detail(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.detail_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.detail_.IsDefault()) {
+    _impl_.detail_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.wizard.IntroWizardCallout.detail)
+}
+
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif  // __GNUC__
@@ -6786,6 +7724,12 @@ struct is_proto_enum<::s4wave::wizard::GitCloneProgressState> : std::true_type {
 template <>
 inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::wizard::GitCloneProgressState>() {
   return ::s4wave::wizard::GitCloneProgressState_descriptor();
+}
+template <>
+struct is_proto_enum<::s4wave::wizard::IntroWizardRegion> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::wizard::IntroWizardRegion>() {
+  return ::s4wave::wizard::IntroWizardRegion_descriptor();
 }
 
 }  // namespace protobuf

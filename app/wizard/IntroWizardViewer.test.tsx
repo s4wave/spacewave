@@ -3,41 +3,41 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
+import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { SetSpaceSettingsOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { SET_SPACE_SETTINGS_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
+import { IntroWizardConfig } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 
-import { DriveIntroWizardViewer } from './DriveIntroWizardViewer.js'
-import { DriveIntroTargetObjectKey } from './drive-intro.js'
+import { IntroWizardViewer } from './IntroWizardViewer.js'
+import { driveIntroConfig } from './intro.js'
 
 const h = vi.hoisted(() => ({
   applyWorldOp: vi.fn().mockResolvedValue({ seqno: 1n, sysErr: false }),
   deleteObject: vi.fn().mockResolvedValue({ deleted: true }),
   hasState: true,
   navigateToObjects: vi.fn(),
-  spaceSettingsIndexPath: 'wizard/drive-intro-test',
+  spaceSettingsIndexPath: 'wizard/welcome-1',
   setCreating: vi.fn(),
-  persistDraftState: vi.fn().mockResolvedValue(undefined),
-  handleUpdateName: vi.fn(),
-  handleBack: vi.fn(),
   handleCancel: vi.fn(),
   toastError: vi.fn(),
 }))
 
 vi.mock('./useWizardState.js', () => ({
   useWizardState: () => ({
-    objectKey: 'wizard/drive-intro-test',
+    objectKey: 'wizard/welcome-1',
     state: h.hasState
       ? {
           step: 0,
           targetTypeId: 'unixfs/fs-node',
-          targetKeyPrefix: DriveIntroTargetObjectKey,
-          name: 'My Drive',
+          targetKeyPrefix: 'files',
+          name: 'Welcome',
+          configData: IntroWizardConfig.toBinary(driveIntroConfig()),
         }
       : undefined,
-    localName: 'My Drive',
+    localName: 'Welcome',
     creating: false,
     setCreating: h.setCreating,
-    sessionPeerId: '12D3KooWDrivePeer',
+    sessionPeerId: '12D3KooWIntroPeer',
     spaceWorld: {
       applyWorldOp: h.applyWorldOp,
       deleteObject: h.deleteObject,
@@ -51,12 +51,16 @@ vi.mock('./useWizardState.js', () => ({
     wizardResource: { value: {} },
     configEditor: { element: null, value: undefined },
     configData: undefined,
-    persistDraftState: h.persistDraftState,
+    persistDraftState: vi.fn().mockResolvedValue(undefined),
     handleConfigDataChange: vi.fn(),
-    handleUpdateName: h.handleUpdateName,
-    handleBack: h.handleBack,
+    handleUpdateName: vi.fn(),
+    handleBack: vi.fn(),
     handleCancel: h.handleCancel,
   }),
+}))
+
+vi.mock('@s4wave/web/object/ObjectViewer.js', () => ({
+  ObjectViewer: () => <div data-testid="object-viewer" />,
 }))
 
 vi.mock('@s4wave/web/ui/toaster.js', () => ({
@@ -65,10 +69,20 @@ vi.mock('@s4wave/web/ui/toaster.js', () => ({
   },
 }))
 
-describe('DriveIntroWizardViewer', () => {
+const viewerProps = {
+  objectInfo: {},
+  worldState: {
+    value: null,
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+  },
+} as unknown as ObjectViewerComponentProps
+
+describe('IntroWizardViewer', () => {
   beforeEach(() => {
     h.hasState = true
-    h.spaceSettingsIndexPath = 'wizard/drive-intro-test'
+    h.spaceSettingsIndexPath = 'wizard/welcome-1'
   })
 
   afterEach(() => {
@@ -76,22 +90,23 @@ describe('DriveIntroWizardViewer', () => {
     vi.clearAllMocks()
   })
 
-  it('replaces the Space index, deletes the intro, and opens raw files', async () => {
+  it('renders the intro content around the contained object viewer', () => {
+    render(<IntroWizardViewer {...viewerProps} />)
+
+    expect(screen.getByTestId('object-viewer')).toBeTruthy()
+    expect(screen.getByText('Welcome to your Drive')).toBeTruthy()
+    expect(screen.getByText('Add files')).toBeTruthy()
+    expect(screen.getByText('Upload progress')).toBeTruthy()
+  })
+
+  it('sets the index to the introduced object, deletes the wizard, and navigates', async () => {
     const user = userEvent.setup()
 
-    render(
-      <DriveIntroWizardViewer
-        objectInfo={{}}
-        worldState={{
-          value: null,
-          loading: false,
-          error: null,
-          retry: vi.fn(),
-        }}
-      />,
-    )
+    render(<IntroWizardViewer {...viewerProps} />)
 
-    await user.click(screen.getByRole('button', { name: /open files/i }))
+    await user.click(
+      screen.getByRole('button', { name: /got it, start exploring/i }),
+    )
 
     expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
     expect(h.applyWorldOp.mock.calls[0]?.[0]).toBe(SET_SPACE_SETTINGS_OP_ID)
@@ -100,54 +115,32 @@ describe('DriveIntroWizardViewer', () => {
       throw new Error('expected settings op bytes')
     }
     const settingsOp = SetSpaceSettingsOp.fromBinary(opData)
-    expect(settingsOp.settings?.indexPath).toBe(DriveIntroTargetObjectKey)
+    expect(settingsOp.settings?.indexPath).toBe('files')
     expect(settingsOp.settings?.pluginIds).toEqual(['spacewave-web'])
-    expect(h.deleteObject).toHaveBeenCalledWith('wizard/drive-intro-test')
-    expect(h.navigateToObjects).toHaveBeenCalledWith([
-      DriveIntroTargetObjectKey,
-    ])
+    expect(h.deleteObject).toHaveBeenCalledWith('wizard/welcome-1')
+    expect(h.navigateToObjects).toHaveBeenCalledWith(['files'])
   })
 
   it('does not replace a stale Space index before cleanup', async () => {
     const user = userEvent.setup()
     h.spaceSettingsIndexPath = 'files'
 
-    render(
-      <DriveIntroWizardViewer
-        objectInfo={{}}
-        worldState={{
-          value: null,
-          loading: false,
-          error: null,
-          retry: vi.fn(),
-        }}
-      />,
+    render(<IntroWizardViewer {...viewerProps} />)
+
+    await user.click(
+      screen.getByRole('button', { name: /got it, start exploring/i }),
     )
 
-    await user.click(screen.getByRole('button', { name: /open files/i }))
-
     expect(h.applyWorldOp).not.toHaveBeenCalled()
-    expect(h.deleteObject).toHaveBeenCalledWith('wizard/drive-intro-test')
-    expect(h.navigateToObjects).toHaveBeenCalledWith([
-      DriveIntroTargetObjectKey,
-    ])
+    expect(h.deleteObject).toHaveBeenCalledWith('wizard/welcome-1')
+    expect(h.navigateToObjects).toHaveBeenCalledWith(['files'])
   })
 
   it('renders loading while wizard state is unavailable', () => {
     h.hasState = false
 
-    render(
-      <DriveIntroWizardViewer
-        objectInfo={{}}
-        worldState={{
-          value: null,
-          loading: false,
-          error: null,
-          retry: vi.fn(),
-        }}
-      />,
-    )
+    render(<IntroWizardViewer {...viewerProps} />)
 
-    expect(screen.getByText('Loading Drive')).toBeTruthy()
+    expect(screen.getByText('Loading')).toBeTruthy()
   })
 })

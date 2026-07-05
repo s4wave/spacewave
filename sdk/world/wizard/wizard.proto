@@ -189,3 +189,42 @@ message CreateWizardObjectOp {
   // InitialConfigData is the initial type-specific wizard configuration.
   bytes initial_config_data = 8;
 }
+
+// IntroWizardConfig is the config_data payload for a wizard/intro object. It
+// supplies the per-quickstart new-user introduction drawn around the target
+// object frame, so one intro viewer parameterizes over every quickstart.
+message IntroWizardConfig {
+  // Headline is the introduction title shown in the control panel.
+  string headline = 1;
+  // Subhead is the one-line description under the headline.
+  string subhead = 2;
+  // Callouts are the labeled pointers drawn at regions of the object frame.
+  repeated IntroWizardCallout callouts = 3;
+  // FinishLabel is the primary button label that ends the introduction.
+  string finish_label = 4;
+}
+
+// IntroWizardCallout labels one part of the introduced object's UI.
+message IntroWizardCallout {
+  // Region is the frame region this callout points at.
+  IntroWizardRegion region = 1;
+  // Title names the UI part.
+  string title = 2;
+  // Detail explains what the part is for.
+  string detail = 3;
+}
+
+// IntroWizardRegion is a region of the object viewer frame an intro callout
+// points at.
+enum IntroWizardRegion {
+  // INTRO_WIZARD_REGION_UNSPECIFIED is an unset region.
+  INTRO_WIZARD_REGION_UNSPECIFIED = 0;
+  // INTRO_WIZARD_REGION_TOP points at the top toolbar area.
+  INTRO_WIZARD_REGION_TOP = 1;
+  // INTRO_WIZARD_REGION_CENTER points at the main content area.
+  INTRO_WIZARD_REGION_CENTER = 2;
+  // INTRO_WIZARD_REGION_BOTTOM_RIGHT points at the bottom-right status area.
+  INTRO_WIZARD_REGION_BOTTOM_RIGHT = 3;
+  // INTRO_WIZARD_REGION_LEFT points at the left navigation area.
+  INTRO_WIZARD_REGION_LEFT = 4;
+}
