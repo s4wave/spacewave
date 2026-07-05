@@ -326,15 +326,24 @@ func TestBlobReaderDoesNotCacheChunkData(t *testing.T) {
 func TestBlobReaderReusesCurrentChunkData(t *testing.T) {
 	ctx := context.Background()
 
+	const readBufferSize = 32 * 1024
+	const chunkSize = DefChunkingTargetSize
+
 	baseStore := block_mock.NewMockStore(0)
-	btx, bcs := block.NewTransaction(baseStore, nil, nil, nil)
-	body := bytes.Repeat([]byte("abcd"), 512)
+	xfrm := passthroughTransform{}
+	btx, bcs := block.NewTransaction(baseStore, xfrm, nil, nil)
+	body := make([]byte, chunkSize*3)
+	var seed uint32 = 1
+	for i := range body {
+		seed = seed*1664525 + 1013904223
+		body[i] = byte(seed >> 24)
+	}
 	chunkerArgs := &ChunkerArgs{
 		ChunkerType: ChunkerType_ChunkerType_JC,
 		JcArgs: &JcArgs{
-			ChunkingMinSize:    64,
-			ChunkingTargetSize: 128,
-			ChunkingMaxSize:    256,
+			ChunkingMinSize:    chunkSize - 1,
+			ChunkingTargetSize: chunkSize,
+			ChunkingMaxSize:    chunkSize + 1,
 		},
 	}
 	if _, err := BuildBlob(
@@ -355,36 +364,89 @@ func TestBlobReaderReusesCurrentChunkData(t *testing.T) {
 	}
 
 	countStore := &getBlockCountingStore{StoreOps: baseStore}
-	_, readCursor := block.NewTransaction(countStore, nil, rootRef, nil)
+	_, readCursor := block.NewTransaction(countStore, xfrm, rootRef, nil)
 	rdr, err := NewReader(ctx, readCursor)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	chunkSet := rdr.root.GetChunkIndex().GetChunkSet(readCursor.FollowSubBlock(4))
-	chunkBlock, _ := chunkSet.Get(0)
-	firstChunk, ok := chunkBlock.(*Chunk)
-	if !ok {
-		t.Fatalf("first chunk type %T, want *Chunk", chunkBlock)
+	chunks := rdr.root.GetChunkIndex().GetChunks()
+	if len(chunks) < 2 {
+		t.Fatalf("expected multi-chunk fixture, got %d chunk(s)", len(chunks))
 	}
-	firstChunkRef := firstChunk.GetDataRef().MarshalString()
+	dataRefs := make([]string, 0, len(chunks))
+	seenRefs := make(map[string]int, len(chunks))
+	chunksLargerThanRead := 0
+	for i, chunk := range chunks {
+		if chunk.GetSize() > readBufferSize {
+			chunksLargerThanRead++
+		}
+		ref := chunk.GetDataRef()
+		if ref == nil {
+			t.Fatalf("chunk %d has nil data ref", i)
+		}
+		key := ref.MarshalString()
+		if key == "" {
+			t.Fatalf("chunk %d has empty data ref", i)
+		}
+		if prev, ok := seenRefs[key]; ok {
+			t.Fatalf("chunk %d reuses data ref from chunk %d; fixture must use unique data refs", i, prev)
+		}
+		seenRefs[key] = i
+		dataRefs = append(dataRefs, key)
+	}
+	if chunksLargerThanRead == 0 {
+		t.Fatalf("expected at least one chunk larger than %d-byte read buffer", readBufferSize)
+	}
 	countStore.reset()
 
-	buf := make([]byte, 32)
-	if _, err := io.ReadFull(rdr, buf); err != nil {
-		t.Fatal(err.Error())
+	var out bytes.Buffer
+	buf := make([]byte, readBufferSize)
+	for {
+		n, err := rdr.Read(buf)
+		if n > 0 {
+			out.Write(buf[:n])
+		}
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if n == 0 {
+			t.Fatal("reader returned no data and no error")
+		}
 	}
-	if !bytes.Equal(buf, body[:len(buf)]) {
-		t.Fatalf("first read %q, want %q", buf, body[:len(buf)])
+	got := out.Bytes()
+	if len(got) != len(body) {
+		t.Fatalf("sequential read returned %d bytes, want %d", len(got), len(body))
 	}
-	if _, err := io.ReadFull(rdr, buf); err != nil {
-		t.Fatal(err.Error())
+	if !bytes.Equal(got, body) {
+		for i := range body {
+			if got[i] != body[i] {
+				t.Fatalf("sequential read byte %d = %d, want %d", i, got[i], body[i])
+			}
+		}
+		t.Fatal("sequential read bytes differ")
 	}
-	if !bytes.Equal(buf, body[len(buf):len(buf)*2]) {
-		t.Fatalf("second read %q, want %q", buf, body[len(buf):len(buf)*2])
+	for i, ref := range dataRefs {
+		if got := countStore.get(ref); got != 1 {
+			t.Fatalf("chunk %d data ref fetched %d times, want 1", i, got)
+		}
 	}
-	if got := countStore.get(firstChunkRef); got != 1 {
-		t.Fatalf("current chunk data fetched %d times, want 1", got)
-	}
+}
+
+type passthroughTransform struct{}
+
+func (passthroughTransform) EncodeBlock(data []byte) ([]byte, error) {
+	return data, nil
+}
+
+func (passthroughTransform) DecodeBlock(data []byte) ([]byte, error) {
+	return data, nil
+}
+
+func (passthroughTransform) DecodedBlockCacheTransformKey() string {
+	return "db/block/blob.passthroughTransform"
 }
 
 type getBlockCountingStore struct {
