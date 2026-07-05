@@ -69,9 +69,12 @@ function createReady() {
   }
 }
 
+let startupModuleURLIndex = 0
+
 function createStartupModuleURL() {
+  startupModuleURLIndex += 1
   const source = [
-    'globalThis.__swStartupModuleImportedFrom = import.meta.url;',
+    `globalThis.__swStartupModuleImportedFrom = import.meta.url; // ${startupModuleURLIndex}`,
     'export default function StartupTestComponent() { return null }',
   ].join('\n')
   return `data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`
@@ -98,6 +101,14 @@ function installStartupFetch(contentLength: string | null) {
     throw new Error('startup fetch stream controller was not initialized')
   }
   return { source, controller, fetchMock }
+}
+
+function installStartupFetchMiss(status: number) {
+  const source = createStartupModuleURL()
+  const fetchMock = vi.fn(() => Promise.resolve(new Response(null, { status })))
+  vi.stubGlobal('BLDR_STARTUP_JS', source)
+  vi.stubGlobal('fetch', fetchMock)
+  return { source, fetchMock }
 }
 
 async function drainMicrotasks(count = 5) {
@@ -310,6 +321,25 @@ describe('browser entrypoint boot readiness', () => {
       expect(
         document.querySelector('[data-sw-boot-progress-label]')?.textContent,
       ).toBe('100%')
+    } finally {
+      await act(async () => {
+        root.unmount()
+      })
+    }
+  })
+
+  it('imports the bundled startup module even when preload returns 404', async () => {
+    document.body.innerHTML = '<div id="bldr-root"></div>'
+    const startup = installStartupFetchMiss(404)
+
+    await importEntrypoint()
+    const root = await renderCapturedRoot()
+
+    try {
+      expect(startup.fetchMock).toHaveBeenCalledTimes(1)
+      await waitForAssertion(() => {
+        expect(globalThis.__swStartupModuleImportedFrom).toBe(startup.source)
+      })
     } finally {
       await act(async () => {
         root.unmount()

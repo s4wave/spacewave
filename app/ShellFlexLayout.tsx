@@ -40,6 +40,7 @@ import {
   ShellTabStateProvider,
   ShellTabsProvider,
   useShellTabs,
+  type OpenShellTabOptions,
 } from './ShellTabContext.js'
 import {
   addAndSelectShellModelTab,
@@ -272,6 +273,7 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
     retainShellTabs,
     updateTabPath,
     startRenaming,
+    registerActiveTabsetPathOpener,
   } = useShellTabs()
 
   const [, setHasEngaged] = useStateAtom<boolean>(null, 'hasEngaged', false)
@@ -329,6 +331,54 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
   // to avoid setState in effect body
   const initializedRef = useRef(false)
   const lastSyncedActiveTabIdRef = useRef(activeTabId)
+
+  const openPathInFlexTabset = useCallback(
+    (path: string, options: OpenShellTabOptions = {}) => {
+      const select = options.select ?? true
+      const existingTab = options.focusExisting
+        ? tabsRef.current.find(
+            (tab) => tab.path === path && model.getNodeById(tab.id),
+          )
+        : undefined
+
+      if (existingTab) {
+        if (select) {
+          selectShellTab(existingTab.id)
+          model.doAction(Actions.selectTab(existingTab.id))
+          if (existingTab.path !== getAppPath()) {
+            setAppPath(existingTab.path)
+          }
+        }
+        return existingTab.id
+      }
+
+      const newTab = buildPathTab(path)
+      addShellTab(newTab, {
+        afterTabId: options.afterTabId,
+        select,
+      })
+      if (select) {
+        addAndSelectShellModelTab(
+          model,
+          'shell-tabset',
+          newTab,
+          'shell-content',
+        )
+        if (path !== getAppPath()) {
+          setAppPath(path)
+        }
+      } else {
+        addShellModelTab(model, 'shell-tabset', newTab, 'shell-content')
+      }
+      return newTab.id
+    },
+    [addShellTab, model, selectShellTab],
+  )
+
+  useEffect(
+    () => registerActiveTabsetPathOpener(openPathInFlexTabset),
+    [openPathInFlexTabset, registerActiveTabsetPathOpener],
+  )
 
   // Only enable tab dragging when there are at least 2 tabs (can't create splits with 1 tab)
   const canDrag = tabs.length >= 2

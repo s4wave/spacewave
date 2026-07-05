@@ -101,6 +101,29 @@ func TestRunCliWatchModeCommandWritesTerminalErrorReprintsPromptAndSkipsRunnerFa
 	}
 }
 
+func TestRunCliShortWatchTrueCommandWritesTerminalErrorReprintsPromptAndSkipsRunnerFactory(t *testing.T) {
+	factory := &terminalFakeFactory{}
+	strm := newTerminalStream(
+		terminalInput("space list -w=true\n"),
+		terminalInput("deploy now\n"),
+		terminalClose(),
+	)
+
+	if err := cli_plugin.NewTerminalService(factory).RunCli(strm); err != nil {
+		t.Fatalf("RunCli: %v", err)
+	}
+
+	out := terminalOutput(strm)
+	assertContains(t, out, "spacewave> space list -w=true\r\nerror: browser CLI terminal does not support watch mode\r\nspacewave> deploy now\r\n")
+	assertContains(t, out, "error: unsupported browser CLI command: deploy\r\nspacewave> ")
+	if prompts := strings.Count(out, "spacewave> "); prompts != 3 {
+		t.Fatalf("prompt count = %d, want 3 in output %q", prompts, out)
+	}
+	if factory.newCalls != 0 {
+		t.Fatalf("NewClient calls = %d, want 0", factory.newCalls)
+	}
+}
+
 func TestRunCliWatchFalseRunsSpaceList(t *testing.T) {
 	sess := terminalFakeSessionWithSpace("space-123456789", "Alpha")
 	factory := &terminalFakeFactory{

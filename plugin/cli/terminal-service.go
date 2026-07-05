@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -129,26 +128,28 @@ func (s *promptSession) runCommand(ctx context.Context, line string) error {
 		return s.writeCommandError(msg)
 	}
 
+	opts, err := parseBrowserCommandOptions(args[1:], args[0] == "space" || args[0] == "spaces")
+	if err != nil {
+		return s.writeCommandError(err.Error())
+	}
+
 	var stdout bytes.Buffer
 	config := s.config
 	config.Stdout = &stdout
+	cliCtx := &cli.Context{Context: ctx}
 
-	app := cli.NewApp()
-	app.Name = "spacewave"
-	app.HideVersion = true
-	app.Usage = "Spacewave CLI"
-	app.Writer = &stdout
-	app.ErrWriter = &stdout
-	app.Flags = []cli.Flag{
-		&cli.StringFlag{
-			Name:    "output",
-			Aliases: []string{"o"},
-			Usage:   "output format (json, text, yaml)",
-			Value:   "text",
-		},
+	switch args[0] {
+	case "status":
+		err = runner.RunStatus(config, cliCtx, opts.outputFormat, opts.sessionIdx)
+	case "whoami":
+		err = runner.RunWhoami(config, cliCtx, opts.outputFormat, opts.sessionIdx)
+	case "space", "spaces":
+		if len(opts.positional) != 1 || opts.positional[0] != "list" {
+			return s.writeCommandError("unsupported browser CLI command: " + strings.Join(args, " "))
+		}
+		err = runner.RunSpaceList(config, cliCtx, opts.outputFormat, opts.sessionIdx, opts.watch)
 	}
-	app.Commands = runner.NewCommands(config)
-	if err := app.RunContext(ctx, append([]string{app.Name}, args...)); err != nil {
+	if err != nil {
 		if stdout.Len() != 0 {
 			if writeErr := s.writeOutput(stdout.String()); writeErr != nil {
 				return writeErr
@@ -177,12 +178,90 @@ func (s *promptSession) writeOutput(output string) error {
 }
 
 func isSupportedCommand(name string) bool {
-	for _, cmd := range runner.NewCommands(runner.Config{}) {
-		if cmd.Name == name || slices.Contains(cmd.Aliases, name) {
-			return true
+	switch name {
+	case "status", "whoami", "space", "spaces":
+		return true
+	default:
+		return false
+	}
+}
+
+type browserCommandOptions struct {
+	outputFormat string
+	sessionIdx   uint32
+	watch        bool
+	positional   []string
+}
+
+func parseBrowserCommandOptions(args []string, allowWatch bool) (browserCommandOptions, error) {
+	opts := browserCommandOptions{outputFormat: "text", sessionIdx: 1}
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		switch {
+		case arg == "--output" || arg == "-o":
+			i++
+			if i >= len(args) {
+				return opts, errors.New(arg + " requires a value")
+			}
+			opts.outputFormat = args[i]
+		case strings.HasPrefix(arg, "--output="):
+			opts.outputFormat = strings.TrimPrefix(arg, "--output=")
+		case strings.HasPrefix(arg, "-o="):
+			opts.outputFormat = strings.TrimPrefix(arg, "-o=")
+		case arg == "--session-index":
+			i++
+			if i >= len(args) {
+				return opts, errors.New(arg + " requires a value")
+			}
+			sessionIdx, err := parseSessionIndex(args[i])
+			if err != nil {
+				return opts, err
+			}
+			opts.sessionIdx = sessionIdx
+		case strings.HasPrefix(arg, "--session-index="):
+			sessionIdx, err := parseSessionIndex(strings.TrimPrefix(arg, "--session-index="))
+			if err != nil {
+				return opts, err
+			}
+			opts.sessionIdx = sessionIdx
+		case arg == "--watch" || arg == "-w":
+			if !allowWatch {
+				return opts, errors.New("unsupported flag: " + arg)
+			}
+			opts.watch = true
+		case strings.HasPrefix(arg, "--watch="):
+			if !allowWatch {
+				return opts, errors.New("unsupported flag: --watch")
+			}
+			watch, err := strconv.ParseBool(strings.TrimPrefix(arg, "--watch="))
+			if err != nil {
+				return opts, err
+			}
+			opts.watch = watch
+		case strings.HasPrefix(arg, "-w="):
+			if !allowWatch {
+				return opts, errors.New("unsupported flag: -w")
+			}
+			watch, err := strconv.ParseBool(strings.TrimPrefix(arg, "-w="))
+			if err != nil {
+				return opts, err
+			}
+			opts.watch = watch
+		case strings.HasPrefix(arg, "-"):
+			return opts, errors.New("unsupported flag: " + arg)
+		default:
+			opts.positional = append(opts.positional, arg)
 		}
 	}
-	return false
+	return opts, nil
+}
+
+func parseSessionIndex(raw string) (uint32, error) {
+	idx, err := strconv.ParseUint(raw, 10, 32)
+	if err != nil {
+		return 0, errors.Wrap(err, "parse session index")
+	}
+	return uint32(idx), nil
 }
 
 func unsupportedBrowserCommandMode(args []string) string {
@@ -196,6 +275,12 @@ func unsupportedBrowserCommandMode(args []string) string {
 				return "browser CLI terminal does not support watch mode"
 			}
 			if raw, ok := strings.CutPrefix(arg, "--watch="); ok {
+				enabled, err := strconv.ParseBool(raw)
+				if err != nil || enabled {
+					return "browser CLI terminal does not support watch mode"
+				}
+			}
+			if raw, ok := strings.CutPrefix(arg, "-w="); ok {
 				enabled, err := strconv.ParseBool(raw)
 				if err != nil || enabled {
 					return "browser CLI terminal does not support watch mode"

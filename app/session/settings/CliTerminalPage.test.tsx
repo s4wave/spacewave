@@ -20,19 +20,11 @@ const cliPageMocks = vi.hoisted(() => ({
   srpcClient: vi.fn(function (openStream: unknown) {
     return { openStream }
   }),
-  buildRpcStreamOpenStream: vi.fn(function (
-    serviceId: string,
-    pluginRpc: unknown,
-  ) {
-    return { serviceId, pluginRpc }
-  }),
-  pluginRpc: vi.fn(),
-  loadPlugin: vi.fn(),
-  loadPluginRequests: [] as Array<{ pluginId?: string; instanceKey?: string }>,
-  loadPluginSignals: [] as AbortSignal[],
-  loadPluginClosed: vi.fn(),
+  cliTerminalServiceName: 'CliTerminalService',
+  cliTerminalClientArgs: [] as Array<{ rpcClient: unknown; options: unknown }>,
   runCli: vi.fn(),
   runCliInputFrames: [] as TerminalFrame[],
+  runCliSignals: [] as AbortSignal[],
   terminalConnector: null as unknown,
 }))
 
@@ -49,24 +41,15 @@ vi.mock('@aptre/bldr-react', () => ({
 
 vi.mock('starpc', () => ({
   Client: cliPageMocks.srpcClient,
-  buildRpcStreamOpenStream: cliPageMocks.buildRpcStreamOpenStream,
 }))
 
-vi.mock(
-  '@go/github.com/s4wave/spacewave/bldr/plugin/plugin_srpc.pb.js',
-  () => ({
-    PluginHostServiceName: 'PluginHost',
-    PluginHostClient: vi.fn(function () {
-      return {
-        LoadPlugin: cliPageMocks.loadPlugin,
-        PluginRpc: cliPageMocks.pluginRpc,
-      }
-    }),
-  }),
-)
-
 vi.mock('@s4wave/sdk/cli/terminal/terminal_srpc.pb.js', () => ({
-  CliTerminalServiceClient: vi.fn(function () {
+  CliTerminalServiceServiceName: cliPageMocks.cliTerminalServiceName,
+  CliTerminalServiceClient: vi.fn(function (
+    rpcClient: unknown,
+    options: unknown,
+  ) {
+    cliPageMocks.cliTerminalClientArgs.push({ rpcClient, options })
     return {
       RunCli: cliPageMocks.runCli,
     }
@@ -102,33 +85,17 @@ describe('CliTerminalPage', () => {
     cliPageMocks.navigate.mockReset()
     cliPageMocks.buildWebViewHostOpenStream.mockClear()
     cliPageMocks.srpcClient.mockClear()
-    cliPageMocks.buildRpcStreamOpenStream.mockClear()
-    cliPageMocks.pluginRpc.mockClear()
-    cliPageMocks.loadPlugin.mockReset()
-    cliPageMocks.loadPluginRequests.length = 0
-    cliPageMocks.loadPluginSignals.length = 0
-    cliPageMocks.loadPluginClosed.mockReset()
+    cliPageMocks.cliTerminalClientArgs.length = 0
     cliPageMocks.runCli.mockReset()
     cliPageMocks.runCliInputFrames.length = 0
+    cliPageMocks.runCliSignals.length = 0
     cliPageMocks.terminalConnector = null
 
-    cliPageMocks.loadPlugin.mockImplementation(async function* (
-      request: { pluginId?: string; instanceKey?: string },
-      signal: AbortSignal,
-    ) {
-      cliPageMocks.loadPluginRequests.push(request)
-      cliPageMocks.loadPluginSignals.push(signal)
-      try {
-        yield { pluginStatus: { running: true } }
-        await waitForAbort(signal)
-      } finally {
-        cliPageMocks.loadPluginClosed()
-      }
-    })
     cliPageMocks.runCli.mockImplementation(async function* (
       frames: AsyncIterable<TerminalFrame>,
       signal: AbortSignal,
     ) {
+      cliPageMocks.runCliSignals.push(signal)
       for await (const frame of frames) {
         cliPageMocks.runCliInputFrames.push(frame)
         yield {
@@ -142,7 +109,7 @@ describe('CliTerminalPage', () => {
 
   afterEach(() => cleanup())
 
-  it('loads the CLI plugin, streams terminal frames through RunCli, and aborts the plugin lease on close', async () => {
+  it('streams terminal frames through the CLI plugin service route and aborts RunCli on close', async () => {
     render(<CliTerminalPage />)
 
     expect(screen.getByTestId('cli-terminal-pane').textContent).toBe(
@@ -181,24 +148,24 @@ describe('CliTerminalPage', () => {
     expect(cliPageMocks.buildWebViewHostOpenStream).toHaveBeenCalledWith(
       'web-view-7',
     )
-    expect(cliPageMocks.loadPluginRequests).toHaveLength(1)
-    expect(cliPageMocks.loadPluginRequests[0]).toMatchObject({
-      pluginId: 'spacewave-cli-plugin',
+    expect(cliPageMocks.srpcClient).toHaveBeenCalledWith({
+      webViewUuid: 'web-view-7',
     })
-    expect(cliPageMocks.loadPluginRequests[0]?.instanceKey).toMatch(
-      /^cli-terminal\//,
-    )
-    expect(cliPageMocks.buildRpcStreamOpenStream).toHaveBeenCalledWith(
-      'spacewave-cli-plugin/' + cliPageMocks.loadPluginRequests[0]?.instanceKey,
-      cliPageMocks.pluginRpc,
-    )
+    expect(cliPageMocks.cliTerminalClientArgs).toEqual([
+      {
+        rpcClient: { openStream: { webViewUuid: 'web-view-7' } },
+        options: {
+          service: `plugin/spacewave-cli-plugin/${cliPageMocks.cliTerminalServiceName}`,
+        },
+      },
+    ])
+    expect(cliPageMocks.runCliSignals).toEqual([controller.signal])
     expect(cliPageMocks.runCliInputFrames).toEqual([inputFrame])
     expect(outputFrames).toEqual([
       { kind: TerminalFrameKind.OUTPUT, data: new Uint8Array([111, 107]) },
     ])
     await waitFor(() => {
-      expect(cliPageMocks.loadPluginSignals[0]?.aborted).toBe(true)
-      expect(cliPageMocks.loadPluginClosed).toHaveBeenCalledTimes(1)
+      expect(cliPageMocks.runCliSignals[0]?.aborted).toBe(true)
     })
   })
 })

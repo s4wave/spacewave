@@ -168,27 +168,24 @@ async function preloadStartupModule(source: string): Promise<void> {
   }
 }
 
-async function importStartupModule(source: string): Promise<StartupModule> {
+async function preloadConfiguredStartupModule(source: string): Promise<void> {
   const moduleURL = resolveStartupModuleURL(source)
-  // Preload only feeds progress; the module loader remains the load authority
-  // so a preload miss does not change import semantics.
   await preloadStartupModule(moduleURL).catch(() => undefined)
-
-  // BLDR_STARTUP_JS is runtime-injected by Bldr, so the startup module cannot
-  // be statically imported.
-  return (await import(moduleURL)) as StartupModule
 }
 
 // BLDR_STARTUP_JS is an injected variable with the path to the startup js component
 declare const BLDR_STARTUP_JS: string | undefined
 if (typeof BLDR_STARTUP_JS === 'string') {
+  const importStartupModule = async (): Promise<StartupModule> => {
+    await preloadConfiguredStartupModule(BLDR_STARTUP_JS)
+    // BLDR_STARTUP_JS is build-injected by Bldr so this is the bundler-owned
+    // startup boundary, not an author-time module path.
+    return (await import(BLDR_STARTUP_JS)) as StartupModule
+  }
   const BldrWebStartupContainer: React.FC = () => {
     const LoadedComponent = useMemo(
       () =>
-        React.lazy(
-          async (): Promise<StartupModule> =>
-            importStartupModule(BLDR_STARTUP_JS),
-        ),
+        React.lazy(async (): Promise<StartupModule> => importStartupModule()),
       [],
     )
 

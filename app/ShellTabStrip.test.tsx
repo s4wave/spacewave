@@ -9,6 +9,8 @@ import {
   waitFor,
 } from '@testing-library/react'
 
+import { getAppPath } from '@s4wave/web/router/app-path.js'
+import type * as WebState from '@s4wave/web/state/index.js'
 import { SHELL_TABS_STORAGE_KEY, useShellTabs } from './ShellTabContext.js'
 import { ShellTabStrip } from './ShellFlexLayout.js'
 
@@ -17,9 +19,7 @@ const mockOptimizedLayoutProps = vi.hoisted(() => vi.fn())
 vi.mock('@s4wave/web/state/index.js', async () => {
   const [React, actual] = await Promise.all([
     import('react'),
-    vi.importActual<typeof import('@s4wave/web/state/index.js')>(
-      '@s4wave/web/state/index.js',
-    ),
+    vi.importActual<typeof WebState>('@s4wave/web/state/index.js'),
   ])
   return {
     ...actual,
@@ -280,6 +280,25 @@ function StateOnlyDocsOpener() {
   )
 }
 
+function FlexCliCommandProbe() {
+  const { activeTabId, openPathInActiveTabset } = useShellTabs()
+
+  return (
+    <button
+      onClick={() => {
+        openPathInActiveTabset('/u/7/settings/cli/terminal', {
+          afterTabId: activeTabId || undefined,
+          focusExisting: true,
+          select: true,
+        })
+      }}
+      type="button"
+    >
+      Open CLI terminal
+    </button>
+  )
+}
+
 describe('ShellTabStrip', () => {
   beforeEach(() => {
     class ResizeObserverMock {
@@ -356,6 +375,64 @@ describe('ShellTabStrip', () => {
             action.type === 'selectTab' && action.tabId === activeTabId,
         ),
       ).toBe(true)
+    })
+  })
+
+  it('opens and selects the command-line terminal in the active flex tabset', async () => {
+    sessionStorage.setItem(
+      SHELL_TABS_STORAGE_KEY,
+      JSON.stringify({
+        tabs: [
+          { id: 'home', name: 'Home', path: '/' },
+          { id: 'blog', name: 'Blog', path: '/blog' },
+        ],
+        activeTabId: 'home',
+      }),
+    )
+
+    render(
+      <ShellTabStrip>
+        <FlexCliCommandProbe />
+      </ShellTabStrip>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open CLI terminal' }))
+
+    await waitFor(() => {
+      const call = mockOptimizedLayoutProps.mock.calls.at(-1) as
+        | [
+            {
+              model: {
+                tabs: Array<{ id: string }>
+                selectedTabId: string | null
+              }
+            },
+          ]
+        | undefined
+      const model = call?.[0].model
+      const stored = JSON.parse(
+        sessionStorage.getItem(SHELL_TABS_STORAGE_KEY) ?? 'null',
+      ) as {
+        activeTabId: string
+        tabs: Array<{ id: string; name: string; path: string }>
+      }
+      const activeTab = stored.tabs.find((tab) => tab.id === stored.activeTabId)
+
+      expect(stored.tabs.map((tab) => tab.path)).toEqual([
+        '/',
+        '/u/7/settings/cli/terminal',
+        '/blog',
+      ])
+      expect(activeTab).toMatchObject({
+        name: 'Settings',
+        path: '/u/7/settings/cli/terminal',
+      })
+      expect(model?.tabs.some((tab) => tab.id === stored.activeTabId)).toBe(
+        true,
+      )
+      expect(model?.selectedTabId).toBe(stored.activeTabId)
+      expect(getAppPath()).toBe('/u/7/settings/cli/terminal')
+      expect(window.location.hash).toBe('#/u/7/settings/cli/terminal')
     })
   })
 

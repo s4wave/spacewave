@@ -28,6 +28,7 @@ export interface TerminalPaneProps {
 
 interface TerminalFrameQueue {
   push(frame: TerminalFrame): void
+  started(): boolean
   close(): Promise<void>
   stream(): MessageStream<TerminalFrame>
 }
@@ -56,6 +57,7 @@ export function TerminalPane({
       fontFamily:
         'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
       fontSize: 13,
+      screenReaderMode: true,
       theme: {
         background: '#09090b',
         foreground: '#f4f4f5',
@@ -105,10 +107,14 @@ export function TerminalPane({
       if (terminalQueueRef.current === queue) {
         terminalQueueRef.current = null
       }
-      void queue
-        .close()
-        .then(() => terminalDone)
-        .finally(() => rpcAbort.abort())
+      const closeDelivered = queue.close()
+      if (!queue.started()) {
+        rpcAbort.abort()
+      } else {
+        void closeDelivered
+          .then(() => terminalDone)
+          .finally(() => rpcAbort.abort())
+      }
       window.removeEventListener('resize', handleResize)
       disposeInput.dispose()
       term.dispose()
@@ -183,6 +189,7 @@ function createTerminalFrameQueue(): TerminalFrameQueue {
   const waiters: Array<() => void> = []
   const closeWaiters: Array<() => void> = []
   const closed = { value: false }
+  const started = { value: false }
   const wake = () => {
     while (waiters.length !== 0) {
       waiters.shift()?.()
@@ -198,6 +205,9 @@ function createTerminalFrameQueue(): TerminalFrameQueue {
     }
   }
   return {
+    started() {
+      return started.value
+    },
     push(frame) {
       if (closed.value) return
       frames.push(frame)
@@ -215,6 +225,7 @@ function createTerminalFrameQueue(): TerminalFrameQueue {
       const closeDelivered = { value: false }
       return {
         [Symbol.asyncIterator](): AsyncIterator<TerminalFrame> {
+          started.value = true
           const next = (): Promise<IteratorResult<TerminalFrame>> => {
             if (closeDelivered.value) {
               resolveClose()
