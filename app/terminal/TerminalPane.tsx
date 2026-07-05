@@ -9,6 +9,8 @@ import {
 } from '@s4wave/sdk/terminal/terminal.pb.js'
 
 const terminalEncoder = new TextEncoder()
+const maxQueuedTerminalFrames = 256
+
 const terminalDecoder = new TextDecoder()
 
 export type TerminalPaneConnector = (
@@ -210,6 +212,9 @@ function createTerminalFrameQueue(): TerminalFrameQueue {
     },
     push(frame) {
       if (closed.value) return
+      if (frames.length >= maxQueuedTerminalFrames) {
+        frames.shift()
+      }
       frames.push(frame)
       wake()
     },

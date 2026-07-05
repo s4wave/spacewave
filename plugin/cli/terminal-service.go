@@ -1,11 +1,12 @@
 package cli_plugin
 
 import (
-	"bytes"
 	"context"
 	"io"
+	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
 	"github.com/aperturerobotics/cli"
@@ -15,7 +16,11 @@ import (
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
 )
 
-const prompt = "spacewave> "
+const (
+	prompt               = "spacewave> "
+	maxCommandOutput     = 4096
+	fullNativeCLIPointer = "Open Command Line settings for the full native CLI."
+)
 
 // TerminalService runs the browser-safe Spacewave CLI command prompt over terminal frames.
 type TerminalService struct {
@@ -37,11 +42,47 @@ func (s *TerminalService) RunCli(strm s4wave_cli_terminal.SRPCCliTerminalService
 type promptSession struct {
 	strm   s4wave_cli_terminal.SRPCCliTerminalService_RunCliStream
 	config runner.Config
-	line   []rune
+
+	outMu sync.Mutex
+
+	line         []rune
+	cursor       int
+	history      []string
+	historyIndex int
+	historyDraft []rune
+}
+
+type terminalRecv struct {
+	frame *s4wave_terminal.TerminalFrame
+	err   error
+}
+
+type commandState struct {
+	done        chan commandResult
+	cancel      context.CancelFunc
+	interrupted bool
+}
+
+type commandResult struct {
+	err error
+}
+
+type promptAction struct {
+	command string
+	exit    bool
+}
+
+type commandUsage struct {
+	name  string
+	usage string
+}
+
+type terminalOutputWriter struct {
+	session *promptSession
 }
 
 func newPromptSession(strm s4wave_cli_terminal.SRPCCliTerminalService_RunCliStream, config runner.Config) *promptSession {
-	return &promptSession{strm: strm, config: config}
+	return &promptSession{strm: strm, config: config, historyIndex: -1}
 }
 
 func (s *promptSession) run(ctx context.Context) error {
@@ -51,30 +92,144 @@ func (s *promptSession) run(ctx context.Context) error {
 	if err := s.writeOutput(prompt); err != nil {
 		return err
 	}
+	defer s.strm.Close()
 
+	recvCh := s.recvFrames(ctx)
+	var command *commandState
 	for {
-		frame, err := s.strm.Recv()
-		if err != nil {
-			if errors.Is(err, io.EOF) || errors.Is(ctx.Err(), context.Canceled) {
-				return nil
+		if command != nil {
+			select {
+			case result := <-command.done:
+				if err := s.finishCommand(command, result); err != nil {
+					return err
+				}
+				command = nil
+				continue
+			default:
 			}
-			return err
 		}
-		switch frame.GetKind() {
-		case s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_INPUT:
-			if err := s.handleInput(ctx, frame.GetData()); err != nil {
+		select {
+		case recv := <-recvCh:
+			if recv.err != nil {
+				if command != nil {
+					command.cancel()
+					<-command.done
+				}
+				if errors.Is(recv.err, io.EOF) || errors.Is(ctx.Err(), context.Canceled) {
+					return nil
+				}
+				return recv.err
+			}
+			switch recv.frame.GetKind() {
+			case s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_INPUT:
+				if command != nil {
+					if hasInterrupt(recv.frame.GetData()) && !command.interrupted {
+						command.interrupted = true
+						command.cancel()
+						if err := s.writeOutput("^C\r\n"); err != nil {
+							return err
+						}
+					}
+					continue
+				}
+				action, err := s.handleInput(ctx, recv.frame.GetData())
+				if err != nil {
+					return err
+				}
+				if action.exit {
+					return s.writeExit(0)
+				}
+				if action.command != "" {
+					command = s.startCommand(ctx, action.command)
+				}
+			case s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_CLOSE:
+				if command != nil {
+					select {
+					case result := <-command.done:
+						if err := s.finishCommand(command, result); err != nil {
+							return err
+						}
+					default:
+						command.cancel()
+						<-command.done
+					}
+				}
+				return nil
+			case s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_RESIZE:
+				continue
+			}
+		case result := <-commandDone(command):
+			if err := s.finishCommand(command, result); err != nil {
 				return err
 			}
-		case s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_CLOSE:
-			return nil
-		case s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_RESIZE:
-			continue
+			command = nil
 		}
 	}
 }
 
-func (s *promptSession) handleInput(ctx context.Context, data []byte) error {
+func (s *promptSession) recvFrames(ctx context.Context) <-chan terminalRecv {
+	ch := make(chan terminalRecv, 1)
+	go func() {
+		for {
+			frame, err := s.strm.Recv()
+			select {
+			case ch <- terminalRecv{frame: frame, err: err}:
+			case <-ctx.Done():
+				return
+			}
+			if err != nil {
+				return
+			}
+		}
+	}()
+	return ch
+}
+
+func commandDone(command *commandState) <-chan commandResult {
+	if command == nil {
+		return nil
+	}
+	return command.done
+}
+
+func (s *promptSession) startCommand(ctx context.Context, line string) *commandState {
+	cmdCtx, cancel := context.WithCancel(ctx)
+	command := &commandState{done: make(chan commandResult, 1), cancel: cancel}
+	go func() {
+		command.done <- commandResult{err: s.executeCommand(cmdCtx, line)}
+	}()
+	return command
+}
+
+func (s *promptSession) finishCommand(command *commandState, result commandResult) error {
+	if result.err != nil && (!command.interrupted || !errors.Is(result.err, context.Canceled)) {
+		if err := s.writeCommandError(result.err.Error()); err != nil {
+			return err
+		}
+	}
+	return s.writeOutput(prompt)
+}
+
+func (s *promptSession) handleInput(ctx context.Context, data []byte) (promptAction, error) {
 	for len(data) != 0 {
+		if handled, rest, err := s.handleEscape(data); handled || err != nil {
+			if err != nil {
+				return promptAction{}, err
+			}
+			data = rest
+			continue
+		}
+		if data[0] == 0x03 {
+			s.line = s.line[:0]
+			s.cursor = 0
+			s.resetHistoryRecall()
+			if err := s.writeOutput("^C\r\n" + prompt); err != nil {
+				return promptAction{}, err
+			}
+			data = data[1:]
+			continue
+		}
+
 		r, size := utf8.DecodeRune(data)
 		if r == utf8.RuneError && size == 1 {
 			r = rune(data[0])
@@ -84,36 +239,137 @@ func (s *promptSession) handleInput(ctx context.Context, data []byte) error {
 		switch r {
 		case '\r', '\n':
 			if err := s.writeOutput("\r\n"); err != nil {
-				return err
+				return promptAction{}, err
 			}
 			line := strings.TrimSpace(string(s.line))
 			s.line = s.line[:0]
-			if line != "" {
-				if err := s.runCommand(ctx, line); err != nil {
-					return err
+			s.cursor = 0
+			s.resetHistoryRecall()
+			if line == "" {
+				if err := s.writeOutput(prompt); err != nil {
+					return promptAction{}, err
 				}
+				continue
 			}
-			if err := s.writeOutput(prompt); err != nil {
-				return err
+			s.pushHistory(line)
+			switch line {
+			case "help", "?":
+				if err := s.writeHelp(); err != nil {
+					return promptAction{}, err
+				}
+				if err := s.writeOutput(prompt); err != nil {
+					return promptAction{}, err
+				}
+			case "clear":
+				if err := s.writeOutput("\x1b[2J\x1b[H" + prompt); err != nil {
+					return promptAction{}, err
+				}
+			case "exit":
+				return promptAction{exit: true}, nil
+			default:
+				return promptAction{command: line}, nil
 			}
 		case '\b', '\x7f':
-			if len(s.line) != 0 {
-				s.line = s.line[:len(s.line)-1]
-				if err := s.writeOutput("\b \b"); err != nil {
-					return err
+			if s.cursor != 0 {
+				s.line = append(s.line[:s.cursor-1], s.line[s.cursor:]...)
+				s.cursor--
+				s.resetHistoryRecall()
+				if err := s.redrawLine(); err != nil {
+					return promptAction{}, err
 				}
 			}
 		default:
-			s.line = append(s.line, r)
-			if err := s.writeOutput(string(r)); err != nil {
-				return err
+			s.line = append(s.line, 0)
+			copy(s.line[s.cursor+1:], s.line[s.cursor:])
+			s.line[s.cursor] = r
+			s.cursor++
+			s.resetHistoryRecall()
+			if s.cursor == len(s.line) {
+				if err := s.writeOutput(string(r)); err != nil {
+					return promptAction{}, err
+				}
+				continue
+			}
+			if err := s.redrawLine(); err != nil {
+				return promptAction{}, err
 			}
 		}
 	}
-	return nil
+	return promptAction{}, nil
 }
 
-func (s *promptSession) runCommand(ctx context.Context, line string) error {
+func (s *promptSession) handleEscape(data []byte) (bool, []byte, error) {
+	if len(data) < 3 || data[0] != '\x1b' || data[1] != '[' {
+		return false, data, nil
+	}
+	switch data[2] {
+	case 'A':
+		return true, data[3:], s.recallHistory(-1)
+	case 'B':
+		return true, data[3:], s.recallHistory(1)
+	case 'C':
+		if s.cursor < len(s.line) {
+			s.cursor++
+			return true, data[3:], s.writeOutput("\x1b[C")
+		}
+	case 'D':
+		if s.cursor != 0 {
+			s.cursor--
+			return true, data[3:], s.writeOutput("\x1b[D")
+		}
+	}
+	return true, data[3:], nil
+}
+
+func (s *promptSession) recallHistory(direction int) error {
+	if len(s.history) == 0 {
+		return nil
+	}
+	if direction < 0 {
+		if s.historyIndex == -1 {
+			s.historyDraft = append(s.historyDraft[:0], s.line...)
+			s.historyIndex = len(s.history) - 1
+		} else if s.historyIndex > 0 {
+			s.historyIndex--
+		}
+	} else {
+		if s.historyIndex == -1 {
+			return nil
+		}
+		if s.historyIndex < len(s.history)-1 {
+			s.historyIndex++
+		} else {
+			s.line = append(s.line[:0], s.historyDraft...)
+			s.cursor = len(s.line)
+			s.historyIndex = -1
+			return s.redrawLine()
+		}
+	}
+	s.line = []rune(s.history[s.historyIndex])
+	s.cursor = len(s.line)
+	return s.redrawLine()
+}
+
+func (s *promptSession) pushHistory(line string) {
+	if len(s.history) == 0 || s.history[len(s.history)-1] != line {
+		s.history = append(s.history, line)
+	}
+}
+
+func (s *promptSession) resetHistoryRecall() {
+	s.historyIndex = -1
+	s.historyDraft = s.historyDraft[:0]
+}
+
+func (s *promptSession) redrawLine() error {
+	out := "\r\x1b[2K" + prompt + string(s.line)
+	if right := len(s.line) - s.cursor; right != 0 {
+		out += "\x1b[" + strconv.Itoa(right) + "D"
+	}
+	return s.writeOutput(out)
+}
+
+func (s *promptSession) executeCommand(ctx context.Context, line string) error {
 	args, err := splitCommandLine(line)
 	if err != nil {
 		return s.writeCommandError(err.Error())
@@ -122,10 +378,7 @@ func (s *promptSession) runCommand(ctx context.Context, line string) error {
 		return nil
 	}
 	if !isSupportedCommand(args[0]) {
-		return s.writeCommandError("unsupported browser CLI command: " + args[0])
-	}
-	if msg := unsupportedBrowserCommandMode(args); msg != "" {
-		return s.writeCommandError(msg)
+		return s.writeUnsupportedCommandError(args[0])
 	}
 
 	opts, err := parseBrowserCommandOptions(args[1:], args[0] == "space" || args[0] == "spaces")
@@ -133,9 +386,8 @@ func (s *promptSession) runCommand(ctx context.Context, line string) error {
 		return s.writeCommandError(err.Error())
 	}
 
-	var stdout bytes.Buffer
 	config := s.config
-	config.Stdout = &stdout
+	config.Stdout = &terminalOutputWriter{session: s}
 	cliCtx := &cli.Context{Context: ctx}
 
 	switch args[0] {
@@ -145,36 +397,100 @@ func (s *promptSession) runCommand(ctx context.Context, line string) error {
 		err = runner.RunWhoami(config, cliCtx, opts.outputFormat, opts.sessionIdx)
 	case "space", "spaces":
 		if len(opts.positional) != 1 || opts.positional[0] != "list" {
-			return s.writeCommandError("unsupported browser CLI command: " + strings.Join(args, " "))
+			return s.writeUnsupportedCommandError(strings.Join(args, " "))
 		}
 		err = runner.RunSpaceList(config, cliCtx, opts.outputFormat, opts.sessionIdx, opts.watch)
 	}
-	if err != nil {
-		if stdout.Len() != 0 {
-			if writeErr := s.writeOutput(stdout.String()); writeErr != nil {
-				return writeErr
+	return err
+}
+
+func (s *promptSession) writeHelp() error {
+	var out strings.Builder
+	out.WriteString("Supported browser CLI commands:\r\n")
+	for _, usage := range supportedCommandUsages(s.config) {
+		out.WriteString("  ")
+		out.WriteString(usage.name)
+		if pad := 14 - len(usage.name); pad > 0 {
+			out.WriteString(strings.Repeat(" ", pad))
+		} else {
+			out.WriteString("  ")
+		}
+		out.WriteString(usage.usage)
+		out.WriteString("\r\n")
+	}
+	out.WriteString(fullNativeCLIPointer)
+	out.WriteString("\r\n")
+	return s.writeOutput(out.String())
+}
+
+func supportedCommandUsages(config runner.Config) []commandUsage {
+	commands := runner.NewCommands(config)
+	usages := make([]commandUsage, 0, 8)
+	for _, cmd := range commands {
+		usages = append(usages, commandUsage{name: cmd.Name, usage: cmd.Usage})
+		for _, sub := range cmd.Subcommands {
+			usages = append(usages, commandUsage{name: cmd.Name + " " + sub.Name, usage: sub.Usage})
+			for _, alias := range cmd.Aliases {
+				usages = append(usages, commandUsage{name: alias + " " + sub.Name, usage: sub.Usage})
 			}
 		}
-		return s.writeCommandError(err.Error())
 	}
-	if stdout.Len() == 0 {
-		return nil
-	}
-	return s.writeOutput(stdout.String())
+	usages = append(usages,
+		commandUsage{name: "help, ?", usage: "show browser CLI help"},
+		commandUsage{name: "clear", usage: "clear the terminal"},
+		commandUsage{name: "exit", usage: "close this browser CLI prompt"},
+	)
+	return usages
 }
 
 func (s *promptSession) writeCommandError(msg string) error {
 	return s.writeOutput("error: " + msg + "\r\n")
 }
 
+func (s *promptSession) writeUnsupportedCommandError(command string) error {
+	return s.writeOutput("error: unsupported browser CLI command: " + command + "\r\n" + supportedCommandSetLine() + "\r\n" + fullNativeCLIPointer + "\r\n")
+}
+
 func (s *promptSession) writeOutput(output string) error {
 	if output == "" {
 		return nil
 	}
+	return s.writeOutputBytes([]byte(output))
+}
+
+func (s *promptSession) writeOutputBytes(output []byte) error {
+	if len(output) == 0 {
+		return nil
+	}
+	data := append([]byte(nil), output...)
+	s.outMu.Lock()
+	defer s.outMu.Unlock()
 	return s.strm.Send(&s4wave_terminal.TerminalFrame{
 		Kind: s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_OUTPUT,
-		Data: []byte(output),
+		Data: data,
 	})
+}
+
+func (s *promptSession) writeExit(code int32) error {
+	s.outMu.Lock()
+	defer s.outMu.Unlock()
+	return s.strm.Send(&s4wave_terminal.TerminalFrame{
+		Kind:     s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_EXIT,
+		ExitCode: code,
+	})
+}
+
+func (w *terminalOutputWriter) Write(data []byte) (int, error) {
+	total := 0
+	for len(data) != 0 {
+		n := min(len(data), maxCommandOutput)
+		if err := w.session.writeOutputBytes(data[:n]); err != nil {
+			return total, err
+		}
+		total += n
+		data = data[n:]
+	}
+	return total, nil
 }
 
 func isSupportedCommand(name string) bool {
@@ -184,6 +500,17 @@ func isSupportedCommand(name string) bool {
 	default:
 		return false
 	}
+}
+
+func supportedCommandSetLine() string {
+	return "supported browser CLI commands: status, whoami, space list, spaces list, help, ?, clear, exit"
+}
+
+func allowedFlagSet(allowWatch bool) string {
+	if allowWatch {
+		return "--output, -o, --session-index, --watch, -w"
+	}
+	return "--output, -o, --session-index"
 }
 
 type browserCommandOptions struct {
@@ -226,12 +553,12 @@ func parseBrowserCommandOptions(args []string, allowWatch bool) (browserCommandO
 			opts.sessionIdx = sessionIdx
 		case arg == "--watch" || arg == "-w":
 			if !allowWatch {
-				return opts, errors.New("unsupported flag: " + arg)
+				return opts, errors.New("unsupported flag: " + arg + " (allowed flags: " + allowedFlagSet(false) + ")")
 			}
 			opts.watch = true
 		case strings.HasPrefix(arg, "--watch="):
 			if !allowWatch {
-				return opts, errors.New("unsupported flag: --watch")
+				return opts, errors.New("unsupported flag: --watch (allowed flags: " + allowedFlagSet(false) + ")")
 			}
 			watch, err := strconv.ParseBool(strings.TrimPrefix(arg, "--watch="))
 			if err != nil {
@@ -240,7 +567,7 @@ func parseBrowserCommandOptions(args []string, allowWatch bool) (browserCommandO
 			opts.watch = watch
 		case strings.HasPrefix(arg, "-w="):
 			if !allowWatch {
-				return opts, errors.New("unsupported flag: -w")
+				return opts, errors.New("unsupported flag: -w (allowed flags: " + allowedFlagSet(false) + ")")
 			}
 			watch, err := strconv.ParseBool(strings.TrimPrefix(arg, "-w="))
 			if err != nil {
@@ -248,7 +575,7 @@ func parseBrowserCommandOptions(args []string, allowWatch bool) (browserCommandO
 			}
 			opts.watch = watch
 		case strings.HasPrefix(arg, "-"):
-			return opts, errors.New("unsupported flag: " + arg)
+			return opts, errors.New("unsupported flag: " + arg + " (allowed flags: " + allowedFlagSet(allowWatch) + ")")
 		default:
 			opts.positional = append(opts.positional, arg)
 		}
@@ -264,31 +591,8 @@ func parseSessionIndex(raw string) (uint32, error) {
 	return uint32(idx), nil
 }
 
-func unsupportedBrowserCommandMode(args []string) string {
-	if len(args) == 0 {
-		return ""
-	}
-	switch args[0] {
-	case "space", "spaces":
-		for _, arg := range args[1:] {
-			if arg == "--watch" || arg == "-w" {
-				return "browser CLI terminal does not support watch mode"
-			}
-			if raw, ok := strings.CutPrefix(arg, "--watch="); ok {
-				enabled, err := strconv.ParseBool(raw)
-				if err != nil || enabled {
-					return "browser CLI terminal does not support watch mode"
-				}
-			}
-			if raw, ok := strings.CutPrefix(arg, "-w="); ok {
-				enabled, err := strconv.ParseBool(raw)
-				if err != nil || enabled {
-					return "browser CLI terminal does not support watch mode"
-				}
-			}
-		}
-	}
-	return ""
+func hasInterrupt(data []byte) bool {
+	return slices.Contains(data, 0x03)
 }
 
 func splitCommandLine(line string) ([]string, error) {

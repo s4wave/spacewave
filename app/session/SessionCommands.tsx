@@ -4,6 +4,7 @@ import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import {
   SessionContext,
+  useSessionIndex,
   useSessionNavigate,
 } from '@s4wave/web/contexts/contexts.js'
 import { useIsTabActive } from '@s4wave/web/contexts/TabActiveContext.js'
@@ -11,6 +12,7 @@ import { useCommand } from '@s4wave/web/command/useCommand.js'
 import type { SubItemsCallback } from '@s4wave/web/command/CommandContext.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { useBottomBarSetOpenMenu } from '@s4wave/web/frame/bottom-bar-context.js'
+import { useShellTabs } from '@s4wave/app/ShellTabContext.js'
 import {
   WatchResourcesListRequest,
   WatchResourcesListResponse,
@@ -25,6 +27,8 @@ export function SessionCommands() {
   const navigate = useNavigate()
   const setOpenMenu = useBottomBarSetOpenMenu()
   const isTabActive = useIsTabActive()
+  const sessionIdx = useSessionIndex()
+  const { activeTabId, openPathInActiveTabset } = useShellTabs()
 
   const resourcesList = useWatchStateRpc(
     useCallback(
@@ -122,6 +126,27 @@ export function SessionCommands() {
     handler: useCallback(() => {
       navigateSession({ path: 'settings/cli' })
     }, [navigateSession]),
+  })
+
+  useCommand({
+    commandId: 'spacewave.session.open-cli-terminal',
+    label: 'Open CLI terminal',
+    description: 'Open the in-app browser CLI terminal',
+    menuPath: 'File/Open CLI Terminal',
+    menuGroup: 80,
+    menuOrder: 5,
+    active: isTabActive,
+    handler: useCallback(() => {
+      const terminalPath =
+        sessionIdx != null
+          ? `/u/${sessionIdx}/settings/cli/terminal`
+          : '/settings/cli/terminal'
+      openPathInActiveTabset(terminalPath, {
+        afterTabId: activeTabId,
+        focusExisting: true,
+        select: true,
+      })
+    }, [activeTabId, openPathInActiveTabset, sessionIdx]),
   })
 
   useCommand({

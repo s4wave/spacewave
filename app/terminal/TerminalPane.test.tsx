@@ -218,6 +218,57 @@ describe('TerminalPane', () => {
     unmount()
   })
 
+  it('bounds queued client frames while still delivering CLOSE on cleanup', async () => {
+    let releaseQueue!: () => void
+    const queueReleased = new Promise<void>((resolve) => {
+      releaseQueue = resolve
+    })
+    const connectTerminal: TerminalPaneConnector = (frames, signal) => {
+      signal.addEventListener('abort', () => h.events.push('rpc.abort'))
+      void (async () => {
+        const iterator = frames[Symbol.asyncIterator]()
+        await queueReleased
+        for (;;) {
+          if (signal.aborted) return
+          const next = await iterator.next()
+          if (next.done) return
+          h.clientFrames.push(next.value)
+          if (next.value.kind === TerminalFrameKind.CLOSE) {
+            h.events.push('client.close')
+            h.resolveClose()
+          }
+        }
+      })()
+      return terminalFrames([], true)
+    }
+    const { unmount } = render(
+      <TerminalPane connectTerminal={connectTerminal} />,
+    )
+
+    await vi.waitFor(() => expect(h.onDataCallbacks).toHaveLength(1))
+
+    for (let i = 0; i < 300; i++) {
+      h.onDataCallbacks[0]?.(`queued-${String(i).padStart(3, '0')}\r`)
+    }
+    releaseQueue()
+
+    await vi.waitFor(() => expect(h.clientFrames).toHaveLength(256))
+
+    const inputFrames = h.clientFrames.filter(
+      (frame) => frame.kind === TerminalFrameKind.INPUT,
+    )
+    expect(inputFrames).toHaveLength(256)
+    expect(terminalDecoder.decode(inputFrames[0]?.data)).toBe('queued-044\r')
+    expect(terminalDecoder.decode(inputFrames.at(-1)?.data)).toBe(
+      'queued-299\r',
+    )
+
+    unmount()
+
+    await vi.waitFor(() => expect(h.events).toContain('rpc.abort'))
+    expect(h.clientFrames.at(-1)).toEqual({ kind: TerminalFrameKind.CLOSE })
+  })
+
   it('sends CLOSE before aborting RPC and disposes xterm resources during cleanup', async () => {
     const { unmount } = renderTerminalPane()
 
