@@ -22,6 +22,10 @@ func TestStableBootEntrypointStreamProgress(t *testing.T) {
 	runStableBootFixture(t, stableBootEntrypointStreamProgressFixtureScript)
 }
 
+func TestStableBootDownloadRegistry(t *testing.T) {
+	runStableBootFixture(t, stableBootDownloadRegistryFixtureScript)
+}
+
 func runStableBootFixture(t *testing.T, fixtureScript string) {
 	t.Helper()
 	if _, err := exec.LookPath("bun"); err != nil {
@@ -688,4 +692,199 @@ await runCase({
 })
 
 console.log('boot-entrypoint-stream-progress-fixture=passed')
+`
+
+const stableBootDownloadRegistryFixtureScript = `
+const bootPath = process.argv[2]
+if (!bootPath) throw new Error('missing boot asset path')
+
+const script = await Bun.file(bootPath).text()
+
+class StorageFixture {
+  constructor(entries) {
+    this.map = new Map(Object.entries(entries))
+  }
+  get length() {
+    return this.map.size
+  }
+  getItem(key) {
+    return this.map.has(key) ? this.map.get(key) : null
+  }
+  setItem(key, value) {
+    this.map.set(key, String(value))
+  }
+  removeItem(key) {
+    this.map.delete(key)
+  }
+  key(index) {
+    return Array.from(this.map.keys())[index] ?? null
+  }
+}
+
+function assert(condition, message) {
+  if (!condition) throw new Error(message)
+}
+
+async function waitFor(predicate, label) {
+  const deadline = Date.now() + 2000
+  while (Date.now() < deadline) {
+    if (predicate()) return
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+  throw new Error('timeout waiting for ' + label)
+}
+
+function streamChunks(chunks) {
+  return new ReadableStream({
+    start(controller) {
+      for (const size of chunks) {
+        controller.enqueue(new Uint8Array(size))
+      }
+      controller.close()
+    },
+  })
+}
+
+const events = []
+const downloadEventCounts = []
+const entrypointPath = '/entrypoint-registry.mjs'
+const localStorage = new StorageFixture({
+  'spacewave-browser-app-state-version': '1000000',
+})
+const sessionStorage = new StorageFixture({
+  'spacewave-browser-tab-state-version': '1000000',
+})
+Object.defineProperty(URL, 'createObjectURL', {
+  configurable: true,
+  value() {
+    events.push('object-url')
+    const source = "export default null"
+    return 'data:text/javascript;charset=utf-8,' + encodeURIComponent(source)
+  },
+})
+Object.defineProperty(URL, 'revokeObjectURL', {
+  configurable: true,
+  value() {
+    events.push('revoke:object-url')
+  },
+})
+globalThis.localStorage = localStorage
+globalThis.sessionStorage = sessionStorage
+globalThis.CustomEvent = class CustomEvent {
+  constructor(type, init) {
+    this.type = type
+    this.detail = init?.detail
+  }
+}
+globalThis.performance = { mark() {} }
+const location = {
+  href: 'https://spacewave.test/',
+  hash: '',
+  reload() {},
+  replace() {},
+}
+globalThis.window = {
+  location,
+  history: { state: null, replaceState() {} },
+  dispatchEvent(event) {
+    if (event?.type === 'spacewave-boot-download') {
+      downloadEventCounts.push((event.detail ?? []).length)
+    }
+  },
+  addEventListener() {},
+  removeEventListener() {},
+}
+globalThis.document = {
+  querySelector() {
+    return null
+  },
+  getElementById() {
+    return null
+  },
+  addEventListener() {},
+  removeEventListener() {},
+}
+globalThis.navigator = {
+  serviceWorker: {
+    async getRegistrations() {
+      return []
+    },
+  },
+}
+globalThis.caches = {
+  async keys() {
+    return []
+  },
+  async delete() {
+    return true
+  },
+}
+globalThis.fetch = async (url) => {
+  if (url === '/browser-release.json') {
+    return Response.json({
+      schemaVersion: 1,
+      generationId: 'fixture-generation',
+      autoStart: true,
+      shellAssets: {
+        entrypoint: entrypointPath,
+        entrypointDecompressedSize: 12,
+        serviceWorker: 'sw-fixture.mjs',
+        sharedWorker: 'shw-fixture.mjs',
+        wasm: '/runtime-fixture.wasm',
+        css: [],
+      },
+    })
+  }
+  if (url === '/runtime-fixture.wasm') {
+    return new Response(streamChunks([3, 5]), {
+      status: 200,
+      headers: { 'content-length': '8' },
+    })
+  }
+  if (url === entrypointPath) {
+    return new Response(streamChunks([5, 7]), {
+      status: 200,
+      headers: { 'content-length': '12' },
+    })
+  }
+  throw new Error('unexpected fetch ' + url)
+}
+
+new Function(script)()
+
+await waitFor(
+  () => events.includes('revoke:object-url'),
+  'entrypoint object URL import completion',
+)
+
+const downloads = globalThis.__swBootDownloads ?? []
+const byId = new Map(downloads.map((d) => [d.id, d]))
+await waitFor(
+  () => {
+    const runtime = (globalThis.__swBootDownloads ?? []).find((d) => d.id === 'runtime')
+    return runtime && runtime.state === 'complete'
+  },
+  'runtime download completion',
+)
+
+const finalDownloads = globalThis.__swBootDownloads ?? []
+const runtime = finalDownloads.find((d) => d.id === 'runtime')
+const app = finalDownloads.find((d) => d.id === 'app')
+
+assert(runtime, 'runtime download not registered: ' + JSON.stringify(finalDownloads))
+assert(app, 'app download not registered: ' + JSON.stringify(finalDownloads))
+assert(runtime.label === 'Runtime', 'runtime label wrong: ' + runtime.label)
+assert(app.label === 'Application', 'app label wrong: ' + app.label)
+assert(runtime.total === 8, 'runtime total not from content-length: ' + JSON.stringify(runtime))
+assert(runtime.state === 'complete', 'runtime not complete: ' + JSON.stringify(runtime))
+assert(runtime.loaded === 8, 'runtime loaded did not reach total: ' + JSON.stringify(runtime))
+assert(app.total === 12, 'app total not from size hint: ' + JSON.stringify(app))
+assert(app.state === 'complete', 'app not complete: ' + JSON.stringify(app))
+assert(app.loaded === 12, 'app loaded did not reach total: ' + JSON.stringify(app))
+assert(
+  downloadEventCounts.some((count) => count >= 2),
+  'boot-download event never reported both downloads: ' + downloadEventCounts.join(','),
+)
+
+console.log('boot-download-registry-fixture=passed')
 `

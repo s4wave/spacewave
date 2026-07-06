@@ -170,6 +170,7 @@ const bootLocalStorageKeys=storageResetKeys('localStorage','key');
 const bootLocalStoragePrefixes=storageResetKeys('localStorage','prefix');
 const bootSessionStorageKeys=storageResetKeys('sessionStorage','key');
 const bootStatusEvent='spacewave:boot-status';
+const bootDownloadEvent='spacewave-boot-download';
 const startupMarkPrefix='spacewave.startup.';
 const startupMarkEvent='spacewave-startup-mark';
 let bootLastResetDecision='unknown';
@@ -385,6 +386,131 @@ function absPath(path){
   if(/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(path))return path;
   return path.startsWith('/')?path:'/'+path;
 }
+// Boot download registry: the pre-module mirror of the bldr boot-downloads
+// owner. Producers report streamed bytes per boot asset; the static loading
+// shell renders one bar per download and the same snapshot/event feed the
+// React loading screen once it mounts. No polling: every change dispatches
+// bootDownloadEvent.
+function readBootDownloads(){return g.__swBootDownloads||[]}
+function bootDownloadFraction(d){if(d.state==='complete')return 1;if(d.total===undefined)return undefined;return Math.max(0,Math.min(1,d.loaded/d.total))}
+function formatBootBytes(bytes){if(!bytes||bytes<=0)return'0 B';const sizes=['B','KiB','MiB','GiB'];const i=Math.min(sizes.length-1,Math.floor(Math.log(bytes)/Math.log(1024)));return parseFloat((bytes/Math.pow(1024,i)).toFixed(1))+' '+sizes[i]}
+function bootDownloadDetail(d){if(d.state==='error')return d.error||'Failed';if(d.total!==undefined)return formatBootBytes(d.loaded)+' / '+formatBootBytes(d.total);if(d.loaded>0)return formatBootBytes(d.loaded);return''}
+function upsertBootDownload(id,patch){
+  const current=readBootDownloads();
+  const index=current.findIndex(function(d){return d.id===id});
+  const base=index>=0?current[index]:{id:id,label:id,loaded:0,state:'active'};
+  const next=Object.assign({},base,patch,{id:id});
+  g.__swBootDownloads=index>=0?current.map(function(d,i){return i===index?next:d}):current.concat([next]);
+  renderBootDownloads();
+  window.dispatchEvent(new CustomEvent(bootDownloadEvent,{detail:readBootDownloads()}));
+}
+function beginBootDownload(id,label,total){const patch={label:label,loaded:0,state:'active'};if(total&&Number.isFinite(total)&&total>0)patch.total=total;upsertBootDownload(id,patch)}
+function advanceBootDownload(id,loaded,total){const patch={loaded:Math.max(0,loaded),state:'active'};if(total&&Number.isFinite(total)&&total>0)patch.total=total;upsertBootDownload(id,patch)}
+function completeBootDownload(id){const cur=readBootDownloads().find(function(d){return d.id===id});const patch={state:'complete'};if(cur&&cur.total!==undefined)patch.loaded=cur.total;upsertBootDownload(id,patch)}
+function failBootDownload(id,error){const patch={state:'error'};if(error!==undefined)patch.error=error;upsertBootDownload(id,patch)}
+async function streamBootDownload(id,label,response,totalHint,onProgress){
+  const total=(totalHint&&totalHint>0)?totalHint:parsePositiveByteLength(response.headers&&response.headers.get?response.headers.get('content-length'):undefined);
+  beginBootDownload(id,label,total);
+  if(onProgress)onProgress(0,total);
+  const parts=[];
+  let loaded=0;
+  if(response.body&&response.body.getReader){
+    const reader=response.body.getReader();
+    try{
+      for(;;){
+        const read=await reader.read();
+        if(read.done)break;
+        const value=read.value;
+        if(!value||value.byteLength===0)continue;
+        parts.push(value);
+        loaded+=value.byteLength;
+        advanceBootDownload(id,loaded,total);
+        if(onProgress)onProgress(loaded,total);
+      }
+    }catch(err){failBootDownload(id,err&&err.message?err.message:String(err));throw err}
+    finally{reader.releaseLock()}
+  }else{
+    const body=await response.arrayBuffer();
+    parts.push(body);
+    loaded=body.byteLength;
+    advanceBootDownload(id,loaded,total);
+    if(onProgress)onProgress(loaded,total);
+  }
+  completeBootDownload(id);
+  if(onProgress)onProgress(total!==undefined?total:loaded,total);
+  return parts;
+}
+async function streamRuntimeDownload(wasmUrl){
+  try{
+    const response=await fetch(wasmUrl);
+    if(!response.ok)throw new Error('failed to load runtime: '+response.status);
+    await streamBootDownload('runtime','Runtime',response);
+  }catch(err){
+    failBootDownload('runtime',err&&err.message?err.message:String(err));
+    console.error('boot.mjs: failed to stream runtime wasm',err);
+  }
+}
+function renderBootDownloadRow(container,id){
+  let row=container.querySelector('[data-sw-boot-download="'+id+'"]');
+  if(row)return row;
+  row=document.createElement('div');
+  row.setAttribute('data-sw-boot-download',id);
+  row.style.cssText='display:flex;flex-direction:column;gap:0.25rem;width:100%';
+  const head=document.createElement('div');
+  head.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:0.5rem;font-size:0.7rem';
+  const label=document.createElement('span');
+  label.setAttribute('data-sw-boot-download-label','');
+  label.style.cssText='overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;color:color-mix(in srgb,var(--color-foreground,#fafafa) 85%,transparent)';
+  const detail=document.createElement('span');
+  detail.setAttribute('data-sw-boot-download-detail','');
+  detail.style.cssText='flex-shrink:0;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-variant-numeric:tabular-nums;color:color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 70%,transparent)';
+  head.appendChild(label);head.appendChild(detail);
+  const track=document.createElement('div');
+  track.style.cssText='position:relative;height:0.375rem;width:100%;overflow:hidden;border-radius:9999px;background:color-mix(in srgb,var(--color-foreground,#fafafa) 8%,transparent)';
+  const bar=document.createElement('div');
+  bar.setAttribute('data-sw-boot-download-bar','');
+  bar.style.cssText='height:100%;border-radius:9999px;background:var(--color-brand,var(--color-logo-blue,#4f8cff));transition:width 200ms';
+  track.appendChild(bar);
+  row.appendChild(head);row.appendChild(track);
+  container.appendChild(row);
+  return row;
+}
+function renderBootDownloads(){
+  if(typeof document==='undefined'||!document.querySelector)return;
+  const container=document.querySelector('[data-sw-boot-downloads]');
+  if(!canMutateBootStatusTarget(container)||typeof document.createElement!=='function')return;
+  const downloads=readBootDownloads();
+  container.style.display=downloads.length?'flex':'none';
+  const seen={};
+  for(const d of downloads){
+    seen[d.id]=true;
+    const row=renderBootDownloadRow(container,d.id);
+    const labelEl=row.querySelector('[data-sw-boot-download-label]');
+    if(labelEl)labelEl.textContent=d.label;
+    const detailEl=row.querySelector('[data-sw-boot-download-detail]');
+    if(detailEl){
+      detailEl.textContent=bootDownloadDetail(d);
+      detailEl.style.color=d.state==='error'?'var(--color-destructive,#ef4444)':'color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 70%,transparent)';
+    }
+    const bar=row.querySelector('[data-sw-boot-download-bar]');
+    if(bar){
+      const frac=bootDownloadFraction(d);
+      if(frac===undefined&&d.state!=='error'){
+        bar.style.width='33%';
+        bar.classList.toggle('animate-progress-indeterminate',true);
+      }else{
+        bar.classList.toggle('animate-progress-indeterminate',false);
+        bar.style.width=Math.round((frac||0)*100)+'%';
+        bar.style.background=d.state==='error'?'var(--color-destructive,#ef4444)':'var(--color-brand,var(--color-logo-blue,#4f8cff))';
+      }
+    }
+  }
+  const rows=container.querySelectorAll('[data-sw-boot-download]');
+  for(const row of rows){
+    const id=row.getAttribute('data-sw-boot-download');
+    if(!seen[id])row.remove();
+  }
+}
 function loadRelease(){
   if(releasePromise)return releasePromise;
   setBootStatus('manifest','Loading browser release...');
@@ -411,7 +537,7 @@ function primeRelease(){
   primePromise=loadRelease().then(function(release){
     if(release.wasm){
       setBootStatus('wasm','Preparing runtime...');
-      fetch(release.wasm);
+      void streamRuntimeDownload(release.wasm);
     }
     return release;
   });
@@ -422,30 +548,11 @@ async function fetchEntrypointModule(release){
   const response=await fetch(release.entrypoint,{credentials:'same-origin'});
   if(!response.ok)throw new Error('failed to load entrypoint bundle: '+response.status);
   const total=release.entrypointDecompressedSize||parsePositiveByteLength(response.headers&&response.headers.get?response.headers.get('content-length'):undefined);
-  const parts=[];
-  let loaded=0;
   if(total!==undefined)setBootStatus('app',startupPhaseInfo.frame.detail,'loading',0);
   else setBootStatus('app',startupPhaseInfo.frame.detail);
-  if(response.body&&response.body.getReader){
-    const reader=response.body.getReader();
-    try{
-      for(;;){
-        const read=await reader.read();
-        if(read.done)break;
-        const value=read.value;
-        if(!value||value.byteLength===0)continue;
-        parts.push(value);
-        loaded+=value.byteLength;
-        if(total!==undefined)setBootStatus('app',startupPhaseInfo.frame.detail,'loading',loaded/total);
-      }
-    }finally{
-      reader.releaseLock();
-    }
-  }else{
-    const body=await response.arrayBuffer();
-    parts.push(body);
-    loaded=body.byteLength;
-  }
+  const parts=await streamBootDownload('app','Application',response,total,function(loaded,streamTotal){
+    if(streamTotal!==undefined)setBootStatus('app',startupPhaseInfo.frame.detail,'loading',loaded/streamTotal);
+  });
   if(total!==undefined)setBootStatus('app',startupPhaseInfo.frame.detail,'loading',1);
   return URL.createObjectURL(new Blob(parts,{type:'application/javascript'}));
 }

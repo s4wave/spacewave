@@ -53,3 +53,16 @@ export { createAbortController } from './abort.js'
 export { newULID, parseULID } from './ulid.js'
 export { markStartupBoundary } from './startup-marks.js'
 export type { StartupMarkDetail } from './startup-marks.js'
+export {
+  bootDownloadEvent,
+  readBootDownloads,
+  subscribeBootDownloads,
+  beginBootDownload,
+  advanceBootDownload,
+  completeBootDownload,
+  failBootDownload,
+  streamResponseWithBootProgress,
+  bootDownloadFraction,
+  resetBootDownloadsForTest,
+} from './boot-downloads.js'
+export type { BootDownload, BootDownloadState } from './boot-downloads.js'

@@ -7,6 +7,7 @@ import {
   markBrowserStartupBoundary,
   resetBrowserStartupMarksForTest,
 } from './boot-status.js'
+import { resetBootDownloadsForTest, type BootDownload } from '@aptre/bldr'
 import { Pricing } from '@s4wave/app/landing/Pricing.js'
 import { AppLoadingScreen } from '@s4wave/app/loading/AppLoadingScreen.js'
 import { QuickstartLoading } from '@s4wave/app/quickstart/QuickstartLoading.js'
@@ -32,6 +33,12 @@ function setBootPhaseProgress(phase: string, progress: number) {
     state: 'loading',
     progress,
   }
+}
+
+const MiB = 1024 * 1024
+
+function setBootDownloads(downloads: BootDownload[]) {
+  globalThis.__swBootDownloads = downloads
 }
 
 async function renderSurface(children: ReactNode) {
@@ -76,6 +83,8 @@ describe('browser startup progress surfaces', () => {
     localStorage.clear()
     window.location.hash = ''
     globalThis.__swBootStatus = undefined
+    globalThis.__swBootDownloads = undefined
+    resetBootDownloadsForTest()
     resetBrowserStartupMarksForTest()
     window.matchMedia = originalMatchMedia
     await page.viewport(1280, 800)
@@ -85,6 +94,8 @@ describe('browser startup progress surfaces', () => {
     await cleanup()
     localStorage.clear()
     globalThis.__swBootStatus = undefined
+    globalThis.__swBootDownloads = undefined
+    resetBootDownloadsForTest()
     resetBrowserStartupMarksForTest()
     window.matchMedia = originalMatchMedia
     setRoute('/')
@@ -142,6 +153,56 @@ describe('browser startup progress surfaces', () => {
     await expect.element(page.getByText('37%')).toBeInTheDocument()
 
     await captureStartupEvidence('frame-download-progress-desktop')
+  })
+
+  it('renders a live per-asset download breakdown mid-boot', async () => {
+    localStorage.setItem('spacewave-has-session', '1')
+    setBootPhase('app')
+    setBootDownloads([
+      {
+        id: 'runtime',
+        label: 'Runtime',
+        loaded: 8 * MiB,
+        total: 8 * MiB,
+        state: 'complete',
+      },
+      {
+        id: 'app',
+        label: 'Application',
+        loaded: 3355443,
+        total: 8912896,
+        state: 'active',
+      },
+      {
+        id: '/b/pa/spacewave-app/v/b/fe/module.mjs',
+        label: 'spacewave-app',
+        loaded: 0,
+        state: 'active',
+      },
+    ])
+
+    await renderSurface(<AppLoadingScreen />)
+
+    // The plugin row's label is unique to the download list.
+    await expect
+      .element(page.getByText('spacewave-app', { exact: true }))
+      .toBeInTheDocument()
+    // App bundle shows streamed bytes against its known total.
+    await expect
+      .element(page.getByText('3.2 MiB / 8.5 MiB'))
+      .toBeInTheDocument()
+    // The completed runtime download lands on a full bar.
+    await expect.element(page.getByText('8 MiB / 8 MiB')).toBeInTheDocument()
+
+    // One row per registered download, keyed by id.
+    expect(
+      document.querySelectorAll('[data-sw-startup-download]'),
+    ).toHaveLength(3)
+    expect(
+      document.querySelector('[data-sw-startup-download="runtime"]'),
+    ).not.toBeNull()
+
+    await captureStartupEvidence('per-asset-download-breakdown-desktop')
   })
 
   it('reaches the ready handoff at full progress', async () => {

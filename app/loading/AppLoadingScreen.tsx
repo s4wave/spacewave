@@ -1,12 +1,15 @@
 import { useEffect, type ReactNode } from 'react'
 
 import '@s4wave/web/style/app.css'
+import { bootDownloadFraction, formatBytes, type BootDownload } from '@aptre/bldr'
 import { LoadingScreen } from '@s4wave/web/ui/loading/LoadingScreen.js'
+import { ProgressBar } from '@s4wave/web/ui/loading/ProgressBar.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { useReducedMotion } from '@s4wave/web/ui/loading/index.js'
 
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { useBrowserStartupProjection } from '@s4wave/app/loading/status/browser-startup.js'
+import { useBootDownloads } from '@s4wave/app/loading/status/browser-downloads.js'
 import type {
   BrowserStartupPhaseID,
   BrowserStartupPhaseView,
@@ -38,6 +41,7 @@ export function AppLoadingScreen() {
           data-sw-startup-reduced-motion={reducedMotion ? 'true' : undefined}
         >
           <BrowserStartupPhaseRail phases={startup.phases} />
+          <BrowserStartupDownloadList />
           <BrowserStartupPreviewSurface phase={startup.phase.id} />
         </div>
       </LoadingScreen>
@@ -150,6 +154,68 @@ export function BrowserStartupPhaseRail({
       </ol>
     </div>
   )
+}
+
+// BrowserStartupDownloadList renders the live per-asset download breakdown from
+// the boot download registry: one labeled progress bar per boot asset (runtime,
+// app bundle, and any plugin modules) with streamed bytes and percent. It
+// renders nothing until a producer registers a download, so screens that never
+// stream bytes stay unchanged.
+export function BrowserStartupDownloadList() {
+  const downloads = useBootDownloads()
+  if (downloads.length === 0) return null
+  return (
+    <ul
+      aria-label="Downloads"
+      data-sw-startup-downloads
+      className="flex w-full flex-col gap-3"
+    >
+      {downloads.map((download) => (
+        <li key={download.id} data-sw-startup-download={download.id}>
+          <BrowserStartupDownloadRow download={download} />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function BrowserStartupDownloadRow({ download }: { download: BootDownload }) {
+  const fraction = bootDownloadFraction(download)
+  const failed = download.state === 'error'
+  return (
+    <div className="flex w-full flex-col gap-1">
+      <div className="flex items-center justify-between gap-2 text-[0.7rem]">
+        <span className="text-foreground/85 truncate font-medium">
+          {download.label}
+        </span>
+        <span
+          data-sw-startup-download-detail
+          className={cn(
+            'shrink-0 font-mono tabular-nums',
+            failed ? 'text-destructive' : 'text-foreground-alt/70',
+          )}
+        >
+          {downloadDetailText(download)}
+        </span>
+      </div>
+      <ProgressBar
+        value={fraction === undefined ? undefined : fraction * 100}
+        indeterminate={!failed && fraction === undefined}
+      />
+    </div>
+  )
+}
+
+// downloadDetailText renders the streamed byte counter, or the error message
+// when the download failed. A known total shows "loaded / total"; an unknown
+// total shows the bytes seen so far without a faked denominator.
+function downloadDetailText(download: BootDownload): string {
+  if (download.state === 'error') return download.error ?? 'Failed'
+  if (download.total !== undefined) {
+    return `${formatBytes(download.loaded, 1)} / ${formatBytes(download.total, 1)}`
+  }
+  if (download.loaded > 0) return formatBytes(download.loaded, 1)
+  return ''
 }
 
 // phaseRailActiveIndex returns the index the connecting track should fill to:

@@ -1,3 +1,9 @@
+import {
+  beginBootDownload,
+  completeBootDownload,
+  failBootDownload,
+} from '../bldr/boot-downloads.js'
+
 export interface WebViewRootAssetResult {
   scriptPath: string
   status: number
@@ -34,6 +40,14 @@ const rootPluginAssetPrefix = '/b/pa/'
 export const webViewRootAssetStatusEvent = 'bldr:webview-root-asset-status'
 export const webViewModuleImportErrorEvent = 'bldr:webview-module-import-error'
 const moduleImportRetryNonceByScriptPath = new Map<string, number>()
+
+// webViewDownloadLabel derives a readable plugin name from a root asset path
+// such as "/b/pa/spacewave-app/v/b/fe/module.mjs" -> "spacewave-app".
+function webViewDownloadLabel(scriptPath: string): string {
+  const afterPrefix = scriptPath.slice(scriptPath.indexOf(rootPluginAssetPrefix) + rootPluginAssetPrefix.length)
+  const pluginId = afterPrefix.split('/')[0]
+  return pluginId || 'Plugin'
+}
 
 function headerValue(headers: Headers, name: string): string | undefined {
   return headers.get(name) ?? undefined
@@ -229,10 +243,21 @@ export async function loadWebViewScriptModule<T>(
   scriptPath: string,
   options: LoadWebViewScriptModuleOptions<T> = {},
 ): Promise<T> {
-  const rootAsset = isWebViewRootPluginAssetPath(scriptPath)
+  const isRootPluginAsset = isWebViewRootPluginAssetPath(scriptPath)
+  // The browser's native dynamic import() exposes no byte progress, so a plugin
+  // module load is tracked at honest started/completed granularity (no faked
+  // percentage) rather than a smooth bar. The boot download registry owns the
+  // per-plugin accounting; the loading screen renders it.
+  if (isRootPluginAsset) {
+    beginBootDownload(scriptPath, webViewDownloadLabel(scriptPath))
+  }
+  const rootAsset = isRootPluginAsset
     ? await fetchWebViewRootAssetResult(scriptPath, options.fetchRootAsset)
     : undefined
   if (rootAsset && (!rootAsset.ok || rootAsset.classification !== 'live')) {
+    if (isRootPluginAsset) {
+      failBootDownload(scriptPath, rootAsset.classification)
+    }
     throw new WebViewRootAssetLoadError(rootAsset)
   }
 
@@ -241,9 +266,15 @@ export async function loadWebViewScriptModule<T>(
   try {
     const module = await importModule(moduleImportPath)
     recordModuleImportSuccess(scriptPath)
+    if (isRootPluginAsset) {
+      completeBootDownload(scriptPath)
+    }
     return module
   } catch (error) {
     recordModuleImportFailure(scriptPath)
+    if (isRootPluginAsset) {
+      failBootDownload(scriptPath, serializeImportError(error).message)
+    }
     recordWebViewModuleImportError({
       scriptPath,
       ...serializeImportError(error),
