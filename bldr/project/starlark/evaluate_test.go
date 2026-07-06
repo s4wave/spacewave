@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	bldr_cli_compiler "github.com/s4wave/spacewave/bldr/cli/compiler"
+	bldr_dist_compiler "github.com/s4wave/spacewave/bldr/dist/compiler"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 )
@@ -487,6 +488,10 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 			t.Fatalf("browser release override config missing %s: %s", want, browserCfg)
 		}
 	}
+	browserDistConf := mustDistConfig(t, browserOverride.GetConfig())
+	assertDistEmbedPlatform(t, "release-web", browserDistConf, "spacewave-launcher", "js")
+	assertDistEmbedPlatform(t, "release-web", browserDistConf, "spacewave-core", "js")
+
 	for _, coldPlugin := range []string{`"spacewave-notes"`, `"spacewave-v86"`} {
 		if strings.Contains(browserCfg, coldPlugin) {
 			t.Fatalf("browser release embed/load config unexpectedly includes cold plugin %s: %s", coldPlugin, browserCfg)
@@ -546,6 +551,10 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 			t.Fatalf("release-web-e2e dist override missing %s: %s", want, e2eDistCfg)
 		}
 	}
+	e2eDistConf := mustDistConfig(t, e2eBrowserOverride.GetConfig())
+	assertDistEmbedPlatform(t, "release-web-e2e", e2eDistConf, "spacewave-launcher", "web/js/wasm")
+	assertDistEmbedPlatform(t, "release-web-e2e", e2eDistConf, "spacewave-core", "web/js/wasm")
+
 	for _, unexpected := range []string{
 		`"embeddedManifestOverrides"`,
 		`"spacewave-notes"`,
@@ -709,6 +718,13 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 	if tinygoReleaseWebConf.GetGoCompiler() != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_TINYGO {
 		t.Fatalf("TinyGo release-web spacewave-core goCompiler: got %s, want GO_COMPILER_TINYGO", tinygoReleaseWebConf.GetGoCompiler())
 	}
+	tinygoReleaseBrowserOverride := tinygoReleaseBuild.GetManifestOverrides()["spacewave-browser"]
+	if tinygoReleaseBrowserOverride == nil {
+		t.Fatal("spacewave-browser TinyGo release-web override not found")
+	}
+	tinygoReleaseDistConf := mustDistConfig(t, tinygoReleaseBrowserOverride.GetConfig())
+	assertDistEmbedPlatform(t, "release-web-tinygo", tinygoReleaseDistConf, "spacewave-launcher", "web/js/wasm")
+	assertDistEmbedPlatform(t, "release-web-tinygo", tinygoReleaseDistConf, "spacewave-core", "web/js/wasm")
 
 	goscriptE2EReleaseBuild := result.Config.GetBuild()["release-web-e2e-goscript"]
 	if goscriptE2EReleaseBuild == nil {
@@ -719,19 +735,19 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 		t.Fatal("spacewave-core GoScript release-web e2e override not found")
 	}
 	goscriptE2EReleaseCoreConf := mustGoPluginConfig(t, goscriptE2EReleaseOverride.GetConfig())
-	goscriptE2EReleaseWebConf := flattenGoConfigForPlatform(t, goscriptE2EReleaseCoreConf, "web/js/wasm")
-	if goscriptE2EReleaseWebConf.GetGoCompiler() != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT {
-		t.Fatalf("GoScript release-web e2e spacewave-core goCompiler: got %s, want GO_COMPILER_GOSCRIPT", goscriptE2EReleaseWebConf.GetGoCompiler())
+	goscriptE2EReleaseJSConf := flattenGoConfigForPlatform(t, goscriptE2EReleaseCoreConf, "js")
+	if goscriptE2EReleaseJSConf.GetGoCompiler() != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT {
+		t.Fatalf("GoScript release-web e2e spacewave-core js goCompiler: got %s, want GO_COMPILER_GOSCRIPT", goscriptE2EReleaseJSConf.GetGoCompiler())
 	}
-	assertGoConfigIncludesHTTPExport(t, "GoScript release-web e2e spacewave-core", goscriptE2EReleaseWebConf)
+	assertGoConfigIncludesHTTPExport(t, "GoScript release-web e2e js spacewave-core", goscriptE2EReleaseJSConf)
 	goscriptE2EReleaseLauncherOverride := goscriptE2EReleaseBuild.GetManifestOverrides()["spacewave-launcher"]
 	if goscriptE2EReleaseLauncherOverride == nil {
 		t.Fatal("spacewave-launcher GoScript release-web e2e override not found")
 	}
 	goscriptE2EReleaseLauncherConf := mustGoPluginConfig(t, goscriptE2EReleaseLauncherOverride.GetConfig())
-	goscriptE2EReleaseLauncherWebConf := flattenGoConfigForPlatform(t, goscriptE2EReleaseLauncherConf, "web/js/wasm")
-	if goscriptE2EReleaseLauncherWebConf.GetGoCompiler() != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT {
-		t.Fatalf("GoScript release-web e2e spacewave-launcher goCompiler: got %s, want GO_COMPILER_GOSCRIPT", goscriptE2EReleaseLauncherWebConf.GetGoCompiler())
+	goscriptE2EReleaseLauncherJSConf := flattenGoConfigForPlatform(t, goscriptE2EReleaseLauncherConf, "js")
+	if goscriptE2EReleaseLauncherJSConf.GetGoCompiler() != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT {
+		t.Fatalf("GoScript release-web e2e spacewave-launcher js goCompiler: got %s, want GO_COMPILER_GOSCRIPT", goscriptE2EReleaseLauncherJSConf.GetGoCompiler())
 	}
 	assertBrowserLauncherOmitsReleaseWorld(t, "GoScript release-web e2e", goscriptE2EReleaseLauncherConf)
 
@@ -741,6 +757,34 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 	}
 	cliConf := mustCliConfig(t, cli.GetBuilder().GetConfig())
 	assertCliConfigOmitsDesktopStatusProjector(t, "spacewave CLI", cliConf)
+}
+
+func mustDistConfig(t *testing.T, data []byte) *bldr_dist_compiler.Config {
+	t.Helper()
+	conf := &bldr_dist_compiler.Config{}
+	if err := conf.UnmarshalJSON(data); err != nil {
+		t.Fatalf("unmarshal dist config: %v\n%s", err, string(data))
+	}
+	return conf
+}
+
+func assertDistEmbedPlatform(
+	t *testing.T,
+	label string,
+	conf *bldr_dist_compiler.Config,
+	manifestID string,
+	wantPlatformID string,
+) {
+	t.Helper()
+	for _, embed := range conf.GetEmbedManifests() {
+		if embed.GetManifestId() == manifestID {
+			if got := embed.GetPlatformId(); got != wantPlatformID {
+				t.Fatalf("%s embeds %s platform: got %q, want %q", label, manifestID, got, wantPlatformID)
+			}
+			return
+		}
+	}
+	t.Fatalf("%s embed manifests missing %s: %v", label, manifestID, conf.GetEmbedManifests())
 }
 
 func mustGoPluginConfig(t *testing.T, data []byte) *bldr_plugin_compiler_go.Config {

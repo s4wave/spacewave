@@ -24,6 +24,7 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
+	bldr_platform_go "github.com/s4wave/spacewave/bldr/platform/go"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bldr_plugin_compiler "github.com/s4wave/spacewave/bldr/plugin/compiler"
 	plugin_host_configset "github.com/s4wave/spacewave/bldr/plugin/host/configset"
@@ -183,12 +184,6 @@ func (c *Controller) BuildManifest(
 		WithField("build-type", buildType).
 		WithField("platform-id", platformID)
 
-	// Do nothing if we are not targeting a supported platform (by the Go compiler).
-	// We could theoretically target "js" with gopherjs or goscript in future.
-	if _, ok := buildPlatform.(*bldr_platform.NativePlatform); !ok {
-		le.Warnf("skipping build for non-go platform: %v", buildPlatform.GetInputPlatformID())
-		return nil, nil
-	}
 	le.Debug("building plugin manifest")
 
 	// if we are in dev mode, use the dev info file for hot reload compatibility.
@@ -265,6 +260,19 @@ func (c *Controller) BuildManifest(
 
 		// apply the per-platform-type configs
 		pluginBuildConf.FlattenPlatformTypes(buildPlatform)
+
+		goCompiler, err := resolveBuildGoCompiler(buildPlatform, buildType, pluginBuildConf.GetGoCompiler())
+		if err != nil {
+			return nil, err
+		}
+		supported, err := validateGoCompilerPlatform(buildPlatform, goCompiler)
+		if err != nil {
+			return nil, err
+		}
+		if !supported {
+			le.Warnf("skipping build for non-go platform: %v", buildPlatform.GetInputPlatformID())
+			return nil, nil
+		}
 
 		// call any pre-build hooks
 		for _, hook := range c.preBuildHooks {
@@ -368,6 +376,57 @@ func (c *Controller) BuildManifest(
 	return result, nil
 }
 
+func resolveBuildGoCompiler(
+	buildPlatform bldr_platform.Platform,
+	buildType bldr_manifest.BuildType,
+	goCompilerOpt GoCompiler,
+) (gocompiler.GoCompiler, error) {
+	resolvedModeOpt, err := goCompilerOpt.GoCompiler()
+	if err != nil {
+		return "", err
+	}
+	defaultTinygoEnabled := false
+	if _, ok := buildPlatform.(*bldr_platform.NativePlatform); ok && buildPlatform.GetExecutableExt() == ".mjs" {
+		defaultTinygoEnabled = gocompiler.DefaultTinyGoEnabled(buildPlatform, buildType.IsRelease())
+	}
+	return gocompiler.ResolveGoCompiler(
+		buildPlatform,
+		resolvedModeOpt,
+		defaultTinygoEnabled,
+	)
+}
+
+func validateGoCompilerPlatform(buildPlatform bldr_platform.Platform, goCompiler gocompiler.GoCompiler) (bool, error) {
+	if goCompiler.IsGoScript() {
+		if buildPlatform.GetExecutableExt() != ".mjs" {
+			return false, errors.New("goscript Go compiler requires a JavaScript module platform")
+		}
+		return true, nil
+	}
+	if _, ok := buildPlatform.(*bldr_platform.NativePlatform); !ok {
+		return false, nil
+	}
+	return true, nil
+}
+
+func goAnalysisEnv(buildPlatform bldr_platform.Platform) (string, string, error) {
+	platformEnv, err := bldr_platform_go.PlatformToGoEnv(buildPlatform)
+	if err != nil {
+		return "", "", err
+	}
+	var goos, goarch string
+	for _, env := range platformEnv {
+		if value, ok := strings.CutPrefix(env, "GOOS="); ok {
+			goos = value
+			continue
+		}
+		if value, ok := strings.CutPrefix(env, "GOARCH="); ok {
+			goarch = value
+		}
+	}
+	return goos, goarch, nil
+}
+
 // BuildPlugin compiles the plugin once, committing it to the target world.
 //
 // webPluginID is optional, if set, automatically adds controllers to configure the web plugin.
@@ -421,22 +480,18 @@ func (c *Controller) BuildPlugin(
 	enableCgo := enableCgoOpt.IsEnabled(false)
 	// enable compression for release mode only on default (isRelease means default value depends on release mode)
 	enableCompression := enableCompressionOpt.IsEnabled(isRelease)
-	resolvedModeOpt, err := goCompilerOpt.GoCompiler()
+	goCompiler, err := resolveBuildGoCompiler(buildPlatform, buildType, goCompilerOpt)
 	if err != nil {
 		return nil, nil, err
 	}
-	goCompiler, err := gocompiler.ResolveGoCompiler(
-		buildPlatform,
-		resolvedModeOpt,
-		isWebBuildPlatform && gocompiler.DefaultTinyGoEnabled(buildPlatform, isRelease),
-	)
+	supported, err := validateGoCompilerPlatform(buildPlatform, goCompiler)
 	if err != nil {
 		return nil, nil, err
+	}
+	if !supported {
+		return nil, nil, errors.Errorf("go compiler %s does not support platform %s", goCompiler, buildPlatform.GetInputPlatformID())
 	}
 	useGoScript := goCompiler == gocompiler.GoCompilerGoScript
-	if useGoScript && !isWebBuildPlatform {
-		return nil, nil, errors.New("goscript Go compiler currently requires a browser WebAssembly platform")
-	}
 	resolvedGoCompiler, err := GoCompilerFromGoCompiler(goCompiler)
 	if err != nil {
 		return nil, nil, err
@@ -554,11 +609,11 @@ func (c *Controller) BuildPlugin(
 	buildTagsForAnalyze := newBuildTagsForAnalyze(buildType, enableCgo, goCompiler)
 	// Match analysis GOOS/GOARCH to the target so factories gated on
 	// platform-specific build tags (e.g. volume_bolt with "//go:build !js")
-	// are excluded from the generated factory list when targeting js/wasm.
-	var analyzeGOOS, analyzeGOARCH string
-	if native, ok := buildPlatform.(*bldr_platform.NativePlatform); ok {
-		analyzeGOOS = native.GetGOOS()
-		analyzeGOARCH = native.GetGOARCH()
+	// are excluded from the generated factory list when targeting browser
+	// JavaScript, whether the artifact platform is web/js/wasm or js.
+	analyzeGOOS, analyzeGOARCH, err := goAnalysisEnv(buildPlatform)
+	if err != nil {
+		return nil, nil, err
 	}
 	an, err := AnalyzePackages(
 		ctx,
@@ -1711,7 +1766,7 @@ func writeDevInfoFile(le *logrus.Entry, outDistPath, devInfoFile string, devInfo
 
 // GetSupportedPlatforms returns the base platform IDs this compiler supports.
 func (c *Controller) GetSupportedPlatforms() []string {
-	return []string{bldr_platform.PlatformID_DESKTOP, bldr_platform.PlatformID_WEB}
+	return []string{bldr_platform.PlatformID_DESKTOP, bldr_platform.PlatformID_WEB, bldr_platform.PlatformID_JS}
 }
 
 // _ is a type assertion

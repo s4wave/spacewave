@@ -270,7 +270,7 @@ func (m *ModuleCompiler) CompilePluginGoScript(
 	buildFlags []string,
 	overrideDirs []string,
 ) (string, error) {
-	mainPackagePath, err := gocompiler.GoListImportPath(ctx, m.pluginCodegenPath, buildFlags)
+	mainPackagePath, err := gocompiler.GoListImportPath(ctx, m.pluginCodegenPath, buildFlags, "GOOS=js", "GOARCH=wasm")
 	if err != nil {
 		return "", err
 	}

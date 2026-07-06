@@ -3,6 +3,8 @@
 package bldr_plugin_compiler_go
 
 import (
+	"context"
+	"errors"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -10,7 +12,10 @@ import (
 
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
+	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
+	"github.com/s4wave/spacewave/db/world"
+	"github.com/sirupsen/logrus"
 )
 
 func TestAddTinyGoStartupCacheInputsIncludesProfileIdentity(t *testing.T) {
@@ -125,6 +130,91 @@ func TestNewGoScriptBuildFlagsIncludesGoScriptTag(t *testing.T) {
 		if !slices.Contains(tags, want) {
 			t.Fatalf("GoScript build tags missing %q: %v", want, tags)
 		}
+	}
+}
+
+func TestControllerSupportedPlatformsIncludesJS(t *testing.T) {
+	ctrl, err := NewController(logrus.NewEntry(logrus.New()), nil, NewConfig())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(ctrl.GetSupportedPlatforms(), bldr_platform.PlatformID_JS) {
+		t.Fatalf("supported platforms = %v, want js for explicit GoScript builds", ctrl.GetSupportedPlatforms())
+	}
+}
+
+func TestBuildManifestAllowsExplicitGoScriptJSPlatform(t *testing.T) {
+	t.Setenv(gocompiler.GoCompilerEnv, "")
+	sentinelErr := errors.New("goscript js build reached pre-build hook")
+
+	ctrl, err := NewController(logrus.NewEntry(logrus.New()), nil, &Config{
+		PlatformTypes: map[string]*Config{
+			"js": {
+				GoCompiler: GoCompiler_GO_COMPILER_GOSCRIPT,
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hookCalled := false
+	ctrl.AddPreBuildHook(func(_ context.Context, builderConf *bldr_manifest_builder.BuilderConfig, _ world.Engine) (*PreBuildHookResult, error) {
+		hookCalled = true
+		if got := builderConf.GetManifestMeta().GetPlatformId(); got != "js" {
+			t.Fatalf("pre-build hook platform id: got %q, want js", got)
+		}
+		return nil, sentinelErr
+	})
+
+	result, err := ctrl.BuildManifest(context.Background(), newTestJSBuildManifestArgs(t), nil)
+	if !errors.Is(err, sentinelErr) {
+		t.Fatalf("BuildManifest error = %v, want pre-build hook sentinel for explicit GoScript js platform", err)
+	}
+	if result != nil {
+		t.Fatalf("BuildManifest result = %v, want nil when pre-build hook stops build", result)
+	}
+	if !hookCalled {
+		t.Fatal("explicit GoScript js platform skipped before compiler validation reached pre-build hook")
+	}
+}
+
+func TestBuildManifestSkipsDefaultJSPlatform(t *testing.T) {
+	t.Setenv(gocompiler.GoCompilerEnv, "")
+
+	ctrl, err := NewController(logrus.NewEntry(logrus.New()), nil, NewConfig())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hookCalled := false
+	ctrl.AddPreBuildHook(func(_ context.Context, _ *bldr_manifest_builder.BuilderConfig, _ world.Engine) (*PreBuildHookResult, error) {
+		hookCalled = true
+		return nil, errors.New("default js platform should skip before pre-build hook")
+	})
+
+	result, err := ctrl.BuildManifest(context.Background(), newTestJSBuildManifestArgs(t), nil)
+	if err != nil {
+		t.Fatalf("BuildManifest default js error = %v, want skip without error", err)
+	}
+	if result != nil {
+		t.Fatalf("BuildManifest default js result = %v, want nil skip result", result)
+	}
+	if hookCalled {
+		t.Fatal("default js platform reached Go compiler pre-build hook without explicit GoScript compiler")
+	}
+}
+
+func newTestJSBuildManifestArgs(t *testing.T) *bldr_manifest_builder.BuildManifestArgs {
+	t.Helper()
+	workDir := t.TempDir()
+	return &bldr_manifest_builder.BuildManifestArgs{
+		BuilderConfig: &bldr_manifest_builder.BuilderConfig{
+			ManifestMeta:   bldr_manifest.NewManifestMeta("spacewave-core", bldr_manifest.BuildType_RELEASE, "js", 1),
+			SourcePath:     t.TempDir(),
+			DistSourcePath: t.TempDir(),
+			WorkingPath:    workDir,
+		},
 	}
 }
 

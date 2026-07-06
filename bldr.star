@@ -84,6 +84,12 @@ def desktop_status_projector_config_set():
         "desktop-status-projector": config_entry("resource/desktop/status-projector", 1),
     }
 
+def browser_go_compiler_platform(go_compiler):
+    if go_compiler == "GO_COMPILER_GOSCRIPT":
+        return "js"
+    return "web"
+
+
 def spacewave_core_config(web_go_compiler=None):
     platform_types = {
         "desktop": {
@@ -92,7 +98,7 @@ def spacewave_core_config(web_go_compiler=None):
         },
     }
     if web_go_compiler:
-        platform_types["web"] = {
+        platform_types[browser_go_compiler_platform(web_go_compiler)] = {
             "goCompiler": web_go_compiler,
         }
     return {
@@ -179,7 +185,7 @@ def spacewave_launcher_config(
     }
     if web_go_compiler:
         conf["platformTypes"] = {
-            "web": {
+            browser_go_compiler_platform(web_go_compiler): {
                 "goCompiler": web_go_compiler,
             },
         }
@@ -298,7 +304,7 @@ manifest("spacewave-cli-plugin",
             "spacewave-cli-plugin": config_entry("plugin/cli", 1),
         },
         "platformTypes": {
-            "web": {
+            "js": {
                 "goCompiler": "GO_COMPILER_GOSCRIPT",
             },
         },
@@ -470,30 +476,25 @@ REMOTE_WORLD_MANIFESTS = [
     "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86",
     "spacewave-cli-plugin", "web",
 ]
-BROWSER_RELEASE_EMBED_MANIFESTS = [
-    {"manifestId": "spacewave-launcher",
-     "platformId": "web/js/wasm"},
-    {"manifestId": "spacewave-core",
-     "platformId": "web/js/wasm"},
-    {"manifestId": "web",
-     "platformId": "web/js/wasm"},
-    {"manifestId": "spacewave-web",
-     "platformId": "js"},
-    {"manifestId": "spacewave-app",
-     "platformId": "js"},
-]
-BROWSER_RELEASE_E2E_EMBED_MANIFESTS = [
-    {"manifestId": "spacewave-launcher",
-     "platformId": "web/js/wasm"},
-    {"manifestId": "spacewave-core",
-     "platformId": "web/js/wasm"},
-    {"manifestId": "web",
-     "platformId": "web/js/wasm"},
-    {"manifestId": "spacewave-web",
-     "platformId": "js"},
-    {"manifestId": "spacewave-app",
-     "platformId": "js"},
-]
+def browser_release_embed_manifests(go_platform_id):
+    return [
+        {"manifestId": "spacewave-launcher",
+         "platformId": go_platform_id},
+        {"manifestId": "spacewave-core",
+         "platformId": go_platform_id},
+        {"manifestId": "web",
+         "platformId": "web/js/wasm"},
+        {"manifestId": "spacewave-web",
+         "platformId": "js"},
+        {"manifestId": "spacewave-app",
+         "platformId": "js"},
+    ]
+
+
+BROWSER_RELEASE_EMBED_MANIFESTS = browser_release_embed_manifests("js")
+BROWSER_RELEASE_WASM_EMBED_MANIFESTS = browser_release_embed_manifests("web/js/wasm")
+BROWSER_RELEASE_E2E_EMBED_MANIFESTS = BROWSER_RELEASE_WASM_EMBED_MANIFESTS
+BROWSER_RELEASE_E2E_GOSCRIPT_EMBED_MANIFESTS = browser_release_embed_manifests("js")
 
 build("app",         manifests=DEV_MANIFESTS,     targets=["desktop"])
 build("web",         manifests=DEV_MANIFESTS,     targets=["browser"])
@@ -570,7 +571,7 @@ build("release-web-tinygo",
     manifestOverrides={
         "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_TINYGO"),
         "spacewave-browser": dist_release_config(
-            BROWSER_RELEASE_EMBED_MANIFESTS,
+            BROWSER_RELEASE_WASM_EMBED_MANIFESTS,
             BROWSER_RELEASE_LOAD_PLUGINS,
             entrypoint_role="browser",
             go_compiler="GO_COMPILER_TINYGO",
@@ -598,7 +599,7 @@ build("release-web-e2e-goscript",
         "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
         "spacewave-launcher": e2e_release_wasm_launcher_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
         "spacewave-browser": dist_release_config(
-            BROWSER_RELEASE_E2E_EMBED_MANIFESTS,
+            BROWSER_RELEASE_E2E_GOSCRIPT_EMBED_MANIFESTS,
             BROWSER_RELEASE_E2E_LOAD_PLUGINS,
             entrypoint_role="browser",
             go_compiler="GO_COMPILER_GOSCRIPT",
