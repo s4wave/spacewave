@@ -8,22 +8,13 @@ import {
 } from 'react-icons/lu'
 
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@s4wave/web/ui/DropdownMenu.js'
-import { DropdownMenuGhostAnchor } from '@s4wave/web/ui/DropdownMenuGhostAnchor.js'
+  FlexTabContextMenu,
+  type FlexTabContextMenuState,
+} from '@s4wave/web/layout/FlexTabContextMenu.js'
 
-// ShellTabContextMenuState stores the clicked tab and screen position.
-export interface ShellTabContextMenuState {
-  tabId: string
-  x: number
-  y: number
-}
+export type ShellTabContextMenuState = FlexTabContextMenuState
 
-// ShellTabContextMenuProps configures the shared shell tab context menu.
+// ShellTabContextMenuProps configures the shell tab context menu binding.
 export interface ShellTabContextMenuProps {
   state: ShellTabContextMenuState | null
   canCloseTabs: boolean
@@ -36,7 +27,7 @@ export interface ShellTabContextMenuProps {
   onCloseTab: (tabId: string) => void
 }
 
-// ShellTabContextMenu renders the right-click menu for shell tabs.
+// ShellTabContextMenu binds shell tab actions to the shared tab menu.
 export function ShellTabContextMenu({
   state,
   canCloseTabs,
@@ -48,67 +39,52 @@ export function ShellTabContextMenu({
   onCloseOtherTabs,
   onCloseTab,
 }: ShellTabContextMenuProps) {
-  function handleAction(action: (tabId: string) => void) {
-    if (!state) return
-    action(state.tabId)
-  }
-
   return (
-    <DropdownMenu
-      open={state !== null}
-      onOpenChange={(open) => {
-        if (!open) {
-          onClose()
-        }
-      }}
-    >
-      <DropdownMenuTrigger asChild>
-        <DropdownMenuGhostAnchor x={state?.x ?? 0} y={state?.y ?? 0} />
-      </DropdownMenuTrigger>
-      {/* Rename Tab opens an inline rename input on the tab. Radix keeps the
-          closing menu mounted through its exit animation and, on unmount,
-          returns focus to the trigger. Without preventDefault that focus
-          return blurs the just-mounted input, saving and exiting edit mode
-          immediately (the rename flicker). The ghost-anchor trigger is not
-          focusable, so suppressing the return loses nothing. */}
-      <DropdownMenuContent
-        align="start"
-        side="bottom"
-        onCloseAutoFocus={(event) => event.preventDefault()}
-      >
-        <DropdownMenuItem onClick={() => handleAction(onNewTab)}>
-          <LuPlus className="size-4" />
-          New Tab
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleAction(onRenameTab)}>
-          <LuPencil className="size-4" />
-          Rename Tab
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleAction(onDuplicateTab)}>
-          <LuCopy className="size-4" />
-          Duplicate Tab
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleAction(onPopoutTab)}>
-          <LuExternalLink className="size-4" />
-          Open in New Tab
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => handleAction(onCloseOtherTabs)}
-          disabled={!canCloseTabs}
-        >
-          <LuCircleX className="size-4" />
-          Close Other Tabs
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => handleAction(onCloseTab)}
-          disabled={!canCloseTabs}
-          variant="destructive"
-        >
-          <LuX className="size-4" />
-          Close Tab
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <FlexTabContextMenu
+      state={state}
+      onClose={onClose}
+      items={[
+        {
+          id: 'new-tab',
+          label: 'New Tab',
+          icon: <LuPlus className="size-4" />,
+          onSelect: onNewTab,
+        },
+        {
+          id: 'rename-tab',
+          label: 'Rename Tab',
+          icon: <LuPencil className="size-4" />,
+          onSelect: onRenameTab,
+        },
+        {
+          id: 'duplicate-tab',
+          label: 'Duplicate Tab',
+          icon: <LuCopy className="size-4" />,
+          onSelect: onDuplicateTab,
+        },
+        {
+          id: 'popout-tab',
+          label: 'Open in New Tab',
+          icon: <LuExternalLink className="size-4" />,
+          onSelect: onPopoutTab,
+        },
+        { id: 'close-separator', type: 'separator' },
+        {
+          id: 'close-other-tabs',
+          label: 'Close Other Tabs',
+          icon: <LuCircleX className="size-4" />,
+          disabled: !canCloseTabs,
+          onSelect: onCloseOtherTabs,
+        },
+        {
+          id: 'close-tab',
+          label: 'Close Tab',
+          icon: <LuX className="size-4" />,
+          disabled: !canCloseTabs,
+          variant: 'destructive',
+          onSelect: onCloseTab,
+        },
+      ]}
+    />
   )
 }
