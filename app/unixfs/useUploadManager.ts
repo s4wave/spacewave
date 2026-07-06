@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FSHandle, TreeUploadEntry } from '@s4wave/sdk/unixfs/handle.js'
 
+// UploadStatus, UploadItem, UploadEvent, and UploadManager form the durable
+// contract this hook owns. The manager holds no viewer or route identity: each
+// upload group captures its own target handle at addFiles time, so the manager
+// can outlive the folder view that started it (see SessionUploadManagerContext).
+
 // UploadStatus represents the state of a single upload item.
 export type UploadStatus = 'queued' | 'uploading' | 'done' | 'error'
 
@@ -41,23 +46,21 @@ export interface UploadManager {
   // lastEvent is the most recent upload-lifecycle event, or null before any
   // upload has started this session. Consumers dedupe on lastEvent.id.
   lastEvent: UploadEvent | null
-  addFiles: (files: File[], directories?: string[]) => void
+  // addFiles enqueues a batch against handle. The handle is captured into the
+  // batch here, not held by the manager, so navigating away from the folder
+  // that started the upload neither aborts the write nor drops the feedback.
+  addFiles: (handle: FSHandle, files: File[], directories?: string[]) => void
   cancelUpload: (id: string) => void
   cancelAll: () => void
   clearDone: () => void
 }
 
-// useUploadManager manages concurrent file uploads to a UnixFS handle.
-export function useUploadManager(
-  handle: FSHandle | null,
-  concurrency = 1,
-): UploadManager {
+// useUploadManager manages concurrent file uploads. It takes no handle: each
+// batch carries its own target handle (captured in addFiles), so one manager
+// instance can serve every folder view and outlive any single one.
+export function useUploadManager(concurrency = 1): UploadManager {
   const [items, setItems] = useState<UploadItem[]>([])
   const [lastEvent, setLastEvent] = useState<UploadEvent | null>(null)
-  const handleRef = useRef(handle)
-  useEffect(() => {
-    handleRef.current = handle
-  }, [handle])
 
   const nextIdRef = useRef(0)
   const nextGroupIdRef = useRef(0)
@@ -65,6 +68,7 @@ export function useUploadManager(
   const wasInProgressRef = useRef(false)
   const startedRef = useRef(new Set<string>())
   const groupDirsRef = useRef(new Map<string, string[]>())
+  const groupHandlesRef = useRef(new Map<string, FSHandle>())
 
   const activeCount = useMemo(
     () => items.filter((i) => i.status === 'uploading').length,
@@ -129,7 +133,7 @@ export function useUploadManager(
       if (startedRef.current.has(groupId)) continue
       startedRef.current.add(groupId)
 
-      const h = handleRef.current
+      const h = groupHandlesRef.current.get(groupId)
       if (!h) {
         setItems((cur) =>
           cur.map((c) =>
@@ -176,6 +180,7 @@ export function useUploadManager(
       h.uploadTree(entries, undefined, groupItems[0].abortController.signal)
         .then(() => {
           groupDirsRef.current.delete(groupId)
+          groupHandlesRef.current.delete(groupId)
           setItems((cur) =>
             cur.map((c) =>
               c.groupId === groupId
@@ -186,6 +191,7 @@ export function useUploadManager(
         })
         .catch((err: unknown) => {
           groupDirsRef.current.delete(groupId)
+          groupHandlesRef.current.delete(groupId)
           if (groupItems[0].abortController.signal.aborted) return
           const msg = err instanceof Error ? err.message : 'Upload failed'
           setItems((cur) =>
@@ -239,6 +245,7 @@ export function useUploadManager(
         for (const item of prev) {
           if (item.status === 'done') {
             startedRef.current.delete(item.groupId)
+            groupHandlesRef.current.delete(item.groupId)
           }
         }
         return kept
@@ -247,48 +254,52 @@ export function useUploadManager(
     return () => clearTimeout(timer)
   }, [items])
 
-  const addFiles = useCallback((files: File[], directories?: string[]) => {
-    const groupId = `upload-group-${++nextGroupIdRef.current}`
-    const abortController = new AbortController()
-    groupDirsRef.current.set(groupId, directories ?? [])
-    const newItems: UploadItem[] = files.map((file) => ({
-      id: `upload-${++nextIdRef.current}`,
-      groupId,
-      kind: 'file',
-      file,
-      name: file.name,
-      path:
-        (file as File & { webkitRelativePath?: string }).webkitRelativePath ||
-        file.name,
-      totalSize: file.size,
-      bytesWritten: 0,
-      status: 'queued' as const,
-      abortController,
-    }))
-    for (const directory of directories ?? []) {
-      newItems.push({
+  const addFiles = useCallback(
+    (handle: FSHandle, files: File[], directories?: string[]) => {
+      const groupId = `upload-group-${++nextGroupIdRef.current}`
+      const abortController = new AbortController()
+      groupHandlesRef.current.set(groupId, handle)
+      groupDirsRef.current.set(groupId, directories ?? [])
+      const newItems: UploadItem[] = files.map((file) => ({
         id: `upload-${++nextIdRef.current}`,
         groupId,
-        kind: 'directory',
-        file: null,
-        name: directory.split('/').at(-1) ?? directory,
-        path: directory,
-        totalSize: 0,
+        kind: 'file',
+        file,
+        name: file.name,
+        path:
+          (file as File & { webkitRelativePath?: string }).webkitRelativePath ||
+          file.name,
+        totalSize: file.size,
         bytesWritten: 0,
         status: 'queued' as const,
         abortController,
+      }))
+      for (const directory of directories ?? []) {
+        newItems.push({
+          id: `upload-${++nextIdRef.current}`,
+          groupId,
+          kind: 'directory',
+          file: null,
+          name: directory.split('/').at(-1) ?? directory,
+          path: directory,
+          totalSize: 0,
+          bytesWritten: 0,
+          status: 'queued' as const,
+          abortController,
+        })
+      }
+      if (newItems.length === 0) return
+      setItems((prev) => [...prev, ...newItems])
+      const fileCount = files.length || (directories?.length ?? 0)
+      setLastEvent({
+        id: ++eventSeqRef.current,
+        kind: 'started',
+        fileCount,
+        errorCount: 0,
       })
-    }
-    if (newItems.length === 0) return
-    setItems((prev) => [...prev, ...newItems])
-    const fileCount = files.length || (directories?.length ?? 0)
-    setLastEvent({
-      id: ++eventSeqRef.current,
-      kind: 'started',
-      fileCount,
-      errorCount: 0,
-    })
-  }, [])
+    },
+    [],
+  )
 
   const cancelUpload = useCallback((id: string) => {
     setItems((prev) => {
@@ -299,6 +310,7 @@ export function useUploadManager(
       }
       startedRef.current.delete(item.groupId)
       groupDirsRef.current.delete(item.groupId)
+      groupHandlesRef.current.delete(item.groupId)
       return prev.filter((i) => i.groupId !== item.groupId)
     })
   }, [])
@@ -306,6 +318,7 @@ export function useUploadManager(
   const cancelAll = useCallback(() => {
     startedRef.current.clear()
     groupDirsRef.current.clear()
+    groupHandlesRef.current.clear()
     setItems((prev) => {
       const abortControllers = new Set<AbortController>()
       for (const item of prev) {
@@ -324,6 +337,7 @@ export function useUploadManager(
       for (const item of prev) {
         if (item.status === 'done') {
           startedRef.current.delete(item.groupId)
+          groupHandlesRef.current.delete(item.groupId)
         }
       }
       return kept

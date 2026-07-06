@@ -234,10 +234,6 @@ vi.mock('./UnixFSMoveDialog.js', () => ({
   },
 }))
 
-vi.mock('./UploadProgressBottomBar.js', () => ({
-  UploadProgressBottomBar: () => null,
-}))
-
 vi.mock('./UnixFSFileViewer.js', () => ({
   UnixFSFileViewer: (props: MockFileViewerProps) => {
     h.latestFileViewerProps = props
@@ -245,8 +241,8 @@ vi.mock('./UnixFSFileViewer.js', () => ({
   },
 }))
 
-vi.mock('./useUploadManager.js', () => ({
-  useUploadManager: () => ({
+vi.mock('@s4wave/app/session/SessionUploadManagerContext.js', () => ({
+  useSessionUploadManager: () => ({
     addFiles: h.mockAddFiles,
   }),
 }))
@@ -855,6 +851,7 @@ describe('UnixFSBrowser drag gating', () => {
     await waitFor(() => {
       expect(h.mockExtractNativeUploadSelection).toHaveBeenCalledTimes(1)
       expect(h.mockAddFiles).toHaveBeenCalledWith(
+        expect.anything(),
         expect.arrayContaining([
           expect.objectContaining({ name: 'hello.txt' }),
         ]),
@@ -886,10 +883,11 @@ describe('UnixFSBrowser drag gating', () => {
     expect(fireEvent.drop(dragSurface, { dataTransfer })).toBe(false)
 
     await waitFor(() => {
-      expect(h.mockAddFiles).toHaveBeenCalledWith(expect.any(Array), [
-        'nested',
-        'nested/empty',
-      ])
+      expect(h.mockAddFiles).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(Array),
+        ['nested', 'nested/empty'],
+      )
     })
   })
 

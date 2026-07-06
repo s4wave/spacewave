@@ -23,9 +23,10 @@ describe('useUploadManager', () => {
     })
     const handle = { uploadTree } as Pick<FSHandle, 'uploadTree'> as FSHandle
 
-    const { result } = renderHook(() => useUploadManager(handle))
+    const { result } = renderHook(() => useUploadManager())
     act(() => {
       result.current.addFiles(
+        handle,
         [
           buildFile('child.txt', 'hello', 'nested/child.txt'),
           buildFile('top.txt', 'top'),
@@ -51,9 +52,9 @@ describe('useUploadManager', () => {
       .mockReturnValue(new Promise(() => {}))
     const handle = { uploadTree } as Pick<FSHandle, 'uploadTree'> as FSHandle
 
-    const { result } = renderHook(() => useUploadManager(handle))
+    const { result } = renderHook(() => useUploadManager())
     act(() => {
-      result.current.addFiles([buildFile('a.txt', 'hi')])
+      result.current.addFiles(handle, [buildFile('a.txt', 'hi')])
     })
 
     expect(result.current.lastEvent).toMatchObject({
@@ -71,9 +72,9 @@ describe('useUploadManager', () => {
     })
     const handle = { uploadTree } as Pick<FSHandle, 'uploadTree'> as FSHandle
 
-    const { result } = renderHook(() => useUploadManager(handle))
+    const { result } = renderHook(() => useUploadManager())
     act(() => {
-      result.current.addFiles([
+      result.current.addFiles(handle, [
         buildFile('a.txt', 'hi'),
         buildFile('b.txt', 'yo'),
       ])
@@ -97,9 +98,9 @@ describe('useUploadManager', () => {
     })
     const handle = { uploadTree } as Pick<FSHandle, 'uploadTree'> as FSHandle
 
-    const { result } = renderHook(() => useUploadManager(handle))
+    const { result } = renderHook(() => useUploadManager())
     act(() => {
-      result.current.addFiles([], ['nested', 'nested/empty'])
+      result.current.addFiles(handle, [], ['nested', 'nested/empty'])
     })
 
     await waitFor(() => {

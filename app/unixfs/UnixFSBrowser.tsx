@@ -74,8 +74,7 @@ import {
   buildUnixFSFileInlineURL,
   downloadUnixFSSelection,
 } from './download.js'
-import { useUploadManager } from './useUploadManager.js'
-import { UploadProgressBottomBar } from './UploadProgressBottomBar.js'
+import { useSessionUploadManager } from '@s4wave/app/session/SessionUploadManagerContext.js'
 import { hasNativeFileDrag } from '@s4wave/web/dnd/app-drag.js'
 import { isDownloadURLDragSupported } from '@s4wave/web/dnd/download-url-drag.js'
 import {
@@ -410,8 +409,11 @@ export function UnixFSBrowser({
   const deferredFileEntries = useDeferredValue(fileEntries)
   const renameRef = useRef('')
 
-  // Upload manager
-  const uploadManager = useUploadManager(pathHandle.value ?? null, 5)
+  // Uploads are owned by the session, not this viewer, so an in-flight upload
+  // and its feedback survive navigating away from this folder. Null when this
+  // browser is mounted outside a session (display, debug harness); uploads are
+  // simply unavailable there.
+  const uploadManager = useSessionUploadManager()
 
   // File input ref for upload button
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -737,10 +739,12 @@ export function UnixFSBrowser({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files
       if (!files || files.length === 0) return
-      uploadManager.addFiles(Array.from(files))
+      if (pathHandle.value) {
+        uploadManager?.addFiles(pathHandle.value, Array.from(files))
+      }
       e.target.value = ''
     },
-    [uploadManager],
+    [uploadManager, pathHandle.value],
   )
 
   // handleDragOver accepts the drag event to enable file drops.
@@ -776,9 +780,15 @@ export function UnixFSBrowser({
       if (selection.files.length === 0 && selection.directories.length === 0) {
         return
       }
-      uploadManager.addFiles(selection.files, selection.directories)
+      if (pathHandle.value) {
+        uploadManager?.addFiles(
+          pathHandle.value,
+          selection.files,
+          selection.directories,
+        )
+      }
     },
-    [uploadManager],
+    [uploadManager, pathHandle.value],
   )
 
   const getAcceptedFolderMove = useCallback(
@@ -1388,7 +1398,6 @@ export function UnixFSBrowser({
           {dragOverlay}
         </div>
         <UnixFSContextMenu {...contextMenuProps} />
-        <UploadProgressBottomBar uploadManager={uploadManager} />
         {fileInput}
         {deleteDialog}
         {moveDialog}
@@ -1533,7 +1542,6 @@ export function UnixFSBrowser({
         </div>
 
         <UnixFSContextMenu {...contextMenuProps} />
-        <UploadProgressBottomBar uploadManager={uploadManager} />
         {fileInput}
         {deleteDialog}
         {moveDialog}
@@ -1544,18 +1552,15 @@ export function UnixFSBrowser({
   // Render file viewer for files
   if (isDir === false && statResource.value) {
     return (
-      <>
-        <UnixFSFileViewer
-          path={displayPath}
-          stat={{
-            ...statResource.value,
-            mimeType: effectiveMimeType ?? statResource.value.mimeType,
-          }}
-          rootHandle={rootHandle}
-          inlineFileURL={inlineFileURL}
-        />
-        <UploadProgressBottomBar uploadManager={uploadManager} />
-      </>
+      <UnixFSFileViewer
+        path={displayPath}
+        stat={{
+          ...statResource.value,
+          mimeType: effectiveMimeType ?? statResource.value.mimeType,
+        }}
+        rootHandle={rootHandle}
+        inlineFileURL={inlineFileURL}
+      />
     )
   }
 
@@ -1625,7 +1630,6 @@ export function UnixFSBrowser({
       </div>
 
       <UnixFSContextMenu {...contextMenuProps} />
-      <UploadProgressBottomBar uploadManager={uploadManager} />
       {fileInput}
       {deleteDialog}
       {moveDialog}
