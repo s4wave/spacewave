@@ -4,7 +4,7 @@
  * Tests the main user flow for spacewave-app using the full App component:
  * 1. Load the app (see landing page)
  * 2. Click "Create a Drive" (quickstart option)
- * 3. Confirm Drive opens directly into the file browser
+ * 3. Complete the Drive intro wizard
  * 4. Confirm getting-started guidance and expected files are visible
  * 5. Double-click on getting-started.md
  * 6. Confirm file contents are shown
@@ -50,7 +50,7 @@ describe('User Story: Create Drive and View File', () => {
 
   it(
     'creates drive, views file browser, opens file and sees contents',
-    { timeout: 60000 },
+    { timeout: 180000 },
     async ({ skip }) => {
       skip(!openStreamFunc, 'No backend available')
 
@@ -124,8 +124,35 @@ describe('User Story: Create Drive and View File', () => {
         )
         .toBe(true)
 
-      // Step 3: Verify file browser is visible with the starter guide.
-      // Note: The file browser may take time to load after navigation completes
+      // Step 3: Complete the Drive intro wizard.
+      await expect
+        .poll(
+          async () => {
+            const buttons = Array.from(document.querySelectorAll('button'))
+            const finish = buttons.find((button) =>
+              button.textContent?.includes('Got it, start exploring'),
+            )
+            if (finish instanceof HTMLButtonElement) {
+              finish.click()
+              await new Promise<void>((resolve) => {
+                requestAnimationFrame(() => resolve())
+              })
+              return false
+            }
+
+            const browser = document.querySelector(
+              '[data-testid="unixfs-browser"]',
+            )
+            return (
+              browser !== null && !window.location.hash.includes('/wizard/')
+            )
+          },
+          { timeout: 120000 },
+        )
+        .toBe(true)
+
+      // Step 4: Verify file browser is visible with the starter guide.
+      // Note: The file browser may take time to load after wizard completion.
       await expect
         .poll(
           () => {
@@ -190,7 +217,7 @@ describe('User Story: Create Drive and View File', () => {
         )
         .toBe(true)
 
-      // Steps 6-9 (maximize/restore) removed: flexlayout's canMaximize()
+      // Steps 7-9 (maximize/restore) removed: flexlayout's canMaximize()
       // returns false when root has a single tabset child, which is the
       // default quickstart layout. The maximize button only renders when
       // there are 2+ tabsets in the layout.
