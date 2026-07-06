@@ -142,15 +142,15 @@ export class PluginWorker {
     }
   }
 
-  // onWebDocumentsExhausted handles when no WebDocument can be contacted anymore.
+  // onWebDocumentsExhausted observes a transient zero-WebDocument window.
   private async onWebDocumentsExhausted() {
-    // Unlike the ServiceWorker, the WebWorker / SharedWorker has no way to
-    // contact a WebDocument proactively. (client.postMessage). If there are no
-    // available connections to WebDocument, then we should exit.
+    // A page reload can detach the old WebDocument before the replacement
+    // attaches; re-adoptable workers must let WebDocumentTracker's
+    // next-document waiter resume the in-flight open. Genuine orphan teardown
+    // stays with the worker liveness lock and browser worker reclamation.
     console.log(
-      `PluginWorker: ${this.workerId}: no WebDocument available, exiting!`,
+      `PluginWorker: ${this.workerId}: no WebDocument available, waiting for next WebDocument`,
     )
-    await this.shutdown()
   }
 
   // armWorkerLock acquires a worker-scoped liveness lock before runtime registration.

@@ -45,7 +45,7 @@ describe('PluginWorker startup shutdown', () => {
     vi.useRealTimers()
   })
 
-  test('does not report expected WebDocument exhaustion as a startup failure', async () => {
+  test('keeps startup pending while waiting for the next WebDocument', async () => {
     vi.useFakeTimers()
     const global = new FakeDedicatedWorkerGlobal()
     const startPlugin = vi.fn()
@@ -72,10 +72,8 @@ describe('PluginWorker startup shutdown', () => {
         label: 'worker.init-message-received',
       }),
     })
-    expect(global.close).toHaveBeenCalledTimes(1)
-    expect(consoleWarn).toHaveBeenCalledWith(
-      'PluginWorker: plugin/spacewave-core: startup canceled because WebDocument closed',
-    )
+    expect(global.close).not.toHaveBeenCalled()
+    expect(consoleWarn).not.toHaveBeenCalled()
   })
 
   test('reports one runtime failure close before idempotent shutdown', async () => {

@@ -70,6 +70,22 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
+	for _, swEntry := range []string{
+		"cross-tab-sw",
+		"workers/webdocument-relay-service-worker",
+	} {
+		fmt.Printf("=== Building classic ServiceWorker fixture %s ===\n", swEntry)
+		buildCmd := exec.Command("bun", "run", "vite", "build", "--config", "./e2e/comms/vite.config.ts")
+		buildCmd.Dir = repoRoot
+		buildCmd.Env = append(os.Environ(), "BLDR_COMMS_CLASSIC_SERVICE_WORKER_ENTRY="+swEntry)
+		buildCmd.Stdout = os.Stdout
+		buildCmd.Stderr = os.Stderr
+		if err := buildCmd.Run(); err != nil {
+			fmt.Fprintf(os.Stderr, "classic ServiceWorker fixture build failed for %s: %v\n", swEntry, err)
+			os.Exit(1)
+		}
+	}
+
 	// Verify dist directory has output.
 	if _, err := os.Stat(filepath.Join(distDir, "detect.js")); err != nil {
 		fmt.Fprintf(os.Stderr, "detect.js not found in dist: %v\n", err)
