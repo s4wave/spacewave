@@ -16,6 +16,8 @@ const hydrateRootMock = vi.hoisted(() =>
   vi.fn(() => ({ render: vi.fn(), unmount: vi.fn() })),
 )
 const waitConnMock = vi.hoisted(() => vi.fn(() => Promise.resolve()))
+const bldrRuntimeMock = vi.hoisted(() => ({ isDesktop: false }))
+const initBrowserReleaseAutoReloadMock = vi.hoisted(() => vi.fn())
 
 vi.mock('react-dom/client', () => ({
   createRoot: createRootMock,
@@ -30,6 +32,9 @@ vi.mock('@aptre/bldr-react', () => ({
 }))
 
 vi.mock('@aptre/bldr', () => ({
+  get isDesktop() {
+    return bldrRuntimeMock.isDesktop
+  },
   WebDocument: class WebDocument {
     waitConn() {
       return waitConnMock()
@@ -38,7 +43,7 @@ vi.mock('@aptre/bldr', () => ({
 }))
 
 vi.mock('../bldr/browser-release-update.js', () => ({
-  initBrowserReleaseAutoReload: vi.fn(),
+  initBrowserReleaseAutoReload: initBrowserReleaseAutoReloadMock,
 }))
 
 declare global {
@@ -137,6 +142,8 @@ describe('browser entrypoint boot readiness', () => {
     createRootMock.mockClear()
     hydrateRootMock.mockClear()
     waitConnMock.mockClear()
+    bldrRuntimeMock.isDesktop = false
+    initBrowserReleaseAutoReloadMock.mockClear()
     renderedRootElements.length = 0
     globalThis.IS_REACT_ACT_ENVIRONMENT = true
     document.body.innerHTML = ''
@@ -152,6 +159,8 @@ describe('browser entrypoint boot readiness', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals()
+    bldrRuntimeMock.isDesktop = false
+    initBrowserReleaseAutoReloadMock.mockClear()
     renderedRootElements.length = 0
     document.body.innerHTML = ''
     globalThis.__swDeferBoot = undefined
@@ -163,6 +172,24 @@ describe('browser entrypoint boot readiness', () => {
     globalThis.__swStartupMarkSequence = undefined
     globalThis.__swStartupModuleImportedFrom = undefined
     globalThis.IS_REACT_ACT_ENVIRONMENT = undefined
+  })
+
+  it('skips browser release auto reload in desktop runtime', async () => {
+    bldrRuntimeMock.isDesktop = true
+    document.body.innerHTML = '<div id="bldr-root"></div>'
+
+    await importEntrypoint()
+
+    expect(initBrowserReleaseAutoReloadMock).not.toHaveBeenCalled()
+  })
+
+  it('initializes browser release auto reload in browser runtime', async () => {
+    bldrRuntimeMock.isDesktop = false
+    document.body.innerHTML = '<div id="bldr-root"></div>'
+
+    await importEntrypoint()
+
+    expect(initBrowserReleaseAutoReloadMock).toHaveBeenCalledTimes(1)
   })
 
   it('resolves boot readiness after immediate render', async () => {

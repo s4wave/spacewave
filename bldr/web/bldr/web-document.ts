@@ -985,23 +985,18 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       return
     }
 
-    // startup
-    if (!('serviceWorker' in navigator)) {
-      console.error(
-        'Service worker not supported, bldr cannot start.',
-        'chromium: chrome://flags/#unsafely-treat-insecure-origin-as-secure',
-      )
-      console.error('Requires a https and/or localhost URL.')
-      throw new Error('service worker not supported')
-    }
-
     // Determine whether to use a dedicated Worker instead of SharedWorker.
     const useDedicatedRuntime = this.forceDedicatedWorkers
+    const runtimeMode = this.isElectron
+      ? 'electron'
+      : useDedicatedRuntime
+        ? 'dedicated-worker'
+        : 'shared-worker'
     markStartupBoundary('runtime.mode-selected', {
       source: 'browser',
       documentId: this.webDocumentUuid,
       runtimeId: this.webRuntimeId,
-      mode: useDedicatedRuntime ? 'dedicated-worker' : 'shared-worker',
+      mode: runtimeMode,
     })
     if (useDedicatedRuntime && !this.isElectron) {
       this.dedicatedRuntimeHost = new DedicatedWorkerHostOwner(
@@ -1194,6 +1189,23 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           this.startWebRuntimeConnection()
         },
       })
+    }
+
+    if (this.isElectron) {
+      startWebRuntimeWorker()
+      this.startWebRuntimeConnection()
+      return
+    }
+
+    // Browser runtimes require ServiceWorker control before plugin imports use
+    // /b/* paths.
+    if (!('serviceWorker' in navigator)) {
+      console.error(
+        'Service worker not supported, bldr cannot start.',
+        'chromium: chrome://flags/#unsafely-treat-insecure-origin-as-secure',
+      )
+      console.error('Requires a https and/or localhost URL.')
+      throw new Error('service worker not supported')
     }
 
     // setup the service worker
@@ -1765,11 +1777,15 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       const lastReloadUrl = sessionStorage.getItem(swControllerReloadSessionKey)
       if (lastReloadUrl !== swUrl) {
         sessionStorage.setItem(swControllerReloadSessionKey, swUrl)
-        console.warn('WebDocument: service worker controller missing; reloading page')
+        console.warn(
+          'WebDocument: service worker controller missing; reloading page',
+        )
         location.reload()
         return
       }
-      console.warn('WebDocument: service worker controller still missing after reload')
+      console.warn(
+        'WebDocument: service worker controller still missing after reload',
+      )
       return
     }
     if (navigator.serviceWorker.controller) {
@@ -2579,7 +2595,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         }
         function onPortError() {
           cleanup()
-          reject(new Error(`OPFS worker ${requesterId} port failed before ready`))
+          reject(
+            new Error(`OPFS worker ${requesterId} port failed before ready`),
+          )
         }
         function onMessage(ev: MessageEvent<unknown>) {
           if (!isOpfsWorkerReadyMessage(ev.data)) {

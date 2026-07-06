@@ -1,24 +1,54 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('electron', () => ({
-  default: {
-    app: {
-      getAppPath() {
-        return '/app'
-      },
-    },
-    net: {
-      fetch: vi.fn(),
-    },
-    protocol: {
-      registerSchemesAsPrivileged: vi.fn(),
+const electronMock = vi.hoisted(() => ({
+  app: {
+    getAppPath() {
+      return '/app'
     },
   },
+  net: {
+    fetch: vi.fn(),
+  },
+  protocol: {
+    registerSchemesAsPrivileged: vi.fn(),
+  },
+}))
+
+vi.mock('electron', () => ({
+  default: electronMock,
 }))
 
 describe('electron protocol', () => {
   beforeEach(() => {
     vi.resetModules()
+    vi.clearAllMocks()
+  })
+
+  it('registers app scheme as fetch-capable without ServiceWorker privilege', async () => {
+    // Dynamic import intentionally re-evaluates the module-level Electron scheme
+    // registration side effect after vi.resetModules().
+    const { APP_SCHEME } = await import('./protocol.js')
+
+    expect(
+      electronMock.protocol.registerSchemesAsPrivileged,
+    ).toHaveBeenCalledWith([
+      {
+        scheme: APP_SCHEME,
+        privileges: {
+          standard: true,
+          secure: true,
+          bypassCSP: true,
+          supportFetchAPI: true,
+          corsEnabled: true,
+          stream: true,
+        },
+      },
+    ])
+    const [registrations] =
+      electronMock.protocol.registerSchemesAsPrivileged.mock.calls[0]
+    expect(registrations[0]?.privileges).not.toHaveProperty(
+      'allowServiceWorkers',
+    )
   })
 
   it('extracts the WebDocument id from the referrer query string', async () => {

@@ -105,14 +105,14 @@ export async function appRequestHandler(
   }
 }
 
-// set paths as privileged for service worker
+// The app:// scheme stays fetch-capable for protocol handlers, but Electron
+// WebDocument uses the main-process protocol handler instead of a ServiceWorker.
 electron.protocol.registerSchemesAsPrivileged([
   {
     scheme: APP_SCHEME,
     privileges: {
       standard: true,
       secure: true,
-      allowServiceWorkers: true,
       bypassCSP: true,
       supportFetchAPI: true,
       corsEnabled: true,

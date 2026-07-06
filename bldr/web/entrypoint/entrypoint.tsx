@@ -5,7 +5,7 @@ import {
   IBldrRootProps,
   WebViewErrorBoundary,
 } from '@aptre/bldr-react'
-import { WebDocument as BldrWebDocument } from '@aptre/bldr'
+import { isDesktop, WebDocument as BldrWebDocument } from '@aptre/bldr'
 import type { WebDocumentOptions } from '@aptre/bldr'
 
 import { initBrowserReleaseAutoReload } from '../bldr/browser-release-update.js'
@@ -85,7 +85,9 @@ if (
 
 const bldrRootProps: IBldrRootProps = { webDocumentOpts }
 
-initBrowserReleaseAutoReload()
+if (!isDesktop) {
+  initBrowserReleaseAutoReload()
+}
 markStartupBoundary('shell.entrypoint-loaded', { source: 'browser' })
 
 type StartupModule = {
