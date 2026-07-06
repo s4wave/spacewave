@@ -224,15 +224,12 @@ func CanonicalizeManifestObjectRef(
 	return out, nil
 }
 
-// ManifestObjectRefsSameExecutable reports whether two canonical manifest object
-// refs resolve to the same executable content, ignoring which bucket holds the
-// blocks. Producers must resolve transform configs into TransformConf and clear
-// TransformConfRef before storing or scheduling refs so this comparison stays
-// pure and cheap. A manifest relocated between buckets (for example from the
-// dist bucket into the persisted world bucket) keeps the same executable
-// identity. Store-side change accounting (SetManifest) and the plugin-host
-// scheduler executor share this comparison so they can never disagree about
-// what counts as a manifest change.
+// ManifestObjectRefsSameExecutable reports whether two manifest object refs
+// resolve to the same executable content. A manifest relocated between buckets
+// can also re-encode its transform configuration, so executable identity is the
+// root block alone. Store-side change accounting (SetManifest) and the
+// plugin-host scheduler executor share this comparison so they can never
+// disagree about what counts as a manifest change.
 //
 // If either ref has an empty root block, the refs are compared with full
 // equality including bucket id.
@@ -240,14 +237,12 @@ func ManifestObjectRefsSameExecutable(a, b *bucket.ObjectRef) bool {
 	if a == nil || b == nil {
 		return a == b
 	}
-	if a.GetRootRef().GetEmpty() || b.GetRootRef().GetEmpty() {
+	aRootRef := a.GetRootRef()
+	bRootRef := b.GetRootRef()
+	if aRootRef.GetEmpty() || bRootRef.GetEmpty() {
 		return a.EqualVT(b)
 	}
-	aCopy := a.Clone()
-	bCopy := b.Clone()
-	aCopy.BucketId = ""
-	bCopy.BucketId = ""
-	return aCopy.EqualVT(bCopy)
+	return aRootRef.EqualsRef(bRootRef)
 }
 
 // SetManifest creates a Manifest object in the world.
@@ -260,11 +255,6 @@ func SetManifest(
 	objKey string,
 	rootRef *bucket.ObjectRef,
 ) (world.ObjectState, bool, error) {
-	canonicalRootRef, err := CanonicalizeManifestObjectRef(ctx, ws.AccessWorldState, rootRef)
-	if err != nil {
-		return nil, false, errors.Wrap(err, "canonicalize manifest root ref")
-	}
-	rootRef = canonicalRootRef
 	var changed bool
 	obj, objOk, err := ws.GetObject(ctx, objKey)
 	if err != nil {
@@ -277,16 +267,23 @@ func SetManifest(
 			return nil, false, err
 		}
 		if !currRootRef.EqualVT(rootRef) {
-			canonicalCurrRootRef, err := CanonicalizeManifestObjectRef(ctx, ws.AccessWorldState, currRootRef)
-			if err != nil {
-				return nil, false, errors.Wrap(err, "canonicalize current manifest root ref")
-			}
-			// Store and executor must agree on what counts as a manifest
-			// change. Update the stored ref so reads follow a relocated copy,
-			// but only report changed when the executable identity differs.
-			_, err = obj.SetRootRef(ctx, rootRef)
-			if err == nil {
-				changed = !ManifestObjectRefsSameExecutable(canonicalCurrRootRef, rootRef)
+			if ManifestObjectRefsSameExecutable(currRootRef, rootRef) {
+				var worldBucketID string
+				err = ws.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+					worldBucketID = bls.GetOpArgs().GetBucketId()
+					return nil
+				})
+				if err != nil {
+					return nil, false, err
+				}
+				currLocal := currRootRef.GetBucketId() == "" || currRootRef.GetBucketId() == worldBucketID
+				nextLocal := rootRef.GetBucketId() == "" || rootRef.GetBucketId() == worldBucketID
+				if !currLocal && nextLocal {
+					_, err = obj.SetRootRef(ctx, rootRef)
+				}
+			} else {
+				_, err = obj.SetRootRef(ctx, rootRef)
+				changed = err == nil
 			}
 		}
 	} else {
