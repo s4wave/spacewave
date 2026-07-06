@@ -37,7 +37,18 @@ export function IntroWizardOverlay({
 }: IntroWizardOverlayProps) {
   return (
     <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
-      <div className="bg-background/60 absolute inset-0" />
+      {/* The dim veil draws focus to the introduction but leaves the bottom-right
+          upload-indicator anchor lit: the "Upload progress" callout teaches the
+          user to watch that live element, so it must not read as disabled. The
+          two panels tile the screen around a w-72 h-40 lit corner window. */}
+      <div
+        data-testid="intro-scrim"
+        className="bg-background/60 absolute inset-x-0 top-0 bottom-40"
+      />
+      <div
+        data-testid="intro-scrim"
+        className="bg-background/60 absolute right-72 bottom-0 left-0 h-40"
+      />
       {callouts.map((callout, index) => (
         <IntroCallout key={callout.title || index} callout={callout} />
       ))}

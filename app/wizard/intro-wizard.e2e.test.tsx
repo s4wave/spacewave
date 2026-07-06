@@ -30,12 +30,18 @@ function IntroWizardSurface({ finishing }: { finishing: boolean }) {
           ].map((name) => (
             <div
               key={name}
-              className="border-frame-overlay-border bg-frame-overlay flex h-24 flex-col justify-end rounded-md border p-3"
+              className="border-brand/40 bg-background-card flex h-24 flex-col justify-end rounded-md border p-3"
             >
               <span className="text-foreground text-sm">{name}</span>
               <span className="text-foreground-alt text-xs">Folder</span>
             </div>
           ))}
+        </div>
+        {/* Mock bottom-right upload indicator: the "Upload progress" callout
+            teaches the user to watch it, so it must stay lit under the overlay. */}
+        <div className="border-brand/40 bg-background-card absolute right-4 bottom-4 flex items-center gap-2 rounded-full border px-3 py-1.5">
+          <span className="bg-brand size-2 rounded-full" />
+          <span className="text-foreground text-xs">Uploads</span>
         </div>
         <IntroWizardOverlay
           headline={config.headline ?? ''}

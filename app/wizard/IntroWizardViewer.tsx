@@ -11,6 +11,7 @@ import { IntroWizardConfig } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { applySpaceIndexPath } from '../space/space-settings.js'
 import { type UseWizardStateResult, useWizardState } from './useWizardState.js'
 import { IntroWizardOverlay } from './IntroWizardOverlay.js'
+import { IntroWizardPresentationContext } from './intro-context.js'
 
 // IntroWizardViewer is the generic new-user introduction viewer. It contains
 // the introduced object's standalone ObjectViewer (its own window frame) and
@@ -86,13 +87,15 @@ export function IntroWizardViewer(props: ObjectViewerComponentProps) {
 
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden">
-      <ObjectViewer
-        standalone
-        objectInfo={targetInfo}
-        worldState={props.worldState}
-        spaceContents={props.spaceContents}
-        stateNamespace={['intro', targetObjectKey]}
-      />
+      <IntroWizardPresentationContext.Provider value={true}>
+        <ObjectViewer
+          standalone
+          objectInfo={targetInfo}
+          worldState={props.worldState}
+          spaceContents={props.spaceContents}
+          stateNamespace={['intro', targetObjectKey]}
+        />
+      </IntroWizardPresentationContext.Provider>
       <IntroWizardOverlay
         headline={config?.headline ?? ''}
         subhead={config?.subhead ?? ''}

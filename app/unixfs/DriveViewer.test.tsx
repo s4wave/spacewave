@@ -3,6 +3,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ComponentType } from 'react'
 
+import { IntroWizardPresentationContext } from '../wizard/intro-context.js'
 import { DriveViewer } from './DriveViewer.js'
 
 const h = vi.hoisted(() => ({
@@ -115,6 +116,30 @@ describe('DriveViewer', () => {
     expect(h.latestUnixFSBrowserProps?.unixfsId).toBe('files')
     expect(screen.getByTestId('drive-welcome')).toBeTruthy()
     expect(screen.getByText('Welcome to your Drive')).toBeTruthy()
+  })
+
+  it('stands the welcome header down while the intro wizard presents the Drive', () => {
+    render(
+      <IntroWizardPresentationContext.Provider value={true}>
+        <DriveViewer
+          objectInfo={{
+            info: {
+              case: 'worldObjectInfo',
+              value: { objectKey: 'files', objectType: 'unixfs/fs-node' },
+            },
+          }}
+          worldState={{
+            value: null,
+            loading: false,
+            error: null,
+            retry: vi.fn(),
+          }}
+        />
+      </IntroWizardPresentationContext.Provider>,
+    )
+
+    expect(h.latestUnixFSBrowserProps?.unixfsId).toBe('files')
+    expect(screen.queryByTestId('drive-welcome')).toBeNull()
   })
 
   it('does not add Drive guidance to non-Drive UnixFS objects', () => {

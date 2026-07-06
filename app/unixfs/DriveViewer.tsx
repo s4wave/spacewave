@@ -20,6 +20,7 @@ import {
 } from '@s4wave/sdk/unixfs/path.js'
 import { UNIXFS_OBJECT_KEY } from '@s4wave/core/space/world/ops/init-unixfs.js'
 
+import { useIntroWizardPresentation } from '../wizard/intro-context.js'
 import {
   UnixFSBrowser,
   type UnixFSBrowserDirectoryHeaderProps,
@@ -56,6 +57,10 @@ export function DriveViewer({
 function DriveGettingStartedHeader(props: UnixFSBrowserDirectoryHeaderProps) {
   const { currentPath, entries, onNewFolder, onOpen, onUploadFiles } = props
   const [dismissed, setDismissed] = useState(false)
+  // The intro wizard draws its own first-run callouts over this Drive; standing
+  // the welcome header down keeps one first-run guidance surface per state
+  // instead of doubling the wizard's "Add files" callout with these actions.
+  const introPresenting = useIntroWizardPresentation()
   const spaceCtx = SpaceContainerContext.useContextSafe()
   const canShareSpace = spaceCtx?.spaceSharingState?.canManage ?? false
   const invokeCommand = useInvokeCommand()
@@ -80,7 +85,8 @@ function DriveGettingStartedHeader(props: UnixFSBrowserDirectoryHeaderProps) {
     dismissThen(() => invokeCommand('spacewave.share-space'))
   }, [canShareSpace, dismissThen, invokeCommand])
 
-  if (dismissed || !isRoot || !guideEntry || hasUserContent) return null
+  if (introPresenting || dismissed || !isRoot || !guideEntry || hasUserContent)
+    return null
 
   return (
     <section
