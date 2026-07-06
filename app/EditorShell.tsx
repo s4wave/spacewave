@@ -1,5 +1,6 @@
 /* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import { useState, useEffect, useMemo, type ReactNode } from 'react'
+import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import { getAppPath } from '@s4wave/web/router/app-path.js'
 import { BottomBarRoot } from '@s4wave/web/frame/bottom-bar-root.js'
@@ -11,6 +12,8 @@ import { KeyDispatcher } from '@s4wave/web/command/KeyDispatcher.js'
 import { CommandPalette } from '@s4wave/web/command/CommandPalette.js'
 import { WhichKeyPanel } from '@s4wave/web/command/WhichKeyPanel.js'
 import { ShellTabFocusContextProvider } from '@s4wave/web/command/FocusContext.js'
+import { SessionContext } from '@s4wave/web/contexts/contexts.js'
+import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { BuiltinCommands } from '@s4wave/app/BuiltinCommands.js'
 import { DebugCommands } from '@s4wave/app/DebugCommands.js'
 import {
@@ -35,16 +38,49 @@ const isDebug = typeof BLDR_DEBUG === 'boolean' && BLDR_DEBUG
 const noopAddTab = () => Promise.resolve({ tabId: '' })
 const noopNavigateTab = () => Promise.resolve({})
 
+function CommandSessionScope({ children }: { children: ReactNode }) {
+  const rootResource = useRootResource()
+  const { tabs, activeTabId } = useShellTabs()
+  const activeSessionIndex = useMemo(() => {
+    const activePath = tabs.find((tab) => tab.id === activeTabId)?.path ?? ''
+    const match = activePath.match(/^\/u\/(\d+)(?:\/|$)/)
+    if (!match) return null
+    const sessionIndex = Number(match[1])
+    return sessionIndex > 0 ? sessionIndex : null
+  }, [tabs, activeTabId])
+  const sessionResource = useResource(
+    rootResource,
+    async (root, signal, cleanup) => {
+      if (activeSessionIndex === null) return null
+      const result = await root.mountSessionByIdx(
+        { sessionIdx: activeSessionIndex },
+        signal,
+      )
+      return result ? cleanup(result.session) : null
+    },
+    [activeSessionIndex],
+  )
+
+  if (activeSessionIndex === null) return children
+  return (
+    <SessionContext.Provider resource={sessionResource}>
+      {children}
+    </SessionContext.Provider>
+  )
+}
+
 function CommandRuntime({ children }: { children?: ReactNode }) {
   return (
     <ShellTabFocusContextProvider>
-      <KeyDispatcher>
-        <BuiltinCommands />
-        {isDebug && <DebugCommands />}
-        <CommandPalette />
-        <WhichKeyPanel />
-        {children}
-      </KeyDispatcher>
+      <CommandSessionScope>
+        <KeyDispatcher>
+          <BuiltinCommands />
+          {isDebug && <DebugCommands />}
+          <CommandPalette />
+          <WhichKeyPanel />
+          {children}
+        </KeyDispatcher>
+      </CommandSessionScope>
     </ShellTabFocusContextProvider>
   )
 }
