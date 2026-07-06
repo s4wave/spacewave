@@ -8,6 +8,8 @@ import {
   type TerminalFrame,
 } from '@s4wave/sdk/terminal/terminal.pb.js'
 
+import { resolveTerminalTheme } from './terminalTheme.js'
+
 const terminalEncoder = new TextEncoder()
 const maxQueuedTerminalFrames = 256
 
@@ -56,14 +58,8 @@ export function TerminalPane({
     terminalQueueRef.current = queue
     const term = new XTerm({
       cursorBlink: true,
-      fontFamily:
-        'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-      fontSize: 13,
       screenReaderMode: true,
-      theme: {
-        background: '#09090b',
-        foreground: '#f4f4f5',
-      },
+      ...resolveTerminalTheme(host),
     })
     const fit = new FitAddon()
     term.loadAddon(fit)
@@ -139,7 +135,7 @@ export function TerminalPane({
         renderTrustChallenge?.(trustChallenge, respondToSshTrust)}
       <div
         ref={terminalHostRef}
-        className="min-h-0 flex-1 overflow-hidden bg-zinc-950"
+        className="bg-background-dark min-h-0 flex-1 overflow-hidden"
       />
     </>
   )
