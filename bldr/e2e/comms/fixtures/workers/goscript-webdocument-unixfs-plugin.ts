@@ -71,6 +71,10 @@ function installAcceptStream(): void {
         })
         return
       }
+      if (message?.[0] === 41) {
+        void handleTerminalOrphanFailFast(port)
+        return
+      }
       port.postMessage(new Uint8Array([99]))
     }
     port.start()
@@ -105,6 +109,67 @@ async function handleInFlightReloadTrigger(
     globalThis.BLDR_PLUGIN_REPORT_RUNTIME_FAILURE?.(err)
     throw err
   }
+}
+
+type HeldStreamOutcome = { ok: boolean; err?: string }
+
+// handleTerminalOrphanFailFast holds an active plugin-to-runtime stream open,
+// signals armed, then reports how the stream settles once the fixture discards
+// the last WebDocument with a terminal close. A deliberate discard must fail the
+// orphaned stream fast rather than keep it waiting for a replacement route.
+async function handleTerminalOrphanFailFast(port: MessagePort): Promise<void> {
+  const active = Promise.withResolvers<void>()
+  const outcome = openHeldStreamToWebRuntime(active.resolve)
+  await active.promise
+  port.postMessage(new Uint8Array([42]))
+  const result = await outcome
+  if (result.ok) {
+    port.postMessage(new Uint8Array([45]))
+    return
+  }
+  const errBytes = new TextEncoder().encode(result.err ?? '')
+  const packet = new Uint8Array(errBytes.length + 1)
+  packet[0] = 44
+  packet.set(errBytes, 1)
+  port.postMessage(packet)
+}
+
+// openHeldStreamToWebRuntime opens a runtime stream, pushes a hold marker the
+// host never answers, and resolves once the stream settles: a client close
+// yields the terminal error, an unexpected host response yields ok.
+function openHeldStreamToWebRuntime(
+  onActive: () => void,
+): Promise<HeldStreamOutcome> {
+  const openStream = globalThis.BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME
+  if (!openStream) {
+    throw new Error('missing BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME')
+  }
+
+  const { promise, resolve } = Promise.withResolvers<HeldStreamOutcome>()
+  let settled = false
+  const settle = (out: HeldStreamOutcome) => {
+    if (settled) {
+      return
+    }
+    settled = true
+    resolve(out)
+  }
+
+  openStream(
+    () => settle({ ok: true }),
+    (errMsg) => {
+      if (errMsg) {
+        settle({ ok: false, err: errMsg })
+      }
+    },
+    (sink) => {
+      sink.push(new Uint8Array([51]))
+      onActive()
+    },
+    (errMsg) => settle({ ok: false, err: errMsg }),
+  )
+
+  return promise
 }
 
 function openStreamToWebRuntime(): Promise<Uint8Array> {

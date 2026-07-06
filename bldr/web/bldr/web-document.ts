@@ -342,8 +342,14 @@ class WebDocumentWebWorker {
     }
   }
 
-  // close closes our connection to the worker.
-  public async close() {
+  // close disconnects the page's relay to this worker. A terminal close marks a
+  // deliberate discard (runtime-driven replacement or removal): the worker is
+  // orphaned forever, so its runtime client must fail fast instead of waiting
+  // for a replacement relay that will never arrive. A non-terminal close is
+  // ordinary page teardown, which also fires on reload (beforeunload), so it
+  // never claims the worker is gone and lets the surviving worker reroute onto
+  // the next relay.
+  public async close(terminal = false) {
     if (this.closed) {
       return
     }
@@ -353,6 +359,9 @@ class WebDocumentWebWorker {
     const msg: WebDocumentToClient = {
       from: this.webDocumentUuid,
       close: true,
+    }
+    if (terminal) {
+      msg.terminal = true
     }
     try {
       this.port.postMessage(msg)
@@ -1411,7 +1420,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       this.closeSabPairsForWorker(request.id, 'worker replaced')
       old.setGenerationState(WebWorkerGenerationState.NORMAL_STOP)
       delete this.webWorkers[request.id]
-      await old.close()
+      await old.close(true)
     }
 
     // All workers use the same sharedWorkerPath wrapper.
@@ -1550,7 +1559,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       this.closeSabPairsForWorker(request.id, 'worker removed')
       old.setGenerationState(WebWorkerGenerationState.NORMAL_STOP)
       delete this.webWorkers[request.id]
-      await old.close()
+      await old.close(true)
       this.notifyWebWorkerUpdated(
         request.id,
         true,

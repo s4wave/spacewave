@@ -428,6 +428,45 @@ describe('WebDocumentTracker resume-ready gate', () => {
     documentPort.close()
   })
 
+  it('closes the shared runtime client when the last active WebDocument closes terminally', async () => {
+    const onWebDocumentsExhausted = vi.fn().mockResolvedValue(undefined)
+    const onAllWebDocumentsClosed = vi.fn()
+    const tracker = new WebDocumentTracker(
+      'tracker-client',
+      WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER,
+      onWebDocumentsExhausted,
+      null,
+      onAllWebDocumentsClosed,
+    )
+    const closeRuntime = vi.spyOn(tracker.webRuntimeClient, 'close')
+    const rerouteRuntime = vi
+      .spyOn(tracker.webRuntimeClient, 'rerouteChannel')
+      .mockResolvedValue(undefined)
+    const documentPort = attachWebDocument(tracker, 'document-1')
+
+    Reflect.set(tracker, 'activeRuntimeWebDocumentId', 'document-1')
+
+    documentPort.postMessage({
+      from: 'document-1',
+      close: true,
+      terminal: true,
+    })
+    await vi.waitFor(() => {
+      expect(onAllWebDocumentsClosed).toHaveBeenCalledTimes(1)
+    })
+
+    expect(closeRuntime).toHaveBeenCalledTimes(1)
+    expect(rerouteRuntime).not.toHaveBeenCalled()
+    expect(onWebDocumentsExhausted).not.toHaveBeenCalled()
+    expect(Reflect.get(tracker, 'activeRuntimeWebDocumentId')).toBeUndefined()
+    expect(Reflect.get(tracker, 'lastWebDocumentId')).toBeUndefined()
+    expect(Reflect.get(tracker, 'webDocuments')).not.toHaveProperty(
+      'document-1',
+    )
+
+    documentPort.close()
+  })
+
   it('relays to a hidden connected active document without resume-ready', async () => {
     vi.useFakeTimers()
     const onWebDocumentsExhausted = vi.fn().mockResolvedValue(undefined)

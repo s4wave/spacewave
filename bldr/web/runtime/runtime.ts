@@ -222,6 +222,14 @@ export interface WebDocumentToClient {
   requestId?: string
   // close indicates the web document is about to close.
   close?: true
+  // terminal marks a close as a runtime-directed discard of this worker (a
+  // CreateWebWorker replacement or a RemoveWebWorker removal) rather than
+  // ordinary page teardown. A discarded worker is orphaned forever, so its
+  // runtime client must fail fast; a plain close, which also fires on reload,
+  // gets a replacement WebDocument, so the client reroutes and waits. Without
+  // this intent the two close signals are indistinguishable, and either choice
+  // is wrong for the other case.
+  terminal?: true
   // bridgePort is the MessagePort to use for WebRTC bridge commands.
   bridgePort?: MessagePort
   // resumeReady indicates whether the WebDocument is past its foreground

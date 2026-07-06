@@ -27,6 +27,7 @@ const (
 	webDocumentRouteInFlightReload                webDocumentRouteFixtureVariant = "in-flight-reload"
 	webDocumentRoutePluginHostReplacement         webDocumentRouteFixtureVariant = "plugin-host-replacement"
 	webDocumentRouteServiceWorkerFetchRouteTiming webDocumentRouteFixtureVariant = "service-worker-fetch-route-timing"
+	webDocumentRouteDeliberateWorkerReplacement   webDocumentRouteFixtureVariant = "deliberate-worker-replacement"
 )
 
 type webDocumentRouteFixtureTrace struct {
@@ -149,6 +150,32 @@ func TestGoScriptForegroundUnixFSFetchServiceWorkerRouteTiming(t *testing.T) {
 		"dynamic-relay-response-headers",
 	)
 	t.Logf("service-worker route timing events: %s", strings.Join(webDocumentResultEventLog(trace.results), " | "))
+}
+
+// TestGoScriptForegroundUnixFSFetchDeliberateWorkerReplacementFailsFast verifies
+// that discarding the last WebDocument with a terminal close fails an orphaned
+// in-flight runtime stream fast, surfacing a terminal client-closed error rather
+// than a relay-rerouted retry that would hang waiting for a replacement route.
+func TestGoScriptForegroundUnixFSFetchDeliberateWorkerReplacementFailsFast(t *testing.T) {
+	installWebDocumentRouteFixtureAssets(t)
+
+	trace := runWebDocumentRouteFixture(t, "chromium", webDocumentRouteDeliberateWorkerReplacement)
+	results := trace.results
+	if pass, ok := results["pass"].(bool); !ok || !pass {
+		t.Fatalf("deliberate worker replacement fixture failed: %v", results["detail"])
+	}
+	assertBoolResult(t, results, "deliberateWorkerReplacement", true)
+	assertBoolResult(t, results, "orphanFailedFast", true)
+	assertBoolResult(t, results, "orphanTerminalNotRerouted", true)
+	assertNoWebDocumentRouteEventContains(
+		t,
+		trace,
+		"PluginWorker: plugin/spacewave-web: no WebDocument available, exiting!",
+	)
+	if elapsed, ok := results["orphanElapsedMs"].(float64); ok {
+		t.Logf("orphaned stream failed fast after %.1fms", elapsed)
+	}
+	t.Logf("deliberate worker replacement events: %s", strings.Join(webDocumentResultEventLog(results), " | "))
 }
 
 func installWebDocumentRouteFixtureAssets(t *testing.T) {

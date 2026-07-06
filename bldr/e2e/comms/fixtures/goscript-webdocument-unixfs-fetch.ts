@@ -37,6 +37,7 @@ type WebDocumentUnixFSFixtureVariant =
   | 'in-flight-reload'
   | 'plugin-host-replacement'
   | 'service-worker-fetch-route-timing'
+  | 'deliberate-worker-replacement'
 
 type PluginToHostResult = {
   stream: boolean
@@ -48,6 +49,16 @@ type InFlightReloadTrigger = {
   release: (beforeOpen: () => void) => Promise<void>
 }
 
+type TerminalOrphanOutcome = {
+  failedFast: boolean
+  err: string
+}
+
+type TerminalOrphanTrigger = {
+  armed: boolean
+  waitOutcome: () => Promise<TerminalOrphanOutcome>
+}
+
 type RuntimeConnection = {
   waitPluginToHost: Promise<PluginToHostResult>
   openHostToPluginStream: (
@@ -57,6 +68,9 @@ type RuntimeConnection = {
   openInFlightReloadTriggerStream: (
     eventLog: string[],
   ) => Promise<InFlightReloadTrigger>
+  openTerminalOrphanStream: (
+    eventLog: string[],
+  ) => Promise<TerminalOrphanTrigger>
 }
 
 type AttachedWorkerDocument = {
@@ -91,6 +105,11 @@ type WebDocumentUnixFSFixtureResult = {
   inFlightOpenRecovered?: boolean
   pluginHostReplacement?: boolean
   serviceWorkerRouteTiming?: boolean
+  deliberateWorkerReplacement?: boolean
+  orphanFailedFast?: boolean
+  orphanTerminalNotRerouted?: boolean
+  orphanOutcomeErr?: string
+  orphanElapsedMs?: number
   failureReason?: string
   eventLog: string[]
 }
@@ -117,7 +136,8 @@ function readVariant(raw: string | null): WebDocumentUnixFSFixtureVariant {
     raw === 'release-generation' ||
     raw === 'in-flight-reload' ||
     raw === 'plugin-host-replacement' ||
-    raw === 'service-worker-fetch-route-timing'
+    raw === 'service-worker-fetch-route-timing' ||
+    raw === 'deliberate-worker-replacement'
   ) {
     return raw
   }
@@ -302,6 +322,12 @@ function connectWorkerRuntime(
       }
       return await openInFlightReloadTriggerStream(runtimePort, eventLog)
     },
+    openTerminalOrphanStream: async (eventLog) => {
+      if (!runtimePort) {
+        throw new Error('runtime port is not connected')
+      }
+      return await openTerminalOrphanStream(runtimePort, eventLog)
+    },
   }
 }
 
@@ -332,6 +358,12 @@ async function handlePluginToHostStream(
   const outbound = pushable<Uint8Array>({ objectMode: true })
   const sinkDone = stream.sink(outbound)
   for await (const packet of stream.source) {
+    if (packet[0] === 51) {
+      // Orphan hold stream: keep it open with no response so it stays active on
+      // the plugin runtime client until the deliberate terminal teardown fails
+      // it. The plugin observes that failure and reports the outcome.
+      await new Promise<void>(() => undefined)
+    }
     if (packet[0] !== 11) {
       throw new Error(`unexpected plugin-to-host packet ${packet[0]}`)
     }
@@ -417,6 +449,67 @@ async function openInFlightReloadTriggerStream(
       }
       beforeOpen()
       outbound.end()
+    },
+  }
+}
+
+// openTerminalOrphanStream arms an active plugin-to-runtime stream through the
+// accept-stream bridge, then waits for the plugin's fail-fast outcome after the
+// fixture discards the last WebDocument with a terminal close.
+async function openTerminalOrphanStream(
+  runtimePort: MessagePort,
+  eventLog: string[],
+): Promise<TerminalOrphanTrigger> {
+  const channel = new MessageChannel()
+  const stream = new ChannelStream('spacewave-web', channel.port1)
+  runtimePort.postMessage({ openStream: true }, [channel.port2])
+  await stream.waitRemoteOpen
+
+  const outbound = pushable<Uint8Array>({ objectMode: true })
+  const sinkDone = stream.sink(outbound)
+  sinkDone.catch(() => undefined)
+  outbound.push(new Uint8Array([41]))
+
+  const source = stream.source[Symbol.asyncIterator]()
+  const armedResult = await source.next()
+  if (armedResult.done) {
+    throw new Error('terminal orphan stream closed before armed')
+  }
+  const armed = armedResult.value[0] === 42
+  if (armed) {
+    recordEvent(eventLog, 'terminal-orphan-plugin-open-armed')
+  }
+  return {
+    armed,
+    waitOutcome: async () => {
+      try {
+        const outcomeResult = await source.next()
+        if (outcomeResult.done) {
+          return { failedFast: true, err: 'orphan stream closed' }
+        }
+        const packet = outcomeResult.value
+        if (packet[0] === 44) {
+          return {
+            failedFast: true,
+            err: new TextDecoder().decode(packet.slice(1)),
+          }
+        }
+        if (packet[0] === 45) {
+          return { failedFast: false, err: 'host answered orphaned stream' }
+        }
+        return { failedFast: false, err: `unexpected packet ${packet[0]}` }
+      } catch (err) {
+        // Tearing down the orphaned client closes this relayed trigger stream
+        // with the terminal client-closed error. That rejection is the fast-fail
+        // signal: a lingering reroute would keep the stream open until the
+        // timeout instead.
+        return {
+          failedFast: true,
+          err: err instanceof Error ? err.message : String(err),
+        }
+      } finally {
+        outbound.end()
+      }
     },
   }
 }
@@ -917,6 +1010,11 @@ async function run() {
     let inFlightOpenRecovered = false
     let pluginHostReplacement = false
     let serviceWorkerRouteTiming = false
+    let deliberateWorkerReplacement = false
+    let orphanFailedFast = false
+    let orphanTerminalNotRerouted = false
+    let orphanOutcomeErr = ''
+    let orphanElapsedMs = 0
 
     if (variant === 'dynamic-relay') {
       mark('fetch-unixfs-inline-dynamic-relay')
@@ -1088,6 +1186,72 @@ async function run() {
       reproduced = true
       postFetchStream = replacementRoute
       fetchSuccess = await fetchPromise
+    } else if (variant === 'deliberate-worker-replacement') {
+      mark('deliberate-worker-replacement')
+      recordEvent(eventLog, 'deliberate-worker-replacement-arm')
+      const trigger = await runtime.openTerminalOrphanStream(eventLog)
+      if (!trigger.armed) {
+        errors.push('terminalOrphanArmed=false')
+      }
+
+      // The plugin holds an active runtime stream. Deliberately discard the last
+      // WebDocument with a terminal close: the orphaned client must fail the
+      // stream fast, not wait for a replacement WebDocument that never attaches.
+      recordEvent(eventLog, 'deliberate-worker-replacement-terminal-close')
+      recordTrackerRemoval(
+        eventLog,
+        'fixture-deliberate-worker-replacement',
+        documentId,
+        1,
+        0,
+      )
+      const closeStartMs = performance.now()
+      port2.postMessage({ from: documentId, close: true, terminal: true })
+      port2.close()
+      recordEvent(
+        eventLog,
+        `lock-release ${documentId} lock=bldr-doc-${documentId}`,
+      )
+      releaseLock?.()
+      releaseLock = undefined
+
+      const outcome = await Promise.race([
+        trigger.waitOutcome(),
+        delay(5000).then(
+          (): TerminalOrphanOutcome => ({
+            failedFast: false,
+            err: 'terminal-orphan-timeout',
+          }),
+        ),
+      ])
+      orphanElapsedMs = performance.now() - closeStartMs
+      orphanOutcomeErr = outcome.err
+      // Fast fail: the orphaned stream settled well within the CI teardown-latency
+      // window, not after the multi-second hang the discriminator removes.
+      orphanFailedFast = outcome.failedFast && orphanElapsedMs < 2000
+      // A terminal client close, not a relay-rerouted retry that would keep the
+      // client alive waiting for a replacement WebDocument.
+      orphanTerminalNotRerouted =
+        outcome.failedFast &&
+        !outcome.err.includes('relay-rerouted') &&
+        (outcome.err.includes('normal-close') || outcome.err.includes('closed'))
+      recordEvent(
+        eventLog,
+        `deliberate-worker-replacement-outcome failedFast=${outcome.failedFast} elapsedMs=${orphanElapsedMs.toFixed(1)} err=${orphanOutcomeErr}`,
+      )
+      if (!orphanFailedFast) {
+        errors.push(
+          `orphanFailedFast=false elapsedMs=${orphanElapsedMs.toFixed(1)}`,
+        )
+      }
+      if (!orphanTerminalNotRerouted) {
+        errors.push(`orphanTerminalNotRerouted=false err=${orphanOutcomeErr}`)
+      }
+      deliberateWorkerReplacement = true
+      reproduced = true
+      // This variant exercises orphan teardown, not the fetch/post-fetch route.
+      fetchSuccess = true
+      postFetchStream = true
     } else {
       mark('fetch-unixfs-inline')
       fetchSuccess = await fetchUnixFSInlineFile()
@@ -1134,6 +1298,11 @@ async function run() {
             `pluginHostReplacement=${pluginHostReplacement}`,
             `failureReason=${failureReason ?? ''}`,
             `serviceWorkerRouteTiming=${serviceWorkerRouteTiming}`,
+            `deliberateWorkerReplacement=${deliberateWorkerReplacement}`,
+            `orphanFailedFast=${orphanFailedFast}`,
+            `orphanTerminalNotRerouted=${orphanTerminalNotRerouted}`,
+            `orphanElapsedMs=${orphanElapsedMs.toFixed(1)}`,
+            `orphanOutcomeErr=${orphanOutcomeErr}`,
           ].join('; '),
       workerReady,
       startInfo: pluginToHost.startInfo,
@@ -1153,6 +1322,11 @@ async function run() {
       inFlightOpenRecovered,
       pluginHostReplacement,
       serviceWorkerRouteTiming,
+      deliberateWorkerReplacement,
+      orphanFailedFast,
+      orphanTerminalNotRerouted,
+      orphanOutcomeErr,
+      orphanElapsedMs,
       failureReason,
       eventLog: readPersistedEvents(),
     }

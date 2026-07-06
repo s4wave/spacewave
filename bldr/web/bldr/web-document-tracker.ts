@@ -155,7 +155,11 @@ export class WebDocumentTracker {
         const closeErr = new Error(
           `WebDocumentTracker: ${this.clientUuid}: WebDocument ${webDocumentId} closed`,
         )
-        this.removeWebDocument(webDocumentId, closeErr).catch((err) => {
+        this.removeWebDocument(
+          webDocumentId,
+          closeErr,
+          data.terminal === true,
+        ).catch((err) => {
           console.error(
             `WebDocumentTracker: ${this.clientUuid}: error handling WebDocument close:`,
             err,
@@ -765,6 +769,7 @@ export class WebDocumentTracker {
   private async removeWebDocument(
     webDocumentId: string,
     closeErr: Error,
+    terminal = false,
   ): Promise<void> {
     const closePort = this.webDocuments[webDocumentId]
     if (!closePort) {
@@ -841,16 +846,30 @@ export class WebDocumentTracker {
     if (!remainingWebDocumentIds.length) {
       this.lastWebDocumentId = undefined
       this.lastWebDocumentIdx = 0
-      // A zero-document gap is a reload transition, not runtime teardown. Keep
-      // the logical client alive so in-flight work can reconnect through the
-      // next WebDocument instead of failing with a terminal close.
+      // The last relay closed. A terminal close is a runtime-directed discard of
+      // this worker (CreateWebWorker replacement or RemoveWebWorker removal): no
+      // WebDocument will ever relay to this orphaned worker again, so tear the
+      // tracker down now. Closing the client fails its active streams, and
+      // closing the tracker also rejects every caller parked waiting for the
+      // next WebDocument and refuses future opens, so orphaned work fails fast
+      // instead of hanging until worker reclamation. A non-terminal close is a
+      // reload transition: keep the logical client alive so in-flight work can
+      // reconnect through the next WebDocument instead of failing with a
+      // terminal close. The close message carries the discard intent because
+      // these two cases are otherwise the same signal; without it either a
+      // fast-fail breaks reload recovery or a keep-alive hangs orphaned workers
+      // for the teardown-latency window.
       if (wasActiveRuntimeDocument) {
-        this.webRuntimeClient.rerouteChannel().catch((err: unknown) => {
-          console.error(
-            `WebDocumentTracker: ${this.clientUuid}: error rerouting runtime client:`,
-            err,
-          )
-        })
+        if (terminal) {
+          this.close()
+        } else {
+          this.webRuntimeClient.rerouteChannel().catch((err: unknown) => {
+            console.error(
+              `WebDocumentTracker: ${this.clientUuid}: error rerouting runtime client:`,
+              err,
+            )
+          })
+        }
       }
     } else if (wasActiveRuntimeDocument) {
       // The relaying WebDocument closed but other documents remain. Drop the
