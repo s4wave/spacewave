@@ -5,33 +5,15 @@ package space_world_ops
 import (
 	"context"
 
-	s4wave_git "github.com/s4wave/spacewave/core/git"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	"github.com/s4wave/spacewave/db/world"
-	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
-	s4wave_device "github.com/s4wave/spacewave/sdk/device"
-	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
 )
 
 // LookupWorldOp looks up the GoScript-supported built-in space world operation types.
 func LookupWorldOp(ctx context.Context, opTypeID string) (world.Operation, error) {
 	return world.LookupOpSlice([]world.LookupOp{
 		lookupLocalGitOp,
-		LookupSetSpaceSettingsOp,
-		LookupInitUnixFSOp,
-		LookupInitObjectLayoutOp,
-		LookupInitCanvasDemoOp,
-		LookupCanvasInitOp,
-		LookupCanvasAddNodeOp,
-		LookupCanvasRemoveNodeOp,
-		LookupCanvasSetNodeOp,
-		LookupCanvasAddEdgeOp,
-		LookupCanvasRemoveEdgeOp,
-		spacewave_chat.LookupInitChatDemoOp,
-		spacewave_chat.LookupCreateChatChannelOp,
-		s4wave_device.LookupCreateComputersDashboardOp,
-		s4wave_terminal.LookupCreateTerminalOp,
-		s4wave_git.LookupCreateGitRepoWizardOp,
+		lookupCoreWorldOp,
 	}).LookupOp(ctx, opTypeID)
 }
 

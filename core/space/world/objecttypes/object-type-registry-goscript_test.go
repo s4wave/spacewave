@@ -3,22 +3,30 @@
 package objecttypes
 
 import (
-	"context"
 	"testing"
 
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+	s4wave_sql_query "github.com/s4wave/spacewave/sdk/sql/query"
+	s4wave_sql_query_result "github.com/s4wave/spacewave/sdk/sql/query-result"
+	s4wave_sql_schema "github.com/s4wave/spacewave/sdk/sql/schema"
+	s4wave_sql_table_view "github.com/s4wave/spacewave/sdk/sql/table-view"
+	s4wave_sql_workbench "github.com/s4wave/spacewave/sdk/sql/workbench"
+	s4wave_sql_world "github.com/s4wave/spacewave/sdk/sql/world"
 )
 
-// TestLookupOmitsNativeOnlyObjectType pins that the GoScript browser subset
-// omits the native-only Device object type so it does not drag native-only
-// backends into the browser closure. ComputersDashboard stays resolvable
-// (covered in device_test.go, which runs under this tag too).
-func TestLookupOmitsNativeOnlyObjectType(t *testing.T) {
-	got, err := LookupObjectType(context.Background(), s4wave_device.DeviceTypeID)
-	if err != nil {
-		t.Fatalf("LookupObjectType(Device): %v", err)
-	}
-	if got != nil {
-		t.Fatalf("browser subset resolved native-only Device type %q", got.GetObjectTypeID())
+func TestLookupDeviceObjectTypeUnderGoScript(t *testing.T) {
+	requireObjectType(t, s4wave_device.DeviceTypeID)
+}
+
+func TestLookupSqlObjectTypesUnderGoScript(t *testing.T) {
+	for _, typeID := range []string{
+		s4wave_sql_world.SqlDbTypeID,
+		s4wave_sql_query.SqlQueryTypeID,
+		s4wave_sql_query_result.SqlQueryResultTypeID,
+		s4wave_sql_schema.SqlSchemaTypeID,
+		s4wave_sql_table_view.SqlTableViewTypeID,
+		s4wave_sql_workbench.SqlWorkbenchTypeID,
+	} {
+		requireObjectType(t, typeID)
 	}
 }

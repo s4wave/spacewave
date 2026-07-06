@@ -4,22 +4,19 @@ package objecttypes
 
 import (
 	"context"
-	"go/ast"
-	"go/parser"
-	"go/token"
-	"path/filepath"
 	"testing"
 
+	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	s4wave_kv_world "github.com/s4wave/spacewave/sdk/kv/world"
 )
 
 func TestKvObjectTypeMetadataCoverage(t *testing.T) {
 	ctx := context.Background()
 	for _, row := range []struct {
-		typeID string
-		lookup string
+		typeID   string
+		opTypeID string
 	}{
-		{s4wave_kv_world.KvStoreTypeID, "LookupKvSetRootOp"},
+		{s4wave_kv_world.KvStoreTypeID, s4wave_kv_world.KvSetRootOpId},
 	} {
 		objType, err := LookupObjectType(ctx, row.typeID)
 		if err != nil {
@@ -31,35 +28,12 @@ func TestKvObjectTypeMetadataCoverage(t *testing.T) {
 		if got := objType.GetObjectTypeID(); got != row.typeID {
 			t.Fatalf("LookupObjectType(%s) id = %s", row.typeID, got)
 		}
-		for _, optypesFile := range []string{
-			"optypes.go",
-			"optypes-tinygo.go",
-			"optypes-goscript.go",
-		} {
-			if !fileCallsFunction(t, filepath.Join("..", "optypes", optypesFile), row.lookup) {
-				t.Fatalf("%s does not register %s for %s", optypesFile, row.lookup, row.typeID)
-			}
+		op, err := space_world_optypes.LookupWorldOp(ctx, row.opTypeID)
+		if err != nil {
+			t.Fatalf("LookupWorldOp(%s): %v", row.opTypeID, err)
+		}
+		if _, ok := op.(*s4wave_kv_world.KvSetRootOp); !ok {
+			t.Fatalf("LookupWorldOp(%s) = %T, want *KvSetRootOp", row.opTypeID, op)
 		}
 	}
-}
-
-func fileCallsFunction(t *testing.T, path string, name string) bool {
-	t.Helper()
-	file, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
-	if err != nil {
-		t.Fatalf("ParseFile(%s): %v", path, err)
-	}
-	found := false
-	ast.Inspect(file, func(node ast.Node) bool {
-		if found {
-			return false
-		}
-		sel, ok := node.(*ast.SelectorExpr)
-		if !ok {
-			return true
-		}
-		found = sel.Sel.Name == name
-		return true
-	})
-	return found
 }

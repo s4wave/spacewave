@@ -9,8 +9,8 @@ import (
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 )
 
-// TestLookupDeviceObjectType covers the Device object type, which the native
-// registry registers but the GoScript browser subset omits.
+// TestLookupDeviceObjectType covers the Device object type in the native
+// registry; the GoScript registry has its own browser-tagged coverage.
 func TestLookupDeviceObjectType(t *testing.T) {
 	got, err := LookupObjectType(context.Background(), s4wave_device.DeviceTypeID)
 	if err != nil {
