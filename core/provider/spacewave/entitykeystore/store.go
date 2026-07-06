@@ -184,6 +184,18 @@ func (s *EntityKeyStore) GetUnlockedPeerIDs() map[peer.ID]bool {
 	return result
 }
 
+// SignRaw signs payload with one unlocked entity key.
+func (s *EntityKeyStore) SignRaw(peerID peer.ID, payload []byte) ([]byte, error) {
+	var privKey bifrost_crypto.PrivKey
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		privKey = s.keys[peerID]
+	})
+	if privKey == nil {
+		return nil, nil
+	}
+	return privKey.Sign(payload)
+}
+
 // SignAll signs the MultiSigActionEnvelope bytes with all unlocked keys using
 // the multi-sig signing context and returns the signatures. Returns nil if no
 // keys are unlocked.

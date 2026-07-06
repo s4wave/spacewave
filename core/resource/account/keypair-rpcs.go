@@ -187,6 +187,36 @@ func (r *AccountResource) UnlockEntityKeypair(
 	return &s4wave_account.UnlockEntityKeypairResponse{}, nil
 }
 
+// SignWithEntityKeypair signs an arbitrary payload with an unlocked entity keypair.
+func (r *AccountResource) SignWithEntityKeypair(
+	ctx context.Context,
+	req *s4wave_account.SignWithEntityKeypairRequest,
+) (*s4wave_account.SignWithEntityKeypairResponse, error) {
+	pidStr := req.GetPeerId()
+	if pidStr == "" {
+		return nil, errors.New("peer_id is required")
+	}
+	if len(req.GetPayload()) == 0 {
+		return nil, errors.New("payload is required")
+	}
+	pid, err := peer.IDB58Decode(pidStr)
+	if err != nil {
+		return nil, errors.Wrap(err, "decode peer ID")
+	}
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, err
+	}
+	sig, err := acc.GetEntityKeyStore().SignRaw(pid, req.GetPayload())
+	if err != nil {
+		return nil, errors.Wrap(err, "sign payload")
+	}
+	if len(sig) == 0 {
+		return nil, errors.New("entity keypair is locked")
+	}
+	return &s4wave_account.SignWithEntityKeypairResponse{Signature: sig}, nil
+}
+
 // LockEntityKeypair drops a previously unlocked entity private key.
 func (r *AccountResource) LockEntityKeypair(
 	ctx context.Context,

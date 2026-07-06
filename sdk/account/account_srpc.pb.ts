@@ -29,6 +29,8 @@ import {
   SetKeybindingSettingsResponse,
   SetSecurityLevelRequest,
   SetSecurityLevelResponse,
+  SignWithEntityKeypairRequest,
+  SignWithEntityKeypairResponse,
   SSOCodeExchangeRequest,
   SSOCodeExchangeResponse,
   StartDesktopPasskeyRegisterHandoffRequest,
@@ -192,6 +194,15 @@ export const AccountResourceServiceDefinition = {
       name: 'UnlockEntityKeypair',
       I: UnlockEntityKeypairRequest,
       O: UnlockEntityKeypairResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.account.AccountResourceService.SignWithEntityKeypair
+     */
+    SignWithEntityKeypair: {
+      name: 'SignWithEntityKeypair',
+      I: SignWithEntityKeypairRequest,
+      O: SignWithEntityKeypairResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -394,6 +405,14 @@ export interface AccountResourceService {
   ): Promise<UnlockEntityKeypairResponse>
 
   /**
+   * @generated from rpc s4wave.account.AccountResourceService.SignWithEntityKeypair
+   */
+  SignWithEntityKeypair(
+    request: SignWithEntityKeypairRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SignWithEntityKeypairResponse>
+
+  /**
    * @generated from rpc s4wave.account.AccountResourceService.LockEntityKeypair
    */
   LockEntityKeypair(
@@ -482,6 +501,7 @@ export class AccountResourceServiceClient implements AccountResourceService {
     this.ChangePassword = this.ChangePassword.bind(this)
     this.WatchEntityKeypairs = this.WatchEntityKeypairs.bind(this)
     this.UnlockEntityKeypair = this.UnlockEntityKeypair.bind(this)
+    this.SignWithEntityKeypair = this.SignWithEntityKeypair.bind(this)
     this.LockEntityKeypair = this.LockEntityKeypair.bind(this)
     this.LockAllEntityKeypairs = this.LockAllEntityKeypairs.bind(this)
     this.SSOCodeExchange = this.SSOCodeExchange.bind(this)
@@ -746,6 +766,23 @@ export class AccountResourceServiceClient implements AccountResourceService {
       abortSignal || undefined,
     )
     return UnlockEntityKeypairResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.SignWithEntityKeypair
+   */
+  async SignWithEntityKeypair(
+    request: SignWithEntityKeypairRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SignWithEntityKeypairResponse> {
+    const requestMsg = SignWithEntityKeypairRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      AccountResourceServiceDefinition.methods.SignWithEntityKeypair.name,
+      SignWithEntityKeypairRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SignWithEntityKeypairResponse.fromBinary(result)
   }
 
   /**

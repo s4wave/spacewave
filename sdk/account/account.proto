@@ -36,6 +36,8 @@ service AccountResourceService {
 
   rpc UnlockEntityKeypair(UnlockEntityKeypairRequest) returns (UnlockEntityKeypairResponse);
 
+  rpc SignWithEntityKeypair(SignWithEntityKeypairRequest) returns (SignWithEntityKeypairResponse);
+
   rpc LockEntityKeypair(LockEntityKeypairRequest) returns (LockEntityKeypairResponse);
 
   rpc LockAllEntityKeypairs(LockAllEntityKeypairsRequest) returns (LockAllEntityKeypairsResponse);
@@ -346,6 +348,20 @@ message UnlockEntityKeypairRequest {
 
 // UnlockEntityKeypairResponse is the response type for UnlockEntityKeypair.
 message UnlockEntityKeypairResponse {}
+
+// SignWithEntityKeypairRequest is the request type for SignWithEntityKeypair.
+message SignWithEntityKeypairRequest {
+  // PeerId is the peer ID of the unlocked entity keypair to sign with.
+  string peer_id = 1;
+  // Payload is the exact caller-owned payload to sign.
+  bytes payload = 2;
+}
+
+// SignWithEntityKeypairResponse is the response type for SignWithEntityKeypair.
+message SignWithEntityKeypairResponse {
+  // Signature is the raw Ed25519 signature over payload.
+  bytes signature = 1;
+}
 
 // LockEntityKeypairRequest is the request type for LockEntityKeypair.
 message LockEntityKeypairRequest {

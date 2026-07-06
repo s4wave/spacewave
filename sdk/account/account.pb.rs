@@ -332,6 +332,23 @@ pub struct UnlockEntityKeypairRequest {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct UnlockEntityKeypairResponse {
 }
+/// SignWithEntityKeypairRequest is the request type for SignWithEntityKeypair.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SignWithEntityKeypairRequest {
+    /// PeerId is the peer ID of the unlocked entity keypair to sign with.
+    #[prost(string, tag="1")]
+    pub peer_id: ::prost::alloc::string::String,
+    /// Payload is the exact caller-owned payload to sign.
+    #[prost(bytes="vec", tag="2")]
+    pub payload: ::prost::alloc::vec::Vec<u8>,
+}
+/// SignWithEntityKeypairResponse is the response type for SignWithEntityKeypair.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SignWithEntityKeypairResponse {
+    /// Signature is the raw Ed25519 signature over payload.
+    #[prost(bytes="vec", tag="1")]
+    pub signature: ::prost::alloc::vec::Vec<u8>,
+}
 /// LockEntityKeypairRequest is the request type for LockEntityKeypair.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LockEntityKeypairRequest {

@@ -69,6 +69,8 @@ class SRPCAccountResourceServiceClient {
   virtual std::pair<std::unique_ptr<SRPCAccountResourceService_WatchEntityKeypairsClient>, starpc::Error> WatchEntityKeypairs(const s4wave::account::WatchEntityKeypairsRequest& in) = 0;
   // UnlockEntityKeypair
   virtual starpc::Error UnlockEntityKeypair(const s4wave::account::UnlockEntityKeypairRequest& in, s4wave::account::UnlockEntityKeypairResponse* out) = 0;
+  // SignWithEntityKeypair
+  virtual starpc::Error SignWithEntityKeypair(const s4wave::account::SignWithEntityKeypairRequest& in, s4wave::account::SignWithEntityKeypairResponse* out) = 0;
   // LockEntityKeypair
   virtual starpc::Error LockEntityKeypair(const s4wave::account::LockEntityKeypairRequest& in, s4wave::account::LockEntityKeypairResponse* out) = 0;
   // LockAllEntityKeypairs
@@ -125,6 +127,8 @@ class SRPCAccountResourceServiceClientImpl : public SRPCAccountResourceServiceCl
   virtual std::pair<std::unique_ptr<SRPCAccountResourceService_WatchEntityKeypairsClient>, starpc::Error> WatchEntityKeypairs(const s4wave::account::WatchEntityKeypairsRequest& in) override;
   // UnlockEntityKeypair
   virtual starpc::Error UnlockEntityKeypair(const s4wave::account::UnlockEntityKeypairRequest& in, s4wave::account::UnlockEntityKeypairResponse* out) override;
+  // SignWithEntityKeypair
+  virtual starpc::Error SignWithEntityKeypair(const s4wave::account::SignWithEntityKeypairRequest& in, s4wave::account::SignWithEntityKeypairResponse* out) override;
   // LockEntityKeypair
   virtual starpc::Error LockEntityKeypair(const s4wave::account::LockEntityKeypairRequest& in, s4wave::account::LockEntityKeypairResponse* out) override;
   // LockAllEntityKeypairs
@@ -187,6 +191,8 @@ class SRPCAccountResourceServiceServer {
   virtual starpc::Error WatchEntityKeypairs(const s4wave::account::WatchEntityKeypairsRequest& req, SRPCAccountResourceService_WatchEntityKeypairsStream* strm) = 0;
   // UnlockEntityKeypair
   virtual starpc::Error UnlockEntityKeypair(const s4wave::account::UnlockEntityKeypairRequest& req, s4wave::account::UnlockEntityKeypairResponse* resp) = 0;
+  // SignWithEntityKeypair
+  virtual starpc::Error SignWithEntityKeypair(const s4wave::account::SignWithEntityKeypairRequest& req, s4wave::account::SignWithEntityKeypairResponse* resp) = 0;
   // LockEntityKeypair
   virtual starpc::Error LockEntityKeypair(const s4wave::account::LockEntityKeypairRequest& req, s4wave::account::LockEntityKeypairResponse* resp) = 0;
   // LockAllEntityKeypairs

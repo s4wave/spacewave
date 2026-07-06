@@ -44,6 +44,8 @@ type SRPCAccountResourceServiceClient interface {
 
 	UnlockEntityKeypair(ctx context.Context, in *UnlockEntityKeypairRequest) (*UnlockEntityKeypairResponse, error)
 
+	SignWithEntityKeypair(ctx context.Context, in *SignWithEntityKeypairRequest) (*SignWithEntityKeypairResponse, error)
+
 	LockEntityKeypair(ctx context.Context, in *LockEntityKeypairRequest) (*LockEntityKeypairResponse, error)
 
 	LockAllEntityKeypairs(ctx context.Context, in *LockAllEntityKeypairsRequest) (*LockAllEntityKeypairsResponse, error)
@@ -339,6 +341,15 @@ func (c *srpcAccountResourceServiceClient) UnlockEntityKeypair(ctx context.Conte
 	return out, nil
 }
 
+func (c *srpcAccountResourceServiceClient) SignWithEntityKeypair(ctx context.Context, in *SignWithEntityKeypairRequest) (*SignWithEntityKeypairResponse, error) {
+	out := new(SignWithEntityKeypairResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "SignWithEntityKeypair", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcAccountResourceServiceClient) LockEntityKeypair(ctx context.Context, in *LockEntityKeypairRequest) (*LockEntityKeypairResponse, error) {
 	out := new(LockEntityKeypairResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "LockEntityKeypair", in, out)
@@ -442,6 +453,8 @@ type SRPCAccountResourceServiceServer interface {
 
 	UnlockEntityKeypair(context.Context, *UnlockEntityKeypairRequest) (*UnlockEntityKeypairResponse, error)
 
+	SignWithEntityKeypair(context.Context, *SignWithEntityKeypairRequest) (*SignWithEntityKeypairResponse, error)
+
 	LockEntityKeypair(context.Context, *LockEntityKeypairRequest) (*LockEntityKeypairResponse, error)
 
 	LockAllEntityKeypairs(context.Context, *LockAllEntityKeypairsRequest) (*LockAllEntityKeypairsResponse, error)
@@ -500,6 +513,7 @@ func (SRPCAccountResourceServiceHandler) GetMethodIDs() []string {
 		"ChangePassword",
 		"WatchEntityKeypairs",
 		"UnlockEntityKeypair",
+		"SignWithEntityKeypair",
 		"LockEntityKeypair",
 		"LockAllEntityKeypairs",
 		"SSOCodeExchange",
@@ -550,6 +564,8 @@ func (d *SRPCAccountResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_WatchEntityKeypairs(d.impl, strm)
 	case "UnlockEntityKeypair":
 		return true, d.InvokeMethod_UnlockEntityKeypair(d.impl, strm)
+	case "SignWithEntityKeypair":
+		return true, d.InvokeMethod_SignWithEntityKeypair(d.impl, strm)
 	case "LockEntityKeypair":
 		return true, d.InvokeMethod_LockEntityKeypair(d.impl, strm)
 	case "LockAllEntityKeypairs":
@@ -730,6 +746,18 @@ func (SRPCAccountResourceServiceHandler) InvokeMethod_UnlockEntityKeypair(impl S
 		return err
 	}
 	out, err := impl.UnlockEntityKeypair(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCAccountResourceServiceHandler) InvokeMethod_SignWithEntityKeypair(impl SRPCAccountResourceServiceServer, strm srpc.Stream) error {
+	req := new(SignWithEntityKeypairRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.SignWithEntityKeypair(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -1024,6 +1052,14 @@ type SRPCAccountResourceService_UnlockEntityKeypairStream interface {
 }
 
 type srpcAccountResourceService_UnlockEntityKeypairStream struct {
+	srpc.Stream
+}
+
+type SRPCAccountResourceService_SignWithEntityKeypairStream interface {
+	srpc.Stream
+}
+
+type srpcAccountResourceService_SignWithEntityKeypairStream struct {
 	srpc.Stream
 }
 

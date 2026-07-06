@@ -4,9 +4,13 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
+	"reflect"
+	"strings"
 	"sync"
 	"testing"
+	"unsafe"
 
+	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	"github.com/s4wave/spacewave/core/session"
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
@@ -176,6 +180,63 @@ func TestEntityKeypairsWatchStateEqualityGateSuppressesDuplicates(t *testing.T) 
 
 	if emissions != 2 {
 		t.Fatalf("expected 2 emissions (initial + one real change after duplicate writes), got %d", emissions)
+	}
+}
+
+func TestSignWithEntityKeypairUsesUnlockedStoreAndRejectsLockedOrMissingKey(t *testing.T) {
+	ctx := context.Background()
+	priv, pid, stdPriv := generateEntityKey(t)
+	_, missingPID, _ := generateEntityKey(t)
+	store := provider_spacewave.NewEntityKeyStore()
+	store.Unlock(pid, priv)
+	r := &AccountResource{account: providerAccountWithEntityKeyStore(t, store)}
+	payload := []byte("cloud admin signed payload")
+
+	resp, err := r.SignWithEntityKeypair(ctx, &s4wave_account.SignWithEntityKeypairRequest{
+		PeerId:  pid.String(),
+		Payload: payload,
+	})
+	if err != nil {
+		t.Fatalf("sign unlocked keypair: %v", err)
+	}
+	if !ed25519.Verify(stdPriv.Public().(ed25519.PublicKey), payload, resp.GetSignature()) {
+		t.Fatal("signature did not verify with the unlocked entity public key")
+	}
+
+	_, err = r.SignWithEntityKeypair(ctx, &s4wave_account.SignWithEntityKeypairRequest{
+		PeerId:  missingPID.String(),
+		Payload: payload,
+	})
+	assertLockedEntityKeypairError(t, err)
+
+	if _, err := r.LockEntityKeypair(ctx, &s4wave_account.LockEntityKeypairRequest{PeerId: pid.String()}); err != nil {
+		t.Fatalf("lock keypair: %v", err)
+	}
+	_, err = r.SignWithEntityKeypair(ctx, &s4wave_account.SignWithEntityKeypairRequest{
+		PeerId:  pid.String(),
+		Payload: payload,
+	})
+	assertLockedEntityKeypairError(t, err)
+}
+
+func providerAccountWithEntityKeyStore(t *testing.T, store *provider_spacewave.EntityKeyStore) *provider_spacewave.ProviderAccount {
+	t.Helper()
+	acc := &provider_spacewave.ProviderAccount{}
+	field := reflect.ValueOf(acc).Elem().FieldByName("entityKeyStore")
+	if !field.IsValid() {
+		t.Fatal("ProviderAccount entityKeyStore field not found")
+	}
+	reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Set(reflect.ValueOf(store))
+	return acc
+}
+
+func assertLockedEntityKeypairError(t *testing.T, err error) {
+	t.Helper()
+	if err == nil {
+		t.Fatal("expected locked entity keypair error")
+	}
+	if !strings.Contains(err.Error(), "entity keypair is locked") {
+		t.Fatalf("locked entity keypair error: got %q", err.Error())
 	}
 }
 

@@ -1178,6 +1178,59 @@ export const UnlockEntityKeypairResponse: MessageType<UnlockEntityKeypairRespons
   )
 
 /**
+ * SignWithEntityKeypairRequest is the request type for SignWithEntityKeypair.
+ *
+ * @generated from message s4wave.account.SignWithEntityKeypairRequest
+ */
+export interface SignWithEntityKeypairRequest {
+  /**
+   * PeerId is the peer ID of the unlocked entity keypair to sign with.
+   *
+   * @generated from field: string peer_id = 1;
+   */
+  peerId?: string
+  /**
+   * Payload is the exact caller-owned payload to sign.
+   *
+   * @generated from field: bytes payload = 2;
+   */
+  payload?: Uint8Array
+}
+
+export const SignWithEntityKeypairRequest: MessageType<SignWithEntityKeypairRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.account.SignWithEntityKeypairRequest',
+    fields: [
+      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'payload', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SignWithEntityKeypairResponse is the response type for SignWithEntityKeypair.
+ *
+ * @generated from message s4wave.account.SignWithEntityKeypairResponse
+ */
+export interface SignWithEntityKeypairResponse {
+  /**
+   * Signature is the raw Ed25519 signature over payload.
+   *
+   * @generated from field: bytes signature = 1;
+   */
+  signature?: Uint8Array
+}
+
+export const SignWithEntityKeypairResponse: MessageType<SignWithEntityKeypairResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.account.SignWithEntityKeypairResponse',
+    fields: [
+      { no: 1, name: 'signature', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * LockEntityKeypairRequest is the request type for LockEntityKeypair.
  *
  * @generated from message s4wave.account.LockEntityKeypairRequest

@@ -96,6 +96,8 @@ pub trait AccountResourceServiceClient: Send + Sync {
     async fn watch_entity_keypairs(&self, request: &WatchEntityKeypairsRequest) -> starpc::Result<Box<dyn AccountResourceServiceWatchEntityKeypairsStream>>;
     /// UnlockEntityKeypair.
     async fn unlock_entity_keypair(&self, request: &UnlockEntityKeypairRequest) -> starpc::Result<UnlockEntityKeypairResponse>;
+    /// SignWithEntityKeypair.
+    async fn sign_with_entity_keypair(&self, request: &SignWithEntityKeypairRequest) -> starpc::Result<SignWithEntityKeypairResponse>;
     /// LockEntityKeypair.
     async fn lock_entity_keypair(&self, request: &LockEntityKeypairRequest) -> starpc::Result<LockEntityKeypairResponse>;
     /// LockAllEntityKeypairs.
@@ -192,6 +194,9 @@ impl<C: starpc::Client + 'static> AccountResourceServiceClient for AccountResour
     }
     async fn unlock_entity_keypair(&self, request: &UnlockEntityKeypairRequest) -> starpc::Result<UnlockEntityKeypairResponse> {
         self.client.exec_call("s4wave.account.AccountResourceService", "UnlockEntityKeypair", request).await
+    }
+    async fn sign_with_entity_keypair(&self, request: &SignWithEntityKeypairRequest) -> starpc::Result<SignWithEntityKeypairResponse> {
+        self.client.exec_call("s4wave.account.AccountResourceService", "SignWithEntityKeypair", request).await
     }
     async fn lock_entity_keypair(&self, request: &LockEntityKeypairRequest) -> starpc::Result<LockEntityKeypairResponse> {
         self.client.exec_call("s4wave.account.AccountResourceService", "LockEntityKeypair", request).await
@@ -337,6 +342,8 @@ pub trait AccountResourceServiceServer: Send + Sync {
     async fn watch_entity_keypairs(&self, request: WatchEntityKeypairsRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// UnlockEntityKeypair.
     async fn unlock_entity_keypair(&self, request: UnlockEntityKeypairRequest) -> starpc::Result<UnlockEntityKeypairResponse>;
+    /// SignWithEntityKeypair.
+    async fn sign_with_entity_keypair(&self, request: SignWithEntityKeypairRequest) -> starpc::Result<SignWithEntityKeypairResponse>;
     /// LockEntityKeypair.
     async fn lock_entity_keypair(&self, request: LockEntityKeypairRequest) -> starpc::Result<LockEntityKeypairResponse>;
     /// LockAllEntityKeypairs.
@@ -371,6 +378,7 @@ const ACCOUNT_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "ChangePassword",
     "WatchEntityKeypairs",
     "UnlockEntityKeypair",
+    "SignWithEntityKeypair",
     "LockEntityKeypair",
     "LockAllEntityKeypairs",
     "SSOCodeExchange",
@@ -583,6 +591,21 @@ impl<S: AccountResourceServiceServer + 'static> starpc::Invoker for AccountResou
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.unlock_entity_keypair(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "SignWithEntityKeypair" => {
+                let request: SignWithEntityKeypairRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.sign_with_entity_keypair(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

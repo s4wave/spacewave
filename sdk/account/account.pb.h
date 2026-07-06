@@ -202,6 +202,14 @@ class SetSecurityLevelResponse;
 struct SetSecurityLevelResponseDefaultTypeInternal;
 extern SetSecurityLevelResponseDefaultTypeInternal _SetSecurityLevelResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull SetSecurityLevelResponse_class_data_;
+class SignWithEntityKeypairRequest;
+struct SignWithEntityKeypairRequestDefaultTypeInternal;
+extern SignWithEntityKeypairRequestDefaultTypeInternal _SignWithEntityKeypairRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SignWithEntityKeypairRequest_class_data_;
+class SignWithEntityKeypairResponse;
+struct SignWithEntityKeypairResponseDefaultTypeInternal;
+extern SignWithEntityKeypairResponseDefaultTypeInternal _SignWithEntityKeypairResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SignWithEntityKeypairResponse_class_data_;
 class StartDesktopPasskeyRegisterHandoffRequest;
 struct StartDesktopPasskeyRegisterHandoffRequestDefaultTypeInternal;
 extern StartDesktopPasskeyRegisterHandoffRequestDefaultTypeInternal _StartDesktopPasskeyRegisterHandoffRequest_default_instance_;
@@ -1619,7 +1627,7 @@ class StartDesktopPasskeyRegisterResponse final : public ::google::protobuf::Mes
     return *reinterpret_cast<const StartDesktopPasskeyRegisterResponse*>(
         &_StartDesktopPasskeyRegisterResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 45;
+  static constexpr int kIndexInFileMessages = 47;
   friend void swap(StartDesktopPasskeyRegisterResponse& a, StartDesktopPasskeyRegisterResponse& b) { a.Swap(&b); }
   inline void Swap(StartDesktopPasskeyRegisterResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1847,7 +1855,7 @@ class StartDesktopPasskeyRegisterRequest final : public ::google::protobuf::inte
     return *reinterpret_cast<const StartDesktopPasskeyRegisterRequest*>(
         &_StartDesktopPasskeyRegisterRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 44;
+  static constexpr int kIndexInFileMessages = 46;
   friend void swap(StartDesktopPasskeyRegisterRequest& a, StartDesktopPasskeyRegisterRequest& b) { a.Swap(&b); }
   inline void Swap(StartDesktopPasskeyRegisterRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1982,7 +1990,7 @@ class StartDesktopPasskeyRegisterHandoffResponse final : public ::google::protob
     return *reinterpret_cast<const StartDesktopPasskeyRegisterHandoffResponse*>(
         &_StartDesktopPasskeyRegisterHandoffResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 47;
+  static constexpr int kIndexInFileMessages = 49;
   friend void swap(StartDesktopPasskeyRegisterHandoffResponse& a, StartDesktopPasskeyRegisterHandoffResponse& b) { a.Swap(&b); }
   inline void Swap(StartDesktopPasskeyRegisterHandoffResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2239,7 +2247,7 @@ class StartDesktopPasskeyRegisterHandoffRequest final : public ::google::protobu
     return *reinterpret_cast<const StartDesktopPasskeyRegisterHandoffRequest*>(
         &_StartDesktopPasskeyRegisterHandoffRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 46;
+  static constexpr int kIndexInFileMessages = 48;
   friend void swap(StartDesktopPasskeyRegisterHandoffRequest& a, StartDesktopPasskeyRegisterHandoffRequest& b) { a.Swap(&b); }
   inline void Swap(StartDesktopPasskeyRegisterHandoffRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2317,6 +2325,413 @@ class StartDesktopPasskeyRegisterHandoffRequest final : public ::google::protobu
 };
 
 extern const ::google::protobuf::internal::ClassDataFull StartDesktopPasskeyRegisterHandoffRequest_class_data_;
+// -------------------------------------------------------------------
+
+class SignWithEntityKeypairResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.account.SignWithEntityKeypairResponse) */ {
+ public:
+  inline SignWithEntityKeypairResponse() : SignWithEntityKeypairResponse(nullptr) {}
+  ~SignWithEntityKeypairResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SignWithEntityKeypairResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SignWithEntityKeypairResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SignWithEntityKeypairResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline SignWithEntityKeypairResponse(const SignWithEntityKeypairResponse& from) : SignWithEntityKeypairResponse(nullptr, from) {}
+  inline SignWithEntityKeypairResponse(SignWithEntityKeypairResponse&& from) noexcept
+      : SignWithEntityKeypairResponse(nullptr, ::std::move(from)) {}
+  inline SignWithEntityKeypairResponse& operator=(const SignWithEntityKeypairResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SignWithEntityKeypairResponse& operator=(SignWithEntityKeypairResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SignWithEntityKeypairResponse& default_instance() {
+    return *reinterpret_cast<const SignWithEntityKeypairResponse*>(
+        &_SignWithEntityKeypairResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 37;
+  friend void swap(SignWithEntityKeypairResponse& a, SignWithEntityKeypairResponse& b) { a.Swap(&b); }
+  inline void Swap(SignWithEntityKeypairResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SignWithEntityKeypairResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SignWithEntityKeypairResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SignWithEntityKeypairResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SignWithEntityKeypairResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SignWithEntityKeypairResponse& from) { SignWithEntityKeypairResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SignWithEntityKeypairResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.account.SignWithEntityKeypairResponse"; }
+
+  explicit SignWithEntityKeypairResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SignWithEntityKeypairResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SignWithEntityKeypairResponse& from);
+  SignWithEntityKeypairResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SignWithEntityKeypairResponse&& from) noexcept
+      : SignWithEntityKeypairResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kSignatureFieldNumber = 1,
+  };
+  // bytes signature = 1;
+  void clear_signature() ;
+  const ::std::string& signature() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_signature(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_signature();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_signature();
+  void set_allocated_signature(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_signature() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_signature(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_signature();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.account.SignWithEntityKeypairResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SignWithEntityKeypairResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr signature_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SignWithEntityKeypairResponse_class_data_;
+// -------------------------------------------------------------------
+
+class SignWithEntityKeypairRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.account.SignWithEntityKeypairRequest) */ {
+ public:
+  inline SignWithEntityKeypairRequest() : SignWithEntityKeypairRequest(nullptr) {}
+  ~SignWithEntityKeypairRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SignWithEntityKeypairRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SignWithEntityKeypairRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SignWithEntityKeypairRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline SignWithEntityKeypairRequest(const SignWithEntityKeypairRequest& from) : SignWithEntityKeypairRequest(nullptr, from) {}
+  inline SignWithEntityKeypairRequest(SignWithEntityKeypairRequest&& from) noexcept
+      : SignWithEntityKeypairRequest(nullptr, ::std::move(from)) {}
+  inline SignWithEntityKeypairRequest& operator=(const SignWithEntityKeypairRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SignWithEntityKeypairRequest& operator=(SignWithEntityKeypairRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SignWithEntityKeypairRequest& default_instance() {
+    return *reinterpret_cast<const SignWithEntityKeypairRequest*>(
+        &_SignWithEntityKeypairRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 36;
+  friend void swap(SignWithEntityKeypairRequest& a, SignWithEntityKeypairRequest& b) { a.Swap(&b); }
+  inline void Swap(SignWithEntityKeypairRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SignWithEntityKeypairRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SignWithEntityKeypairRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SignWithEntityKeypairRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SignWithEntityKeypairRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SignWithEntityKeypairRequest& from) { SignWithEntityKeypairRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SignWithEntityKeypairRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.account.SignWithEntityKeypairRequest"; }
+
+  explicit SignWithEntityKeypairRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SignWithEntityKeypairRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SignWithEntityKeypairRequest& from);
+  SignWithEntityKeypairRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SignWithEntityKeypairRequest&& from) noexcept
+      : SignWithEntityKeypairRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kPeerIdFieldNumber = 1,
+    kPayloadFieldNumber = 2,
+  };
+  // string peer_id = 1;
+  void clear_peer_id() ;
+  const ::std::string& peer_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_peer_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_peer_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_peer_id();
+  void set_allocated_peer_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_peer_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_peer_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_peer_id();
+
+  public:
+  // bytes payload = 2;
+  void clear_payload() ;
+  const ::std::string& payload() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_payload(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_payload();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_payload();
+  void set_allocated_payload(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_payload() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_payload(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_payload();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.account.SignWithEntityKeypairRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 59,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SignWithEntityKeypairRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr peer_id_;
+    ::google::protobuf::internal::ArenaStringPtr payload_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SignWithEntityKeypairRequest_class_data_;
 // -------------------------------------------------------------------
 
 class SetSecurityLevelResponse final : public ::google::protobuf::internal::ZeroFieldsBase
@@ -2642,7 +3057,7 @@ class SSOCodeExchangeResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const SSOCodeExchangeResponse*>(
         &_SSOCodeExchangeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 41;
+  static constexpr int kIndexInFileMessages = 43;
   friend void swap(SSOCodeExchangeResponse& a, SSOCodeExchangeResponse& b) { a.Swap(&b); }
   inline void Swap(SSOCodeExchangeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2946,7 +3361,7 @@ class SSOCodeExchangeRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SSOCodeExchangeRequest*>(
         &_SSOCodeExchangeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 40;
+  static constexpr int kIndexInFileMessages = 42;
   friend void swap(SSOCodeExchangeRequest& a, SSOCodeExchangeRequest& b) { a.Swap(&b); }
   inline void Swap(SSOCodeExchangeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3772,7 +4187,7 @@ class PasskeyRegisterVerifyResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const PasskeyRegisterVerifyResponse*>(
         &_PasskeyRegisterVerifyResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 51;
+  static constexpr int kIndexInFileMessages = 53;
   friend void swap(PasskeyRegisterVerifyResponse& a, PasskeyRegisterVerifyResponse& b) { a.Swap(&b); }
   inline void Swap(PasskeyRegisterVerifyResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3967,7 +4382,7 @@ class PasskeyRegisterVerifyRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const PasskeyRegisterVerifyRequest*>(
         &_PasskeyRegisterVerifyRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 50;
+  static constexpr int kIndexInFileMessages = 52;
   friend void swap(PasskeyRegisterVerifyRequest& a, PasskeyRegisterVerifyRequest& b) { a.Swap(&b); }
   inline void Swap(PasskeyRegisterVerifyRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4242,7 +4657,7 @@ class PasskeyRegisterOptionsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const PasskeyRegisterOptionsResponse*>(
         &_PasskeyRegisterOptionsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 49;
+  static constexpr int kIndexInFileMessages = 51;
   friend void swap(PasskeyRegisterOptionsResponse& a, PasskeyRegisterOptionsResponse& b) { a.Swap(&b); }
   inline void Swap(PasskeyRegisterOptionsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4436,7 +4851,7 @@ class PasskeyRegisterOptionsRequest final : public ::google::protobuf::internal:
     return *reinterpret_cast<const PasskeyRegisterOptionsRequest*>(
         &_PasskeyRegisterOptionsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 48;
+  static constexpr int kIndexInFileMessages = 50;
   friend void swap(PasskeyRegisterOptionsRequest& a, PasskeyRegisterOptionsRequest& b) { a.Swap(&b); }
   inline void Swap(PasskeyRegisterOptionsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4570,7 +4985,7 @@ class LockEntityKeypairResponse final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const LockEntityKeypairResponse*>(
         &_LockEntityKeypairResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 37;
+  static constexpr int kIndexInFileMessages = 39;
   friend void swap(LockEntityKeypairResponse& a, LockEntityKeypairResponse& b) { a.Swap(&b); }
   inline void Swap(LockEntityKeypairResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4705,7 +5120,7 @@ class LockEntityKeypairRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const LockEntityKeypairRequest*>(
         &_LockEntityKeypairRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 36;
+  static constexpr int kIndexInFileMessages = 38;
   friend void swap(LockEntityKeypairRequest& a, LockEntityKeypairRequest& b) { a.Swap(&b); }
   inline void Swap(LockEntityKeypairRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4899,7 +5314,7 @@ class LockAllEntityKeypairsResponse final : public ::google::protobuf::internal:
     return *reinterpret_cast<const LockAllEntityKeypairsResponse*>(
         &_LockAllEntityKeypairsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 39;
+  static constexpr int kIndexInFileMessages = 41;
   friend void swap(LockAllEntityKeypairsResponse& a, LockAllEntityKeypairsResponse& b) { a.Swap(&b); }
   inline void Swap(LockAllEntityKeypairsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5033,7 +5448,7 @@ class LockAllEntityKeypairsRequest final : public ::google::protobuf::internal::
     return *reinterpret_cast<const LockAllEntityKeypairsRequest*>(
         &_LockAllEntityKeypairsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 38;
+  static constexpr int kIndexInFileMessages = 40;
   friend void swap(LockAllEntityKeypairsRequest& a, LockAllEntityKeypairsRequest& b) { a.Swap(&b); }
   inline void Swap(LockAllEntityKeypairsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5167,7 +5582,7 @@ class LinkSSOResponse final : public ::google::protobuf::internal::ZeroFieldsBas
     return *reinterpret_cast<const LinkSSOResponse*>(
         &_LinkSSOResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 43;
+  static constexpr int kIndexInFileMessages = 45;
   friend void swap(LinkSSOResponse& a, LinkSSOResponse& b) { a.Swap(&b); }
   inline void Swap(LinkSSOResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7608,7 +8023,7 @@ class LinkSSORequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const LinkSSORequest*>(
         &_LinkSSORequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 42;
+  static constexpr int kIndexInFileMessages = 44;
   friend void swap(LinkSSORequest& a, LinkSSORequest& b) { a.Swap(&b); }
   inline void Swap(LinkSSORequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14043,6 +14458,209 @@ inline void UnlockEntityKeypairRequest::set_allocated_credential(::session::Enti
 // -------------------------------------------------------------------
 
 // UnlockEntityKeypairResponse
+
+// -------------------------------------------------------------------
+
+// SignWithEntityKeypairRequest
+
+// string peer_id = 1;
+inline void SignWithEntityKeypairRequest::clear_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.peer_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& SignWithEntityKeypairRequest::peer_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.account.SignWithEntityKeypairRequest.peer_id)
+  return _internal_peer_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SignWithEntityKeypairRequest::set_peer_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.peer_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.account.SignWithEntityKeypairRequest.peer_id)
+}
+inline ::std::string* PROTOBUF_NONNULL SignWithEntityKeypairRequest::mutable_peer_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_peer_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.account.SignWithEntityKeypairRequest.peer_id)
+  return _s;
+}
+inline const ::std::string& SignWithEntityKeypairRequest::_internal_peer_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.peer_id_.Get();
+}
+inline void SignWithEntityKeypairRequest::_internal_set_peer_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.peer_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SignWithEntityKeypairRequest::_internal_mutable_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.peer_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SignWithEntityKeypairRequest::release_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.account.SignWithEntityKeypairRequest.peer_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.peer_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.peer_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SignWithEntityKeypairRequest::set_allocated_peer_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.peer_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.peer_id_.IsDefault()) {
+    _impl_.peer_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.account.SignWithEntityKeypairRequest.peer_id)
+}
+
+// bytes payload = 2;
+inline void SignWithEntityKeypairRequest::clear_payload() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.payload_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& SignWithEntityKeypairRequest::payload() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.account.SignWithEntityKeypairRequest.payload)
+  return _internal_payload();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SignWithEntityKeypairRequest::set_payload(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.payload_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.account.SignWithEntityKeypairRequest.payload)
+}
+inline ::std::string* PROTOBUF_NONNULL SignWithEntityKeypairRequest::mutable_payload()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_payload();
+  // @@protoc_insertion_point(field_mutable:s4wave.account.SignWithEntityKeypairRequest.payload)
+  return _s;
+}
+inline const ::std::string& SignWithEntityKeypairRequest::_internal_payload() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.payload_.Get();
+}
+inline void SignWithEntityKeypairRequest::_internal_set_payload(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.payload_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SignWithEntityKeypairRequest::_internal_mutable_payload() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.payload_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SignWithEntityKeypairRequest::release_payload() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.account.SignWithEntityKeypairRequest.payload)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.payload_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.payload_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SignWithEntityKeypairRequest::set_allocated_payload(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.payload_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.payload_.IsDefault()) {
+    _impl_.payload_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.account.SignWithEntityKeypairRequest.payload)
+}
+
+// -------------------------------------------------------------------
+
+// SignWithEntityKeypairResponse
+
+// bytes signature = 1;
+inline void SignWithEntityKeypairResponse::clear_signature() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.signature_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& SignWithEntityKeypairResponse::signature() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.account.SignWithEntityKeypairResponse.signature)
+  return _internal_signature();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SignWithEntityKeypairResponse::set_signature(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.signature_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.account.SignWithEntityKeypairResponse.signature)
+}
+inline ::std::string* PROTOBUF_NONNULL SignWithEntityKeypairResponse::mutable_signature()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_signature();
+  // @@protoc_insertion_point(field_mutable:s4wave.account.SignWithEntityKeypairResponse.signature)
+  return _s;
+}
+inline const ::std::string& SignWithEntityKeypairResponse::_internal_signature() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.signature_.Get();
+}
+inline void SignWithEntityKeypairResponse::_internal_set_signature(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.signature_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SignWithEntityKeypairResponse::_internal_mutable_signature() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.signature_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SignWithEntityKeypairResponse::release_signature() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.account.SignWithEntityKeypairResponse.signature)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.signature_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.signature_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SignWithEntityKeypairResponse::set_allocated_signature(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.signature_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.signature_.IsDefault()) {
+    _impl_.signature_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.account.SignWithEntityKeypairResponse.signature)
+}
 
 // -------------------------------------------------------------------
 

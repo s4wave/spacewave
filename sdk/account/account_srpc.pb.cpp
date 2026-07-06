@@ -108,6 +108,10 @@ starpc::Error SRPCAccountResourceServiceClientImpl::UnlockEntityKeypair(const s4
   return cc_->ExecCall(service_id_, "UnlockEntityKeypair", in, out);
 }
 
+starpc::Error SRPCAccountResourceServiceClientImpl::SignWithEntityKeypair(const s4wave::account::SignWithEntityKeypairRequest& in, s4wave::account::SignWithEntityKeypairResponse* out) {
+  return cc_->ExecCall(service_id_, "SignWithEntityKeypair", in, out);
+}
+
 starpc::Error SRPCAccountResourceServiceClientImpl::LockEntityKeypair(const s4wave::account::LockEntityKeypairRequest& in, s4wave::account::LockEntityKeypairResponse* out) {
   return cc_->ExecCall(service_id_, "LockEntityKeypair", in, out);
 }
@@ -157,6 +161,7 @@ std::vector<std::string> SRPCAccountResourceServiceHandler::GetMethodIDs() const
     "ChangePassword",
     "WatchEntityKeypairs",
     "UnlockEntityKeypair",
+    "SignWithEntityKeypair",
     "LockEntityKeypair",
     "LockAllEntityKeypairs",
     "SSOCodeExchange",
@@ -284,6 +289,14 @@ std::pair<bool, starpc::Error> SRPCAccountResourceServiceHandler::InvokeMethod(
     if (err != starpc::Error::OK) return {true, err};
     s4wave::account::UnlockEntityKeypairResponse resp;
     err = impl_->UnlockEntityKeypair(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "SignWithEntityKeypair") {
+    s4wave::account::SignWithEntityKeypairRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::account::SignWithEntityKeypairResponse resp;
+    err = impl_->SignWithEntityKeypair(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   } else if (method_id == "LockEntityKeypair") {

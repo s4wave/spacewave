@@ -243,6 +243,9 @@ var signedHeaders = []string{
 	"x-pack-id",
 }
 
+// SigningFunc signs a Spacewave request payload for peerID.
+type SigningFunc func(ctx context.Context, payload []byte) ([]byte, error)
+
 // SignedHTTPClient is the base layer for Ed25519-signed HTTP requests.
 type SignedHTTPClient struct {
 	// httpCli is the underlying HTTP client
@@ -255,6 +258,8 @@ type SignedHTTPClient struct {
 	priv crypto.PrivKey
 	// peerID is the peer ID (base58 encoded for headers)
 	peerID peer.ID
+	// sign signs payloads when private key material lives behind another owner.
+	sign SigningFunc
 }
 
 // signRequest signs an HTTP request with the Ed25519 private key.
@@ -265,8 +270,8 @@ func (c *SignedHTTPClient) signRequest(req *http.Request, body []byte) error {
 
 // signRequestPrecomputed signs an HTTP request using a pre-computed body hash and content length.
 func (c *SignedHTTPClient) signRequestPrecomputed(req *http.Request, bodyHash []byte, contentLength int64) error {
-	if c.priv == nil {
-		return errors.New("no private key configured for signing")
+	if c.priv == nil && c.sign == nil {
+		return errors.New("no private key or signing function configured for signing")
 	}
 
 	// Collect signed headers (only those present on the request).
@@ -306,8 +311,12 @@ func (c *SignedHTTPClient) signRequestPrecomputed(req *http.Request, bodyHash []
 		return errors.Wrap(err, "marshal signing payload")
 	}
 
-	// Sign with Ed25519.
-	sig, err := c.priv.Sign(payloadBytes)
+	var sig []byte
+	if c.sign != nil {
+		sig, err = c.sign(req.Context(), payloadBytes)
+	} else {
+		sig, err = c.priv.Sign(payloadBytes)
+	}
 	if err != nil {
 		return errors.Wrap(err, "sign payload")
 	}
@@ -677,6 +686,25 @@ func NewEntityClientDirect(
 			envPfx:  normalizeSigningEnvPrefix(signingEnvPfx),
 			priv:    priv,
 			peerID:  pid,
+		},
+	}
+}
+
+// NewEntityClientSigner constructs an EntityClient backed by a request-signing callback.
+func NewEntityClientSigner(
+	httpCli *http.Client,
+	endpoint string,
+	signingEnvPfx string,
+	pid peer.ID,
+	sign SigningFunc,
+) *EntityClient {
+	return &EntityClient{
+		SignedHTTPClient: &SignedHTTPClient{
+			httpCli: httpCli,
+			baseURL: endpoint,
+			envPfx:  normalizeSigningEnvPrefix(signingEnvPfx),
+			peerID:  pid,
+			sign:    sign,
 		},
 	}
 }
@@ -1131,6 +1159,34 @@ func NewSessionClient(
 			peerID:  pid,
 		},
 	}
+}
+
+// NewSessionClientSigner constructs a SessionClient backed by a request-signing callback.
+func NewSessionClientSigner(
+	httpCli *http.Client,
+	endpoint string,
+	signingEnvPfx string,
+	peerIDStr string,
+	sign SigningFunc,
+) *SessionClient {
+	var pid peer.ID
+	if peerIDStr != "" {
+		pid, _ = peer.IDB58Decode(peerIDStr)
+	}
+	return &SessionClient{
+		SignedHTTPClient: &SignedHTTPClient{
+			httpCli: httpCli,
+			baseURL: endpoint,
+			envPfx:  normalizeSigningEnvPrefix(signingEnvPfx),
+			peerID:  pid,
+			sign:    sign,
+		},
+	}
+}
+
+// GetAdminJSON sends a signed admin GET request and returns the JSON response body.
+func (c *SessionClient) GetAdminJSON(ctx context.Context, requestPath string) ([]byte, error) {
+	return c.doGet(ctx, path.Join("/api/admin", requestPath), SeedReasonColdSeed)
 }
 
 func (c *SessionClient) getPackReadTicket(resourceID string) (string, bool) {

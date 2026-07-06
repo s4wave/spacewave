@@ -295,6 +295,63 @@ struct StartDesktopPasskeyRegisterHandoffRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 StartDesktopPasskeyRegisterHandoffRequestDefaultTypeInternal _StartDesktopPasskeyRegisterHandoffRequest_default_instance_;
+
+inline constexpr SignWithEntityKeypairResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        signature_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SignWithEntityKeypairResponse::SignWithEntityKeypairResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SignWithEntityKeypairResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SignWithEntityKeypairResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SignWithEntityKeypairResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SignWithEntityKeypairResponseDefaultTypeInternal() {}
+  union {
+    SignWithEntityKeypairResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SignWithEntityKeypairResponseDefaultTypeInternal _SignWithEntityKeypairResponse_default_instance_;
+
+inline constexpr SignWithEntityKeypairRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        peer_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        payload_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SignWithEntityKeypairRequest::SignWithEntityKeypairRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SignWithEntityKeypairRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SignWithEntityKeypairRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SignWithEntityKeypairRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SignWithEntityKeypairRequestDefaultTypeInternal() {}
+  union {
+    SignWithEntityKeypairRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SignWithEntityKeypairRequestDefaultTypeInternal _SignWithEntityKeypairRequest_default_instance_;
 template <typename>
 PROTOBUF_CONSTEXPR SetSecurityLevelResponse::SetSecurityLevelResponse(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -1561,6 +1618,18 @@ const ::uint32_t
         1,
         0x000, // bitmap
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::account::SignWithEntityKeypairRequest, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::account::SignWithEntityKeypairRequest, _impl_.peer_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::account::SignWithEntityKeypairRequest, _impl_.payload_),
+        0,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::account::SignWithEntityKeypairResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::account::SignWithEntityKeypairResponse, _impl_.signature_),
+        0,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::account::LockEntityKeypairRequest, _impl_._has_bits_),
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::account::LockEntityKeypairRequest, _impl_.peer_id_),
@@ -1700,22 +1769,24 @@ static const ::_pbi::MigrationSchema
         {183, sizeof(::s4wave::account::AccountEscalationState)},
         {192, sizeof(::s4wave::account::UnlockEntityKeypairRequest)},
         {199, sizeof(::s4wave::account::UnlockEntityKeypairResponse)},
-        {200, sizeof(::s4wave::account::LockEntityKeypairRequest)},
-        {205, sizeof(::s4wave::account::LockEntityKeypairResponse)},
-        {206, sizeof(::s4wave::account::LockAllEntityKeypairsRequest)},
-        {207, sizeof(::s4wave::account::LockAllEntityKeypairsResponse)},
-        {208, sizeof(::s4wave::account::SSOCodeExchangeRequest)},
-        {217, sizeof(::s4wave::account::SSOCodeExchangeResponse)},
-        {236, sizeof(::s4wave::account::LinkSSORequest)},
-        {249, sizeof(::s4wave::account::LinkSSOResponse)},
-        {250, sizeof(::s4wave::account::StartDesktopPasskeyRegisterRequest)},
-        {251, sizeof(::s4wave::account::StartDesktopPasskeyRegisterResponse)},
-        {260, sizeof(::s4wave::account::StartDesktopPasskeyRegisterHandoffRequest)},
-        {261, sizeof(::s4wave::account::StartDesktopPasskeyRegisterHandoffResponse)},
-        {274, sizeof(::s4wave::account::PasskeyRegisterOptionsRequest)},
-        {275, sizeof(::s4wave::account::PasskeyRegisterOptionsResponse)},
-        {280, sizeof(::s4wave::account::PasskeyRegisterVerifyRequest)},
-        {295, sizeof(::s4wave::account::PasskeyRegisterVerifyResponse)},
+        {200, sizeof(::s4wave::account::SignWithEntityKeypairRequest)},
+        {207, sizeof(::s4wave::account::SignWithEntityKeypairResponse)},
+        {212, sizeof(::s4wave::account::LockEntityKeypairRequest)},
+        {217, sizeof(::s4wave::account::LockEntityKeypairResponse)},
+        {218, sizeof(::s4wave::account::LockAllEntityKeypairsRequest)},
+        {219, sizeof(::s4wave::account::LockAllEntityKeypairsResponse)},
+        {220, sizeof(::s4wave::account::SSOCodeExchangeRequest)},
+        {229, sizeof(::s4wave::account::SSOCodeExchangeResponse)},
+        {248, sizeof(::s4wave::account::LinkSSORequest)},
+        {261, sizeof(::s4wave::account::LinkSSOResponse)},
+        {262, sizeof(::s4wave::account::StartDesktopPasskeyRegisterRequest)},
+        {263, sizeof(::s4wave::account::StartDesktopPasskeyRegisterResponse)},
+        {272, sizeof(::s4wave::account::StartDesktopPasskeyRegisterHandoffRequest)},
+        {273, sizeof(::s4wave::account::StartDesktopPasskeyRegisterHandoffResponse)},
+        {286, sizeof(::s4wave::account::PasskeyRegisterOptionsRequest)},
+        {287, sizeof(::s4wave::account::PasskeyRegisterOptionsResponse)},
+        {292, sizeof(::s4wave::account::PasskeyRegisterVerifyRequest)},
+        {307, sizeof(::s4wave::account::PasskeyRegisterVerifyResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::account::_WatchAccountInfoRequest_default_instance_._instance,
@@ -1754,6 +1825,8 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::account::_AccountEscalationState_default_instance_._instance,
     &::s4wave::account::_UnlockEntityKeypairRequest_default_instance_._instance,
     &::s4wave::account::_UnlockEntityKeypairResponse_default_instance_._instance,
+    &::s4wave::account::_SignWithEntityKeypairRequest_default_instance_._instance,
+    &::s4wave::account::_SignWithEntityKeypairResponse_default_instance_._instance,
     &::s4wave::account::_LockEntityKeypairRequest_default_instance_._instance,
     &::s4wave::account::_LockEntityKeypairResponse_default_instance_._instance,
     &::s4wave::account::_LockAllEntityKeypairsRequest_default_instance_._instance,
@@ -1854,121 +1927,127 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fa
     "hod\"\\\n\032UnlockEntityKeypairRequest\022\017\n\007pee"
     "r_id\030\001 \001(\t\022-\n\ncredential\030\002 \001(\0132\031.session"
     ".EntityCredential\"\035\n\033UnlockEntityKeypair"
-    "Response\"+\n\030LockEntityKeypairRequest\022\017\n\007"
-    "peer_id\030\001 \001(\t\"\033\n\031LockEntityKeypairRespon"
-    "se\"\036\n\034LockAllEntityKeypairsRequest\"\037\n\035Lo"
-    "ckAllEntityKeypairsResponse\"N\n\026SSOCodeEx"
-    "changeRequest\022\020\n\010provider\030\001 \001(\t\022\014\n\004code\030"
-    "\002 \001(\t\022\024\n\014redirect_uri\030\003 \001(\t\"\267\001\n\027SSOCodeE"
-    "xchangeResponse\022\016\n\006linked\030\001 \001(\010\022\022\n\naccou"
-    "nt_id\030\002 \001(\t\022\021\n\tentity_id\030\003 \001(\t\022\026\n\016encryp"
-    "ted_blob\030\004 \001(\t\022\023\n\013pin_wrapped\030\005 \001(\010\022\023\n\013a"
-    "uth_params\030\006 \001(\t\022\024\n\014sso_provider\030\007 \001(\t\022\r"
-    "\n\005email\030\010 \001(\t\"\202\001\n\016LinkSSORequest\022\020\n\010prov"
-    "ider\030\001 \001(\t\022\014\n\004code\030\002 \001(\t\022\024\n\014redirect_uri"
-    "\030\003 \001(\t\022\013\n\003pin\030\004 \001(\014\022-\n\ncredential\030\005 \001(\0132"
-    "\031.session.EntityCredential\"\021\n\017LinkSSORes"
-    "ponse\"$\n\"StartDesktopPasskeyRegisterRequ"
-    "est\"Y\n#StartDesktopPasskeyRegisterRespon"
-    "se\022\r\n\005nonce\030\001 \001(\t\022\021\n\tws_ticket\030\002 \001(\t\022\020\n\010"
-    "open_url\030\003 \001(\t\"+\n)StartDesktopPasskeyReg"
-    "isterHandoffRequest\"\222\001\n*StartDesktopPass"
-    "keyRegisterHandoffResponse\022\020\n\010username\030\001"
-    " \001(\t\022\027\n\017credential_json\030\002 \001(\t\022\023\n\013prf_cap"
-    "able\030\003 \001(\010\022\020\n\010prf_salt\030\004 \001(\t\022\022\n\nprf_outp"
-    "ut\030\005 \001(\t\"\037\n\035PasskeyRegisterOptionsReques"
-    "t\"6\n\036PasskeyRegisterOptionsResponse\022\024\n\014o"
-    "ptions_json\030\001 \001(\t\"\245\001\n\034PasskeyRegisterVer"
-    "ifyRequest\022\027\n\017credential_json\030\001 \001(\t\022\023\n\013p"
-    "rf_capable\030\002 \001(\010\022\031\n\021encrypted_privkey\030\003 "
-    "\001(\t\022\017\n\007peer_id\030\005 \001(\t\022\023\n\013auth_params\030\006 \001("
-    "\t\022\020\n\010prf_salt\030\007 \001(\tJ\004\010\004\020\005\"6\n\035PasskeyRegi"
-    "sterVerifyResponse\022\025\n\rcredential_id\030\001 \001("
-    "\t*\310\001\n\022AccountSessionKind\0227\n3AccountSessi"
-    "onKind_ACCOUNT_SESSION_KIND_UNSPECIFIED\020"
-    "\000\0229\n5AccountSessionKind_ACCOUNT_SESSION_"
-    "KIND_LOCAL_SESSION\020\001\022>\n:AccountSessionKi"
-    "nd_ACCOUNT_SESSION_KIND_CLOUD_AUTH_SESSI"
-    "ON\020\002*\306\004\n\033AccountEscalationIntentKind\022J\nF"
-    "AccountEscalationIntentKind_ACCOUNT_ESCA"
-    "LATION_INTENT_KIND_UNSPECIFIED\020\000\022M\nIAcco"
-    "untEscalationIntentKind_ACCOUNT_ESCALATI"
-    "ON_INTENT_KIND_REVOKE_SESSION\020\001\022Q\nMAccou"
-    "ntEscalationIntentKind_ACCOUNT_ESCALATIO"
-    "N_INTENT_KIND_REMOVE_AUTH_METHOD\020\002\022M\nIAc"
+    "Response\"@\n\034SignWithEntityKeypairRequest"
+    "\022\017\n\007peer_id\030\001 \001(\t\022\017\n\007payload\030\002 \001(\014\"2\n\035Si"
+    "gnWithEntityKeypairResponse\022\021\n\tsignature"
+    "\030\001 \001(\014\"+\n\030LockEntityKeypairRequest\022\017\n\007pe"
+    "er_id\030\001 \001(\t\"\033\n\031LockEntityKeypairResponse"
+    "\"\036\n\034LockAllEntityKeypairsRequest\"\037\n\035Lock"
+    "AllEntityKeypairsResponse\"N\n\026SSOCodeExch"
+    "angeRequest\022\020\n\010provider\030\001 \001(\t\022\014\n\004code\030\002 "
+    "\001(\t\022\024\n\014redirect_uri\030\003 \001(\t\"\267\001\n\027SSOCodeExc"
+    "hangeResponse\022\016\n\006linked\030\001 \001(\010\022\022\n\naccount"
+    "_id\030\002 \001(\t\022\021\n\tentity_id\030\003 \001(\t\022\026\n\016encrypte"
+    "d_blob\030\004 \001(\t\022\023\n\013pin_wrapped\030\005 \001(\010\022\023\n\013aut"
+    "h_params\030\006 \001(\t\022\024\n\014sso_provider\030\007 \001(\t\022\r\n\005"
+    "email\030\010 \001(\t\"\202\001\n\016LinkSSORequest\022\020\n\010provid"
+    "er\030\001 \001(\t\022\014\n\004code\030\002 \001(\t\022\024\n\014redirect_uri\030\003"
+    " \001(\t\022\013\n\003pin\030\004 \001(\014\022-\n\ncredential\030\005 \001(\0132\031."
+    "session.EntityCredential\"\021\n\017LinkSSORespo"
+    "nse\"$\n\"StartDesktopPasskeyRegisterReques"
+    "t\"Y\n#StartDesktopPasskeyRegisterResponse"
+    "\022\r\n\005nonce\030\001 \001(\t\022\021\n\tws_ticket\030\002 \001(\t\022\020\n\010op"
+    "en_url\030\003 \001(\t\"+\n)StartDesktopPasskeyRegis"
+    "terHandoffRequest\"\222\001\n*StartDesktopPasske"
+    "yRegisterHandoffResponse\022\020\n\010username\030\001 \001"
+    "(\t\022\027\n\017credential_json\030\002 \001(\t\022\023\n\013prf_capab"
+    "le\030\003 \001(\010\022\020\n\010prf_salt\030\004 \001(\t\022\022\n\nprf_output"
+    "\030\005 \001(\t\"\037\n\035PasskeyRegisterOptionsRequest\""
+    "6\n\036PasskeyRegisterOptionsResponse\022\024\n\014opt"
+    "ions_json\030\001 \001(\t\"\245\001\n\034PasskeyRegisterVerif"
+    "yRequest\022\027\n\017credential_json\030\001 \001(\t\022\023\n\013prf"
+    "_capable\030\002 \001(\010\022\031\n\021encrypted_privkey\030\003 \001("
+    "\t\022\017\n\007peer_id\030\005 \001(\t\022\023\n\013auth_params\030\006 \001(\t\022"
+    "\020\n\010prf_salt\030\007 \001(\tJ\004\010\004\020\005\"6\n\035PasskeyRegist"
+    "erVerifyResponse\022\025\n\rcredential_id\030\001 \001(\t*"
+    "\310\001\n\022AccountSessionKind\0227\n3AccountSession"
+    "Kind_ACCOUNT_SESSION_KIND_UNSPECIFIED\020\000\022"
+    "9\n5AccountSessionKind_ACCOUNT_SESSION_KI"
+    "ND_LOCAL_SESSION\020\001\022>\n:AccountSessionKind"
+    "_ACCOUNT_SESSION_KIND_CLOUD_AUTH_SESSION"
+    "\020\002*\306\004\n\033AccountEscalationIntentKind\022J\nFAc"
     "countEscalationIntentKind_ACCOUNT_ESCALA"
-    "TION_INTENT_KIND_ADD_BACKUP_KEY\020\003\022G\nCAcc"
-    "ountEscalationIntentKind_ACCOUNT_ESCALAT"
-    "ION_INTENT_KIND_LINK_SSO\020\004\022Q\nMAccountEsc"
-    "alationIntentKind_ACCOUNT_ESCALATION_INT"
-    "ENT_KIND_SET_SECURITY_LEVEL\020\005\022N\nJAccount"
+    "TION_INTENT_KIND_UNSPECIFIED\020\000\022M\nIAccoun"
+    "tEscalationIntentKind_ACCOUNT_ESCALATION"
+    "_INTENT_KIND_REVOKE_SESSION\020\001\022Q\nMAccount"
     "EscalationIntentKind_ACCOUNT_ESCALATION_"
-    "INTENT_KIND_CHANGE_PASSWORD\020\0062\234\024\n\026Accoun"
-    "tResourceService\022g\n\020WatchAccountInfo\022\'.s"
-    "4wave.account.WatchAccountInfoRequest\032(."
-    "s4wave.account.WatchAccountInfoResponse0"
-    "\001\022g\n\020WatchAuthMethods\022\'.s4wave.account.W"
-    "atchAuthMethodsRequest\032(.s4wave.account."
-    "WatchAuthMethodsResponse0\001\022^\n\rWatchSessi"
-    "ons\022$.s4wave.account.WatchSessionsReques"
-    "t\032%.s4wave.account.WatchSessionsResponse"
-    "0\001\022\177\n\030WatchKeybindingOverrides\022/.s4wave."
-    "account.WatchKeybindingOverridesRequest\032"
-    "0.s4wave.account.WatchKeybindingOverride"
-    "sResponse0\001\022}\n\030UpsertKeybindingOverride\022"
-    "/.s4wave.account.UpsertKeybindingOverrid"
-    "eRequest\0320.s4wave.account.UpsertKeybindi"
-    "ngOverrideResponse\022}\n\030RemoveKeybindingOv"
-    "erride\022/.s4wave.account.RemoveKeybinding"
-    "OverrideRequest\0320.s4wave.account.RemoveK"
-    "eybindingOverrideResponse\022t\n\025SetKeybindi"
-    "ngSettings\022,.s4wave.account.SetKeybindin"
-    "gSettingsRequest\032-.s4wave.account.SetKey"
-    "bindingSettingsResponse\022\\\n\rAddAuthMethod"
-    "\022$.s4wave.account.AddAuthMethodRequest\032%"
-    ".s4wave.account.AddAuthMethodResponse\022e\n"
-    "\020RemoveAuthMethod\022\'.s4wave.account.Remov"
-    "eAuthMethodRequest\032(.s4wave.account.Remo"
-    "veAuthMethodResponse\022e\n\020SetSecurityLevel"
-    "\022\'.s4wave.account.SetSecurityLevelReques"
-    "t\032(.s4wave.account.SetSecurityLevelRespo"
-    "nse\022\\\n\rRevokeSession\022$.s4wave.account.Re"
-    "vokeSessionRequest\032%.s4wave.account.Revo"
-    "keSessionResponse\022h\n\021GenerateBackupKey\022("
-    ".s4wave.account.GenerateBackupKeyRequest"
-    "\032).s4wave.account.GenerateBackupKeyRespo"
-    "nse\022_\n\016ChangePassword\022%.s4wave.account.C"
-    "hangePasswordRequest\032&.s4wave.account.Ch"
-    "angePasswordResponse\022p\n\023WatchEntityKeypa"
-    "irs\022*.s4wave.account.WatchEntityKeypairs"
-    "Request\032+.s4wave.account.WatchEntityKeyp"
-    "airsResponse0\001\022n\n\023UnlockEntityKeypair\022*."
-    "s4wave.account.UnlockEntityKeypairReques"
-    "t\032+.s4wave.account.UnlockEntityKeypairRe"
-    "sponse\022h\n\021LockEntityKeypair\022(.s4wave.acc"
-    "ount.LockEntityKeypairRequest\032).s4wave.a"
-    "ccount.LockEntityKeypairResponse\022t\n\025Lock"
-    "AllEntityKeypairs\022,.s4wave.account.LockA"
-    "llEntityKeypairsRequest\032-.s4wave.account"
-    ".LockAllEntityKeypairsResponse\022b\n\017SSOCod"
-    "eExchange\022&.s4wave.account.SSOCodeExchan"
-    "geRequest\032\'.s4wave.account.SSOCodeExchan"
-    "geResponse\022J\n\007LinkSSO\022\036.s4wave.account.L"
-    "inkSSORequest\032\037.s4wave.account.LinkSSORe"
-    "sponse\022\206\001\n\033StartDesktopPasskeyRegister\0222"
-    ".s4wave.account.StartDesktopPasskeyRegis"
-    "terRequest\0323.s4wave.account.StartDesktop"
-    "PasskeyRegisterResponse\022\233\001\n\"StartDesktop"
-    "PasskeyRegisterHandoff\0229.s4wave.account."
-    "StartDesktopPasskeyRegisterHandoffReques"
-    "t\032:.s4wave.account.StartDesktopPasskeyRe"
-    "gisterHandoffResponse\022w\n\026PasskeyRegister"
-    "Options\022-.s4wave.account.PasskeyRegister"
-    "OptionsRequest\032..s4wave.account.PasskeyR"
-    "egisterOptionsResponse\022t\n\025PasskeyRegiste"
-    "rVerify\022,.s4wave.account.PasskeyRegister"
-    "VerifyRequest\032-.s4wave.account.PasskeyRe"
-    "gisterVerifyResponseb\006proto3"
+    "INTENT_KIND_REMOVE_AUTH_METHOD\020\002\022M\nIAcco"
+    "untEscalationIntentKind_ACCOUNT_ESCALATI"
+    "ON_INTENT_KIND_ADD_BACKUP_KEY\020\003\022G\nCAccou"
+    "ntEscalationIntentKind_ACCOUNT_ESCALATIO"
+    "N_INTENT_KIND_LINK_SSO\020\004\022Q\nMAccountEscal"
+    "ationIntentKind_ACCOUNT_ESCALATION_INTEN"
+    "T_KIND_SET_SECURITY_LEVEL\020\005\022N\nJAccountEs"
+    "calationIntentKind_ACCOUNT_ESCALATION_IN"
+    "TENT_KIND_CHANGE_PASSWORD\020\0062\222\025\n\026AccountR"
+    "esourceService\022g\n\020WatchAccountInfo\022\'.s4w"
+    "ave.account.WatchAccountInfoRequest\032(.s4"
+    "wave.account.WatchAccountInfoResponse0\001\022"
+    "g\n\020WatchAuthMethods\022\'.s4wave.account.Wat"
+    "chAuthMethodsRequest\032(.s4wave.account.Wa"
+    "tchAuthMethodsResponse0\001\022^\n\rWatchSession"
+    "s\022$.s4wave.account.WatchSessionsRequest\032"
+    "%.s4wave.account.WatchSessionsResponse0\001"
+    "\022\177\n\030WatchKeybindingOverrides\022/.s4wave.ac"
+    "count.WatchKeybindingOverridesRequest\0320."
+    "s4wave.account.WatchKeybindingOverridesR"
+    "esponse0\001\022}\n\030UpsertKeybindingOverride\022/."
+    "s4wave.account.UpsertKeybindingOverrideR"
+    "equest\0320.s4wave.account.UpsertKeybinding"
+    "OverrideResponse\022}\n\030RemoveKeybindingOver"
+    "ride\022/.s4wave.account.RemoveKeybindingOv"
+    "errideRequest\0320.s4wave.account.RemoveKey"
+    "bindingOverrideResponse\022t\n\025SetKeybinding"
+    "Settings\022,.s4wave.account.SetKeybindingS"
+    "ettingsRequest\032-.s4wave.account.SetKeybi"
+    "ndingSettingsResponse\022\\\n\rAddAuthMethod\022$"
+    ".s4wave.account.AddAuthMethodRequest\032%.s"
+    "4wave.account.AddAuthMethodResponse\022e\n\020R"
+    "emoveAuthMethod\022\'.s4wave.account.RemoveA"
+    "uthMethodRequest\032(.s4wave.account.Remove"
+    "AuthMethodResponse\022e\n\020SetSecurityLevel\022\'"
+    ".s4wave.account.SetSecurityLevelRequest\032"
+    "(.s4wave.account.SetSecurityLevelRespons"
+    "e\022\\\n\rRevokeSession\022$.s4wave.account.Revo"
+    "keSessionRequest\032%.s4wave.account.Revoke"
+    "SessionResponse\022h\n\021GenerateBackupKey\022(.s"
+    "4wave.account.GenerateBackupKeyRequest\032)"
+    ".s4wave.account.GenerateBackupKeyRespons"
+    "e\022_\n\016ChangePassword\022%.s4wave.account.Cha"
+    "ngePasswordRequest\032&.s4wave.account.Chan"
+    "gePasswordResponse\022p\n\023WatchEntityKeypair"
+    "s\022*.s4wave.account.WatchEntityKeypairsRe"
+    "quest\032+.s4wave.account.WatchEntityKeypai"
+    "rsResponse0\001\022n\n\023UnlockEntityKeypair\022*.s4"
+    "wave.account.UnlockEntityKeypairRequest\032"
+    "+.s4wave.account.UnlockEntityKeypairResp"
+    "onse\022t\n\025SignWithEntityKeypair\022,.s4wave.a"
+    "ccount.SignWithEntityKeypairRequest\032-.s4"
+    "wave.account.SignWithEntityKeypairRespon"
+    "se\022h\n\021LockEntityKeypair\022(.s4wave.account"
+    ".LockEntityKeypairRequest\032).s4wave.accou"
+    "nt.LockEntityKeypairResponse\022t\n\025LockAllE"
+    "ntityKeypairs\022,.s4wave.account.LockAllEn"
+    "tityKeypairsRequest\032-.s4wave.account.Loc"
+    "kAllEntityKeypairsResponse\022b\n\017SSOCodeExc"
+    "hange\022&.s4wave.account.SSOCodeExchangeRe"
+    "quest\032\'.s4wave.account.SSOCodeExchangeRe"
+    "sponse\022J\n\007LinkSSO\022\036.s4wave.account.LinkS"
+    "SORequest\032\037.s4wave.account.LinkSSORespon"
+    "se\022\206\001\n\033StartDesktopPasskeyRegister\0222.s4w"
+    "ave.account.StartDesktopPasskeyRegisterR"
+    "equest\0323.s4wave.account.StartDesktopPass"
+    "keyRegisterResponse\022\233\001\n\"StartDesktopPass"
+    "keyRegisterHandoff\0229.s4wave.account.Star"
+    "tDesktopPasskeyRegisterHandoffRequest\032:."
+    "s4wave.account.StartDesktopPasskeyRegist"
+    "erHandoffResponse\022w\n\026PasskeyRegisterOpti"
+    "ons\022-.s4wave.account.PasskeyRegisterOpti"
+    "onsRequest\032..s4wave.account.PasskeyRegis"
+    "terOptionsResponse\022t\n\025PasskeyRegisterVer"
+    "ify\022,.s4wave.account.PasskeyRegisterVeri"
+    "fyRequest\032-.s4wave.account.PasskeyRegist"
+    "erVerifyResponseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto_deps[4] = {
@@ -1981,13 +2060,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto = {
     false,
     false,
-    7828,
+    8064,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto,
     "github.com/s4wave/spacewave/sdk/account/account.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto_deps,
     4,
-    52,
+    54,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto::offsets,
@@ -11197,6 +11276,593 @@ UnlockEntityKeypairResponse::_table_ = {
 
 ::google::protobuf::Metadata UnlockEntityKeypairResponse::GetMetadata() const {
   return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SignWithEntityKeypairRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SignWithEntityKeypairRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SignWithEntityKeypairRequest, _impl_._has_bits_);
+};
+
+SignWithEntityKeypairRequest::SignWithEntityKeypairRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SignWithEntityKeypairRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.account.SignWithEntityKeypairRequest)
+}
+PROTOBUF_NDEBUG_INLINE SignWithEntityKeypairRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::account::SignWithEntityKeypairRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        peer_id_(arena, from.peer_id_),
+        payload_(arena, from.payload_) {}
+
+SignWithEntityKeypairRequest::SignWithEntityKeypairRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SignWithEntityKeypairRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SignWithEntityKeypairRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SignWithEntityKeypairRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.account.SignWithEntityKeypairRequest)
+}
+PROTOBUF_NDEBUG_INLINE SignWithEntityKeypairRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        peer_id_(arena),
+        payload_(arena) {}
+
+inline void SignWithEntityKeypairRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+SignWithEntityKeypairRequest::~SignWithEntityKeypairRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.account.SignWithEntityKeypairRequest)
+  SharedDtor(*this);
+}
+inline void SignWithEntityKeypairRequest::SharedDtor(MessageLite& self) {
+  SignWithEntityKeypairRequest& this_ = static_cast<SignWithEntityKeypairRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.peer_id_.Destroy();
+  this_._impl_.payload_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SignWithEntityKeypairRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SignWithEntityKeypairRequest(arena);
+}
+constexpr auto SignWithEntityKeypairRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SignWithEntityKeypairRequest),
+                                            alignof(SignWithEntityKeypairRequest));
+}
+constexpr auto SignWithEntityKeypairRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SignWithEntityKeypairRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SignWithEntityKeypairRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SignWithEntityKeypairRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SignWithEntityKeypairRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SignWithEntityKeypairRequest>(), &SignWithEntityKeypairRequest::ByteSizeLong,
+              &SignWithEntityKeypairRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SignWithEntityKeypairRequest, _impl_._cached_size_),
+          false,
+      },
+      &SignWithEntityKeypairRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SignWithEntityKeypairRequest_class_data_ =
+        SignWithEntityKeypairRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SignWithEntityKeypairRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SignWithEntityKeypairRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SignWithEntityKeypairRequest_class_data_.tc_table);
+  return SignWithEntityKeypairRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 59, 2>
+SignWithEntityKeypairRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SignWithEntityKeypairRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    SignWithEntityKeypairRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::account::SignWithEntityKeypairRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // bytes payload = 2;
+    {::_pbi::TcParser::FastBS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SignWithEntityKeypairRequest, _impl_.payload_)}},
+    // string peer_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SignWithEntityKeypairRequest, _impl_.peer_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string peer_id = 1;
+    {PROTOBUF_FIELD_OFFSET(SignWithEntityKeypairRequest, _impl_.peer_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bytes payload = 2;
+    {PROTOBUF_FIELD_OFFSET(SignWithEntityKeypairRequest, _impl_.payload_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\53\7\0\0\0\0\0\0"
+    "s4wave.account.SignWithEntityKeypairRequest"
+    "peer_id"
+  }},
+};
+PROTOBUF_NOINLINE void SignWithEntityKeypairRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.account.SignWithEntityKeypairRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.peer_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.payload_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SignWithEntityKeypairRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SignWithEntityKeypairRequest& this_ = static_cast<const SignWithEntityKeypairRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SignWithEntityKeypairRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SignWithEntityKeypairRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.account.SignWithEntityKeypairRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string peer_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_peer_id().empty()) {
+      const ::std::string& _s = this_._internal_peer_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.account.SignWithEntityKeypairRequest.peer_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // bytes payload = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_payload().empty()) {
+      const ::std::string& _s = this_._internal_payload();
+      target = stream->WriteBytesMaybeAliased(2, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.account.SignWithEntityKeypairRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SignWithEntityKeypairRequest::ByteSizeLong(const MessageLite& base) {
+  const SignWithEntityKeypairRequest& this_ = static_cast<const SignWithEntityKeypairRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SignWithEntityKeypairRequest::ByteSizeLong() const {
+  const SignWithEntityKeypairRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.account.SignWithEntityKeypairRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // string peer_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_peer_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_peer_id());
+      }
+    }
+    // bytes payload = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_payload().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_payload());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SignWithEntityKeypairRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SignWithEntityKeypairRequest*>(&to_msg);
+  auto& from = static_cast<const SignWithEntityKeypairRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.account.SignWithEntityKeypairRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_peer_id().empty()) {
+        _this->_internal_set_peer_id(from._internal_peer_id());
+      } else {
+        if (_this->_impl_.peer_id_.IsDefault()) {
+          _this->_internal_set_peer_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_payload().empty()) {
+        _this->_internal_set_payload(from._internal_payload());
+      } else {
+        if (_this->_impl_.payload_.IsDefault()) {
+          _this->_internal_set_payload("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SignWithEntityKeypairRequest::CopyFrom(const SignWithEntityKeypairRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.account.SignWithEntityKeypairRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SignWithEntityKeypairRequest::InternalSwap(SignWithEntityKeypairRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.peer_id_, &other->_impl_.peer_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.payload_, &other->_impl_.payload_, arena);
+}
+
+::google::protobuf::Metadata SignWithEntityKeypairRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SignWithEntityKeypairResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SignWithEntityKeypairResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SignWithEntityKeypairResponse, _impl_._has_bits_);
+};
+
+SignWithEntityKeypairResponse::SignWithEntityKeypairResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SignWithEntityKeypairResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.account.SignWithEntityKeypairResponse)
+}
+PROTOBUF_NDEBUG_INLINE SignWithEntityKeypairResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::account::SignWithEntityKeypairResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        signature_(arena, from.signature_) {}
+
+SignWithEntityKeypairResponse::SignWithEntityKeypairResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SignWithEntityKeypairResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SignWithEntityKeypairResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SignWithEntityKeypairResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.account.SignWithEntityKeypairResponse)
+}
+PROTOBUF_NDEBUG_INLINE SignWithEntityKeypairResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        signature_(arena) {}
+
+inline void SignWithEntityKeypairResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+SignWithEntityKeypairResponse::~SignWithEntityKeypairResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.account.SignWithEntityKeypairResponse)
+  SharedDtor(*this);
+}
+inline void SignWithEntityKeypairResponse::SharedDtor(MessageLite& self) {
+  SignWithEntityKeypairResponse& this_ = static_cast<SignWithEntityKeypairResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.signature_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SignWithEntityKeypairResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SignWithEntityKeypairResponse(arena);
+}
+constexpr auto SignWithEntityKeypairResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SignWithEntityKeypairResponse),
+                                            alignof(SignWithEntityKeypairResponse));
+}
+constexpr auto SignWithEntityKeypairResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SignWithEntityKeypairResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SignWithEntityKeypairResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SignWithEntityKeypairResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SignWithEntityKeypairResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SignWithEntityKeypairResponse>(), &SignWithEntityKeypairResponse::ByteSizeLong,
+              &SignWithEntityKeypairResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SignWithEntityKeypairResponse, _impl_._cached_size_),
+          false,
+      },
+      &SignWithEntityKeypairResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2faccount_2faccount_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SignWithEntityKeypairResponse_class_data_ =
+        SignWithEntityKeypairResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SignWithEntityKeypairResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SignWithEntityKeypairResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SignWithEntityKeypairResponse_class_data_.tc_table);
+  return SignWithEntityKeypairResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
+SignWithEntityKeypairResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SignWithEntityKeypairResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    SignWithEntityKeypairResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::account::SignWithEntityKeypairResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // bytes signature = 1;
+    {::_pbi::TcParser::FastBS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SignWithEntityKeypairResponse, _impl_.signature_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // bytes signature = 1;
+    {PROTOBUF_FIELD_OFFSET(SignWithEntityKeypairResponse, _impl_.signature_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void SignWithEntityKeypairResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.account.SignWithEntityKeypairResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.signature_.ClearNonDefaultToEmpty();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SignWithEntityKeypairResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SignWithEntityKeypairResponse& this_ = static_cast<const SignWithEntityKeypairResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SignWithEntityKeypairResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SignWithEntityKeypairResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.account.SignWithEntityKeypairResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // bytes signature = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_signature().empty()) {
+      const ::std::string& _s = this_._internal_signature();
+      target = stream->WriteBytesMaybeAliased(1, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.account.SignWithEntityKeypairResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SignWithEntityKeypairResponse::ByteSizeLong(const MessageLite& base) {
+  const SignWithEntityKeypairResponse& this_ = static_cast<const SignWithEntityKeypairResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SignWithEntityKeypairResponse::ByteSizeLong() const {
+  const SignWithEntityKeypairResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.account.SignWithEntityKeypairResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // bytes signature = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_signature().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_signature());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SignWithEntityKeypairResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SignWithEntityKeypairResponse*>(&to_msg);
+  auto& from = static_cast<const SignWithEntityKeypairResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.account.SignWithEntityKeypairResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!from._internal_signature().empty()) {
+      _this->_internal_set_signature(from._internal_signature());
+    } else {
+      if (_this->_impl_.signature_.IsDefault()) {
+        _this->_internal_set_signature("");
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SignWithEntityKeypairResponse::CopyFrom(const SignWithEntityKeypairResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.account.SignWithEntityKeypairResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SignWithEntityKeypairResponse::InternalSwap(SignWithEntityKeypairResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.signature_, &other->_impl_.signature_, arena);
+}
+
+::google::protobuf::Metadata SignWithEntityKeypairResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 

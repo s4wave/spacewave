@@ -3729,7 +3729,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/account": {
-      "hash": "f67e45e8e9000e171697e510b6d739d75b93fd9a22a6c0120cd03a86fa4ca65a",
+      "hash": "f69ba591db8e8d79e093f73d2480a83157a90033690146d4125a392a39794d9d",
       "generatedFiles": [
         "sdk/account/account.pb.cc",
         "sdk/account/account.pb.go",
