@@ -106,6 +106,16 @@ export function isNormalRuntimeClientClose(err: unknown): boolean {
   )
 }
 
+function isRelayReroutedRuntimeClientClose(err: unknown): boolean {
+  if (err instanceof RuntimeClientClosedError) {
+    return err.reason === 'relay-rerouted'
+  }
+  return (
+    err instanceof Error &&
+    /runtime client generation \d+ closed: relay-rerouted$/.test(err.message)
+  )
+}
+
 // OpenChannelFn opens the MessagePort to the WebRuntime.
 export type OpenChannelFn = (init: WebRuntimeClientInit) => Promise<MessagePort>
 
@@ -227,7 +237,21 @@ export class WebRuntimeClient {
 
   // openStream opens a RPC stream with the WebRuntimeHost.
   // the remote service depends on the WebRuntimeClientType.
+  // relay-rerouted is a stale browser route, not a logical client close; retry
+  // the stream open on the next generation instead of surfacing it to callers.
   public async openStream(): Promise<PacketStream> {
+    for (;;) {
+      try {
+        return await this.openStreamOnCurrentRoute()
+      } catch (err) {
+        if (!isRelayReroutedRuntimeClientClose(err)) {
+          throw err
+        }
+      }
+    }
+  }
+
+  private async openStreamOnCurrentRoute(): Promise<PacketStream> {
     const clientPort = await this.getClientChannelWithRetry()
     const generationId = this.generation.id
 

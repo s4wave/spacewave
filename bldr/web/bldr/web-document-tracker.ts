@@ -261,6 +261,7 @@ export class WebDocumentTracker {
       return
     }
     this.closed = true
+    this.webRuntimeClient.close()
     const msg: ClientToWebDocument = {
       from: this.clientUuid,
       close: true,
@@ -840,7 +841,17 @@ export class WebDocumentTracker {
     if (!remainingWebDocumentIds.length) {
       this.lastWebDocumentId = undefined
       this.lastWebDocumentIdx = 0
-      this.webRuntimeClient.close()
+      // A zero-document gap is a reload transition, not runtime teardown. Keep
+      // the logical client alive so in-flight work can reconnect through the
+      // next WebDocument instead of failing with a terminal close.
+      if (wasActiveRuntimeDocument) {
+        this.webRuntimeClient.rerouteChannel().catch((err: unknown) => {
+          console.error(
+            `WebDocumentTracker: ${this.clientUuid}: error rerouting runtime client:`,
+            err,
+          )
+        })
+      }
     } else if (wasActiveRuntimeDocument) {
       // The relaying WebDocument closed but other documents remain. Drop the
       // stale route and reconnect the shared runtime client through a surviving
@@ -862,7 +873,10 @@ export class WebDocumentTracker {
     }
   }
 
-  private notifyDedicatedRuntimeHostLost(webDocumentId: string, err?: Error): void {
+  private notifyDedicatedRuntimeHostLost(
+    webDocumentId: string,
+    err?: Error,
+  ): void {
     const msg: ClientToWebDocument = {
       from: this.clientUuid,
       dedicatedRuntimeHostLost: {

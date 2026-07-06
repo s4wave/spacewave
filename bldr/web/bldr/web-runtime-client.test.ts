@@ -413,6 +413,51 @@ describe('WebRuntimeClient', () => {
     client.close()
   })
 
+  it('retries stream open on a fresh route when the first generation is rerouted before remote open', async () => {
+    const fake = installFakeMessageChannel()
+    const firstClientPort = fake.port()
+    const secondClientPort = fake.port()
+    const openClientCh = vi
+      .fn()
+      .mockResolvedValueOnce(firstClientPort)
+      .mockResolvedValueOnce(secondClientPort)
+    const client = new WebRuntimeClient(
+      'runtime',
+      'client',
+      WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      openClientCh,
+      null,
+      null,
+    )
+
+    const waitConn = client.waitConn()
+    await flushPromises()
+    firstClientPort.onmessage?.({
+      data: { connected: true },
+    } as MessageEvent)
+    await waitConn
+    const openPromise = client.openStream()
+    await flushPromises()
+    expect(fake.channels).toHaveLength(1)
+
+    await client.rerouteChannel({ reconnect: false })
+    await flushPromises(20)
+    expect(openClientCh).toHaveBeenCalledTimes(2)
+
+    secondClientPort.onmessage?.({
+      data: { connected: true },
+    } as MessageEvent)
+    await flushPromises(20)
+    expect(fake.channels).toHaveLength(2)
+    fake.channels[1].port1.onmessage?.({
+      data: { from: 'runtime', ack: true, opened: true },
+    } as MessageEvent)
+
+    await expect(openPromise).resolves.toBeDefined()
+
+    client.close()
+  })
+
   it('reroutes a connected runtime client through a fresh channel without telling the runtime it closed', async () => {
     const { port1, port2 } = new MessageChannel()
     const reconnect = new MessageChannel()

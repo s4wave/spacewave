@@ -35,6 +35,8 @@ type WebDocumentUnixFSFixtureVariant =
   | 'dynamic-relay'
   | 'release-generation'
   | 'in-flight-reload'
+  | 'plugin-host-replacement'
+  | 'service-worker-fetch-route-timing'
 
 type PluginToHostResult = {
   stream: boolean
@@ -48,7 +50,10 @@ type InFlightReloadTrigger = {
 
 type RuntimeConnection = {
   waitPluginToHost: Promise<PluginToHostResult>
-  openHostToPluginStream: () => Promise<boolean>
+  openHostToPluginStream: (
+    eventLog?: string[],
+    label?: string,
+  ) => Promise<boolean>
   openInFlightReloadTriggerStream: (
     eventLog: string[],
   ) => Promise<InFlightReloadTrigger>
@@ -84,6 +89,8 @@ type WebDocumentUnixFSFixtureResult = {
   zeroDocumentRace?: boolean
   replacementRoute?: boolean
   inFlightOpenRecovered?: boolean
+  pluginHostReplacement?: boolean
+  serviceWorkerRouteTiming?: boolean
   failureReason?: string
   eventLog: string[]
 }
@@ -108,7 +115,9 @@ function readVariant(raw: string | null): WebDocumentUnixFSFixtureVariant {
   if (
     raw === 'dynamic-relay' ||
     raw === 'release-generation' ||
-    raw === 'in-flight-reload'
+    raw === 'in-flight-reload' ||
+    raw === 'plugin-host-replacement' ||
+    raw === 'service-worker-fetch-route-timing'
   ) {
     return raw
   }
@@ -138,9 +147,10 @@ function appendPersistedEvent(line: string): void {
 }
 
 function recordEvent(eventLog: string[], line: string): void {
-  eventLog.push(line)
-  appendPersistedEvent(line)
-  console.info(`__WEBDOCUMENT_UNIXFS_EVENT__ ${line}`)
+  const timedLine = `t=${performance.now().toFixed(3)} ${line}`
+  eventLog.push(timedLine)
+  appendPersistedEvent(timedLine)
+  console.info(`__WEBDOCUMENT_UNIXFS_EVENT__ ${timedLine}`)
 }
 
 function delay(ms: number): Promise<void> {
@@ -159,7 +169,14 @@ async function holdWebDocumentLock(name: string): Promise<() => void> {
     })
     .catch(waitReady.reject)
   await waitReady.promise
-  return () => waitReleased.resolve()
+  let released = false
+  return () => {
+    if (released) {
+      return
+    }
+    released = true
+    waitReleased.resolve()
+  }
 }
 
 function encodeStartInfo(): Uint8Array {
@@ -169,6 +186,38 @@ function encodeStartInfo(): Uint8Array {
     instanceKey: 'js-goscript',
   })
   return new TextEncoder().encode(btoa(json))
+}
+
+function createSpacewaveWebWorker(): Worker {
+  return new Worker(
+    new URL(
+      './workers/goscript-plugin-wrapper.js?s=/b/pd/spacewave-web/plugin.mjs&p=1',
+      import.meta.url,
+    ),
+    {
+      type: 'module',
+      name: 'plugin/spacewave-web?s=/b/pd/spacewave-web/plugin.mjs&p=1',
+    },
+  )
+}
+
+function recordTrackerRemoval(
+  eventLog: string[],
+  owner: string,
+  webDocumentId: string,
+  remainingBefore: number,
+  remainingAfter: number,
+): void {
+  const activeRuntimeWebDocumentId =
+    remainingBefore > 0 ? webDocumentId : 'none'
+  recordEvent(
+    eventLog,
+    `tracker-close-receipt owner=${owner} webDocumentId=${webDocumentId} activeRuntimeWebDocumentId=${activeRuntimeWebDocumentId} remainingDocumentCount=${remainingBefore}`,
+  )
+  recordEvent(
+    eventLog,
+    `removeWebDocument owner=${owner} webDocumentId=${webDocumentId} activeRuntimeWebDocumentId=${activeRuntimeWebDocumentId} remainingDocumentCount=${remainingAfter}`,
+  )
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -241,11 +290,11 @@ function connectWorkerRuntime(
 
   return {
     waitPluginToHost: pluginToHost.promise,
-    openHostToPluginStream: async () => {
+    openHostToPluginStream: async (eventLog, label) => {
       if (!runtimePort) {
         throw new Error('runtime port is not connected')
       }
-      return await openHostToPluginStream(runtimePort)
+      return await openHostToPluginStream(runtimePort, eventLog, label)
     },
     openInFlightReloadTriggerStream: async (eventLog) => {
       if (!runtimePort) {
@@ -287,16 +336,19 @@ async function handlePluginToHostStream(
       throw new Error(`unexpected plugin-to-host packet ${packet[0]}`)
     }
     const startInfoText = new TextDecoder().decode(packet.slice(1))
-    const startInfo = JSON.parse(startInfoText) as Record<string, unknown>
+    const parsedStartInfo: unknown = JSON.parse(startInfoText)
+    if (!isRecord(parsedStartInfo)) {
+      throw new Error('plugin-to-host start info is not an object')
+    }
     outbound.push(new Uint8Array([12]))
     outbound.end()
     await sinkDone
     return {
       stream: true,
       startInfo:
-        startInfo.instanceId === 'inst1' &&
-        startInfo.pluginId === 'spacewave-web' &&
-        startInfo.instanceKey === 'js-goscript',
+        parsedStartInfo.instanceId === 'inst1' &&
+        parsedStartInfo.pluginId === 'spacewave-web' &&
+        parsedStartInfo.instanceKey === 'js-goscript',
     }
   }
   throw new Error('plugin-to-host stream closed before packet')
@@ -304,11 +356,15 @@ async function handlePluginToHostStream(
 
 async function openHostToPluginStream(
   runtimePort: MessagePort,
+  eventLog?: string[],
+  label = 'host-to-plugin',
 ): Promise<boolean> {
   const channel = new MessageChannel()
   const stream = new ChannelStream('spacewave-web', channel.port1)
+  recordEvent(eventLog ?? [], `${label}-open-send`)
   runtimePort.postMessage({ openStream: true }, [channel.port2])
   await stream.waitRemoteOpen
+  recordEvent(eventLog ?? [], `${label}-remote-open`)
 
   const outbound = pushable<Uint8Array>({ objectMode: true })
   const sinkDone = stream.sink(outbound)
@@ -317,6 +373,7 @@ async function openHostToPluginStream(
   for await (const packet of stream.source) {
     outbound.end()
     await sinkDone
+    recordEvent(eventLog ?? [], `${label}-response ${packet[0]}`)
     return packet[0] === 22
   }
   throw new Error('host-to-plugin stream closed before response')
@@ -390,18 +447,25 @@ async function attachWorkerDocument(
   worker: Worker,
   webDocumentId: string,
   detect: WorkerCommsDetectResult,
+  eventLog?: string[],
+  includeStartInfo = false,
 ): Promise<AttachedWorkerDocument> {
   const releaseLock = await holdWebDocumentLock(`bldr-doc-${webDocumentId}`)
+  recordEvent(
+    eventLog ?? [],
+    `lock-acquire ${webDocumentId} lock=bldr-doc-${webDocumentId}`,
+  )
   const { port1, port2 } = new MessageChannel()
   const runtime = connectWorkerRuntime(port2, webDocumentId)
-  worker.postMessage(
-    {
-      from: webDocumentId,
-      initPort: port1,
-      workerCommsDetect: detect,
-    },
-    [port1],
-  )
+  const message: Record<string, unknown> = {
+    from: webDocumentId,
+    initPort: port1,
+    workerCommsDetect: detect,
+  }
+  if (includeStartInfo) {
+    message.initData = encodeStartInfo()
+  }
+  worker.postMessage(message, [port1])
   port2.postMessage({
     from: webDocumentId,
     resumeReady: true,
@@ -624,6 +688,10 @@ async function fetchUnixFSInlineFileThroughDynamicRelay(
   const releaseRelayLock = await holdWebDocumentLock(
     `bldr-doc-${serviceWorkerDocumentId}`,
   )
+  recordEvent(
+    eventLog,
+    `lock-acquire ${serviceWorkerDocumentId} lock=bldr-doc-${serviceWorkerDocumentId}`,
+  )
   const relayDocument = await connectServiceWorkerRelayDocument(eventLog)
   try {
     const abort = new AbortController()
@@ -774,19 +842,13 @@ async function run() {
     if (variant === 'release-generation') {
       installReleaseGenerationReloadProbe(eventLog)
     }
-    mark('hold-document-lock')
     releaseLock = await holdWebDocumentLock(`bldr-doc-${documentId}`)
-    mark('start-spacewave-web-worker')
-    worker = new Worker(
-      new URL(
-        './workers/goscript-plugin-wrapper.js?s=/b/pd/spacewave-web/plugin.mjs&p=1',
-        import.meta.url,
-      ),
-      {
-        type: 'module',
-        name: 'plugin/spacewave-web?s=/b/pd/spacewave-web/plugin.mjs&p=1',
-      },
+    recordEvent(
+      eventLog,
+      `lock-acquire ${documentId} lock=bldr-doc-${documentId}`,
     )
+    mark('start-spacewave-web-worker')
+    worker = createSpacewaveWebWorker()
 
     let failureReason: string | undefined
     worker.addEventListener('error', (ev) => {
@@ -835,8 +897,12 @@ async function run() {
     const pluginToHost = await runtime.waitPluginToHost
     mark('wait-worker-ready')
     const workerReady = await workerReadyPromise
+    await delay(50)
     mark('pre-fetch-host-to-plugin-stream')
-    const preFetchStream = await runtime.openHostToPluginStream()
+    const preFetchStream = await runtime.openHostToPluginStream(
+      eventLog,
+      'pre-fetch-host-to-plugin-stream',
+    )
 
     let fetchSuccess = false
     let dynamicRelayFetch: boolean | undefined
@@ -849,6 +915,8 @@ async function run() {
     let zeroDocumentRace = false
     let replacementRoute = false
     let inFlightOpenRecovered = false
+    let pluginHostReplacement = false
+    let serviceWorkerRouteTiming = false
 
     if (variant === 'dynamic-relay') {
       mark('fetch-unixfs-inline-dynamic-relay')
@@ -880,8 +948,19 @@ async function run() {
       }
       await trigger.release(() => {
         recordEvent(eventLog, 'in-flight-reload-close-foreground-document')
+        recordTrackerRemoval(
+          eventLog,
+          'fixture-in-flight-reload',
+          documentId,
+          1,
+          0,
+        )
         port2.postMessage({ from: documentId, close: true })
         port2.close()
+        recordEvent(
+          eventLog,
+          `lock-release ${documentId} lock=bldr-doc-${documentId}`,
+        )
         releaseLock?.()
         releaseLock = undefined
         zeroDocumentRace = true
@@ -893,11 +972,119 @@ async function run() {
         worker,
         replacementDocumentId,
         detect,
+        eventLog,
       )
       const recovered = await replacementDocument.runtime.waitPluginToHost
       inFlightOpenRecovered = recovered.stream && recovered.startInfo
+      await delay(50)
       replacementRoute =
-        await replacementDocument.runtime.openHostToPluginStream()
+        await replacementDocument.runtime.openHostToPluginStream(
+          eventLog,
+          'in-flight-reload-replacement-route',
+        )
+      reproduced = true
+      postFetchStream = replacementRoute
+      fetchSuccess = await fetchPromise
+    } else if (variant === 'plugin-host-replacement') {
+      mark('fetch-unixfs-inline-plugin-host-replacement')
+      recordEvent(eventLog, 'plugin-host-replacement-fetch-route-start')
+      const fetchPromise = fetchUnixFSInlineFileThroughProxyFetch(eventLog)
+      await delay(50)
+      recordEvent(
+        eventLog,
+        'PluginHost RemoveWebWorker owner=fixture-plugin-host-replacement plugin=spacewave-web',
+      )
+      recordTrackerRemoval(
+        eventLog,
+        'PluginHost.RemoveWebWorker',
+        documentId,
+        1,
+        0,
+      )
+      port2.postMessage({ from: documentId, close: true })
+      port2.close()
+      recordEvent(
+        eventLog,
+        `lock-release ${documentId} lock=bldr-doc-${documentId}`,
+      )
+      releaseLock?.()
+      releaseLock = undefined
+      worker?.terminate()
+      worker = createSpacewaveWebWorker()
+      recordEvent(eventLog, 'plugin-host-replacement-createWebWorker')
+      replacementDocument = await attachWorkerDocument(
+        worker,
+        replacementDocumentId,
+        detect,
+        eventLog,
+        true,
+      )
+      const recovered = await replacementDocument.runtime.waitPluginToHost
+      inFlightOpenRecovered = recovered.stream && recovered.startInfo
+      await delay(50)
+      replacementRoute =
+        await replacementDocument.runtime.openHostToPluginStream(
+          eventLog,
+          'plugin-host-replacement-route',
+        )
+      pluginHostReplacement = true
+      reproduced = true
+      postFetchStream = replacementRoute
+      fetchSuccess = await fetchPromise
+    } else if (variant === 'service-worker-fetch-route-timing') {
+      mark('fetch-unixfs-inline-service-worker-route-timing')
+      recordEvent(eventLog, 'service-worker-fetch-route-start')
+      const fetchPromise = fetchUnixFSInlineFileThroughProxyFetch(eventLog)
+      const trigger = await runtime.openInFlightReloadTriggerStream(eventLog)
+      if (!trigger.armed) {
+        errors.push('inFlightReloadTrigger=false')
+      }
+      await delay(50)
+      await trigger.release(() => {
+        recordEvent(
+          eventLog,
+          'service-worker-fetch-route-before-last-document-removal',
+        )
+        recordTrackerRemoval(
+          eventLog,
+          'service-worker-fetch-route-timing',
+          documentId,
+          1,
+          0,
+        )
+        port2.postMessage({ from: documentId, close: true })
+        port2.close()
+        recordEvent(
+          eventLog,
+          `lock-release ${documentId} lock=bldr-doc-${documentId}`,
+        )
+        releaseLock?.()
+        releaseLock = undefined
+        zeroDocumentRace = true
+        recordEvent(
+          eventLog,
+          'service-worker-fetch-route-after-last-document-removal activeRuntimeWebDocumentId=none remainingDocumentCount=0',
+        )
+      })
+      recordEvent(
+        eventLog,
+        'service-worker-fetch-route-attach-replacement-document',
+      )
+      replacementDocument = await attachWorkerDocument(
+        worker,
+        replacementDocumentId,
+        detect,
+        eventLog,
+      )
+      const recovered = await replacementDocument.runtime.waitPluginToHost
+      inFlightOpenRecovered = recovered.stream && recovered.startInfo
+      await delay(50)
+      replacementRoute =
+        await replacementDocument.runtime.openHostToPluginStream(
+          eventLog,
+          'service-worker-route-timing-replacement-route',
+        )
+      serviceWorkerRouteTiming = true
       reproduced = true
       postFetchStream = replacementRoute
       fetchSuccess = await fetchPromise
@@ -908,7 +1095,11 @@ async function run() {
 
     if (!postFetchStream) {
       mark('post-fetch-host-to-plugin-stream')
-      postFetchStream = await runtime.openHostToPluginStream()
+      await delay(50)
+      postFetchStream = await runtime.openHostToPluginStream(
+        eventLog,
+        'post-fetch-host-to-plugin-stream',
+      )
     }
     const restartSentinelStable =
       runCount === 1 && sessionStorage.getItem(sentinelKey) === '1'
@@ -940,7 +1131,9 @@ async function run() {
             `zeroDocumentRace=${zeroDocumentRace}`,
             `replacementRoute=${replacementRoute}`,
             `inFlightOpenRecovered=${inFlightOpenRecovered}`,
+            `pluginHostReplacement=${pluginHostReplacement}`,
             `failureReason=${failureReason ?? ''}`,
+            `serviceWorkerRouteTiming=${serviceWorkerRouteTiming}`,
           ].join('; '),
       workerReady,
       startInfo: pluginToHost.startInfo,
@@ -958,6 +1151,8 @@ async function run() {
       zeroDocumentRace,
       replacementRoute,
       inFlightOpenRecovered,
+      pluginHostReplacement,
+      serviceWorkerRouteTiming,
       failureReason,
       eventLog: readPersistedEvents(),
     }

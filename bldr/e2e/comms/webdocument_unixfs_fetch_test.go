@@ -14,90 +14,19 @@ const (
 	webDocumentUnixFSFixturePath = "fs/u/1/so/01kwd6qwtkjb3z1whtxys72s4s/-/files/-/what is this.mp4"
 	webDocumentUnixFSFixtureBody = "spacewave webdocument unixfs inline fixture\n"
 	webDocumentJSPluginPath      = "b/pd/spacewave-web/plugin.mjs"
-	webDocumentJSPluginBody      = `export default async function main(api) {
-  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-  api.handleStreamCtr.set(async (stream) => {
-    const first = (await stream.source[Symbol.asyncIterator]().next()).value || new Uint8Array(0)
-    await stream.sink((async function* () {
-      if (first[0] === 21) {
-        yield new Uint8Array([22])
-        return
-      }
-      if (first[0] === 31) {
-        yield new Uint8Array([32])
-        let released = false
-        for await (const packet of stream.source) {
-          if (packet[0] !== 33) {
-            throw new Error('unexpected in-flight reload trigger packet: ' + Array.from(packet).join(','))
-          }
-          released = true
-          break
-        }
-        if (!released) {
-          throw new Error('in-flight reload trigger stream closed before release')
-        }
-        yield new Uint8Array([34])
-        await delay(0)
-        const retryStream = await api.openStream()
-        const responsePackets = []
-        const readResponse = (async () => {
-          for await (const packet of retryStream.source) {
-            responsePackets.push(packet)
-            break
-          }
-        })()
-        await retryStream.sink((async function* () {
-          const startInfo = new TextEncoder().encode(JSON.stringify(api.startInfo || {}))
-          const request = new Uint8Array(startInfo.length + 1)
-          request[0] = 11
-          request.set(startInfo, 1)
-          yield request
-        })())
-        await readResponse
-        const response = responsePackets[0] || new Uint8Array(0)
-        if (response[0] !== 12) {
-          throw new Error('unexpected in-flight WebRuntime response packet: ' + Array.from(response).join(','))
-        }
-        return
-      }
-      yield new Uint8Array([99])
-    })())
-  })
-
-  const stream = await api.openStream()
-  const responsePackets = []
-  const readResponse = (async () => {
-    for await (const packet of stream.source) {
-      responsePackets.push(packet)
-      break
-    }
-  })()
-  await stream.sink((async function* () {
-    const startInfo = new TextEncoder().encode(JSON.stringify(api.startInfo || {}))
-    const request = new Uint8Array(startInfo.length + 1)
-    request[0] = 11
-    request.set(startInfo, 1)
-    yield request
-  })())
-  await readResponse
-  const response = responsePackets[0] || new Uint8Array(0)
-  if (response[0] !== 12) {
-    throw new Error('unexpected WebRuntime response packet: ' + Array.from(response).join(','))
-  }
-  console.info('__BLDR_JS_PLUGIN_READY__')
-  const keepAlive = Promise.withResolvers()
-  await keepAlive.promise
-}
+	webDocumentJSPluginBody      = `export { default } from '/workers/goscript-webdocument-unixfs-plugin.js'
 `
 )
 
 type webDocumentRouteFixtureVariant string
 
 const (
-	webDocumentRouteBaseline          webDocumentRouteFixtureVariant = "baseline"
-	webDocumentRouteDynamicRelay      webDocumentRouteFixtureVariant = "dynamic-relay"
-	webDocumentRouteReleaseGeneration webDocumentRouteFixtureVariant = "release-generation"
-	webDocumentRouteInFlightReload    webDocumentRouteFixtureVariant = "in-flight-reload"
+	webDocumentRouteBaseline                      webDocumentRouteFixtureVariant = "baseline"
+	webDocumentRouteDynamicRelay                  webDocumentRouteFixtureVariant = "dynamic-relay"
+	webDocumentRouteReleaseGeneration             webDocumentRouteFixtureVariant = "release-generation"
+	webDocumentRouteInFlightReload                webDocumentRouteFixtureVariant = "in-flight-reload"
+	webDocumentRoutePluginHostReplacement         webDocumentRouteFixtureVariant = "plugin-host-replacement"
+	webDocumentRouteServiceWorkerFetchRouteTiming webDocumentRouteFixtureVariant = "service-worker-fetch-route-timing"
 )
 
 type webDocumentRouteFixtureTrace struct {
@@ -117,6 +46,7 @@ func TestGoScriptForegroundUnixFSFetchKeepsSpacewaveWebRuntimeRoute(t *testing.T
 		t.Run(browser, func(t *testing.T) {
 			trace := runWebDocumentRouteFixture(t, browser, webDocumentRouteBaseline)
 			assertWebDocumentRouteSurvived(t, trace, true)
+			assertNoWebDocumentRouteEventContains(t, trace, "normal-close")
 		})
 	}
 }
@@ -170,6 +100,55 @@ func TestGoScriptForegroundUnixFSFetchInFlightReloadZeroDocumentRace(t *testing.
 		"PluginWorker: plugin/spacewave-web: no WebDocument available, waiting for next WebDocument",
 	)
 	t.Logf("in-flight reload events: %s", strings.Join(webDocumentResultEventLog(trace.results), " | "))
+}
+
+// TestGoScriptForegroundUnixFSFetchPluginHostReplacementDuringFetch verifies
+// that an explicit PluginHost worker replacement during a delayed fetch names
+// the removal owner and re-establishes the spacewave-web route.
+func TestGoScriptForegroundUnixFSFetchPluginHostReplacementDuringFetch(t *testing.T) {
+	installWebDocumentRouteFixtureAssets(t)
+
+	trace := runWebDocumentRouteFixture(t, "chromium", webDocumentRoutePluginHostReplacement)
+	assertWebDocumentRouteSurvived(t, trace, true)
+	assertBoolResult(t, trace.results, "pluginHostReplacement", true)
+	assertBoolResult(t, trace.results, "replacementRoute", true)
+	assertBoolResult(t, trace.results, "inFlightOpenRecovered", true)
+	assertWebDocumentRouteEventContains(t, trace, "PluginHost RemoveWebWorker")
+	assertWebDocumentResultEventOrder(
+		t,
+		trace.results,
+		"plugin-host-replacement-fetch-route-start",
+		"PluginHost RemoveWebWorker",
+	)
+	t.Logf("plugin-host replacement events: %s", strings.Join(webDocumentResultEventLog(trace.results), " | "))
+}
+
+// TestGoScriptForegroundUnixFSFetchServiceWorkerRouteTiming records the
+// ServiceWorker fetch-route timing relative to last-document removal.
+func TestGoScriptForegroundUnixFSFetchServiceWorkerRouteTiming(t *testing.T) {
+	installWebDocumentRouteFixtureAssets(t)
+
+	trace := runWebDocumentRouteFixture(t, "chromium", webDocumentRouteServiceWorkerFetchRouteTiming)
+	assertWebDocumentRouteSurvived(t, trace, true)
+	assertBoolResult(t, trace.results, "serviceWorkerRouteTiming", true)
+	assertBoolResult(t, trace.results, "replacementRoute", true)
+	assertBoolResult(t, trace.results, "inFlightOpenRecovered", true)
+	assertWebDocumentRouteEventContains(t, trace, "removeWebDocument owner=service-worker-fetch-route-timing")
+	assertWebDocumentRouteEventContains(t, trace, "activeRuntimeWebDocumentId=spacewave-web-foreground-doc")
+	assertWebDocumentRouteEventContains(t, trace, "remainingDocumentCount=0")
+	assertWebDocumentResultEventOrder(
+		t,
+		trace.results,
+		"dynamic-relay-request",
+		"service-worker-fetch-route-before-last-document-removal",
+	)
+	assertWebDocumentResultEventOrder(
+		t,
+		trace.results,
+		"service-worker-fetch-route-before-last-document-removal",
+		"dynamic-relay-response-headers",
+	)
+	t.Logf("service-worker route timing events: %s", strings.Join(webDocumentResultEventLog(trace.results), " | "))
 }
 
 func installWebDocumentRouteFixtureAssets(t *testing.T) {
@@ -355,4 +334,34 @@ func assertWebDocumentRouteEventContains(t *testing.T, trace webDocumentRouteFix
 		}
 	}
 	t.Fatalf("expected lifecycle event containing %q", expected)
+}
+
+func assertNoWebDocumentRouteEventContains(t *testing.T, trace webDocumentRouteFixtureTrace, forbidden string) {
+	t.Helper()
+	for _, line := range trace.eventLines {
+		if strings.Contains(line, forbidden) {
+			t.Fatalf("unexpected lifecycle event containing %q: %s", forbidden, line)
+		}
+	}
+}
+
+func assertWebDocumentResultEventOrder(t *testing.T, results map[string]any, first, second string) {
+	t.Helper()
+	lines := webDocumentResultEventLog(results)
+	firstIdx := -1
+	secondIdx := -1
+	for idx, line := range lines {
+		if firstIdx < 0 && strings.Contains(line, first) {
+			firstIdx = idx
+		}
+		if secondIdx < 0 && strings.Contains(line, second) {
+			secondIdx = idx
+		}
+	}
+	if firstIdx < 0 || secondIdx < 0 {
+		t.Fatalf("missing event order anchors %q then %q in %v", first, second, lines)
+	}
+	if firstIdx >= secondIdx {
+		t.Fatalf("event order mismatch: %q at %d should precede %q at %d in %v", first, firstIdx, second, secondIdx, lines)
+	}
 }

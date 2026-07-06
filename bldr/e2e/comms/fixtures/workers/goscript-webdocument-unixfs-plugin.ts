@@ -1,0 +1,166 @@
+import type { BackendAPI } from '@aptre/bldr-sdk'
+
+import runGoScriptPlugin from '../../../../web/runtime/goscript/plugin-goscript.js'
+
+declare const self: DedicatedWorkerGlobalScope
+
+type GoPushableSink = {
+  push: (message: Uint8Array) => void
+  end: () => void
+}
+
+declare global {
+  var BLDR_PLUGIN_START_INFO: string | undefined
+  var BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME:
+    | ((
+        onMessage: (message: Uint8Array) => void,
+        onClose: (errMsg?: string) => void,
+        onResolve: (sink: GoPushableSink) => void,
+        onReject: (errMsg: string) => void,
+      ) => void)
+    | undefined
+  var BLDR_PLUGIN_SET_ACCEPT_STREAM:
+    | ((acceptStream?: (localPort: MessagePort) => void) => void)
+    | undefined
+  var BLDR_PLUGIN_REPORT_RUNTIME_FAILURE: ((err: unknown) => void) | undefined
+}
+
+export default async function main(api: BackendAPI) {
+  await runGoScriptPlugin(api, pluginMain)
+}
+
+async function pluginMain(): Promise<void> {
+  installAcceptStream()
+
+  const response = await openStreamToWebRuntime()
+  if (response[0] !== 12) {
+    throw new Error(
+      `unexpected WebRuntime response packet: ${Array.from(response).join(',')}`,
+    )
+  }
+  console.info('__BLDR_JS_PLUGIN_READY__')
+
+  const { promise: keepAlive } = Promise.withResolvers<void>()
+  await keepAlive
+}
+
+function installAcceptStream(): void {
+  const setAcceptStream = globalThis.BLDR_PLUGIN_SET_ACCEPT_STREAM
+  if (!setAcceptStream) {
+    throw new Error('missing BLDR_PLUGIN_SET_ACCEPT_STREAM')
+  }
+
+  setAcceptStream((port: MessagePort) => {
+    let releasePacket: ((message: Uint8Array) => void) | undefined
+    port.onmessage = (ev: MessageEvent<Uint8Array>) => {
+      const message = ev.data
+      if (releasePacket) {
+        const release = releasePacket
+        releasePacket = undefined
+        release(message)
+        return
+      }
+
+      if (message?.[0] === 21) {
+        port.postMessage(new Uint8Array([22]))
+        return
+      }
+      if (message?.[0] === 31) {
+        void handleInFlightReloadTrigger(port, (resolve) => {
+          releasePacket = resolve
+        })
+        return
+      }
+      port.postMessage(new Uint8Array([99]))
+    }
+    port.start()
+  })
+}
+
+async function handleInFlightReloadTrigger(
+  port: MessagePort,
+  setReleasePacket: (resolve: (message: Uint8Array) => void) => void,
+): Promise<void> {
+  try {
+    port.postMessage(new Uint8Array([32]))
+    const { promise: waitRelease, resolve } =
+      Promise.withResolvers<Uint8Array>()
+    setReleasePacket(resolve)
+    const release = await waitRelease
+    if (release[0] !== 33) {
+      throw new Error(
+        `unexpected in-flight reload trigger packet: ${Array.from(release).join(',')}`,
+      )
+    }
+
+    port.postMessage(new Uint8Array([34]))
+    await delay(0)
+    const response = await openStreamToWebRuntime()
+    if (response[0] !== 12) {
+      throw new Error(
+        `unexpected in-flight WebRuntime response packet: ${Array.from(response).join(',')}`,
+      )
+    }
+  } catch (err) {
+    globalThis.BLDR_PLUGIN_REPORT_RUNTIME_FAILURE?.(err)
+    throw err
+  }
+}
+
+function openStreamToWebRuntime(): Promise<Uint8Array> {
+  const openStream = globalThis.BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME
+  if (!openStream) {
+    throw new Error('missing BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME')
+  }
+
+  const { promise, resolve, reject } = Promise.withResolvers<Uint8Array>()
+  let streamSink: GoPushableSink | undefined
+  let settled = false
+  const settle = (fn: () => void) => {
+    if (settled) {
+      return
+    }
+    settled = true
+    fn()
+  }
+
+  openStream(
+    (message) => {
+      streamSink?.end()
+      settle(() => resolve(message))
+    },
+    (errMsg) => {
+      if (!errMsg) {
+        return
+      }
+      settle(() => reject(new Error(errMsg)))
+    },
+    (sink) => {
+      streamSink = sink
+      sink.push(buildStartInfoRequest())
+    },
+    (errMsg) => {
+      settle(() => reject(new Error(errMsg)))
+    },
+  )
+
+  return promise
+}
+
+function buildStartInfoRequest(): Uint8Array {
+  const encoded = globalThis.BLDR_PLUGIN_START_INFO
+  if (!encoded) {
+    throw new Error('missing BLDR_PLUGIN_START_INFO')
+  }
+  const startInfo = new TextEncoder().encode(atob(encoded))
+  const request = new Uint8Array(startInfo.length + 1)
+  request[0] = 11
+  request.set(startInfo, 1)
+  return request
+}
+
+function delay(ms: number): Promise<void> {
+  const { promise, resolve } = Promise.withResolvers<void>()
+  self.setTimeout(resolve, ms)
+  return promise
+}

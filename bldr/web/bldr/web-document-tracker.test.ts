@@ -101,6 +101,16 @@ describe('WebDocumentTracker resume-ready gate', () => {
     tracker.close()
   })
 
+  it('closes the shared runtime client on explicit tracker close', () => {
+    const tracker = buildTracker()
+    const closeRuntime = vi.spyOn(tracker.webRuntimeClient, 'close')
+
+    tracker.close()
+    tracker.close()
+
+    expect(closeRuntime).toHaveBeenCalledTimes(1)
+  })
+
   it('resolves the active document runtime-connected gate from the WebDocument port', async () => {
     const tracker = buildTracker()
     const { port1, port2 } = new MessageChannel()
@@ -209,7 +219,7 @@ describe('WebDocumentTracker resume-ready gate', () => {
     port2.close()
   })
 
-  it('moves the active gate to the latest document and only closes runtime after all documents close', async () => {
+  it('moves the active gate to the latest document without closing runtime when documents drain', async () => {
     const tracker = buildTracker()
     const closeRuntime = vi.spyOn(tracker.webRuntimeClient, 'close')
     const firstPort = attachWebDocument(tracker, 'document-1')
@@ -246,7 +256,11 @@ describe('WebDocumentTracker resume-ready gate', () => {
       from: 'document-2',
       close: true,
     })
-    await new Promise((resolve) => setTimeout(resolve, 0))
+    await vi.waitFor(() => {
+      expect(Reflect.get(tracker, 'webDocuments')).not.toHaveProperty(
+        'document-2',
+      )
+    })
 
     expect(closeRuntime).not.toHaveBeenCalled()
     await expect(
@@ -260,9 +274,14 @@ describe('WebDocumentTracker resume-ready gate', () => {
       from: 'document-1',
       close: true,
     })
-    await new Promise((resolve) => setTimeout(resolve, 0))
+    await vi.waitFor(() => {
+      expect(Reflect.get(tracker, 'webDocuments')).not.toHaveProperty(
+        'document-1',
+      )
+    })
 
-    expect(closeRuntime).toHaveBeenCalledTimes(1)
+    expect(closeRuntime).not.toHaveBeenCalled()
+    expect(Reflect.get(tracker, 'lastWebDocumentId')).toBeUndefined()
     tracker.close()
     firstPort.close()
     secondPort.close()
@@ -349,7 +368,11 @@ describe('WebDocumentTracker resume-ready gate', () => {
       from: 'document-1',
       close: true,
     })
-    await new Promise((resolve) => setTimeout(resolve, 0))
+    await vi.waitFor(() => {
+      expect(Reflect.get(tracker, 'webDocuments')).not.toHaveProperty(
+        'document-1',
+      )
+    })
 
     expect(closeRuntime).not.toHaveBeenCalled()
     expect(rerouteRuntime).toHaveBeenCalledTimes(1)
@@ -363,6 +386,46 @@ describe('WebDocumentTracker resume-ready gate', () => {
     tracker.close()
     firstPort.close()
     secondPort.close()
+  })
+
+  it('reroutes instead of closing the shared runtime client when the last active WebDocument closes', async () => {
+    const onWebDocumentsExhausted = vi.fn().mockResolvedValue(undefined)
+    const onAllWebDocumentsClosed = vi.fn()
+    const tracker = new WebDocumentTracker(
+      'tracker-client',
+      WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER,
+      onWebDocumentsExhausted,
+      null,
+      onAllWebDocumentsClosed,
+    )
+    const closeRuntime = vi.spyOn(tracker.webRuntimeClient, 'close')
+    const rerouteRuntime = vi
+      .spyOn(tracker.webRuntimeClient, 'rerouteChannel')
+      .mockResolvedValue(undefined)
+    const documentPort = attachWebDocument(tracker, 'document-1')
+
+    Reflect.set(tracker, 'activeRuntimeWebDocumentId', 'document-1')
+
+    documentPort.postMessage({
+      from: 'document-1',
+      close: true,
+    })
+    await vi.waitFor(() => {
+      expect(onAllWebDocumentsClosed).toHaveBeenCalledTimes(1)
+    })
+
+    expect(rerouteRuntime).toHaveBeenCalledTimes(1)
+    expect(closeRuntime).not.toHaveBeenCalled()
+    expect(onWebDocumentsExhausted).not.toHaveBeenCalled()
+    expect(Reflect.get(tracker, 'activeRuntimeWebDocumentId')).toBeUndefined()
+    expect(Reflect.get(tracker, 'lastWebDocumentId')).toBeUndefined()
+    expect(Reflect.get(tracker, 'lastWebDocumentIdx')).toBe(0)
+    expect(Reflect.get(tracker, 'webDocuments')).not.toHaveProperty(
+      'document-1',
+    )
+
+    tracker.close()
+    documentPort.close()
   })
 
   it('relays to a hidden connected active document without resume-ready', async () => {
