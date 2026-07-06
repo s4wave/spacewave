@@ -225,6 +225,60 @@ func TestCoordinatorLeaseWaitsForRelease(t *testing.T) {
 	}
 }
 
+func TestCoordinatorWaitAcquireWakesOnLocalRelease(t *testing.T) {
+	ctx := context.Background()
+	db := openTestDB(t)
+	c := NewCoordinator(db, coord_inmem.NewCoordinator())
+	first := coord.Scope{
+		VolumeID:      "volume-a",
+		ObjectStoreID: "objects",
+		ParticipantID: "first",
+	}
+	second := coord.Scope{
+		VolumeID:      "volume-a",
+		ObjectStoreID: "objects",
+		ParticipantID: "second",
+	}
+
+	leaseA, ok, err := c.TryAcquireWriteLease(ctx, first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("first lease unexpectedly busy")
+	}
+
+	started := make(chan struct{})
+	waitErr := make(chan error, 1)
+	go func() {
+		close(started)
+		leaseB, err := c.WaitAcquireWriteLease(ctx, second)
+		if err == nil {
+			err = leaseB.Release(ctx)
+		}
+		waitErr <- err
+	}()
+
+	<-started
+	select {
+	case err := <-waitErr:
+		t.Fatalf("wait returned before release: %v", err)
+	default:
+	}
+
+	if err := leaseA.Release(ctx); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-waitErr:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for local release wake")
+	}
+}
+
 func TestCoordinatorRetriesOwnPostRefreshCommitAndRejectsReleasedWriter(t *testing.T) {
 	ctx := context.Background()
 	db := openTestDB(t)

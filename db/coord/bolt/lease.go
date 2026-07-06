@@ -61,6 +61,7 @@ func (l *lease) Release(ctx context.Context) error {
 			releaseErr = l.releaseCoordinationLock()
 		}
 		releaseErr = errors.Join(releaseErr, l.inner.Release(context.Background()))
+		l.c.releaseWriteLease()
 	})
 	return releaseErr
 }

@@ -7,14 +7,22 @@ import (
 	"time"
 
 	bdb "github.com/aperturerobotics/bbolt"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/db/coord"
 	coord_inmem "github.com/s4wave/spacewave/db/coord/inmem"
 )
+
+const crossProcessLockRetryDelay = 250 * time.Millisecond
 
 // Coordinator adapts bbolt commit generation into the Volume coordinator contract.
 type Coordinator struct {
 	db    *bdb.DB
 	inner *coord_inmem.Coordinator
+
+	// bcast guards writeLocked.
+	bcast broadcast.Broadcast
+	// writeLocked indicates this process owns or is attempting the bbolt write lease.
+	writeLocked bool
 }
 
 // NewCoordinator builds a bbolt-backed coordinator.
@@ -78,15 +86,20 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 	if err := ctx.Err(); err != nil {
 		return nil, false, err
 	}
+	if reserved, _ := c.reserveWriteLease(); !reserved {
+		return nil, false, nil
+	}
 
 	inner, ok, err := c.inner.TryAcquireWriteLease(ctx, scope)
 	if err != nil || !ok {
+		c.releaseWriteLease()
 		return nil, ok, err
 	}
 
 	releaseCoordinationLock, acquired, err := c.tryAcquireCoordinationLock()
 	if err != nil || !acquired {
 		_ = inner.Release(context.Background())
+		c.releaseWriteLease()
 		return nil, acquired, err
 	}
 	return &lease{c: c, scope: scope, inner: inner, releaseCoordinationLock: releaseCoordinationLock}, true, nil
@@ -94,24 +107,79 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 
 // WaitAcquireWriteLease waits until the logical bbolt write lease is available.
 func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Scope) (coord.WriteLease, error) {
-	ticker := time.NewTicker(10 * time.Millisecond)
-	defer ticker.Stop()
-
 	for {
-		lease, ok, err := c.TryAcquireWriteLease(ctx, scope)
-		if err != nil {
+		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		if ok {
-			return lease, nil
+
+		reserved, waitCh := c.reserveWriteLease()
+		if !reserved {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-waitCh:
+			}
+			continue
 		}
 
+		inner, err := c.inner.WaitAcquireWriteLease(ctx, scope)
+		if err != nil {
+			c.releaseWriteLease()
+			return nil, err
+		}
+
+		releaseCoordinationLock, acquired, err := c.tryAcquireCoordinationLock()
+		if err != nil {
+			_ = inner.Release(context.Background())
+			c.releaseWriteLease()
+			return nil, err
+		}
+		if acquired {
+			return &lease{c: c, scope: scope, inner: inner, releaseCoordinationLock: releaseCoordinationLock}, nil
+		}
+
+		_ = inner.Release(context.Background())
+		c.releaseWriteLease()
+
+		// bbolt exposes cross-process coordination as a non-blocking file-lock
+		// probe; external processes cannot broadcast their release here.
+		timer := time.NewTimer(crossProcessLockRetryDelay)
 		select {
 		case <-ctx.Done():
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
 			return nil, ctx.Err()
-		case <-ticker.C:
+		case <-timer.C:
 		}
 	}
+}
+
+func (c *Coordinator) reserveWriteLease() (bool, <-chan struct{}) {
+	var reserved bool
+	var waitCh <-chan struct{}
+	c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		if c.writeLocked {
+			waitCh = getWaitCh()
+			return
+		}
+		c.writeLocked = true
+		reserved = true
+	})
+	return reserved, waitCh
+}
+
+func (c *Coordinator) releaseWriteLease() {
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if !c.writeLocked {
+			return
+		}
+		c.writeLocked = false
+		broadcast()
+	})
 }
 
 func (c *Coordinator) tryAcquireCoordinationLock() (func() error, bool, error) {
