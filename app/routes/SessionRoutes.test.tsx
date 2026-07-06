@@ -37,10 +37,6 @@ vi.mock('../AppQuickstart.js', () => ({
   AppQuickstart: () => null,
 }))
 
-vi.mock('../AppSession.js', () => ({
-  AppSession: () => null,
-}))
-
 vi.mock('@s4wave/app/provider/spacewave/CheckoutResultPage.js', () => ({
   CheckoutResultPage: () => null,
 }))
