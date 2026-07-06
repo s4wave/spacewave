@@ -44,6 +44,7 @@ function IntroWizardSurface({ finishing }: { finishing: boolean }) {
           callouts={config.callouts ?? []}
           finishing={finishing || finished}
           onFinish={() => setFinished(true)}
+          onSkip={() => setFinished(true)}
         />
       </div>
     </div>

@@ -9,7 +9,7 @@ import { parseObjectUri } from '@s4wave/sdk/space/object-uri.js'
 import { IntroWizardConfig } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 
 import { applySpaceIndexPath } from '../space/space-settings.js'
-import { useWizardState } from './useWizardState.js'
+import { type UseWizardStateResult, useWizardState } from './useWizardState.js'
 import { IntroWizardOverlay } from './IntroWizardOverlay.js'
 
 // IntroWizardViewer is the generic new-user introduction viewer. It contains
@@ -59,7 +59,7 @@ export function IntroWizardViewer(props: ObjectViewerComponentProps) {
           ws.sessionPeerId,
         )
       }
-      await ws.spaceWorld.deleteObject(ws.objectKey)
+      await deleteWizardObject(ws.spaceWorld, ws.objectKey)
       ws.navigateToObjects([targetObjectKey])
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to finish intro')
@@ -100,7 +100,33 @@ export function IntroWizardViewer(props: ObjectViewerComponentProps) {
         callouts={config?.callouts ?? []}
         finishing={ws.creating}
         onFinish={() => void handleFinish()}
+        onSkip={() => void handleFinish()}
       />
     </div>
   )
+}
+
+// deleteWizardObject deletes the wizard object, treating an already-deleted
+// object as success: two Space participants can finish the intro near
+// simultaneously, and the second finisher's cleanup must not surface a
+// failure for an object the first finisher already removed.
+async function deleteWizardObject(
+  spaceWorld: UseWizardStateResult['spaceWorld'],
+  objectKey: string,
+) {
+  try {
+    await spaceWorld.deleteObject(objectKey)
+  } catch (err) {
+    if (isObjectNotFoundError(err)) return
+    throw err
+  }
+}
+
+// isObjectNotFoundError matches the world store's object-not-found error
+// (db/world/errors.go) both as a local Error and as a starpc RemoteRPCError
+// crossing the RPC boundary, where only the message string survives.
+function isObjectNotFoundError(err: unknown) {
+  if (!(err instanceof Error)) return false
+  if ('rpcError' in err && err.rpcError === 'object not found') return true
+  return err.message === 'object not found'
 }

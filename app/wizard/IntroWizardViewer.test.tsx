@@ -1,6 +1,6 @@
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
@@ -79,10 +79,24 @@ const viewerProps = {
   },
 } as unknown as ObjectViewerComponentProps
 
+function expectAppliedIndexPath(indexPath: string) {
+  expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+  expect(h.applyWorldOp.mock.calls[0]?.[0]).toBe(SET_SPACE_SETTINGS_OP_ID)
+  const opData: unknown = h.applyWorldOp.mock.calls[0]?.[1]
+  if (!(opData instanceof Uint8Array)) {
+    throw new Error('expected settings op bytes')
+  }
+  const settingsOp = SetSpaceSettingsOp.fromBinary(opData)
+  expect(settingsOp.settings?.indexPath).toBe(indexPath)
+  expect(settingsOp.settings?.pluginIds).toEqual(['spacewave-web'])
+}
+
 describe('IntroWizardViewer', () => {
   beforeEach(() => {
     h.hasState = true
     h.spaceSettingsIndexPath = 'wizard/welcome-1'
+    h.applyWorldOp.mockResolvedValue({ seqno: 1n, sysErr: false })
+    h.deleteObject.mockResolvedValue({ deleted: true })
   })
 
   afterEach(() => {
@@ -108,22 +122,15 @@ describe('IntroWizardViewer', () => {
       screen.getByRole('button', { name: /got it, start exploring/i }),
     )
 
-    expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
-    expect(h.applyWorldOp.mock.calls[0]?.[0]).toBe(SET_SPACE_SETTINGS_OP_ID)
-    const opData: unknown = h.applyWorldOp.mock.calls[0]?.[1]
-    if (!(opData instanceof Uint8Array)) {
-      throw new Error('expected settings op bytes')
-    }
-    const settingsOp = SetSpaceSettingsOp.fromBinary(opData)
-    expect(settingsOp.settings?.indexPath).toBe('files')
-    expect(settingsOp.settings?.pluginIds).toEqual(['spacewave-web'])
+    expectAppliedIndexPath('files')
     expect(h.deleteObject).toHaveBeenCalledWith('wizard/welcome-1')
     expect(h.navigateToObjects).toHaveBeenCalledWith(['files'])
   })
 
-  it('does not replace a stale Space index before cleanup', async () => {
+  it('treats already-deleted wizard cleanup as success when the index already points at the target', async () => {
     const user = userEvent.setup()
     h.spaceSettingsIndexPath = 'files'
+    h.deleteObject.mockResolvedValueOnce({ deleted: false })
 
     render(<IntroWizardViewer {...viewerProps} />)
 
@@ -131,9 +138,63 @@ describe('IntroWizardViewer', () => {
       screen.getByRole('button', { name: /got it, start exploring/i }),
     )
 
+    await waitFor(() =>
+      expect(h.navigateToObjects).toHaveBeenCalledWith(['files']),
+    )
     expect(h.applyWorldOp).not.toHaveBeenCalled()
     expect(h.deleteObject).toHaveBeenCalledWith('wizard/welcome-1')
-    expect(h.navigateToObjects).toHaveBeenCalledWith(['files'])
+    expect(h.toastError).not.toHaveBeenCalled()
+  })
+
+  it('treats object-not-found wizard cleanup rejection as success for second finishers', async () => {
+    const user = userEvent.setup()
+    h.spaceSettingsIndexPath = 'files'
+    h.deleteObject.mockRejectedValueOnce(new Error('object not found'))
+
+    render(<IntroWizardViewer {...viewerProps} />)
+
+    await user.click(
+      screen.getByRole('button', { name: /got it, start exploring/i }),
+    )
+
+    await waitFor(() =>
+      expect(h.navigateToObjects).toHaveBeenCalledWith(['files']),
+    )
+    expect(h.applyWorldOp).not.toHaveBeenCalled()
+    expect(h.deleteObject).toHaveBeenCalledWith('wizard/welcome-1')
+    expect(h.toastError).not.toHaveBeenCalled()
+  })
+
+  it('keeps the user on the wizard and surfaces real delete failures', async () => {
+    const user = userEvent.setup()
+    h.deleteObject.mockRejectedValueOnce(new Error('delete failed'))
+
+    render(<IntroWizardViewer {...viewerProps} />)
+
+    await user.click(
+      screen.getByRole('button', { name: /got it, start exploring/i }),
+    )
+
+    await waitFor(() =>
+      expect(h.toastError).toHaveBeenCalledWith('delete failed'),
+    )
+    expect(h.navigateToObjects).not.toHaveBeenCalled()
+  })
+
+  it('skips the introduction through the same guarded cleanup path as Finish', async () => {
+    const user = userEvent.setup()
+
+    render(<IntroWizardViewer {...viewerProps} />)
+
+    await user.click(screen.getByRole('button', { name: /skip/i }))
+
+    await waitFor(() =>
+      expect(h.navigateToObjects).toHaveBeenCalledWith(['files']),
+    )
+    expectAppliedIndexPath('files')
+    expect(h.deleteObject).toHaveBeenCalledWith('wizard/welcome-1')
+    expect(h.handleCancel).not.toHaveBeenCalled()
+    expect(h.toastError).not.toHaveBeenCalled()
   })
 
   it('renders loading while wizard state is unavailable', () => {

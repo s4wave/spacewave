@@ -19,6 +19,7 @@ export interface IntroWizardOverlayProps {
   callouts: IntroWizardCallout[]
   finishing: boolean
   onFinish: () => void
+  onSkip: () => void
 }
 
 // IntroWizardOverlay draws the new-user introduction around an object frame:
@@ -32,6 +33,7 @@ export function IntroWizardOverlay({
   callouts,
   finishing,
   onFinish,
+  onSkip,
 }: IntroWizardOverlayProps) {
   return (
     <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
@@ -49,14 +51,25 @@ export function IntroWizardOverlay({
             {subhead}
           </p>
         )}
-        <Button
-          size="sm"
-          onClick={onFinish}
-          disabled={finishing}
-          className="border-brand/60 bg-brand/25 hover:border-brand/80 hover:bg-brand/35 text-foreground mt-1 h-8 self-end rounded-md border px-3 text-xs font-medium"
-        >
-          {finishing ? 'Opening...' : finishLabel}
-        </Button>
+        <div className="mt-1 flex items-center justify-end gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onSkip}
+            disabled={finishing}
+            className="text-foreground-alt/70 hover:text-foreground h-8 rounded-md px-3 text-xs font-medium"
+          >
+            Skip
+          </Button>
+          <Button
+            size="sm"
+            onClick={onFinish}
+            disabled={finishing}
+            className="border-brand/60 bg-brand/25 hover:border-brand/80 hover:bg-brand/35 text-foreground h-8 rounded-md border px-3 text-xs font-medium"
+          >
+            {finishing ? 'Opening...' : finishLabel}
+          </Button>
+        </div>
       </div>
     </div>
   )
