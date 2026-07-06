@@ -542,8 +542,34 @@ func renderRolldownGoScriptConfig(options rolldownGoScriptBundleOptions) []byte 
 	writeConfigBool(&builder, "sourcemaps", options.Sourcemaps)
 	writeConfigBool(&builder, "codeSplitting", options.CodeSplitting)
 	builder.WriteString("}\n")
-	builder.WriteString(rolldownGoScriptConfig)
+	config := strings.Replace(rolldownGoScriptConfig, rolldownGoScriptOutputConfigPlaceholder, renderRolldownGoScriptOutputConfig(options.CodeSplitting), 1)
+	builder.WriteString(config)
 	return []byte(builder.String())
+}
+
+func renderRolldownGoScriptOutputConfig(codeSplitting bool) string {
+	if !codeSplitting {
+		return `    file: opts.outPath,
+    codeSplitting: false,
+`
+	}
+	return `    dir: opts.outDir,
+    entryFileNames: opts.entryFileName,
+    chunkFileNames: "chunks/[name]-[hash].mjs",
+    codeSplitting: {
+      groups: [
+        {
+          name: "shared",
+          test: (id) => isGoScriptModule(id, "") && !isGoScriptModule(id, "github.com/s4wave/"),
+          priority: 1,
+        },
+        {
+          name: "app",
+          test: (id) => isGoScriptModule(id, "github.com/s4wave/"),
+        },
+      ],
+    },
+`
 }
 
 func writeConfigString(builder *strings.Builder, name, value string) {
@@ -561,6 +587,8 @@ func writeConfigBool(builder *strings.Builder, name string, value bool) {
 	builder.WriteString(strconv.FormatBool(value))
 	builder.WriteString(",\n")
 }
+
+const rolldownGoScriptOutputConfigPlaceholder = "__BLDR_GOSCRIPT_OUTPUT_CONFIG__"
 
 const rolldownGoScriptConfig = `import fs from "node:fs"
 import path from "node:path"
@@ -664,6 +692,12 @@ function resolveDistSourceImport(source) {
   return existingSourcePath(path.join(opts.bldrDistRoot, source))
 }
 
+function isGoScriptModule(id, importPrefix) {
+  const normalized = id.replaceAll("\\", "/")
+  const marker = "@goscript/" + importPrefix
+  return normalized.startsWith(marker) || normalized.includes("/" + marker)
+}
+
 function isUndefinedImport(log) {
   const message = log?.message || ""
   const code = log?.code || ""
@@ -756,15 +790,7 @@ export default {
     defaultHandler(level, log)
   },
   output: {
-    ...(opts.codeSplitting ? {
-      dir: opts.outDir,
-      entryFileNames: opts.entryFileName,
-      chunkFileNames: "chunks/[name]-[hash].mjs",
-      codeSplitting: true,
-    } : {
-      file: opts.outPath,
-      codeSplitting: false,
-    }),
+__BLDR_GOSCRIPT_OUTPUT_CONFIG__
     format: "esm",
     sourcemap: opts.sourcemaps ? true : false,
     minify: opts.minify,

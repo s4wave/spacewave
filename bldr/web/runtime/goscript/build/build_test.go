@@ -649,6 +649,78 @@ export const LazyValue = "loaded from public runtime split chunk"
 	runBundledRuntimeEntryModule(t, filepath.Join(workDir, "..", "..", "bun"), outPath, "loaded from public runtime split chunk")
 }
 
+func TestRenderRolldownGoScriptConfigCodeSplittingWritesManualGroups(t *testing.T) {
+	config := compactRenderedGoScriptConfig(string(renderRolldownGoScriptConfig(rolldownGoScriptBundleOptions{
+		EntrypointPath:      "/work/plugin-goscript-entrypoint.ts",
+		BldrDistRoot:        "/dist",
+		SourceRoot:          "/src",
+		GoScriptOutputRoot:  "/goscript",
+		OutPath:             "/out/plugin.mjs",
+		OutDir:              "/out",
+		EntryFileName:       "plugin.mjs",
+		InputsPath:          "/work/inputs.json",
+		UndefinedImportPath: "/work/undefined-import.txt",
+		CodeSplitting:       true,
+	})))
+
+	if !strings.Contains(config, "codeSplitting:{groups:[") {
+		t.Fatalf("rendered config missing manual codeSplitting groups block:\n%s", config)
+	}
+	sharedIndex := strings.Index(config, `name:"shared"`)
+	if sharedIndex < 0 {
+		t.Fatalf("rendered config missing shared codeSplitting group:\n%s", config)
+	}
+	appIndex := strings.Index(config, `name:"app"`)
+	if appIndex < 0 {
+		t.Fatalf("rendered config missing app codeSplitting group:\n%s", config)
+	}
+	if sharedIndex > appIndex {
+		t.Fatalf("shared codeSplitting group must be rendered before app group:\n%s", config)
+	}
+	if !strings.Contains(config, `name:"shared",test:(id)=>isGoScriptModule(id,"")&&!isGoScriptModule(id,"github.com/s4wave/"),priority:1`) {
+		t.Fatalf("rendered config missing prioritized shared GoScript group with app exclusion:\n%s", config)
+	}
+	if !strings.Contains(config, `name:"app",test:(id)=>isGoScriptModule(id,"github.com/s4wave/")`) {
+		t.Fatalf("rendered config missing app GoScript group:\n%s", config)
+	}
+}
+
+func TestRenderRolldownGoScriptConfigCodeSplittingFalseKeepsSingleFileOutput(t *testing.T) {
+	config := compactRenderedGoScriptConfig(string(renderRolldownGoScriptConfig(rolldownGoScriptBundleOptions{
+		EntrypointPath:      "/work/plugin-goscript-entrypoint.ts",
+		BldrDistRoot:        "/dist",
+		SourceRoot:          "/src",
+		GoScriptOutputRoot:  "/goscript",
+		OutPath:             "/out/plugin.mjs",
+		OutDir:              "/out",
+		EntryFileName:       "plugin.mjs",
+		InputsPath:          "/work/inputs.json",
+		UndefinedImportPath: "/work/undefined-import.txt",
+		CodeSplitting:       false,
+	})))
+
+	if !strings.Contains(config, "file:opts.outPath,codeSplitting:false") {
+		t.Fatalf("rendered config missing single-file codeSplitting false output:\n%s", config)
+	}
+	if strings.Contains(config, "codeSplitting:{") || strings.Contains(config, "groups:[") {
+		t.Fatalf("rendered config should not include manual codeSplitting groups when disabled:\n%s", config)
+	}
+	if strings.Contains(config, `name:"app"`) || strings.Contains(config, `name:"shared"`) {
+		t.Fatalf("rendered config should not include app/shared codeSplitting groups when disabled:\n%s", config)
+	}
+}
+
+func compactRenderedGoScriptConfig(config string) string {
+	return strings.Map(func(r rune) rune {
+		switch r {
+		case ' ', '\n', '\r', '\t':
+			return -1
+		default:
+			return r
+		}
+	}, config)
+}
+
 func TestBuildWebGoScriptPluginScriptAppliesRolldownPolicies(t *testing.T) {
 	root := t.TempDir()
 	bldrDistRoot := filepath.Join(root, "dist")
