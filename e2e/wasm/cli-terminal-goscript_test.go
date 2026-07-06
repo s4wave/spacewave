@@ -195,12 +195,6 @@ func waitForCliTerminalRoute(t testing.TB, page playwright.Page, consoleLog *cli
 	if err != nil {
 		t.Fatalf("wait for CLI terminal route: %v\ndebug: %v", err, collectCliTerminalDebug(page, consoleLog))
 	}
-	backButton := page.Locator("button:visible:has-text('Back to Command Line')").First()
-	if err := backButton.WaitFor(playwright.LocatorWaitForOptions{
-		Timeout: playwright.Float(cliTerminalGoScriptWaitMS),
-	}); err != nil {
-		t.Fatalf("wait for CLI terminal back button: %v\ndebug: %v", err, collectCliTerminalDebug(page, consoleLog))
-	}
 	terminalHost := page.Locator(".xterm:visible").First()
 	if err := terminalHost.WaitFor(playwright.LocatorWaitForOptions{
 		Timeout: playwright.Float(cliTerminalGoScriptWaitMS),

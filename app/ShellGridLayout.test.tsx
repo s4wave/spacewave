@@ -774,7 +774,7 @@ describe('ShellGridLayout', () => {
     })
   })
 
-  it('projects command-line terminal tabs into the active grid tabset', async () => {
+  it('projects command-line terminal tabs into the active grid tabset with the Terminal name', async () => {
     sessionStorage.setItem(
       SHELL_TABS_STORAGE_KEY,
       JSON.stringify({
@@ -804,7 +804,7 @@ describe('ShellGridLayout', () => {
       }
       const activeTab = stored.tabs.find((tab) => tab.id === stored.activeTabId)
       expect(activeTab).toMatchObject({
-        name: 'Settings',
+        name: 'Terminal',
         path: '/u/7/settings/cli/terminal',
       })
 

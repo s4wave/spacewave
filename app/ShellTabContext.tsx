@@ -22,6 +22,7 @@ import {
   getTabNameFromPath,
   generateTabId,
 } from '@s4wave/app/shell-tab.js'
+import { setAppPath } from '@s4wave/web/router/app-path.js'
 import { useTabId as useTabContextTabId } from '@s4wave/web/object/TabContext.js'
 
 // TAB_STATE_PREFIX is the localStorage key prefix for tab-specific state.
@@ -428,6 +429,7 @@ export function ShellTabsProvider({ children }: { children: ReactNode }) {
 
   const openPathInNewTab = useCallback(
     (path: string, options: OpenShellTabOptions = {}) => {
+      const select = options.select ?? true
       const existingTab = options.focusExisting
         ? tabs.find((tab) => tab.path === path)
         : undefined
@@ -437,9 +439,12 @@ export function ShellTabsProvider({ children }: { children: ReactNode }) {
         path,
         tabId,
         afterTabId: options.afterTabId,
-        select: options.select ?? true,
+        select,
         focusExisting: options.focusExisting ?? false,
       })
+      if (select) {
+        setAppPath(path)
+      }
       return tabId
     },
     [tabs],

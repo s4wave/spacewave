@@ -378,7 +378,7 @@ describe('ShellTabStrip', () => {
     })
   })
 
-  it('opens and selects the command-line terminal in the active flex tabset', async () => {
+  it('opens and selects the command-line terminal in the active flex tabset with the Terminal name', async () => {
     sessionStorage.setItem(
       SHELL_TABS_STORAGE_KEY,
       JSON.stringify({
@@ -424,7 +424,7 @@ describe('ShellTabStrip', () => {
         '/blog',
       ])
       expect(activeTab).toMatchObject({
-        name: 'Settings',
+        name: 'Terminal',
         path: '/u/7/settings/cli/terminal',
       })
       expect(model?.tabs.some((tab) => tab.id === stored.activeTabId)).toBe(

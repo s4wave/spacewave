@@ -64,7 +64,6 @@ export function CommandLineSetupPage() {
       select: true,
     })
   }, [activeTabId, openPathInActiveTabset, sessionIdx])
-
   const handleCLIInstallAction = useCallback(
     async (action: DesktopCLIInstallActionItem) => {
       const root = rootResource.value

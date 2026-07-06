@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { useBldrContext } from '@aptre/bldr-react'
 import { Client as SRPCClient } from 'starpc'
 import type { MessageStream } from 'starpc'
-import { LuArrowLeft, LuTerminal } from 'react-icons/lu'
+import { LuTerminal } from 'react-icons/lu'
 
 import {
   CliTerminalServiceClient,
@@ -16,16 +16,15 @@ import {
   TerminalPane,
   type TerminalPaneConnector,
 } from '@s4wave/app/terminal/TerminalPane.js'
-import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
-import { useNavigate } from '@s4wave/web/router/router.js'
+import { SessionFrame } from '@s4wave/app/session/SessionFrame.js'
+import { BottomBarLevel } from '@s4wave/web/frame/bottom-bar-level.js'
+import { BottomBarItem } from '@s4wave/web/frame/bottom-bar-item.js'
 
 const cliTerminalServiceId =
   'plugin/spacewave-cli-plugin/' + CliTerminalServiceServiceName
 
-// CliTerminalPage renders the session-local in-app CLI terminal.
+// CliTerminalPage renders the session-local browser CLI terminal in the shell frame.
 export function CliTerminalPage() {
-  const navigate = useNavigate()
-  const sessionIdx = useSessionIndex()
   const bldrContext = useBldrContext()
   const webDocument = bldrContext?.webDocument ?? null
   const webViewUuid = bldrContext?.webView?.getUuid() ?? null
@@ -52,37 +51,34 @@ export function CliTerminalPage() {
     return (frames, signal) => cliTerminal.RunCli(frames, signal)
   }, [cliTerminal])
 
-  const handleBack = useCallback(() => {
-    navigate({ path: '../' })
-  }, [navigate])
+  const renderTerminalBarItem = useCallback(
+    (selected: boolean, onClick: () => void, className?: string) => (
+      <BottomBarItem
+        selected={selected}
+        onClick={onClick}
+        className={className}
+      >
+        <LuTerminal className="mr-1.5 size-3.5 shrink-0" />
+        <div className="flex-shrink flex-grow truncate">Terminal</div>
+        <div className="bg-border mx-2 h-3 w-px" />
+        <div className="text-muted-foreground truncate text-xs">CLI</div>
+      </BottomBarItem>
+    ),
+    [],
+  )
 
   return (
-    <div className="bg-background-landing flex min-h-0 flex-1 flex-col">
-      <div className="border-foreground/10 flex shrink-0 items-center gap-3 border-b px-6 py-4 md:px-10">
-        <button
-          onClick={handleBack}
-          className="text-foreground-alt hover:text-foreground flex items-center gap-1.5 text-sm transition-colors"
-        >
-          <LuArrowLeft className="size-4" />
-          Back to Command Line
-        </button>
-        <div className="ml-auto flex items-center gap-2 text-sm">
-          <div className="bg-brand/10 flex size-8 items-center justify-center rounded-md">
-            <LuTerminal className="text-brand size-4" />
-          </div>
-          <div className="hidden flex-col sm:flex">
-            <span className="text-foreground font-semibold tracking-wide">
-              CLI terminal
-            </span>
-            <span className="text-foreground-alt text-xs">
-              Session {sessionIdx}
-            </span>
-          </div>
+    <SessionFrame>
+      <BottomBarLevel
+        id="sessionCliTerminal"
+        button={renderTerminalBarItem}
+        buttonKey="session-cli-terminal"
+        menuLabel="Terminal"
+      >
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-zinc-950">
+          <TerminalPane connectTerminal={connectTerminal} />
         </div>
-      </div>
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <TerminalPane connectTerminal={connectTerminal} />
-      </div>
-    </div>
+      </BottomBarLevel>
+    </SessionFrame>
   )
 }

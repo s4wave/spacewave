@@ -11,6 +11,7 @@ const commandLinePageMocks = vi.hoisted(() => ({
   isDesktop: false,
   activeTabId: 'tab-settings',
   openPathInActiveTabset: vi.fn(),
+  openPathInNewTab: vi.fn(),
   navigate: vi.fn(),
   sessionIndex: 7,
   listenerStatus: {
@@ -54,6 +55,7 @@ vi.mock('@s4wave/app/ShellTabContext.js', () => ({
   useShellTabs: () => ({
     activeTabId: commandLinePageMocks.activeTabId,
     openPathInActiveTabset: commandLinePageMocks.openPathInActiveTabset,
+    openPathInNewTab: commandLinePageMocks.openPathInNewTab,
   }),
 }))
 
@@ -86,6 +88,7 @@ describe('DesktopCLIInstallCard', () => {
     commandLinePageMocks.isDesktop = false
     commandLinePageMocks.activeTabId = 'tab-settings'
     commandLinePageMocks.openPathInActiveTabset.mockReset()
+    commandLinePageMocks.openPathInNewTab.mockReset()
     commandLinePageMocks.navigate.mockReset()
     commandLinePageMocks.sessionIndex = 7
     commandLinePageMocks.listenerStatus = {
@@ -291,6 +294,7 @@ describe('DesktopCLIInstallCard', () => {
         select: true,
       },
     )
+    expect(commandLinePageMocks.openPathInNewTab).not.toHaveBeenCalled()
   })
 
   it('keeps desktop install affordances while launching the same in-app terminal path', () => {
@@ -313,6 +317,7 @@ describe('DesktopCLIInstallCard', () => {
         select: true,
       },
     )
+    expect(commandLinePageMocks.openPathInNewTab).not.toHaveBeenCalled()
   })
 })
 

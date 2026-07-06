@@ -1,16 +1,11 @@
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   TerminalFrameKind,
   type TerminalFrame,
 } from '@s4wave/sdk/terminal/terminal.pb.js'
+import { BottomBarRoot } from '@s4wave/web/frame/bottom-bar-root.js'
 
 const cliPageMocks = vi.hoisted(() => ({
   navigate: vi.fn(),
@@ -110,18 +105,21 @@ describe('CliTerminalPage', () => {
   afterEach(() => cleanup())
 
   it('streams terminal frames through the CLI plugin service route and aborts RunCli on close', async () => {
-    render(<CliTerminalPage />)
+    render(
+      <BottomBarRoot>
+        <CliTerminalPage />
+      </BottomBarRoot>,
+    )
 
     expect(screen.getByTestId('cli-terminal-pane').textContent).toBe(
       'terminal connector mounted',
     )
-    expect(screen.getByText('CLI terminal')).toBeDefined()
-    expect(screen.getByText('Session 7')).toBeDefined()
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Back to Command Line' }),
-    )
-    expect(cliPageMocks.navigate).toHaveBeenCalledWith({ path: '../' })
+    expect(screen.getByRole('button', { name: /Terminal\s+CLI/ })).toBeDefined()
+    expect(
+      screen.queryByRole('button', { name: 'Back to Command Line' }),
+    ).toBeNull()
+    expect(screen.queryByText('CLI terminal')).toBeNull()
+    expect(screen.queryByText('Session 7')).toBeNull()
 
     const connectTerminal = cliPageMocks.terminalConnector as (
       frames: AsyncIterable<TerminalFrame>,

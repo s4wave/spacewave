@@ -299,7 +299,7 @@ describe('ShellTabContext', () => {
     })
   })
 
-  it('falls back to opening a selected new tab when no active-tabset opener is registered', async () => {
+  it('falls back to opening a selected Terminal tab when no active-tabset opener is registered', async () => {
     sessionStorage.setItem(
       SHELL_TABS_STORAGE_KEY,
       JSON.stringify({
@@ -327,7 +327,7 @@ describe('ShellTabContext', () => {
       )
       expect(tabs).toHaveLength(2)
       expect(terminalTab).toMatchObject({
-        name: 'Settings',
+        name: 'Terminal',
         path: '/u/7/settings/cli/terminal',
       })
       expect(screen.getByTestId('active-tab-id').textContent).toBe(

@@ -49,6 +49,9 @@ export function getTabNameFromPath(path: string): string {
   if (normalized.startsWith('changelog')) {
     return 'Changelog'
   }
+  if (normalized === 'settings/cli/terminal') {
+    return 'Terminal'
+  }
 
   if (normalized.startsWith('u/')) {
     const parts = normalized.split('/')
@@ -63,6 +66,14 @@ export function getTabNameFromPath(path: string): string {
     }
     if (parts.length >= 4 && parts[2] === 'devices') {
       return 'Devices'
+    }
+    if (
+      parts.length >= 5 &&
+      parts[2] === 'settings' &&
+      parts[3] === 'cli' &&
+      parts[4] === 'terminal'
+    ) {
+      return 'Terminal'
     }
     if (parts.length >= 4 && parts[2] === 'settings') {
       return 'Settings'
