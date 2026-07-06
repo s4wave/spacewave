@@ -14,8 +14,10 @@ interface TestResource<T = unknown> {
 
 interface ObjectViewerArgs {
   preferredComponentID?: string
+  stateNamespace?: string[]
   objectInfo?: {
     info?: {
+      case?: string
       value?: {
         objectKey?: string
         objectType?: string
@@ -43,6 +45,14 @@ interface HistoryRouterProps {
   children?: ReactNode
 }
 
+interface SpaceContainerProviderProps {
+  children?: ReactNode
+  objectKey?: string
+  objectPath?: string
+  navigateToObjects: (objectKeys: string[]) => void
+  buildObjectUrls: (objectKeys: string[]) => string[]
+}
+
 const h = vi.hoisted(() => ({
   resourceCall: 0,
   watchCall: 0,
@@ -53,6 +63,7 @@ const h = vi.hoisted(() => ({
   useObjectViewer: vi.fn(),
   objectViewerContent: vi.fn(),
   historyRouter: vi.fn(),
+  spaceContainerProvider: vi.fn(),
 }))
 
 vi.mock('@aptre/bldr-react', () => ({
@@ -99,8 +110,23 @@ vi.mock('@s4wave/web/contexts/contexts.js', () => {
 })
 
 vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => {
-  function Provider({ children }: { children?: ReactNode }) {
-    return <>{children}</>
+  function Provider(props: SpaceContainerProviderProps) {
+    h.spaceContainerProvider(props)
+    const retargetUrl = props.buildObjectUrls(['dashboards/status'])[0] ?? ''
+    return (
+      <div data-testid="display-space-container">
+        <p>Space object: {props.objectKey ?? ''}</p>
+        <p>Space object path: {props.objectPath ?? ''}</p>
+        <p>Retarget URL: {retargetUrl}</p>
+        <button
+          type="button"
+          onClick={() => props.navigateToObjects(['dashboards/status'])}
+        >
+          Retarget status dashboard
+        </button>
+        {props.children}
+      </div>
+    )
   }
   return {
     SpaceContainerContext: { Provider },
@@ -306,6 +332,32 @@ function setupDisplayRoute(options: {
   window.history.replaceState({}, '', `${url.pathname}${url.search}`)
 }
 
+function encodedDisplayRoutePath(path: string): string {
+  return `/display/${path.split('/').map(encodeURIComponent).join('/')}`
+}
+
+function setupDisplayRoutePath(options: {
+  path: string
+  component?: string
+  objects?: Array<{ objectKey: string; objectType: string }>
+}) {
+  setupDisplayRoute(options)
+
+  const url = new URL(
+    encodedDisplayRoutePath(options.path),
+    window.location.origin,
+  )
+  if (options.component) url.searchParams.set('component', options.component)
+  window.history.replaceState({}, '', `${url.pathname}${url.search}`)
+}
+
+function latestObjectViewerArgs(): ObjectViewerArgs {
+  const call =
+    h.useObjectViewer.mock.calls[h.useObjectViewer.mock.calls.length - 1]
+  if (!call) throw new Error('ObjectViewer was not called')
+  return call[0] as ObjectViewerArgs
+}
+
 function DisplayBrowserSurface() {
   return (
     <div className="bg-background-primary text-foreground fixed inset-0">
@@ -324,6 +376,7 @@ describe('display route browser render', () => {
     h.useObjectViewer.mockReset()
     h.objectViewerContent.mockReset()
     h.historyRouter.mockReset()
+    h.spaceContainerProvider.mockReset()
   })
 
   it('renders a decoded object subpath and requested component through HistoryRouter and ObjectViewerContent', async () => {
@@ -362,6 +415,113 @@ describe('display route browser render', () => {
     const nextSearch = new URLSearchParams(window.location.search)
     expect(nextSearch.get('path')).toBe('docs/hello/-/nested note.md')
     expect(nextSearch.get('component')).toBe('viewer.markdown')
+    await cleanup()
+  })
+
+  it('resolves a route-path display target when no path query is present', async () => {
+    const routePath = 'docs/hello/-/route child.md'
+    setupDisplayRoutePath({
+      path: routePath,
+      component: 'viewer.diagram',
+    })
+
+    await render(<DisplayBrowserSurface />)
+
+    const search = new URLSearchParams(window.location.search)
+    expect(window.location.pathname).toBe(encodedDisplayRoutePath(routePath))
+    expect(search.has('path')).toBe(false)
+    expect(search.get('component')).toBe('viewer.diagram')
+    await expect
+      .element(page.getByText('History path: /route child.md'))
+      .toBeInTheDocument()
+    await expect
+      .element(page.getByText('Object key: docs/hello'))
+      .toBeInTheDocument()
+    await expect
+      .element(page.getByText('Object type: spacewave/document'))
+      .toBeInTheDocument()
+    await expect
+      .element(page.getByText('Component: viewer.diagram'))
+      .toBeInTheDocument()
+
+    const viewerArgs = latestObjectViewerArgs()
+    expect(viewerArgs.preferredComponentID).toBe('viewer.diagram')
+    expect(viewerArgs.stateNamespace).toEqual([
+      'display',
+      'space/git',
+      'docs/hello',
+      'viewer.diagram',
+    ])
+    await cleanup()
+  })
+
+  it('retargets a mounted display to a different object through display navigation', async () => {
+    setupDisplayRoute({
+      path: 'docs/hello/-/child file.md',
+      component: 'viewer.markdown',
+      objects: [
+        { objectKey: 'docs/hello', objectType: 'spacewave/document' },
+        { objectKey: 'dashboards/status', objectType: 'spacewave/dashboard' },
+      ],
+    })
+
+    await render(<DisplayBrowserSurface />)
+
+    await expect
+      .element(page.getByText('Object key: docs/hello'))
+      .toBeInTheDocument()
+    await expect
+      .element(page.getByText('Object type: spacewave/document'))
+      .toBeInTheDocument()
+    await expect
+      .element(page.getByText('History path: /child file.md'))
+      .toBeInTheDocument()
+
+    const initialArgs = latestObjectViewerArgs()
+    expect(initialArgs.objectInfo?.info?.case).toBe('worldObjectInfo')
+    expect(initialArgs.objectInfo?.info?.value?.objectKey).toBe('docs/hello')
+    expect(initialArgs.objectInfo?.info?.value?.objectType).toBe(
+      'spacewave/document',
+    )
+    expect(initialArgs.stateNamespace).toEqual([
+      'display',
+      'space/git',
+      'docs/hello',
+      'viewer.markdown',
+    ])
+
+    await page
+      .getByRole('button', { name: 'Retarget status dashboard' })
+      .click()
+
+    await expect
+      .element(page.getByText('Object key: dashboards/status'))
+      .toBeInTheDocument()
+    await expect
+      .element(page.getByText('Object type: spacewave/dashboard'))
+      .toBeInTheDocument()
+    await expect.element(page.getByText('History path: /')).toBeInTheDocument()
+
+    expect(window.location.pathname).toBe('/display')
+    const nextSearch = new URLSearchParams(window.location.search)
+    expect(nextSearch.get('path')).toBe('dashboards/status')
+    expect(nextSearch.get('component')).toBe('viewer.markdown')
+
+    const retargetedArgs = latestObjectViewerArgs()
+    expect(retargetedArgs.objectInfo?.info?.case).toBe('worldObjectInfo')
+    expect(retargetedArgs.objectInfo?.info?.value?.objectKey).toBe(
+      'dashboards/status',
+    )
+    expect(retargetedArgs.objectInfo?.info?.value?.objectType).toBe(
+      'spacewave/dashboard',
+    )
+    expect(retargetedArgs.stateNamespace).toEqual([
+      'display',
+      'space/git',
+      'dashboards/status',
+      'viewer.markdown',
+    ])
+
     await cleanup()
   })
 

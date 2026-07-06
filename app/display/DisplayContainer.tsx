@@ -1,4 +1,10 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
 import { useWatchStateRpc } from '@aptre/bldr-react'
 import {
   useResource,
@@ -102,7 +108,95 @@ function DisplayComponentNotFoundState({
   )
 }
 
-// DisplayContainer renders the seed kiosk display route outside the session tree.
+interface DisplayLocation {
+  pathname: string
+  search: string
+}
+
+interface DisplayTarget {
+  path: string
+  componentID?: string
+  routePathTarget: boolean
+}
+
+function decodeDisplayRoutePath(path: string): string {
+  try {
+    return decodeURIComponent(path)
+  } catch {
+    return path
+  }
+}
+
+function parseDisplayTarget(location: DisplayLocation): DisplayTarget {
+  const params = new URLSearchParams(location.search)
+  const queryPath = params.get('path')
+  if (queryPath !== null) {
+    return {
+      path: queryPath,
+      componentID: params.get('component') ?? undefined,
+      routePathTarget: false,
+    }
+  }
+  const routePathTarget = location.pathname.startsWith('/display/')
+  return {
+    path: routePathTarget
+      ? decodeDisplayRoutePath(location.pathname.slice('/display/'.length))
+      : '',
+    componentID: params.get('component') ?? undefined,
+    routePathTarget,
+  }
+}
+
+function setDisplayTargetPath(
+  url: URL,
+  path: string,
+  componentID: string | undefined,
+  routePathTarget: boolean,
+) {
+  if (routePathTarget) {
+    url.pathname = path
+      ? `/display/${path.split('/').map(encodeURIComponent).join('/')}`
+      : '/display'
+    url.searchParams.delete('path')
+  } else if (path) {
+    url.searchParams.set('path', path)
+  } else {
+    url.searchParams.delete('path')
+  }
+  if (componentID) {
+    url.searchParams.set('component', componentID)
+  } else {
+    url.searchParams.delete('component')
+  }
+}
+
+function useDisplayLocation(): [DisplayLocation, () => void] {
+  const [displayLocation, setDisplayLocation] = useState<DisplayLocation>(
+    () => ({
+      pathname: window.location.pathname,
+      search: window.location.search,
+    }),
+  )
+  const syncDisplayLocation = useCallback(
+    () =>
+      setDisplayLocation({
+        pathname: window.location.pathname,
+        search: window.location.search,
+      }),
+    [],
+  )
+  useEffect(() => {
+    window.addEventListener('popstate', syncDisplayLocation)
+    window.addEventListener('hashchange', syncDisplayLocation)
+    return () => {
+      window.removeEventListener('popstate', syncDisplayLocation)
+      window.removeEventListener('hashchange', syncDisplayLocation)
+    }
+  }, [syncDisplayLocation])
+  return [displayLocation, syncDisplayLocation]
+}
+
+// DisplayContainer renders the kiosk display route outside the session tree.
 export function DisplayContainer() {
   const rootResource = useRootResource()
   const sessionList = useSessionList()
@@ -110,16 +204,11 @@ export function DisplayContainer() {
   const selectedSessionIndex = firstSession
     ? (firstSession.sessionIndex ?? 1)
     : undefined
-  const [displaySearch, setDisplaySearch] = useState(
-    () => window.location.search,
+  const [displayLocation, syncDisplayLocation] = useDisplayLocation()
+  const displayTarget = useMemo(
+    () => parseDisplayTarget(displayLocation),
+    [displayLocation],
   )
-  const displayTarget = useMemo(() => {
-    const params = new URLSearchParams(displaySearch)
-    return {
-      path: params.get('path') ?? '',
-      componentID: params.get('component') ?? undefined,
-    }
-  }, [displaySearch])
   const parsedPath = useMemo(
     () => parseObjectUri(displayTarget.path),
     [displayTarget.path],
@@ -282,20 +371,20 @@ export function DisplayContainer() {
   const replaceDisplayPath = useCallback(
     (path: string) => {
       const next = new URL(window.location.href)
-      if (path) {
-        next.searchParams.set('path', path)
-      } else {
-        next.searchParams.delete('path')
-      }
-      if (displayTarget.componentID) {
-        next.searchParams.set('component', displayTarget.componentID)
-      } else {
-        next.searchParams.delete('component')
-      }
+      setDisplayTargetPath(
+        next,
+        path,
+        displayTarget.componentID,
+        displayTarget.routePathTarget,
+      )
       window.history.replaceState({}, '', next)
-      setDisplaySearch(next.search)
+      syncDisplayLocation()
     },
-    [displayTarget.componentID],
+    [
+      displayTarget.componentID,
+      displayTarget.routePathTarget,
+      syncDisplayLocation,
+    ],
   )
   const navigateViewerPath = useCallback(
     (to: To) => {
@@ -349,15 +438,15 @@ export function DisplayContainer() {
     (objectKeys: string[]): string[] =>
       objectKeys.map((objectKey) => {
         const next = new URL(window.location.href)
-        next.searchParams.set('path', objectKey)
-        if (displayTarget.componentID) {
-          next.searchParams.set('component', displayTarget.componentID)
-        } else {
-          next.searchParams.delete('component')
-        }
+        setDisplayTargetPath(
+          next,
+          objectKey,
+          displayTarget.componentID,
+          displayTarget.routePathTarget,
+        )
         return next.toString()
       }),
-    [displayTarget.componentID],
+    [displayTarget.componentID, displayTarget.routePathTarget],
   )
   const buildExportUrl = useCallback(() => exportUrl ?? '', [exportUrl])
   let content: ReactNode
