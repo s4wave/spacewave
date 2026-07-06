@@ -16,6 +16,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
+	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	"github.com/s4wave/spacewave/net/link"
 	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
@@ -46,14 +47,14 @@ type remoteShellOpenResult struct {
 }
 
 // StartHandler registers the daemon-side remote-shell stream handler.
-func StartHandler(ctx context.Context, le *logrus.Entry, b bus.Bus) func() {
+func StartHandler(ctx context.Context, le *logrus.Entry, b bus.Bus, policyStore *device_policy.PolicyStore) func() {
 	if b == nil {
 		return func() {}
 	}
 	ctrl := &deviceRemoteShellController{
 		le:      le.WithField("controller", deviceRemoteShellControllerID),
 		b:       b,
-		policy:  denyRemoteShellByDefault,
+		policy:  resolveRemoteShellPolicy(policyStore),
 		starter: startPtyRemoteShell,
 	}
 	release, err := b.AddController(ctx, ctrl, nil)
@@ -330,8 +331,18 @@ func sendTerminalError(session *stream_packet.Session, msg string) error {
 	return errors.New(msg)
 }
 
-func denyRemoteShellByDefault(openFrame *s4wave_terminal.TerminalFrame) error {
-	return errors.New("terminal disabled by local policy")
+func resolveRemoteShellPolicy(store *device_policy.PolicyStore) remoteShellPolicy {
+	return func(openFrame *s4wave_terminal.TerminalFrame) error {
+		policy := store.Snapshot()
+		if !policy.GetRemoteShell().GetEnabled() {
+			detail := policy.GetRemoteShell().GetDetail()
+			if detail == "" {
+				detail = "terminal disabled by local policy"
+			}
+			return errors.New(detail)
+		}
+		return nil
+	}
 }
 
 func startPtyRemoteShell(ctx context.Context, openFrame *s4wave_terminal.TerminalFrame) (remoteShellProcess, error) {

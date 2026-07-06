@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
 	"github.com/sirupsen/logrus"
@@ -69,23 +70,27 @@ func TestRemoteShellSessionDeniesPolicyBeforeStartingProcess(t *testing.T) {
 	}
 }
 
-func TestRemoteShellDefaultPolicyDeniesBeforeStartingProcess(t *testing.T) {
+func TestRemoteShellPolicyStoreMissingPolicyDeniesBeforeStartingProcess(t *testing.T) {
+	store, err := device_policy.NewPolicyStore(t.TempDir())
+	if err != nil {
+		t.Fatalf("NewPolicyStore() error = %v", err)
+	}
 	serverConn, clientConn := net.Pipe()
 	defer serverConn.Close()
 	defer clientConn.Close()
 
 	serverSession := stream_packet.NewSession(serverConn, deviceRemoteShellFrameMaxBytes)
 	clientSession := stream_packet.NewSession(clientConn, deviceRemoteShellFrameMaxBytes)
-	started := false
+	started := make(chan struct{}, 1)
 	done := make(chan error, 1)
 	go func() {
 		done <- runRemoteShellSession(
 			context.Background(),
 			logrus.NewEntry(logrus.New()),
 			serverSession,
-			denyRemoteShellByDefault,
+			resolveRemoteShellPolicy(store),
 			func(context.Context, *s4wave_terminal.TerminalFrame) (remoteShellProcess, error) {
-				started = true
+				started <- struct{}{}
 				return nil, errors.New("unexpected start")
 			},
 		)
@@ -106,13 +111,160 @@ func TestRemoteShellDefaultPolicyDeniesBeforeStartingProcess(t *testing.T) {
 	if got.GetError() != "terminal disabled by local policy" {
 		t.Fatalf("error = %q", got.GetError())
 	}
-	if started {
-		t.Fatal("process started despite default policy denial")
+	select {
+	case <-started:
+		t.Fatal("process started despite missing policy denial")
+	default:
 	}
 	select {
 	case err := <-done:
 		if err == nil {
-			t.Fatal("expected default policy denial error")
+			t.Fatal("expected missing policy denial error")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("remote shell session did not stop")
+	}
+}
+
+func TestRemoteShellPolicyStoreAllowsEnabledPolicy(t *testing.T) {
+	stateRoot := t.TempDir()
+	if err := device_policy.WriteFile(stateRoot, &device_policy.DevicePolicy{
+		RemoteShell: &device_policy.RemoteShellPolicy{Enabled: true},
+	}); err != nil {
+		t.Fatalf("write policy: %v", err)
+	}
+	store, err := device_policy.NewPolicyStore(stateRoot)
+	if err != nil {
+		t.Fatalf("NewPolicyStore() error = %v", err)
+	}
+	serverConn, clientConn := net.Pipe()
+	defer serverConn.Close()
+	defer clientConn.Close()
+
+	serverSession := stream_packet.NewSession(serverConn, deviceRemoteShellFrameMaxBytes)
+	clientSession := stream_packet.NewSession(clientConn, deviceRemoteShellFrameMaxBytes)
+	proc := newFakeRemoteShellProcess()
+	started := make(chan struct{}, 1)
+	done := make(chan error, 1)
+	go func() {
+		done <- runRemoteShellSession(
+			context.Background(),
+			logrus.NewEntry(logrus.New()),
+			serverSession,
+			resolveRemoteShellPolicy(store),
+			func(context.Context, *s4wave_terminal.TerminalFrame) (remoteShellProcess, error) {
+				started <- struct{}{}
+				return proc, nil
+			},
+		)
+	}()
+
+	if err := clientSession.SendMsg(&s4wave_terminal.TerminalFrame{
+		Kind: s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_OPEN,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	ready := &s4wave_terminal.TerminalFrame{}
+	if err := clientSession.RecvMsg(ready); err != nil {
+		t.Fatal(err)
+	}
+	if ready.GetKind() != s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_READY {
+		t.Fatalf("ready kind = %s", ready.GetKind().String())
+	}
+	select {
+	case <-started:
+	default:
+		t.Fatal("enabled policy did not start process")
+	}
+	if err := clientSession.SendMsg(&s4wave_terminal.TerminalFrame{
+		Kind: s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_CLOSE,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	exitFrame := &s4wave_terminal.TerminalFrame{}
+	if err := clientSession.RecvMsg(exitFrame); err != nil {
+		t.Fatal(err)
+	}
+	if exitFrame.GetKind() != s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_EXIT {
+		t.Fatalf("exit kind = %s", exitFrame.GetKind().String())
+	}
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("remote shell session error = %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("remote shell session did not stop")
+	}
+}
+
+func TestRemoteShellPolicyReloadBeforeOpenDeniesWithoutStartingProcess(t *testing.T) {
+	stateRoot := t.TempDir()
+	if err := device_policy.WriteFile(stateRoot, &device_policy.DevicePolicy{
+		RemoteShell: &device_policy.RemoteShellPolicy{Enabled: true},
+	}); err != nil {
+		t.Fatalf("write enabled policy: %v", err)
+	}
+	store, err := device_policy.NewPolicyStore(stateRoot)
+	if err != nil {
+		t.Fatalf("NewPolicyStore() error = %v", err)
+	}
+	serverConn, clientConn := net.Pipe()
+	defer serverConn.Close()
+	defer clientConn.Close()
+
+	serverSession := stream_packet.NewSession(serverConn, deviceRemoteShellFrameMaxBytes)
+	clientSession := stream_packet.NewSession(clientConn, deviceRemoteShellFrameMaxBytes)
+	started := make(chan struct{}, 1)
+	done := make(chan error, 1)
+	go func() {
+		done <- runRemoteShellSession(
+			context.Background(),
+			logrus.NewEntry(logrus.New()),
+			serverSession,
+			resolveRemoteShellPolicy(store),
+			func(context.Context, *s4wave_terminal.TerminalFrame) (remoteShellProcess, error) {
+				started <- struct{}{}
+				return nil, errors.New("unexpected start")
+			},
+		)
+	}()
+
+	if err := device_policy.WriteFile(stateRoot, &device_policy.DevicePolicy{
+		RemoteShell: &device_policy.RemoteShellPolicy{
+			Enabled: false,
+			Detail:  "terminal disabled after reload",
+		},
+	}); err != nil {
+		t.Fatalf("write disabled policy: %v", err)
+	}
+	if err := store.Reload(); err != nil {
+		t.Fatalf("Reload() error = %v", err)
+	}
+	if err := clientSession.SendMsg(&s4wave_terminal.TerminalFrame{
+		Kind: s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_OPEN,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	got := &s4wave_terminal.TerminalFrame{}
+	if err := clientSession.RecvMsg(got); err != nil {
+		t.Fatal(err)
+	}
+	if got.GetKind() != s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_ERROR {
+		t.Fatalf("response kind = %s", got.GetKind().String())
+	}
+	if got.GetError() != "terminal disabled after reload" {
+		t.Fatalf("error = %q", got.GetError())
+	}
+	select {
+	case <-started:
+		t.Fatal("process started despite disabled reload before OPEN")
+	default:
+	}
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("expected disabled policy denial error")
 		}
 	case <-time.After(time.Second):
 		t.Fatal("remote shell session did not stop")

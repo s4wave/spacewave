@@ -351,7 +351,7 @@ func TestDeviceCompleteImportsApprovalCompletionIntoSetupState(t *testing.T) {
 			},
 		}, nil
 	})
-	withDeviceObjectUpsertStub(t, func(ctx context.Context, client *sdkClient, record *deviceSetupRecord) (string, error) {
+	withDeviceObjectUpsertStub(t, func(ctx context.Context, client *sdkClient, statePath string, record *deviceSetupRecord) (string, error) {
 		upsertRecord = record
 		return "devices/build-host", nil
 	})
@@ -531,7 +531,7 @@ func TestDeviceCompletePreservesCompletionWhenDeviceObjectUpsertFails(t *testing
 			SessionListEntry: &core_session.SessionListEntry{SessionIndex: 9},
 		}, nil
 	})
-	withDeviceObjectUpsertStub(t, func(ctx context.Context, client *sdkClient, record *deviceSetupRecord) (string, error) {
+	withDeviceObjectUpsertStub(t, func(ctx context.Context, client *sdkClient, statePath string, record *deviceSetupRecord) (string, error) {
 		return "", errors.New("world write rejected")
 	})
 
@@ -828,7 +828,7 @@ func withDeviceMountSessionStub(
 
 func withDeviceObjectUpsertStub(
 	t *testing.T,
-	upsert func(context.Context, *sdkClient, *deviceSetupRecord) (string, error),
+	upsert func(context.Context, *sdkClient, string, *deviceSetupRecord) (string, error),
 ) {
 	t.Helper()
 

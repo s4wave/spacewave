@@ -21,6 +21,7 @@ import (
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
+	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	core_session "github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
@@ -148,6 +149,7 @@ func newDeviceCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 		Subcommands: []*cli.Command{
 			newDeviceSetupCommand(),
 			newDeviceCompleteCommand(),
+			newDevicePolicyCommand(),
 			newDeviceStatusCommand(),
 		},
 	}
@@ -735,7 +737,7 @@ func openDeviceSession(
 	updated.SetupState = deviceSetupStateSessionReady
 	updated.SessionIndex = entry.GetSessionIndex()
 	updated.SessionPeerID = pid.String()
-	objectKey, err := deviceUpsertObject(ctx, client, &updated)
+	objectKey, err := deviceUpsertObject(ctx, client, statePath, &updated)
 	if err != nil {
 		return nil, errors.Wrap(err, "create or update device object")
 	}
@@ -746,6 +748,7 @@ func openDeviceSession(
 func upsertLinkedDeviceObject(
 	ctx context.Context,
 	client *sdkClient,
+	statePath string,
 	record *deviceSetupRecord,
 ) (string, error) {
 	if record == nil {
@@ -780,6 +783,10 @@ func upsertLinkedDeviceObject(
 	objectKey := deviceObjectKey(record.PeerID)
 	now := time.Now()
 	next := deviceObjectFromSetupRecord(record, now)
+	policy, err := device_policy.ReadFile(statePath)
+	if err != nil {
+		return "", err
+	}
 
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
@@ -800,6 +807,11 @@ func upsertLinkedDeviceObject(
 			return "", errors.New("existing device object peer_id does not match setup state")
 		}
 		mergeDeviceObjectState(next, existing)
+		projected, _, err := projectDevicePolicyOntoDevice(next, policy, now)
+		if err != nil {
+			return "", err
+		}
+		next = projected
 		_, _, err = world.AccessObjectState(ctx, existingState, true, func(bcs *block.Cursor) error {
 			bcs.SetBlock(next, true)
 			return nil
@@ -808,6 +820,11 @@ func upsertLinkedDeviceObject(
 			return "", err
 		}
 	} else {
+		projected, _, err := projectDevicePolicyOntoDevice(next, policy, now)
+		if err != nil {
+			return "", err
+		}
+		next = projected
 		_, _, err = world.CreateWorldObject(ctx, tx, objectKey, func(bcs *block.Cursor) error {
 			bcs.ClearAllRefs()
 			bcs.SetBlock(next, true)

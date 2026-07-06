@@ -19,6 +19,7 @@ import (
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	resource "github.com/s4wave/spacewave/bldr/resource"
+	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	resource_root "github.com/s4wave/spacewave/core/resource/root"
@@ -128,8 +129,13 @@ func runServeCommand(
 		return err
 	}
 	defer invokerRef.Release()
+	devicePolicy, err := device_policy.NewPolicyStore(resolved)
+	if err != nil {
+		return err
+	}
 	startDeviceLauncherUpdateProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker)
-	releaseDeviceRemoteShell := terminal_remoteshell.StartHandler(serveCtx, le, cliBus.GetBus())
+	startDevicePolicyCapabilityProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker, devicePolicy)
+	releaseDeviceRemoteShell := terminal_remoteshell.StartHandler(serveCtx, le, cliBus.GetBus(), devicePolicy)
 	defer releaseDeviceRemoteShell()
 
 	if takeover {
@@ -173,6 +179,9 @@ func runServeCommand(
 		serveCancel()
 		lis.Close()
 	})); err != nil {
+		return err
+	}
+	if err := mux.Register(newDevicePolicyControlHandler(devicePolicy.Reload)); err != nil {
 		return err
 	}
 	if err := s4wave_trace.SRPCRegisterTraceService(mux, trace_service.NewService()); err != nil {
