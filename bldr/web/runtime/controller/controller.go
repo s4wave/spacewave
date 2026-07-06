@@ -3,6 +3,7 @@ package web_runtime_controller
 import (
 	"context"
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 
@@ -291,6 +292,67 @@ func setNoCacheHeaders(hdr http.Header) {
 	hdr.Set("Expires", "0")
 }
 
+const immutableContentCacheControl = "public, max-age=31536000, immutable"
+
+// setPluginFileCacheHeaders sets immutable cache headers for content-hashed plugin files.
+func setPluginFileCacheHeaders(hdr http.Header, requestPath string) {
+	if isContentHashedFilename(requestPath) {
+		hdr.Set("Cache-Control", immutableContentCacheControl)
+		hdr.Del("Pragma")
+		hdr.Del("Expires")
+		return
+	}
+
+	setNoCacheHeaders(hdr)
+}
+
+// isContentHashedFilename reports whether the request basename names immutable content.
+//
+// Bundler-hashed names keep the bytes stable for the path; a rebuild changes
+// the filename, not the content served at the old filename.
+func isContentHashedFilename(requestPath string) bool {
+	if requestPath == "" || strings.ContainsAny(requestPath, "?#") {
+		return false
+	}
+
+	name := path.Base(requestPath)
+	if name == "." {
+		return false
+	}
+
+	dash := strings.LastIndexByte(name, '-')
+	if dash < 0 || dash == len(name)-1 {
+		return false
+	}
+
+	dot := strings.IndexByte(name[dash+1:], '.')
+	if dot < 0 {
+		return false
+	}
+
+	hash := name[dash+1 : dash+1+dot]
+	if len(hash) < 8 {
+		return false
+	}
+
+	hasDigit := false
+	hasUpper := false
+	for _, ch := range hash {
+		switch {
+		case ch >= 'a' && ch <= 'z':
+		case ch >= 'A' && ch <= 'Z':
+			hasUpper = true
+		case ch >= '0' && ch <= '9':
+			hasDigit = true
+		case ch == '_':
+		default:
+			return false
+		}
+	}
+
+	return hasDigit && hasUpper
+}
+
 // ServePluginDistFsHTTP serves a HTTP request for a plugin dist filesystem.
 func (c *Controller) ServePluginDistFsHTTP(pluginID string, rw http.ResponseWriter, req *http.Request) {
 	c.le.
@@ -301,9 +363,7 @@ func (c *Controller) ServePluginDistFsHTTP(pluginID string, rw http.ResponseWrit
 	unixFsID := bldr_plugin.PluginDistFsId(pluginID)
 	handler := unixfs_access_http.NewHTTPHandler(req.Context(), c.bus, unixFsID, "", "", true)
 
-	// set headers preventing caching
-	// TODO: tell ServiceWorker to flush cache when plugin is updated!
-	setNoCacheHeaders(rw.Header())
+	setPluginFileCacheHeaders(rw.Header(), req.URL.RequestURI())
 
 	handler.ServeHTTP(rw, req)
 }
@@ -318,10 +378,7 @@ func (c *Controller) ServePluginAssetsFsHTTP(pluginID string, rw http.ResponseWr
 	unixFsID := bldr_plugin.PluginAssetsFsId(pluginID)
 	handler := unixfs_access_http.NewHTTPHandler(req.Context(), c.bus, unixFsID, "", "", true)
 
-	// Content-hashed filenames change on every rebuild so the old path
-	// becomes a 404 if cached.  Disable caching to match /b/pd/ behavior.
-	// TODO: use immutable cache headers keyed on content hash instead.
-	setNoCacheHeaders(rw.Header())
+	setPluginFileCacheHeaders(rw.Header(), req.URL.RequestURI())
 
 	handler.ServeHTTP(rw, req)
 }

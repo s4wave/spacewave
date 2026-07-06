@@ -56,6 +56,67 @@ func TestServeServiceWorkerHTTPServesBrowserIndexSeed(t *testing.T) {
 	}
 }
 
+func TestIsContentHashedFilename(t *testing.T) {
+	tests := []struct {
+		name        string
+		requestPath string
+		want        bool
+	}{
+		{
+			name:        "hashed mjs chunk",
+			requestPath: "/plugins/chunks/plugin.gs-D1G2wcIZ.mjs",
+			want:        true,
+		},
+		{
+			name:        "hashed css asset",
+			requestPath: "/plugins/assets/app-D1G2wcIZ.css",
+			want:        true,
+		},
+		{
+			name:        "hashed wasm asset",
+			requestPath: "/plugins/assets/module-D1G2wcIZ.wasm",
+			want:        true,
+		},
+		{
+			name:        "stable plugin entrypoint",
+			requestPath: "/plugins/plugin.mjs",
+		},
+		{
+			name:        "stable core bundle",
+			requestPath: "/plugins/spacewave-core.mjs",
+		},
+		{
+			name:        "stable launcher asset",
+			requestPath: "/plugins/spacewave-launcher.wasm.gz",
+		},
+		{
+			name:        "short dash suffix",
+			requestPath: "/plugins/plugin-v2.mjs",
+		},
+		{
+			name:        "dotfile",
+			requestPath: "/plugins/.D1G2wcIZ.mjs",
+		},
+		{
+			name:        "extensionless",
+			requestPath: "/plugins/plugin-D1G2wcIZ",
+		},
+		{
+			name:        "query string",
+			requestPath: "/plugins/chunks/plugin.gs-D1G2wcIZ.mjs?v=1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isContentHashedFilename(tt.requestPath)
+			if got != tt.want {
+				t.Fatalf("isContentHashedFilename(%q) = %t, want %t", tt.requestPath, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestServeServiceWorkerHTTPServesWebPackageModule(t *testing.T) {
 	ctx := t.Context()
 
