@@ -33,10 +33,7 @@ func BunInstall(ctx context.Context, le *logrus.Entry, stateDir string, installA
 		return nil, err
 	}
 
-	args := []string{"install"}
-	if minAge := os.Getenv("BLDR_BUN_MINIMUM_RELEASE_AGE"); minAge != "" {
-		args = append(args, "--minimum-release-age="+minAge)
-	}
+	args := append([]string{"install"}, bunMinimumReleaseAgeArg()...)
 	args = append(args, installArgs...)
 	return exec.NewCmd(ctx, bunPath, args...), nil
 }
@@ -48,9 +45,17 @@ func BunAdd(ctx context.Context, le *logrus.Entry, stateDir string, addArgs ...s
 		return nil, err
 	}
 
-	args := []string{"add"}
+	args := append([]string{"add"}, bunMinimumReleaseAgeArg()...)
 	args = append(args, addArgs...)
 	return exec.NewCmd(ctx, bunPath, args...), nil
+}
+
+func bunMinimumReleaseAgeArg() []string {
+	minAge := os.Getenv("BLDR_BUN_MINIMUM_RELEASE_AGE")
+	if minAge == "" {
+		return nil
+	}
+	return []string{"--minimum-release-age=" + minAge}
 }
 
 // ResolveBunPath resolves the path to the bun binary.

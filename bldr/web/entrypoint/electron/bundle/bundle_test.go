@@ -16,24 +16,7 @@ import (
 )
 
 func TestBuildRendererBundleUsesSelfContainedDistEntrypoint(t *testing.T) {
-	appRoot := t.TempDir()
-	if err := os.WriteFile(
-		filepath.Join(appRoot, "go.mod"),
-		[]byte("module github.com/example/downstream\n\ngo 1.26\n"),
-		0o644,
-	); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(
-		filepath.Join(appRoot, "tsconfig.json"),
-		[]byte(`{"compilerOptions":{"paths":{"@go/*":["./vendor/*"]}}}`),
-		0o644,
-	); err != nil {
-		t.Fatal(err)
-	}
-
-	distRoot := filepath.Join(appRoot, ".bldr", "src")
-	copyDistSources(t, distRoot)
+	appRoot, distRoot := setupBundleTestApp(t)
 
 	buildDir := filepath.Join(appRoot, "build")
 	if err := BuildRendererBundle(
@@ -53,6 +36,12 @@ func TestBuildRendererBundleUsesSelfContainedDistEntrypoint(t *testing.T) {
 
 	out, err := os.ReadFile(filepath.Join(buildDir, "entrypoint", "entrypoint.mjs"))
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteElectronStableBootFiles(buildDir, "sw.mjs", "shw.mjs"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(buildDir, "browser-release.json")); err != nil {
 		t.Fatal(err)
 	}
 	for _, unexpected := range []string{
@@ -133,6 +122,29 @@ func TestWriteElectronStableBootFiles(t *testing.T) {
 			t.Fatalf("electron boot release missing %q: %s", want, releaseJSON)
 		}
 	}
+}
+
+func setupBundleTestApp(t *testing.T) (string, string) {
+	t.Helper()
+	appRoot := t.TempDir()
+	if err := os.WriteFile(
+		filepath.Join(appRoot, "go.mod"),
+		[]byte("module github.com/example/downstream\n\ngo 1.26\n"),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(appRoot, "tsconfig.json"),
+		[]byte(`{"compilerOptions":{"paths":{"@go/*":["./vendor/*"]}}}`),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	distRoot := filepath.Join(appRoot, ".bldr", "src")
+	copyDistSources(t, distRoot)
+	return appRoot, distRoot
 }
 
 func copyDistSources(t *testing.T, dest string) {

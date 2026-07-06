@@ -47,3 +47,16 @@ func TestBunInstallHashIncludesLockfile(t *testing.T) {
 		t.Fatal("different lockfiles produced the same install hash")
 	}
 }
+
+func TestBunMinimumReleaseAgeArg(t *testing.T) {
+	t.Setenv("BLDR_BUN_MINIMUM_RELEASE_AGE", "")
+	if got := bunMinimumReleaseAgeArg(); got != nil {
+		t.Fatalf("empty minimum age arg = %#v, want nil", got)
+	}
+
+	t.Setenv("BLDR_BUN_MINIMUM_RELEASE_AGE", "0")
+	got := bunMinimumReleaseAgeArg()
+	if len(got) != 1 || got[0] != "--minimum-release-age=0" {
+		t.Fatalf("minimum age arg = %#v, want --minimum-release-age=0", got)
+	}
+}

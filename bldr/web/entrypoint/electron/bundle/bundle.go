@@ -281,15 +281,6 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 		return err
 	}
 
-	if err := WriteElectronStableBootFiles(buildDir, swFilename, shwFilename); err != nil {
-		return err
-	}
-
-	// Render index.html with the import map from the web pkg build.
-	if err := BuildElectronRendererIndex(buildDir, webPkgImportMap); err != nil {
-		return err
-	}
-
 	// the renderer is at /entrypoint/pkgs/@aptre/bldr/
 	runtimePathPrefix := "../../../../"
 	runtimeSwPath := runtimePathPrefix + swFilename
@@ -313,6 +304,15 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 		minify,
 		devMode,
 	); err != nil {
+		return err
+	}
+
+	if err := WriteElectronStableBootFiles(buildDir, swFilename, shwFilename); err != nil {
+		return err
+	}
+
+	// Render index.html with the import map from the web pkg build.
+	if err := BuildElectronRendererIndex(buildDir, webPkgImportMap); err != nil {
 		return err
 	}
 
