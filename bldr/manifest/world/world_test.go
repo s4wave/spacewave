@@ -8,12 +8,15 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/cayley/quad"
+	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/controllerbus/directive"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/s4wave/spacewave/db/block"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
@@ -1597,6 +1600,55 @@ func TestCollectDirectManifestForManifestID(t *testing.T) {
 	}
 }
 
+func TestManifestObjectRefsSameExecutableMatchesInlineAndReferencedTransformConf(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	transformConf := newTestManifestTransformConf(t)
+	inlineManifest := createTestManifestRefWithTransformConf(t, ctx, tb, "spacewave-web", "js", 7, transformConf)
+	inlineRef := inlineManifest.GetManifestRef().CloneVT()
+	inlineRef.BucketId = "entrypoint/spacewave"
+	inlineRef.TransformConfRef = nil
+	if inlineRef.GetRootRef().GetEmpty() {
+		t.Fatal("test setup: manifest root ref is empty")
+	}
+	if inlineRef.GetTransformConf().GetEmpty() {
+		t.Fatal("test setup: inline transform conf is empty")
+	}
+
+	referencedRef := inlineRef.CloneVT()
+	referencedRef.BucketId = "dist/spacewave"
+	referencedRef.TransformConfRef = writeTestTransformConfRef(t, ctx, tb, "dist/spacewave", inlineRef.GetTransformConf())
+	referencedRef.TransformConf = nil
+	if referencedRef.GetTransformConfRef().GetEmpty() {
+		t.Fatal("test setup: referenced transform conf ref is empty")
+	}
+
+	canonicalReferencedRef, err := CanonicalizeManifestObjectRef(ctx, ws.AccessWorldState, referencedRef)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ManifestObjectRefsSameExecutable(inlineRef, canonicalReferencedRef) {
+		t.Fatal("same manifest root with equivalent inline/ref transform conf was not treated as the same executable")
+	}
+}
+
 func TestSetManifestBucketRelocationDoesNotBumpLinkedRev(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
@@ -1624,39 +1676,63 @@ func TestSetManifestBucketRelocationDoesNotBumpLinkedRev(t *testing.T) {
 	}
 
 	const manifestKey = "plugin-host/ref/spacewave-web/js"
+	transformConf := newTestManifestTransformConf(t)
 
-	// Seed the manifest in the dist bucket and record the linked store rev.
-	distRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 7)
-	distRef.GetManifestRef().BucketId = "dist/spacewave"
-	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{storeKey}, distRef); err != nil {
+	// Seed the local manifest using the canonical persisted encoding.
+	localRef := createTestManifestRefWithTransformConf(t, ctx, tb, "spacewave-web", "js", 7, transformConf)
+	localManifestRef := localRef.GetManifestRef()
+	localManifestRef.BucketId = "entrypoint/spacewave"
+	localManifestRef.TransformConfRef = nil
+	if localManifestRef.GetTransformConf().GetEmpty() {
+		t.Fatal("test setup: local manifest transform conf is empty")
+	}
+	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{storeKey}, localRef); err != nil {
 		t.Fatal(err.Error())
 	}
 	seededRev := objectRev(t, ctx, ws, storeKey)
 
-	// Relocate the identical manifest into the persisted world bucket. Only the
-	// bucket id differs, so the stored ref must follow the relocated copy while
-	// the linked store rev every plugin watches must stay put (issue 20260705).
-	relocatedRef := distRef.CloneVT()
-	relocatedRef.GetManifestRef().BucketId = "entrypoint/spacewave"
-	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{storeKey}, relocatedRef); err != nil {
+	// A fetched dist manifest may encode the same transform configuration by
+	// reference. That encoding difference is not an executable manifest change.
+	fetchedRef := localRef.CloneVT()
+	fetchedManifestRef := fetchedRef.GetManifestRef()
+	fetchedManifestRef.BucketId = "dist/spacewave"
+	fetchedManifestRef.TransformConfRef = writeTestTransformConfRef(t, ctx, tb, "dist/spacewave", localManifestRef.GetTransformConf())
+	fetchedManifestRef.TransformConf = nil
+	if fetchedManifestRef.GetTransformConfRef().GetEmpty() {
+		t.Fatal("test setup: fetched manifest transform conf ref is empty")
+	}
+	if !localManifestRef.GetRootRef().EqualsRef(fetchedManifestRef.GetRootRef()) {
+		t.Fatal("test setup: fetched manifest root differs from local root")
+	}
+	if localManifestRef.EqualVT(fetchedManifestRef) {
+		t.Fatal("test setup: fetched manifest ref should differ by bucket and transform encoding")
+	}
+	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{storeKey}, fetchedRef); err != nil {
 		t.Fatal(err.Error())
 	}
 	if got := objectRev(t, ctx, ws, storeKey); got != seededRev {
-		t.Fatalf("linked store rev after bucket relocation = %d, want unchanged %d", got, seededRev)
+		t.Fatalf("linked store rev after equivalent transform encoding relocation = %d, want unchanged %d", got, seededRev)
 	}
 	storedRef := objectRootRef(t, ctx, ws, manifestKey)
-	if storedRef.GetBucketId() != "entrypoint/spacewave" {
-		t.Fatalf("stored manifest ref bucket = %q, want relocated entrypoint/spacewave", storedRef.GetBucketId())
+	if !storedRef.GetRootRef().EqualsRef(localManifestRef.GetRootRef()) {
+		t.Fatal("stored manifest root ref changed")
 	}
-	if !ManifestObjectRefsSameExecutable(storedRef, relocatedRef.GetManifestRef()) {
-		t.Fatalf("stored manifest ref did not follow the relocated copy")
+	if storedRef.GetBucketId() != "dist/spacewave" {
+		t.Fatalf("stored manifest ref bucket = %q, want fetched dist/spacewave", storedRef.GetBucketId())
+	}
+	if !storedRef.GetTransformConfRef().GetEmpty() {
+		t.Fatalf("stored manifest transform conf ref = %s, want empty canonical inline encoding", storedRef.GetTransformConfRef().MarshalString())
+	}
+	if !storedRef.GetTransformConf().EqualVT(localManifestRef.GetTransformConf()) {
+		t.Fatal("stored manifest transform conf did not preserve canonical inline encoding")
 	}
 
 	// A genuinely different executable (different manifest content, so a
 	// different root ref) must bump the linked store rev.
-	newExecutableRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 8)
+	newExecutableRef := createTestManifestRefWithTransformConf(t, ctx, tb, "spacewave-web", "js", 8, transformConf)
 	newExecutableRef.GetManifestRef().BucketId = "entrypoint/spacewave"
-	if ManifestObjectRefsSameExecutable(relocatedRef.GetManifestRef(), newExecutableRef.GetManifestRef()) {
+	newExecutableRef.GetManifestRef().TransformConfRef = nil
+	if ManifestObjectRefsSameExecutable(localManifestRef, newExecutableRef.GetManifestRef()) {
 		t.Fatal("test setup: expected a distinct executable root ref")
 	}
 	if err := ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{storeKey}, newExecutableRef); err != nil {
@@ -1697,6 +1773,101 @@ func createTestManifestRef(
 	}
 	oc.SetRootRef(rootRef)
 	return manifest.NewManifestRef(meta, oc.GetRef())
+}
+
+func newTestManifestTransformConf(t *testing.T) *block_transform.Config {
+	t.Helper()
+
+	transformConf, err := block_transform.NewConfig([]config.Config{
+		&transform_chksum.Config{},
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return transformConf
+}
+
+func createTestManifestRefWithTransformConf(
+	t *testing.T,
+	ctx context.Context,
+	tb *testbed.Testbed,
+	manifestID string,
+	platformID string,
+	rev uint64,
+	transformConf *block_transform.Config,
+) *manifest.ManifestRef {
+	t.Helper()
+
+	meta := &manifest.ManifestMeta{
+		ManifestId: manifestID,
+		BuildType:  "production",
+		PlatformId: platformID,
+		Rev:        rev,
+	}
+	oc, _, err := bucket_lookup.BuildEmptyCursor(
+		ctx,
+		tb.Bus,
+		tb.Logger,
+		tb.StepFactorySet,
+		tb.BucketId,
+		tb.Volume.GetID(),
+		transformConf,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer oc.Release()
+
+	btx, bcs := oc.BuildTransaction(nil)
+	bcs.SetBlock(manifest.NewManifest(meta, "entrypoint"), true)
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	oc.SetRootRef(rootRef)
+	return manifest.NewManifestRef(meta, oc.GetRef())
+}
+
+func writeTestTransformConfRef(
+	t *testing.T,
+	ctx context.Context,
+	tb *testbed.Testbed,
+	bucketID string,
+	transformConf *block_transform.Config,
+) *block.BlockRef {
+	t.Helper()
+
+	if _, _, _, err := tb.Volume.ApplyBucketConfig(ctx, &bucket.Config{
+		Id:  bucketID,
+		Rev: 1,
+	}); err != nil {
+		t.Fatal(err.Error())
+	}
+	oc, _, err := bucket_lookup.BuildEmptyCursor(
+		ctx,
+		tb.Bus,
+		tb.Logger,
+		tb.StepFactorySet,
+		bucketID,
+		tb.Volume.GetID(),
+		nil,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer oc.Release()
+
+	transformConfData, err := bucket_lookup.MarshalTransformConf(transformConf)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	transformConfRef, _, err := oc.PutBlock(ctx, transformConfData, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return transformConfRef
 }
 
 func storeTestManifestRefObject(

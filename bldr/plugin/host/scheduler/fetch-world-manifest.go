@@ -88,7 +88,7 @@ func (t *pluginInstance) execFetchWorldManifest(ctx context.Context, hosts *plug
 			nil,
 		)
 	} else {
-		handler = t.newDirectFetchHandler(hosts)
+		handler = t.newDirectFetchHandler(ctx, hosts)
 	}
 
 	di, ref, err := t.c.bus.AddDirective(
@@ -201,8 +201,9 @@ func (t *fetchManifestValueStorer) execFetchManifestValueStorer(ctx context.Cont
 }
 
 // newDirectFetchHandler builds a handler that drives execute/download directly
-// from fetched ManifestRefs when store is disabled (e.g., Space plugins in devtool mode).
-func (t *pluginInstance) newDirectFetchHandler(hosts *pluginHostSet) directive.ReferenceHandler {
+// from fetched canonical ManifestRefs when store is disabled (e.g., Space
+// plugins in devtool mode).
+func (t *pluginInstance) newDirectFetchHandler(ctx context.Context, hosts *pluginHostSet) directive.ReferenceHandler {
 	var mtx sync.Mutex
 	allRefs := make(map[uint32][]*bldr_manifest.ManifestRef)
 	platformIDsMap := hosts.toPluginPlatformIDsMap(t.c.conf, t.pluginID)
@@ -273,7 +274,20 @@ func (t *pluginInstance) newDirectFetchHandler(hosts *pluginHostSet) directive.R
 					t.le.WithError(err).Warn("skipping invalid manifest ref")
 					continue
 				}
-				validRefs = append(validRefs, ref)
+				canonicalRef, err := bldr_manifest_world.CanonicalizeManifestObjectRef(ctx, nil, ref.GetManifestRef())
+				if err != nil {
+					ws, waitErr := t.c.worldStateCtr.WaitValue(ctx, nil)
+					if waitErr != nil {
+						t.le.WithError(waitErr).Warn("skipping fetched manifest ref without world state")
+						continue
+					}
+					canonicalRef, err = bldr_manifest_world.CanonicalizeManifestObjectRef(ctx, ws.AccessWorldState, ref.GetManifestRef())
+				}
+				if err != nil {
+					t.le.WithError(err).Warn("skipping fetched manifest ref with unresolved transform config")
+					continue
+				}
+				validRefs = append(validRefs, bldr_manifest.NewManifestRef(ref.GetMeta(), canonicalRef))
 			}
 			allRefs[av.GetValueID()] = validRefs
 			selectBest()

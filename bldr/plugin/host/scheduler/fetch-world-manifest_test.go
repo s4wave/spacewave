@@ -55,7 +55,7 @@ func TestDirectFetchHandlerPreservesCurrentStateAcrossEmptyGap(t *testing.T) {
 		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
 		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
 	}
-	handler := pi.newDirectFetchHandler(&pluginHostSet{pluginHosts: []bldr_plugin_host.PluginHost{host1}})
+	handler := pi.newDirectFetchHandler(context.Background(), &pluginHostSet{pluginHosts: []bldr_plugin_host.PluginHost{host1}})
 
 	val1 := bldr_manifest.NewFetchManifestValue([]*bldr_manifest.ManifestRef{
 		newTestManifestRef("spacewave-app", "desktop/linux/amd64", 1, "bucket-1"),
@@ -91,7 +91,7 @@ func TestDirectFetchHandlerPreservesCurrentStateAcrossEmptyGap(t *testing.T) {
 	val2 := bldr_manifest.NewFetchManifestValue([]*bldr_manifest.ManifestRef{
 		newTestManifestRef("spacewave-app", "desktop/linux/amd64", 2, "bucket-2"),
 	})
-	handler = pi.newDirectFetchHandler(&pluginHostSet{pluginHosts: []bldr_plugin_host.PluginHost{host2}})
+	handler = pi.newDirectFetchHandler(context.Background(), &pluginHostSet{pluginHosts: []bldr_plugin_host.PluginHost{host2}})
 	handler.HandleValueAdded(nil, directive.NewAttachedValue(2, val2))
 
 	execState = pi.executePluginRoutine.GetState()
@@ -114,7 +114,7 @@ func TestDirectFetchHandlerPrefersCurrentStateAcrossEqualRevOverlap(t *testing.T
 		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
 		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
 	}
-	handler := pi.newDirectFetchHandler(&pluginHostSet{pluginHosts: []bldr_plugin_host.PluginHost{host}})
+	handler := pi.newDirectFetchHandler(context.Background(), &pluginHostSet{pluginHosts: []bldr_plugin_host.PluginHost{host}})
 
 	val1 := bldr_manifest.NewFetchManifestValue([]*bldr_manifest.ManifestRef{
 		newTestManifestRef("spacewave-app", "desktop/linux/amd64", 7, "bucket-a"),
@@ -241,7 +241,7 @@ func TestDirectFetchHandlerSwitchesCurrentFallbackToPreferredPlatform(t *testing
 		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
 		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
 	}
-	handler := pi.newDirectFetchHandler(&pluginHostSet{
+	handler := pi.newDirectFetchHandler(context.Background(), &pluginHostSet{
 		pluginHosts: []bldr_plugin_host.PluginHost{jsHost, webHost},
 	})
 
@@ -308,7 +308,7 @@ func TestDirectFetchHandlerFiltersWebPlatformForUnlistedPlugin(t *testing.T) {
 		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
 		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
 	}
-	handler := pi.newDirectFetchHandler(&pluginHostSet{
+	handler := pi.newDirectFetchHandler(context.Background(), &pluginHostSet{
 		pluginHosts: []bldr_plugin_host.PluginHost{jsHost, webHost},
 	})
 

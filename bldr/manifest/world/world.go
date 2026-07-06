@@ -192,13 +192,47 @@ func logUnsupportedHashManifestStoreReset(le *logrus.Entry, objKeys []string, er
 		Warn("unsupported hash in persisted manifest state; resetting")
 }
 
-// ManifestObjectRefsSameExecutable reports whether two manifest object refs
-// resolve to the same executable content, ignoring which bucket holds the
-// blocks. A manifest relocated between buckets (for example from the dist
-// bucket into the persisted world bucket) keeps the same executable identity.
-// Store-side change accounting (SetManifest) and the plugin-host scheduler
-// executor share this comparison so they can never disagree about what counts
-// as a manifest change.
+// CanonicalizeManifestObjectRef returns a copy of a manifest object ref with
+// the executable transform configuration encoded inline.
+func CanonicalizeManifestObjectRef(
+	ctx context.Context,
+	access world.AccessWorldStateFunc,
+	ref *bucket.ObjectRef,
+) (*bucket.ObjectRef, error) {
+	if ref == nil {
+		return nil, nil
+	}
+	out := ref.Clone()
+	if !out.GetTransformConf().GetEmpty() {
+		out.TransformConfRef = nil
+		return out, nil
+	}
+	if out.GetTransformConfRef().GetEmpty() {
+		return out, nil
+	}
+	if access == nil {
+		return nil, errors.New("manifest object ref transform config requires world access")
+	}
+	err := access(ctx, ref, func(bls *bucket_lookup.Cursor) error {
+		out.TransformConf = bls.GetTransformConf().Clone()
+		out.TransformConfRef = nil
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ManifestObjectRefsSameExecutable reports whether two canonical manifest object
+// refs resolve to the same executable content, ignoring which bucket holds the
+// blocks. Producers must resolve transform configs into TransformConf and clear
+// TransformConfRef before storing or scheduling refs so this comparison stays
+// pure and cheap. A manifest relocated between buckets (for example from the
+// dist bucket into the persisted world bucket) keeps the same executable
+// identity. Store-side change accounting (SetManifest) and the plugin-host
+// scheduler executor share this comparison so they can never disagree about
+// what counts as a manifest change.
 //
 // If either ref has an empty root block, the refs are compared with full
 // equality including bucket id.
@@ -226,6 +260,11 @@ func SetManifest(
 	objKey string,
 	rootRef *bucket.ObjectRef,
 ) (world.ObjectState, bool, error) {
+	canonicalRootRef, err := CanonicalizeManifestObjectRef(ctx, ws.AccessWorldState, rootRef)
+	if err != nil {
+		return nil, false, errors.Wrap(err, "canonicalize manifest root ref")
+	}
+	rootRef = canonicalRootRef
 	var changed bool
 	obj, objOk, err := ws.GetObject(ctx, objKey)
 	if err != nil {
@@ -238,19 +277,16 @@ func SetManifest(
 			return nil, false, err
 		}
 		if !currRootRef.EqualVT(rootRef) {
+			canonicalCurrRootRef, err := CanonicalizeManifestObjectRef(ctx, ws.AccessWorldState, currRootRef)
+			if err != nil {
+				return nil, false, errors.Wrap(err, "canonicalize current manifest root ref")
+			}
 			// Store and executor must agree on what counts as a manifest
-			// change. Update the stored ref so reads follow a relocated copy
-			// (for example a manifest DAG copied from the dist bucket into the
-			// persisted world bucket), but only report changed, which
-			// increments the linked object rev, when the executable identity
-			// differs. The scheduler executor ignores bucket id via the same
-			// comparison; bumping rev on a pure relocation it treats as
-			// unchanged would fan a spurious rev bump to every plugin watching
-			// the shared plugin-host object and restart them for no real change
-			// (issue 20260705).
+			// change. Update the stored ref so reads follow a relocated copy,
+			// but only report changed when the executable identity differs.
 			_, err = obj.SetRootRef(ctx, rootRef)
 			if err == nil {
-				changed = !ManifestObjectRefsSameExecutable(currRootRef, rootRef)
+				changed = !ManifestObjectRefsSameExecutable(canonicalCurrRootRef, rootRef)
 			}
 		}
 	} else {
