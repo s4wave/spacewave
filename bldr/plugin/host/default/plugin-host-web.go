@@ -12,7 +12,6 @@ import (
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	plugin_host_controller "github.com/s4wave/spacewave/bldr/plugin/host/controller"
 	plugin_host_web "github.com/s4wave/spacewave/bldr/plugin/host/web"
-	plugin_host_web_wasivm "github.com/s4wave/spacewave/bldr/plugin/host/web-wasivm"
 )
 
 // PluginHostControllerFactories construct the plugin host controller factory.
@@ -20,16 +19,12 @@ var PluginHostControllerFactories = [](func(bus bus.Bus) controller.Factory){
 	func(b bus.Bus) controller.Factory {
 		return plugin_host_web.NewFactory(b)
 	},
-	func(b bus.Bus) controller.Factory {
-		return plugin_host_web_wasivm.NewFactory(b)
-	},
 }
 
 // PluginHostController contains the plugin host controllers.
 type PluginHostController struct {
-	WebHost    *plugin_host_controller.Controller
-	JsHost     *plugin_host_controller.Controller
-	WasiVMHost *plugin_host_controller.Controller
+	WebHost *plugin_host_controller.Controller
+	JsHost  *plugin_host_controller.Controller
 }
 
 // StartPluginHost starts the plugin host.
@@ -66,25 +61,10 @@ func StartPluginHost(
 		return nil, nil, err
 	}
 
-	wasivmHostConf := &plugin_host_web_wasivm.Config{}
-	wasivmHostCtrl, _, wasivmHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_controller.Controller](
-		ctx,
-		b,
-		resolver.NewLoadControllerWithConfig(wasivmHostConf),
-		nil,
-	)
-	if err != nil {
-		jsHostRef.Release()
-		webHostRef.Release()
-		return nil, nil, err
-	}
-
 	return &PluginHostController{
-			WebHost:    webHostCtrl,
-			JsHost:     jsHostCtrl,
-			WasiVMHost: wasivmHostCtrl,
+			WebHost: webHostCtrl,
+			JsHost:  jsHostCtrl,
 		}, func() {
-			wasivmHostRef.Release()
 			jsHostRef.Release()
 			webHostRef.Release()
 		}, nil

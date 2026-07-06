@@ -114,10 +114,6 @@ export interface ClientToWebDocument {
   close?: true
   // failureReason indicates close was caused by a worker runtime failure.
   failureReason?: string
-  // frontendReady indicates frontend handlers and links are registered.
-  frontendReady?: true
-  // capabilityReady indicates the selected backend startup capability is ready.
-  capabilityReady?: true
   // ready indicates the worker finished startup and registered its runtime client.
   ready?: true
   // startupMark reports worker-local startup progress for the document timeline.

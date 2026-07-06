@@ -631,7 +631,7 @@ func BrowserEntrypointBuildOpts(bldrDistRoot string, minify, sourcemaps bool) es
 	return buildOpts
 }
 
-func RuntimeDistDepsResolverPlugin(_ string, bldrDistRoot string) esbuild.Plugin {
+func RuntimeDistDepsResolverPlugin(bldrDistRoot string) esbuild.Plugin {
 	return esbuild.Plugin{
 		Name: "bldr-runtime-dist-deps-resolver",
 		Setup: func(build esbuild.PluginBuild) {
@@ -655,7 +655,7 @@ func ApplyRuntimeDistDepsResolver(opts *esbuild.BuildOptions, buildPkgsDir strin
 	if buildPkgsDir == "" {
 		return
 	}
-	opts.Plugins = append(opts.Plugins, RuntimeDistDepsResolverPlugin(buildPkgsDir, opts.AbsWorkingDir))
+	opts.Plugins = append(opts.Plugins, RuntimeDistDepsResolverPlugin(opts.AbsWorkingDir))
 }
 
 func resolveBldrRuntimePackagePath(bldrDistRoot, importPath string) (string, bool) {

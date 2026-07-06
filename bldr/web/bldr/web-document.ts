@@ -2152,68 +2152,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       return
     }
 
-    if (
-      data.frontendReady &&
-      !worker.ready &&
-      advanceWorkerGenerationState(
-        worker,
-        WebWorkerGenerationState.FRONTEND_READY,
-      )
-    ) {
-      this.notifyWebWorkerUpdated(
-        workerID,
-        false,
-        worker.isShared,
-        false,
-        undefined,
-        worker.generationState,
-      )
-      this.markPluginStartupBoundary(workerID, worker, 'plugin.frontend-ready')
-    }
-
-    if (data.capabilityReady && !worker.ready) {
-      if (
-        advanceWorkerGenerationState(
-          worker,
-          WebWorkerGenerationState.FRONTEND_READY,
-        )
-      ) {
-        this.notifyWebWorkerUpdated(
-          workerID,
-          false,
-          worker.isShared,
-          false,
-          undefined,
-          worker.generationState,
-        )
-        this.markPluginStartupBoundary(
-          workerID,
-          worker,
-          'plugin.frontend-ready',
-        )
-      }
-      if (
-        advanceWorkerGenerationState(
-          worker,
-          WebWorkerGenerationState.CAPABILITY_READY,
-        )
-      ) {
-        this.notifyWebWorkerUpdated(
-          workerID,
-          false,
-          worker.isShared,
-          false,
-          undefined,
-          worker.generationState,
-        )
-        this.markPluginStartupBoundary(
-          workerID,
-          worker,
-          'plugin.capability-ready',
-        )
-      }
-    }
-
     if (data.ready && !worker.ready) {
       if (
         advanceWorkerGenerationState(

@@ -327,24 +327,6 @@ export class PluginWorker {
       })
   }
 
-  // notifyFrontendReady notifies connected web documents that frontend setup completed.
-  public notifyFrontendReady() {
-    const msg: ClientToWebDocument = {
-      from: this.workerId,
-      frontendReady: true,
-    }
-    this.webDocumentTracker.postMessage(msg)
-  }
-
-  // notifyCapabilityReady notifies connected web documents that startup capability is ready.
-  public notifyCapabilityReady() {
-    const msg: ClientToWebDocument = {
-      from: this.workerId,
-      capabilityReady: true,
-    }
-    this.webDocumentTracker.postMessage(msg)
-  }
-
   // notifyReady notifies all connected web documents that startup completed.
   private notifyReady() {
     const msg: ClientToWebDocument = {
