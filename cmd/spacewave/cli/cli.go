@@ -58,8 +58,7 @@ func nativeRunnerConfig() runner.Config {
 }
 
 func nativeRunnerClientFlags(sessionIdx *uint) []cli.Flag {
-	var statePath string
-	return clientFlags(&statePath, sessionIdx)
+	return clientFlags(nil, sessionIdx)
 }
 
 // newBifrostCommand embeds the bifrost CLI command set.

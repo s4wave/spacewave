@@ -47,11 +47,6 @@ func NewFactory(b bus.Bus) controller.Factory {
 	)
 }
 
-// Execute starts no background work; RPC service lifetime is the attached controller lifetime.
-func (c *Controller) Execute(ctx context.Context) error {
-	return nil
-}
-
 // HandleDirective asks if the handler can resolve the directive.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
 	switch d := di.GetDirective().(type) {

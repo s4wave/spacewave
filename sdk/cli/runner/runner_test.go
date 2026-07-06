@@ -32,6 +32,19 @@ func TestWhoamiCommandUsesInjectedFactory(t *testing.T) {
 	assertContains(t, out.String(), "unlocked (auto)")
 }
 
+func TestWhoamiCommandWritesJSONOutput(t *testing.T) {
+	var out bytes.Buffer
+	factory := &fakeFactory{client: &fakeClient{session: fakeSessionWithSpace("space-123456789", "Alpha")}}
+	if err := RunWhoami(Config{ClientFactory: factory, Stdout: &out}, testContext(t), "json", 1); err != nil {
+		t.Fatalf("run whoami json: %v", err)
+	}
+	assertContains(t, out.String(), `"sessionId":"session-1"`)
+	assertContains(t, out.String(), `"peerId":"peer-1"`)
+	assertContains(t, out.String(), `"providerId":"local"`)
+	assertContains(t, out.String(), `"providerAccountId":"account-1"`)
+	assertContains(t, out.String(), `"lock":"unlocked (auto)"`)
+}
+
 func TestSpaceListCommandUsesInjectedFactory(t *testing.T) {
 	var out bytes.Buffer
 	factory := &fakeFactory{client: &fakeClient{session: fakeSessionWithSpace("space-123456789", "Alpha")}}
@@ -46,7 +59,18 @@ func TestSpaceListCommandUsesInjectedFactory(t *testing.T) {
 	assertContains(t, out.String(), "Alpha")
 }
 
-func TestRunStatusMountTimeoutUsesInjectedFactory(t *testing.T) {
+func TestSpaceListCommandWritesYAMLOutput(t *testing.T) {
+	var out bytes.Buffer
+	factory := &fakeFactory{client: &fakeClient{session: fakeSessionWithSpace("space-123456789", "Alpha")}}
+	if err := RunSpaceList(Config{ClientFactory: factory, Stdout: &out}, testContext(t), "yaml", 1, false); err != nil {
+		t.Fatalf("run space list yaml: %v", err)
+	}
+	assertContains(t, out.String(), "spacesList:")
+	assertContains(t, out.String(), "id: space-123456789")
+	assertContains(t, out.String(), "name: Alpha")
+}
+
+func TestRunStatusReportsMountTimeoutStage(t *testing.T) {
 	var out bytes.Buffer
 	factory := &fakeFactory{client: &fakeClient{blockMount: true}}
 	config := Config{
