@@ -19,8 +19,10 @@ import (
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	packfile_order "github.com/s4wave/spacewave/core/provider/spacewave/packfile/order"
 	"github.com/s4wave/spacewave/db/block"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/unixfs"
+	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 )
 
 var chunkImportPattern = regexp.MustCompile(`(?:\./)?chunks/[^"'` + "`" + `)]+\.mjs`)
@@ -123,7 +125,7 @@ func (a *DevtoolArgs) ExecuteProfileAccessOrder(ctx context.Context) (err error)
 			distFS *unixfs.FSHandle,
 			assetsFS *unixfs.FSHandle,
 		) error {
-			record, err = buildStartupAccessOrderRecord(ctx, manifest, collected.ManifestRef.GetRootRef(), distFS, assetsFS)
+			record, err = buildStartupAccessOrderRecord(ctx, bls, manifest, collected.ManifestRef.GetRootRef(), distFS, assetsFS)
 			return err
 		},
 	)
@@ -138,6 +140,7 @@ func (a *DevtoolArgs) ExecuteProfileAccessOrder(ctx context.Context) (err error)
 
 func buildStartupAccessOrderRecord(
 	ctx context.Context,
+	bls *bucket_lookup.Cursor,
 	manifest *bldr_manifest.Manifest,
 	manifestRoot *block.BlockRef,
 	distFS *unixfs.FSHandle,
@@ -157,14 +160,98 @@ func buildStartupAccessOrderRecord(
 		return nil, err
 	}
 
-	return &packfile_order.AccessOrderRecord{
+	record := &packfile_order.AccessOrderRecord{
 		ManifestId:      meta.GetManifestId(),
 		PlatformId:      meta.GetPlatformId(),
 		BuildType:       meta.GetBuildType(),
 		ManifestRootRef: manifestRoot.Clone(),
 		ManifestRev:     meta.GetRev(),
 		Entries:         r.entries,
-	}, nil
+	}
+	if err := resolveStartupAccessRefs(ctx, bls, manifest, record); err != nil {
+		return nil, err
+	}
+	return record, nil
+}
+
+func resolveStartupAccessRefs(ctx context.Context, bls *bucket_lookup.Cursor, manifest *bldr_manifest.Manifest, record *packfile_order.AccessOrderRecord) error {
+	for _, entry := range record.GetEntries() {
+		var rootRef *block.BlockRef
+		switch entry.GetFilesystem() {
+		case packfile_order.AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST:
+			rootRef = manifest.GetDistFsRef()
+		case packfile_order.AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_ASSETS:
+			rootRef = manifest.GetAssetsFsRef()
+		default:
+			continue
+		}
+		refs, ok, err := startupAccessPathRefs(ctx, bls, rootRef, entry.GetPath())
+		if err != nil {
+			return errors.Wrap(err, "resolve access-order path refs")
+		}
+		if ok {
+			entry.ResolvedRefs = refs
+		}
+	}
+	return nil
+}
+
+func startupAccessPathRefs(ctx context.Context, bls *bucket_lookup.Cursor, rootRef *block.BlockRef, fpath string) ([]*block.BlockRef, bool, error) {
+	if rootRef == nil || rootRef.GetEmpty() {
+		return nil, false, nil
+	}
+	_, bcs := bls.BuildTransactionAtRef(nil, rootRef)
+	ftree, err := unixfs_block.NewFSTree(ctx, bcs, unixfs_block.NodeType_NodeType_DIRECTORY)
+	if err != nil {
+		return nil, false, err
+	}
+	for part := range strings.SplitSeq(path.Clean(strings.TrimPrefix(fpath, "/")), "/") {
+		if part == "." || part == "" {
+			continue
+		}
+		next, _, err := ftree.LookupFollowDirent(part)
+		if err != nil {
+			return nil, false, err
+		}
+		if next == nil {
+			return nil, false, nil
+		}
+		ftree = next
+	}
+
+	seen := make(map[string]struct{})
+	var refs []*block.BlockRef
+	xfrm := bls.GetTransformer()
+	if xfrm == nil {
+		xfrm = block_transform.NewTransformerWithSteps(nil)
+	}
+	err = bucket_lookup.WalkObjectBlocks(
+		ctx,
+		bucket_lookup.NewWalkObjectBlocksWithRef(ftree.GetCursorRef(), unixfs_block.NewFSNodeBlock),
+		func(ent *bucket_lookup.WalkObjectBlocksEntry) (bool, error) {
+			if ent.Err != nil {
+				return false, ent.Err
+			}
+			if ent.IsSubBlock || !ent.Found || ent.Ref == nil || ent.Ref.GetEmpty() || len(ent.Data) == 0 {
+				return true, nil
+			}
+			key := ent.Ref.MarshalString()
+			if _, ok := seen[key]; ok {
+				return true, nil
+			}
+			seen[key] = struct{}{}
+			refs = append(refs, ent.Ref.CloneVT())
+			return true, nil
+		},
+		bls.GetBucket(),
+		xfrm,
+		1,
+		true,
+	)
+	if err != nil {
+		return nil, false, err
+	}
+	return refs, len(refs) != 0, nil
 }
 
 type startupAccessRecorder struct {

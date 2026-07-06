@@ -5,11 +5,16 @@ package devtool
 import (
 	"context"
 	"testing"
-	"time"
 
+	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/go-git/go-billy/v6"
 	"github.com/go-git/go-billy/v6/memfs"
 	billy_util "github.com/go-git/go-billy/v6/util"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	packfile_order "github.com/s4wave/spacewave/core/provider/spacewave/packfile/order"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	bucket_mock "github.com/s4wave/spacewave/db/bucket/mock"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 )
@@ -59,6 +64,112 @@ import("chunks/not-js.css");
 	assertProfileAccessEntry(t, entries[7], 7, "chunks/beta.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "chunks/beta.mjs", 1)
 }
 
+func TestResolveStartupAccessRefsPopulatesResolvedRefsForRecordedDistAndAssetsEntries(t *testing.T) {
+	ctx := context.Background()
+	const sharedPath = "shared.txt"
+	distBillyFS := newProfileAccessOrderTestBillyFS(t, map[string][]byte{
+		sharedPath: []byte("dist startup module bytes\n"),
+	})
+	assetsBillyFS := newProfileAccessOrderTestBillyFS(t, map[string][]byte{
+		sharedPath: []byte("asset startup bytes with a distinct block graph\n"),
+	})
+
+	bls := bucket_lookup.NewCursor(
+		ctx,
+		nil,
+		nil,
+		nil,
+		bucket_mock.NewMockBucket("profile-access-order-resolved-refs", nil),
+		block_transform.NewTransformerWithSteps(nil),
+		nil,
+		nil,
+		nil,
+	)
+	meta := bldr_manifest.NewManifestMeta("resolved-ref-test", bldr_manifest.BuildType_DEV, "test/platform", 1)
+	tx, bcs := bls.BuildTransaction(nil)
+	manifest, err := bldr_manifest.CreateManifestWithBilly(
+		ctx,
+		bcs,
+		meta,
+		sharedPath,
+		distBillyFS,
+		assetsBillyFS,
+		timestamppb.Now(),
+	)
+	if err != nil {
+		t.Fatalf("CreateManifestWithBilly: %v", err)
+	}
+	if _, _, err := tx.Write(ctx, true); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
+	distEntry := &packfile_order.AccessOrderEntry{
+		Filesystem: packfile_order.AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST,
+		Path:       sharedPath,
+		Reason:     packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_ENTRYPOINT,
+	}
+	assetsEntry := &packfile_order.AccessOrderEntry{
+		Filesystem: packfile_order.AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_ASSETS,
+		Path:       sharedPath,
+		Reason:     packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_ASSET,
+	}
+	record := &packfile_order.AccessOrderRecord{
+		Entries: []*packfile_order.AccessOrderEntry{distEntry, assetsEntry},
+	}
+
+	if err := resolveStartupAccessRefs(ctx, bls, manifest, record); err != nil {
+		t.Fatalf("resolveStartupAccessRefs: %v", err)
+	}
+
+	distRefs := assertProfileAccessResolvedRefs(t, ctx, bls, distEntry)
+	assetsRefs := assertProfileAccessResolvedRefs(t, ctx, bls, assetsEntry)
+	if refsOverlap(distRefs, assetsRefs) {
+		t.Fatalf("dist and assets entries for %q resolved to overlapping refs: dist=%v assets=%v", sharedPath, distRefs, assetsRefs)
+	}
+}
+
+func assertProfileAccessResolvedRefs(
+	t *testing.T,
+	ctx context.Context,
+	bls *bucket_lookup.Cursor,
+	entry *packfile_order.AccessOrderEntry,
+) map[string]struct{} {
+	t.Helper()
+
+	refs := entry.GetResolvedRefs()
+	if len(refs) == 0 {
+		t.Fatalf("%s %q resolved refs are empty", entry.GetFilesystem(), entry.GetPath())
+	}
+	keys := make(map[string]struct{}, len(refs))
+	for idx, ref := range refs {
+		if ref == nil || ref.GetEmpty() {
+			t.Fatalf("%s %q resolved ref %d is empty", entry.GetFilesystem(), entry.GetPath(), idx)
+		}
+		key := ref.MarshalString()
+		if _, ok := keys[key]; ok {
+			t.Fatalf("%s %q resolved ref %d duplicates %s", entry.GetFilesystem(), entry.GetPath(), idx, key)
+		}
+		found, err := bls.GetBucket().GetBlockExists(ctx, ref)
+		if err != nil {
+			t.Fatalf("%s %q resolved ref %d lookup: %v", entry.GetFilesystem(), entry.GetPath(), idx, err)
+		}
+		if !found {
+			t.Fatalf("%s %q resolved ref %d %s is not present in the manifest bucket", entry.GetFilesystem(), entry.GetPath(), idx, key)
+		}
+		keys[key] = struct{}{}
+	}
+	return keys
+}
+
+func refsOverlap(a, b map[string]struct{}) bool {
+	for key := range a {
+		if _, ok := b[key]; ok {
+			return true
+		}
+	}
+	return false
+}
+
 func assertProfileAccessEntry(
 	t *testing.T,
 	entry *packfile_order.AccessOrderEntry,
@@ -92,16 +203,21 @@ func assertProfileAccessEntry(
 func newProfileAccessOrderTestFS(t *testing.T, files map[string][]byte) *unixfs.FSHandle {
 	t.Helper()
 
-	rootRef, err := unixfs.NewFSHandle(unixfs_billy.NewBillyFSCursor(memfs.New(), ""))
+	rootRef, err := unixfs.NewFSHandle(unixfs_billy.NewBillyFSCursor(newProfileAccessOrderTestBillyFS(t, files), ""))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	bfs := unixfs_billy.NewBillyFS(t.Context(), rootRef, "", time.Unix(0, 0))
+	return rootRef
+}
+
+func newProfileAccessOrderTestBillyFS(t *testing.T, files map[string][]byte) billy.Filesystem {
+	t.Helper()
+
+	fs := memfs.New()
 	for fpath, body := range files {
-		if err := billy_util.WriteFile(bfs, fpath, body, 0o644); err != nil {
-			rootRef.Release()
+		if err := billy_util.WriteFile(fs, fpath, body, 0o644); err != nil {
 			t.Fatal(err.Error())
 		}
 	}
-	return rootRef
+	return fs
 }
