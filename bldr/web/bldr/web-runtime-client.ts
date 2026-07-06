@@ -77,8 +77,8 @@ export class RuntimeClientGenerationGateError extends Error {
   }
 }
 
-// RuntimeClientClosedError is the close error applied to a runtime client
-// generation and its active streams when the generation tears down.
+// RuntimeClientClosedError is the close error applied to runtime client
+// generations and streams when the logical client tears down.
 export class RuntimeClientClosedError extends Error {
   constructor(
     public readonly reason: RuntimeClientGenerationCloseReason,
@@ -302,10 +302,9 @@ export class WebRuntimeClient {
 
   // rerouteChannel drops the stale relay path after its relaying WebDocument
   // closed. Unlike close(), it does not tell the runtime the client is going
-  // away: the logical client stays alive on the runtime and in-flight streams
-  // fail with a retryable relay-rerouted error. Reconnect defaults on for stale
-  // relays; callers that are restarting host election can defer reconnect until
-  // the new owner is selected.
+  // away: the logical client stays alive on the runtime. Stream opens that are
+  // waiting on the stale generation retry on the next route, and established
+  // streams keep their transferred ports unless the browser closes them.
   public async rerouteChannel(opts: RerouteChannelOptions = {}): Promise<void> {
     const reconnectingClientChannel = this.reconnectingClientChannel
     this.reconnectingClientChannel = undefined
@@ -577,9 +576,11 @@ export class WebRuntimeClient {
       return
     }
     const generationId = this.generation.id
-    const closeErr =
-      err ?? new RuntimeClientClosedError(reason, this.clientId, generationId)
-    this.closeRuntimeStreams(closeErr)
+    if (reason !== 'relay-rerouted') {
+      const closeErr =
+        err ?? new RuntimeClientClosedError(reason, this.clientId, generationId)
+      this.closeRuntimeStreams(closeErr)
+    }
     if (this.clientChannel) {
       try {
         if (reason === 'normal-close') {
