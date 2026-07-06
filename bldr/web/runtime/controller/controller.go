@@ -309,7 +309,15 @@ func setPluginFileCacheHeaders(hdr http.Header, requestPath string) {
 // isContentHashedFilename reports whether the request basename names immutable content.
 //
 // Bundler-hashed names keep the bytes stable for the path; a rebuild changes
-// the filename, not the content served at the old filename.
+// the filename, not the content served at the old filename. Rolldown/Vite emits
+// an 8-byte base64url hash as the final dash-separated segment before the first
+// extension; exact length and alphabet avoid marking mutable entrypoints
+// immutable for a year. All-lowercase words and simple English-shaped alpha
+// words stay mutable; if a hash contains '-' the last-segment split can miss it,
+// which is safe because no-cache is slow, not stale.
+//
+// TODO: replace this filename heuristic with build-emitted immutability metadata
+// on the plugin dist manifest.
 func isContentHashedFilename(requestPath string) bool {
 	if requestPath == "" || strings.ContainsAny(requestPath, "?#") {
 		return false
@@ -331,26 +339,41 @@ func isContentHashedFilename(requestPath string) bool {
 	}
 
 	hash := name[dash+1 : dash+1+dot]
-	if len(hash) < 8 {
+	if len(hash) != 8 {
 		return false
 	}
 
-	hasDigit := false
+	hasLower := false
 	hasUpper := false
+	hasNonAlpha := false
 	for _, ch := range hash {
 		switch {
 		case ch >= 'a' && ch <= 'z':
+			hasLower = true
 		case ch >= 'A' && ch <= 'Z':
 			hasUpper = true
 		case ch >= '0' && ch <= '9':
-			hasDigit = true
-		case ch == '_':
+			hasNonAlpha = true
+		case ch == '_' || ch == '-':
+			hasNonAlpha = true
 		default:
 			return false
 		}
 	}
 
-	return hasDigit && hasUpper
+	if hasNonAlpha {
+		return true
+	}
+	if !hasLower || !hasUpper {
+		return false
+	}
+
+	titleCaseWord := hash[0] >= 'A' && hash[0] <= 'Z'
+	for i := 1; titleCaseWord && i < len(hash); i++ {
+		titleCaseWord = hash[i] >= 'a' && hash[i] <= 'z'
+	}
+
+	return !titleCaseWord
 }
 
 // ServePluginDistFsHTTP serves a HTTP request for a plugin dist filesystem.

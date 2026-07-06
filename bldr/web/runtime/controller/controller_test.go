@@ -68,6 +68,41 @@ func TestIsContentHashedFilename(t *testing.T) {
 			want:        true,
 		},
 		{
+			name:        "rolldown lower hash with underscore",
+			requestPath: "/plugins/chunks/shared-_t7mw6t7.mjs",
+			want:        true,
+		},
+		{
+			name:        "rolldown mixed alpha chunk hash",
+			requestPath: "/plugins/chunks/app-DzNkSWau.mjs",
+			want:        true,
+		},
+		{
+			name:        "rolldown mixed alpha route hash",
+			requestPath: "/plugins/LandingRoutes-iNiyswKc.mjs",
+			want:        true,
+		},
+		{
+			name:        "rolldown mixed alpha session hash",
+			requestPath: "/plugins/AppSession-dbQPyZIo.mjs",
+			want:        true,
+		},
+		{
+			name:        "existing immutable app chunk",
+			requestPath: "/plugins/chunks/app-Cpqfrq9R.mjs",
+			want:        true,
+		},
+		{
+			name:        "existing immutable shared chunk",
+			requestPath: "/plugins/chunks/shared-BTQ7hIfn.mjs",
+			want:        true,
+		},
+		{
+			name:        "existing immutable app route",
+			requestPath: "/plugins/App-D5qI9Aq5.mjs",
+			want:        true,
+		},
+		{
 			name:        "hashed css asset",
 			requestPath: "/plugins/assets/app-D1G2wcIZ.css",
 			want:        true,
@@ -86,8 +121,16 @@ func TestIsContentHashedFilename(t *testing.T) {
 			requestPath: "/plugins/spacewave-core.mjs",
 		},
 		{
+			name:        "stable launcher module",
+			requestPath: "/plugins/spacewave-launcher.mjs",
+		},
+		{
 			name:        "stable launcher asset",
 			requestPath: "/plugins/spacewave-launcher.wasm.gz",
+		},
+		{
+			name:        "stable app route",
+			requestPath: "/plugins/App2.mjs",
 		},
 		{
 			name:        "short dash suffix",
@@ -103,7 +146,7 @@ func TestIsContentHashedFilename(t *testing.T) {
 		},
 		{
 			name:        "query string",
-			requestPath: "/plugins/chunks/plugin.gs-D1G2wcIZ.mjs?v=1",
+			requestPath: "/plugins/chunks/app-DzNkSWau.mjs?v=1",
 		},
 	}
 
