@@ -77,6 +77,24 @@ export class Space extends Resource {
     )
   }
 
+  // addSpacePlugin adds a plugin manifest ID to the Space settings plugin list.
+  // The Space contents state re-projects to reflect the new plugin lifecycle.
+  public async addSpacePlugin(
+    pluginId: string,
+    abortSignal?: AbortSignal,
+  ): Promise<void> {
+    await this.service.AddSpacePlugin({ pluginId }, abortSignal)
+  }
+
+  // removeSpacePlugin removes a plugin manifest ID from the Space settings
+  // plugin list. The Space contents state re-projects after removal.
+  public async removeSpacePlugin(
+    pluginId: string,
+    abortSignal?: AbortSignal,
+  ): Promise<void> {
+    await this.service.RemoveSpacePlugin({ pluginId }, abortSignal)
+  }
+
   // createSecret creates a redacted Secret world object plus its nested
   // payload SharedObject through the mounted Space resource.
   public async createSecret(
