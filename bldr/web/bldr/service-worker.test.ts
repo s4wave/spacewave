@@ -697,11 +697,6 @@ describe('service worker fetch release cache routing', () => {
     ).toBe('plugin-assets')
     expect(
       classifyBrowserFetchSource(
-        new Request(new URL('/b/qjs/qjs-wasi.wasm', self.location.href)),
-      ).kind,
-    ).toBe('quickjs-runtime-asset')
-    expect(
-      classifyBrowserFetchSource(
         new Request(new URL('/other.wasm', self.location.href)),
       ).kind,
     ).toBe('native-fetch')
@@ -1066,7 +1061,7 @@ describe('service worker fetch release cache routing', () => {
     })
     expect(
       classifyBrowserRuntimeFetchError(
-        { kind: 'quickjs-runtime-asset', path: '/b/qjs/qjs-wasi.wasm' },
+        { kind: 'plugin-dist', path: '/b/pd/plugin/app.mjs' },
         { message: 'WebRuntimeClientInstance is closed', status: 500 },
       ),
     ).toMatchObject({

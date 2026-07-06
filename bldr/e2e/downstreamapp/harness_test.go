@@ -97,9 +97,9 @@ func TestRecordBrowserConsoleMessage(t *testing.T) {
 			want:    true,
 		},
 		{
-			name:    "quickjs stdout",
+			name:    "js plugin import",
 			msgType: "log",
-			text:    "[QuickJS stdout] Loading web plugin with ID: web",
+			text:    "shared-worker: starting plugin: /b/pd/web/plugin.mjs",
 			want:    true,
 		},
 		{
@@ -456,16 +456,14 @@ func recordBrowserConsoleMessage(msgType, text string) bool {
 		return true
 	}
 	for _, marker := range []string{
-		"__BLDR_QUICKJS_PLUGIN_",
-		"[QuickJS stdout]",
-		"[QuickJS stderr]",
+		"shared-worker: starting plugin:",
 		"Starting Bldr JS plugin entrypoint",
 		"runtime-goscript:",
 		"runtime-wasm:",
 		"starting plugin host scheduler",
 		"plugin scheduler controller failed",
 		"web plugin host is running",
-		"web quickjs plugin host is running",
+		"web js plugin host is running",
 		"loading startup plugin",
 		"devtool controller attempt failed",
 		"failed to execute devtool controller",

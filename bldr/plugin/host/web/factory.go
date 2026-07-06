@@ -31,7 +31,7 @@ func (t *Factory) GetControllerID() string {
 
 // ConstructConfig constructs an instance of the controller configuration.
 func (t *Factory) ConstructConfig() config.Config {
-	return &Config{}
+	return &Config{PlatformId: defaultWebHostPlatformID}
 }
 
 // Construct constructs the associated controller given configuration.

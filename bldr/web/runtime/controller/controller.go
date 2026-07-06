@@ -9,10 +9,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	quickjs_wasi "github.com/aperturerobotics/go-quickjs-wasi-reactor"
 	"github.com/aperturerobotics/util/broadcast"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	plugin_host_wazero_quickjs "github.com/s4wave/spacewave/bldr/plugin/host/wazero-quickjs"
 	web_document "github.com/s4wave/spacewave/bldr/web/document"
 	web_entrypoint_index "github.com/s4wave/spacewave/bldr/web/entrypoint/index"
 	fetch "github.com/s4wave/spacewave/bldr/web/fetch"
@@ -236,14 +234,6 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 			return
 		}
 
-		// /b/qjs/ is for QuickJS runtime files (WASM binary and boot harness)
-		bQjsPrefix := bldr_plugin.QuickJSHttpPrefix
-		if strings.HasPrefix(rpath, bQjsPrefix) && len(rpath) > len(bQjsPrefix) {
-			filePath := rpath[len(bQjsPrefix):]
-			c.ServeQuickJSHTTP(filePath, rw, req)
-			return
-		}
-
 		// other /b/ paths are not found
 		rw.WriteHeader(404)
 		_, _ = rw.Write([]byte("404 not found"))
@@ -334,41 +324,6 @@ func (c *Controller) ServePluginAssetsFsHTTP(pluginID string, rw http.ResponseWr
 	setNoCacheHeaders(rw.Header())
 
 	handler.ServeHTTP(rw, req)
-}
-
-// ServeQuickJSHTTP serves QuickJS runtime files at /b/qjs/.
-// Available files:
-//   - qjs-wasi.wasm - The QuickJS WASI binary
-//   - plugin-quickjs.esm.js - The boot harness for running plugins
-func (c *Controller) ServeQuickJSHTTP(filePath string, rw http.ResponseWriter, req *http.Request) {
-	c.le.
-		WithField("path", filePath).
-		Debug("serving QuickJS file")
-
-	var content []byte
-	var contentType string
-
-	switch filePath {
-	case "qjs-wasi.wasm":
-		content = quickjs_wasi.QuickJSWASM
-		contentType = "application/wasm"
-	case "plugin-quickjs.esm.js":
-		var err error
-		content, err = plugin_host_wazero_quickjs.PluginQuickjsBoot.ReadFile("plugin-quickjs.esm.js")
-		if err != nil {
-			http.Error(rw, "bldr: failed to read boot harness: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-		contentType = "application/javascript"
-	default:
-		http.Error(rw, "bldr: unknown QuickJS file: "+filePath, http.StatusNotFound)
-		return
-	}
-
-	rw.Header().Set("Content-Type", contentType)
-	rw.Header().Set("Content-Length", strconv.Itoa(len(content)))
-	rw.WriteHeader(200)
-	_, _ = rw.Write(content)
 }
 
 // ServeWebModuleHTTP serves a ServiceWorker HTTP request for a web module at /b/pkg.

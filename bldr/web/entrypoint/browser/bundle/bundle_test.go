@@ -119,51 +119,6 @@ func TestServiceWorkerBuildOptsBuildsClassicScript(t *testing.T) {
 	}
 }
 
-func TestRuntimeDistDepsResolverPinsQuickJSWASIReactor(t *testing.T) {
-	projectRoot := t.TempDir()
-	pkgDir := filepath.Join(projectRoot, "state", "build-web-pkgs", "node_modules", "quickjs-wasi-reactor", "dist")
-	if err := os.MkdirAll(pkgDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(pkgDir, "index.js"), []byte(`export const marker = "bldr-dist-dep";`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	workingDir := filepath.Join(projectRoot, "app")
-	if err := os.MkdirAll(workingDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(
-		filepath.Join(workingDir, "entry.ts"),
-		[]byte(`import { marker } from "quickjs-wasi-reactor"; console.log(marker);`),
-		0o644,
-	); err != nil {
-		t.Fatal(err)
-	}
-
-	opts := BrowserBuildOpts(workingDir, false, false)
-	ApplyRuntimeDistDepsResolver(&opts, filepath.Join(projectRoot, "state", "build-web-pkgs"))
-	opts.EntryPoints = []string{"entry.ts"}
-	opts.Outfile = filepath.Join(projectRoot, "out.js")
-	opts.Write = true
-
-	result := esbuild.Build(opts)
-	if len(result.Errors) != 0 {
-		for _, e := range result.Errors {
-			t.Errorf("esbuild error: %s", e.Text)
-		}
-		t.Fatal("esbuild build failed")
-	}
-
-	out, err := os.ReadFile(opts.Outfile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(out), "bldr-dist-dep") {
-		t.Fatalf("output does not contain dist dependency marker: %s", out)
-	}
-}
-
 func TestRuntimeDistDepsResolverPinsBldrRuntimePackages(t *testing.T) {
 	projectRoot := t.TempDir()
 	for _, pkg := range []struct {

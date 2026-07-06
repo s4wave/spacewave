@@ -3,7 +3,7 @@
 /// Config is the WebWorker PluginHost controller configuration.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Config {
-    /// WebRuntimeId is the identifier of the web runtime.
+    /// WebRuntimeId is the identifier for the web runtime.
     #[prost(string, tag="1")]
     pub web_runtime_id: ::prost::alloc::string::String,
     /// ForceDedicatedWorkers overrides the default SharedWorker mode to use
@@ -11,17 +11,8 @@ pub struct Config {
     /// can capture console output from dedicated workers but not shared.
     #[prost(bool, tag="2")]
     pub force_dedicated_workers: bool,
-}
-/// QuickJSConfig is the QuickJS WebWorker PluginHost controller configuration.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct QuickJsConfig {
-    /// WebRuntimeId is the identifier of the web runtime.
-    #[prost(string, tag="1")]
-    pub web_runtime_id: ::prost::alloc::string::String,
-    /// ForceDedicatedWorkers overrides the default SharedWorker mode to use
-    /// dedicated Workers instead. Useful for testing with Playwright which
-    /// can capture console output from dedicated workers but not shared.
-    #[prost(bool, tag="2")]
-    pub force_dedicated_workers: bool,
+    /// PlatformId is the plugin platform this host serves.
+    #[prost(string, tag="3")]
+    pub platform_id: ::prost::alloc::string::String,
 }
 // @@protoc_insertion_point(module)

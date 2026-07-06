@@ -27,18 +27,22 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ControllerID is the process host controller ID.
+// ControllerID is the WebWorker plugin host controller ID.
 const ControllerID = "bldr/plugin/host/web"
+
+const defaultWebHostPlatformID = "web/js/wasm"
 
 // Version is the version of this controller.
 var Version = controller.MustParseVersion("0.0.1")
 
-// WebHost implements the plugin host with WebWorker processes.
+// WebHost implements browser plugin execution with WebWorker processes.
 type WebHost struct {
 	// b is the bus
 	b bus.Bus
 	// le is the logger
 	le *logrus.Entry
+	// controllerID is the controller id for this platform instance
+	controllerID string
 	// pluginPlatformID is the plugin platform to use
 	pluginPlatformID string
 	// webRuntimeID is the identifier of the web runtime
@@ -48,18 +52,18 @@ type WebHost struct {
 }
 
 // NewWebHost constructs a new WebHost.
-func NewWebHost(b bus.Bus, le *logrus.Entry, webRuntimeID string, forceDedicatedWorkers bool) (*WebHost, error) {
-	// determine the platform id for the host
-	// TODO: also support "js" and "web/wasi/wasm"
-	platform, err := bldr_platform.ParsePlatform("web/js/wasm")
+func NewWebHost(b bus.Bus, le *logrus.Entry, webRuntimeID, platformID string, forceDedicatedWorkers bool) (*WebHost, error) {
+	platform, err := parseWebHostPlatform(platformID)
 	if err != nil {
 		return nil, err
 	}
+	pluginPlatformID := platform.GetPlatformID()
 
 	return &WebHost{
 		b:                     b,
 		le:                    le,
-		pluginPlatformID:      platform.GetPlatformID(),
+		controllerID:          controllerIDForPlatform(pluginPlatformID),
+		pluginPlatformID:      pluginPlatformID,
 		webRuntimeID:          webRuntimeID,
 		forceDedicatedWorkers: forceDedicatedWorkers,
 	}, nil
@@ -74,14 +78,14 @@ func NewWebHostController(
 	if err := c.Validate(); err != nil {
 		return nil, nil, err
 	}
-	pluginHost, err := NewWebHost(b, le, c.GetWebRuntimeId(), c.GetForceDedicatedWorkers())
+	pluginHost, err := NewWebHost(b, le, c.GetWebRuntimeId(), c.GetPlatformId(), c.GetForceDedicatedWorkers())
 	if err != nil {
 		return nil, nil, err
 	}
 	hctrl := host_controller.NewController(
 		le,
 		b,
-		controller.NewInfo(ControllerID, Version, "plugin host with WebWorker processes"),
+		controller.NewInfo(pluginHost.controllerID, Version, "plugin host with WebWorker processes for "+pluginHost.pluginPlatformID),
 		pluginHost,
 	)
 	return hctrl, pluginHost, nil
@@ -211,7 +215,7 @@ func (h *WebHost) ExecutePlugin(
 		Debugf("executing plugin entrypoint via http: %s", pluginWebWorkerPath)
 
 	// Mount the RPC handler to the bus.
-	baseControllerID := ControllerID + "/" + pluginID
+	baseControllerID := h.controllerID + "/" + pluginID
 	if instanceKey != "" {
 		baseControllerID += "/" + instanceKey
 	}
@@ -580,6 +584,27 @@ func (h *WebHost) ExecutePlugin(
 func (h *WebHost) DeletePlugin(ctx context.Context, pluginID string) error {
 	// TODO remove caches or local storage?
 	return nil
+}
+
+func parseWebHostPlatform(platformID string) (bldr_platform.Platform, error) {
+	if platformID == "" {
+		platformID = defaultWebHostPlatformID
+	}
+	platform, err := bldr_platform.ParsePlatform(platformID)
+	if err != nil {
+		return nil, err
+	}
+	if platform.GetExecutableExt() != ".mjs" {
+		return nil, errors.Errorf("web host platform must produce a .mjs executable: %s", platformID)
+	}
+	return platform, nil
+}
+
+func controllerIDForPlatform(platformID string) string {
+	if platformID == defaultWebHostPlatformID {
+		return ControllerID
+	}
+	return ControllerID + "/" + platformID
 }
 
 // _ is a type assertion

@@ -631,21 +631,10 @@ func BrowserEntrypointBuildOpts(bldrDistRoot string, minify, sourcemaps bool) es
 	return buildOpts
 }
 
-const quickJSWASIReactorModule = "quickjs-wasi-reactor"
-
-func RuntimeDistDepsResolverPlugin(buildPkgsDir, bldrDistRoot string) esbuild.Plugin {
+func RuntimeDistDepsResolverPlugin(_ string, bldrDistRoot string) esbuild.Plugin {
 	return esbuild.Plugin{
 		Name: "bldr-runtime-dist-deps-resolver",
 		Setup: func(build esbuild.PluginBuild) {
-			build.OnResolve(esbuild.OnResolveOptions{
-				Filter: `^quickjs-wasi-reactor$`,
-			}, func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
-				modulePath := filepath.Join(buildPkgsDir, "node_modules", quickJSWASIReactorModule, "dist", "index.js")
-				if _, err := os.Stat(modulePath); err != nil {
-					return esbuild.OnResolveResult{}, errors.Wrapf(err, "resolve %s from bldr dist deps", quickJSWASIReactorModule)
-				}
-				return esbuild.OnResolveResult{Path: modulePath}, nil
-			})
 			build.OnResolve(esbuild.OnResolveOptions{
 				Filter: `^@aptre/bldr(?:-react)?(?:/.*)?$`,
 			}, func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {

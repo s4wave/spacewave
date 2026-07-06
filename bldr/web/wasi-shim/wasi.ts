@@ -1,6 +1,6 @@
 // License for this file: MIT License
 // Derived from: https://github.com/bjorn3/browser_wasi_shim
-// Extended with fd polling support for QuickJS async I/O
+// Extended with fd polling support for async I/O.
 
 import * as wasi from './wasi_defs.js'
 import { Fd } from './fd.js'
@@ -803,8 +803,8 @@ export default class WASI {
        *
        * When used with SAB-backed fds (SABPollableStdin, SABDevOut), this uses
        * Atomics.wait for true blocking instead of busy-waiting. This is critical
-       * for the two-SharedWorker architecture where the QuickJS worker must block
-       * while waiting for I/O, allowing the async I/O worker to process data.
+       * for split-worker architectures where a WASI module must block while
+       * waiting for I/O, allowing the async I/O worker to process data.
        */
       poll_oneoff: (
         in_ptr: number,

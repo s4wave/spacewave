@@ -376,7 +376,7 @@
       "protoFiles": ["bldr/plugin/host/wazero-quickjs/config.proto"]
     },
     "github.com/s4wave/spacewave/bldr/plugin/host/web": {
-      "hash": "4fd714e98fe8fcaaf49c700a3a5949cc4b072e9980b9f462a3e8b884b67f9994",
+      "hash": "f2f9fffbb2958baa269398b58ed14817d53810c1fb564ece538ee7d3b6031b04",
       "generatedFiles": [
         "bldr/plugin/host/web/config.pb.cc",
         "bldr/plugin/host/web/config.pb.go",
@@ -643,7 +643,7 @@
       "protoFiles": ["bldr/web/bundler/vite/compiler/compiler.proto"]
     },
     "github.com/s4wave/spacewave/bldr/web/document": {
-      "hash": "3420866d59d32934d6cadb45bd4ae207bbe11787314efcd0873401eae7a0541f",
+      "hash": "9ca801db48dec38b8c166f33335ee9af77348ee222f14829d415e3eb4cffa0d4",
       "generatedFiles": [
         "bldr/web/document/document.pb.cc",
         "bldr/web/document/document.pb.go",

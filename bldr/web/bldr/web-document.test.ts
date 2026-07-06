@@ -7,7 +7,6 @@ import type {
 import {
   WebWorkerGenerationState,
   WebWorkerMode,
-  WebWorkerType,
 } from '../document/document.pb.js'
 import {
   WebRuntimeClientInit,
@@ -189,7 +188,6 @@ function buildTestWorker(port: MessagePort = {} as MessagePort): Record<
   isShared: boolean
   ready: boolean
   plugin: boolean
-  workerType: WebWorkerType
   generationState: WebWorkerGenerationState
   failureReason?: string
   setGenerationState(
@@ -203,7 +201,6 @@ function buildTestWorker(port: MessagePort = {} as MessagePort): Record<
     isShared: false,
     ready: false,
     plugin: true,
-    workerType: WebWorkerType.NATIVE,
     generationState: WebWorkerGenerationState.STARTUP_RUNNING,
     setGenerationState(
       generationState: WebWorkerGenerationState,
@@ -1030,10 +1027,9 @@ describe('WebDocument plugin generation state', () => {
     )
   })
 
-  it('publishes QuickJS ready markers as a running generation', () => {
+  it('publishes ready markers as a running generation', () => {
     const doc = buildTestWebDocument()
     const worker = buildTestWorker()
-    worker.workerType = WebWorkerType.QUICKJS
     doc.webWorkers = {
       'worker-1': worker,
     }

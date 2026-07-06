@@ -17,6 +17,7 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	manifest_fetch_rpc "github.com/s4wave/spacewave/bldr/manifest/fetch/rpc"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
@@ -324,25 +325,26 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	le.Info("web plugin host is running")
 	_ = webPluginHost
 
-	// run the QuickJS web browser plugin host (for "js" platform)
-	webQuickJSHostCtrl, webQuickJSHost, err := plugin_host_web.NewWebQuickJSHostController(le, b, &plugin_host_web.QuickJSConfig{
+	// run the web browser plugin host for the "js" platform.
+	jsPluginHostCtrl, jsPluginHost, err := plugin_host_web.NewWebHostController(le, b, &plugin_host_web.Config{
 		WebRuntimeId:          c.initm.GetWebRuntimeId(),
 		ForceDedicatedWorkers: devtoolInfo.GetForceDedicatedWorkers(),
+		PlatformId:            bldr_platform.PlatformID_JS,
 	})
 	if err != nil {
-		err = errors.Wrap(err, "start web quickjs host controller")
+		err = errors.Wrap(err, "start web js host controller")
 		return err
 	}
-	webQuickJSHostRel, err := b.AddController(ctx, webQuickJSHostCtrl, func(err error) {
-		le.WithError(err).Error("quickjs plugin host controller failed")
+	jsPluginHostRel, err := b.AddController(ctx, jsPluginHostCtrl, func(err error) {
+		le.WithError(err).Error("js plugin host controller failed")
 	})
 	if err != nil {
-		err = errors.Wrap(err, "start web quickjs plugin host")
+		err = errors.Wrap(err, "start web js plugin host")
 		return err
 	}
-	defer webQuickJSHostRel()
-	le.Info("web quickjs plugin host is running")
-	_ = webQuickJSHost
+	defer jsPluginHostRel()
+	le.Info("web js plugin host is running")
+	_ = jsPluginHost
 
 	// Call LoadPlugin for the list of Start plugins.
 	for _, pluginID := range devtoolInfo.GetStartPlugins() {

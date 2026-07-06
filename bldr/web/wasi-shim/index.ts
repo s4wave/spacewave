@@ -1,6 +1,6 @@
 // License for this file: MIT License
 // Derived from: https://github.com/bjorn3/browser_wasi_shim
-// Extended with fd polling support for QuickJS async I/O
+// Extended with fd polling support for async I/O.
 
 export { Fd, Inode, type PollResult } from './fd.js'
 export * from './wasi_defs.js'

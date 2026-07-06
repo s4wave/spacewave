@@ -1,8 +1,7 @@
-// shared-worker.ts is the unified worker entry point for all worker types.
+// shared-worker.ts is the unified worker entry point.
 //
 // It parses URL hash parameters to determine:
 // - s: script path (the worker script to load)
-// - t: worker type ('native' or 'quickjs', defaults to 'native')
 // - p: plugin mode ('1' = plugin worker, absent = custom worker)
 //
 // Plugin workers (p=1): creates PluginWorker wrapper which manages
@@ -31,10 +30,9 @@ const pluginWorkerGlobal = globalThis as typeof globalThis & {
 }
 
 // parseUrlParams parses the URL parameters.
-// Format: ?s=<scriptPath>&t=<workerType>&p=<plugin>
+// Format: ?s=<scriptPath>&p=<plugin>
 function parseUrlParams(): {
   scriptPath: string
-  workerType: string
   isPlugin: boolean
 } {
   const url = new URL(self.location.href)
@@ -53,10 +51,9 @@ function parseUrlParams(): {
     throw new Error('shared-worker: Missing script path (s) in URL parameters.')
   }
 
-  const workerType = params.get('t') ?? 'native'
   const isPlugin = params.get('p') === '1'
 
-  return { scriptPath: decodeURIComponent(scriptPath), workerType, isPlugin }
+  return { scriptPath: decodeURIComponent(scriptPath), isPlugin }
 }
 
 const { isPlugin } = parseUrlParams()
@@ -69,7 +66,7 @@ if (isPlugin) {
 
   const startPluginCallback = async (opts: PluginStartOpts) => {
     const { startInfo } = opts
-    const { scriptPath, workerType } = parseUrlParams()
+    const { scriptPath } = parseUrlParams()
 
     // Use the detection result from the WebDocument init message (authoritative).
     // Falls back to local detection for standalone test fixtures.
@@ -97,78 +94,23 @@ if (isPlugin) {
       abortSignal,
     )
 
-    if (workerType === 'quickjs') {
-      console.log('shared-worker: starting QuickJS plugin:', scriptPath)
-      pluginWorker.notifyStartupMark('plugin.quickjs-host-import-start', {
-        path: scriptPath,
-      })
-      const quickjsRunner =
-        await import('../runtime/quickjs/plugin-host-quickjs.js')
-      pluginWorker.notifyStartupMark('plugin.quickjs-host-import-ready', {
-        path: scriptPath,
-      })
-      let ready = false
-      let resolveReady!: () => void
-      let rejectReady!: (err: unknown) => void
-      const readyPromise = new Promise<void>((resolve, reject) => {
-        resolveReady = resolve
-        rejectReady = reject
-      })
-      const runnerPromise = quickjsRunner.default(
-        backendAPI,
-        abortSignal,
-        scriptPath,
-        {
-          onFrontendReady: () => {
-            pluginWorker.notifyFrontendReady()
-          },
-          onCapabilityReady: () => {
-            pluginWorker.notifyCapabilityReady()
-          },
-          onReady: () => {
-            ready = true
-            resolveReady()
-          },
-        },
-      )
-      void runnerPromise.then(
-        () => {
-          if (!ready) {
-            // QuickJS readiness is owned by the explicit plugin marker. Browser
-            // tabs can throttle timers, so there is intentionally no timeout
-            // fallback; a clean exit before the marker is a startup failure.
-            rejectReady(
-              new Error('shared-worker: QuickJS plugin exited before ready'),
-            )
-          }
-        },
-        (err: unknown) => {
-          if (!ready) {
-            rejectReady(err)
-            return
-          }
-          console.warn('shared-worker: QuickJS plugin exited:', err)
-          void pluginWorker.reportRuntimeFailure(err)
-        },
-      )
-      await readyPromise
-    } else {
-      console.log('shared-worker: starting native plugin:', scriptPath)
+    console.log('shared-worker: starting plugin:', scriptPath)
 
-      pluginWorker.notifyStartupMark('plugin.script-import-start', {
-        path: scriptPath,
-      })
-      const pluginModule = await import(scriptPath)
-      pluginWorker.notifyStartupMark('plugin.script-import-ready', {
-        path: scriptPath,
-      })
-      if (typeof pluginModule.default !== 'function') {
-        throw new Error(
-          `shared-worker: Imported module "${scriptPath}" does not have a default export function.`,
-        )
-      }
-      await pluginModule.default(backendAPI, abortSignal, opts.runtimeWasmEnv)
+    pluginWorker.notifyStartupMark('plugin.script-import-start', {
+      path: scriptPath,
+    })
+    // Plugin modules are selected by manifest at runtime, so this import cannot
+    // be static.
+    const pluginModule = await import(scriptPath)
+    pluginWorker.notifyStartupMark('plugin.script-import-ready', {
+      path: scriptPath,
+    })
+    if (typeof pluginModule.default !== 'function') {
+      throw new Error(
+        `shared-worker: Imported module "${scriptPath}" does not have a default export function.`,
+      )
     }
+    await pluginModule.default(backendAPI, abortSignal, opts.runtimeWasmEnv)
   }
 
   const pluginWorker = new PluginWorker(
@@ -177,7 +119,7 @@ if (isPlugin) {
     handleIncomingStream,
   )
   pluginWorkerGlobal.BLDR_PLUGIN_REPORT_RUNTIME_FAILURE = (err: unknown) => {
-    console.warn('shared-worker: native plugin runtime failed:', err)
+    console.warn('shared-worker: plugin runtime failed:', err)
     void pluginWorker.reportRuntimeFailure(err)
   }
 } else {

@@ -63,8 +63,6 @@ enum WebWorkerGenerationState : int;
 extern const uint32_t WebWorkerGenerationState_internal_data_[];
 enum WebWorkerMode : int;
 extern const uint32_t WebWorkerMode_internal_data_[];
-enum WebWorkerType : int;
-extern const uint32_t WebWorkerType_internal_data_[];
 class CreateWebViewRequest;
 struct CreateWebViewRequestDefaultTypeInternal;
 extern CreateWebViewRequestDefaultTypeInternal _CreateWebViewRequest_default_instance_;
@@ -115,9 +113,6 @@ internal::EnumTraitsT<::web::document::WebWorkerGenerationState_internal_data_>
 template <>
 internal::EnumTraitsT<::web::document::WebWorkerMode_internal_data_>
     internal::EnumTraitsImpl::value<::web::document::WebWorkerMode>;
-template <>
-internal::EnumTraitsT<::web::document::WebWorkerType_internal_data_>
-    internal::EnumTraitsImpl::value<::web::document::WebWorkerType>;
 }  // namespace protobuf
 }  // namespace google
 
@@ -167,42 +162,6 @@ inline const ::std::string& WebWorkerGenerationState_Name(WebWorkerGenerationSta
 inline bool WebWorkerGenerationState_Parse(
     ::absl::string_view name, WebWorkerGenerationState* PROTOBUF_NONNULL value) {
   return ::google::protobuf::internal::ParseNamedEnum<WebWorkerGenerationState>(WebWorkerGenerationState_descriptor(), name,
-                                           value);
-}
-enum WebWorkerType : int {
-  WEB_WORKER_TYPE_NATIVE = 0,
-  WEB_WORKER_TYPE_QUICKJS = 1,
-  WebWorkerType_INT_MIN_SENTINEL_DO_NOT_USE_ =
-      ::std::numeric_limits<::int32_t>::min(),
-  WebWorkerType_INT_MAX_SENTINEL_DO_NOT_USE_ =
-      ::std::numeric_limits<::int32_t>::max(),
-};
-
-extern const uint32_t WebWorkerType_internal_data_[];
-inline constexpr WebWorkerType WebWorkerType_MIN =
-    static_cast<WebWorkerType>(0);
-inline constexpr WebWorkerType WebWorkerType_MAX =
-    static_cast<WebWorkerType>(1);
-inline bool WebWorkerType_IsValid(int value) {
-  return 0 <= value && value <= 1;
-}
-inline constexpr int WebWorkerType_ARRAYSIZE = 1 + 1;
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL WebWorkerType_descriptor();
-template <typename T>
-const ::std::string& WebWorkerType_Name(T value) {
-  static_assert(::std::is_same<T, WebWorkerType>::value ||
-                    ::std::is_integral<T>::value,
-                "Incorrect type passed to WebWorkerType_Name().");
-  return WebWorkerType_Name(static_cast<WebWorkerType>(value));
-}
-template <>
-inline const ::std::string& WebWorkerType_Name(WebWorkerType value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<WebWorkerType_descriptor, 0, 1>(
-      static_cast<int>(value));
-}
-inline bool WebWorkerType_Parse(
-    ::absl::string_view name, WebWorkerType* PROTOBUF_NONNULL value) {
-  return ::google::protobuf::internal::ParseNamedEnum<WebWorkerType>(WebWorkerType_descriptor(), name,
                                            value);
 }
 enum WebWorkerMode : int {
@@ -1623,7 +1582,6 @@ class CreateWebWorkerRequest final : public ::google::protobuf::Message
     kPathFieldNumber = 2,
     kInitDataFieldNumber = 4,
     kWorkerModeFieldNumber = 3,
-    kWorkerTypeFieldNumber = 5,
   };
   // string id = 1;
   void clear_id() ;
@@ -1680,21 +1638,11 @@ class CreateWebWorkerRequest final : public ::google::protobuf::Message
   void _internal_set_worker_mode(::web::document::WebWorkerMode value);
 
   public:
-  // .web.document.WebWorkerType worker_type = 5;
-  void clear_worker_type() ;
-  ::web::document::WebWorkerType worker_type() const;
-  void set_worker_type(::web::document::WebWorkerType value);
-
-  private:
-  ::web::document::WebWorkerType _internal_worker_type() const;
-  void _internal_set_worker_type(::web::document::WebWorkerType value);
-
-  public:
   // @@protoc_insertion_point(class_scope:web.document.CreateWebWorkerRequest)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 5,
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
                                    0, 50,
                                    2>
       _table_;
@@ -1720,7 +1668,6 @@ class CreateWebWorkerRequest final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr path_;
     ::google::protobuf::internal::ArenaStringPtr init_data_;
     int worker_mode_;
-    int worker_type_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -3338,31 +3285,6 @@ inline void CreateWebWorkerRequest::set_allocated_init_data(::std::string* PROTO
   // @@protoc_insertion_point(field_set_allocated:web.document.CreateWebWorkerRequest.init_data)
 }
 
-// .web.document.WebWorkerType worker_type = 5;
-inline void CreateWebWorkerRequest::clear_worker_type() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.worker_type_ = 0;
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
-}
-inline ::web::document::WebWorkerType CreateWebWorkerRequest::worker_type() const {
-  // @@protoc_insertion_point(field_get:web.document.CreateWebWorkerRequest.worker_type)
-  return _internal_worker_type();
-}
-inline void CreateWebWorkerRequest::set_worker_type(::web::document::WebWorkerType value) {
-  _internal_set_worker_type(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
-  // @@protoc_insertion_point(field_set:web.document.CreateWebWorkerRequest.worker_type)
-}
-inline ::web::document::WebWorkerType CreateWebWorkerRequest::_internal_worker_type() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return static_cast<::web::document::WebWorkerType>(_impl_.worker_type_);
-}
-inline void CreateWebWorkerRequest::_internal_set_worker_type(::web::document::WebWorkerType value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.worker_type_ = value;
-}
-
 // -------------------------------------------------------------------
 
 // CreateWebWorkerResponse
@@ -3532,12 +3454,6 @@ struct is_proto_enum<::web::document::WebWorkerGenerationState> : std::true_type
 template <>
 inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::web::document::WebWorkerGenerationState>() {
   return ::web::document::WebWorkerGenerationState_descriptor();
-}
-template <>
-struct is_proto_enum<::web::document::WebWorkerType> : std::true_type {};
-template <>
-inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::web::document::WebWorkerType>() {
-  return ::web::document::WebWorkerType_descriptor();
 }
 template <>
 struct is_proto_enum<::web::document::WebWorkerMode> : std::true_type {};

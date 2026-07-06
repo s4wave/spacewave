@@ -11,7 +11,6 @@ export interface StartupMarkDetail {
   shared?: boolean
   source?: string
   workerId?: string
-  workerType?: string | number
   [key: string]: unknown
 }
 

@@ -11,7 +11,7 @@ describe('parsePluginWorkerName', () => {
   test('strips wrapper parameters from the worker identity', () => {
     expect(
       parsePluginWorkerName(
-        'plugin/spacewave-app?s=/b/pd/app.mjs&t=quickjs&p=1',
+        'plugin/spacewave-app?s=/b/pd/app.mjs&p=1',
       ),
     ).toBe('plugin/spacewave-app')
   })

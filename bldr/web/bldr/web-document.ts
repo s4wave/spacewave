@@ -27,7 +27,6 @@ import {
   WebWorkerMode,
   WebWorkerGenerationState,
   WebWorkerStatus,
-  WebWorkerType,
 } from '../document/document.pb.js'
 import {
   WebDocumentDefinition,
@@ -137,18 +136,12 @@ export function shouldForceDedicatedWorkers(
   )
 }
 
-// buildWorkerURL builds the shw.mjs wrapper URL with the user script path,
-// worker type, and plugin marker encoded into the query string.
-function buildWorkerParams(
-  scriptPath: string,
-  workerType: WebWorkerType,
-  hasInitData: boolean,
-): string {
+// buildWorkerURL builds the shw.mjs wrapper URL with the user script path and
+// plugin marker encoded into the query string.
+function buildWorkerParams(scriptPath: string, hasInitData: boolean): string {
   const encodedPath = encodeURIComponent(scriptPath).replace(/%2F/g, '/')
-  const workerTypeParam =
-    workerType === WebWorkerType.QUICKJS ? '&t=quickjs' : ''
   const pluginParam = hasInitData ? '&p=1' : ''
-  return `s=${encodedPath}${workerTypeParam}${pluginParam}`
+  return `s=${encodedPath}${pluginParam}`
 }
 
 function buildWorkerURL(sharedWorkerPath: string, params: string): URL {
@@ -183,8 +176,6 @@ class WebDocumentWebWorker {
   public readonly sharedWorker?: SharedWorker
   // port is the MessagePort passed to the Worker on startup
   public readonly port: MessagePort
-  // workerType is the type of worker
-  public readonly workerType: WebWorkerType
   public readonly plugin: boolean
   // ready indicates the worker finished startup and runtime registration.
   public ready = false
@@ -204,7 +195,6 @@ class WebDocumentWebWorker {
     sharedWorkerPath: string,
     public readonly webDocumentUuid: string,
     initData: Uint8Array | undefined,
-    workerType: WebWorkerType,
     // shared controls whether to use SharedWorker (true) or DedicatedWorker
     // (false). When false, path is used directly as the Worker script URL
     // without the shw.mjs wrapper.
@@ -221,7 +211,6 @@ class WebDocumentWebWorker {
       throw new Error('web worker path must be set')
     }
 
-    this.workerType = workerType
     this.plugin = !!initData
     markStartupBoundary('worker.construct-start', {
       source: 'browser',
@@ -229,7 +218,6 @@ class WebDocumentWebWorker {
       workerId: id,
       path,
       shared,
-      workerType,
       plugin: this.plugin,
     })
 
@@ -247,7 +235,7 @@ class WebDocumentWebWorker {
         throw new Error('shared worker path must be set')
       }
 
-      const workerParams = buildWorkerParams(path, workerType, !!initData)
+      const workerParams = buildWorkerParams(path, !!initData)
       const workerURL = buildWorkerURL(sharedWorkerPath, workerParams)
       const workerName = `${id}?${workerParams}`
 
@@ -262,7 +250,6 @@ class WebDocumentWebWorker {
           workerId: id,
           path,
           shared: true,
-          workerType,
           plugin: this.plugin,
         })
         this.sharedWorker.port.postMessage(init, [workerPort])
@@ -277,7 +264,6 @@ class WebDocumentWebWorker {
           workerId: id,
           path,
           shared: false,
-          workerType,
           plugin: this.plugin,
         })
         this.worker.postMessage(init, [workerPort])
@@ -291,7 +277,7 @@ class WebDocumentWebWorker {
       if (!sharedWorkerPath) {
         throw new Error('shared worker path must be set for dedicated mode')
       }
-      const workerParams = buildWorkerParams(path, workerType, !!initData)
+      const workerParams = buildWorkerParams(path, !!initData)
       const workerURL = buildWorkerURL(sharedWorkerPath, workerParams)
       this.worker = new Worker(workerURL.toString(), {
         name: `${id}?${workerParams}`,
@@ -303,7 +289,6 @@ class WebDocumentWebWorker {
         workerId: id,
         path,
         shared: false,
-        workerType,
         plugin: this.plugin,
       })
       this.worker.postMessage(init, [workerPort])
@@ -343,7 +328,6 @@ class WebDocumentWebWorker {
       documentId: webDocumentUuid,
       workerId: id,
       shared: this.isShared,
-      workerType,
       plugin: this.plugin,
     })
   }
@@ -586,7 +570,7 @@ export interface WebDocumentOptions {
   serviceWorkerPath?: string
   // sharedWorkerPath is the path to the bldr shw.mjs
   // if unset, defaults to /shw.mjs
-  // This unified worker handles both native and QuickJS plugins.
+  // This unified worker wraps plugin modules with Bldr runtime lifecycle wiring.
   sharedWorkerPath?: string
   // forceDedicatedWorkers forces the runtime to use a dedicated Worker instead
   // of a SharedWorker. Useful for testing with Playwright which can capture
@@ -757,7 +741,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // closed indicates the web document is closed with an optional error
   private closed?: true | Error
   // sharedWorkerPath is the path to the bldr shared worker script (shw.mjs).
-  // This unified worker handles both native and QuickJS plugins via URL params.
+  // This unified worker wraps plugin modules with Bldr runtime lifecycle wiring.
   private readonly sharedWorkerPath: string
   // opfsWorkerPath is the path to the dedicated OPFS protocol worker script.
   private readonly opfsWorkerPath: string
@@ -1225,11 +1209,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         queueMicrotask(startDedicatedRuntime)
       })
     } else {
-      // Shared-worker mode: the shared worker imports its plugin bundle and the
-      // QuickJS wasm from /b/* paths, which only resolve once the ServiceWorker
-      // is controlling this page. Starting the worker before control means those
-      // imports hit the origin, which serves the SPA index.html for unmatched
-      // paths, so the module/wasm loads fail and the runtime never comes up. Gate
+      // Shared-worker mode: the shared worker imports /b/* runtime and plugin
+      // bundle paths, which only resolve once the ServiceWorker is controlling
+      // this page. Starting the worker before control means those imports hit the
+      // origin, which serves the SPA index.html for unmatched paths, so the
+      // module loads fail and the runtime never comes up. Gate
       // the start on SW control like the dedicated branch, with a bounded fallback
       // so a browser whose SW never reaches controlling state still loads
       // (degraded) instead of hanging forever.
@@ -1383,7 +1367,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       throw new Error('web worker path is required')
     }
     const plugin = !!request.initData
-    const workerType = request.workerType ?? WebWorkerType.NATIVE
     const activeWorkerCountBefore = Object.keys(this.webWorkers).length
     const replacedWorker = !!this.webWorkers[request.id]
     markStartupBoundary('worker.create-request-received', {
@@ -1391,7 +1374,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       documentId: this.webDocumentUuid,
       runtimeId: this.webRuntimeId,
       workerId: request.id,
-      workerType,
       plugin,
       path: request.path,
       activeWorkerCountBefore,
@@ -1432,13 +1414,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       await old.close()
     }
 
-    // All workers use the same sharedWorkerPath, with workerType passed in URL
+    // All workers use the same sharedWorkerPath wrapper.
     markStartupBoundary('worker.create-request-accepted', {
       source: 'browser',
       documentId: this.webDocumentUuid,
       runtimeId: this.webRuntimeId,
       workerId: request.id,
-      workerType,
       plugin,
       path: request.path,
       activeWorkerCountBefore,
@@ -1452,7 +1433,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         documentId: this.webDocumentUuid,
         runtimeId: this.webRuntimeId,
         workerId: request.id,
-        workerType,
         plugin: !!request.initData,
       })
     }
@@ -1490,7 +1470,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       documentId: this.webDocumentUuid,
       runtimeId: this.webRuntimeId,
       workerId: request.id,
-      workerType,
       workerMode,
       shared,
       plugin,
@@ -1505,7 +1484,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       this.sharedWorkerPath,
       this.webDocumentUuid,
       request.initData,
-      workerType,
       shared,
       this.onWebWorkerMessage.bind(this, request.id),
       detect,
@@ -1538,7 +1516,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       runtimeId: this.webRuntimeId,
       workerId: request.id,
       shared: createdShared,
-      workerType,
       plugin: !!request.initData,
       activeWorkerCountBefore,
       activeWorkerCountAfter: Object.keys(this.webWorkers).length,
@@ -2108,7 +2085,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       runtimeId: this.webRuntimeId,
       workerId: workerID,
       shared: worker.isShared,
-      workerType: worker.workerType,
       plugin: true,
       reason,
     })
@@ -2134,7 +2110,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         runtimeId: this.webRuntimeId,
         workerId: workerID,
         shared: worker.isShared,
-        workerType: worker.workerType,
         plugin: worker.plugin,
         ...(data.startupMark.detail ?? {}),
         workerStartTimeMs: data.startupMark.startTimeMs ?? null,
@@ -2290,7 +2265,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           runtimeId: this.webRuntimeId,
           workerId: workerID,
           shared: worker.isShared,
-          workerType: worker.workerType,
           plugin: worker.plugin,
         })
       }
@@ -2300,7 +2274,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         runtimeId: this.webRuntimeId,
         workerId: workerID,
         shared: worker.isShared,
-        workerType: worker.workerType,
         plugin: worker.plugin,
       })
       if (worker.plugin) {
@@ -2310,7 +2283,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           runtimeId: this.webRuntimeId,
           workerId: workerID,
           shared: worker.isShared,
-          workerType: worker.workerType,
           plugin: true,
         })
       }

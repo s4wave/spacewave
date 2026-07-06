@@ -166,7 +166,7 @@ function encodeStartInfo(): Uint8Array {
   const json = PluginStartInfo.toJsonString({
     instanceId: 'inst1',
     pluginId: 'spacewave-web',
-    instanceKey: 'quickjs-goscript',
+    instanceKey: 'js-goscript',
   })
   return new TextEncoder().encode(btoa(json))
 }
@@ -296,7 +296,7 @@ async function handlePluginToHostStream(
       startInfo:
         startInfo.instanceId === 'inst1' &&
         startInfo.pluginId === 'spacewave-web' &&
-        startInfo.instanceKey === 'quickjs-goscript',
+        startInfo.instanceKey === 'js-goscript',
     }
   }
   throw new Error('plugin-to-host stream closed before packet')
@@ -779,12 +779,12 @@ async function run() {
     mark('start-spacewave-web-worker')
     worker = new Worker(
       new URL(
-        './workers/goscript-plugin-wrapper.js?s=/b/pd/spacewave-web/plugin.mjs&t=quickjs&p=1',
+        './workers/goscript-plugin-wrapper.js?s=/b/pd/spacewave-web/plugin.mjs&p=1',
         import.meta.url,
       ),
       {
         type: 'module',
-        name: 'plugin/spacewave-web?s=/b/pd/spacewave-web/plugin.mjs&t=quickjs&p=1',
+        name: 'plugin/spacewave-web?s=/b/pd/spacewave-web/plugin.mjs&p=1',
       },
     )
 

@@ -133,38 +133,6 @@ export const WebWorkerGenerationState_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
- * WebWorkerType specifies the type of worker to create.
- *
- * @generated from enum web.document.WebWorkerType
- */
-export enum WebWorkerType {
-  /**
-   * WEB_WORKER_TYPE_NATIVE creates a native JS SharedWorker that imports the plugin directly.
-   * This is used for "web/js/wasm" platform plugins (Go WASM).
-   *
-   * @generated from enum value: WEB_WORKER_TYPE_NATIVE = 0;
-   */
-  NATIVE = 0,
-
-  /**
-   * WEB_WORKER_TYPE_QUICKJS creates a SharedWorker that runs QuickJS WASI reactor.
-   * This is used for "js" platform plugins. The unified shared-worker.ts dispatches
-   * to quickjs-runner.ts which loads the QuickJS reactor WASM and runs the plugin.
-   *
-   * @generated from enum value: WEB_WORKER_TYPE_QUICKJS = 1;
-   */
-  QUICKJS = 1,
-}
-
-export const WebWorkerType_Enum = /* @__PURE__ */ createEnumType(
-  'web.document.WebWorkerType',
-  [
-    [0, 'WEB_WORKER_TYPE_NATIVE'],
-    [1, 'WEB_WORKER_TYPE_QUICKJS'],
-  ],
-)
-
-/**
  * WebWorkerMode specifies whether a worker should be shared or dedicated.
  *
  * @generated from enum web.document.WebWorkerMode
@@ -480,13 +448,6 @@ export interface CreateWebWorkerRequest {
    * @generated from field: bytes init_data = 4;
    */
   initData?: Uint8Array
-  /**
-   * WorkerType specifies which SharedWorker harness to use.
-   * If unset, defaults to WEB_WORKER_TYPE_NATIVE.
-   *
-   * @generated from field: web.document.WebWorkerType worker_type = 5;
-   */
-  workerType?: WebWorkerType
 }
 
 export const CreateWebWorkerRequest: MessageType<CreateWebWorkerRequest> =
@@ -497,7 +458,6 @@ export const CreateWebWorkerRequest: MessageType<CreateWebWorkerRequest> =
       { no: 2, name: 'path', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'worker_mode', kind: 'enum', T: WebWorkerMode_Enum },
       { no: 4, name: 'init_data', kind: 'scalar', T: ScalarType.BYTES },
-      { no: 5, name: 'worker_type', kind: 'enum', T: WebWorkerType_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

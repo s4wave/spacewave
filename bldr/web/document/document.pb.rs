@@ -105,10 +105,6 @@ pub struct CreateWebWorkerRequest {
     /// Usually a WebWorkerWasmPluginInit.
     #[prost(bytes="vec", tag="4")]
     pub init_data: ::prost::alloc::vec::Vec<u8>,
-    /// WorkerType specifies which SharedWorker harness to use.
-    /// If unset, defaults to WEB_WORKER_TYPE_NATIVE.
-    #[prost(enumeration="WebWorkerType", tag="5")]
-    pub worker_type: i32,
 }
 /// CreateWebWorkerResponse is the response to the CreateWebWorker request.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -212,38 +208,6 @@ impl WebWorkerGenerationState {
             "WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE" => Some(Self::TerminalFailure),
             "WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN" => Some(Self::LifecycleHidden),
             "WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET" => Some(Self::ControlledStreamReset),
-            _ => None,
-        }
-    }
-}
-/// WebWorkerType specifies the type of worker to create.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum WebWorkerType {
-    /// WEB_WORKER_TYPE_NATIVE creates a native JS SharedWorker that imports the plugin directly.
-    /// This is used for "web/js/wasm" platform plugins (Go WASM).
-    Native = 0,
-    /// WEB_WORKER_TYPE_QUICKJS creates a SharedWorker that runs QuickJS WASI reactor.
-    /// This is used for "js" platform plugins. The unified shared-worker.ts dispatches
-    /// to quickjs-runner.ts which loads the QuickJS reactor WASM and runs the plugin.
-    Quickjs = 1,
-}
-impl WebWorkerType {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Native => "WEB_WORKER_TYPE_NATIVE",
-            Self::Quickjs => "WEB_WORKER_TYPE_QUICKJS",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "WEB_WORKER_TYPE_NATIVE" => Some(Self::Native),
-            "WEB_WORKER_TYPE_QUICKJS" => Some(Self::Quickjs),
             _ => None,
         }
     }

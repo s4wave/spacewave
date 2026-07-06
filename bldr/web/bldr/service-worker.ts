@@ -48,7 +48,6 @@ const browserReleaseStatePath = '/__bldr/browser-release-state.json'
 const pluginDistPathPrefix = '/b/pd/'
 const pluginAssetsPathPrefix = '/b/pa/'
 const pluginWebPkgPathPrefix = '/b/pkg/'
-const quickJSRuntimePathPrefix = '/b/qjs/'
 const pluginHttpPathPrefix = '/p/'
 const browserRuntimeFetchHeaderTimeoutMs = 30000
 // browserRuntimeFetchRelayWaitMs bounds how long a static plugin asset fetch
@@ -116,7 +115,6 @@ export type BrowserFetchSourceKind =
   | 'release-asset'
   | 'plugin-dist'
   | 'plugin-assets'
-  | 'quickjs-runtime-asset'
   | 'bldr-runtime'
   | 'native-fetch'
 
@@ -154,7 +152,7 @@ export type BrowserRuntimeFetchErrorCode =
   | 'request-canceled'
 
 // BrowserPluginAssetFetchResultCode is the plugin asset lease result surfaced
-// to browser importers and QuickJS backend asset loading.
+// to browser importers and backend asset loading.
 export type BrowserPluginAssetFetchResultCode =
   | 'live'
   | 'missing'
@@ -788,9 +786,8 @@ async function matchPromotedCurrentGenerationResponse(
 }
 
 // isStaticPluginAssetSource reports whether the fetch targets an immutable
-// static plugin asset (plugin-assets / plugin-dist / quickjs-runtime-asset),
-// excluding the dynamic plugin HTTP path, which is request-specific and must
-// always reach the runtime.
+// static plugin asset (plugin-assets / plugin-dist), excluding the dynamic
+// plugin HTTP path, which is request-specific and must always reach the runtime.
 function isStaticPluginAssetSource(source: BrowserFetchSource): boolean {
   return (
     isPluginRuntimeFetchSourceKind(source.kind) &&
@@ -1215,8 +1212,6 @@ export function classifyBrowserFetchSource(
       path.startsWith(pluginHttpPathPrefix))
   ) {
     kind = 'plugin-assets'
-  } else if (sameOrigin && path.startsWith(quickJSRuntimePathPrefix)) {
-    kind = 'quickjs-runtime-asset'
   } else if (runtime) {
     kind = 'bldr-runtime'
   }
@@ -1255,11 +1250,7 @@ export function resolveBrowserRuntimeFetchClientId(
 }
 
 function isPluginRuntimeFetchSourceKind(kind: BrowserFetchSourceKind): boolean {
-  return (
-    kind === 'plugin-assets' ||
-    kind === 'plugin-dist' ||
-    kind === 'quickjs-runtime-asset'
-  )
+  return kind === 'plugin-assets' || kind === 'plugin-dist'
 }
 
 function browserRuntimeFetchStatusForCode(

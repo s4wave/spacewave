@@ -48,7 +48,7 @@ if (typeof BLDR_RUNTIME_JS === 'string') {
 // BLDR_SW_JS is an injected variable with the path to the sw.mjs
 declare const BLDR_SW_JS: string | undefined
 // BLDR_SHW_JS is an injected variable with the path to the shw.mjs
-// This unified worker handles both native and QuickJS plugins via URL params.
+// This worker wraps plugin modules with Bldr runtime lifecycle params.
 declare const BLDR_SHW_JS: string | undefined
 if (typeof BLDR_SW_JS === 'string') {
   webDocumentOpts.serviceWorkerPath = BLDR_SW_JS

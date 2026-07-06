@@ -809,7 +809,7 @@ export class PollableStdin extends Fd {
   fd_read(size: number): { ret: number; data: Uint8Array } {
     if (this.bufferSize === 0) {
       // No data available - return empty (non-blocking behavior)
-      // QuickJS will re-poll via poll_oneoff
+      // The runtime will re-poll via poll_oneoff
       return { ret: 0, data: new Uint8Array(0) }
     }
 
@@ -857,7 +857,7 @@ export class PollableStdin extends Fd {
 
 /**
  * DevOut is a write-only file descriptor for output.
- * Used for /dev/out to send data from QuickJS to the host.
+ * Used for /dev/out to send data from the WASI module to the host.
  */
 export class DevOut extends Fd {
   private ino: bigint

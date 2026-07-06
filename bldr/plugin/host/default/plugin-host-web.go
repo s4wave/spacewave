@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	plugin_host_controller "github.com/s4wave/spacewave/bldr/plugin/host/controller"
 	plugin_host_web "github.com/s4wave/spacewave/bldr/plugin/host/web"
 	plugin_host_web_wasivm "github.com/s4wave/spacewave/bldr/plugin/host/web-wasivm"
@@ -20,18 +21,15 @@ var PluginHostControllerFactories = [](func(bus bus.Bus) controller.Factory){
 		return plugin_host_web.NewFactory(b)
 	},
 	func(b bus.Bus) controller.Factory {
-		return plugin_host_web.NewQuickJSFactory(b)
-	},
-	func(b bus.Bus) controller.Factory {
 		return plugin_host_web_wasivm.NewFactory(b)
 	},
 }
 
 // PluginHostController contains the plugin host controllers.
 type PluginHostController struct {
-	WebHost     *plugin_host_controller.Controller
-	QuickJSHost *plugin_host_controller.Controller
-	WasiVMHost  *plugin_host_controller.Controller
+	WebHost    *plugin_host_controller.Controller
+	JsHost     *plugin_host_controller.Controller
+	WasiVMHost *plugin_host_controller.Controller
 }
 
 // StartPluginHost starts the plugin host.
@@ -45,7 +43,7 @@ func StartPluginHost(
 	pluginsDistRoot string,
 	webRuntimeID string,
 ) (ctrl *PluginHostController, rel func(), err error) {
-	webHostConf := plugin_host_web.NewConfig(webRuntimeID)
+	webHostConf := plugin_host_web.NewConfig(webRuntimeID, "web/js/wasm")
 	webHostCtrl, _, webHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_controller.Controller](
 		ctx,
 		b,
@@ -56,11 +54,11 @@ func StartPluginHost(
 		return nil, nil, err
 	}
 
-	quickjsHostConf := plugin_host_web.NewQuickJSConfig(webRuntimeID)
-	quickjsHostCtrl, _, quickjsHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_controller.Controller](
+	jsHostConf := plugin_host_web.NewConfig(webRuntimeID, bldr_platform.PlatformID_JS)
+	jsHostCtrl, _, jsHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_controller.Controller](
 		ctx,
 		b,
-		resolver.NewLoadControllerWithConfig(quickjsHostConf),
+		resolver.NewLoadControllerWithConfig(jsHostConf),
 		nil,
 	)
 	if err != nil {
@@ -76,18 +74,18 @@ func StartPluginHost(
 		nil,
 	)
 	if err != nil {
-		quickjsHostRef.Release()
+		jsHostRef.Release()
 		webHostRef.Release()
 		return nil, nil, err
 	}
 
 	return &PluginHostController{
-			WebHost:     webHostCtrl,
-			QuickJSHost: quickjsHostCtrl,
-			WasiVMHost:  wasivmHostCtrl,
+			WebHost:    webHostCtrl,
+			JsHost:     jsHostCtrl,
+			WasiVMHost: wasivmHostCtrl,
 		}, func() {
 			wasivmHostRef.Release()
-			quickjsHostRef.Release()
+			jsHostRef.Release()
 			webHostRef.Release()
 		}, nil
 }

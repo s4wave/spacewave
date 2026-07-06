@@ -13,8 +13,8 @@ import (
 const (
 	webDocumentUnixFSFixturePath = "fs/u/1/so/01kwd6qwtkjb3z1whtxys72s4s/-/files/-/what is this.mp4"
 	webDocumentUnixFSFixtureBody = "spacewave webdocument unixfs inline fixture\n"
-	webDocumentQuickJSPluginPath = "b/pd/spacewave-web/plugin.mjs"
-	webDocumentQuickJSPluginBody = `export default async function main(api) {
+	webDocumentJSPluginPath      = "b/pd/spacewave-web/plugin.mjs"
+	webDocumentJSPluginBody      = `export default async function main(api) {
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
   api.handleStreamCtr.set(async (stream) => {
     const first = (await stream.source[Symbol.asyncIterator]().next()).value || new Uint8Array(0)
@@ -84,7 +84,7 @@ const (
   if (response[0] !== 12) {
     throw new Error('unexpected WebRuntime response packet: ' + Array.from(response).join(','))
   }
-  console.info('__BLDR_QUICKJS_PLUGIN_READY__')
+  console.info('__BLDR_JS_PLUGIN_READY__')
   const keepAlive = Promise.withResolvers()
   await keepAlive.promise
 }
@@ -107,7 +107,7 @@ type webDocumentRouteFixtureTrace struct {
 }
 
 // TestGoScriptForegroundUnixFSFetchKeepsSpacewaveWebRuntimeRoute verifies that
-// a foreground WebDocument keeps the spacewave-web GoScript/QuickJS runtime
+// a foreground WebDocument keeps the spacewave-web GoScript/direct-JS runtime
 // route alive across a same-origin UnixFS inline fetch.
 func TestGoScriptForegroundUnixFSFetchKeepsSpacewaveWebRuntimeRoute(t *testing.T) {
 	installWebDocumentRouteFixtureAssets(t)
@@ -122,7 +122,7 @@ func TestGoScriptForegroundUnixFSFetchKeepsSpacewaveWebRuntimeRoute(t *testing.T
 }
 
 // TestGoScriptForegroundUnixFSFetchDynamicRelayKeepsRoute verifies that the
-// foreground QuickJS route survives when the UnixFS-looking request is served
+// foreground JS route survives when the UnixFS-looking request is served
 // through the ServiceWorker runtime relay seam with delayed response headers.
 func TestGoScriptForegroundUnixFSFetchDynamicRelayKeepsRoute(t *testing.T) {
 	installWebDocumentRouteFixtureAssets(t)
@@ -175,17 +175,7 @@ func TestGoScriptForegroundUnixFSFetchInFlightReloadZeroDocumentRace(t *testing.
 func installWebDocumentRouteFixtureAssets(t *testing.T) {
 	t.Helper()
 	writeWebDocumentRouteAsset(t, webDocumentUnixFSFixturePath, []byte(webDocumentUnixFSFixtureBody))
-	writeWebDocumentRouteAsset(t, webDocumentQuickJSPluginPath, []byte(webDocumentQuickJSPluginBody))
-	copyWebDocumentRouteAsset(
-		t,
-		filepath.Join(repoRoot, "..", "node_modules", "quickjs-wasi-reactor", "qjs-wasi.wasm"),
-		"b/qjs/qjs-wasi.wasm",
-	)
-	copyWebDocumentRouteAsset(
-		t,
-		filepath.Join(repoRoot, "plugin", "host", "wazero-quickjs", "plugin-quickjs.esm.js"),
-		"b/qjs/plugin-quickjs.esm.js",
-	)
+	writeWebDocumentRouteAsset(t, webDocumentJSPluginPath, []byte(webDocumentJSPluginBody))
 }
 
 func writeWebDocumentRouteAsset(t *testing.T, relPath string, body []byte) {
@@ -197,15 +187,6 @@ func writeWebDocumentRouteAsset(t *testing.T, relPath string, body []byte) {
 	if err := os.WriteFile(path, body, 0o644); err != nil {
 		t.Fatalf("write fixture asset %s: %v", relPath, err)
 	}
-}
-
-func copyWebDocumentRouteAsset(t *testing.T, srcPath, relPath string) {
-	t.Helper()
-	body, err := os.ReadFile(srcPath)
-	if err != nil {
-		t.Fatalf("read fixture source %s: %v", srcPath, err)
-	}
-	writeWebDocumentRouteAsset(t, relPath, body)
 }
 
 func assertWebDocumentRouteSurvived(t *testing.T, trace webDocumentRouteFixtureTrace, assertRestartSentinel bool) {

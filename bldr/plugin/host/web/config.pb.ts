@@ -16,7 +16,7 @@ export const protobufPackage = 'plugin.host.web'
  */
 export interface Config {
   /**
-   * WebRuntimeId is the identifier of the web runtime.
+   * WebRuntimeId is the identifier for the web runtime.
    *
    * @generated from field: string web_runtime_id = 1;
    */
@@ -29,6 +29,12 @@ export interface Config {
    * @generated from field: bool force_dedicated_workers = 2;
    */
   forceDedicatedWorkers?: boolean
+  /**
+   * PlatformId is the plugin platform this host serves.
+   *
+   * @generated from field: string platform_id = 3;
+   */
+  platformId?: string
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -41,43 +47,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       kind: 'scalar',
       T: ScalarType.BOOL,
     },
+    { no: 3, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
-
-/**
- * QuickJSConfig is the QuickJS WebWorker PluginHost controller configuration.
- *
- * @generated from message plugin.host.web.QuickJSConfig
- */
-export interface QuickJSConfig {
-  /**
-   * WebRuntimeId is the identifier of the web runtime.
-   *
-   * @generated from field: string web_runtime_id = 1;
-   */
-  webRuntimeId?: string
-  /**
-   * ForceDedicatedWorkers overrides the default SharedWorker mode to use
-   * dedicated Workers instead. Useful for testing with Playwright which
-   * can capture console output from dedicated workers but not shared.
-   *
-   * @generated from field: bool force_dedicated_workers = 2;
-   */
-  forceDedicatedWorkers?: boolean
-}
-
-export const QuickJSConfig: MessageType<QuickJSConfig> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'plugin.host.web.QuickJSConfig',
-    fields: [
-      { no: 1, name: 'web_runtime_id', kind: 'scalar', T: ScalarType.STRING },
-      {
-        no: 2,
-        name: 'force_dedicated_workers',
-        kind: 'scalar',
-        T: ScalarType.BOOL,
-      },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
