@@ -29,11 +29,16 @@ import { buildBlog, collectBlogPaths } from '../blog/blog-build.js'
 import { buildBrowserReleaseDescriptor } from './browser-release.js'
 import { buildBootstrapScript } from './bootstrap.js'
 import { buildPageHtml } from './html-template.js'
-import { collectRequiredStaticAssetUrls } from './static-assets.js'
+import {
+  collectRequiredStaticAssetUrls,
+  selectAppCssFile,
+  type ViteManifest,
+} from './static-assets.js'
 import { StaticProvider } from './StaticContext.js'
 import { STATIC_PAGES } from './static-pages.js'
 import { getMetadata, type PageMetadata } from './metadata.js'
 import { ROOT_LOADING_STYLE } from './root-loading-shell.js'
+import { ROOT_LANDING_SHELL_CLASS } from './root-landing-shell.js'
 
 const SITE_ORIGIN = process.env.SITE_ORIGIN ?? SPACEWAVE_PUBLIC_BASE_URL
 
@@ -149,14 +154,8 @@ function extractViteCss(log: (msg: string) => void): {
 
   const viteManifest = JSON.parse(
     readFileSync(viteManifestPath, 'utf-8'),
-  ) as Record<string, { css?: string[] }>
-  let cssFile: string | undefined
-  for (const entry of Object.values(viteManifest)) {
-    if (entry.css?.length) {
-      cssFile = entry.css[0]
-      break
-    }
-  }
+  ) as ViteManifest
+  const cssFile = selectAppCssFile(viteManifest)
   if (!cssFile) {
     console.error('No CSS entry found in Vite manifest')
     process.exit(1)
@@ -446,7 +445,7 @@ async function buildRootTemplate(ctx: PrerenderContext) {
   // Root template includes both landing and loading screen.
   // Bootstrap inline script (in bootstrapScript) handles visibility
   // based on hasSession/hash. No separate inline script needed.
-  const body = `<div id="sw-landing" style="display:flex;flex-direction:column;flex:1;min-height:0">${landingHtml}</div>
+  const body = `<div id="sw-landing" class="${ROOT_LANDING_SHELL_CLASS}">${landingHtml}</div>
       <div id="sw-loading" data-sw-boot-state="loading" style="${ROOT_LOADING_STYLE}">
         <div style="display:flex;align-items:center;justify-content:center;flex:1 1 0%;height:100%;min-height:0;width:100%;background:var(--color-background,#0a0a0a);color:var(--color-foreground,#fafafa);overflow:hidden">
           <div style="display:flex;width:min(30rem,calc(100vw - 2rem));flex-direction:column;align-items:center;gap:1.25rem;text-align:center">

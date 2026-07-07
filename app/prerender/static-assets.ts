@@ -1,6 +1,40 @@
 import { readdirSync } from 'fs'
 import { basename, dirname, extname, join, relative } from 'path'
 
+export interface ViteManifestEntry {
+  css?: string[]
+  file?: string
+  isEntry?: boolean
+  name?: string
+  src?: string
+}
+
+export type ViteManifest = Record<string, ViteManifestEntry>
+
+export function selectAppCssFile(manifest: ViteManifest): string | undefined {
+  const appEntry = Object.entries(manifest).find(([key, entry]) => {
+    if (!entry.isEntry) {
+      return false
+    }
+    if (key === 'app/App.tsx' || entry.src === 'app/App.tsx') {
+      return true
+    }
+    return entry.name === 'app'
+  })?.[1]
+  if (appEntry?.css?.length) {
+    return appEntry.css[0]
+  }
+
+  const appCssFiles = Object.values(manifest)
+    .flatMap((entry) => entry.css ?? [])
+    .filter((cssFile) => basename(cssFile).startsWith('app-'))
+
+  if (appCssFiles.length === 1) {
+    return appCssFiles[0]
+  }
+
+  return undefined
+}
 const requiredStaticExtensions = new Set([
   '.css',
   '.woff2',

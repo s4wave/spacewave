@@ -4,7 +4,11 @@ import { tmpdir } from 'os'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { collectRequiredStaticAssetUrls } from './static-assets.js'
+import {
+  collectRequiredStaticAssetUrls,
+  selectAppCssFile,
+  type ViteManifest,
+} from './static-assets.js'
 
 let dir = ''
 
@@ -32,5 +36,25 @@ describe('collectRequiredStaticAssetUrls', () => {
       '/static/assets/spacewave-icon-abc123.png',
       '/static/hydrate-abc123.js',
     ])
+  })
+})
+
+describe('selectAppCssFile', () => {
+  it('selects the full app entry CSS instead of component chunk CSS', () => {
+    const manifest: ViteManifest = {
+      '_AnimatedLogo-abc.js': {
+        file: 'assets/AnimatedLogo-abc.js',
+        css: ['assets/AnimatedLogo-def.css'],
+      },
+      'app/App.tsx': {
+        file: 'assets/app-abc.js',
+        src: 'app/App.tsx',
+        name: 'app',
+        isEntry: true,
+        css: ['assets/app-def.css'],
+      },
+    }
+
+    expect(selectAppCssFile(manifest)).toBe('assets/app-def.css')
   })
 })

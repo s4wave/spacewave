@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Root } from 'react-dom/client'
 
 import { ROOT_LOADING_STYLE } from './root-loading-shell.js'
+import { ROOT_LANDING_SHELL_CLASS } from './root-landing-shell.js'
 
 const mockHydrateRoot = vi.hoisted(() =>
   vi.fn(() => ({ render: vi.fn(), unmount: vi.fn() })),
@@ -61,7 +62,7 @@ declare global {
 function renderRootShell() {
   document.body.innerHTML = `
     <div id="bldr-root" data-prerendered="true" role="main">
-      <div id="sw-landing" style="display:flex"></div>
+      <div id="sw-landing" class="${ROOT_LANDING_SHELL_CLASS}"></div>
       <div id="sw-loading" style="${ROOT_LOADING_STYLE}">
         <p data-sw-boot-status>Loading application...</p>
       </div>
@@ -97,6 +98,12 @@ describe('hydrate root hash boot', () => {
     globalThis.__swBoot = undefined
     globalThis.__swPrerenderRoot = undefined
     globalThis.__swPrerenderContainer = undefined
+  })
+
+  it('keeps the root landing shell aligned with the prerender startup shell', () => {
+    expect(document.getElementById('sw-landing')?.className).toBe(
+      ROOT_LANDING_SHELL_CLASS,
+    )
   })
 
   it('boots a root hash link after the prerendered landing has loaded', async () => {
