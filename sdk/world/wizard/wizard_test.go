@@ -709,6 +709,37 @@ func TestWizardRegistryStaticWizardsWinTypeDedupe(t *testing.T) {
 	t.Fatal("expected canvas wizard")
 }
 
+func TestWizardRegistryStaticAppWizardsAreReleaseVisible(t *testing.T) {
+	expected := map[string]string{
+		"spacewave-chat/channel":      "Chat Channel",
+		"forge/worker":                "Forge Worker",
+		"spacewave/forge/dashboard":   "Forge Dashboard",
+		"forge/cluster":               "Forge Cluster",
+		"forge/job":                   "Forge Job",
+		"forge/task":                  "Forge Task",
+		"vm/v86":                      "V86 VM",
+	}
+	seen := make(map[string]struct{}, len(expected))
+	for _, wizard := range s4wave_wizard.ObjectWizards {
+		wantName, ok := expected[wizard.GetTypeId()]
+		if !ok {
+			continue
+		}
+		seen[wizard.GetTypeId()] = struct{}{}
+		if wizard.GetDisplayName() != wantName {
+			t.Fatalf("expected %s display name %q, got %q", wizard.GetTypeId(), wantName, wizard.GetDisplayName())
+		}
+		if wizard.GetExperimental() {
+			t.Fatalf("expected %s to be visible in release builds", wizard.GetTypeId())
+		}
+	}
+	for typeID := range expected {
+		if _, ok := seen[typeID]; !ok {
+			t.Fatalf("expected static app wizard %s to be registered", typeID)
+		}
+	}
+}
+
 func TestWizardRegistryWatchPreservesDuplicateSnapshotBroadcast(t *testing.T) {
 	ctx, client := setupWizardRegistryClient(t)
 	watchCtx, cancel := context.WithTimeout(ctx, 2*time.Second)

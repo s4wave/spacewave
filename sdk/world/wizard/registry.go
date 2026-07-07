@@ -41,14 +41,13 @@ var ObjectWizards = []*ObjectWizard{
 		KeyPrefix:          "fs/",
 	},
 	{
-		TypeId:             "chat/channel",
+		TypeId:             "spacewave-chat/channel",
 		DisplayName:        "Chat Channel",
 		Category:           "Chat",
 		IconName:           "LuMessageSquare",
 		CreateOpId:         "spacewave-chat/channel/create",
 		DefaultNamePattern: "Chat",
 		KeyPrefix:          "chat/channel/",
-		Experimental:       true,
 	},
 	{
 		TypeId:             "git/repo",
@@ -71,7 +70,6 @@ var ObjectWizards = []*ObjectWizard{
 		KeyPrefix:          "forge/worker/",
 		Persistent:         true,
 		WizardTypeId:       "wizard/forge/worker",
-		Experimental:       true,
 	},
 	{
 		TypeId:             "spacewave/forge/dashboard",
@@ -81,8 +79,9 @@ var ObjectWizards = []*ObjectWizard{
 		CreateOpId:         "spacewave/forge/dashboard/create",
 		DefaultNamePattern: "Forge",
 		KeyPrefix:          "forge/",
-		Experimental:       true,
 	},
+	// Computers remains experimental because Device enrollment is exposed by the
+	// Add Device wizard while the broader dashboard surface is still being shaped.
 	{
 		TypeId:             "spacewave/computers",
 		DisplayName:        "Computers",
@@ -114,7 +113,6 @@ var ObjectWizards = []*ObjectWizard{
 		KeyPrefix:          "forge/cluster/",
 		Persistent:         true,
 		WizardTypeId:       "wizard/forge/cluster",
-		Experimental:       true,
 	},
 	{
 		TypeId:             "forge/job",
@@ -126,7 +124,6 @@ var ObjectWizards = []*ObjectWizard{
 		KeyPrefix:          "forge/job/",
 		Persistent:         true,
 		WizardTypeId:       "wizard/forge/job",
-		Experimental:       true,
 	},
 	{
 		TypeId:             "forge/task",
@@ -138,7 +135,6 @@ var ObjectWizards = []*ObjectWizard{
 		KeyPrefix:          "forge/task/",
 		Persistent:         true,
 		WizardTypeId:       "wizard/forge/task",
-		Experimental:       true,
 	},
 	{
 		TypeId:             "vm/v86",
@@ -150,6 +146,5 @@ var ObjectWizards = []*ObjectWizard{
 		KeyPrefix:          "vm/v86/",
 		Persistent:         true,
 		WizardTypeId:       "wizard/vm/v86",
-		Experimental:       true,
 	},
 }

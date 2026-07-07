@@ -23,19 +23,20 @@ has static viewers for Git repositories and worktrees.
 
 ## Chat
 
-Chat has static channel and message viewers, but its Quickstart is experimental
-in the current visibility policy. When available, it creates a Space with a chat
-channel and opens that channel.
+Chat channels are visible in the Create Object palette. The Chat Quickstart is
+experimental in the current visibility policy; when enabled, it creates a Space
+with a chat channel and opens that channel.
 
 ## Forge
 
-Forge is experimental. Its Quickstart seeds a dashboard, cluster, sample work,
-and a worker tied to the creating session. The app has static Forge viewers for
+Forge objects are visible in the Create Object palette. The Forge Quickstart is
+experimental; when enabled, it seeds a dashboard, cluster, sample work, and a
+worker tied to the creating session. The app has static Forge viewers for
 dashboards, clusters, jobs, tasks, workers, passes, and executions.
 
 ## V86 virtual machines
 
-V86 is experimental and plugin-owned. The app can create V86 wizard objects, and
-the Quickstart can copy a default image and create a VM object, but the VM object
-viewer is not statically registered in the app shell. It requires the relevant
-dynamic plugin viewer.
+V86 VM wizards are visible in the Create Object palette. The V86 Quickstart and
+VM object viewer are plugin-owned; the Quickstart can copy a default image and
+create a VM object, and the VM object viewer requires the relevant dynamic plugin
+viewer.

@@ -336,7 +336,6 @@ describe('notes backend registration', () => {
         keyPrefix: 'notebook/',
         persistent: true,
         wizardTypeId: 'wizard/notes/notebook',
-        experimental: true,
       },
       {
         typeId: 'notes/docs',
@@ -349,7 +348,6 @@ describe('notes backend registration', () => {
         keyPrefix: 'docs/',
         persistent: true,
         wizardTypeId: 'wizard/notes/docs',
-        experimental: true,
       },
       {
         typeId: 'notes/blog',
@@ -362,7 +360,6 @@ describe('notes backend registration', () => {
         keyPrefix: 'blog/',
         persistent: true,
         wizardTypeId: 'wizard/notes/blog',
-        experimental: true,
       },
     ])
     expect(h.viewerRegistrations).toEqual([

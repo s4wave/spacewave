@@ -523,6 +523,66 @@ describe('SpaceCommands', () => {
     expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
   })
 
+  it('lists release-visible registered app wizards in the create-object command', async () => {
+    vi.stubEnv('DEV', false)
+    h.wizards = [
+      {
+        typeId: 'spacewave-chat/channel',
+        displayName: 'Chat Channel',
+        category: 'Chat',
+        createOpId: 'spacewave-chat/channel/create',
+        keyPrefix: 'chat/channel/',
+        defaultNamePattern: 'Chat',
+      },
+      {
+        typeId: 'notes/docs',
+        displayName: 'Documentation',
+        category: 'Content',
+        persistent: true,
+        wizardTypeId: 'wizard/notes/docs',
+        keyPrefix: 'docs/',
+        defaultNamePattern: 'Documentation',
+      },
+      {
+        typeId: 'notes/blog',
+        displayName: 'Blog',
+        category: 'Content',
+        persistent: true,
+        wizardTypeId: 'wizard/notes/blog',
+        keyPrefix: 'blog/',
+        defaultNamePattern: 'Blog',
+      },
+      {
+        typeId: 'spacewave/forge/dashboard',
+        displayName: 'Forge Dashboard',
+        category: 'Forge',
+        createOpId: 'spacewave/forge/dashboard/create',
+        keyPrefix: 'forge/',
+        defaultNamePattern: 'Forge',
+      },
+      {
+        typeId: 'vm/v86',
+        displayName: 'V86 VM',
+        category: 'VM',
+        persistent: true,
+        wizardTypeId: 'wizard/vm/v86',
+        keyPrefix: 'vm/v86/',
+        defaultNamePattern: 'V86 VM',
+      },
+    ]
+    renderCommands()
+
+    const { subItems } = getCreateObjectCommandHandlers()
+    const items = await subItems('', new AbortController().signal)
+    expect(items.map((item) => item.id)).toEqual([
+      'spacewave-chat/channel',
+      'notes/docs',
+      'notes/blog',
+      'spacewave/forge/dashboard',
+      'vm/v86',
+    ])
+  })
+
   it('hides experimental create-object subitems until the browser opts in', async () => {
     vi.stubEnv('DEV', false)
     h.wizards = [
