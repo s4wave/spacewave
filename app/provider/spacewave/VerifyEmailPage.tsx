@@ -16,12 +16,14 @@ import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { SessionFrame } from '@s4wave/app/session/SessionFrame.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { useEmailManagement } from '@s4wave/web/hooks/useEmailManagement.js'
+import { SpacewaveOnboardingContext } from '@s4wave/web/contexts/SpacewaveOnboardingContext.js'
 import type { EmailInfo } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 
 // VerifyEmailPage renders the email verification gate page.
 // Shown after checkout when the user has no verified email.
 export function VerifyEmailPage() {
   const navigate = useNavigate()
+  const onboarding = SpacewaveOnboardingContext.useContextSafe()
 
   const {
     emails,
@@ -59,8 +61,14 @@ export function VerifyEmailPage() {
     setAddExpanded(false)
   }, [addEmail, newEmail])
 
-  // Determine flow state from the email list.
-  const hasVerified = emails?.some((e) => e.verified) ?? false
+  // Onboarding Status is the route-status owner for account-level email
+  // verification; the email list may still be one fetch behind that gate.
+  const accountEmailVerified = onboarding?.emailVerified ?? false
+  const hasVerifiedEmail = emails?.some((e) => e.verified) ?? false
+  const hasVerified = accountEmailVerified || hasVerifiedEmail
+  const visibleEmails = hasVerified
+    ? (emails?.filter((e) => e.verified) ?? [])
+    : (emails ?? [])
   const hasUnverified = emails?.some((e) => !e.verified)
 
   return (
@@ -85,7 +93,7 @@ export function VerifyEmailPage() {
             </div>
           ) : (
             <>
-              {emails?.map((e) => (
+              {visibleEmails.map((e) => (
                 <EmailCard
                   key={e.email}
                   email={e}
@@ -100,6 +108,8 @@ export function VerifyEmailPage() {
                   busy={busy}
                 />
               ))}
+
+              {hasVerified && visibleEmails.length === 0 && <VerifiedEmailCard />}
 
               {/* Prompt to send code if there's an unverified email but user
                   hasn't clicked send yet. */}
@@ -192,6 +202,24 @@ export function VerifyEmailPage() {
         </div>
       </div>
     </SessionFrame>
+  )
+}
+
+// VerifiedEmailCard renders the verified gate state when Onboarding Status has
+// advanced before the email-list cache has emitted the matching verified row.
+function VerifiedEmailCard() {
+  return (
+    <div className="border-foreground/20 bg-background-get-started flex items-center gap-3 overflow-hidden rounded-lg border p-4 shadow-lg backdrop-blur-sm">
+      <div className="bg-brand/20 flex size-8 shrink-0 items-center justify-center rounded-lg">
+        <LuCheck className="text-brand size-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <h3 className="text-foreground truncate text-sm font-medium">
+          Email verified
+        </h3>
+        <p className="text-brand text-xs">Verified</p>
+      </div>
+    </div>
   )
 }
 
