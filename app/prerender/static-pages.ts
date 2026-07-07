@@ -64,5 +64,6 @@ STATIC_PAGES.push(...buildQuickstartStaticPages(PUBLIC_QUICKSTART_OPTIONS))
 // getStaticPageComponent returns the component for a static page pathname.
 export function getStaticPageComponent(pathname: string): FC | null {
   const page = STATIC_PAGES.find((p) => p.path === pathname)
+  if (pathname.startsWith('/quickstart/')) return QuickstartLoading
   return page?.component ?? null
 }

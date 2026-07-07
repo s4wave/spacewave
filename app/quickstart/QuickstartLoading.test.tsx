@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 
 import { StaticProvider } from '@s4wave/app/prerender/StaticContext.js'
 import { browserStartupPhaseRail } from '@s4wave/app/loading/status/browser-startup-model.js'
@@ -20,6 +20,7 @@ function renderQuickstartLoading(path = '/quickstart/drive') {
 describe('QuickstartLoading', () => {
   afterEach(() => {
     globalThis.__swBootStatus = undefined
+    cleanup()
   })
 
   it('renders the projected browser startup phase', () => {
@@ -46,9 +47,18 @@ describe('QuickstartLoading', () => {
     expect(screen.getByText('Prepare: Preparing browser files.')).toBeTruthy()
   })
 
-  it('treats dynamic quickstart ids as unknown public routes', () => {
-    renderQuickstartLoading('/quickstart/glados-workspace')
+  it('treats unavailable quickstart ids as not-available public routes', () => {
+    renderQuickstartLoading('/quickstart/cdn')
 
-    expect(screen.getByText('Unknown quickstart option.')).toBeTruthy()
+    expect(
+      screen.getByRole('heading', { name: 'Quickstart not available' }),
+    ).toBeTruthy()
+    expect(
+      screen.getByText(
+        'The "cdn" quickstart is not part of the current public Spacewave catalog. Choose an available quickstart from the home page.',
+      ),
+    ).toBeTruthy()
+    const backLink = screen.getByRole('link', { name: 'Back to home' })
+    expect(backLink.getAttribute('href')).toBe('/')
   })
 })

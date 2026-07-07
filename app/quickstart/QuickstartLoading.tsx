@@ -1,9 +1,11 @@
-import { PUBLIC_QUICKSTART_OPTIONS, type QuickstartOption } from './options.js'
 import { BrowserStartupPhaseRail } from '@s4wave/app/loading/AppLoadingScreen.js'
 import { useBrowserStartupProjection } from '@s4wave/app/loading/status/browser-startup.js'
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 import { usePath } from '@s4wave/web/router/router.js'
 import { LoadingScreen } from '@s4wave/web/ui/loading/LoadingScreen.js'
+
+import { PUBLIC_QUICKSTART_OPTIONS, type QuickstartOption } from './options.js'
+import { QuickstartUnavailable } from './QuickstartUnavailable.js'
 
 // QuickstartLoading is a static prerendered page for /quickstart/{id}.
 // Shows the quickstart metadata with a loading indicator. When the
@@ -17,13 +19,7 @@ export function QuickstartLoading() {
   const startup = useBrowserStartupProjection()
 
   if (!option) {
-    return (
-      <div className="flex h-full min-h-0 w-full flex-1 items-center justify-center bg-[var(--color-neutral-950)]">
-        <p className="text-[var(--color-neutral-400)]">
-          Unknown quickstart option.
-        </p>
-      </div>
-    )
+    return <QuickstartUnavailable quickstartId={id} homeHref={landingHref} />
   }
 
   return (

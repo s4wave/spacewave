@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
 import { getPublicQuickstartOptions } from '@s4wave/app/quickstart/options.js'
+import { QuickstartLoading } from '@s4wave/app/quickstart/QuickstartLoading.js'
 import { isStaticRoute } from '@s4wave/web/router/static-routes.js'
 import { getMetadata } from './metadata.js'
-import { STATIC_PAGES } from './static-pages.js'
-import { buildQuickstartStaticPages } from './static-pages.js'
+import {
+  STATIC_PAGES,
+  buildQuickstartStaticPages,
+  getStaticPageComponent,
+} from './static-pages.js'
 
 describe('buildQuickstartStaticPages', () => {
   it('omits experimental quickstart pages from the release inventory', () => {
@@ -44,5 +48,12 @@ describe('buildQuickstartStaticPages', () => {
     for (const page of STATIC_PAGES) {
       expect(isStaticRoute(page.path)).toBe(true)
     }
+  })
+
+  it('resolves unavailable quickstart routes to the static loading fallback', () => {
+    const pathname = '/quickstart/cdn'
+
+    expect(isStaticRoute(pathname)).toBe(true)
+    expect(getStaticPageComponent(pathname)).toBe(QuickstartLoading)
   })
 })
