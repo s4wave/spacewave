@@ -22,6 +22,7 @@ func NewDefaultRegistryWithBus(b bus.Bus) *Registry {
 	RegisterUnixfsRead(r)
 	RegisterFileHash(r)
 	RegisterExportZip(r)
+	RegisterV86(r, b)
 	RegisterPluginExec(r, b)
 	return r
 }
