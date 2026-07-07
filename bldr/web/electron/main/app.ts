@@ -64,6 +64,16 @@ const e2eControlPortEnv = 'BLDR_ELECTRON_E2E_CONTROL_PORT'
 // apart. The override also pins the title against renderer document.title
 // updates.
 const windowTitleOverride = process.env.BLDR_ELECTRON_WINDOW_TITLE || ''
+// BLDR_ELECTRON_WINDOW_SIZE ("1600x1000") overrides the initial window size,
+// e.g. for QA tooling that needs app width left over after docked devtools.
+const windowSizeOverride = (() => {
+  const match = /^(\d{3,5})x(\d{3,5})$/.exec(
+    process.env.BLDR_ELECTRON_WINDOW_SIZE || '',
+  )
+  return match
+    ? { width: Number(match[1]), height: Number(match[2]) }
+    : undefined
+})()
 
 // BldrElectronApp manages the main process for an Electron app.
 export class BldrElectronApp {
@@ -430,8 +440,8 @@ export class BldrElectronApp {
       titleBarStyle: isMac ? 'hidden' : undefined,
 
       title: windowTitleOverride || init.windowTitle || init.appName || undefined,
-      height: init.windowHeight || 680,
-      width: init.windowWidth || 900,
+      height: windowSizeOverride?.height || init.windowHeight || 680,
+      width: windowSizeOverride?.width || init.windowWidth || 900,
       show: false,
 
       webPreferences: {
