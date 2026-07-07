@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { describe, expect, it } from 'vitest'
 import { page } from 'vitest/browser'
 import { cleanup, render } from 'vitest-browser-react'
@@ -11,6 +11,8 @@ import {
   SessionUploadIndicator,
   useSessionUploadManager,
 } from '@s4wave/app/session/SessionUploadManagerContext.js'
+import { IntroWizardOverlay } from '@s4wave/app/wizard/IntroWizardOverlay.js'
+import { driveIntroConfig } from '@s4wave/app/wizard/intro.js'
 
 // recordingHandle stands in for a UnixFS handle. It records the abort signal of
 // each upload so a test can prove the write was, or was not, aborted. When
@@ -109,6 +111,42 @@ function UploadFeedbackSurface({
   )
 }
 
+const introConfig = driveIntroConfig()
+
+// IntroUploadFeedbackSurface composes the Drive upload owner with the intro
+// overlay. Finishing the intro unmounts the Drive viewer, matching the
+// quickstart handoff that used to drop upload feedback.
+function IntroUploadFeedbackSurface({ handle }: { handle: FSHandle }) {
+  const [showViewer, setShowViewer] = useState(true)
+  return (
+    <SessionUploadManagerProvider>
+      <div className="bg-background text-foreground fixed inset-0 flex flex-col">
+        <BottomBarRoot openMenu="" setOpenMenu={() => {}}>
+          <SessionUploadIndicator />
+          <ViewerFrame>
+            {showViewer ? (
+              <DriveViewerStub handle={handle} />
+            ) : (
+              <div className="text-foreground p-6">A different object</div>
+            )}
+          </ViewerFrame>
+          {showViewer && (
+            <IntroWizardOverlay
+              headline={introConfig.headline ?? ''}
+              subhead={introConfig.subhead ?? ''}
+              finishLabel={introConfig.finishLabel ?? ''}
+              callouts={introConfig.callouts ?? []}
+              finishing={false}
+              onFinish={() => setShowViewer(false)}
+              onSkip={() => setShowViewer(false)}
+            />
+          )}
+        </BottomBarRoot>
+      </div>
+    </SessionUploadManagerProvider>
+  )
+}
+
 async function capture(name: string) {
   return page.screenshot({
     path: `__screenshots__/upload-feedback/${name}.png`,
@@ -186,6 +224,33 @@ describe('upload feedback popovers', () => {
       .not.toBeInTheDocument()
     expect(signals[0].aborted).toBe(true)
 
+    await cleanup()
+  })
+
+  it('keeps feedback visible when finishing the intro unmounts Drive', async () => {
+    const { handle, signals } = recordingHandle(false)
+    await render(<IntroUploadFeedbackSurface handle={handle} />)
+
+    await expect.element(page.getByText('Uploading 2/2')).toBeInTheDocument()
+    await expect.element(page.getByText('Upload started')).toBeInTheDocument()
+    await expect.element(page.getByText('Add files')).toBeInTheDocument()
+    expect(signals).toHaveLength(1)
+
+    await page.getByRole('button', { name: 'Next' }).click()
+    await page.getByRole('button', { name: 'Next' }).click()
+    await expect.element(page.getByText('Upload progress')).toBeInTheDocument()
+
+    await page
+      .getByRole('button', { name: 'Got it, start exploring' })
+      .click()
+
+    await expect
+      .element(page.getByText('A different object'))
+      .toBeInTheDocument()
+    await expect.element(page.getByText('Uploading 2/2')).toBeInTheDocument()
+    expect(signals[0].aborted).toBe(false)
+
+    await capture('survives-intro-finish')
     await cleanup()
   })
 })
