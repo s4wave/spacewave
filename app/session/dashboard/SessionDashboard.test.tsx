@@ -145,17 +145,27 @@ describe('SessionDashboard', () => {
     vi.restoreAllMocks()
   })
 
-  it('promotes Drive as the empty-dashboard next action before joining or browsing templates', () => {
+  it('places join actions above empty-dashboard creation actions', () => {
     render(<SessionDashboard spaces={[]} onQuickstartClick={vi.fn()} />)
 
     expect(screen.getByText('Continue')).toBeDefined()
     expect(screen.getByText('Other starts')).toBeDefined()
     expect(screen.getByText('Browse templates')).toBeDefined()
-    expectTextBefore('Create a Drive', 'Join Space')
+    expectTextBefore('Join Space', 'Link a device')
+    expectTextBefore('Link a device', 'Create a Drive')
     expectTextBefore('Create a Drive', 'Create a Canvas')
+    const linkDeviceItem = screen
+      .getByText('Link a device')
+      .closest('[cmdk-item]')
+    expect(linkDeviceItem?.getAttribute('class')).toContain(
+      'data-[selected=true]:!bg-transparent',
+    )
+    expect(linkDeviceItem?.getAttribute('class')).toContain(
+      'hover:!bg-background-card/30',
+    )
   })
 
-  it('keeps returning sessions focused on existing spaces before create actions', () => {
+  it('keeps returning sessions join-first before spaces and create actions', () => {
     render(
       <SessionDashboard
         spaces={[{ id: 'space-1', name: 'Alpha Space' }]}
@@ -164,8 +174,9 @@ describe('SessionDashboard', () => {
     )
 
     expect(screen.queryByText('Continue')).toBeNull()
-    expectTextBefore('Alpha Space', 'Join Space')
-    expectTextBefore('Join Space', 'Create a Drive')
+    expectTextBefore('Join Space', 'Link a device')
+    expectTextBefore('Link a device', 'Alpha Space')
+    expectTextBefore('Alpha Space', 'Create a Drive')
   })
 
   it('labels existing spaces by human source and copies the full space ID from the affordance', () => {
@@ -202,15 +213,15 @@ describe('SessionDashboard', () => {
     expect(mockClipboard.writeText).toHaveBeenCalledWith(sharedSpaceId)
   })
 
-  it('does not promote creation actions for read-only sessions', () => {
+  it('keeps join actions available for read-only sessions without creation actions', () => {
     render(
       <SessionDashboard spaces={[]} readOnly onQuickstartClick={vi.fn()} />,
     )
 
     expect(screen.queryByText('Continue')).toBeNull()
     expect(screen.queryByText('Create a Drive')).toBeNull()
-    expect(screen.getByText('Other starts')).toBeDefined()
     expect(screen.getByText('Join Space')).toBeDefined()
+    expectTextBefore('Join Space', 'Link a device')
   })
 
   it('opens Docs through provider Shell Tab semantics', () => {

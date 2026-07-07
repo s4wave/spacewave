@@ -39,6 +39,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandSeparator,
 } from '@s4wave/web/ui/command.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
@@ -714,6 +715,27 @@ function DashboardCommandPalette({
     setOpenMenu?.('account')
   }, [setDetailsPath, setOpenMenu])
 
+  const joinItems = (
+    <>
+      <DashboardItem
+        value="join-space"
+        icon={LuLogIn}
+        iconTone="muted"
+        label="Join Space"
+        sublabel="Join a shared space via invite code or link"
+        onSelect={() => navigate({ path: './join' })}
+      />
+      <DashboardItem
+        value="join-link-device"
+        icon={LuLink}
+        iconTone="muted"
+        label="Link a device"
+        sublabel="Link to an existing device via pairing code"
+        onSelect={handleLinkDevice}
+      />
+    </>
+  )
+
   const { personalSpaces, orgSections } = useMemo(() => {
     const personal: DashboardSpace[] = []
     const orgMap = new Map<string, DashboardSpace[]>()
@@ -763,6 +785,11 @@ function DashboardCommandPalette({
           )}
         </CommandEmpty>
 
+        <CommandGroup heading="Join" className="py-1">
+          {joinItems}
+        </CommandGroup>
+        <CommandSeparator className="bg-foreground/8" />
+
         {isEmpty ? (
           <>
             {primaryQuickstart && (
@@ -782,9 +809,9 @@ function DashboardCommandPalette({
               </CommandGroup>
             )}
 
-            <CommandGroup heading="Other starts" className="py-1">
-              {blankSpaceQuickstart &&
-                blankSpaceQuickstart.id !== primaryQuickstart?.id && (
+            {blankSpaceQuickstart &&
+              blankSpaceQuickstart.id !== primaryQuickstart?.id && (
+                <CommandGroup heading="Other starts" className="py-1">
                   <DashboardItem
                     value={`create-${blankSpaceQuickstart.id}`}
                     icon={blankSpaceQuickstart.icon}
@@ -799,24 +826,8 @@ function DashboardCommandPalette({
                       handleQuickstartSelect(blankSpaceQuickstart)
                     }
                   />
-                )}
-              <DashboardItem
-                value="join-link-device"
-                icon={LuLink}
-                iconTone="muted"
-                label="Link a device"
-                sublabel="Link to an existing device via pairing code"
-                onSelect={handleLinkDevice}
-              />
-              <DashboardItem
-                value="join-space"
-                icon={LuLogIn}
-                iconTone="muted"
-                label="Join Space"
-                sublabel="Join a shared space via invite code or link"
-                onSelect={() => navigate({ path: './join' })}
-              />
-            </CommandGroup>
+                </CommandGroup>
+              )}
 
             {browseQuickstartOptions.length > 0 && (
               <CommandGroup heading="Browse templates" className="py-1">
@@ -891,25 +902,6 @@ function DashboardCommandPalette({
                 )}
               </CommandGroup>
             ))}
-
-            <CommandGroup heading="Join" className="py-1">
-              <DashboardItem
-                value="join-link-device"
-                icon={LuLink}
-                iconTone="muted"
-                label="Link a device"
-                sublabel="Link to an existing device via pairing code"
-                onSelect={handleLinkDevice}
-              />
-              <DashboardItem
-                value="join-space"
-                icon={LuLogIn}
-                iconTone="muted"
-                label="Join Space"
-                sublabel="Join a shared space via invite code or link"
-                onSelect={() => navigate({ path: './join' })}
-              />
-            </CommandGroup>
 
             {createQuickstartOptions.length > 0 && (
               <CommandGroup heading="Create" className="py-1">
@@ -1042,7 +1034,7 @@ function DashboardItem({
   return (
     <CommandItem
       value={value}
-      className="group mx-1 flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5"
+      className="group hover:!bg-background-card/30 focus:!bg-background-card/30 focus-visible:!bg-background-card/30 data-[selected=true]:hover:!bg-background-card/30 data-[selected=true]:focus:!bg-background-card/30 data-[selected=true]:focus-visible:!bg-background-card/30 mx-1 flex cursor-pointer items-center gap-3 rounded-md bg-transparent px-3 py-2.5 data-[selected=true]:!bg-transparent"
       onSelect={onSelect}
     >
       <IconButton icon={icon} tone={iconTone} />
