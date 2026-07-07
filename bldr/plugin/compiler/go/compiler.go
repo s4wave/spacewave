@@ -61,6 +61,35 @@ var controllerDescrip = "go plugin compiler controller"
 
 var goScriptWebPluginBuildMu sync.Mutex
 
+func goScriptSharedWebPkgConfig(webPkgs []*bldr_web_bundler.WebPkgRefConfig) (string, bool, bool) {
+	webPkgID := web_runtime_goscript_build.GoScriptSharedWebPkgID
+	var provider bool
+	var consumer bool
+	for _, webPkg := range webPkgs {
+		if webPkg.GetId() != web_runtime_goscript_build.GoScriptSharedWebPkgID {
+			continue
+		}
+		webPkgID = webPkg.GetId()
+		if webPkg.GetExclude() {
+			consumer = true
+		} else {
+			provider = true
+		}
+	}
+	return webPkgID, provider, consumer
+}
+
+func filterGoScriptSharedWebPkgs(webPkgs []*bldr_web_bundler.WebPkgRefConfig) []*bldr_web_bundler.WebPkgRefConfig {
+	out := make([]*bldr_web_bundler.WebPkgRefConfig, 0, len(webPkgs))
+	for _, webPkg := range webPkgs {
+		if webPkg.GetId() == web_runtime_goscript_build.GoScriptSharedWebPkgID {
+			continue
+		}
+		out = append(out, webPkg)
+	}
+	return out
+}
+
 // Controller is the compiler controller.
 type Controller struct {
 	*bus.BusController[*Config]
@@ -472,6 +501,8 @@ func (c *Controller) BuildPlugin(
 	// clone goPkgs and webPkgs
 	goPkgs = slices.Clone(goPkgs)
 	webPkgs = protobuf_go_lite.CloneVTSlice(webPkgs)
+	goScriptSharedWebPkgID, buildGoScriptSharedProvider, consumeGoScriptSharedProvider := goScriptSharedWebPkgConfig(webPkgs)
+	bundleWebPkgs := filterGoScriptSharedWebPkgs(webPkgs)
 
 	// platform
 	isWebBuildPlatform := buildPlatform.GetExecutableExt() == ".mjs"
@@ -707,7 +738,7 @@ func (c *Controller) BuildPlugin(
 		}
 
 		publicPath := bldr_plugin.PluginAssetHTTPPath(pluginID, bldr_plugin_compiler.EsbuildAssetSubdir)
-		esbuildBundlerConf, err := BuildEsbuildBundlerConfig(esbuildBundleVarMeta, webPkgs, baseEsbuildFlags, sourcePath, publicPath)
+		esbuildBundlerConf, err := BuildEsbuildBundlerConfig(esbuildBundleVarMeta, bundleWebPkgs, baseEsbuildFlags, sourcePath, publicPath)
 		if err == nil {
 			err = esbuildBundlerConf.Validate()
 		}
@@ -768,7 +799,7 @@ func (c *Controller) BuildPlugin(
 
 		viteBundlerConf, err := BuildViteBundlerConfig(
 			viteBundleVarMeta,
-			webPkgs,
+			bundleWebPkgs,
 			viteConfigPaths,
 			publicPath,
 			disableProjectConfig,
@@ -811,7 +842,7 @@ func (c *Controller) BuildPlugin(
 
 	// If there are web packages declared but none were built by esbuild/vite
 	// sub-manifests, build them directly.
-	if len(webPkgRefs) == 0 && len(webPkgs) != 0 {
+	if len(webPkgRefs) == 0 && len(bundleWebPkgs) != 0 {
 		le.Debug("building web packages directly (no esbuild/vite sub-manifests)")
 		directRefs, directSrcFiles, _, err := bldr_plugin_compiler.BuildDirectWebPkgs(
 			ctx, le, distSourcePath, sourcePath, workingPath, outAssetsPath, isRelease, jsMinification, jsSourcemaps,
@@ -824,7 +855,7 @@ func (c *Controller) BuildPlugin(
 	}
 
 	// Filter out excluded web package references (another plugin provides these).
-	excludedIDs := bldr_web_bundler.ExcludedWebPkgIDs(webPkgs)
+	excludedIDs := bldr_web_bundler.ExcludedWebPkgIDs(bundleWebPkgs)
 	webPkgRefs = webPkgRefs.FilterExcluded(excludedIDs)
 
 	// sort the web pkg refs
@@ -835,6 +866,10 @@ func (c *Controller) BuildPlugin(
 
 	// NOTE: we add the Go pkgs to the list earlier in this function.
 	webPkgIDs := webPkgRefs.ToWebPkgIDList()
+	if useGoScript && buildGoScriptSharedProvider && !slices.Contains(webPkgIDs, goScriptSharedWebPkgID) {
+		webPkgIDs = append(webPkgIDs, goScriptSharedWebPkgID)
+		slices.Sort(webPkgIDs)
+	}
 	if len(webPkgIDs) != 0 {
 		// add the web packages rpc server to the config set.
 		// resolves AccessRpcService directive
@@ -946,7 +981,11 @@ func (c *Controller) BuildPlugin(
 			// remains in dist/@goscript for source-level inspection.
 			goScriptJSMinification := true
 			goScriptJSSourcemaps := false
-			webRuntimeSrcFiles, err = web_runtime_goscript_build.BuildWebGoScriptPluginScript(
+			sharedOptions := web_runtime_goscript_build.GoScriptSharedBundleOptions{
+				WebPkgID: goScriptSharedWebPkgID,
+				Enabled:  consumeGoScriptSharedProvider,
+			}
+			webRuntimeSrcFiles, err = web_runtime_goscript_build.BuildWebGoScriptPluginScriptWithOptions(
 				ctx,
 				le,
 				distSourcePath,
@@ -957,9 +996,32 @@ func (c *Controller) BuildPlugin(
 				goScriptJSMinification,
 				goScriptJSSourcemaps,
 				goScriptCodeSplitting,
+				sharedOptions,
 			)
 			if err != nil {
 				return err
+			}
+			if buildGoScriptSharedProvider {
+				sharedOutPath := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir, goScriptSharedWebPkgID)
+				_, sharedInputs, err := web_runtime_goscript_build.BuildWebGoScriptSharedProviderScript(
+					ctx,
+					le,
+					distSourcePath,
+					filepath.Join(mc.pluginCodegenPath, "goscript-shared-provider"),
+					outDistPath,
+					sharedOutPath,
+					goScriptSharedWebPkgID,
+					goScriptJSMinification,
+					goScriptJSSourcemaps,
+				)
+				if err != nil {
+					return err
+				}
+				webRuntimeSrcFiles = append(webRuntimeSrcFiles, sharedInputs...)
+				webPkgRefs = append(webPkgRefs, &web_pkg.WebPkgRef{
+					WebPkgId:   goScriptSharedWebPkgID,
+					WebPkgRoot: filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir, goScriptSharedWebPkgID),
+				})
 			}
 			le.
 				WithField("dur", time.Since(timeStart).String()).

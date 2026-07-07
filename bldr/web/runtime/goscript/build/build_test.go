@@ -108,6 +108,169 @@ export const Present = 1
 	}
 }
 
+func TestBuildWebGoScriptPluginScriptExternalizesSharedGoScriptImports(t *testing.T) {
+	root := t.TempDir()
+	bldrDistRoot := filepath.Join(root, "dist")
+	writeRolldownToolFixture(t, bldrDistRoot)
+	workDir := filepath.Join(root, "work")
+	goScriptOutputRoot := filepath.Join(root, "goscript")
+	outPath := filepath.Join(root, "out", "plugin.mjs")
+	mainPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "s4wave", "spacewave", "main", "plugin.gs.ts")
+	sharedPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "aperturerobotics", "protobuf-go-lite", "index.ts")
+	appPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "s4wave", "spacewave", "local", "index.ts")
+
+	writeTestFile(t, filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts"), `
+export default async function runGoScriptPlugin(_api, pluginMain) {
+  globalThis.__pluginResult = await pluginMain()
+}
+`)
+	writeTestFile(t, mainPath, `
+import { SharedValue } from "@goscript/github.com/aperturerobotics/protobuf-go-lite/index.js"
+import { AppValue } from "@goscript/github.com/s4wave/spacewave/local/index.js"
+
+export async function main() {
+  return SharedValue + ":" + AppValue
+}
+`)
+	writeTestFile(t, sharedPath, `
+export const SharedValue = "shared-source-payload"
+`)
+	writeTestFile(t, appPath, `
+export const AppValue = "local-app-payload"
+`)
+
+	inputs, err := BuildWebGoScriptPluginScriptWithOptions(
+		context.Background(),
+		logrus.NewEntry(logrus.New()),
+		bldrDistRoot,
+		workDir,
+		goScriptOutputRoot,
+		outPath,
+		"github.com/s4wave/spacewave/main",
+		false,
+		false,
+		false,
+		GoScriptSharedBundleOptions{
+			WebPkgID: GoScriptSharedWebPkgID,
+			Enabled:  true,
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertInputsContainPaths(t, inputs,
+		filepath.Join(workDir, "plugin-goscript-entrypoint.ts"),
+		filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts"),
+		mainPath,
+		appPath,
+	)
+	sharedPath = canonicalTestPath(t, sharedPath)
+	if slices.Contains(inputs, sharedPath) {
+		t.Fatalf("inputs included externalized shared source %s: %v", sharedPath, inputs)
+	}
+	assertBundleReport(t, GoScriptBundleReportPath(workDir), outPath, false, false, false, inputs)
+
+	out, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	outString := string(out)
+	sharedURL := "/b/pkg/@s4wave/goscript-shared/github.com/aperturerobotics/protobuf-go-lite/index.mjs"
+	if !strings.Contains(outString, sharedURL) {
+		t.Fatalf("bundle missing absolute shared provider URL %q:\n%s", sharedURL, outString)
+	}
+	bareSharedSpecifier := "@goscript/github.com/aperturerobotics/protobuf-go-lite/index.js"
+	if strings.Contains(outString, bareSharedSpecifier) {
+		t.Fatalf("bundle kept bare shared import specifier %q:\n%s", bareSharedSpecifier, outString)
+	}
+	if strings.Contains(outString, "shared-source-payload") {
+		t.Fatalf("bundle included externalized shared source payload:\n%s", outString)
+	}
+	if !strings.Contains(outString, "local-app-payload") {
+		t.Fatalf("bundle did not keep github.com/s4wave app module local:\n%s", outString)
+	}
+}
+
+func TestBuildWebGoScriptSharedProviderScriptPublishesSharedModules(t *testing.T) {
+	root := t.TempDir()
+	bldrDistRoot := filepath.Join(root, "dist")
+	writeRolldownToolFixture(t, bldrDistRoot)
+	workDir := filepath.Join(root, "work")
+	goScriptOutputRoot := filepath.Join(root, "goscript")
+	outWebPkgPath := filepath.Join(root, "out", "webpkg")
+	protobufPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "aperturerobotics", "protobuf-go-lite", "index.ts")
+	clockPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "example", "clock", "index.ts")
+	appPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "s4wave", "spacewave", "local", "index.ts")
+
+	writeTestFile(t, protobufPath, `
+export const EncodedValue = "encoded-for-consumer-a"
+export const DecodedValue = "decoded-for-consumer-a"
+`)
+	writeTestFile(t, clockPath, `
+export const ClockValue = "clock-for-consumer-b"
+`)
+	writeTestFile(t, appPath, `
+export const LocalOnlyValue = "must-not-be-published"
+`)
+
+	importMap, inputs, err := BuildWebGoScriptSharedProviderScript(
+		context.Background(),
+		logrus.NewEntry(logrus.New()),
+		bldrDistRoot,
+		workDir,
+		goScriptOutputRoot,
+		outWebPkgPath,
+		GoScriptSharedWebPkgID,
+		false,
+		false,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertInputsContainPaths(t, inputs, protobufPath, clockPath)
+	appPath = canonicalTestPath(t, appPath)
+	if slices.Contains(inputs, appPath) {
+		t.Fatalf("provider inputs included github.com/s4wave app source %s: %v", appPath, inputs)
+	}
+	wantImportMap := GoScriptSharedImportMap{
+		"@goscript/github.com/aperturerobotics/protobuf-go-lite/index.js": "/b/pkg/@s4wave/goscript-shared/github.com/aperturerobotics/protobuf-go-lite/index.mjs",
+		"@goscript/github.com/example/clock/index.js":                     "/b/pkg/@s4wave/goscript-shared/github.com/example/clock/index.mjs",
+	}
+	for source, wantURL := range wantImportMap {
+		if gotURL := importMap[source]; gotURL != wantURL {
+			t.Fatalf("importMap[%q] = %q, want %q (full map %v)", source, gotURL, wantURL, importMap)
+		}
+	}
+	if _, ok := importMap["@goscript/github.com/s4wave/spacewave/local/index.js"]; ok {
+		t.Fatalf("provider import map included github.com/s4wave app module: %v", importMap)
+	}
+	protobufOut := filepath.Join(outWebPkgPath, "github.com", "aperturerobotics", "protobuf-go-lite", "index.mjs")
+	clockOut := filepath.Join(outWebPkgPath, "github.com", "example", "clock", "index.mjs")
+	if _, err := os.Stat(protobufOut); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(clockOut); err != nil {
+		t.Fatal(err)
+	}
+	assertDirectoryBundleReport(t, GoScriptBundleReportPath(workDir), outWebPkgPath, false, false, true, inputs, protobufOut, clockOut)
+
+	runBunModuleScript(t, filepath.Join(workDir, "..", "..", "bun"), `
+import { pathToFileURL } from "node:url"
+
+const protobuf = await import(pathToFileURL(process.argv[2]).href)
+const clock = await import(pathToFileURL(process.argv[3]).href)
+if (protobuf.EncodedValue !== "encoded-for-consumer-a") {
+  throw new Error("EncodedValue = " + JSON.stringify(protobuf.EncodedValue))
+}
+if (protobuf.DecodedValue !== "decoded-for-consumer-a") {
+  throw new Error("DecodedValue = " + JSON.stringify(protobuf.DecodedValue))
+}
+if (clock.ClockValue !== "clock-for-consumer-b") {
+  throw new Error("ClockValue = " + JSON.stringify(clock.ClockValue))
+}
+`, protobufOut, clockOut)
+}
+
 func TestBuildWebGoScriptPluginScriptResolvesGoScriptOverrideImports(t *testing.T) {
 	sourceRoot := t.TempDir()
 	bldrDistRoot := filepath.Join(sourceRoot, "bldr")
@@ -390,6 +553,7 @@ export const LazyValue = "loaded from dynamic goscript chunk"
 		false,
 		false,
 		true,
+		GoScriptSharedBundleOptions{},
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -468,6 +632,7 @@ export const LazyValue = "loaded from dynamic goscript sourcemap chunk"
 		false,
 		true,
 		true,
+		GoScriptSharedBundleOptions{},
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -891,6 +1056,50 @@ func assertBundleReport(t *testing.T, reportPath, outPath string, minify, source
 	}
 	if !slices.Equal(gotInputs, inputs) {
 		t.Fatalf("inputPaths = %v, want %v", gotInputs, inputs)
+	}
+}
+
+func assertDirectoryBundleReport(t *testing.T, reportPath, outPath string, minify, sourcemaps, codeSplitting bool, inputs []string, outputPaths ...string) {
+	t.Helper()
+	reportBytes, err := os.ReadFile(reportPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var parser fastjson.Parser
+	report, err := parser.ParseBytes(reportBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := report.GetInt("schemaVersion"); got != 1 {
+		t.Fatalf("schemaVersion = %d, want 1", got)
+	}
+	if got := string(report.GetStringBytes("outputPath")); got != outPath {
+		t.Fatalf("outputPath = %q, want %q", got, outPath)
+	}
+	if got := report.GetBool("minify"); got != minify {
+		t.Fatalf("minify = %v, want %v", got, minify)
+	}
+	if got := report.GetBool("sourcemaps"); got != sourcemaps {
+		t.Fatalf("sourcemaps = %v, want %v", got, sourcemaps)
+	}
+	if got := report.GetBool("codeSplitting"); got != codeSplitting {
+		t.Fatalf("codeSplitting = %v, want %v", got, codeSplitting)
+	}
+	if got := report.GetInt("inputCount"); got != len(inputs) {
+		t.Fatalf("inputCount = %d, want %d", got, len(inputs))
+	}
+	if got := report.GetInt("outputFileCount"); got != len(outputPaths) {
+		t.Fatalf("outputFileCount = %d, want %d", got, len(outputPaths))
+	}
+	outputValues := report.GetArray("outputFiles")
+	gotOutputs := make([]string, 0, len(outputValues))
+	for _, outputValue := range outputValues {
+		gotOutputs = append(gotOutputs, string(outputValue.GetStringBytes("path")))
+	}
+	for _, outputPath := range outputPaths {
+		if !slices.Contains(gotOutputs, outputPath) {
+			t.Fatalf("outputFiles missing %s: %v", outputPath, gotOutputs)
+		}
 	}
 }
 

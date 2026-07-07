@@ -3,8 +3,11 @@
 package bldr_project_controller
 
 import (
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	go_compiler "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	js_compiler "github.com/s4wave/spacewave/bldr/plugin/compiler/js"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
+	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,30 +23,7 @@ func resolveWebPkgDeps(le *logrus.Entry, manifests map[string]*bldr_project.Mani
 	consumers := make(map[string][]string)
 
 	for manifestID, manifestConf := range manifests {
-		builder := manifestConf.GetBuilder()
-		if builder.GetId() != js_compiler.ConfigID {
-			continue
-		}
-
-		conf := &js_compiler.Config{}
-		configData := builder.GetConfig()
-		if len(configData) == 0 {
-			continue
-		}
-		// Config data may be JSON (from bldr.yaml) or protobuf binary.
-		var err error
-		if len(configData) > 0 && configData[0] == '{' {
-			err = conf.UnmarshalJSON(configData)
-		} else {
-			err = conf.UnmarshalVT(configData)
-		}
-		if err != nil {
-			le.WithError(err).WithField("manifest-id", manifestID).
-				Warn("failed to unmarshal JS compiler config for webPkg dep resolution")
-			continue
-		}
-
-		for _, webPkg := range conf.GetWebPkgs() {
+		for _, webPkg := range readCompilerWebPkgs(le, manifestID, manifestConf.GetBuilder()) {
 			pkgID := webPkg.GetId()
 			if pkgID == "" {
 				continue
@@ -74,4 +54,45 @@ func resolveWebPkgDeps(le *logrus.Entry, manifests map[string]*bldr_project.Mani
 	}
 
 	return result
+}
+
+func readCompilerWebPkgs(le *logrus.Entry, manifestID string, builder *configset_proto.ControllerConfig) []*bldr_web_bundler.WebPkgRefConfig {
+	switch builder.GetId() {
+	case js_compiler.ConfigID:
+		conf := &js_compiler.Config{}
+		if unmarshalBuilderConfig(le, manifestID, "JS", builder.GetConfig(), conf) != nil {
+			return nil
+		}
+		return conf.GetWebPkgs()
+	case go_compiler.ConfigID:
+		conf := &go_compiler.Config{}
+		if unmarshalBuilderConfig(le, manifestID, "Go", builder.GetConfig(), conf) != nil {
+			return nil
+		}
+		return conf.GetWebPkgs()
+	default:
+		return nil
+	}
+}
+
+type compilerConfig interface {
+	UnmarshalJSON([]byte) error
+	UnmarshalVT([]byte) error
+}
+
+func unmarshalBuilderConfig(le *logrus.Entry, manifestID, compilerName string, configData []byte, conf compilerConfig) error {
+	if len(configData) == 0 {
+		return nil
+	}
+	var err error
+	if configData[0] == '{' {
+		err = conf.UnmarshalJSON(configData)
+	} else {
+		err = conf.UnmarshalVT(configData)
+	}
+	if err != nil {
+		le.WithError(err).WithField("manifest-id", manifestID).
+			Warnf("failed to unmarshal %s compiler config for webPkg dep resolution", compilerName)
+	}
+	return err
 }
