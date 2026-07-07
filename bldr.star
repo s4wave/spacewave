@@ -45,7 +45,10 @@ LAUNCHER_BROWSER_GO_PKGS = [
 ]
 
 PRODUCTION_DIST_PEER_ID = "12D3KooWL2DEcvqSXXrrCmUxMdPbqFcqzhHBvqseZWHwjAt7aXfW"
+PRODUCTION_CLOUD_API_ENDPOINT = "https://spacewave.app"
+PRODUCTION_ACCOUNT_ENDPOINT = "https://account.spacewave.app"
 PRODUCTION_RELEASE_CONFIG_URL = "https://spacewave.app/api/release/config"
+BROWSER_RELEASE_CLOUD_API_ENDPOINT = "/"
 
 # Signed by a checked-in test-only peer ID. The private key is not needed at
 # runtime; this packed DistConfig only seeds the release-WASM e2e fixture.
@@ -53,7 +56,13 @@ E2E_RELEASE_WASM_INIT_DIST_CONFIG = "QnF9fgszS28jFAQYB2t0Nx0lOx8KM1VoPCAjKShHamY
 E2E_RELEASE_WASM_DIST_PEER_ID = "12D3KooWJPNip1SbsUG7SjteoegGjfq22D4WThuctPvCwJzHesD5"
 
 # Core configSet shared between Go plugin and CLI manifests.
-def core_config_set(listener_path="git:.spacewave/spacewave.sock", include_export=True):
+# Local dev and native builds intentionally fall back to production cloud
+# endpoints unless a caller or dev env override supplies another endpoint.
+def core_config_set(
+        listener_path="git:.spacewave/spacewave.sock",
+        include_export=True,
+        cloud_api_endpoint=PRODUCTION_CLOUD_API_ENDPOINT,
+        account_endpoint=PRODUCTION_ACCOUNT_ENDPOINT):
     configs = {
         "store-peer": config_entry("object/peer", 1, {
             "objectStoreId": "s4wave-peer",
@@ -63,8 +72,8 @@ def core_config_set(listener_path="git:.spacewave/spacewave.sock", include_expor
         "session-list": config_entry("session", 1),
         "provider-local": config_entry("provider/local", 1),
         "provider-spacewave": config_entry("provider/spacewave", 2, {
-            "endpoint": "https://spacewave.app",
-            "accountEndpoint": "https://account.spacewave.app",
+            "endpoint": cloud_api_endpoint,
+            "accountEndpoint": account_endpoint,
             "signingEnvPrefix": "spacewave",
         }),
         "space-sobject": config_entry("space/sobject", 1, {"verbose": False}),
@@ -90,7 +99,9 @@ def browser_go_compiler_platform(go_compiler):
     return "web"
 
 
-def spacewave_core_config(web_go_compiler=None):
+def spacewave_core_config(
+        web_go_compiler=None,
+        cloud_api_endpoint=PRODUCTION_CLOUD_API_ENDPOINT):
     platform_types = {
         "desktop": {
             "goPkgs": ["./core/resource/desktop/statusprojector"],
@@ -103,7 +114,7 @@ def spacewave_core_config(web_go_compiler=None):
         }
     return {
         "goPkgs": core_go_pkgs(),
-        "configSet": core_config_set(),
+        "configSet": core_config_set(cloud_api_endpoint=cloud_api_endpoint),
         "buildTypes": {
             "dev": {
                 "goPkgs": ["./core/debug/trace"],
@@ -127,6 +138,12 @@ def spacewave_core_config(web_go_compiler=None):
             ),
         },
     }
+
+def browser_spacewave_core_config(web_go_compiler=None):
+    return spacewave_core_config(
+        web_go_compiler=web_go_compiler,
+        cloud_api_endpoint=BROWSER_RELEASE_CLOUD_API_ENDPOINT,
+    )
 
 def spacewave_launcher_controller_config(
         dist_peer_ids=[PRODUCTION_DIST_PEER_ID],
@@ -503,7 +520,7 @@ build("release-web",
     targets=["browser"],
     manifestOverrides={
         "spacewave-launcher": spacewave_launcher_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
-        "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
+        "spacewave-core": browser_spacewave_core_config("GO_COMPILER_GOSCRIPT"),
         "spacewave-browser": dist_release_config(
             BROWSER_RELEASE_EMBED_MANIFESTS,
             BROWSER_RELEASE_LOAD_PLUGINS,
@@ -517,6 +534,7 @@ build("release-web-e2e",
     targets=["browser"],
     manifestOverrides={
         "spacewave-launcher": e2e_release_wasm_launcher_config(),
+        "spacewave-core": browser_spacewave_core_config(),
         "spacewave-browser": dist_release_config(
             BROWSER_RELEASE_E2E_EMBED_MANIFESTS,
             BROWSER_RELEASE_E2E_LOAD_PLUGINS,
@@ -534,6 +552,7 @@ build("release-web-e2e-assets",
     targets=["browser"],
     manifestOverrides={
         "spacewave-launcher": e2e_release_wasm_launcher_config(),
+        "spacewave-core": browser_spacewave_core_config(),
     },
 )
 build("release-web-e2e-dist",
@@ -551,7 +570,7 @@ build("release-web-e2e-tinygo-core",
     manifests=["spacewave-core"],
     targets=["browser"],
     manifestOverrides={
-        "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_TINYGO"),
+        "spacewave-core": browser_spacewave_core_config("GO_COMPILER_TINYGO"),
     },
 )
 build("release-web-e2e-tinygo-assets",
@@ -561,7 +580,7 @@ build("release-web-e2e-tinygo-assets",
     ],
     targets=["browser"],
     manifestOverrides={
-        "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_TINYGO"),
+        "spacewave-core": browser_spacewave_core_config("GO_COMPILER_TINYGO"),
         "spacewave-launcher": e2e_release_wasm_launcher_config(),
     },
 )
@@ -569,7 +588,7 @@ build("release-web-tinygo",
     manifests=BROWSER_RELEASE_MANIFESTS,
     targets=["browser"],
     manifestOverrides={
-        "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_TINYGO"),
+        "spacewave-core": browser_spacewave_core_config("GO_COMPILER_TINYGO"),
         "spacewave-browser": dist_release_config(
             BROWSER_RELEASE_WASM_EMBED_MANIFESTS,
             BROWSER_RELEASE_LOAD_PLUGINS,
@@ -582,7 +601,7 @@ build("release-web-e2e-tinygo",
     manifests=BROWSER_RELEASE_E2E_MANIFESTS,
     targets=["browser"],
     manifestOverrides={
-        "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_TINYGO"),
+        "spacewave-core": browser_spacewave_core_config("GO_COMPILER_TINYGO"),
         "spacewave-launcher": e2e_release_wasm_launcher_config(),
         "spacewave-browser": dist_release_config(
             BROWSER_RELEASE_E2E_EMBED_MANIFESTS,
@@ -596,7 +615,7 @@ build("release-web-e2e-goscript",
     manifests=BROWSER_RELEASE_E2E_MANIFESTS,
     targets=["browser"],
     manifestOverrides={
-        "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
+        "spacewave-core": browser_spacewave_core_config("GO_COMPILER_GOSCRIPT"),
         "spacewave-launcher": e2e_release_wasm_launcher_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
         "spacewave-browser": dist_release_config(
             BROWSER_RELEASE_E2E_GOSCRIPT_EMBED_MANIFESTS,
@@ -614,7 +633,7 @@ build("cli",         manifests=["spacewave"])
 # the remote world mixes the GoScript core/js manifest, JS plugin manifests, and
 # web/web/js/wasm manifest in one channel.
 PLUGIN_RELEASE_BROWSER_MANIFEST_OVERRIDES = {
-    "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
+    "spacewave-core": browser_spacewave_core_config("GO_COMPILER_GOSCRIPT"),
 }
 def plugin_release_browser_manifest_overrides(manifest_id):
     if manifest_id == "spacewave-core":
@@ -637,7 +656,7 @@ build("plugin-release-browser-tinygo",
     manifests=REMOTE_WORLD_MANIFESTS,
     targets=["browser"],
     manifestOverrides={
-        "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_TINYGO"),
+        "spacewave-core": browser_spacewave_core_config("GO_COMPILER_TINYGO"),
     },
 )
 

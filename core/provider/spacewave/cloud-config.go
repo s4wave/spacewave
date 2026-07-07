@@ -16,11 +16,15 @@ func (p *Provider) GetCloudConfig(
 	return p.cloudCfgRc.Resolve(ctx)
 }
 
+func cloudAuthConfigURL(endpoint string) (string, error) {
+	return url.JoinPath(endpoint, "/api/auth/config")
+}
+
 func (p *Provider) resolveCloudConfig(
 	ctx context.Context,
 	_ func(),
 ) (*api.AuthConfigResponse, func(), error) {
-	reqURL, err := url.JoinPath(p.endpoint, "/api/auth/config")
+	reqURL, err := cloudAuthConfigURL(p.endpoint)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "build URL")
 	}

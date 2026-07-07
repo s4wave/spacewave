@@ -473,6 +473,18 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 			t.Fatalf("production browser release %s override should use GoScript: %s", name, override)
 		}
 	}
+	browserCoreCfg := string(browserCoreOverride.GetConfig())
+	for _, want := range []string{
+		`"endpoint":"/"`,
+		`"goCompiler":"GO_COMPILER_GOSCRIPT"`,
+	} {
+		if !strings.Contains(browserCoreCfg, want) {
+			t.Fatalf("production/staging browser core config missing %s: %s", want, browserCoreCfg)
+		}
+	}
+	if strings.Contains(browserCoreCfg, `"endpoint":"https://spacewave.app"`) {
+		t.Fatalf("production/staging browser core config uses dev fallback endpoint: %s", browserCoreCfg)
+	}
 	browserCfg := string(browserOverride.GetConfig())
 	if strings.Contains(browserCfg, `"spacewave-loader"`) {
 		t.Fatalf("browser release override unexpectedly includes spacewave-loader: %s", browserCfg)
@@ -626,7 +638,13 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	if pluginReleaseJSConf.GetGoCompiler() != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT {
 		t.Fatalf("plugin-release-browser js spacewave-core goCompiler: got %s, want GO_COMPILER_GOSCRIPT", pluginReleaseJSConf.GetGoCompiler())
 	}
-
+	pluginReleaseCoreCfg := string(pluginReleaseOverride.GetConfig())
+	if !strings.Contains(pluginReleaseCoreCfg, `"endpoint":"/"`) {
+		t.Fatalf("plugin-release-browser core config should use serving-origin endpoint: %s", pluginReleaseCoreCfg)
+	}
+	if strings.Contains(pluginReleaseCoreCfg, `"endpoint":"https://spacewave.app"`) {
+		t.Fatalf("plugin-release-browser core config uses dev fallback endpoint: %s", pluginReleaseCoreCfg)
+	}
 
 	webBuild := result.Config.GetBuild()["release-remote-web"]
 	if webBuild == nil {
