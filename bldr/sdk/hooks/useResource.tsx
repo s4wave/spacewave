@@ -11,6 +11,10 @@ import { Resource as SDKResource } from '../resource/resource.js'
 import { castToError } from 'starpc'
 import { useResourceDevToolsContext } from './ResourceDevToolsContext.js'
 import { useResourcesClient } from './useResourcesClient.js'
+import {
+  useResourceTransitionState,
+  useResourceTransitionVersion,
+} from './resourceTransitionState.js'
 
 // Global counter for generating unique tracking IDs.
 // useId() is not suitable because it generates IDs based on component tree position,
@@ -361,20 +365,7 @@ export function useResource<T>(
 
   const parent = useParentState(parsed.parents)
 
-  // Track previous parent values to detect actual changes
-  const prevParentValuesRef = useRef<unknown[]>([])
-  const parentValuesChangeCountRef = useRef(0)
-
-  // Check if parent values changed
-  if (
-    prevParentValuesRef.current.length !== parent.values.length ||
-    parent.values.some((v, i) => v !== prevParentValuesRef.current[i])
-  ) {
-    prevParentValuesRef.current = parent.values
-    parentValuesChangeCountRef.current++
-  }
-
-  const parentValuesChangeCount = parentValuesChangeCountRef.current
+  const parentValuesChangeCount = useResourceTransitionVersion(parent.values)
 
   // Wrap factory with useCallback to ensure stable identity between renders
   // When deps change, useCallback returns a new function, triggering a reload
@@ -384,35 +375,13 @@ export function useResource<T>(
     parsed.deps,
   )
 
-  // Track the factory that's currently being loaded or was last loaded.
-  // This ref is updated when the effect starts loading, not when factory changes.
-  // This allows us to detect when a new factory is pending but effect hasn't run yet.
-  const loadedFactoryRef = useRef<((...args: unknown[]) => unknown) | null>(
-    null,
-  )
-
-  // Track the parent values change count that the effect has processed.
-  // This allows us to detect when parent values changed but effect hasn't run yet.
-  const loadedParentValuesCountRef = useRef(0)
-
-  const [state, setState] = useState(() => ({
-    value: null as T | null,
-    loading: enabled && !parent.loading,
-    error: null as Error | null,
-  }))
-
-  // Check if we have a pending factory change that the effect hasn't processed yet.
-  // This is true when stableFactory differs from what we last started loading.
-  const hasPendingFactoryChange = loadedFactoryRef.current !== stableFactory
-
-  // Check if parent values changed but effect hasn't processed them yet.
-  const hasPendingParentChange =
-    loadedParentValuesCountRef.current !== parentValuesChangeCount
-
-  // Use loading state that accounts for pending changes
-  const effectiveLoading =
-    hasPendingFactoryChange || hasPendingParentChange || state.loading
-
+  const transitionVersion = useResourceTransitionVersion([
+    stableFactory,
+    parentValuesChangeCount,
+  ])
+  const { state, begin, complete, fail, isPending, resetForRetry, settleNull } =
+    useResourceTransitionState<T>(enabled && !parent.loading)
+  const effectiveLoading = isPending(transitionVersion) || state.loading
   const [retryCount, setRetryCount] = useState(0)
 
   const onSuccess = useEffectEvent((data: T | null) => {
@@ -427,13 +396,9 @@ export function useResource<T>(
 
   const retry = useCallback(() => {
     parent.retries.forEach((r) => r())
-    setState({
-      value: null,
-      loading: true,
-      error: null,
-    })
+    resetForRetry()
     setRetryCount((c) => c + 1)
-  }, [parent.retries])
+  }, [parent.retries, resetForRetry])
 
   const releasedResourceRetryReasons = useMemo(
     () => getReleasedResourceRetryReasons(parsed.options),
@@ -519,53 +484,19 @@ export function useResource<T>(
 
   useEffect(() => {
     if (!enabled) {
-      setState((prev) =>
-        prev.value === null && !prev.loading && prev.error === null
-          ? prev
-          : {
-              value: null,
-              loading: false,
-              error: null,
-            },
-      )
+      settleNull(transitionVersion, false)
       return
     }
     if (parent.values.some((v) => v === null)) {
-      setState((prev) =>
-        prev.value === null && prev.loading === parent.loading
-          ? prev
-          : {
-              value: null,
-              loading: parent.loading,
-              error: null,
-            },
-      )
+      settleNull(transitionVersion, parent.loading)
       return
     }
     if (parent.loading) {
       return
     }
 
-    // Mark this factory as the one being loaded.
-    // This clears the "pending factory change" state for this factory.
-    loadedFactoryRef.current = stableFactory
-
-    // Mark the parent values change count as processed.
-    // This clears the "pending parent change" state.
-    loadedParentValuesCountRef.current = parentValuesChangeCount
-
-    setState((prev) =>
-      prev.loading && prev.error === null
-        ? prev
-        : {
-            value: prev.value,
-            loading: true,
-            error: null,
-          },
-    )
-
     const cleanupResources: { [Symbol.dispose](): void }[] = []
-    const abortController = new AbortController()
+    const run = begin(transitionVersion)
     let cleanedUp = false
 
     const registerCleanup: RegisterCleanup = (resource) => {
@@ -588,31 +519,21 @@ export function useResource<T>(
         const result = await callFactory(
           parsed,
           parent.values,
-          abortController.signal,
+          run.signal,
           registerCleanup,
         )
 
-        if (abortController.signal.aborted) {
+        if (!complete(run, result)) {
           disposeAll()
           return
         }
 
-        setState({
-          value: result,
-          loading: false,
-          error: null,
-        })
         onSuccess(result)
       } catch (err) {
         disposeAll()
 
-        if (!abortController.signal.aborted) {
-          const errorObj = castToError(err)
-          setState({
-            value: null,
-            loading: false,
-            error: errorObj,
-          })
+        const errorObj = castToError(err)
+        if (fail(run, errorObj)) {
           onError(errorObj)
         }
       }
@@ -621,7 +542,7 @@ export function useResource<T>(
     void load()
 
     return () => {
-      abortController.abort()
+      run.abort()
       disposeAll()
     }
     // Intentionally excluding parsed, parent.values, onSuccess, onError from deps:
@@ -633,8 +554,11 @@ export function useResource<T>(
     retryCount,
     enabled,
     parent.loading,
-    parentValuesChangeCount,
-    stableFactory,
+    transitionVersion,
+    begin,
+    complete,
+    fail,
+    settleNull,
   ])
 
   useEffect(() => {
