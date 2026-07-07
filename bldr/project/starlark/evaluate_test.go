@@ -501,8 +501,7 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		}
 	}
 	browserDistConf := mustDistConfig(t, browserOverride.GetConfig())
-	assertDistEmbedPlatform(t, "release-web", browserDistConf, "spacewave-launcher", "js")
-	assertDistEmbedPlatform(t, "release-web", browserDistConf, "spacewave-core", "js")
+	assertDistBrowserStartupClosure(t, "release-web", browserDistConf, "js")
 
 	for _, coldPlugin := range []string{`"spacewave-notes"`, `"spacewave-v86"`} {
 		if strings.Contains(browserCfg, coldPlugin) {
@@ -564,8 +563,7 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		}
 	}
 	e2eDistConf := mustDistConfig(t, e2eBrowserOverride.GetConfig())
-	assertDistEmbedPlatform(t, "release-web-e2e", e2eDistConf, "spacewave-launcher", "web/js/wasm")
-	assertDistEmbedPlatform(t, "release-web-e2e", e2eDistConf, "spacewave-core", "web/js/wasm")
+	assertDistBrowserStartupClosure(t, "release-web-e2e", e2eDistConf, "web/js/wasm")
 
 	for _, unexpected := range []string{
 		`"embeddedManifestOverrides"`,
@@ -616,9 +614,8 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	if e2eDistOnlyOverride == nil {
 		t.Fatal("release-web-e2e-dist should override spacewave-browser")
 	}
-	if !strings.Contains(string(e2eDistOnlyOverride.GetConfig()), `"spacewave-core"`) {
-		t.Fatalf("release-web-e2e-dist override missing embedded plugin config: %s", e2eDistOnlyOverride.GetConfig())
-	}
+	e2eDistOnlyConf := mustDistConfig(t, e2eDistOnlyOverride.GetConfig())
+	assertDistBrowserStartupClosure(t, "release-web-e2e-dist", e2eDistOnlyConf, "web/js/wasm")
 
 	pluginReleaseBrowser := result.Config.GetBuild()["plugin-release-browser"]
 	if pluginReleaseBrowser == nil {
@@ -751,8 +748,7 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 		t.Fatal("spacewave-browser TinyGo release-web override not found")
 	}
 	tinygoReleaseDistConf := mustDistConfig(t, tinygoReleaseBrowserOverride.GetConfig())
-	assertDistEmbedPlatform(t, "release-web-tinygo", tinygoReleaseDistConf, "spacewave-launcher", "web/js/wasm")
-	assertDistEmbedPlatform(t, "release-web-tinygo", tinygoReleaseDistConf, "spacewave-core", "web/js/wasm")
+	assertDistBrowserStartupClosure(t, "release-web-tinygo", tinygoReleaseDistConf, "web/js/wasm")
 
 	goscriptE2EReleaseBuild := result.Config.GetBuild()["release-web-e2e-goscript"]
 	if goscriptE2EReleaseBuild == nil {
@@ -813,6 +809,81 @@ func assertDistEmbedPlatform(
 		}
 	}
 	t.Fatalf("%s embed manifests missing %s: %v", label, manifestID, conf.GetEmbedManifests())
+}
+
+type distEmbedManifestWant struct {
+	manifestID string
+	platformID string
+}
+
+func assertDistBrowserStartupClosure(
+	t *testing.T,
+	label string,
+	conf *bldr_dist_compiler.Config,
+	goPlatformID string,
+) {
+	t.Helper()
+
+	wantLoadPlugins := []string{
+		"spacewave-launcher",
+		"spacewave-core",
+		"spacewave-web",
+		"spacewave-app",
+		"web",
+	}
+	if got := conf.GetLoadPlugins(); !slices.Equal(got, wantLoadPlugins) {
+		t.Fatalf("%s load plugins: got %v, want %v", label, got, wantLoadPlugins)
+	}
+
+	wantEmbedManifests := []distEmbedManifestWant{
+		{manifestID: "spacewave-launcher", platformID: goPlatformID},
+		{manifestID: "spacewave-core", platformID: goPlatformID},
+		{manifestID: "web", platformID: "web/js/wasm"},
+		{manifestID: "spacewave-web", platformID: "js"},
+		{manifestID: "spacewave-app", platformID: "js"},
+	}
+	for _, want := range wantEmbedManifests {
+		assertDistEmbedPlatform(t, label, conf, want.manifestID, want.platformID)
+	}
+	assertDistEmbedManifests(t, label, conf, wantEmbedManifests)
+}
+
+func assertDistEmbedManifests(
+	t *testing.T,
+	label string,
+	conf *bldr_dist_compiler.Config,
+	want []distEmbedManifestWant,
+) {
+	t.Helper()
+
+	got := conf.GetEmbedManifests()
+	if len(got) != len(want) {
+		t.Fatalf("%s embed manifests: got %v, want %v", label, distEmbedManifestTuples(got), want)
+	}
+	for i, embed := range got {
+		if embed.GetManifestId() != want[i].manifestID || embed.GetPlatformId() != want[i].platformID {
+			t.Fatalf(
+				"%s embed manifest[%d]: got %s@%s, want %s@%s",
+				label,
+				i,
+				embed.GetManifestId(),
+				embed.GetPlatformId(),
+				want[i].manifestID,
+				want[i].platformID,
+			)
+		}
+	}
+}
+
+func distEmbedManifestTuples(embeds []*bldr_dist_compiler.EmbedManifest) []distEmbedManifestWant {
+	tuples := make([]distEmbedManifestWant, 0, len(embeds))
+	for _, embed := range embeds {
+		tuples = append(tuples, distEmbedManifestWant{
+			manifestID: embed.GetManifestId(),
+			platformID: embed.GetPlatformId(),
+		})
+	}
+	return tuples
 }
 
 func mustGoPluginConfig(t *testing.T, data []byte) *bldr_plugin_compiler_go.Config {

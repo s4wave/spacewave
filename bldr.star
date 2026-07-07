@@ -254,10 +254,10 @@ manifest("web",
     },
 )
 
-# spacewave-launcher is the minimal embedded plugin that drives the launcher
-# binary. It carries just enough to fetch a DistConfig, mount the public release
-# world from the CDN, and resolve plugin manifests from it. Everything else
-# (spacewave-core, UI plugins) loads from the release world on first launch.
+# spacewave-launcher is the minimal browser launcher plugin. It carries just
+# enough to fetch a DistConfig, mount the public release world from the CDN, and
+# resolve plugin manifests from it; browser release still embeds the full
+# startup app closure below so first startup does not depend on that fetch plane.
 manifest("spacewave-launcher",
     builder="bldr/plugin/compiler/go",
     rev=1,
@@ -493,6 +493,14 @@ REMOTE_WORLD_MANIFESTS = [
     "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86",
     "spacewave-cli-plugin", "web",
 ]
+# Browser release intentionally embeds the full startup app closure:
+# spacewave-launcher, spacewave-core, web, spacewave-web, and spacewave-app.
+# The embedded Manifest world is the first FetchManifest source available to the
+# dist host, so these startup plugins must be resolvable before the launcher has
+# mounted the Release World. Launcher-only embedding can replace this list only
+# after a non-circular Release World FetchManifest path is owned by the host or
+# launcher and release preflight proves the Release World contains those
+# non-launcher startup tuples.
 def browser_release_embed_manifests(go_platform_id):
     return [
         {"manifestId": "spacewave-launcher",
