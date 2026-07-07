@@ -106,6 +106,29 @@ describe('createWebPkgRemapPlugin', () => {
     expect(result).not.toContain('"/b/pkg/sonner/')
   })
 
+  it('normalizes repeated slashes in the configured web package base path', () => {
+    const plugin = createWebPkgRemapPlugin({
+      webPkgIDs: ['react'],
+      webPkgBasePath: '/entrypoint//pkgs/',
+    })
+
+    const renderChunk = plugin.renderChunk
+    if (typeof renderChunk !== 'function') {
+      throw new Error('missing renderChunk hook')
+    }
+
+    const result = renderChunk.call(
+      {} as never,
+      'import React from "react";',
+      {} as never,
+      {} as never,
+      {} as never,
+    )
+
+    expect(result).toContain('"/entrypoint/pkgs/react/index.mjs"')
+    expect(result).not.toContain('/entrypoint//pkgs/')
+  })
+
   it('derives served names from declared imports, stripping dist subdir and .pb extension', async () => {
     const plugin = createWebPkgRemapPlugin({
       webPkgIDs: ['@aptre/protobuf-es-lite'],

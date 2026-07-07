@@ -219,7 +219,9 @@ export function createWebPkgRemapPlugin(
   config: WebPkgRemapPluginConfig,
 ): Plugin {
   const debug = config.debug || false
-  const webPkgBasePath = (config.webPkgBasePath ?? '/b/pkg').replace(/\/+$/, '')
+  const webPkgBasePath = ('/' + (config.webPkgBasePath ?? '/b/pkg'))
+    .replace(/\/+/g, '/')
+    .replace(/\/+$/, '')
   const preservedWebPkgIDSet = new Set(config.preserveWebPkgIDs ?? [])
   const remappedWebPkgIDs = config.webPkgIDs.filter(
     (pkg) => !preservedWebPkgIDSet.has(pkg),
