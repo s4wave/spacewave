@@ -10,10 +10,15 @@ const mockElectronApp = {
   getAppPath() {
     return '/app'
   },
+  getName: vi.fn(() => 'Spacewave'),
   on: vi.fn(),
   quit: vi.fn(),
   requestSingleInstanceLock: vi.fn(() => true),
   setName: vi.fn(),
+}
+
+const mockDefaultSession = {
+  on: vi.fn(),
 }
 
 class MockWebContents extends EventEmitter {
@@ -21,6 +26,7 @@ class MockWebContents extends EventEmitter {
 
   public readonly openDevTools = vi.fn()
   public readonly setWindowOpenHandler = vi.fn()
+  public readonly downloadURL = vi.fn()
 
   public getURL() {
     return this.currentUrl
@@ -90,6 +96,10 @@ vi.mock('electron', () => {
   }
   const dialog = {
     showOpenDialog: vi.fn(),
+    showSaveDialog: vi.fn(),
+  }
+  const session = {
+    defaultSession: mockDefaultSession,
   }
   const nativeTheme = {
     themeSource: 'system',
@@ -110,6 +120,7 @@ vi.mock('electron', () => {
       ipcMain,
       dialog,
       nativeTheme,
+      session,
     },
     app: mockElectronApp,
     BrowserWindow,
@@ -119,6 +130,7 @@ vi.mock('electron', () => {
     ipcMain,
     dialog,
     nativeTheme,
+    session,
   }
 })
 
@@ -510,6 +522,81 @@ describe('BldrElectronApp', () => {
     })
   })
 
+  it('registers native save dialog options for downloads', async () => {
+    const { BldrElectronApp } = await import('./app.js')
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      {},
+    ])
+    Reflect.apply(Reflect.get(app, 'init'), app, [])
+
+    const ready = getAppHandler('ready')
+    ready()
+
+    const handler = getDownloadHandler()
+    const item = {
+      getFilename: vi.fn(() => 'spacewave-export.zip'),
+      setSaveDialogOptions: vi.fn(),
+    }
+
+    handler({}, item, {})
+
+    expect(item.setSaveDialogOptions).toHaveBeenCalledWith({
+      title: 'Save Download',
+      defaultPath: 'spacewave-export.zip',
+      buttonLabel: 'Save',
+    })
+  })
+
+  it('routes export navigations through Electron download handling', async () => {
+    const { BldrElectronApp } = await import('./app.js')
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      {},
+    ])
+    await createWebDocument(app, 'electron-init')
+
+    const event = { preventDefault: vi.fn() }
+    const win = browserWindows[0]
+    win.webContents.emit(
+      'will-navigate',
+      event,
+      'app://index.html/p/spacewave-core/export/u/1/so/space-1',
+    )
+
+    expect(event.preventDefault).toHaveBeenCalledTimes(1)
+    expect(win.webContents.downloadURL).toHaveBeenCalledWith(
+      'app://index.html/p/spacewave-core/export/u/1/so/space-1',
+    )
+    expect(win.loadURL).toHaveBeenCalledTimes(1)
+  })
+
+  it('routes export window opens through Electron download handling', async () => {
+    const { BldrElectronApp } = await import('./app.js')
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      {},
+    ])
+    await createWebDocument(app, 'electron-init')
+
+    const win = browserWindows[0]
+    const handler = win.webContents.setWindowOpenHandler.mock.calls[0]?.[0]
+    if (!handler) throw new Error('window open handler not registered')
+
+    const result = handler({
+      url: 'app://index.html/p/spacewave-core/export/u/1/so/space-1',
+    })
+
+    expect(result).toEqual({ action: 'deny' })
+    expect(win.webContents.downloadURL).toHaveBeenCalledWith(
+      'app://index.html/p/spacewave-core/export/u/1/so/space-1',
+    )
+    expect(browserWindows).toHaveLength(1)
+  })
+
   it('registers renderer ipc for explicit desktop quit', async () => {
     const [electron, { BldrElectronApp }] = await Promise.all([
       import('electron'),
@@ -582,6 +669,17 @@ function getAppHandler(event: string) {
   const handler = match?.[1]
   if (typeof handler !== 'function') {
     throw new Error(`${event} handler not found`)
+  }
+  return handler
+}
+
+function getDownloadHandler() {
+  const match = mockDefaultSession.on.mock.calls.find(
+    ([name]) => name === 'will-download',
+  )
+  const handler = match?.[1]
+  if (typeof handler !== 'function') {
+    throw new Error('will-download handler not found')
   }
   return handler
 }

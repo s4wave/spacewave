@@ -5,7 +5,13 @@ import http, {
   type Server,
   type ServerResponse,
 } from 'http'
-import electron, { dialog, ipcMain, nativeTheme, shell } from 'electron'
+import electron, {
+  dialog,
+  ipcMain,
+  nativeTheme,
+  session,
+  shell,
+} from 'electron'
 import { Client as SRPCClient, OpenStreamCtr, StreamConn } from 'starpc'
 import type { Message } from '@aptre/protobuf-es-lite'
 
@@ -59,6 +65,8 @@ const proxyFetchHeaderTimeoutMs = 30_000
 const logRendererEvents =
   isDebug && process.env.BLDR_ELECTRON_LOG_RENDERER === '1'
 const e2eControlPortEnv = 'BLDR_ELECTRON_E2E_CONTROL_PORT'
+const runtimeDownloadPathPattern =
+  /^\/p\/[^/]+\/(?:export|export-batch|fs)(?:\/|$)/
 // BLDR_ELECTRON_WINDOW_TITLE overrides the OS window title for this instance
 // so external tooling driving multiple concurrent app windows can tell them
 // apart. The override also pins the title against renderer document.title
@@ -258,6 +266,8 @@ export class BldrElectronApp {
     this.setupWebRuntimeClientPort()
     // setup native filesystem picker ipc
     this.setupNativeDirectoryPicker()
+    // setup native downloads before renderer windows can navigate to export URLs
+    this.setupDesktopDownloads()
     // setup renderer desktop runtime lifecycle ipc
     this.setupDesktopRuntimeIpc()
     // setup test-only control surface for windowless Electron e2e assertions
@@ -297,6 +307,16 @@ export class BldrElectronApp {
   private setupDesktopRuntimeIpc() {
     ipcMain.handle('BLDR_ELECTRON_QUIT_DESKTOP_RUNTIME', async () => {
       await this.desktopRuntimeResource.QuitDesktopRuntime({})
+    })
+  }
+
+  private setupDesktopDownloads() {
+    session.defaultSession.on('will-download', (_event, item) => {
+      item.setSaveDialogOptions({
+        title: 'Save Download',
+        defaultPath: item.getFilename(),
+        buttonLabel: 'Save',
+      })
     })
   }
 
@@ -439,7 +459,8 @@ export class BldrElectronApp {
       frame: isMac,
       titleBarStyle: isMac ? 'hidden' : undefined,
 
-      title: windowTitleOverride || init.windowTitle || init.appName || undefined,
+      title:
+        windowTitleOverride || init.windowTitle || init.appName || undefined,
       height: windowSizeOverride?.height || init.windowHeight || 680,
       width: windowSizeOverride?.width || init.windowWidth || 900,
       show: false,
@@ -502,6 +523,11 @@ export class BldrElectronApp {
         return
       }
 
+      if (this.isRuntimeDownloadUrl(targetUrl)) {
+        event.preventDefault()
+        nwindow.webContents.downloadURL(targetUrl)
+        return
+      }
       if (!this.isInternalUrl(targetUrl)) {
         event.preventDefault()
         if (this.electronInit.externalLinks !== ExternalLinks.DENY) {
@@ -527,6 +553,10 @@ export class BldrElectronApp {
 
     // Handle window.open() calls - only allow same-origin with different hash
     nwindow.webContents.setWindowOpenHandler(({ url: targetUrl }) => {
+      if (this.isRuntimeDownloadUrl(targetUrl)) {
+        nwindow.webContents.downloadURL(targetUrl)
+        return { action: 'deny' }
+      }
       // Handle external URLs
       if (!this.isInternalUrl(targetUrl)) {
         if (this.electronInit.externalLinks !== ExternalLinks.DENY) {
@@ -673,6 +703,18 @@ export class BldrElectronApp {
     try {
       const parsed = new URL(url)
       return parsed.protocol === `${APP_SCHEME}:`
+    } catch {
+      return false
+    }
+  }
+
+  private isRuntimeDownloadUrl(url: string): boolean {
+    try {
+      const parsed = new URL(url)
+      return (
+        parsed.protocol === `${APP_SCHEME}:` &&
+        runtimeDownloadPathPattern.test(parsed.pathname)
+      )
     } catch {
       return false
     }
