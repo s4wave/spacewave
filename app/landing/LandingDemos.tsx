@@ -31,7 +31,6 @@ import type {
 } from '@s4wave/web/editors/file-browser/types.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { StatusList, type StatusListItem } from '@s4wave/web/ui/StatusList.js'
-import LexicalEditor from '../../plugin/notes/LexicalEditor.js'
 import '@s4wave/app/docs/docs-prose.css'
 
 const markdownOverrides = {
@@ -548,8 +547,8 @@ export function NotesLandingDemo() {
   return (
     <DemoFrame
       icon={LuFileText}
-      title="Real notebook editor"
-      subtitle="Try out the markdown editor below."
+      title="Markdown notebook preview"
+      subtitle="Edit markdown and preview the rendered note."
     >
       <div className="grid gap-0 @lg:grid-cols-[0.65fr_1.35fr]">
         <div className="border-foreground/8 border-b p-3 @lg:border-r @lg:border-b-0">
@@ -558,9 +557,7 @@ export function NotesLandingDemo() {
               Demo notebook
             </div>
             <div className="text-foreground-alt text-xs leading-relaxed">
-              Pick a note, type in the real editor, then try the toolbar or
-              <span className="text-foreground"> / </span>
-              commands.
+              Pick a note, edit markdown, and watch the rendered preview update.
             </div>
           </div>
           <div className="space-y-2">
@@ -587,11 +584,13 @@ export function NotesLandingDemo() {
             <div className="text-foreground font-medium">Try this</div>
             <div className="text-foreground-alt mt-2 space-y-1">
               <div>
-                Use the block menu to insert headings, lists, tables, or embeds.
+                Edit source markdown directly in the static landing shell.
               </div>
-              <div>Select text to see the floating toolbar.</div>
               <div>
-                Changes save back into markdown, not a proprietary format.
+                Headings, tasks, code blocks, and links render immediately.
+              </div>
+              <div>
+                The full notes plugin owns the live Lexical editor in app mode.
               </div>
             </div>
           </div>
@@ -603,20 +602,25 @@ export function NotesLandingDemo() {
                 {selectedNote.title}
               </div>
               <div className="text-foreground-alt text-xs">
-                Markdown-backed Lexical editing
+                Markdown source and rendered preview
               </div>
             </div>
             <div className="border-brand/20 bg-brand/8 text-brand rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold tracking-wide uppercase">
-              live stack
+              static shell
             </div>
           </div>
-          <div className="bg-background/60 h-[28rem] min-h-0 overflow-hidden">
-            <LexicalEditor
-              composerKey={selectedId}
-              content={selectedNote.body}
-              format="markdown"
-              onSave={handleSave}
+          <div className="grid h-[28rem] min-h-0 gap-0 overflow-hidden @lg:grid-cols-[1fr_1fr]">
+            <textarea
+              aria-label="Notebook markdown"
+              value={selectedNote.body}
+              onChange={(event) => handleSave(event.target.value)}
+              className="border-foreground/8 bg-background/60 text-foreground h-full min-h-0 resize-none border-0 border-b p-4 font-mono text-xs leading-relaxed outline-none @lg:border-r @lg:border-b-0"
             />
+            <div className="docs-prose bg-background/60 min-h-0 overflow-auto px-4 py-3 text-sm">
+              <Markdown options={markdownOverrides}>
+                {selectedNote.body}
+              </Markdown>
+            </div>
           </div>
         </div>
       </div>

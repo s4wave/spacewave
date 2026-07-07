@@ -52,14 +52,16 @@ describe('landing demos', () => {
     ).toBeTruthy()
   })
 
-  it('switches the live notes editor to the selected note', () => {
+  it('switches the notes markdown preview to the selected note', () => {
     render(<NotesLandingDemo />)
 
     fireEvent.click(screen.getByText('Team handbook'))
 
-    const editor = screen.getByRole('textbox')
+    const editor = screen.getByRole('textbox', { name: 'Notebook markdown' })
     expect(screen.getAllByText('Team handbook').length).toBeGreaterThan(0)
-    expect(editor.textContent).toContain('Spacewave notes are plain markdown.')
+    expect((editor as HTMLTextAreaElement).value).toContain(
+      'Spacewave notes are plain markdown.',
+    )
   })
 
   it('derives the plugin preview from the current code', () => {
