@@ -14,12 +14,11 @@ export interface KnownSpacePlugin {
   icon: React.ComponentType<{ className?: string }>
 }
 
-// KNOWN_SPACE_PLUGINS is the curated set of plugin manifest IDs the app knows
-// how to install into a Space. It stands in for a backend "available plugins"
-// listing surface, which does not yet exist: FetchManifest resolves a single
-// known manifest ID and SpacePluginStatus only projects plugins already on the
-// Space, so no RPC enumerates the Release World plugin catalog for browsing.
-// When such a listing owner lands, replace this constant with its result.
+// KNOWN_SPACE_PLUGINS is the curated presentation metadata (name, icon, fallback
+// description) for plugin manifest IDs the app recognizes. The browsable catalog
+// itself is streamed from the backend as SpaceContentsState.availablePlugins;
+// this table supplies display polish for those entries and stands in as the
+// browsable set until the catalog has synced.
 export const KNOWN_SPACE_PLUGINS: readonly KnownSpacePlugin[] = [
   {
     id: 'spacewave-notes',

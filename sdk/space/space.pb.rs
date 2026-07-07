@@ -166,6 +166,24 @@ pub struct SpaceContentsState {
     /// ProcessBindings is the list of process binding states.
     #[prost(message, repeated, tag="3")]
     pub process_bindings: ::prost::alloc::vec::Vec<ProcessBindingInfo>,
+    /// AvailablePlugins is the catalog of plugins installable into the space,
+    /// enumerated from the Release World manifests visible to the space. The app
+    /// derives installed state by intersecting these with the plugins list.
+    #[prost(message, repeated, tag="4")]
+    pub available_plugins: ::prost::alloc::vec::Vec<AvailablePlugin>,
+}
+/// AvailablePlugin is one catalog entry the space can install by manifest ID.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AvailablePlugin {
+    /// PluginId is the manifest ID to add to SpaceSettings.plugin_ids to install.
+    #[prost(string, tag="1")]
+    pub plugin_id: ::prost::alloc::string::String,
+    /// Description is the manifest metadata description, if any.
+    #[prost(string, tag="2")]
+    pub description: ::prost::alloc::string::String,
+    /// Revision is the highest manifest revision available for the plugin.
+    #[prost(string, tag="3")]
+    pub revision: ::prost::alloc::string::String,
 }
 /// SpacePluginStatus contains runtime state for a single plugin.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

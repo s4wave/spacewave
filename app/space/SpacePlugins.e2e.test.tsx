@@ -57,10 +57,7 @@ import { SpacePlugins } from './SpacePlugins.js'
 // an InfoCard on the app background, so screenshots match production chrome.
 function PanelFrame() {
   return (
-    <div
-      className="bg-background"
-      style={{ width: '380px', padding: '16px' }}
-    >
+    <div className="bg-background" style={{ width: '380px', padding: '16px' }}>
       <InfoCard>
         <SpacePlugins />
       </InfoCard>
@@ -98,9 +95,7 @@ describe('SpacePlugins panel screenshots', () => {
     }
 
     render(<PanelFrame />)
-    await expect
-      .element(page.getByText('spacewave-notes'))
-      .toBeInTheDocument()
+    await expect.element(page.getByText('spacewave-notes')).toBeInTheDocument()
     await page.screenshot({ path: 'spaceplugins-01-installed.png' })
   })
 
@@ -116,7 +111,7 @@ describe('SpacePlugins panel screenshots', () => {
     render(<PanelFrame />)
     await userEvent.click(page.getByLabelText('Add plugin'))
     await expect
-      .element(page.getByText('Suggested'))
+      .element(page.getByText('Available plugins'))
       .toBeInTheDocument()
     await page.screenshot({ path: 'spaceplugins-03-add-form.png' })
   })

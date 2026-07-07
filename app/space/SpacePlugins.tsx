@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { type ComponentType, useCallback, useState } from 'react'
 import { useWatchStateRpc } from '@aptre/bldr-react'
 import { LuLoaderCircle, LuPlus, LuPuzzle, LuTrash2, LuX } from 'react-icons/lu'
 
@@ -20,6 +20,16 @@ import {
 } from '@s4wave/sdk/space/space.pb.js'
 
 import { KNOWN_SPACE_PLUGINS, knownSpacePlugin } from './known-plugins.js'
+
+// CatalogEntry is one browsable plugin row merging the backend catalog with
+// known-plugin presentation metadata (name, icon, fallback description).
+interface CatalogEntry {
+  id: string
+  name: string
+  description: string
+  icon: ComponentType<{ className?: string }>
+  revision: string
+}
 
 // SpacePlugins renders the plugin management UI for a space: the installed
 // plugins with lifecycle badges, an add-by-manifest-ID flow with known-plugin
@@ -99,9 +109,37 @@ export function SpacePlugins() {
           : null
   const canSubmitDraft = draftValid && !draftDuplicate && !pending
 
-  const suggestions = KNOWN_SPACE_PLUGINS.filter(
-    (plugin) => !installedIds.has(plugin.id),
-  )
+  // Merge the backend plugin catalog with known-plugin presentation metadata,
+  // keyed by manifest ID. The streamed availablePlugins list is the source of
+  // truth for what is installable; known-plugins supplies name/icon and a
+  // fallback description, and stands in as the browsable set until the catalog
+  // syncs.
+  const available = contentsState?.availablePlugins ?? []
+  const catalogById = new Map<string, CatalogEntry>()
+  for (const known of KNOWN_SPACE_PLUGINS) {
+    catalogById.set(known.id, {
+      id: known.id,
+      name: known.name,
+      description: known.description,
+      icon: known.icon,
+      revision: '',
+    })
+  }
+  for (const plugin of available) {
+    const id = plugin.pluginId ?? ''
+    if (!id) continue
+    const meta = knownSpacePlugin(id)
+    catalogById.set(id, {
+      id,
+      name: meta.name,
+      description: plugin.description || meta.description,
+      icon: meta.icon,
+      revision: plugin.revision ?? '',
+    })
+  }
+  const suggestions = Array.from(catalogById.values())
+    .filter((entry) => !installedIds.has(entry.id))
+    .sort((a, b) => a.name.localeCompare(b.name))
 
   return (
     <div className="flex flex-col gap-2">
@@ -173,7 +211,7 @@ export function SpacePlugins() {
           {suggestions.length > 0 && (
             <div className="space-y-1.5">
               <span className="text-foreground-alt/50 text-[0.6rem] font-medium tracking-widest uppercase select-none">
-                Suggested
+                Available plugins
               </span>
               <div className="flex flex-col gap-1.5">
                 {suggestions.map((plugin) => {
@@ -198,8 +236,15 @@ export function SpacePlugins() {
                         )}
                       </span>
                       <span className="flex min-w-0 flex-1 flex-col">
-                        <span className="text-foreground text-xs font-medium">
-                          {plugin.name}
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-foreground text-xs font-medium">
+                            {plugin.name}
+                          </span>
+                          {plugin.revision && (
+                            <span className="text-foreground-alt/50 text-[0.6rem] tabular-nums">
+                              rev {plugin.revision}
+                            </span>
+                          )}
                         </span>
                         <span className="text-foreground-alt/70 truncate text-[0.6rem]">
                           {plugin.description}

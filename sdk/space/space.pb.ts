@@ -709,6 +709,43 @@ export const ProcessBindingInfo: MessageType<ProcessBindingInfo> =
   })
 
 /**
+ * AvailablePlugin is one catalog entry the space can install by manifest ID.
+ *
+ * @generated from message s4wave.space.AvailablePlugin
+ */
+export interface AvailablePlugin {
+  /**
+   * PluginId is the manifest ID to add to SpaceSettings.plugin_ids to install.
+   *
+   * @generated from field: string plugin_id = 1;
+   */
+  pluginId?: string
+  /**
+   * Description is the manifest metadata description, if any.
+   *
+   * @generated from field: string description = 2;
+   */
+  description?: string
+  /**
+   * Revision is the highest manifest revision available for the plugin.
+   *
+   * @generated from field: string revision = 3;
+   */
+  revision?: string
+}
+
+export const AvailablePlugin: MessageType<AvailablePlugin> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.AvailablePlugin',
+    fields: [
+      { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'description', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'revision', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * SpaceContentsState contains plugin status for the space.
  *
  * @generated from message s4wave.space.SpaceContentsState
@@ -732,6 +769,14 @@ export interface SpaceContentsState {
    * @generated from field: repeated s4wave.space.ProcessBindingInfo process_bindings = 3;
    */
   processBindings?: ProcessBindingInfo[]
+  /**
+   * AvailablePlugins is the catalog of plugins installable into the space,
+   * enumerated from the Release World manifests visible to the space. The app
+   * derives installed state by intersecting these with the plugins list.
+   *
+   * @generated from field: repeated s4wave.space.AvailablePlugin available_plugins = 4;
+   */
+  availablePlugins?: AvailablePlugin[]
 }
 
 export const SpaceContentsState: MessageType<SpaceContentsState> =
@@ -751,6 +796,13 @@ export const SpaceContentsState: MessageType<SpaceContentsState> =
         name: 'process_bindings',
         kind: 'message',
         T: () => ProcessBindingInfo,
+        repeated: true,
+      },
+      {
+        no: 4,
+        name: 'available_plugins',
+        kind: 'message',
+        T: () => AvailablePlugin,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],

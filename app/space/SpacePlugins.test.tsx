@@ -166,6 +166,50 @@ describe('SpacePlugins', () => {
     expect(screen.getByText('V86 VM')).toBeDefined()
   })
 
+  it('lists backend catalog plugins with revision and installs them', () => {
+    contentsState = {
+      plugins: [],
+      availablePlugins: [
+        {
+          pluginId: 'spacewave-chat',
+          description: 'Realtime chat rooms',
+          revision: '7',
+        },
+      ],
+    }
+
+    render(<SpacePlugins />)
+    fireEvent.click(screen.getByLabelText('Add plugin'))
+
+    expect(screen.getByText('spacewave-chat')).toBeDefined()
+    expect(screen.getByText('Realtime chat rooms')).toBeDefined()
+    expect(screen.getByText('rev 7')).toBeDefined()
+
+    fireEvent.click(screen.getByText('spacewave-chat'))
+    expect(mocks.addSpacePlugin).toHaveBeenCalledWith('spacewave-chat')
+  })
+
+  it('hides installed catalog plugins and falls back to known plugins when empty', () => {
+    contentsState = {
+      plugins: [
+        {
+          pluginId: 'spacewave-chat',
+          state: SpacePluginLifecycleState.SpacePluginLifecycleState_LOADED,
+        },
+      ],
+      availablePlugins: [{ pluginId: 'spacewave-chat', revision: '7' }],
+    }
+
+    render(<SpacePlugins />)
+    fireEvent.click(screen.getByLabelText('Add plugin'))
+
+    // Installed catalog plugin is filtered out of the browsable list.
+    expect(screen.queryByText('rev 7')).toBeNull()
+    // Known-plugin fallbacks stay browsable when not installed.
+    expect(screen.getByText('Notes')).toBeDefined()
+    expect(screen.getByText('V86 VM')).toBeDefined()
+  })
+
   it('validates and installs a manually entered manifest ID', () => {
     render(<SpacePlugins />)
 

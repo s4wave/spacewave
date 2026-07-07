@@ -1,10 +1,12 @@
 package resource_space
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"maps"
 	"slices"
+	"strconv"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -12,6 +14,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/routine"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
@@ -61,7 +64,9 @@ type SpaceContentsResource struct {
 	descriptions map[string]string
 	// buildDescriptions overrides description lookup in tests.
 	buildDescriptions func(context.Context, world.WorldState, []string) (map[string]string, error)
-	startController   spaceContentsControllerStarter
+	// buildAvailablePlugins overrides catalog enumeration in tests.
+	buildAvailablePlugins func(context.Context, world.WorldState) ([]*s4wave_space.AvailablePlugin, error)
+	startController       spaceContentsControllerStarter
 }
 
 // NewSpaceContentsResource creates a new SpaceContentsResource.
@@ -233,9 +238,11 @@ func (r *SpaceContentsResource) WatchState(
 
 	var prevSeqno uint64
 	for {
-		// Read SpaceSettings and manifest descriptions from the world.
+		// Read SpaceSettings, manifest descriptions, and the installable plugin
+		// catalog from the world.
 		var pluginIDs []string
 		var descriptions map[string]string
+		var availablePlugins []*s4wave_space.AvailablePlugin
 		if err := func() error {
 			wtx, err := r.engine.NewTransaction(ctx, false)
 			if err != nil {
@@ -260,6 +267,12 @@ func (r *SpaceContentsResource) WatchState(
 			if err != nil {
 				r.le.WithError(err).Warn("failed to resolve plugin descriptions")
 				descriptions = nil
+			}
+
+			availablePlugins, err = r.getAvailablePlugins(ctx, wtx)
+			if err != nil {
+				r.le.WithError(err).Warn("failed to resolve plugin catalog")
+				availablePlugins = nil
 			}
 
 			return nil
@@ -312,9 +325,10 @@ func (r *SpaceContentsResource) WatchState(
 		}
 
 		if err := strm.Send(&s4wave_space.SpaceContentsState{
-			Ready:           true,
-			Plugins:         plugins,
-			ProcessBindings: processBindings,
+			Ready:            true,
+			Plugins:          plugins,
+			ProcessBindings:  processBindings,
+			AvailablePlugins: availablePlugins,
 		}); err != nil {
 			return err
 		}
@@ -533,6 +547,72 @@ func (r *SpaceContentsResource) collectPluginDescriptions(
 	}
 
 	return descriptions, nil
+}
+
+// getAvailablePlugins returns the installable plugin catalog for the space,
+// using the test override when set.
+func (r *SpaceContentsResource) getAvailablePlugins(
+	ctx context.Context,
+	ws world.WorldState,
+) ([]*s4wave_space.AvailablePlugin, error) {
+	if r.buildAvailablePlugins != nil {
+		return r.buildAvailablePlugins(ctx, ws)
+	}
+	return r.collectAvailablePlugins(ctx, ws)
+}
+
+// collectAvailablePlugins enumerates every manifest object in the world and
+// returns the installable plugin catalog, keeping the highest revision for each
+// manifest ID.
+func (r *SpaceContentsResource) collectAvailablePlugins(
+	ctx context.Context,
+	ws world.WorldState,
+) ([]*s4wave_space.AvailablePlugin, error) {
+	manifestKeys, err := world_types.ListObjectsWithType(ctx, ws, bldr_manifest_world.ManifestTypeID)
+	if err != nil {
+		return nil, err
+	}
+
+	catalog := make(map[string]*bldr_manifest.ManifestMeta, len(manifestKeys))
+	for _, key := range manifestKeys {
+		m, _, err := bldr_manifest_world.LookupManifest(ctx, ws, key)
+		if err != nil {
+			continue
+		}
+		addManifestToCatalog(catalog, m.GetMeta())
+	}
+
+	return availablePluginsFromCatalog(catalog), nil
+}
+
+// addManifestToCatalog records the manifest meta under its manifest ID, keeping
+// the highest revision when the same plugin has multiple platform/revision
+// builds.
+func addManifestToCatalog(catalog map[string]*bldr_manifest.ManifestMeta, meta *bldr_manifest.ManifestMeta) {
+	manifestID := meta.GetManifestId()
+	if manifestID == "" {
+		return
+	}
+	if prev, ok := catalog[manifestID]; !ok || meta.GetRev() > prev.GetRev() {
+		catalog[manifestID] = meta
+	}
+}
+
+// availablePluginsFromCatalog projects the collected catalog into the sorted
+// app-facing available plugin list.
+func availablePluginsFromCatalog(catalog map[string]*bldr_manifest.ManifestMeta) []*s4wave_space.AvailablePlugin {
+	out := make([]*s4wave_space.AvailablePlugin, 0, len(catalog))
+	for manifestID, meta := range catalog {
+		out = append(out, &s4wave_space.AvailablePlugin{
+			PluginId:    manifestID,
+			Description: meta.GetDescription(),
+			Revision:    strconv.FormatUint(meta.GetRev(), 10),
+		})
+	}
+	slices.SortFunc(out, func(a, b *s4wave_space.AvailablePlugin) int {
+		return cmp.Compare(a.GetPluginId(), b.GetPluginId())
+	})
+	return out
 }
 
 // SetProcessBinding sets the state for a process binding.

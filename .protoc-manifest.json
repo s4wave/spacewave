@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "1c28c09115aa511ff35b1be26994db5c0c847fc8e5879acca1694ab90f3ae614",
+  "protocFlagsHash": "e1dfd9a2733de892c729b217327eaac6a8fe7f5a58c81444225765b28e5291ee",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.15.0,starpc=v0.49.18,protobuf-es-lite=1.1.0",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -385,17 +385,6 @@
         "bldr/plugin/host/web/config.pb.ts"
       ],
       "protoFiles": ["bldr/plugin/host/web/config.proto"]
-    },
-    "github.com/s4wave/spacewave/bldr/plugin/host/web-wasivm": {
-      "hash": "d079f87a36fc933c0f23c5b01b056fcf822b814ac75a19cdd483821ace9f3c11",
-      "generatedFiles": [
-        "bldr/plugin/host/web-wasivm/config.pb.cc",
-        "bldr/plugin/host/web-wasivm/config.pb.go",
-        "bldr/plugin/host/web-wasivm/config.pb.h",
-        "bldr/plugin/host/web-wasivm/config.pb.rs",
-        "bldr/plugin/host/web-wasivm/config.pb.ts"
-      ],
-      "protoFiles": ["bldr/plugin/host/web-wasivm/config.proto"]
     },
     "github.com/s4wave/spacewave/bldr/plugin/load": {
       "hash": "52774f58155e02f5d6da952f2962c57cd4407629027e89d2a0963ba54c81e6b6",
@@ -1132,6 +1121,17 @@
         "core/debug/trace/config.pb.ts"
       ],
       "protoFiles": ["core/debug/trace/config.proto"]
+    },
+    "github.com/s4wave/spacewave/core/device/policy": {
+      "hash": "44bf242cf4ff4a6ac21d7bc5c1c199ea99d390a1dd7f27d8a88238d283a40f41",
+      "generatedFiles": [
+        "core/device/policy/policy.pb.cc",
+        "core/device/policy/policy.pb.go",
+        "core/device/policy/policy.pb.h",
+        "core/device/policy/policy.pb.rs",
+        "core/device/policy/policy.pb.ts"
+      ],
+      "protoFiles": ["core/device/policy/policy.proto"]
     },
     "github.com/s4wave/spacewave/core/forge/dashboard": {
       "hash": "c99502560a151928f2a0394a26fac3846a7ee8993b27d1db5028ca69940bbfd8",
@@ -4276,7 +4276,7 @@
       "protoFiles": ["sdk/sobject/sobject.proto"]
     },
     "github.com/s4wave/spacewave/sdk/space": {
-      "hash": "78827246a2754428b3612d56551ff8241f38a51db19ea4c54f31e74fbf8de1f5",
+      "hash": "88ecf14150812c0f6ecdd6685a925b0f22732726c7881c93f9ca115cb37672bf",
       "generatedFiles": [
         "sdk/space/space.pb.cc",
         "sdk/space/space.pb.go",

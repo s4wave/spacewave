@@ -162,6 +162,20 @@ message SpaceContentsState {
   repeated SpacePluginStatus plugins = 2;
   // ProcessBindings is the list of process binding states.
   repeated ProcessBindingInfo process_bindings = 3;
+  // AvailablePlugins is the catalog of plugins installable into the space,
+  // enumerated from the Release World manifests visible to the space. The app
+  // derives installed state by intersecting these with the plugins list.
+  repeated AvailablePlugin available_plugins = 4;
+}
+
+// AvailablePlugin is one catalog entry the space can install by manifest ID.
+message AvailablePlugin {
+  // PluginId is the manifest ID to add to SpaceSettings.plugin_ids to install.
+  string plugin_id = 1;
+  // Description is the manifest metadata description, if any.
+  string description = 2;
+  // Revision is the highest manifest revision available for the plugin.
+  string revision = 3;
 }
 
 // SpacePluginLifecycleState is the app-facing lifecycle projection for a plugin.
