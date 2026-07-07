@@ -127,6 +127,7 @@ export function SessionDashboardContainer() {
                 id,
                 name: entry.spaceMeta?.name ?? 'Untitled',
                 orgId: spaceToOrg.get(id),
+                source: entry.entry?.source,
               },
             ]
           : []

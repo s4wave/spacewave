@@ -53,6 +53,7 @@ import {
   useResourceValue,
   type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { CopyButton } from '@s4wave/web/ui/CopyButton.js'
 import type { Account } from '@s4wave/sdk/account/account.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
 
@@ -60,6 +61,7 @@ export interface DashboardSpace {
   id: string
   name: string
   orgId?: string
+  source?: string
 }
 
 export interface DashboardOrg {
@@ -849,7 +851,8 @@ function DashboardCommandPalette({
                     icon={LuLayers}
                     iconTone="brand"
                     label={space.name}
-                    sublabel={space.id}
+                    sublabel={getSpaceSourceLabel(space.source)}
+                    identifier={space.id}
                     onSelect={() => handleSpaceSelect(space)}
                   />
                 ))}
@@ -879,7 +882,8 @@ function DashboardCommandPalette({
                       icon={LuLayers}
                       iconTone="brand"
                       label={space.name}
-                      sublabel={space.id}
+                      sublabel={getSpaceSourceLabel(space.source)}
+                      identifier={space.id}
                       orgName={org.displayName}
                       onSelect={() => handleSpaceSelect(space)}
                     />
@@ -928,6 +932,17 @@ function DashboardCommandPalette({
       </CommandList>
     </Command>
   )
+}
+
+function getSpaceSourceLabel(source: string | undefined): string {
+  switch (source) {
+    case 'created':
+      return 'Owned Space'
+    case 'shared':
+      return 'Shared Space'
+    default:
+      return 'Space'
+  }
 }
 
 function SectionHeading(props: {
@@ -1008,6 +1023,7 @@ interface DashboardItemProps {
   label: string
   sublabel?: string
   experimental?: boolean
+  identifier?: string
   orgName?: string
   onSelect: () => void
 }
@@ -1018,6 +1034,7 @@ function DashboardItem({
   iconTone,
   label,
   sublabel,
+  identifier,
   experimental,
   orgName,
   onSelect,
@@ -1045,9 +1062,30 @@ function DashboardItem({
             </span>
           )}
         </div>
-        {sublabel && (
-          <div className="text-foreground-alt/60 truncate text-xs">
-            {sublabel}
+        {(sublabel || identifier) && (
+          <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
+            {sublabel && (
+              <div className="text-foreground-alt/60 truncate text-xs">
+                {sublabel}
+              </div>
+            )}
+            {identifier && (
+              <span
+                className="flex min-w-0 items-center gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 group-data-[selected=true]:opacity-100"
+                title={identifier}
+                onClick={(event) => event.stopPropagation()}
+                onMouseDown={(event) => event.stopPropagation()}
+              >
+                <span className="text-foreground-alt/40 max-w-28 truncate font-mono text-[10px]">
+                  {identifier}
+                </span>
+                <CopyButton
+                  text={identifier}
+                  label={`Copy ${label} ID`}
+                  className="hover:bg-foreground/5 size-5"
+                />
+              </span>
+            )}
           </div>
         )}
       </div>

@@ -6,6 +6,9 @@ const mockUseVisibleQuickstartOptions = vi.hoisted(() => vi.fn())
 const mockSetOpenMenu = vi.hoisted(() => vi.fn())
 const mockSetStateAtom = vi.hoisted(() => vi.fn())
 const mockOpenPathInNewTab = vi.hoisted(() => vi.fn())
+const mockClipboard = {
+  writeText: vi.fn().mockResolvedValue(undefined),
+}
 
 vi.mock('@aptre/bldr', () => ({
   isDesktop: true,
@@ -90,6 +93,12 @@ describe('SessionDashboard', () => {
     mockSetStateAtom.mockReset()
     mockOpenPathInNewTab.mockReset()
     mockUseVisibleQuickstartOptions.mockReset()
+    Object.defineProperty(navigator, 'clipboard', {
+      value: mockClipboard,
+      writable: true,
+      configurable: true,
+    })
+    mockClipboard.writeText.mockClear()
     mockUseVisibleQuickstartOptions.mockReturnValue([
       {
         id: 'account',
@@ -157,6 +166,40 @@ describe('SessionDashboard', () => {
     expect(screen.queryByText('Continue')).toBeNull()
     expectTextBefore('Alpha Space', 'Join Space')
     expectTextBefore('Join Space', 'Create a Drive')
+  })
+
+  it('labels existing spaces by human source and copies the full space ID from the affordance', () => {
+    const ownedSpaceId = 'space-owned-01HZY4PZQWVN9A1K4J4Y7P6C3R'
+    const sharedSpaceId = 'space-shared-01HZY4Q7P4CQVWDTVR9N6DJ6ZY'
+
+    render(
+      <SessionDashboard
+        spaces={[
+          {
+            id: ownedSpaceId,
+            name: 'Alpha Space',
+            source: 'created',
+          },
+          {
+            id: sharedSpaceId,
+            name: 'Beta Space',
+            source: 'shared',
+          },
+        ]}
+        onQuickstartClick={vi.fn()}
+      />,
+    )
+
+    const ownedSubtitle = screen.getByText('Owned Space')
+    const sharedSubtitle = screen.getByText('Shared Space')
+    expect(ownedSubtitle.textContent).not.toContain(ownedSpaceId)
+    expect(sharedSubtitle.textContent).not.toContain(sharedSpaceId)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy Alpha Space ID' }))
+    expect(mockClipboard.writeText).toHaveBeenCalledWith(ownedSpaceId)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy Beta Space ID' }))
+    expect(mockClipboard.writeText).toHaveBeenCalledWith(sharedSpaceId)
   })
 
   it('does not promote creation actions for read-only sessions', () => {

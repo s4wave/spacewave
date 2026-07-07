@@ -50,6 +50,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@s4wave/web/ui/tooltip.js'
+import { CopyButton } from '@s4wave/web/ui/CopyButton.js'
 import {
   WatchLocalDisplayNameRequest,
   WatchLocalDisplayNameResponse,
@@ -165,6 +166,15 @@ export function SessionDetails({
   const currentDisplayName =
     localDisplayName?.displayName ?? metadata?.displayName ?? ''
   const displayNameChanged = displayName.trim() !== currentDisplayName
+  const headerTitle = currentDisplayName || 'Account settings'
+  const headerSubtitle =
+    metadata?.providerDisplayName ||
+    (isLocal
+      ? 'Local session'
+      : providerId === 'spacewave'
+        ? 'Cloud account'
+        : 'Session')
+  const headerPeerId = peerId && peerId !== 'Unknown' ? peerId : ''
 
   // Hide logout for local sessions (no cloud session to revoke).
   const showLogout = !isLocal
@@ -347,11 +357,31 @@ export function SessionDetails({
         <Route path="/">
           <div className="bg-background-primary flex h-full w-full flex-col overflow-hidden">
             <div className="border-foreground/8 flex min-h-9 shrink-0 items-center justify-between gap-3 border-b px-4 py-2">
-              <div className="text-foreground flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold select-none">
-                <RxPerson className="size-4" />
-                <span className="min-w-0 truncate tracking-tight">
-                  {metadata?.displayName || peerId?.slice(-12) || 'Session'}
-                </span>
+              <div className="text-foreground group/header flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold select-none">
+                <RxPerson className="size-4 shrink-0" />
+                <div className="min-w-0">
+                  <span className="block min-w-0 truncate tracking-tight">
+                    {headerTitle}
+                  </span>
+                  <span className="text-foreground-alt/50 block truncate text-[11px] leading-tight font-normal">
+                    {headerSubtitle}
+                  </span>
+                </div>
+                {headerPeerId && (
+                  <span
+                    className="border-foreground/8 bg-background-card/40 text-foreground-alt/45 ml-1 hidden max-w-36 min-w-0 items-center gap-1 rounded border px-1.5 py-0.5 font-mono text-[10px] font-normal opacity-0 transition-opacity group-focus-within/header:opacity-100 group-hover/header:opacity-100 md:flex"
+                    title={headerPeerId}
+                  >
+                    <span className="truncate">
+                      {formatMiddleEllipsis(headerPeerId)}
+                    </span>
+                    <CopyButton
+                      text={headerPeerId}
+                      label="Copy session ID"
+                      className="hover:bg-foreground/5 size-5"
+                    />
+                  </span>
+                )}
               </div>
               <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
                 <Tooltip>
@@ -776,4 +806,11 @@ export function SessionDetails({
       </Routes>
     </Router>
   )
+}
+
+function formatMiddleEllipsis(value: string): string {
+  const head = 6
+  const tail = 8
+  if (value.length <= head + tail + 1) return value
+  return `${value.slice(0, head)}…${value.slice(-tail)}`
 }

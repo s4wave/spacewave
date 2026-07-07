@@ -178,6 +178,7 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
       nameLabel="Repository Name"
       namePlaceholder="Enter repository name..."
       nameStep={1}
+      selectNameOnFocus
       creating={ws.creating || cloning}
       createLabel={isClone ? 'Clone' : 'Create'}
       creatingLabel={isClone ? 'Cloning...' : 'Creating...'}

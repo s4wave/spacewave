@@ -135,6 +135,28 @@ describe('GitRepoWizardViewer', () => {
     })
   })
 
+  it('selects the prefilled repository name when the name step is focused', () => {
+    currentStep = 1
+    localName = 'cli'
+
+    render(
+      <GitRepoWizardViewer
+        objectInfo={{}}
+        worldState={{
+          value: {} as never,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    const nameInput = screen.getByLabelText<HTMLInputElement>('Repository Name')
+    expect(document.activeElement).toBe(nameInput)
+    expect(nameInput.selectionStart).toBe(0)
+    expect(nameInput.selectionEnd).toBe(nameInput.value.length)
+  })
+
   it('starts an async clone and advances to the progress step', async () => {
     const user = userEvent.setup()
     currentStep = 1

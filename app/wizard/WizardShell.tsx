@@ -1,4 +1,4 @@
-import { useCallback, type ReactNode } from 'react'
+import { useCallback, type FocusEvent, type ReactNode } from 'react'
 import { LuArrowLeft, LuCheck, LuTrash2 } from 'react-icons/lu'
 
 import { Button } from '@s4wave/web/ui/button.js'
@@ -28,6 +28,8 @@ export interface WizardShellProps {
   nameHelp?: string
   // Which step shows the name input. Defaults to 0.
   nameStep?: number
+  // Selects the existing default name when the name input receives focus.
+  selectNameOnFocus?: boolean
   // Primary action button.
   creating: boolean
   createLabel?: string
@@ -57,6 +59,7 @@ export function WizardShell({
   namePlaceholder = 'Enter a name...',
   nameHelp,
   nameStep = 0,
+  selectNameOnFocus = false,
   creating,
   createLabel = 'Create',
   creatingLabel = 'Creating...',
@@ -67,9 +70,19 @@ export function WizardShell({
   finalizeStep,
 }: WizardShellProps) {
   const showFinalize = finalizeStep === undefined || step === finalizeStep
-  const handleNameInputRef = useCallback((node: HTMLInputElement | null) => {
-    node?.focus()
-  }, [])
+  const handleNameInputRef = useCallback(
+    (node: HTMLInputElement | null) => {
+      node?.focus()
+      if (selectNameOnFocus) node?.select()
+    },
+    [selectNameOnFocus],
+  )
+  const handleNameFocus = useCallback(
+    (event: FocusEvent<HTMLInputElement>) => {
+      if (selectNameOnFocus) event.currentTarget.select()
+    },
+    [selectNameOnFocus],
+  )
 
   return (
     <div className="flex h-full w-full items-start justify-center overflow-auto px-4 py-10">
@@ -109,6 +122,7 @@ export function WizardShell({
                     onChange={(e) => onUpdateName(e.target.value)}
                     placeholder={namePlaceholder}
                     help={nameHelp}
+                    onFocus={handleNameFocus}
                   />
                 </div>
               </section>

@@ -331,9 +331,24 @@ describe('SessionDetails', () => {
   })
 
   describe('Rendering', () => {
-    it('renders without crashing', () => {
+    it('renders a human account fallback header with a copyable peer ID affordance', () => {
       renderWithContext(<SessionDetails />)
-      expect(screen.getByText('er-id-123456')).toBeDefined()
+
+      expect(screen.getByText('Account settings')).toBeDefined()
+      expect(screen.getByText('Cloud account')).toBeDefined()
+      expect(screen.queryByText('er-id-123456')).toBeNull()
+
+      const peerIdAffordance = screen
+        .getByText('test-p…d-123456')
+        .closest('span[title]')
+      expect(peerIdAffordance?.getAttribute('title')).toBe(
+        mockSessionInfo.peerId,
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'Copy session ID' }))
+      expect(mockClipboard.writeText).toHaveBeenCalledWith(
+        mockSessionInfo.peerId,
+      )
     })
 
     it('displays session metadata correctly', () => {
@@ -347,11 +362,6 @@ describe('SessionDetails', () => {
       expect(screen.getByText('Checking sync status')).toBeDefined()
     })
 
-    it('displays truncated peer ID in header', () => {
-      renderWithContext(<SessionDetails />)
-      expect(screen.getByText('er-id-123456')).toBeDefined()
-    })
-
     it('handles missing session info gracefully', () => {
       mockUsePromise.mockReturnValue({
         data: null,
@@ -359,7 +369,11 @@ describe('SessionDetails', () => {
         error: null,
       })
       renderWithContext(<SessionDetails />)
-      expect(screen.getAllByText('Unknown').length).toBeGreaterThan(0)
+      expect(screen.getByText('Account settings')).toBeDefined()
+      expect(screen.getByText('Session')).toBeDefined()
+      expect(
+        screen.queryByRole('button', { name: 'Copy session ID' }),
+      ).toBeNull()
     })
   })
 
@@ -384,8 +398,8 @@ describe('SessionDetails', () => {
     it('calls onCloseClick when close button is clicked', () => {
       const onCloseClick = vi.fn()
       renderWithContext(<SessionDetails onCloseClick={onCloseClick} />)
-      const buttons = screen.getAllByRole('button')
-      const closeButton = buttons[3]
+      const closeButton = screen.getAllByRole('button', { name: '' })[0]
+      expect(closeButton).toBeDefined()
       fireEvent.click(closeButton)
       expect(onCloseClick).toHaveBeenCalledTimes(1)
     })
@@ -531,11 +545,6 @@ describe('SessionDetails', () => {
       expect(screen.getByText('Identifiers')).toBeDefined()
     })
 
-    it('renders the session header', () => {
-      renderWithContext(<SessionDetails />)
-      expect(screen.getByText('er-id-123456')).toBeDefined()
-    })
-
     it('renders the closeable shell actions', () => {
       renderWithContext(<SessionDetails />)
       expect(screen.getByText('Change Account')).toBeDefined()
@@ -568,8 +577,7 @@ describe('SessionDetails', () => {
       renderWithContext(<SessionDetails />)
       fireEvent.click(screen.getByTestId('link-devices-trigger'))
       expect(screen.getByText('Link Device Wizard')).toBeDefined()
-      fireEvent.click(screen.getByText('Back'))
-      expect(screen.getByText('Identifiers')).toBeDefined()
+      expect(screen.queryByText('Identifiers')).toBeNull()
     })
 
     it('closes the overlay before navigating to a billing account page', () => {
