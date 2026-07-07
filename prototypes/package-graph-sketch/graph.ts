@@ -713,7 +713,7 @@ function resolveTypeScriptImport(
         specifier.length - suffix.length,
       )
       for (const value of alias.values) {
-        const target = value.replace('*', wildcard)
+        const target = value.split('*').join(wildcard)
         const resolved = resolveTypeScriptPath(path.resolve(repoRoot, target))
         if (resolved) {
           return resolved
