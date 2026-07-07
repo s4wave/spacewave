@@ -16,6 +16,10 @@ vi.mock('@aptre/bldr', () => ({
   isDesktop: true,
 }))
 
+vi.mock('@s4wave/web/ui/toaster.js', () => ({
+  toast: { error: vi.fn(), success: vi.fn() },
+}))
+
 vi.mock('@s4wave/web/router/router.js', () => ({
   useNavigate: vi.fn(() => mockNavigate),
   useParentPaths: vi.fn(() => ['/setup']),
@@ -124,5 +128,38 @@ describe('LinkDeviceWizard', () => {
       expect(watchPairingStatus).toHaveBeenCalledTimes(1)
     })
     expect(screen.queryByText('Continue')).toBeNull()
+  })
+
+  it('shows runtime-aware code copy without telling a desktop user to open the desktop app', async () => {
+    const watchPairingStatus = vi.fn(async function* () {})
+    const session = {
+      generatePairingCode: vi.fn(),
+      watchPairingStatus,
+    }
+    let code: string | null = null
+    mockUseResourceValue.mockReturnValue(session)
+    mockUsePromise.mockImplementation(() => ({
+      data: code,
+      loading: false,
+      error: null,
+    }))
+
+    const { rerender } = render(<LinkDeviceWizard />)
+    fireEvent.click(screen.getByText('Generate code for another device'))
+
+    code = 'ABCD1234'
+    rerender(<LinkDeviceWizard />)
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Enter this code on your other device'),
+      ).toBeDefined()
+    })
+    expect(screen.queryByText(/open the .*desktop app/i)).toBeNull()
+    // The code renders as a grouped copyable chip.
+    expect(screen.getByText('ABCD 1234')).toBeDefined()
+    expect(
+      screen.getByRole('button', { name: 'Copy pairing code' }),
+    ).toBeDefined()
   })
 })

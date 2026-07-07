@@ -335,13 +335,8 @@ export async function proxyFetch(
     const error = castToError(err, 'failed to start fetch request')
     logProxyFetchError(error)
 
-    let responseMessage = error.message
-    let responseStatus = 500
-    if (error.message === 'Failed to fetch') {
-      // return a more descriptive error
-      responseStatus = 503
-      responseMessage = 'Error making the request.'
-    }
+    const { status: responseStatus, message: responseMessage } =
+      classifyProxyFetchError(error)
 
     const responseBlob = new Blob([responseMessage + '\n'], {
       type: 'text/plain',
@@ -354,6 +349,32 @@ export async function proxyFetch(
   } finally {
     cleanup()
   }
+}
+
+// classifyProxyFetchError maps a proxied-fetch failure to a synthesized
+// response status and message. A network or CORS failure (the fetch never
+// reached the origin) is reported as 503 with a reachability message, distinct
+// from an internal proxy error (500) that carries the underlying message. This
+// keeps a transport failure from masquerading as an origin HTTP status.
+export function classifyProxyFetchError(error: Error): {
+  status: number
+  message: string
+} {
+  if (isNetworkFetchError(error)) {
+    return {
+      status: 503,
+      message: 'Could not reach the service (network or CORS error).',
+    }
+  }
+  return { status: 500, message: error.message }
+}
+
+// isNetworkFetchError reports whether an error is a browser network or CORS
+// failure rather than a real HTTP response or an internal proxy error.
+function isNetworkFetchError(error: Error): boolean {
+  return /failed to fetch|networkerror|load failed|err_network|err_connection|cors/i.test(
+    error.message,
+  )
 }
 
 function logProxyFetchError(error: Error) {

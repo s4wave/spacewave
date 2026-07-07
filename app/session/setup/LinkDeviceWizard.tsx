@@ -25,8 +25,11 @@ import {
 } from 'react-icons/lu'
 
 import { cn } from '@s4wave/web/style/utils.js'
+import { toast } from '@s4wave/web/ui/toaster.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { LinkDeviceDoneStep } from './LinkDeviceDoneStep.js'
+import { PairingCodeChip } from './PairingCodeChip.js'
+import { pairingCodeInstructions, pairingErrorMessage } from './pairing-copy.js'
 import { SetupPageLayout } from './SetupPageLayout.js'
 import {
   useNavigate,
@@ -58,11 +61,13 @@ const CODE_TTL_SECONDS = 600
 
 export interface LinkDeviceWizardProps {
   exitPath?: string
-  topLeft?: React.ReactNode
 }
 
 // LinkDeviceWizard renders the device linking wizard at /setup/link-device.
-export function LinkDeviceWizard({ exitPath, topLeft }: LinkDeviceWizardProps) {
+// Back navigation is owned per step: sub-steps return to the choose step via
+// their in-card back control, and the choose step exits via Skip. The wizard
+// deliberately renders no outer back chrome so no step shows two Back controls.
+export function LinkDeviceWizard({ exitPath }: LinkDeviceWizardProps) {
   const [step, setStep] = useState<LinkStep>('choose')
   const [remotePeerId, setRemotePeerId] = useState<string | null>(null)
   const [codeGeneration, setCodeGeneration] = useState(0)
@@ -122,7 +127,7 @@ export function LinkDeviceWizard({ exitPath, topLeft }: LinkDeviceWizardProps) {
   const directPairingSupported = providerId === 'local'
 
   return (
-    <SetupPageLayout title="Link My Device" topLeft={topLeft}>
+    <SetupPageLayout title="Link My Device">
       <div className="border-foreground/20 bg-background-get-started relative overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
         <div className="p-6">
           {sessionInfoError && (
@@ -522,8 +527,6 @@ function PairingStep({
   onRemotePeerResolved,
   onBack,
 }: PairingStepProps) {
-  const formatted = code ? `${code.slice(0, 4)} ${code.slice(4)}` : null
-
   const [connectionError, setConnectionError] = useState<string | null>(null)
 
   // Watch pairing status to detect peer connection or transport errors.
@@ -597,25 +600,23 @@ function PairingStep({
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }, [secondsLeft])
 
+  const instructions = pairingCodeInstructions(isDesktop)
+
   return (
     <div className="space-y-4">
       <div className="text-center">
         <h2 className="text-foreground text-sm font-medium">
-          Enter this code in your desktop app
+          {instructions.heading}
         </h2>
-        <p className="text-foreground-alt mt-1 text-xs">
-          Open the desktop app and go to Link Session
-        </p>
+        <p className="text-foreground-alt mt-1 text-xs">{instructions.hint}</p>
       </div>
 
       <div className="flex min-h-16 flex-col items-center justify-center gap-3">
         {loading && <Spinner size="lg" className="text-foreground-alt" />}
-        {!loading && formatted && (
+        {!loading && code && (
           <>
-            <span className="text-foreground font-mono text-3xl font-bold tracking-[0.3em]">
-              {formatted}
-            </span>
-            <PairingQRCode code={code!} />
+            <PairingCodeChip code={code} />
+            <PairingQRCode code={code} />
           </>
         )}
       </div>
@@ -659,7 +660,11 @@ function PairingStep({
         </div>
       )}
 
-      {error && <p className="text-destructive text-center text-xs">{error}</p>}
+      {error && !connectionError && (
+        <p className="text-destructive text-center text-xs">
+          {pairingErrorMessage(error)}
+        </p>
+      )}
 
       <div className="flex gap-2">
         <button
@@ -851,9 +856,12 @@ function EnterCodeStep({
         onRemotePeerResolved(remotePeerId)
       }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to complete pairing',
-      )
+      const message =
+        err instanceof Error ? err.message : 'Failed to complete pairing'
+      setError(message)
+      // Surface via toast too: a failed submit can re-render or navigate the
+      // settings pane away from this card before the inline error is seen.
+      toast.error(pairingErrorMessage(message))
     } finally {
       setLoading(false)
     }
@@ -925,7 +933,11 @@ function EnterCodeStep({
         <span className="text-foreground-alt text-xs">Scan QR code</span>
       </button>
 
-      {error && <p className="text-destructive text-center text-xs">{error}</p>}
+      {error && (
+        <p className="text-destructive text-center text-xs">
+          {pairingErrorMessage(error)}
+        </p>
+      )}
 
       <div className="flex gap-2">
         <button

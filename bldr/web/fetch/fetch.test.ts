@@ -1,9 +1,47 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { FetchService } from './fetch_srpc.pb.js'
-import { proxyFetch } from './fetch.js'
+import { classifyProxyFetchError, proxyFetch } from './fetch.js'
+
+describe('classifyProxyFetchError', () => {
+  it('reports network and CORS failures as 503, not an origin status', () => {
+    for (const message of [
+      'Failed to fetch',
+      'NetworkError when attempting to fetch resource',
+      'Load failed',
+      'request blocked by CORS policy',
+    ]) {
+      const result = classifyProxyFetchError(new Error(message))
+      expect(result.status).toBe(503)
+      expect(result.message).toMatch(/network or CORS/i)
+    }
+  })
+
+  it('reports internal proxy failures as 500 carrying the message', () => {
+    const result = classifyProxyFetchError(new Error('socket closed'))
+    expect(result.status).toBe(500)
+    expect(result.message).toBe('socket closed')
+  })
+})
 
 describe('proxyFetch', () => {
+  it('synthesizes a 503 response for a network/CORS fetch failure', async () => {
+    const svc: FetchService = {
+      Fetch() {
+        throw new Error('Failed to fetch')
+      },
+    }
+
+    const resp = await proxyFetch(
+      svc,
+      new Request('https://example.test/api/pair'),
+      'client-1',
+    )
+
+    expect(resp.status).toBe(503)
+    await expect(resp.text()).resolves.toMatch(/network or CORS/i)
+  })
+
   it('returns a 500 response when response headers never arrive before timeout', async () => {
     vi.useFakeTimers()
     try {

@@ -1,7 +1,6 @@
 /* eslint-disable react-doctor/no-giant-component */
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import {
-  LuArrowLeft,
   LuCloud,
   LuKeyboard,
   LuLock,
@@ -297,10 +296,6 @@ export function SessionDetails({
     navigateSession({ path: 'plan' })
   }, [handleCloseDetails, navigateSession])
 
-  const handleBackToDetails = useCallback(() => {
-    setDetailsPath('/')
-  }, [setDetailsPath])
-
   const handleChangeAccount = useCallback(() => {
     setDetailsPath('/')
     onChangeAccountClick?.()
@@ -347,18 +342,7 @@ export function SessionDetails({
     <Router path={detailsPath} onNavigate={handleDetailsNavigate}>
       <Routes fullPath>
         <Route path="/link-device">
-          <LinkDeviceWizard
-            exitPath="/"
-            topLeft={
-              <button
-                onClick={handleBackToDetails}
-                className="text-foreground-alt hover:text-brand flex items-center gap-2 text-sm transition-colors"
-              >
-                <LuArrowLeft className="size-4" />
-                <span className="select-none">Back</span>
-              </button>
-            }
-          />
+          <LinkDeviceWizard exitPath="/" />
         </Route>
         <Route path="/">
           <div className="bg-background-primary flex h-full w-full flex-col overflow-hidden">
