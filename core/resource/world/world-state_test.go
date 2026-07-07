@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	resource "github.com/s4wave/spacewave/bldr/resource"
@@ -1232,4 +1233,95 @@ func TestWatchWorldState(t *testing.T) {
 
 		t.Log("Successfully received unique resource IDs for each change")
 	})
+}
+
+func TestWatchWorldStateObjectFilterIgnoresNonMatchingCommit(t *testing.T) {
+	ctx := context.Background()
+	tb, tbCleanup := setupWorldTestbed(ctx, t)
+	defer tbCleanup()
+	resClient, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
+	defer cleanup()
+
+	stream, err := engine.WatchWorldState(ctx)
+	if err != nil {
+		t.Fatalf("WatchWorldState failed: %v", err)
+	}
+	initialMsg, err := stream.Recv()
+	if err != nil {
+		t.Fatalf("Recv initial failed: %v", err)
+	}
+	trackedRef := resClient.CreateResourceReference(initialMsg.ResourceId)
+	defer trackedRef.Release()
+	trackedWs, err := s4wave_world.NewWorldState(resClient, trackedRef, false)
+	if err != nil {
+		t.Fatalf("NewWorldState failed: %v", err)
+	}
+	if _, _, err := trackedWs.GetObject(ctx, "watch-filter/object"); err != nil {
+		t.Fatalf("GetObject failed: %v", err)
+	}
+
+	recvCh := recvWatchWorldStateAsync(stream)
+	commitSDKObject(t, ctx, engine, "watch-filter/ignored")
+	assertNoWatchWorldStateMessage(t, recvCh, "non-matching object commit")
+	commitSDKObject(t, ctx, engine, "watch-filter/object")
+	msg := recvWatchWorldStateMessage(t, recvCh, "matching object commit")
+	if msg.ResourceId == initialMsg.ResourceId {
+		t.Fatal("expected new resource_id after matching object commit")
+	}
+}
+
+type watchWorldStateRecv struct {
+	msg *s4wave_world.WatchWorldStateResponse
+	err error
+}
+
+func recvWatchWorldStateAsync(stream s4wave_world.SRPCWatchWorldStateResourceService_WatchWorldStateClient) <-chan watchWorldStateRecv {
+	ch := make(chan watchWorldStateRecv, 1)
+	go func() {
+		msg, err := stream.Recv()
+		ch <- watchWorldStateRecv{msg: msg, err: err}
+	}()
+	return ch
+}
+
+func assertNoWatchWorldStateMessage(t *testing.T, recvCh <-chan watchWorldStateRecv, event string) {
+	t.Helper()
+	select {
+	case recv := <-recvCh:
+		t.Fatalf("WatchWorldState returned after %s: msg=%v err=%v", event, recv.msg, recv.err)
+	case <-time.After(100 * time.Millisecond):
+	}
+}
+
+func recvWatchWorldStateMessage(t *testing.T, recvCh <-chan watchWorldStateRecv, event string) *s4wave_world.WatchWorldStateResponse {
+	t.Helper()
+	select {
+	case recv := <-recvCh:
+		if recv.err != nil {
+			t.Fatalf("WatchWorldState recv after %s failed: %v", event, recv.err)
+		}
+		return recv.msg
+	case <-time.After(5 * time.Second):
+		t.Fatalf("WatchWorldState did not return after %s", event)
+		return nil
+	}
+}
+
+func commitSDKObject(t *testing.T, ctx context.Context, engine *s4wave_world.Engine, key string) {
+	t.Helper()
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tx.Release()
+	obj, err := tx.CreateObject(ctx, key, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := obj.IncrementRev(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
 }

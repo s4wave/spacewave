@@ -49,6 +49,14 @@ func (e *engineWorldState) WaitSeqno(ctx context.Context, value uint64) (uint64,
 	return e.e.WaitSeqno(ctx, value)
 }
 
+// WaitChange waits until a matching world change lands after afterSeqno.
+func (e *engineWorldState) WaitChange(ctx context.Context, afterSeqno uint64, filter ChangeFilter) (uint64, error) {
+	if waiter, ok := e.e.(WorldWaitChange); ok {
+		return waiter.WaitChange(ctx, afterSeqno, filter)
+	}
+	return e.e.WaitSeqno(ctx, afterSeqno+1)
+}
+
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.
 // The cursor should be released independently of the WorldState.
 // Be sure to call Release on the cursor when done.

@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/filters"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 )
@@ -23,6 +24,7 @@ type ChangeLogEntry struct {
 	Seqno      uint64
 	ChangeType WorldChangeType
 	TotalSize  uint32
+	KeyFilters *filters.KeyFilters
 	Changes    []*WorldChange
 }
 
@@ -68,6 +70,7 @@ func ReadChangeLogEntriesFromCursor(
 			Seqno:      entry.GetSeqno(),
 			ChangeType: entry.GetChangeType(),
 			TotalSize:  entry.GetChangeBatch().GetTotalSize(),
+			KeyFilters: entry.GetKeyFilters(),
 			Changes:    changes,
 		})
 		if opts.Limit != 0 && uint64(len(entries)) >= opts.Limit {

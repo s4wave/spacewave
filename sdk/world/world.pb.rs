@@ -532,6 +532,12 @@ pub struct TrackedWorldStateSnapshot {
     /// HasQuadAccess indicates if any quad queries were performed.
     #[prost(bool, tag="2")]
     pub has_quad_access: bool,
+    /// ObjectPrefixAccesses is the list of object key prefixes that were tracked.
+    #[prost(message, repeated, tag="4")]
+    pub object_prefix_accesses: ::prost::alloc::vec::Vec<tracked_world_state_snapshot::ObjectPrefixAccess>,
+    /// GraphAccesses is the list of filtered graph queries that were tracked.
+    #[prost(message, repeated, tag="5")]
+    pub graph_accesses: ::prost::alloc::vec::Vec<tracked_world_state_snapshot::GraphAccess>,
     /// InitialSeqno is the world seqno when tracking started.
     #[prost(uint64, tag="3")]
     pub initial_seqno: u64,
@@ -547,6 +553,29 @@ pub mod tracked_world_state_snapshot {
         /// Rev is the revision of the object at access time.
         #[prost(uint64, tag="2")]
         pub rev: u64,
+    }
+    /// ObjectPrefixAccess records an object-prefix iteration.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct ObjectPrefixAccess {
+        /// Prefix is the object key prefix that was accessed.
+        #[prost(string, tag="1")]
+        pub prefix: ::prost::alloc::string::String,
+    }
+    /// GraphAccess records a filtered graph lookup.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct GraphAccess {
+        /// Subject is the subject filter. Empty matches any subject.
+        #[prost(string, tag="1")]
+        pub subject: ::prost::alloc::string::String,
+        /// Predicate is the predicate filter. Empty matches any predicate.
+        #[prost(string, tag="2")]
+        pub predicate: ::prost::alloc::string::String,
+        /// Obj is the object filter. Empty matches any object.
+        #[prost(string, tag="3")]
+        pub obj: ::prost::alloc::string::String,
+        /// Label is the label filter. Empty matches any label.
+        #[prost(string, tag="4")]
+        pub label: ::prost::alloc::string::String,
     }
 }
 /// ErrRequest is the request type for Err.

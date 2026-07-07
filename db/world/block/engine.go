@@ -74,6 +74,9 @@ type Engine struct {
 	writeCoordKeyPrefix []byte
 	// writeHeadRefresh rereads the durable World head before a write mutation starts.
 	writeHeadRefresh func(context.Context) (*bucket.ObjectRef, error)
+	// changeWaiters are selective changelog waiters keyed by the filters they
+	// registered before blocking. Guarded by rmtx.
+	changeWaiters map[*changeWaiter]struct{}
 	// closed is set after Close releases cursor and transaction resources.
 	closed bool
 }
@@ -290,6 +293,10 @@ func (e *Engine) setRootRefLocked(ctx context.Context, ref *bucket.ObjectRef) er
 	if err := ref.Validate(); err != nil {
 		return err
 	}
+	prevSeqno, _, prevSeqnoErr := e.currentRootSeqnoLocked(ctx)
+	if prevSeqnoErr != nil {
+		return prevSeqnoErr
+	}
 
 	// apply committed changes or rollback
 	// oldRoot := e.root.GetRef().Clone()
@@ -306,6 +313,7 @@ func (e *Engine) setRootRefLocked(ctx context.Context, ref *bucket.ObjectRef) er
 	subtask.End()
 	if err == nil {
 		oldRoot.Release()
+		e.notifyChangeWaitersLocked(ctx, prevSeqno)
 	} else {
 		e.root = oldRoot
 		nextRoot.Release()

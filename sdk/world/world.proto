@@ -539,11 +539,35 @@ message TrackedWorldStateSnapshot {
     uint64 rev = 2;
   }
 
+  // ObjectPrefixAccess records an object-prefix iteration.
+  message ObjectPrefixAccess {
+    // Prefix is the object key prefix that was accessed.
+    string prefix = 1;
+  }
+
+  // GraphAccess records a filtered graph lookup.
+  message GraphAccess {
+    // Subject is the subject filter. Empty matches any subject.
+    string subject = 1;
+    // Predicate is the predicate filter. Empty matches any predicate.
+    string predicate = 2;
+    // Obj is the object filter. Empty matches any object.
+    string obj = 3;
+    // Label is the label filter. Empty matches any label.
+    string label = 4;
+  }
+
   // ObjectAccesses is the list of object accesses that were tracked.
   repeated ObjectAccess object_accesses = 1;
 
   // HasQuadAccess indicates if any quad queries were performed.
   bool has_quad_access = 2;
+
+  // ObjectPrefixAccesses is the list of object key prefixes that were tracked.
+  repeated ObjectPrefixAccess object_prefix_accesses = 4;
+
+  // GraphAccesses is the list of filtered graph queries that were tracked.
+  repeated GraphAccess graph_accesses = 5;
 
   // InitialSeqno is the world seqno when tracking started.
   uint64 initial_seqno = 3;

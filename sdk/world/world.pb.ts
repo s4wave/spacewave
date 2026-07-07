@@ -1803,6 +1803,73 @@ export const TrackedWorldStateSnapshot_ObjectAccess: MessageType<TrackedWorldSta
   })
 
 /**
+ * ObjectPrefixAccess records an object-prefix iteration.
+ *
+ * @generated from message s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess
+ */
+export interface TrackedWorldStateSnapshot_ObjectPrefixAccess {
+  /**
+   * Prefix is the object key prefix that was accessed.
+   *
+   * @generated from field: string prefix = 1;
+   */
+  prefix?: string
+}
+
+export const TrackedWorldStateSnapshot_ObjectPrefixAccess: MessageType<TrackedWorldStateSnapshot_ObjectPrefixAccess> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess',
+    fields: [
+      { no: 1, name: 'prefix', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GraphAccess records a filtered graph lookup.
+ *
+ * @generated from message s4wave.world.TrackedWorldStateSnapshot.GraphAccess
+ */
+export interface TrackedWorldStateSnapshot_GraphAccess {
+  /**
+   * Subject is the subject filter. Empty matches any subject.
+   *
+   * @generated from field: string subject = 1;
+   */
+  subject?: string
+  /**
+   * Predicate is the predicate filter. Empty matches any predicate.
+   *
+   * @generated from field: string predicate = 2;
+   */
+  predicate?: string
+  /**
+   * Obj is the object filter. Empty matches any object.
+   *
+   * @generated from field: string obj = 3;
+   */
+  obj?: string
+  /**
+   * Label is the label filter. Empty matches any label.
+   *
+   * @generated from field: string label = 4;
+   */
+  label?: string
+}
+
+export const TrackedWorldStateSnapshot_GraphAccess: MessageType<TrackedWorldStateSnapshot_GraphAccess> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.TrackedWorldStateSnapshot.GraphAccess',
+    fields: [
+      { no: 1, name: 'subject', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'predicate', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'obj', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'label', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * TrackedWorldStateSnapshot is an immutable snapshot of tracked WorldState accesses.
  * Used internally to coordinate change detection with StateRoutineContainer.
  *
@@ -1821,6 +1888,18 @@ export interface TrackedWorldStateSnapshot {
    * @generated from field: bool has_quad_access = 2;
    */
   hasQuadAccess?: boolean
+  /**
+   * ObjectPrefixAccesses is the list of object key prefixes that were tracked.
+   *
+   * @generated from field: repeated s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess object_prefix_accesses = 4;
+   */
+  objectPrefixAccesses?: TrackedWorldStateSnapshot_ObjectPrefixAccess[]
+  /**
+   * GraphAccesses is the list of filtered graph queries that were tracked.
+   *
+   * @generated from field: repeated s4wave.world.TrackedWorldStateSnapshot.GraphAccess graph_accesses = 5;
+   */
+  graphAccesses?: TrackedWorldStateSnapshot_GraphAccess[]
   /**
    * InitialSeqno is the world seqno when tracking started.
    *
@@ -1841,6 +1920,20 @@ export const TrackedWorldStateSnapshot: MessageType<TrackedWorldStateSnapshot> =
         repeated: true,
       },
       { no: 2, name: 'has_quad_access', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 4,
+        name: 'object_prefix_accesses',
+        kind: 'message',
+        T: () => TrackedWorldStateSnapshot_ObjectPrefixAccess,
+        repeated: true,
+      },
+      {
+        no: 5,
+        name: 'graph_accesses',
+        kind: 'message',
+        T: () => TrackedWorldStateSnapshot_GraphAccess,
+        repeated: true,
+      },
       { no: 3, name: 'initial_seqno', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,

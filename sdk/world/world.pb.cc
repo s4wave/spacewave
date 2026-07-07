@@ -234,6 +234,33 @@ struct ValidRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ValidRequestDefaultTypeInternal _ValidRequest_default_instance_;
 
+inline constexpr TrackedWorldStateSnapshot_ObjectPrefixAccess::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        prefix_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR TrackedWorldStateSnapshot_ObjectPrefixAccess::TrackedWorldStateSnapshot_ObjectPrefixAccess(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(TrackedWorldStateSnapshot_ObjectPrefixAccess_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct TrackedWorldStateSnapshot_ObjectPrefixAccessDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR TrackedWorldStateSnapshot_ObjectPrefixAccessDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~TrackedWorldStateSnapshot_ObjectPrefixAccessDefaultTypeInternal() {}
+  union {
+    TrackedWorldStateSnapshot_ObjectPrefixAccess _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TrackedWorldStateSnapshot_ObjectPrefixAccessDefaultTypeInternal _TrackedWorldStateSnapshot_ObjectPrefixAccess_default_instance_;
+
 inline constexpr TrackedWorldStateSnapshot_ObjectAccess::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -261,6 +288,42 @@ struct TrackedWorldStateSnapshot_ObjectAccessDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TrackedWorldStateSnapshot_ObjectAccessDefaultTypeInternal _TrackedWorldStateSnapshot_ObjectAccess_default_instance_;
+
+inline constexpr TrackedWorldStateSnapshot_GraphAccess::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        subject_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        predicate_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        obj_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        label_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR TrackedWorldStateSnapshot_GraphAccess::TrackedWorldStateSnapshot_GraphAccess(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(TrackedWorldStateSnapshot_GraphAccess_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct TrackedWorldStateSnapshot_GraphAccessDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR TrackedWorldStateSnapshot_GraphAccessDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~TrackedWorldStateSnapshot_GraphAccessDefaultTypeInternal() {}
+  union {
+    TrackedWorldStateSnapshot_GraphAccess _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TrackedWorldStateSnapshot_GraphAccessDefaultTypeInternal _TrackedWorldStateSnapshot_GraphAccess_default_instance_;
 
 inline constexpr SyncResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -1772,6 +1835,8 @@ inline constexpr TrackedWorldStateSnapshot::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
         object_accesses_{},
+        object_prefix_accesses_{},
+        graph_accesses_{},
         initial_seqno_{::uint64_t{0u}},
         has_quad_access_{false} {}
 
@@ -2666,14 +2731,34 @@ const ::uint32_t
         0,
         1,
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess, _impl_.prefix_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::TrackedWorldStateSnapshot_GraphAccess, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::TrackedWorldStateSnapshot_GraphAccess, _impl_.subject_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::TrackedWorldStateSnapshot_GraphAccess, _impl_.predicate_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::TrackedWorldStateSnapshot_GraphAccess, _impl_.obj_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::TrackedWorldStateSnapshot_GraphAccess, _impl_.label_),
+        0,
+        1,
+        2,
+        3,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::world::TrackedWorldStateSnapshot, _impl_._has_bits_),
-        6, // hasbit index offset
+        8, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::world::TrackedWorldStateSnapshot, _impl_.object_accesses_),
         PROTOBUF_FIELD_OFFSET(::s4wave::world::TrackedWorldStateSnapshot, _impl_.has_quad_access_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::TrackedWorldStateSnapshot, _impl_.object_prefix_accesses_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::TrackedWorldStateSnapshot, _impl_.graph_accesses_),
         PROTOBUF_FIELD_OFFSET(::s4wave::world::TrackedWorldStateSnapshot, _impl_.initial_seqno_),
         0,
-        2,
+        4,
         1,
+        2,
+        3,
         0x000, // bitmap
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::world::ErrResponse, _impl_._has_bits_),
@@ -2856,37 +2941,39 @@ static const ::_pbi::MigrationSchema
         {321, sizeof(::s4wave::world::WatchWorldStateRequest)},
         {322, sizeof(::s4wave::world::WatchWorldStateResponse)},
         {327, sizeof(::s4wave::world::TrackedWorldStateSnapshot_ObjectAccess)},
-        {334, sizeof(::s4wave::world::TrackedWorldStateSnapshot)},
-        {343, sizeof(::s4wave::world::ErrRequest)},
-        {344, sizeof(::s4wave::world::ErrResponse)},
-        {349, sizeof(::s4wave::world::ValidRequest)},
-        {350, sizeof(::s4wave::world::ValidResponse)},
-        {355, sizeof(::s4wave::world::KeyRequest)},
-        {356, sizeof(::s4wave::world::KeyResponse)},
-        {361, sizeof(::s4wave::world::NextRequest)},
-        {362, sizeof(::s4wave::world::NextResponse)},
-        {367, sizeof(::s4wave::world::SeekRequest)},
-        {372, sizeof(::s4wave::world::SeekResponse)},
-        {373, sizeof(::s4wave::world::CloseRequest)},
-        {374, sizeof(::s4wave::world::CloseResponse)},
-        {375, sizeof(::s4wave::world::NextGraphPathQueryRequest)},
-        {376, sizeof(::s4wave::world::NextGraphPathQueryResponse)},
-        {385, sizeof(::s4wave::world::CloseGraphPathQueryRequest)},
-        {386, sizeof(::s4wave::world::CloseGraphPathQueryResponse)},
-        {387, sizeof(::s4wave::world::GetKeyRequest)},
-        {388, sizeof(::s4wave::world::GetKeyResponse)},
-        {393, sizeof(::s4wave::world::GetRootRefRequest)},
-        {394, sizeof(::s4wave::world::GetRootRefResponse)},
-        {401, sizeof(::s4wave::world::SetRootRefRequest)},
-        {406, sizeof(::s4wave::world::SetRootRefResponse)},
-        {411, sizeof(::s4wave::world::ApplyObjectOpRequest)},
-        {420, sizeof(::s4wave::world::ApplyObjectOpResponse)},
-        {427, sizeof(::s4wave::world::IncrementRevRequest)},
-        {428, sizeof(::s4wave::world::IncrementRevResponse)},
-        {433, sizeof(::s4wave::world::WaitRevRequest)},
-        {440, sizeof(::s4wave::world::WaitRevResponse)},
-        {445, sizeof(::s4wave::world::AccessTypedObjectRequest)},
-        {450, sizeof(::s4wave::world::AccessTypedObjectResponse)},
+        {334, sizeof(::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess)},
+        {339, sizeof(::s4wave::world::TrackedWorldStateSnapshot_GraphAccess)},
+        {350, sizeof(::s4wave::world::TrackedWorldStateSnapshot)},
+        {363, sizeof(::s4wave::world::ErrRequest)},
+        {364, sizeof(::s4wave::world::ErrResponse)},
+        {369, sizeof(::s4wave::world::ValidRequest)},
+        {370, sizeof(::s4wave::world::ValidResponse)},
+        {375, sizeof(::s4wave::world::KeyRequest)},
+        {376, sizeof(::s4wave::world::KeyResponse)},
+        {381, sizeof(::s4wave::world::NextRequest)},
+        {382, sizeof(::s4wave::world::NextResponse)},
+        {387, sizeof(::s4wave::world::SeekRequest)},
+        {392, sizeof(::s4wave::world::SeekResponse)},
+        {393, sizeof(::s4wave::world::CloseRequest)},
+        {394, sizeof(::s4wave::world::CloseResponse)},
+        {395, sizeof(::s4wave::world::NextGraphPathQueryRequest)},
+        {396, sizeof(::s4wave::world::NextGraphPathQueryResponse)},
+        {405, sizeof(::s4wave::world::CloseGraphPathQueryRequest)},
+        {406, sizeof(::s4wave::world::CloseGraphPathQueryResponse)},
+        {407, sizeof(::s4wave::world::GetKeyRequest)},
+        {408, sizeof(::s4wave::world::GetKeyResponse)},
+        {413, sizeof(::s4wave::world::GetRootRefRequest)},
+        {414, sizeof(::s4wave::world::GetRootRefResponse)},
+        {421, sizeof(::s4wave::world::SetRootRefRequest)},
+        {426, sizeof(::s4wave::world::SetRootRefResponse)},
+        {431, sizeof(::s4wave::world::ApplyObjectOpRequest)},
+        {440, sizeof(::s4wave::world::ApplyObjectOpResponse)},
+        {447, sizeof(::s4wave::world::IncrementRevRequest)},
+        {448, sizeof(::s4wave::world::IncrementRevResponse)},
+        {453, sizeof(::s4wave::world::WaitRevRequest)},
+        {460, sizeof(::s4wave::world::WaitRevResponse)},
+        {465, sizeof(::s4wave::world::AccessTypedObjectRequest)},
+        {470, sizeof(::s4wave::world::AccessTypedObjectResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::world::_SyncRequest_default_instance_._instance,
@@ -2953,6 +3040,8 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::world::_WatchWorldStateRequest_default_instance_._instance,
     &::s4wave::world::_WatchWorldStateResponse_default_instance_._instance,
     &::s4wave::world::_TrackedWorldStateSnapshot_ObjectAccess_default_instance_._instance,
+    &::s4wave::world::_TrackedWorldStateSnapshot_ObjectPrefixAccess_default_instance_._instance,
+    &::s4wave::world::_TrackedWorldStateSnapshot_GraphAccess_default_instance_._instance,
     &::s4wave::world::_TrackedWorldStateSnapshot_default_instance_._instance,
     &::s4wave::world::_ErrRequest_default_instance_._instance,
     &::s4wave::world::_ErrResponse_default_instance_._instance,
@@ -3082,163 +3171,170 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fw
     "(\t\"6\n\024ApplyWorldOpResponse\022\r\n\005seqno\030\001 \001("
     "\004\022\017\n\007sys_err\030\002 \001(\010\"\030\n\026WatchWorldStateReq"
     "uest\".\n\027WatchWorldStateResponse\022\023\n\013resou"
-    "rce_id\030\001 \001(\r\"\304\001\n\031TrackedWorldStateSnapsh"
+    "rce_id\030\001 \001(\r\"\342\003\n\031TrackedWorldStateSnapsh"
     "ot\022M\n\017object_accesses\030\001 \003(\01324.s4wave.wor"
     "ld.TrackedWorldStateSnapshot.ObjectAcces"
-    "s\022\027\n\017has_quad_access\030\002 \001(\010\022\025\n\rinitial_se"
-    "qno\030\003 \001(\004\032(\n\014ObjectAccess\022\013\n\003key\030\001 \001(\t\022\013"
-    "\n\003rev\030\002 \001(\004\"\014\n\nErrRequest\"\034\n\013ErrResponse"
-    "\022\r\n\005error\030\001 \001(\t\"\016\n\014ValidRequest\"\036\n\rValid"
-    "Response\022\r\n\005valid\030\001 \001(\010\"\014\n\nKeyRequest\"!\n"
-    "\013KeyResponse\022\022\n\nobject_key\030\001 \001(\t\"\r\n\013Next"
-    "Request\"\035\n\014NextResponse\022\r\n\005valid\030\001 \001(\010\"!"
-    "\n\013SeekRequest\022\022\n\nobject_key\030\001 \001(\t\"\016\n\014See"
-    "kResponse\"\016\n\014CloseRequest\"\017\n\rCloseRespon"
-    "se\"\033\n\031NextGraphPathQueryRequest\"Z\n\032NextG"
-    "raphPathQueryResponse\022\023\n\013object_keys\030\001 \003"
-    "(\t\022\031\n\005quads\030\002 \003(\0132\n.quad.Quad\022\014\n\004done\030\003 "
-    "\001(\010\"\034\n\032CloseGraphPathQueryRequest\"\035\n\033Clo"
-    "seGraphPathQueryResponse\"\017\n\rGetKeyReques"
-    "t\"$\n\016GetKeyResponse\022\022\n\nobject_key\030\001 \001(\t\""
-    "\023\n\021GetRootRefRequest\"F\n\022GetRootRefRespon"
-    "se\022#\n\010root_ref\030\001 \001(\0132\021.bucket.ObjectRef\022"
-    "\013\n\003rev\030\002 \001(\004\"8\n\021SetRootRefRequest\022#\n\010roo"
-    "t_ref\030\001 \001(\0132\021.bucket.ObjectRef\"!\n\022SetRoo"
-    "tRefResponse\022\013\n\003rev\030\001 \001(\004\"N\n\024ApplyObject"
-    "OpRequest\022\022\n\nop_type_id\030\001 \001(\t\022\017\n\007op_data"
-    "\030\002 \001(\014\022\021\n\top_sender\030\003 \001(\t\"5\n\025ApplyObject"
-    "OpResponse\022\013\n\003rev\030\001 \001(\004\022\017\n\007sys_err\030\002 \001(\010"
-    "\"\025\n\023IncrementRevRequest\"#\n\024IncrementRevR"
-    "esponse\022\013\n\003rev\030\001 \001(\004\"7\n\016WaitRevRequest\022\013"
-    "\n\003rev\030\001 \001(\004\022\030\n\020ignore_not_found\030\002 \001(\010\"\036\n"
-    "\017WaitRevResponse\022\013\n\003rev\030\001 \001(\004\".\n\030AccessT"
-    "ypedObjectRequest\022\022\n\nobject_key\030\001 \001(\t\"A\n"
-    "\031AccessTypedObjectResponse\022\023\n\013resource_i"
-    "d\030\001 \001(\r\022\017\n\007type_id\030\002 \001(\t*\266\001\n\030GraphEdgeBu"
-    "cketDirection\022+\n\'GRAPH_EDGE_BUCKET_DIREC"
-    "TION_UNSPECIFIED\020\000\022#\n\037GRAPH_EDGE_BUCKET_"
-    "DIRECTION_OUT\020\001\022\"\n\036GRAPH_EDGE_BUCKET_DIR"
-    "ECTION_IN\020\002\022$\n GRAPH_EDGE_BUCKET_DIRECTI"
-    "ON_BOTH\020\003*\224\001\n\022GraphPathDirection\022$\n GRAP"
-    "H_PATH_DIRECTION_UNSPECIFIED\020\000\022\034\n\030GRAPH_"
-    "PATH_DIRECTION_OUT\020\001\022\033\n\027GRAPH_PATH_DIREC"
-    "TION_IN\020\002\022\035\n\031GRAPH_PATH_DIRECTION_BOTH\020\003"
-    "2\302\006\n\025EngineResourceService\022X\n\rGetEngineI"
-    "nfo\022\".s4wave.world.GetEngineInfoRequest\032"
-    "#.s4wave.world.GetEngineInfoResponse\022b\n\024"
-    "GetWorldRootSnapshot\022).s4wave.world.GetW"
-    "orldRootSnapshotRequest\032\037.s4wave.world.W"
-    "orldRootSnapshot\022j\n\027WatchWorldRootSnapsh"
-    "ots\022,.s4wave.world.WatchWorldRootSnapsho"
-    "tsRequest\032\037.s4wave.world.WorldRootSnapsh"
-    "ot0\001\022[\n\016NewTransaction\022#.s4wave.world.Ne"
-    "wTransactionRequest\032$.s4wave.world.NewTr"
-    "ansactionResponse\022=\n\004Sync\022\031.s4wave.world"
-    ".SyncRequest\032\032.s4wave.world.SyncResponse"
-    "\022I\n\010GetSeqno\022\035.s4wave.world.GetSeqnoRequ"
-    "est\032\036.s4wave.world.GetSeqnoResponse\022L\n\tW"
-    "aitSeqno\022\036.s4wave.world.WaitSeqnoRequest"
-    "\032\037.s4wave.world.WaitSeqnoResponse\022g\n\022Bui"
-    "ldStorageCursor\022\'.s4wave.world.BuildStor"
-    "ageCursorRequest\032(.s4wave.world.BuildSto"
-    "rageCursorResponse\022a\n\020AccessWorldState\022%"
-    ".s4wave.world.AccessWorldStateRequest\032&."
-    "s4wave.world.AccessWorldStateResponse2\256\020"
-    "\n\031WorldStateResourceService\022R\n\013GetReadOn"
-    "ly\022 .s4wave.world.GetReadOnlyRequest\032!.s"
-    "4wave.world.GetReadOnlyResponse\022=\n\004Sync\022"
-    "\031.s4wave.world.SyncRequest\032\032.s4wave.worl"
-    "d.SyncResponse\022I\n\010GetSeqno\022\035.s4wave.worl"
-    "d.GetSeqnoRequest\032\036.s4wave.world.GetSeqn"
-    "oResponse\022L\n\tWaitSeqno\022\036.s4wave.world.Wa"
-    "itSeqnoRequest\032\037.s4wave.world.WaitSeqnoR"
-    "esponse\022g\n\022BuildStorageCursor\022\'.s4wave.w"
-    "orld.BuildStorageCursorRequest\032(.s4wave."
-    "world.BuildStorageCursorResponse\022a\n\020Acce"
-    "ssWorldState\022%.s4wave.world.AccessWorldS"
-    "tateRequest\032&.s4wave.world.AccessWorldSt"
-    "ateResponse\022U\n\014CreateObject\022!.s4wave.wor"
-    "ld.CreateObjectRequest\032\".s4wave.world.Cr"
-    "eateObjectResponse\022L\n\tGetObject\022\036.s4wave"
-    ".world.GetObjectRequest\032\037.s4wave.world.G"
-    "etObjectResponse\022[\n\016IterateObjects\022#.s4w"
-    "ave.world.IterateObjectsRequest\032$.s4wave"
-    ".world.IterateObjectsResponse\022U\n\014RenameO"
-    "bject\022!.s4wave.world.RenameObjectRequest"
-    "\032\".s4wave.world.RenameObjectResponse\022U\n\014"
-    "DeleteObject\022!.s4wave.world.DeleteObject"
-    "Request\032\".s4wave.world.DeleteObjectRespo"
-    "nse\022U\n\014SetGraphQuad\022!.s4wave.world.SetGr"
-    "aphQuadRequest\032\".s4wave.world.SetGraphQu"
-    "adResponse\022^\n\017DeleteGraphQuad\022$.s4wave.w"
-    "orld.DeleteGraphQuadRequest\032%.s4wave.wor"
-    "ld.DeleteGraphQuadResponse\022a\n\020LookupGrap"
-    "hQuads\022%.s4wave.world.LookupGraphQuadsRe"
-    "quest\032&.s4wave.world.LookupGraphQuadsRes"
-    "ponse\022p\n\025LookupGraphQuadsBatch\022*.s4wave."
-    "world.LookupGraphQuadsBatchRequest\032+.s4w"
-    "ave.world.LookupGraphQuadsBatchResponse\022"
-    "m\n\024ListGraphEdgeBuckets\022).s4wave.world.L"
-    "istGraphEdgeBucketsRequest\032*.s4wave.worl"
-    "d.ListGraphEdgeBucketsResponse\022j\n\023ListOb"
-    "jectsWithType\022(.s4wave.world.ListObjects"
-    "WithTypeRequest\032).s4wave.world.ListObjec"
-    "tsWithTypeResponse\022s\n\026GetObjectRootRefsB"
-    "atch\022+.s4wave.world.GetObjectRootRefsBat"
-    "chRequest\032,.s4wave.world.GetObjectRootRe"
-    "fsBatchResponse\022s\n\026GetObjectMetadataBatc"
-    "h\022+.s4wave.world.GetObjectMetadataBatchR"
-    "equest\032,.s4wave.world.GetObjectMetadataB"
-    "atchResponse\022[\n\016QueryGraphPath\022#.s4wave."
-    "world.QueryGraphPathRequest\032$.s4wave.wor"
-    "ld.QueryGraphPathResponse\022d\n\021DeleteGraph"
-    "Object\022&.s4wave.world.DeleteGraphObjectR"
-    "equest\032\'.s4wave.world.DeleteGraphObjectR"
-    "esponse\022U\n\014ApplyWorldOp\022!.s4wave.world.A"
-    "pplyWorldOpRequest\032\".s4wave.world.ApplyW"
-    "orldOpResponse2\202\001\n\036WatchWorldStateResour"
-    "ceService\022`\n\017WatchWorldState\022$.s4wave.wo"
-    "rld.WatchWorldStateRequest\032%.s4wave.worl"
-    "d.WatchWorldStateResponse0\0012\240\001\n\021TxResour"
-    "ceService\022C\n\006Commit\022\033.s4wave.world.Commi"
-    "tRequest\032\034.s4wave.world.CommitResponse\022F"
-    "\n\007Discard\022\034.s4wave.world.DiscardRequest\032"
-    "\035.s4wave.world.DiscardResponse2\231\003\n\035Objec"
-    "tIteratorResourceService\022:\n\003Err\022\030.s4wave"
-    ".world.ErrRequest\032\031.s4wave.world.ErrResp"
-    "onse\022@\n\005Valid\022\032.s4wave.world.ValidReques"
-    "t\032\033.s4wave.world.ValidResponse\022:\n\003Key\022\030."
-    "s4wave.world.KeyRequest\032\031.s4wave.world.K"
-    "eyResponse\022=\n\004Next\022\031.s4wave.world.NextRe"
-    "quest\032\032.s4wave.world.NextResponse\022=\n\004See"
-    "k\022\031.s4wave.world.SeekRequest\032\032.s4wave.wo"
-    "rld.SeekResponse\022@\n\005Close\022\032.s4wave.world"
-    ".CloseRequest\032\033.s4wave.world.CloseRespon"
-    "se2\330\001\n\035GraphPathQueryResourceService\022Y\n\004"
-    "Next\022\'.s4wave.world.NextGraphPathQueryRe"
-    "quest\032(.s4wave.world.NextGraphPathQueryR"
-    "esponse\022\\\n\005Close\022(.s4wave.world.CloseGra"
-    "phPathQueryRequest\032).s4wave.world.CloseG"
-    "raphPathQueryResponse2\337\004\n\032ObjectStateRes"
-    "ourceService\022C\n\006GetKey\022\033.s4wave.world.Ge"
-    "tKeyRequest\032\034.s4wave.world.GetKeyRespons"
-    "e\022O\n\nGetRootRef\022\037.s4wave.world.GetRootRe"
-    "fRequest\032 .s4wave.world.GetRootRefRespon"
-    "se\022O\n\nSetRootRef\022\037.s4wave.world.SetRootR"
-    "efRequest\032 .s4wave.world.SetRootRefRespo"
-    "nse\022a\n\020AccessWorldState\022%.s4wave.world.A"
-    "ccessWorldStateRequest\032&.s4wave.world.Ac"
-    "cessWorldStateResponse\022X\n\rApplyObjectOp\022"
-    "\".s4wave.world.ApplyObjectOpRequest\032#.s4"
-    "wave.world.ApplyObjectOpResponse\022U\n\014Incr"
-    "ementRev\022!.s4wave.world.IncrementRevRequ"
-    "est\032\".s4wave.world.IncrementRevResponse\022"
-    "F\n\007WaitRev\022\034.s4wave.world.WaitRevRequest"
-    "\032\035.s4wave.world.WaitRevResponse2\202\001\n\032Type"
-    "dObjectResourceService\022d\n\021AccessTypedObj"
-    "ect\022&.s4wave.world.AccessTypedObjectRequ"
-    "est\032\'.s4wave.world.AccessTypedObjectResp"
-    "onseb\006proto3"
+    "s\022\027\n\017has_quad_access\030\002 \001(\010\022Z\n\026object_pre"
+    "fix_accesses\030\004 \003(\0132:.s4wave.world.Tracke"
+    "dWorldStateSnapshot.ObjectPrefixAccess\022K"
+    "\n\016graph_accesses\030\005 \003(\01323.s4wave.world.Tr"
+    "ackedWorldStateSnapshot.GraphAccess\022\025\n\ri"
+    "nitial_seqno\030\003 \001(\004\032(\n\014ObjectAccess\022\013\n\003ke"
+    "y\030\001 \001(\t\022\013\n\003rev\030\002 \001(\004\032$\n\022ObjectPrefixAcce"
+    "ss\022\016\n\006prefix\030\001 \001(\t\032M\n\013GraphAccess\022\017\n\007sub"
+    "ject\030\001 \001(\t\022\021\n\tpredicate\030\002 \001(\t\022\013\n\003obj\030\003 \001"
+    "(\t\022\r\n\005label\030\004 \001(\t\"\014\n\nErrRequest\"\034\n\013ErrRe"
+    "sponse\022\r\n\005error\030\001 \001(\t\"\016\n\014ValidRequest\"\036\n"
+    "\rValidResponse\022\r\n\005valid\030\001 \001(\010\"\014\n\nKeyRequ"
+    "est\"!\n\013KeyResponse\022\022\n\nobject_key\030\001 \001(\t\"\r"
+    "\n\013NextRequest\"\035\n\014NextResponse\022\r\n\005valid\030\001"
+    " \001(\010\"!\n\013SeekRequest\022\022\n\nobject_key\030\001 \001(\t\""
+    "\016\n\014SeekResponse\"\016\n\014CloseRequest\"\017\n\rClose"
+    "Response\"\033\n\031NextGraphPathQueryRequest\"Z\n"
+    "\032NextGraphPathQueryResponse\022\023\n\013object_ke"
+    "ys\030\001 \003(\t\022\031\n\005quads\030\002 \003(\0132\n.quad.Quad\022\014\n\004d"
+    "one\030\003 \001(\010\"\034\n\032CloseGraphPathQueryRequest\""
+    "\035\n\033CloseGraphPathQueryResponse\"\017\n\rGetKey"
+    "Request\"$\n\016GetKeyResponse\022\022\n\nobject_key\030"
+    "\001 \001(\t\"\023\n\021GetRootRefRequest\"F\n\022GetRootRef"
+    "Response\022#\n\010root_ref\030\001 \001(\0132\021.bucket.Obje"
+    "ctRef\022\013\n\003rev\030\002 \001(\004\"8\n\021SetRootRefRequest\022"
+    "#\n\010root_ref\030\001 \001(\0132\021.bucket.ObjectRef\"!\n\022"
+    "SetRootRefResponse\022\013\n\003rev\030\001 \001(\004\"N\n\024Apply"
+    "ObjectOpRequest\022\022\n\nop_type_id\030\001 \001(\t\022\017\n\007o"
+    "p_data\030\002 \001(\014\022\021\n\top_sender\030\003 \001(\t\"5\n\025Apply"
+    "ObjectOpResponse\022\013\n\003rev\030\001 \001(\004\022\017\n\007sys_err"
+    "\030\002 \001(\010\"\025\n\023IncrementRevRequest\"#\n\024Increme"
+    "ntRevResponse\022\013\n\003rev\030\001 \001(\004\"7\n\016WaitRevReq"
+    "uest\022\013\n\003rev\030\001 \001(\004\022\030\n\020ignore_not_found\030\002 "
+    "\001(\010\"\036\n\017WaitRevResponse\022\013\n\003rev\030\001 \001(\004\".\n\030A"
+    "ccessTypedObjectRequest\022\022\n\nobject_key\030\001 "
+    "\001(\t\"A\n\031AccessTypedObjectResponse\022\023\n\013reso"
+    "urce_id\030\001 \001(\r\022\017\n\007type_id\030\002 \001(\t*\266\001\n\030Graph"
+    "EdgeBucketDirection\022+\n\'GRAPH_EDGE_BUCKET"
+    "_DIRECTION_UNSPECIFIED\020\000\022#\n\037GRAPH_EDGE_B"
+    "UCKET_DIRECTION_OUT\020\001\022\"\n\036GRAPH_EDGE_BUCK"
+    "ET_DIRECTION_IN\020\002\022$\n GRAPH_EDGE_BUCKET_D"
+    "IRECTION_BOTH\020\003*\224\001\n\022GraphPathDirection\022$"
+    "\n GRAPH_PATH_DIRECTION_UNSPECIFIED\020\000\022\034\n\030"
+    "GRAPH_PATH_DIRECTION_OUT\020\001\022\033\n\027GRAPH_PATH"
+    "_DIRECTION_IN\020\002\022\035\n\031GRAPH_PATH_DIRECTION_"
+    "BOTH\020\0032\302\006\n\025EngineResourceService\022X\n\rGetE"
+    "ngineInfo\022\".s4wave.world.GetEngineInfoRe"
+    "quest\032#.s4wave.world.GetEngineInfoRespon"
+    "se\022b\n\024GetWorldRootSnapshot\022).s4wave.worl"
+    "d.GetWorldRootSnapshotRequest\032\037.s4wave.w"
+    "orld.WorldRootSnapshot\022j\n\027WatchWorldRoot"
+    "Snapshots\022,.s4wave.world.WatchWorldRootS"
+    "napshotsRequest\032\037.s4wave.world.WorldRoot"
+    "Snapshot0\001\022[\n\016NewTransaction\022#.s4wave.wo"
+    "rld.NewTransactionRequest\032$.s4wave.world"
+    ".NewTransactionResponse\022=\n\004Sync\022\031.s4wave"
+    ".world.SyncRequest\032\032.s4wave.world.SyncRe"
+    "sponse\022I\n\010GetSeqno\022\035.s4wave.world.GetSeq"
+    "noRequest\032\036.s4wave.world.GetSeqnoRespons"
+    "e\022L\n\tWaitSeqno\022\036.s4wave.world.WaitSeqnoR"
+    "equest\032\037.s4wave.world.WaitSeqnoResponse\022"
+    "g\n\022BuildStorageCursor\022\'.s4wave.world.Bui"
+    "ldStorageCursorRequest\032(.s4wave.world.Bu"
+    "ildStorageCursorResponse\022a\n\020AccessWorldS"
+    "tate\022%.s4wave.world.AccessWorldStateRequ"
+    "est\032&.s4wave.world.AccessWorldStateRespo"
+    "nse2\256\020\n\031WorldStateResourceService\022R\n\013Get"
+    "ReadOnly\022 .s4wave.world.GetReadOnlyReque"
+    "st\032!.s4wave.world.GetReadOnlyResponse\022=\n"
+    "\004Sync\022\031.s4wave.world.SyncRequest\032\032.s4wav"
+    "e.world.SyncResponse\022I\n\010GetSeqno\022\035.s4wav"
+    "e.world.GetSeqnoRequest\032\036.s4wave.world.G"
+    "etSeqnoResponse\022L\n\tWaitSeqno\022\036.s4wave.wo"
+    "rld.WaitSeqnoRequest\032\037.s4wave.world.Wait"
+    "SeqnoResponse\022g\n\022BuildStorageCursor\022\'.s4"
+    "wave.world.BuildStorageCursorRequest\032(.s"
+    "4wave.world.BuildStorageCursorResponse\022a"
+    "\n\020AccessWorldState\022%.s4wave.world.Access"
+    "WorldStateRequest\032&.s4wave.world.AccessW"
+    "orldStateResponse\022U\n\014CreateObject\022!.s4wa"
+    "ve.world.CreateObjectRequest\032\".s4wave.wo"
+    "rld.CreateObjectResponse\022L\n\tGetObject\022\036."
+    "s4wave.world.GetObjectRequest\032\037.s4wave.w"
+    "orld.GetObjectResponse\022[\n\016IterateObjects"
+    "\022#.s4wave.world.IterateObjectsRequest\032$."
+    "s4wave.world.IterateObjectsResponse\022U\n\014R"
+    "enameObject\022!.s4wave.world.RenameObjectR"
+    "equest\032\".s4wave.world.RenameObjectRespon"
+    "se\022U\n\014DeleteObject\022!.s4wave.world.Delete"
+    "ObjectRequest\032\".s4wave.world.DeleteObjec"
+    "tResponse\022U\n\014SetGraphQuad\022!.s4wave.world"
+    ".SetGraphQuadRequest\032\".s4wave.world.SetG"
+    "raphQuadResponse\022^\n\017DeleteGraphQuad\022$.s4"
+    "wave.world.DeleteGraphQuadRequest\032%.s4wa"
+    "ve.world.DeleteGraphQuadResponse\022a\n\020Look"
+    "upGraphQuads\022%.s4wave.world.LookupGraphQ"
+    "uadsRequest\032&.s4wave.world.LookupGraphQu"
+    "adsResponse\022p\n\025LookupGraphQuadsBatch\022*.s"
+    "4wave.world.LookupGraphQuadsBatchRequest"
+    "\032+.s4wave.world.LookupGraphQuadsBatchRes"
+    "ponse\022m\n\024ListGraphEdgeBuckets\022).s4wave.w"
+    "orld.ListGraphEdgeBucketsRequest\032*.s4wav"
+    "e.world.ListGraphEdgeBucketsResponse\022j\n\023"
+    "ListObjectsWithType\022(.s4wave.world.ListO"
+    "bjectsWithTypeRequest\032).s4wave.world.Lis"
+    "tObjectsWithTypeResponse\022s\n\026GetObjectRoo"
+    "tRefsBatch\022+.s4wave.world.GetObjectRootR"
+    "efsBatchRequest\032,.s4wave.world.GetObject"
+    "RootRefsBatchResponse\022s\n\026GetObjectMetada"
+    "taBatch\022+.s4wave.world.GetObjectMetadata"
+    "BatchRequest\032,.s4wave.world.GetObjectMet"
+    "adataBatchResponse\022[\n\016QueryGraphPath\022#.s"
+    "4wave.world.QueryGraphPathRequest\032$.s4wa"
+    "ve.world.QueryGraphPathResponse\022d\n\021Delet"
+    "eGraphObject\022&.s4wave.world.DeleteGraphO"
+    "bjectRequest\032\'.s4wave.world.DeleteGraphO"
+    "bjectResponse\022U\n\014ApplyWorldOp\022!.s4wave.w"
+    "orld.ApplyWorldOpRequest\032\".s4wave.world."
+    "ApplyWorldOpResponse2\202\001\n\036WatchWorldState"
+    "ResourceService\022`\n\017WatchWorldState\022$.s4w"
+    "ave.world.WatchWorldStateRequest\032%.s4wav"
+    "e.world.WatchWorldStateResponse0\0012\240\001\n\021Tx"
+    "ResourceService\022C\n\006Commit\022\033.s4wave.world"
+    ".CommitRequest\032\034.s4wave.world.CommitResp"
+    "onse\022F\n\007Discard\022\034.s4wave.world.DiscardRe"
+    "quest\032\035.s4wave.world.DiscardResponse2\231\003\n"
+    "\035ObjectIteratorResourceService\022:\n\003Err\022\030."
+    "s4wave.world.ErrRequest\032\031.s4wave.world.E"
+    "rrResponse\022@\n\005Valid\022\032.s4wave.world.Valid"
+    "Request\032\033.s4wave.world.ValidResponse\022:\n\003"
+    "Key\022\030.s4wave.world.KeyRequest\032\031.s4wave.w"
+    "orld.KeyResponse\022=\n\004Next\022\031.s4wave.world."
+    "NextRequest\032\032.s4wave.world.NextResponse\022"
+    "=\n\004Seek\022\031.s4wave.world.SeekRequest\032\032.s4w"
+    "ave.world.SeekResponse\022@\n\005Close\022\032.s4wave"
+    ".world.CloseRequest\032\033.s4wave.world.Close"
+    "Response2\330\001\n\035GraphPathQueryResourceServi"
+    "ce\022Y\n\004Next\022\'.s4wave.world.NextGraphPathQ"
+    "ueryRequest\032(.s4wave.world.NextGraphPath"
+    "QueryResponse\022\\\n\005Close\022(.s4wave.world.Cl"
+    "oseGraphPathQueryRequest\032).s4wave.world."
+    "CloseGraphPathQueryResponse2\337\004\n\032ObjectSt"
+    "ateResourceService\022C\n\006GetKey\022\033.s4wave.wo"
+    "rld.GetKeyRequest\032\034.s4wave.world.GetKeyR"
+    "esponse\022O\n\nGetRootRef\022\037.s4wave.world.Get"
+    "RootRefRequest\032 .s4wave.world.GetRootRef"
+    "Response\022O\n\nSetRootRef\022\037.s4wave.world.Se"
+    "tRootRefRequest\032 .s4wave.world.SetRootRe"
+    "fResponse\022a\n\020AccessWorldState\022%.s4wave.w"
+    "orld.AccessWorldStateRequest\032&.s4wave.wo"
+    "rld.AccessWorldStateResponse\022X\n\rApplyObj"
+    "ectOp\022\".s4wave.world.ApplyObjectOpReques"
+    "t\032#.s4wave.world.ApplyObjectOpResponse\022U"
+    "\n\014IncrementRev\022!.s4wave.world.IncrementR"
+    "evRequest\032\".s4wave.world.IncrementRevRes"
+    "ponse\022F\n\007WaitRev\022\034.s4wave.world.WaitRevR"
+    "equest\032\035.s4wave.world.WaitRevResponse2\202\001"
+    "\n\032TypedObjectResourceService\022d\n\021AccessTy"
+    "pedObject\022&.s4wave.world.AccessTypedObje"
+    "ctRequest\032\'.s4wave.world.AccessTypedObje"
+    "ctResponseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto_deps[2] = {
@@ -3249,13 +3345,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto = {
     false,
     false,
-    10052,
+    10338,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
     "github.com/s4wave/spacewave/sdk/world/world.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto_deps,
     2,
-    95,
+    97,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto::offsets,
@@ -19655,6 +19751,681 @@ void TrackedWorldStateSnapshot_ObjectAccess::InternalSwap(TrackedWorldStateSnaps
 }
 // ===================================================================
 
+class TrackedWorldStateSnapshot_ObjectPrefixAccess::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<TrackedWorldStateSnapshot_ObjectPrefixAccess>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot_ObjectPrefixAccess, _impl_._has_bits_);
+};
+
+TrackedWorldStateSnapshot_ObjectPrefixAccess::TrackedWorldStateSnapshot_ObjectPrefixAccess(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, TrackedWorldStateSnapshot_ObjectPrefixAccess_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess)
+}
+PROTOBUF_NDEBUG_INLINE TrackedWorldStateSnapshot_ObjectPrefixAccess::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        prefix_(arena, from.prefix_) {}
+
+TrackedWorldStateSnapshot_ObjectPrefixAccess::TrackedWorldStateSnapshot_ObjectPrefixAccess(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const TrackedWorldStateSnapshot_ObjectPrefixAccess& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, TrackedWorldStateSnapshot_ObjectPrefixAccess_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  TrackedWorldStateSnapshot_ObjectPrefixAccess* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess)
+}
+PROTOBUF_NDEBUG_INLINE TrackedWorldStateSnapshot_ObjectPrefixAccess::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        prefix_(arena) {}
+
+inline void TrackedWorldStateSnapshot_ObjectPrefixAccess::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+TrackedWorldStateSnapshot_ObjectPrefixAccess::~TrackedWorldStateSnapshot_ObjectPrefixAccess() {
+  // @@protoc_insertion_point(destructor:s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess)
+  SharedDtor(*this);
+}
+inline void TrackedWorldStateSnapshot_ObjectPrefixAccess::SharedDtor(MessageLite& self) {
+  TrackedWorldStateSnapshot_ObjectPrefixAccess& this_ = static_cast<TrackedWorldStateSnapshot_ObjectPrefixAccess&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.prefix_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL TrackedWorldStateSnapshot_ObjectPrefixAccess::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) TrackedWorldStateSnapshot_ObjectPrefixAccess(arena);
+}
+constexpr auto TrackedWorldStateSnapshot_ObjectPrefixAccess::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(TrackedWorldStateSnapshot_ObjectPrefixAccess),
+                                            alignof(TrackedWorldStateSnapshot_ObjectPrefixAccess));
+}
+constexpr auto TrackedWorldStateSnapshot_ObjectPrefixAccess::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_TrackedWorldStateSnapshot_ObjectPrefixAccess_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &TrackedWorldStateSnapshot_ObjectPrefixAccess::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<TrackedWorldStateSnapshot_ObjectPrefixAccess>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &TrackedWorldStateSnapshot_ObjectPrefixAccess::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<TrackedWorldStateSnapshot_ObjectPrefixAccess>(), &TrackedWorldStateSnapshot_ObjectPrefixAccess::ByteSizeLong,
+              &TrackedWorldStateSnapshot_ObjectPrefixAccess::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot_ObjectPrefixAccess, _impl_._cached_size_),
+          false,
+      },
+      &TrackedWorldStateSnapshot_ObjectPrefixAccess::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull TrackedWorldStateSnapshot_ObjectPrefixAccess_class_data_ =
+        TrackedWorldStateSnapshot_ObjectPrefixAccess::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+TrackedWorldStateSnapshot_ObjectPrefixAccess::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&TrackedWorldStateSnapshot_ObjectPrefixAccess_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(TrackedWorldStateSnapshot_ObjectPrefixAccess_class_data_.tc_table);
+  return TrackedWorldStateSnapshot_ObjectPrefixAccess_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 72, 2>
+TrackedWorldStateSnapshot_ObjectPrefixAccess::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot_ObjectPrefixAccess, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    TrackedWorldStateSnapshot_ObjectPrefixAccess_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string prefix = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot_ObjectPrefixAccess, _impl_.prefix_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string prefix = 1;
+    {PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot_ObjectPrefixAccess, _impl_.prefix_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\71\6\0\0\0\0\0\0"
+    "s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess"
+    "prefix"
+  }},
+};
+PROTOBUF_NOINLINE void TrackedWorldStateSnapshot_ObjectPrefixAccess::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.prefix_.ClearNonDefaultToEmpty();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL TrackedWorldStateSnapshot_ObjectPrefixAccess::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const TrackedWorldStateSnapshot_ObjectPrefixAccess& this_ = static_cast<const TrackedWorldStateSnapshot_ObjectPrefixAccess&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL TrackedWorldStateSnapshot_ObjectPrefixAccess::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const TrackedWorldStateSnapshot_ObjectPrefixAccess& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string prefix = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_prefix().empty()) {
+      const ::std::string& _s = this_._internal_prefix();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess.prefix");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t TrackedWorldStateSnapshot_ObjectPrefixAccess::ByteSizeLong(const MessageLite& base) {
+  const TrackedWorldStateSnapshot_ObjectPrefixAccess& this_ = static_cast<const TrackedWorldStateSnapshot_ObjectPrefixAccess&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t TrackedWorldStateSnapshot_ObjectPrefixAccess::ByteSizeLong() const {
+  const TrackedWorldStateSnapshot_ObjectPrefixAccess& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // string prefix = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_prefix().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_prefix());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void TrackedWorldStateSnapshot_ObjectPrefixAccess::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<TrackedWorldStateSnapshot_ObjectPrefixAccess*>(&to_msg);
+  auto& from = static_cast<const TrackedWorldStateSnapshot_ObjectPrefixAccess&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!from._internal_prefix().empty()) {
+      _this->_internal_set_prefix(from._internal_prefix());
+    } else {
+      if (_this->_impl_.prefix_.IsDefault()) {
+        _this->_internal_set_prefix("");
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void TrackedWorldStateSnapshot_ObjectPrefixAccess::CopyFrom(const TrackedWorldStateSnapshot_ObjectPrefixAccess& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void TrackedWorldStateSnapshot_ObjectPrefixAccess::InternalSwap(TrackedWorldStateSnapshot_ObjectPrefixAccess* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.prefix_, &other->_impl_.prefix_, arena);
+}
+
+::google::protobuf::Metadata TrackedWorldStateSnapshot_ObjectPrefixAccess::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class TrackedWorldStateSnapshot_GraphAccess::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<TrackedWorldStateSnapshot_GraphAccess>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot_GraphAccess, _impl_._has_bits_);
+};
+
+TrackedWorldStateSnapshot_GraphAccess::TrackedWorldStateSnapshot_GraphAccess(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, TrackedWorldStateSnapshot_GraphAccess_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.TrackedWorldStateSnapshot.GraphAccess)
+}
+PROTOBUF_NDEBUG_INLINE TrackedWorldStateSnapshot_GraphAccess::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::world::TrackedWorldStateSnapshot_GraphAccess& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        subject_(arena, from.subject_),
+        predicate_(arena, from.predicate_),
+        obj_(arena, from.obj_),
+        label_(arena, from.label_) {}
+
+TrackedWorldStateSnapshot_GraphAccess::TrackedWorldStateSnapshot_GraphAccess(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const TrackedWorldStateSnapshot_GraphAccess& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, TrackedWorldStateSnapshot_GraphAccess_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  TrackedWorldStateSnapshot_GraphAccess* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.TrackedWorldStateSnapshot.GraphAccess)
+}
+PROTOBUF_NDEBUG_INLINE TrackedWorldStateSnapshot_GraphAccess::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        subject_(arena),
+        predicate_(arena),
+        obj_(arena),
+        label_(arena) {}
+
+inline void TrackedWorldStateSnapshot_GraphAccess::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+TrackedWorldStateSnapshot_GraphAccess::~TrackedWorldStateSnapshot_GraphAccess() {
+  // @@protoc_insertion_point(destructor:s4wave.world.TrackedWorldStateSnapshot.GraphAccess)
+  SharedDtor(*this);
+}
+inline void TrackedWorldStateSnapshot_GraphAccess::SharedDtor(MessageLite& self) {
+  TrackedWorldStateSnapshot_GraphAccess& this_ = static_cast<TrackedWorldStateSnapshot_GraphAccess&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.subject_.Destroy();
+  this_._impl_.predicate_.Destroy();
+  this_._impl_.obj_.Destroy();
+  this_._impl_.label_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL TrackedWorldStateSnapshot_GraphAccess::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) TrackedWorldStateSnapshot_GraphAccess(arena);
+}
+constexpr auto TrackedWorldStateSnapshot_GraphAccess::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(TrackedWorldStateSnapshot_GraphAccess),
+                                            alignof(TrackedWorldStateSnapshot_GraphAccess));
+}
+constexpr auto TrackedWorldStateSnapshot_GraphAccess::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_TrackedWorldStateSnapshot_GraphAccess_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &TrackedWorldStateSnapshot_GraphAccess::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<TrackedWorldStateSnapshot_GraphAccess>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &TrackedWorldStateSnapshot_GraphAccess::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<TrackedWorldStateSnapshot_GraphAccess>(), &TrackedWorldStateSnapshot_GraphAccess::ByteSizeLong,
+              &TrackedWorldStateSnapshot_GraphAccess::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot_GraphAccess, _impl_._cached_size_),
+          false,
+      },
+      &TrackedWorldStateSnapshot_GraphAccess::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull TrackedWorldStateSnapshot_GraphAccess_class_data_ =
+        TrackedWorldStateSnapshot_GraphAccess::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+TrackedWorldStateSnapshot_GraphAccess::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&TrackedWorldStateSnapshot_GraphAccess_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(TrackedWorldStateSnapshot_GraphAccess_class_data_.tc_table);
+  return TrackedWorldStateSnapshot_GraphAccess_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 0, 83, 2>
+TrackedWorldStateSnapshot_GraphAccess::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot_GraphAccess, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    TrackedWorldStateSnapshot_GraphAccess_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::TrackedWorldStateSnapshot_GraphAccess>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string label = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 3, 0,
+      PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot_GraphAccess, _impl_.label_)}},
+    // string subject = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot_GraphAccess, _impl_.subject_)}},
+    // string predicate = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot_GraphAccess, _impl_.predicate_)}},
+    // string obj = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot_GraphAccess, _impl_.obj_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string subject = 1;
+    {PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot_GraphAccess, _impl_.subject_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string predicate = 2;
+    {PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot_GraphAccess, _impl_.predicate_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string obj = 3;
+    {PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot_GraphAccess, _impl_.obj_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string label = 4;
+    {PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot_GraphAccess, _impl_.label_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\62\7\11\3\5\0\0\0"
+    "s4wave.world.TrackedWorldStateSnapshot.GraphAccess"
+    "subject"
+    "predicate"
+    "obj"
+    "label"
+  }},
+};
+PROTOBUF_NOINLINE void TrackedWorldStateSnapshot_GraphAccess::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.world.TrackedWorldStateSnapshot.GraphAccess)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.subject_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.predicate_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.obj_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.label_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL TrackedWorldStateSnapshot_GraphAccess::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const TrackedWorldStateSnapshot_GraphAccess& this_ = static_cast<const TrackedWorldStateSnapshot_GraphAccess&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL TrackedWorldStateSnapshot_GraphAccess::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const TrackedWorldStateSnapshot_GraphAccess& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.world.TrackedWorldStateSnapshot.GraphAccess)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string subject = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_subject().empty()) {
+      const ::std::string& _s = this_._internal_subject();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.world.TrackedWorldStateSnapshot.GraphAccess.subject");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string predicate = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_predicate().empty()) {
+      const ::std::string& _s = this_._internal_predicate();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.world.TrackedWorldStateSnapshot.GraphAccess.predicate");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string obj = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_obj().empty()) {
+      const ::std::string& _s = this_._internal_obj();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.world.TrackedWorldStateSnapshot.GraphAccess.obj");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string label = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_label().empty()) {
+      const ::std::string& _s = this_._internal_label();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.world.TrackedWorldStateSnapshot.GraphAccess.label");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.world.TrackedWorldStateSnapshot.GraphAccess)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t TrackedWorldStateSnapshot_GraphAccess::ByteSizeLong(const MessageLite& base) {
+  const TrackedWorldStateSnapshot_GraphAccess& this_ = static_cast<const TrackedWorldStateSnapshot_GraphAccess&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t TrackedWorldStateSnapshot_GraphAccess::ByteSizeLong() const {
+  const TrackedWorldStateSnapshot_GraphAccess& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.world.TrackedWorldStateSnapshot.GraphAccess)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // string subject = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_subject().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_subject());
+      }
+    }
+    // string predicate = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_predicate().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_predicate());
+      }
+    }
+    // string obj = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_obj().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_obj());
+      }
+    }
+    // string label = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_label().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_label());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void TrackedWorldStateSnapshot_GraphAccess::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<TrackedWorldStateSnapshot_GraphAccess*>(&to_msg);
+  auto& from = static_cast<const TrackedWorldStateSnapshot_GraphAccess&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.world.TrackedWorldStateSnapshot.GraphAccess)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_subject().empty()) {
+        _this->_internal_set_subject(from._internal_subject());
+      } else {
+        if (_this->_impl_.subject_.IsDefault()) {
+          _this->_internal_set_subject("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_predicate().empty()) {
+        _this->_internal_set_predicate(from._internal_predicate());
+      } else {
+        if (_this->_impl_.predicate_.IsDefault()) {
+          _this->_internal_set_predicate("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_obj().empty()) {
+        _this->_internal_set_obj(from._internal_obj());
+      } else {
+        if (_this->_impl_.obj_.IsDefault()) {
+          _this->_internal_set_obj("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_label().empty()) {
+        _this->_internal_set_label(from._internal_label());
+      } else {
+        if (_this->_impl_.label_.IsDefault()) {
+          _this->_internal_set_label("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void TrackedWorldStateSnapshot_GraphAccess::CopyFrom(const TrackedWorldStateSnapshot_GraphAccess& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.world.TrackedWorldStateSnapshot.GraphAccess)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void TrackedWorldStateSnapshot_GraphAccess::InternalSwap(TrackedWorldStateSnapshot_GraphAccess* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.subject_, &other->_impl_.subject_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.predicate_, &other->_impl_.predicate_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.obj_, &other->_impl_.obj_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.label_, &other->_impl_.label_, arena);
+}
+
+::google::protobuf::Metadata TrackedWorldStateSnapshot_GraphAccess::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
 class TrackedWorldStateSnapshot::_Internal {
  public:
   using HasBits =
@@ -19678,7 +20449,9 @@ PROTOBUF_NDEBUG_INLINE TrackedWorldStateSnapshot::Impl_::Impl_(
     [[maybe_unused]] const ::s4wave::world::TrackedWorldStateSnapshot& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
-        object_accesses_{visibility, arena, from.object_accesses_} {}
+        object_accesses_{visibility, arena, from.object_accesses_},
+        object_prefix_accesses_{visibility, arena, from.object_prefix_accesses_},
+        graph_accesses_{visibility, arena, from.graph_accesses_} {}
 
 TrackedWorldStateSnapshot::TrackedWorldStateSnapshot(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -19707,7 +20480,9 @@ PROTOBUF_NDEBUG_INLINE TrackedWorldStateSnapshot::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
-        object_accesses_{visibility, arena} {}
+        object_accesses_{visibility, arena},
+        object_prefix_accesses_{visibility, arena},
+        graph_accesses_{visibility, arena} {}
 
 inline void TrackedWorldStateSnapshot::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -19741,6 +20516,14 @@ constexpr auto TrackedWorldStateSnapshot::InternalNewImpl_() {
   constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
       PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot, _impl_.object_accesses_) +
           decltype(TrackedWorldStateSnapshot::_impl_.object_accesses_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot, _impl_.object_prefix_accesses_) +
+          decltype(TrackedWorldStateSnapshot::_impl_.object_prefix_accesses_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot, _impl_.graph_accesses_) +
+          decltype(TrackedWorldStateSnapshot::_impl_.graph_accesses_)::
               InternalGetArenaOffset(
                   ::google::protobuf::Message::internal_visibility()),
   });
@@ -19787,17 +20570,17 @@ TrackedWorldStateSnapshot::GetClassData() const {
   return TrackedWorldStateSnapshot_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 3, 1, 0, 2>
+const ::_pbi::TcParseTable<3, 5, 3, 0, 2>
 TrackedWorldStateSnapshot::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot, _impl_._has_bits_),
     0, // no _extensions_
-    3, 24,  // max_field_number, fast_idx_mask
+    5, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967288,  // skipmap
+    4294967264,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    3,  // num_field_entries
-    1,  // num_aux_entries
+    5,  // num_field_entries
+    3,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     TrackedWorldStateSnapshot_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -19812,25 +20595,41 @@ TrackedWorldStateSnapshot::_table_ = {
      {10, 0, 0,
       PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot, _impl_.object_accesses_)}},
     // bool has_quad_access = 2;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(TrackedWorldStateSnapshot, _impl_.has_quad_access_), 2>(),
-     {16, 2, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(TrackedWorldStateSnapshot, _impl_.has_quad_access_), 4>(),
+     {16, 4, 0,
       PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot, _impl_.has_quad_access_)}},
     // uint64 initial_seqno = 3;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(TrackedWorldStateSnapshot, _impl_.initial_seqno_), 1>(),
-     {24, 1, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(TrackedWorldStateSnapshot, _impl_.initial_seqno_), 3>(),
+     {24, 3, 0,
       PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot, _impl_.initial_seqno_)}},
+    // repeated .s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess object_prefix_accesses = 4;
+    {::_pbi::TcParser::FastMtR1,
+     {34, 1, 1,
+      PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot, _impl_.object_prefix_accesses_)}},
+    // repeated .s4wave.world.TrackedWorldStateSnapshot.GraphAccess graph_accesses = 5;
+    {::_pbi::TcParser::FastMtR1,
+     {42, 2, 2,
+      PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot, _impl_.graph_accesses_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
     // repeated .s4wave.world.TrackedWorldStateSnapshot.ObjectAccess object_accesses = 1;
     {PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot, _impl_.object_accesses_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
     // bool has_quad_access = 2;
-    {PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot, _impl_.has_quad_access_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot, _impl_.has_quad_access_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // uint64 initial_seqno = 3;
-    {PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot, _impl_.initial_seqno_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot, _impl_.initial_seqno_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // repeated .s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess object_prefix_accesses = 4;
+    {PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot, _impl_.object_prefix_accesses_), _Internal::kHasBitsOffset + 1, 1, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // repeated .s4wave.world.TrackedWorldStateSnapshot.GraphAccess graph_accesses = 5;
+    {PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot, _impl_.graph_accesses_), _Internal::kHasBitsOffset + 2, 2, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::s4wave::world::TrackedWorldStateSnapshot_ObjectAccess>()},
+      {::_pbi::TcParser::GetTable<::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess>()},
+      {::_pbi::TcParser::GetTable<::s4wave::world::TrackedWorldStateSnapshot_GraphAccess>()},
   }},
   {{
   }},
@@ -19843,10 +20642,18 @@ PROTOBUF_NOINLINE void TrackedWorldStateSnapshot::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
-    _impl_.object_accesses_.Clear();
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.object_accesses_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _impl_.object_prefix_accesses_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      _impl_.graph_accesses_.Clear();
+    }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000006U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000018U)) {
     ::memset(&_impl_.initial_seqno_, 0, static_cast<::size_t>(
         reinterpret_cast<char*>(&_impl_.has_quad_access_) -
         reinterpret_cast<char*>(&_impl_.initial_seqno_)) + sizeof(_impl_.has_quad_access_));
@@ -19888,7 +20695,7 @@ PROTOBUF_NOINLINE void TrackedWorldStateSnapshot::Clear() {
   }
 
   // bool has_quad_access = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (this_._internal_has_quad_access() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -19897,11 +20704,37 @@ PROTOBUF_NOINLINE void TrackedWorldStateSnapshot::Clear() {
   }
 
   // uint64 initial_seqno = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
     if (this_._internal_initial_seqno() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
           3, this_._internal_initial_seqno(), target);
+    }
+  }
+
+  // repeated .s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess object_prefix_accesses = 4;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_object_prefix_accesses_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_object_prefix_accesses().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              4, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // repeated .s4wave.world.TrackedWorldStateSnapshot.GraphAccess graph_accesses = 5;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_graph_accesses_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_graph_accesses().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              5, repfield, repfield.GetCachedSize(),
+              target, stream);
     }
   }
 
@@ -19930,7 +20763,7 @@ PROTOBUF_NOINLINE void TrackedWorldStateSnapshot::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     // repeated .s4wave.world.TrackedWorldStateSnapshot.ObjectAccess object_accesses = 1;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       total_size += 1UL * this_._internal_object_accesses_size();
@@ -19938,15 +20771,29 @@ PROTOBUF_NOINLINE void TrackedWorldStateSnapshot::Clear() {
         total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
       }
     }
+    // repeated .s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess object_prefix_accesses = 4;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      total_size += 1UL * this_._internal_object_prefix_accesses_size();
+      for (const auto& msg : this_._internal_object_prefix_accesses()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // repeated .s4wave.world.TrackedWorldStateSnapshot.GraphAccess graph_accesses = 5;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      total_size += 1UL * this_._internal_graph_accesses_size();
+      for (const auto& msg : this_._internal_graph_accesses()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
     // uint64 initial_seqno = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (this_._internal_initial_seqno() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
             this_._internal_initial_seqno());
       }
     }
     // bool has_quad_access = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (this_._internal_has_quad_access() != 0) {
         total_size += 2;
       }
@@ -19971,18 +20818,28 @@ void TrackedWorldStateSnapshot::MergeImpl(::google::protobuf::MessageLite& to_ms
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _this->_internal_mutable_object_accesses()->InternalMergeFromWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), arena,
           from._internal_object_accesses());
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _this->_internal_mutable_object_prefix_accesses()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_object_prefix_accesses());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      _this->_internal_mutable_graph_accesses()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_graph_accesses());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (from._internal_initial_seqno() != 0) {
         _this->_impl_.initial_seqno_ = from._impl_.initial_seqno_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (from._internal_has_quad_access() != 0) {
         _this->_impl_.has_quad_access_ = from._impl_.has_quad_access_;
       }
@@ -20006,6 +20863,8 @@ void TrackedWorldStateSnapshot::InternalSwap(TrackedWorldStateSnapshot* PROTOBUF
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   _impl_.object_accesses_.InternalSwap(&other->_impl_.object_accesses_);
+  _impl_.object_prefix_accesses_.InternalSwap(&other->_impl_.object_prefix_accesses_);
+  _impl_.graph_accesses_.InternalSwap(&other->_impl_.graph_accesses_);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(TrackedWorldStateSnapshot, _impl_.has_quad_access_)
       + sizeof(TrackedWorldStateSnapshot::_impl_.has_quad_access_)
