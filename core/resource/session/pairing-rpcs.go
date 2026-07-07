@@ -14,34 +14,43 @@ import (
 
 // pairingProvider is the interface for provider accounts that support pairing.
 type pairingProvider interface {
-	GeneratePairingCode(ctx context.Context, relayURL string, sessionPriv crypto.PrivKey, sessionPeerID peer.ID) (string, error)
+	GeneratePairingCode(ctx context.Context, relayURL string, signingEnvPrefix string, sessionPriv crypto.PrivKey, sessionPeerID peer.ID) (string, error)
 	CompletePairing(ctx context.Context, relayURL string, code string, sessionPriv crypto.PrivKey, sessionPeerID peer.ID) (peer.ID, error)
 }
 
-// getRelayURL resolves the pairing relay URL from the cloud provider endpoint.
-// The spacewave provider ignores the relay URL (uses its session client), so
-// this only matters for local provider sessions that need the cloud endpoint.
-func (r *SessionResource) getRelayURL(ctx context.Context) (string, error) {
+// pairingRelay is the Spacewave Cloud relay endpoint used by local provider
+// sessions for Pairing code registration and signaling tickets.
+type pairingRelay struct {
+	url              string
+	signingEnvPrefix string
+}
+
+// getPairingRelay returns the relay endpoint and signing context that must be
+// used as one contract; staging rejects prod-context signatures.
+func (r *SessionResource) getPairingRelay(ctx context.Context) (pairingRelay, error) {
 	if _, ok := r.session.GetProviderAccount().(*provider_spacewave.ProviderAccount); ok {
-		return "", nil
+		return pairingRelay{}, nil
 	}
 	swProv, swProvRef, err := provider.ExLookupProvider(ctx, r.b, "spacewave", false, nil)
 	if err != nil {
-		return "", errors.Wrap(err, "lookup cloud provider for pairing relay")
+		return pairingRelay{}, errors.Wrap(err, "lookup cloud provider for pairing relay")
 	}
 	if swProv == nil {
-		return "", errors.New("no cloud provider configured for pairing relay")
+		return pairingRelay{}, errors.New("no cloud provider configured for pairing relay")
 	}
 	defer swProvRef.Release()
 	swp, ok := swProv.(*provider_spacewave.Provider)
 	if !ok {
-		return "", errors.New("unexpected spacewave provider type")
+		return pairingRelay{}, errors.New("unexpected spacewave provider type")
 	}
 	endpoint := swp.GetEndpoint()
 	if endpoint == "" {
-		return "", errors.New("cloud provider endpoint is empty")
+		return pairingRelay{}, errors.New("cloud provider endpoint is empty")
 	}
-	return endpoint, nil
+	return pairingRelay{
+		url:              endpoint,
+		signingEnvPrefix: swp.GetSigningEnvPrefix(),
+	}, nil
 }
 
 // GeneratePairingCode creates an 8-char pairing code for P2P device linking.
@@ -57,12 +66,12 @@ func (r *SessionResource) GeneratePairingCode(ctx context.Context, _ *s4wave_ses
 		return nil, errors.New("provider does not support pairing")
 	}
 
-	relayURL, err := r.getRelayURL(ctx)
+	relay, err := r.getPairingRelay(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	code, err := pp.GeneratePairingCode(ctx, relayURL, privKey, r.session.GetPeerId())
+	code, err := pp.GeneratePairingCode(ctx, relay.url, relay.signingEnvPrefix, privKey, r.session.GetPeerId())
 	if err != nil {
 		return nil, err
 	}
@@ -83,12 +92,12 @@ func (r *SessionResource) CompletePairing(ctx context.Context, req *s4wave_sessi
 		return nil, errors.New("provider does not support pairing")
 	}
 
-	relayURL, err := r.getRelayURL(ctx)
+	relay, err := r.getPairingRelay(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	remotePeerID, err := pp.CompletePairing(ctx, relayURL, req.GetCode(), privKey, r.session.GetPeerId())
+	remotePeerID, err := pp.CompletePairing(ctx, relay.url, req.GetCode(), privKey, r.session.GetPeerId())
 	if err != nil {
 		return nil, err
 	}

@@ -139,11 +139,11 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 	s.tkr.sessionProm.SetResult(s, nil)
 
 	transportCtx := context.WithoutCancel(ctx)
-	signalingURL := ""
+	relay := cloudRelayEndpoint{}
 	if s.tkr.cloudAccountID != "" {
-		signalingURL = s.tkr.a.lookupCloudEndpoint(transportCtx)
+		relay = s.tkr.a.lookupCloudRelayEndpoint(transportCtx)
 	}
-	if _, _, err := s.tkr.a.ensureSessionTransport(transportCtx, privKey, signalingURL); err != nil {
+	if _, _, err := s.tkr.a.ensureSessionTransport(transportCtx, privKey, relay.url, relay.signingEnvPrefix); err != nil {
 		if errors.Is(err, context.Canceled) {
 			return context.Canceled
 		}
@@ -478,11 +478,11 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 	// Always start the session transport. Only cloud-linked local accounts
 	// need the cloud signaling controller; no-cloud accounts can run direct
 	// manual links through the same session bus.
-	signalingURL := ""
+	relay := cloudRelayEndpoint{}
 	if t.cloudAccountID != "" {
-		signalingURL = t.a.lookupCloudEndpoint(ctx)
+		relay = t.a.lookupCloudRelayEndpoint(ctx)
 	}
-	sts, created, err := t.a.ensureSessionTransport(ctx, sessionPriv, signalingURL)
+	sts, created, err := t.a.ensureSessionTransport(ctx, sessionPriv, relay.url, relay.signingEnvPrefix)
 	if created {
 		defer t.a.stopSessionTransportState(sts)
 	}

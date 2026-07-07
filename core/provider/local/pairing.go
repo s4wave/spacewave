@@ -39,10 +39,11 @@ func generatePairingCode() (string, error) {
 func (a *ProviderAccount) GeneratePairingCode(
 	ctx context.Context,
 	relayURL string,
+	signingEnvPrefix string,
 	sessionPriv crypto.PrivKey,
 	sessionPeerID peer.ID,
 ) (string, error) {
-	if err := a.EnsureSessionTransport(ctx, sessionPriv, relayURL); err != nil {
+	if _, _, err := a.ensureSessionTransport(ctx, sessionPriv, relayURL, signingEnvPrefix); err != nil {
 		return "", errors.Wrap(err, "start session transport")
 	}
 
@@ -70,7 +71,7 @@ func (a *ProviderAccount) GeneratePairingCode(
 	}
 	req.Header.Set("Content-Type", "application/octet-stream")
 
-	if err := transport.SignHTTPRequest(req, body, sessionPriv, sessionPeerID, ""); err != nil {
+	if err := transport.SignHTTPRequest(req, body, sessionPriv, sessionPeerID, signingEnvPrefix); err != nil {
 		return "", errors.Wrap(err, "sign pairing request")
 	}
 

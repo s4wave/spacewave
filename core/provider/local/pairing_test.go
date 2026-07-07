@@ -2,9 +2,13 @@ package provider_local_test
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
@@ -55,6 +59,114 @@ func newPairingRelayServer(remotePeerID peer.ID) *httptest.Server {
 	}))
 }
 
+func newSignedPairingRelayServer(t *testing.T, expectedEnvPrefix string, expectedPeerID peer.ID) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/pair" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		if ct := r.Header.Get("Content-Type"); ct != "application/octet-stream" {
+			http.Error(w, http.StatusText(http.StatusUnsupportedMediaType), http.StatusUnsupportedMediaType)
+			return
+		}
+		if signed := r.Header.Get("X-Signed-Headers"); signed != "" {
+			http.Error(w, "unexpected signed headers", http.StatusBadRequest)
+			return
+		}
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+		var req api.PairingRequest
+		if err := req.UnmarshalVT(body); err != nil {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+		if req.GetPeerId() != expectedPeerID.String() {
+			http.Error(w, "peer mismatch", http.StatusForbidden)
+			return
+		}
+		bodyHash := sha256.Sum256(body)
+		bodyHashHex := hex.EncodeToString(bodyHash[:])
+		if got := r.Header.Get("X-Sw-Hash"); got != bodyHashHex {
+			http.Error(w, "body hash mismatch", http.StatusBadRequest)
+			return
+		}
+		timestampMs, err := strconv.ParseInt(r.Header.Get("X-Timestamp"), 10, 64)
+		if err != nil {
+			http.Error(w, "bad timestamp", http.StatusBadRequest)
+			return
+		}
+		payload := &api.SigningPayload{
+			EnvPrefix:     expectedEnvPrefix,
+			Method:        http.MethodPost,
+			Path:          "/api/pair",
+			TimestampMs:   timestampMs,
+			ContentLength: int64(len(body)),
+			BodyHashHex:   bodyHashHex,
+		}
+		payloadBytes, err := payload.MarshalVT()
+		if err != nil {
+			http.Error(w, "payload marshal failed", http.StatusInternalServerError)
+			return
+		}
+		signature, err := base64.StdEncoding.DecodeString(r.Header.Get("X-Signature"))
+		if err != nil {
+			http.Error(w, "bad signature encoding", http.StatusBadRequest)
+			return
+		}
+		pub, err := expectedPeerID.ExtractPublicKey()
+		if err != nil {
+			http.Error(w, "bad peer id", http.StatusBadRequest)
+			return
+		}
+		valid, err := pub.Verify(payloadBytes, signature)
+		if err != nil {
+			http.Error(w, "signature verification failed", http.StatusBadRequest)
+			return
+		}
+		if !valid {
+			http.Error(w, "invalid signature", http.StatusUnauthorized)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+	}))
+}
+
+func TestGeneratePairingCodeSignsRelayRequestWithSigningEnvPrefix(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		envPrefix string
+	}{
+		{name: "prod", envPrefix: "spacewave"},
+		{name: "staging", envPrefix: "spacewave-staging"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := t.Context()
+			_, _, acc, sess, release := setupProviderAndSession(ctx, t)
+			defer release()
+
+			if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
+				t.Fatal(err)
+			}
+			defer acc.StopSessionTransport()
+
+			srv := newSignedPairingRelayServer(t, tc.envPrefix, sess.GetPeerId())
+			defer srv.Close()
+
+			code, err := acc.GeneratePairingCode(ctx, srv.URL, tc.envPrefix, sess.GetPrivKey(), sess.GetPeerId())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if code == "" {
+				t.Fatal("expected non-empty pairing code")
+			}
+		})
+	}
+}
+
 // TestPairingCreatesTransport verifies that GeneratePairingCode creates
 // the session transport if it is not already running.
 func TestPairingCreatesTransport(t *testing.T) {
@@ -71,7 +183,7 @@ func TestPairingCreatesTransport(t *testing.T) {
 	srv := newPairingRelayServer("")
 	defer srv.Close()
 
-	code, err := acc.GeneratePairingCode(ctx, srv.URL, sess.GetPrivKey(), sess.GetPeerId())
+	code, err := acc.GeneratePairingCode(ctx, srv.URL, "", sess.GetPrivKey(), sess.GetPeerId())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +203,7 @@ func TestPairingCreatesTransport(t *testing.T) {
 	}
 
 	// Calling again should reuse existing transport.
-	code2, err := acc.GeneratePairingCode(ctx, srv.URL, sess.GetPrivKey(), sess.GetPeerId())
+	code2, err := acc.GeneratePairingCode(ctx, srv.URL, "", sess.GetPrivKey(), sess.GetPeerId())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +298,7 @@ func TestWatchPairingStatus(t *testing.T) {
 	srv := newPairingRelayServer("")
 	defer srv.Close()
 
-	code, err := acc.GeneratePairingCode(ctx, srv.URL, sess.GetPrivKey(), sess.GetPeerId())
+	code, err := acc.GeneratePairingCode(ctx, srv.URL, "", sess.GetPrivKey(), sess.GetPeerId())
 	if err != nil {
 		t.Fatal(err)
 	}

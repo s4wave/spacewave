@@ -66,7 +66,7 @@ func TestEnsureSessionTransportReleasesAccountLockWhileWaitingReady(t *testing.T
 	waitCtx, cancel := context.WithCancel(ctx)
 	done := make(chan error, 1)
 	go func() {
-		_, _, err := acc.ensureSessionTransport(waitCtx, sess.GetPrivKey(), "ws://127.0.0.1:1")
+		_, _, err := acc.ensureSessionTransport(waitCtx, sess.GetPrivKey(), "ws://127.0.0.1:1", "")
 		done <- err
 	}()
 
@@ -128,7 +128,7 @@ func TestEnsureSessionTransportRetriesWhenExistingTransportClearsBeforeReady(t *
 	waitCtx, cancel := context.WithCancel(ctx)
 	done := make(chan error, 1)
 	go func() {
-		_, _, err := acc.ensureSessionTransport(waitCtx, sess.GetPrivKey(), "")
+		_, _, err := acc.ensureSessionTransport(waitCtx, sess.GetPrivKey(), "", "")
 		done <- err
 	}()
 

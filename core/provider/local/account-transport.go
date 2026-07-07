@@ -18,6 +18,11 @@ type sessionTransportState struct {
 	rc        *routine.RoutineContainer
 }
 
+type cloudRelayEndpoint struct {
+	url              string
+	signingEnvPrefix string
+}
+
 var errSessionTransportReplaced = errors.New("session transport replaced before ready")
 
 // CreateSessionTransport creates and starts a session transport using the
@@ -36,7 +41,7 @@ func (a *ProviderAccount) createSessionTransport(ctx context.Context, sessionKey
 	if err != nil {
 		return nil, err
 	}
-	sts, exitedCh, err := a.startSessionTransportLocked(ctx, sessionKey, signalingURL)
+	sts, exitedCh, err := a.startSessionTransportLocked(ctx, sessionKey, signalingURL, "")
 	rel()
 	if err != nil {
 		return nil, err
@@ -47,10 +52,10 @@ func (a *ProviderAccount) createSessionTransport(ctx context.Context, sessionKey
 	return sts, nil
 }
 
-func (a *ProviderAccount) startSessionTransportLocked(ctx context.Context, sessionKey crypto.PrivKey, signalingURL string) (*sessionTransportState, <-chan error, error) {
+func (a *ProviderAccount) startSessionTransportLocked(ctx context.Context, sessionKey crypto.PrivKey, signalingURL string, signingEnvPrefix string) (*sessionTransportState, <-chan error, error) {
 	a.stopSessionTransportLocked()
 
-	st, err := transport.NewSessionTransport(a.le, a.t.p.b, sessionKey, signalingURL, "")
+	st, err := transport.NewSessionTransport(a.le, a.t.p.b, sessionKey, signalingURL, signingEnvPrefix)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "create session transport")
 	}
@@ -202,28 +207,31 @@ func (a *ProviderAccount) stopSessionTransportStateLocked(sts *sessionTransportS
 	})
 }
 
-// lookupCloudEndpoint resolves the cloud provider API endpoint via the bus.
-// Returns empty string if no cloud provider is configured (transport will
-// run without WebRTC signaling).
-func (a *ProviderAccount) lookupCloudEndpoint(ctx context.Context) string {
-	// endpointProvider is satisfied by providers that expose a cloud API endpoint.
-	type endpointProvider interface {
+// lookupCloudRelayEndpoint resolves the cloud relay endpoint and signing
+// environment via the configured Spacewave Cloud provider. Empty fields keep
+// local accounts usable without cloud signaling.
+func (a *ProviderAccount) lookupCloudRelayEndpoint(ctx context.Context) cloudRelayEndpoint {
+	type relayProvider interface {
 		GetEndpoint() string
+		GetSigningEnvPrefix() string
 	}
 	swProv, swProvRef, err := provider.ExLookupProvider(ctx, a.t.p.b, "spacewave", true, nil)
 	if err != nil || swProv == nil {
 		a.le.Debug("no spacewave provider found, transport will run without signaling")
-		return ""
+		return cloudRelayEndpoint{}
 	}
 	defer swProvRef.Release()
-	ep, ok := swProv.(endpointProvider)
+	rp, ok := swProv.(relayProvider)
 	if !ok {
-		a.le.Warn("spacewave provider does not expose endpoint")
-		return ""
+		a.le.Warn("spacewave provider does not expose relay endpoint")
+		return cloudRelayEndpoint{}
 	}
-	endpoint := ep.GetEndpoint()
-	a.le.WithField("signaling-url", endpoint).Debug("resolved cloud signaling endpoint")
-	return endpoint
+	relay := cloudRelayEndpoint{
+		url:              rp.GetEndpoint(),
+		signingEnvPrefix: rp.GetSigningEnvPrefix(),
+	}
+	a.le.WithField("signaling-url", relay.url).WithField("signing-env-prefix", relay.signingEnvPrefix).Debug("resolved cloud signaling endpoint")
+	return relay
 }
 
 // EnsureSessionTransport creates the session transport if not already running.
@@ -232,7 +240,7 @@ func (a *ProviderAccount) EnsureSessionTransport(
 	sessionPriv crypto.PrivKey,
 	relayURL string,
 ) error {
-	_, _, err := a.ensureSessionTransport(ctx, sessionPriv, relayURL)
+	_, _, err := a.ensureSessionTransport(ctx, sessionPriv, relayURL, "")
 	return err
 }
 
@@ -240,6 +248,7 @@ func (a *ProviderAccount) ensureSessionTransport(
 	ctx context.Context,
 	sessionPriv crypto.PrivKey,
 	relayURL string,
+	signingEnvPrefix string,
 ) (*sessionTransportState, bool, error) {
 	for {
 		rel, err := a.mtx.Lock(ctx)
@@ -260,7 +269,7 @@ func (a *ProviderAccount) ensureSessionTransport(
 			}
 			return sts, false, err
 		}
-		sts, exitedCh, err := a.startSessionTransportLocked(ctx, sessionPriv, relayURL)
+		sts, exitedCh, err := a.startSessionTransportLocked(ctx, sessionPriv, relayURL, signingEnvPrefix)
 		rel()
 		if err != nil {
 			return nil, false, err

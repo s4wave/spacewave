@@ -30,10 +30,11 @@ func generatePairingCode() (string, error) {
 
 // GeneratePairingCode generates an 8-char alphanumeric pairing code and
 // registers it with the cloud provider via the authenticated session client.
-// The relayURL and sessionPriv parameters are ignored (retained for interface
-// compatibility with the local provider).
+// The relay URL, signing environment prefix, and session private key parameters
+// are ignored (retained for interface compatibility with the local provider).
 func (a *ProviderAccount) GeneratePairingCode(
 	ctx context.Context,
+	_ string,
 	_ string,
 	_ crypto.PrivKey,
 	sessionPeerID peer.ID,
