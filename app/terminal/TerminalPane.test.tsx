@@ -1,5 +1,5 @@
 import React from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
 
 import {
@@ -33,6 +33,42 @@ const h = vi.hoisted(() => {
     resolveClose: closeWaiter.resolve,
   }
 })
+
+const resizeObservers: ResizeObserverMock[] = []
+
+class ResizeObserverMock {
+  private callback: ResizeObserverCallback
+  private targets: Element[] = []
+
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback
+    resizeObservers.push(this)
+  }
+
+  observe(target: Element) {
+    this.targets.push(target)
+  }
+
+  unobserve(target: Element) {
+    this.targets = this.targets.filter((observed) => observed !== target)
+  }
+
+  disconnect() {
+    this.targets = []
+  }
+
+  trigger(target: Element = this.targets[0] ?? document.body) {
+    const rect = target.getBoundingClientRect()
+    const entry: ResizeObserverEntry = {
+      target,
+      contentRect: new DOMRect(0, 0, rect.width, rect.height),
+      borderBoxSize: [],
+      contentBoxSize: [],
+      devicePixelContentBoxSize: [],
+    }
+    this.callback([entry], this)
+  }
+}
 
 vi.mock('@xterm/xterm', () => ({
   Terminal: class {
@@ -115,6 +151,11 @@ function renderTerminalPane(
 }
 
 describe('TerminalPane', () => {
+  beforeEach(() => {
+    resizeObservers.length = 0
+    vi.stubGlobal('ResizeObserver', ResizeObserverMock)
+  })
+
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
@@ -124,9 +165,10 @@ describe('TerminalPane', () => {
     h.closeSeen = new Promise<void>((resolve) => {
       h.resolveClose = resolve
     })
+    vi.unstubAllGlobals()
   })
 
-  it('sends decoded input bytes and resize frames to the terminal stream', async () => {
+  it('sends decoded input bytes and resize frames on observed pane resize', async () => {
     const { unmount } = renderTerminalPane()
 
     await vi.waitFor(() =>
@@ -154,7 +196,7 @@ describe('TerminalPane', () => {
       ).toBe(true),
     )
 
-    window.dispatchEvent(new Event('resize'))
+    resizeObservers[0]?.trigger()
 
     await vi.waitFor(() =>
       expect(
@@ -163,6 +205,7 @@ describe('TerminalPane', () => {
         ),
       ).toHaveLength(2),
     )
+    expect(h.fit).toHaveBeenCalledTimes(2)
 
     unmount()
   })

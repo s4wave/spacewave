@@ -63,23 +63,7 @@ export function TerminalPane({
     })
     const fit = new FitAddon()
     term.loadAddon(fit)
-    term.open(host)
-    fit.fit()
-    queue.push({
-      kind: TerminalFrameKind.RESIZE,
-      cols: term.cols,
-      rows: term.rows,
-    })
-
-    const disposeInput = term.onData((chunk) => {
-      if (!chunk) return
-      queue.push({
-        kind: TerminalFrameKind.INPUT,
-        data: terminalEncoder.encode(chunk),
-      })
-    })
-
-    const handleResize = () => {
+    const fitAndReportSize = () => {
       try {
         fit.fit()
       } catch {
@@ -91,7 +75,22 @@ export function TerminalPane({
         rows: term.rows,
       })
     }
-    window.addEventListener('resize', handleResize)
+    term.open(host)
+    fitAndReportSize()
+
+    const disposeInput = term.onData((chunk) => {
+      if (!chunk) return
+      queue.push({
+        kind: TerminalFrameKind.INPUT,
+        data: terminalEncoder.encode(chunk),
+      })
+    })
+
+    const resizeObserver =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(() => fitAndReportSize())
+    resizeObserver?.observe(host)
 
     const terminalDone = readTerminalFrames(
       connectTerminal(queue.stream(), rpcAbort.signal),
@@ -113,7 +112,7 @@ export function TerminalPane({
           .then(() => terminalDone)
           .finally(() => rpcAbort.abort())
       }
-      window.removeEventListener('resize', handleResize)
+      resizeObserver?.disconnect()
       disposeInput.dispose()
       term.dispose()
     }
@@ -135,7 +134,7 @@ export function TerminalPane({
         renderTrustChallenge?.(trustChallenge, respondToSshTrust)}
       <div
         ref={terminalHostRef}
-        className="bg-background-dark min-h-0 flex-1 overflow-hidden"
+        className="bg-background-dark min-h-0 w-full min-w-0 flex-1 overflow-hidden"
       />
     </>
   )
