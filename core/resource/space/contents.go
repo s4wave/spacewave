@@ -7,6 +7,7 @@ import (
 	"maps"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -21,6 +22,7 @@ import (
 	process_binding "github.com/s4wave/spacewave/core/plugin/process"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
+	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
@@ -56,17 +58,25 @@ type SpaceContentsResource struct {
 	// ctrl wakes the running plugin/space controller after content changes.
 	ctrl *plugin_space.Controller
 	// bcast is broadcast when content state changes so WatchState re-sends. It
-	// also guards the cached plugin description summary below.
+	// also guards the cached plugin descriptions and manifest catalog below.
 	bcast broadcast.Broadcast
 	// descriptionPluginIDs is the plugin ID set for the cached descriptions.
 	descriptionPluginIDs []string
 	// descriptions caches plugin descriptions for the current plugin set.
 	descriptions map[string]string
+	// availablePluginManifestRefs fingerprints the manifest object content set for
+	// the cached catalog.
+	availablePluginManifestRefs []string
+	// availablePlugins caches the installable plugin catalog for the current
+	// manifest object content set.
+	availablePlugins []*s4wave_space.AvailablePlugin
 	// buildDescriptions overrides description lookup in tests.
 	buildDescriptions func(context.Context, world.WorldState, []string) (map[string]string, error)
 	// buildAvailablePlugins overrides catalog enumeration in tests.
 	buildAvailablePlugins func(context.Context, world.WorldState) ([]*s4wave_space.AvailablePlugin, error)
-	startController       spaceContentsControllerStarter
+	// lookupManifest overrides manifest lookup in tests.
+	lookupManifest  func(context.Context, world.WorldState, string) (*bldr_manifest.Manifest, *bucket.ObjectRef, error)
+	startController spaceContentsControllerStarter
 }
 
 // NewSpaceContentsResource creates a new SpaceContentsResource.
@@ -549,8 +559,8 @@ func (r *SpaceContentsResource) collectPluginDescriptions(
 	return descriptions, nil
 }
 
-// getAvailablePlugins returns the installable plugin catalog for the space,
-// using the test override when set.
+// getAvailablePlugins returns the cached installable plugin catalog for the
+// current manifest object content set, using the test override when set.
 func (r *SpaceContentsResource) getAvailablePlugins(
 	ctx context.Context,
 	ws world.WorldState,
@@ -558,25 +568,78 @@ func (r *SpaceContentsResource) getAvailablePlugins(
 	if r.buildAvailablePlugins != nil {
 		return r.buildAvailablePlugins(ctx, ws)
 	}
-	return r.collectAvailablePlugins(ctx, ws)
-}
 
-// collectAvailablePlugins enumerates every manifest object in the world and
-// returns the installable plugin catalog, keeping the highest revision for each
-// manifest ID.
-func (r *SpaceContentsResource) collectAvailablePlugins(
-	ctx context.Context,
-	ws world.WorldState,
-) ([]*s4wave_space.AvailablePlugin, error) {
-	manifestKeys, err := world_types.ListObjectsWithType(ctx, ws, bldr_manifest_world.ManifestTypeID)
+	manifestRefs, err := collectAvailablePluginManifestRefs(ctx, ws)
 	if err != nil {
 		return nil, err
 	}
 
-	catalog := make(map[string]*bldr_manifest.ManifestMeta, len(manifestKeys))
+	var cached []*s4wave_space.AvailablePlugin
+	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if slices.Equal(r.availablePluginManifestRefs, manifestRefs) {
+			cached = cloneAvailablePlugins(r.availablePlugins)
+		}
+	})
+	if cached != nil {
+		return cached, nil
+	}
+
+	availablePlugins, err := r.collectAvailablePlugins(ctx, ws, manifestRefs)
+	if err != nil {
+		return nil, err
+	}
+
+	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		r.availablePluginManifestRefs = slices.Clone(manifestRefs)
+		r.availablePlugins = cloneAvailablePlugins(availablePlugins)
+	})
+	return cloneAvailablePlugins(availablePlugins), nil
+}
+
+func collectAvailablePluginManifestRefs(
+	ctx context.Context,
+	ws world.WorldState,
+) ([]string, error) {
+	manifestKeys, err := world_types.ListObjectsWithType(ctx, ws, bldr_manifest_world.ManifestTypeID)
+	if err != nil {
+		return nil, err
+	}
+	manifestKeys = slices.Clone(manifestKeys)
+	slices.Sort(manifestKeys)
+
+	manifestRefs := make([]string, 0, len(manifestKeys))
 	for _, key := range manifestKeys {
-		m, _, err := bldr_manifest_world.LookupManifest(ctx, ws, key)
+		obj, err := world.MustGetObject(ctx, ws, key)
 		if err != nil {
+			return nil, err
+		}
+		ref, _, err := obj.GetRootRef(ctx)
+		if err != nil {
+			return nil, err
+		}
+		manifestRefs = append(manifestRefs, key+"\x00"+ref.MarshalString())
+	}
+	return manifestRefs, nil
+}
+
+// collectAvailablePlugins enumerates the manifest object content set and returns
+// the installable plugin catalog, keeping the highest revision for each manifest
+// ID.
+func (r *SpaceContentsResource) collectAvailablePlugins(
+	ctx context.Context,
+	ws world.WorldState,
+	manifestRefs []string,
+) ([]*s4wave_space.AvailablePlugin, error) {
+	lookupManifest := r.lookupManifest
+	if lookupManifest == nil {
+		lookupManifest = bldr_manifest_world.LookupManifest
+	}
+
+	catalog := make(map[string]*bldr_manifest.ManifestMeta, len(manifestRefs))
+	for _, ref := range manifestRefs {
+		key, _, _ := strings.Cut(ref, "\x00")
+		m, _, err := lookupManifest(ctx, ws, key)
+		if err != nil || m == nil {
 			continue
 		}
 		addManifestToCatalog(catalog, m.GetMeta())
@@ -612,6 +675,17 @@ func availablePluginsFromCatalog(catalog map[string]*bldr_manifest.ManifestMeta)
 	slices.SortFunc(out, func(a, b *s4wave_space.AvailablePlugin) int {
 		return cmp.Compare(a.GetPluginId(), b.GetPluginId())
 	})
+	return out
+}
+
+func cloneAvailablePlugins(in []*s4wave_space.AvailablePlugin) []*s4wave_space.AvailablePlugin {
+	if in == nil {
+		return nil
+	}
+	out := make([]*s4wave_space.AvailablePlugin, 0, len(in))
+	for _, plugin := range in {
+		out = append(out, plugin.CloneVT())
+	}
 	return out
 }
 
