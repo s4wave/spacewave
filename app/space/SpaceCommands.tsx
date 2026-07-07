@@ -64,6 +64,17 @@ export function SpaceCommands({
       ),
     [experimentalCreatorsEnabled, wizardState.value?.wizards],
   )
+  const loadWizards = useCallback(
+    async (signal?: AbortSignal) => {
+      const space = spaceResource.value
+      if (!space) return wizards
+      return normalizeObjectWizards(
+        await space.listWizards(signal),
+        experimentalCreatorsEnabled,
+      )
+    },
+    [experimentalCreatorsEnabled, spaceResource.value, wizards],
+  )
   const existingObjectKeys = useMemo(
     () =>
       spaceState.worldContents?.objects?.map((obj) => obj.objectKey ?? '') ??
@@ -139,34 +150,37 @@ export function SpaceCommands({
   })
 
   const createObjectSubItems: SubItemsCallback = useCallback(
-    (query, signal) => {
-      if (signal.aborted) return Promise.resolve([])
+    async (query, signal) => {
+      if (signal.aborted) return []
+      const visibleWizards = await loadWizards(signal)
+      if (signal.aborted) return []
       const q = query.toLowerCase()
-      return Promise.resolve(
-        wizards.flatMap((w) => {
-          if (
-            q &&
-            !w.displayName?.toLowerCase().includes(q) &&
-            !w.category?.toLowerCase().includes(q)
-          ) {
-            return []
-          }
-          return [
-            {
-              id: w.typeId ?? '',
-              label: w.displayName ?? '',
-              description: w.category,
-            },
-          ]
-        }),
-      )
+      return visibleWizards.flatMap((w) => {
+        if (
+          q &&
+          !w.displayName?.toLowerCase().includes(q) &&
+          !w.category?.toLowerCase().includes(q)
+        ) {
+          return []
+        }
+        return [
+          {
+            id: w.typeId ?? '',
+            label: w.displayName ?? '',
+            description: w.category,
+          },
+        ]
+      })
     },
-    [wizards],
+    [loadWizards],
   )
 
   const createFromWizard = useCallback(
     async (typeId: string) => {
-      const wizard = wizards.find((w) => w.typeId === typeId)
+      let wizard = wizards.find((w) => w.typeId === typeId)
+      if (!wizard) {
+        wizard = (await loadWizards()).find((w) => w.typeId === typeId)
+      }
       if (!wizard) return
 
       if (wizard.persistent && wizard.wizardTypeId) {
@@ -199,7 +213,7 @@ export function SpaceCommands({
       toast.success(`Created ${name}`)
       navigateToObjects([objectKey])
     },
-    [existingObjectKeys, spaceWorld, navigateToObjects, wizards],
+    [existingObjectKeys, spaceWorld, navigateToObjects, wizards, loadWizards],
   )
 
   const handleCreateObject = useCallback(

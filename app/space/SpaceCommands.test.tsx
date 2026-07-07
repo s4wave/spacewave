@@ -48,6 +48,9 @@ const h = vi.hoisted(() => ({
   openCommand: vi.fn((_commandId: string) => undefined),
   navigate: vi.fn((_opts: unknown) => undefined),
   wizards: [] as unknown[],
+  listWizards: vi.fn((_signal?: AbortSignal) =>
+    Promise.resolve(h.wizards as never),
+  ),
 }))
 
 vi.mock('@s4wave/web/command/useCommand.js', () => ({
@@ -88,7 +91,7 @@ vi.mock('@s4wave/web/contexts/contexts.js', async (importOriginal) => {
 })
 
 describe('SpaceCommands', () => {
-  const mockSpace = {}
+  const mockSpace = { listWizards: h.listWizards }
 
   beforeEach(() => {
     h.wizards = [
@@ -161,6 +164,9 @@ describe('SpaceCommands', () => {
         defaultNamePattern: 'Task',
       },
     ]
+    h.listWizards.mockImplementation((_signal?: AbortSignal) =>
+      Promise.resolve(h.wizards as never),
+    )
   })
 
   function renderCommands({
@@ -270,6 +276,32 @@ describe('SpaceCommands', () => {
     command.handler?.({})
 
     expect(onShareSpace).not.toHaveBeenCalled()
+  })
+
+  it('re-acquires object wizards when the create-object palette opens after route transition', async () => {
+    const routeWizards = h.wizards
+    h.wizards = []
+    h.listWizards.mockResolvedValue(routeWizards as never)
+    renderCommands()
+
+    const { subItems, handler } = getCreateObjectCommandHandlers()
+    handler({})
+    expect(h.openCommand).toHaveBeenCalledWith('spacewave.create-object')
+    const items = await subItems('', new AbortController().signal)
+    expect(items.map((item) => item.id)).toContain('notes/notebook')
+    expect(h.listWizards).toHaveBeenCalled()
+
+    handler({ subItemId: 'notes/notebook' })
+
+    await waitFor(() => {
+      expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+    })
+
+    const [opTypeId, opData] = h.applyWorldOp.mock.calls[0]
+    expect(opTypeId).toBe(CREATE_WIZARD_OBJECT_OP_ID)
+    const decoded = CreateWizardObjectOp.fromBinary(opData)
+    expect(decoded.targetTypeId).toBe('notes/notebook')
+    expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
   })
 
   it('launches a persistent notes notebook wizard from the create-object command', async () => {
