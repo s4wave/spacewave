@@ -69,7 +69,10 @@ export class RuntimeOpfsBridge {
     if (this.closed) {
       return Promise.resolve(false)
     }
-    if (this.hostWebDocumentId && this.webDocuments.has(this.hostWebDocumentId)) {
+    if (
+      this.hostWebDocumentId &&
+      this.webDocuments.has(this.hostWebDocumentId)
+    ) {
       return Promise.resolve(true)
     }
     if (this.ensurePromise) {
@@ -157,7 +160,9 @@ export class RuntimeOpfsBridge {
         tracked.port.postMessage(msg)
       } catch (err) {
         console.warn(
-          `RuntimeOpfsBridge: ${this.workerId}: OPFS request to ${webDocumentId} failed:`,
+          'RuntimeOpfsBridge: %s: OPFS request to %s failed:',
+          this.workerId,
+          webDocumentId,
           err,
         )
         this.resolvePending(null)
@@ -232,7 +237,9 @@ export class RuntimeOpfsBridge {
           return
         }
         console.warn(
-          `RuntimeOpfsBridge: ${this.workerId}: liveness watch failed for ${webDocumentId}:`,
+          'RuntimeOpfsBridge: %s: liveness watch failed for %s:',
+          this.workerId,
+          webDocumentId,
           err,
         )
       })
