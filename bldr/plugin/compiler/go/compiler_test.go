@@ -179,8 +179,9 @@ func TestBuildManifestAllowsExplicitGoScriptJSPlatform(t *testing.T) {
 	}
 }
 
-func TestBuildManifestSkipsDefaultJSPlatform(t *testing.T) {
+func TestBuildManifestDefaultsJSPlatformToGoScript(t *testing.T) {
 	t.Setenv(gocompiler.GoCompilerEnv, "")
+	sentinelErr := errors.New("default goscript js build reached pre-build hook")
 
 	ctrl, err := NewController(logrus.NewEntry(logrus.New()), nil, NewConfig())
 	if err != nil {
@@ -188,20 +189,23 @@ func TestBuildManifestSkipsDefaultJSPlatform(t *testing.T) {
 	}
 
 	hookCalled := false
-	ctrl.AddPreBuildHook(func(_ context.Context, _ *bldr_manifest_builder.BuilderConfig, _ world.Engine) (*PreBuildHookResult, error) {
+	ctrl.AddPreBuildHook(func(_ context.Context, builderConf *bldr_manifest_builder.BuilderConfig, _ world.Engine) (*PreBuildHookResult, error) {
 		hookCalled = true
-		return nil, errors.New("default js platform should skip before pre-build hook")
+		if got := builderConf.GetManifestMeta().GetPlatformId(); got != "js" {
+			t.Fatalf("pre-build hook platform id: got %q, want js", got)
+		}
+		return nil, sentinelErr
 	})
 
 	result, err := ctrl.BuildManifest(context.Background(), newTestJSBuildManifestArgs(t), nil)
-	if err != nil {
-		t.Fatalf("BuildManifest default js error = %v, want skip without error", err)
+	if !errors.Is(err, sentinelErr) {
+		t.Fatalf("BuildManifest error = %v, want pre-build hook sentinel for default GoScript js platform", err)
 	}
 	if result != nil {
-		t.Fatalf("BuildManifest default js result = %v, want nil skip result", result)
+		t.Fatalf("BuildManifest result = %v, want nil when pre-build hook stops build", result)
 	}
-	if hookCalled {
-		t.Fatal("default js platform reached Go compiler pre-build hook without explicit GoScript compiler")
+	if !hookCalled {
+		t.Fatal("default GoScript js platform skipped before compiler validation reached pre-build hook")
 	}
 }
 

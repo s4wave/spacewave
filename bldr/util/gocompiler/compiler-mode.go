@@ -13,7 +13,7 @@ import (
 type GoCompiler string
 
 const (
-	// GoCompilerDefault preserves the current default policy.
+	// GoCompilerDefault selects GoScript for browser builds and standard Go elsewhere.
 	GoCompilerDefault GoCompiler = ""
 	// GoCompilerGo uses the standard Go compiler.
 	GoCompilerGo GoCompiler = "go"
@@ -23,7 +23,7 @@ const (
 	GoCompilerGoScript GoCompiler = "goscript"
 )
 
-// GoCompilerEnv is the devtool-wide default Go compiler.
+// GoCompilerEnv overrides the default compiler selection.
 // Explicit manifest goCompiler config still wins over this process default.
 const GoCompilerEnv = "BLDR_GO_COMPILER"
 
@@ -88,6 +88,10 @@ func ResolveGoCompiler(
 		return GoCompilerGoScript, nil
 	default:
 		return "", errors.Errorf("unknown Go compiler %q", goCompiler)
+	}
+
+	if bldr_platform.IsWebPlatform(buildPlatform) {
+		return GoCompilerGoScript, nil
 	}
 
 	if !defaultTinygoEnabled {

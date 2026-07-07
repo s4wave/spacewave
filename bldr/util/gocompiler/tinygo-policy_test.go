@@ -43,11 +43,11 @@ func TestResolveTinyGoEnabled(t *testing.T) {
 			expected:   false,
 		},
 		{
-			name:           "default can opt into supported browser",
+			name:           "default stays disabled for browser",
 			platformID:     "web/js/wasm",
 			opt:            enabled.Enabled_DEFAULT,
 			defaultEnabled: true,
-			expected:       true,
+			expected:       false,
 		},
 		{
 			name:           "disable overrides default",

@@ -18,19 +18,13 @@ func TestResolveGoCompiler(t *testing.T) {
 		expectError          bool
 	}{
 		{
-			name:       "explicit tinygo browser wasm",
-			platformID: "web/js/wasm",
-			goCompiler: GoCompilerTinyGo,
-			expected:   GoCompilerTinyGo,
-		},
-		{
-			name:       "explicit standard go overrides default tinygo",
+			name:       "explicit standard go overrides browser default",
 			platformID: "web/js/wasm",
 			goCompiler: GoCompilerGo,
 			expected:   GoCompilerGo,
 		},
 		{
-			name:       "explicit tinygo mode",
+			name:       "explicit tinygo overrides browser default",
 			platformID: "web/js/wasm",
 			goCompiler: GoCompilerTinyGo,
 			expected:   GoCompilerTinyGo,
@@ -48,15 +42,25 @@ func TestResolveGoCompiler(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name:       "default standard go",
+			name:       "default browser wasm uses goscript",
 			platformID: "web/js/wasm",
+			expected:   GoCompilerGoScript,
+		},
+		{
+			name:       "default browser js uses goscript",
+			platformID: "js",
+			expected:   GoCompilerGoScript,
+		},
+		{
+			name:       "default desktop uses standard go",
+			platformID: "desktop/windows/armv6",
 			expected:   GoCompilerGo,
 		},
 		{
-			name:                 "default browser release tinygo",
+			name:                 "default browser ignores tinygo release default",
 			platformID:           "web/js/wasm",
 			defaultTinygoEnabled: true,
-			expected:             GoCompilerTinyGo,
+			expected:             GoCompilerGoScript,
 		},
 		{
 			name:                 "explicit standard go overrides default",
@@ -69,6 +73,7 @@ func TestResolveGoCompiler(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv(GoCompilerEnv, "")
 			plat, err := bldr_platform.ParsePlatform(tc.platformID)
 			if err != nil {
 				t.Fatalf("%s: unexpected error: %s", tc.platformID, err.Error())
