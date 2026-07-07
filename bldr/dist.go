@@ -61,6 +61,7 @@ import (
 //go:embed sdk/hooks/createResourceContext.tsx sdk/hooks/ResourcesContext.tsx
 //go:embed sdk/hooks/ResourceDevToolsContext.tsx
 //go:embed sdk/hooks/useMappedResource.ts sdk/hooks/useStreamingResource.ts
+//go:embed sdk/hooks/resourceTransitionState.ts
 //go:embed README.md global.d.ts
 var DistSources embed.FS
 
