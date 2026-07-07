@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "cdef2dbd90b01e21215b14f4720e9e54113a7da09c146f60ab926477232cd7e5",
+  "protocFlagsHash": "d9371397ffeedf32c448aced1e66b1d1f878d14948582ca46cd2893abec244e2",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.15.0,starpc=v0.49.18,protobuf-es-lite=1.1.0",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -2588,7 +2588,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/kvtx/rpc": {
-      "hash": "c46e72138c839444bc6825e2d84ac1827d05a10e3edcd172fba85ef52ccd2a27",
+      "hash": "3a97152eba43e6e53d3767fd1298b462af96ba75e9d83227293730f6ba160701",
       "generatedFiles": [
         "db/kvtx/rpc/kvtx.pb.cc",
         "db/kvtx/rpc/kvtx.pb.go",

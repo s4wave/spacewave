@@ -120,6 +120,52 @@ func TestKvStoreFactoryCommitsWorldBackedRootAndReplaysOp(t *testing.T) {
 	}
 }
 
+func TestKvStoreFactoryWatchStreamsCommittedSetAndDeleteSnapshots(t *testing.T) {
+	ctx := context.Background()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+
+	objectKey := "kv/watch-store"
+	createKvStoreObject(t, ctx, tb.WorldState, objectKey, true)
+
+	inv, cleanup, err := s4wave_kv_world.KvStoreFactory(
+		ctx,
+		logrus.NewEntry(logrus.New()),
+		tb.Bus,
+		tb.BusEngine,
+		tb.WorldState,
+		objectKey,
+	)
+	if err != nil {
+		t.Fatalf("KvStoreFactory: %v", err)
+	}
+	defer cleanup()
+
+	rpcClient := kvtx_rpc.NewSRPCKvtxClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(inv))))
+	store := kvtx_rpc_client.NewStore(rpcClient)
+
+	watchCtx, cancelWatch := context.WithCancel(ctx)
+	defer cancelWatch()
+	watch, err := rpcClient.Watch(watchCtx, &kvtx_rpc.KvtxWatchRequest{Prefix: []byte("watch/")})
+	if err != nil {
+		t.Fatalf("Watch: %v", err)
+	}
+	defer watch.Close()
+
+	expectWatchSnapshot(t, watch, map[string]string{})
+
+	commitSetThroughRPC(t, ctx, store, "watch/alpha", "one")
+	expectWatchSnapshot(t, watch, map[string]string{
+		"watch/alpha": "one",
+	})
+
+	commitDeleteThroughRPC(t, ctx, store, "watch/alpha")
+	expectWatchSnapshot(t, watch, map[string]string{})
+}
+
 func TestWorldBackedStoreReportsCommitPersistedWhenWorldRootUpdateFails(t *testing.T) {
 	ctx := context.Background()
 	tb, err := testbed.Default(ctx)
@@ -163,6 +209,68 @@ func TestWorldBackedStoreReportsCommitPersistedWhenWorldRootUpdateFails(t *testi
 	afterRoot := getObjectRoot(t, ctx, tb.WorldState, objectKey)
 	if !beforeRoot.EqualsRef(afterRoot) {
 		t.Fatal("world object root advanced despite failed ApplyWorldOp")
+	}
+}
+
+func expectWatchSnapshot(t *testing.T, watch kvtx_rpc.SRPCKvtx_WatchClient, want map[string]string) {
+	t.Helper()
+	resp, err := watch.Recv()
+	if err != nil {
+		t.Fatalf("Watch Recv: %v", err)
+	}
+	if errStr := resp.GetError(); errStr != "" {
+		t.Fatalf("Watch response error = %q", errStr)
+	}
+
+	got := make(map[string]string, len(resp.GetEntries()))
+	for _, entry := range resp.GetEntries() {
+		key := string(entry.GetKey())
+		if _, ok := got[key]; ok {
+			t.Fatalf("Watch snapshot has duplicate key %q", key)
+		}
+		got[key] = string(entry.GetValue())
+	}
+	if len(got) != len(want) {
+		t.Fatalf("Watch snapshot = %v, want %v", got, want)
+	}
+	for key, wantValue := range want {
+		gotValue, ok := got[key]
+		if !ok {
+			t.Fatalf("Watch snapshot = %v, missing key %q", got, key)
+		}
+		if gotValue != wantValue {
+			t.Fatalf("Watch snapshot[%q] = %q, want %q", key, gotValue, wantValue)
+		}
+	}
+}
+
+func commitSetThroughRPC(t *testing.T, ctx context.Context, store kvtx.Store, key, value string) {
+	t.Helper()
+	writeTx, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatalf("NewTransaction(write): %v", err)
+	}
+	defer writeTx.Discard()
+	if err := writeTx.Set(ctx, []byte(key), []byte(value)); err != nil {
+		t.Fatalf("Set(%s): %v", key, err)
+	}
+	if err := writeTx.Commit(ctx); err != nil {
+		t.Fatalf("Commit set %s: %v", key, err)
+	}
+}
+
+func commitDeleteThroughRPC(t *testing.T, ctx context.Context, store kvtx.Store, key string) {
+	t.Helper()
+	writeTx, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatalf("NewTransaction(write): %v", err)
+	}
+	defer writeTx.Discard()
+	if err := writeTx.Delete(ctx, []byte(key)); err != nil {
+		t.Fatalf("Delete(%s): %v", key, err)
+	}
+	if err := writeTx.Commit(ctx); err != nil {
+		t.Fatalf("Commit delete %s: %v", key, err)
 	}
 }
 

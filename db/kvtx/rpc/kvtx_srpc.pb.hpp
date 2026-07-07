@@ -24,6 +24,8 @@ class SRPCKvtx_KvtxTransactionClient;
 class SRPCKvtx_KvtxTransactionStream;
 class SRPCKvtx_KvtxTransactionRpcClient;
 class SRPCKvtx_KvtxTransactionRpcStream;
+class SRPCKvtx_WatchClient;
+class SRPCKvtx_WatchStream;
 
 // SRPCKvtxClient is the client API for Kvtx service.
 class SRPCKvtxClient {
@@ -37,6 +39,8 @@ class SRPCKvtxClient {
   virtual std::pair<std::unique_ptr<SRPCKvtx_KvtxTransactionClient>, starpc::Error> KvtxTransaction() = 0;
   // KvtxTransactionRpc
   virtual std::pair<std::unique_ptr<SRPCKvtx_KvtxTransactionRpcClient>, starpc::Error> KvtxTransactionRpc() = 0;
+  // Watch
+  virtual std::pair<std::unique_ptr<SRPCKvtx_WatchClient>, starpc::Error> Watch(const kvtx::rpc::KvtxWatchRequest& in) = 0;
 };
 
 // SRPCKvtxClientImpl implements SRPCKvtxClient.
@@ -51,6 +55,8 @@ class SRPCKvtxClientImpl : public SRPCKvtxClient {
   virtual std::pair<std::unique_ptr<SRPCKvtx_KvtxTransactionClient>, starpc::Error> KvtxTransaction() override;
   // KvtxTransactionRpc
   virtual std::pair<std::unique_ptr<SRPCKvtx_KvtxTransactionRpcClient>, starpc::Error> KvtxTransactionRpc() override;
+  // Watch
+  virtual std::pair<std::unique_ptr<SRPCKvtx_WatchClient>, starpc::Error> Watch(const kvtx::rpc::KvtxWatchRequest& in) override;
 
  private:
   starpc::Client* cc_;
@@ -71,6 +77,8 @@ class SRPCKvtxServer {
   virtual starpc::Error KvtxTransaction(SRPCKvtx_KvtxTransactionStream* strm) = 0;
   // KvtxTransactionRpc
   virtual starpc::Error KvtxTransactionRpc(SRPCKvtx_KvtxTransactionRpcStream* strm) = 0;
+  // Watch
+  virtual starpc::Error Watch(const kvtx::rpc::KvtxWatchRequest& req, SRPCKvtx_WatchStream* strm) = 0;
 };
 
 // SRPCKvtxHandler implements starpc::Handler for Kvtx.
@@ -187,6 +195,41 @@ class SRPCKvtx_KvtxTransactionRpcStream {
 
   starpc::Error Recv(rpcstream::RpcStreamPacket* msg) {
     return strm_->MsgRecv(msg);
+  }
+
+ private:
+  starpc::Stream* strm_;
+};
+
+// SRPCKvtx_WatchClient is the client stream for Watch.
+class SRPCKvtx_WatchClient {
+ public:
+  explicit SRPCKvtx_WatchClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
+
+  starpc::Error Recv(kvtx::rpc::KvtxWatchResponse* msg) {
+    return strm_->MsgRecv(msg);
+  }
+
+  starpc::Error CloseSend() { return strm_->CloseSend(); }
+  starpc::Error Close() { return strm_->Close(); }
+
+ private:
+  std::unique_ptr<starpc::Stream> strm_;
+};
+
+// SRPCKvtx_WatchStream is the server stream for Watch.
+class SRPCKvtx_WatchStream {
+ public:
+  explicit SRPCKvtx_WatchStream(starpc::Stream* strm) : strm_(strm) {}
+
+  starpc::Error Send(const kvtx::rpc::KvtxWatchResponse& msg) {
+    return strm_->MsgSend(msg);
+  }
+
+  starpc::Error SendAndClose(const kvtx::rpc::KvtxWatchResponse& msg) {
+    starpc::Error err = strm_->MsgSend(msg);
+    if (err != starpc::Error::OK) return err;
+    return strm_->CloseSend();
   }
 
  private:

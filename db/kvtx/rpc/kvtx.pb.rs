@@ -187,6 +187,37 @@ pub struct KvtxScanPrefixResponse {
     #[prost(bytes="vec", tag="3")]
     pub value: ::prost::alloc::vec::Vec<u8>,
 }
+/// KvtxWatchRequest is a request to watch key/value snapshots by prefix.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct KvtxWatchRequest {
+    /// Prefix limits the watched keys.
+    #[prost(bytes="vec", tag="1")]
+    pub prefix: ::prost::alloc::vec::Vec<u8>,
+    /// OnlyKeys omits values from each entry.
+    #[prost(bool, tag="2")]
+    pub only_keys: bool,
+}
+/// KvtxWatchEntry is one key/value pair in a watched snapshot.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct KvtxWatchEntry {
+    /// Key is the key for this entry.
+    #[prost(bytes="vec", tag="1")]
+    pub key: ::prost::alloc::vec::Vec<u8>,
+    /// Value is the value for this entry.
+    #[prost(bytes="vec", tag="2")]
+    pub value: ::prost::alloc::vec::Vec<u8>,
+}
+/// KvtxWatchResponse is one watched key/value snapshot.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct KvtxWatchResponse {
+    /// Error is any error watching key/value changes.
+    /// If set, this is the final message in the stream.
+    #[prost(string, tag="1")]
+    pub error: ::prost::alloc::string::String,
+    /// Entries is the current key/value snapshot for the watched prefix.
+    #[prost(message, repeated, tag="2")]
+    pub entries: ::prost::alloc::vec::Vec<KvtxWatchEntry>,
+}
 /// KvtxIterateRequest is a request to open an iterator on a kvtx store.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct KvtxIterateRequest {

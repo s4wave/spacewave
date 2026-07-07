@@ -542,6 +542,103 @@ export const KvtxScanPrefixResponse: MessageType<KvtxScanPrefixResponse> =
   })
 
 /**
+ * KvtxWatchRequest is a request to watch key/value snapshots by prefix.
+ *
+ * @generated from message kvtx.rpc.KvtxWatchRequest
+ */
+export interface KvtxWatchRequest {
+  /**
+   * Prefix limits the watched keys.
+   *
+   * @generated from field: bytes prefix = 1;
+   */
+  prefix?: Uint8Array
+  /**
+   * OnlyKeys omits values from each entry.
+   *
+   * @generated from field: bool only_keys = 2;
+   */
+  onlyKeys?: boolean
+}
+
+export const KvtxWatchRequest: MessageType<KvtxWatchRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'kvtx.rpc.KvtxWatchRequest',
+    fields: [
+      { no: 1, name: 'prefix', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'only_keys', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * KvtxWatchEntry is one key/value pair in a watched snapshot.
+ *
+ * @generated from message kvtx.rpc.KvtxWatchEntry
+ */
+export interface KvtxWatchEntry {
+  /**
+   * Key is the key for this entry.
+   *
+   * @generated from field: bytes key = 1;
+   */
+  key?: Uint8Array
+  /**
+   * Value is the value for this entry.
+   *
+   * @generated from field: bytes value = 2;
+   */
+  value?: Uint8Array
+}
+
+export const KvtxWatchEntry: MessageType<KvtxWatchEntry> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'kvtx.rpc.KvtxWatchEntry',
+    fields: [
+      { no: 1, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * KvtxWatchResponse is one watched key/value snapshot.
+ *
+ * @generated from message kvtx.rpc.KvtxWatchResponse
+ */
+export interface KvtxWatchResponse {
+  /**
+   * Error is any error watching key/value changes.
+   * If set, this is the final message in the stream.
+   *
+   * @generated from field: string error = 1;
+   */
+  error?: string
+  /**
+   * Entries is the current key/value snapshot for the watched prefix.
+   *
+   * @generated from field: repeated kvtx.rpc.KvtxWatchEntry entries = 2;
+   */
+  entries?: KvtxWatchEntry[]
+}
+
+export const KvtxWatchResponse: MessageType<KvtxWatchResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'kvtx.rpc.KvtxWatchResponse',
+    fields: [
+      { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'entries',
+        kind: 'message',
+        T: () => KvtxWatchEntry,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * KvtxIterateInit are the arguments for initializing a iterator.
  *
  * @generated from message kvtx.rpc.KvtxIterateInit

@@ -224,6 +224,27 @@ func (s *Store) KvtxTransactionRpc(strm kvtx_rpc.SRPCKvtx_KvtxTransactionRpcStre
 	return rpcstream.HandleRpcStream(strm, s.GetKvtxOpsMux)
 }
 
+// Watch streams key/value snapshots after committed store changes.
+func (s *Store) Watch(req *kvtx_rpc.KvtxWatchRequest, strm kvtx_rpc.SRPCKvtx_WatchStream) error {
+	watchStore, ok := s.store.(kvtx.WatchStore)
+	if !ok {
+		return strm.Send(&kvtx_rpc.KvtxWatchResponse{Error: kvtx.ErrWatchUnsupported.Error()})
+	}
+	return watchStore.WatchPrefix(strm.Context(), req.GetPrefix(), func(entries []kvtx.WatchEntry) error {
+		resp := &kvtx_rpc.KvtxWatchResponse{
+			Entries: make([]*kvtx_rpc.KvtxWatchEntry, 0, len(entries)),
+		}
+		for _, entry := range entries {
+			watchEntry := &kvtx_rpc.KvtxWatchEntry{Key: entry.Key}
+			if !req.GetOnlyKeys() {
+				watchEntry.Value = entry.Value
+			}
+			resp.Entries = append(resp.Entries, watchEntry)
+		}
+		return strm.Send(resp)
+	})
+}
+
 // GetKvtxOpsMux returns the KvtxOpsServer mux for the given transaction id.
 func (s *Store) GetKvtxOpsMux(ctx context.Context, txID string, released func()) (srpc.Invoker, func(), error) {
 	s.rmtx.RLock()

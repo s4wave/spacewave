@@ -22,4 +22,6 @@ var (
 	// ErrInvalidSnapshot is returned when a transaction's storage snapshot can
 	// no longer be trusted and the caller must reopen at a fresh generation.
 	ErrInvalidSnapshot = errors.New("kvtx snapshot is invalid")
+	// ErrWatchUnsupported is returned when a store cannot stream committed changes.
+	ErrWatchUnsupported = errors.New("kvtx store does not support watch")
 )

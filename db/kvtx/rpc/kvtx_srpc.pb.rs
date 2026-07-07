@@ -34,6 +34,17 @@ pub trait KvtxKvtxTransactionRpcStream: Send + Sync {
     async fn close(&self) -> starpc::Result<()>;
 }
 
+/// Stream trait for Kvtx.Watch.
+#[starpc::async_trait]
+pub trait KvtxWatchStream: Send + Sync {
+    /// Returns the context for this stream.
+    fn context(&self) -> &starpc::Context;
+    /// Receives a message from the stream.
+    async fn recv(&self) -> starpc::Result<KvtxWatchResponse>;
+    /// Closes the stream.
+    async fn close(&self) -> starpc::Result<()>;
+}
+
 /// Client trait for Kvtx.
 #[starpc::async_trait]
 pub trait KvtxClient: Send + Sync {
@@ -41,6 +52,8 @@ pub trait KvtxClient: Send + Sync {
     async fn kvtx_transaction(&self) -> starpc::Result<Box<dyn KvtxKvtxTransactionStream>>;
     /// KvtxTransactionRpc.
     async fn kvtx_transaction_rpc(&self) -> starpc::Result<Box<dyn KvtxKvtxTransactionRpcStream>>;
+    /// Watch.
+    async fn watch(&self, request: &KvtxWatchRequest) -> starpc::Result<Box<dyn KvtxWatchStream>>;
 }
 
 /// Client implementation for Kvtx.
@@ -64,6 +77,13 @@ impl<C: starpc::Client + 'static> KvtxClient for KvtxClientImpl<C> {
     async fn kvtx_transaction_rpc(&self) -> starpc::Result<Box<dyn KvtxKvtxTransactionRpcStream>> {
         let stream = self.client.new_stream("kvtx.rpc.Kvtx", "KvtxTransactionRpc", None).await?;
         Ok(Box::new(KvtxKvtxTransactionRpcStreamImpl { stream }))
+    }
+    async fn watch(&self, request: &KvtxWatchRequest) -> starpc::Result<Box<dyn KvtxWatchStream>> {
+        use starpc::ProstMessage;
+        let data = request.encode_to_vec();
+        let stream = self.client.new_stream("kvtx.rpc.Kvtx", "Watch", Some(&data)).await?;
+        stream.close_send().await?;
+        Ok(Box::new(KvtxWatchStreamImpl { stream }))
     }
 }
 
@@ -107,6 +127,23 @@ impl KvtxKvtxTransactionRpcStream for KvtxKvtxTransactionRpcStreamImpl {
     }
 }
 
+struct KvtxWatchStreamImpl {
+    stream: Box<dyn starpc::Stream>,
+}
+
+#[starpc::async_trait]
+impl KvtxWatchStream for KvtxWatchStreamImpl {
+    fn context(&self) -> &starpc::Context {
+        self.stream.context()
+    }
+    async fn recv(&self) -> starpc::Result<KvtxWatchResponse> {
+        self.stream.msg_recv().await
+    }
+    async fn close(&self) -> starpc::Result<()> {
+        self.stream.close().await
+    }
+}
+
 /// Server trait for Kvtx.
 #[starpc::async_trait]
 pub trait KvtxServer: Send + Sync {
@@ -114,11 +151,14 @@ pub trait KvtxServer: Send + Sync {
     async fn kvtx_transaction(&self, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// KvtxTransactionRpc.
     async fn kvtx_transaction_rpc(&self, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
+    /// Watch.
+    async fn watch(&self, request: KvtxWatchRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
 }
 
 const KVTX_METHOD_IDS: &[&str] = &[
     "KvtxTransaction",
     "KvtxTransactionRpc",
+    "Watch",
 ];
 
 /// Handler for Kvtx.
@@ -152,6 +192,13 @@ impl<S: KvtxServer + 'static> starpc::Invoker for KvtxHandler<S> {
             }
             "KvtxTransactionRpc" => {
                 (true, self.server.kvtx_transaction_rpc(stream).await)
+            }
+            "Watch" => {
+                let request: KvtxWatchRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                (true, self.server.watch(request, stream).await)
             }
             _ => (false, Err(starpc::Error::Unimplemented)),
         }

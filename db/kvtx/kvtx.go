@@ -20,6 +20,20 @@ type CoordinationRefreshStore interface {
 	RefreshForCoordinationLock() error
 }
 
+// WatchEntry is one key/value pair in a watched store snapshot.
+type WatchEntry struct {
+	// Key is the entry key.
+	Key []byte
+	// Value is the entry value.
+	Value []byte
+}
+
+// WatchStore streams key/value snapshots after committed store changes.
+type WatchStore interface {
+	// WatchPrefix calls cb with the current prefix snapshot and each changed snapshot.
+	WatchPrefix(ctx context.Context, prefix []byte, cb func(entries []WatchEntry) error) error
+}
+
 // TxOps contains the database transaction operations.
 type TxOps interface {
 	// Size returns the number of keys in the store.

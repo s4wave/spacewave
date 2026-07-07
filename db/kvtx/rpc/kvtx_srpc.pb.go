@@ -23,6 +23,8 @@ type SRPCKvtxClient interface {
 	// Exposes service: KvtxOps
 	// Component ID: transaction_id from KvtxTransaction call.
 	KvtxTransactionRpc(ctx context.Context) (SRPCKvtx_KvtxTransactionRpcClient, error)
+	// Watch streams key/value snapshots after committed store changes.
+	Watch(ctx context.Context, in *KvtxWatchRequest) (SRPCKvtx_WatchClient, error)
 }
 
 type srpcKvtxClient struct {
@@ -121,6 +123,40 @@ func (x *srpcKvtx_KvtxTransactionRpcClient) RecvTo(m *rpcstream.RpcStreamPacket)
 	return x.MsgRecv(m)
 }
 
+func (c *srpcKvtxClient) Watch(ctx context.Context, in *KvtxWatchRequest) (SRPCKvtx_WatchClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "Watch", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcKvtx_WatchClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCKvtx_WatchClient interface {
+	srpc.Stream
+	Recv() (*KvtxWatchResponse, error)
+	RecvTo(*KvtxWatchResponse) error
+}
+
+type srpcKvtx_WatchClient struct {
+	srpc.Stream
+}
+
+func (x *srpcKvtx_WatchClient) Recv() (*KvtxWatchResponse, error) {
+	m := new(KvtxWatchResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcKvtx_WatchClient) RecvTo(m *KvtxWatchResponse) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCKvtxServer interface {
 	// KvtxTransaction executes a key/value transaction.
 	// Returns a stream of messages about the transaction status.
@@ -130,6 +166,8 @@ type SRPCKvtxServer interface {
 	// Exposes service: KvtxOps
 	// Component ID: transaction_id from KvtxTransaction call.
 	KvtxTransactionRpc(SRPCKvtx_KvtxTransactionRpcStream) error
+	// Watch streams key/value snapshots after committed store changes.
+	Watch(*KvtxWatchRequest, SRPCKvtx_WatchStream) error
 }
 
 const SRPCKvtxServiceID = "kvtx.rpc.Kvtx"
@@ -160,6 +198,7 @@ func (SRPCKvtxHandler) GetMethodIDs() []string {
 	return []string{
 		"KvtxTransaction",
 		"KvtxTransactionRpc",
+		"Watch",
 	}
 }
 
@@ -176,6 +215,8 @@ func (d *SRPCKvtxHandler) InvokeMethod(
 		return true, d.InvokeMethod_KvtxTransaction(d.impl, strm)
 	case "KvtxTransactionRpc":
 		return true, d.InvokeMethod_KvtxTransactionRpc(d.impl, strm)
+	case "Watch":
+		return true, d.InvokeMethod_Watch(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -189,6 +230,15 @@ func (SRPCKvtxHandler) InvokeMethod_KvtxTransaction(impl SRPCKvtxServer, strm sr
 func (SRPCKvtxHandler) InvokeMethod_KvtxTransactionRpc(impl SRPCKvtxServer, strm srpc.Stream) error {
 	clientStrm := &srpcKvtx_KvtxTransactionRpcStream{strm}
 	return impl.KvtxTransactionRpc(clientStrm)
+}
+
+func (SRPCKvtxHandler) InvokeMethod_Watch(impl SRPCKvtxServer, strm srpc.Stream) error {
+	req := new(KvtxWatchRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcKvtx_WatchStream{strm}
+	return impl.Watch(req, serverStrm)
 }
 
 type SRPCKvtx_KvtxTransactionStream interface {
@@ -263,6 +313,29 @@ func (x *srpcKvtx_KvtxTransactionRpcStream) Recv() (*rpcstream.RpcStreamPacket, 
 
 func (x *srpcKvtx_KvtxTransactionRpcStream) RecvTo(m *rpcstream.RpcStreamPacket) error {
 	return x.MsgRecv(m)
+}
+
+type SRPCKvtx_WatchStream interface {
+	srpc.Stream
+	Send(*KvtxWatchResponse) error
+	SendAndClose(*KvtxWatchResponse) error
+}
+
+type srpcKvtx_WatchStream struct {
+	srpc.Stream
+}
+
+func (x *srpcKvtx_WatchStream) Send(m *KvtxWatchResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcKvtx_WatchStream) SendAndClose(m *KvtxWatchResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
 }
 
 type SRPCKvtxOpsClient interface {

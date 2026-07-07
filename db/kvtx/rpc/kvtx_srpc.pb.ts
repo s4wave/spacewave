@@ -18,6 +18,8 @@ import {
   KvtxSetKeyResponse,
   KvtxTransactionRequest,
   KvtxTransactionResponse,
+  KvtxWatchRequest,
+  KvtxWatchResponse,
 } from './kvtx.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
 import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
@@ -62,6 +64,17 @@ export const KvtxDefinition = {
       O: RpcStreamPacket,
       kind: MethodKind.BiDiStreaming,
     },
+    /**
+     * Watch streams key/value snapshots after committed store changes.
+     *
+     * @generated from rpc kvtx.rpc.Kvtx.Watch
+     */
+    Watch: {
+      name: 'Watch',
+      I: KvtxWatchRequest,
+      O: KvtxWatchResponse,
+      kind: MethodKind.ServerStreaming,
+    },
   },
 } as const
 
@@ -94,6 +107,16 @@ export interface Kvtx {
     request: MessageStream<RpcStreamPacket>,
     abortSignal?: AbortSignal,
   ): MessageStream<RpcStreamPacket>
+
+  /**
+   * Watch streams key/value snapshots after committed store changes.
+   *
+   * @generated from rpc kvtx.rpc.Kvtx.Watch
+   */
+  Watch(
+    request: KvtxWatchRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<KvtxWatchResponse>
 }
 
 export const KvtxServiceName = KvtxDefinition.typeName
@@ -106,6 +129,7 @@ export class KvtxClient implements Kvtx {
     this.rpc = rpc
     this.KvtxTransaction = this.KvtxTransaction.bind(this)
     this.KvtxTransactionRpc = this.KvtxTransactionRpc.bind(this)
+    this.Watch = this.Watch.bind(this)
   }
   /**
    * KvtxTransaction executes a key/value transaction.
@@ -145,6 +169,25 @@ export class KvtxClient implements Kvtx {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(RpcStreamPacket)(result)
+  }
+
+  /**
+   * Watch streams key/value snapshots after committed store changes.
+   *
+   * @generated from rpc kvtx.rpc.Kvtx.Watch
+   */
+  Watch(
+    request: KvtxWatchRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<KvtxWatchResponse> {
+    const requestMsg = KvtxWatchRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      KvtxDefinition.methods.Watch.name,
+      KvtxWatchRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(KvtxWatchResponse)(result)
   }
 }
 /**

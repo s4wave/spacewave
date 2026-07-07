@@ -71,6 +71,79 @@ func (s *WorldBackedStore) Close() {
 	s.root = nil
 }
 
+// WatchPrefix streams current key/value snapshots for a prefix after world commits.
+func (s *WorldBackedStore) WatchPrefix(ctx context.Context, prefix []byte, cb func(entries []kvtx.WatchEntry) error) error {
+	if cb == nil {
+		return nil
+	}
+	var prev []kvtx.WatchEntry
+	var havePrev bool
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		obj, err := world.MustGetObject(ctx, s.ws, s.key)
+		if err != nil {
+			return err
+		}
+		_, rev, err := obj.GetRootRef(ctx)
+		if err != nil {
+			return err
+		}
+		entries, err := s.scanWatchPrefix(ctx, prefix)
+		if err != nil {
+			return err
+		}
+		if !havePrev || !kvWatchEntriesEqual(prev, entries) {
+			if err := cb(entries); err != nil {
+				return err
+			}
+			prev = entries
+			havePrev = true
+		}
+		if _, err := obj.WaitRev(ctx, rev+1, false); err != nil {
+			return err
+		}
+	}
+}
+
+func (s *WorldBackedStore) scanWatchPrefix(ctx context.Context, prefix []byte) ([]kvtx.WatchEntry, error) {
+	s.writeMtx.Lock()
+	tx, err := func() (kvtx.Tx, error) {
+		defer s.writeMtx.Unlock()
+		if err := s.refreshInnerRoot(ctx); err != nil {
+			return nil, err
+		}
+		return s.inner.NewTransaction(ctx, false)
+	}()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+
+	var entries []kvtx.WatchEntry
+	err = tx.ScanPrefix(ctx, prefix, func(key, value []byte) error {
+		entries = append(entries, kvtx.WatchEntry{
+			Key:   bytes.Clone(key),
+			Value: bytes.Clone(value),
+		})
+		return nil
+	})
+	return entries, err
+}
+
+func kvWatchEntriesEqual(a, b []kvtx.WatchEntry) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if !bytes.Equal(a[i].Key, b[i].Key) || !bytes.Equal(a[i].Value, b[i].Value) {
+			return false
+		}
+	}
+	return true
+}
+
 // NewTransaction returns a KVTX transaction.
 func (s *WorldBackedStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	if write {

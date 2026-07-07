@@ -138,6 +138,18 @@ class KvtxTransactionResponse;
 struct KvtxTransactionResponseDefaultTypeInternal;
 extern KvtxTransactionResponseDefaultTypeInternal _KvtxTransactionResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull KvtxTransactionResponse_class_data_;
+class KvtxWatchEntry;
+struct KvtxWatchEntryDefaultTypeInternal;
+extern KvtxWatchEntryDefaultTypeInternal _KvtxWatchEntry_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull KvtxWatchEntry_class_data_;
+class KvtxWatchRequest;
+struct KvtxWatchRequestDefaultTypeInternal;
+extern KvtxWatchRequestDefaultTypeInternal _KvtxWatchRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull KvtxWatchRequest_class_data_;
+class KvtxWatchResponse;
+struct KvtxWatchResponseDefaultTypeInternal;
+extern KvtxWatchResponseDefaultTypeInternal _KvtxWatchResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull KvtxWatchResponse_class_data_;
 }  // namespace rpc
 }  // namespace kvtx
 namespace google {
@@ -151,6 +163,425 @@ namespace rpc {
 // ===================================================================
 
 
+// -------------------------------------------------------------------
+
+class KvtxWatchRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:kvtx.rpc.KvtxWatchRequest) */ {
+ public:
+  inline KvtxWatchRequest() : KvtxWatchRequest(nullptr) {}
+  ~KvtxWatchRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(KvtxWatchRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(KvtxWatchRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR KvtxWatchRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline KvtxWatchRequest(const KvtxWatchRequest& from) : KvtxWatchRequest(nullptr, from) {}
+  inline KvtxWatchRequest(KvtxWatchRequest&& from) noexcept
+      : KvtxWatchRequest(nullptr, ::std::move(from)) {}
+  inline KvtxWatchRequest& operator=(const KvtxWatchRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline KvtxWatchRequest& operator=(KvtxWatchRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const KvtxWatchRequest& default_instance() {
+    return *reinterpret_cast<const KvtxWatchRequest*>(
+        &_KvtxWatchRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 16;
+  friend void swap(KvtxWatchRequest& a, KvtxWatchRequest& b) { a.Swap(&b); }
+  inline void Swap(KvtxWatchRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(KvtxWatchRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  KvtxWatchRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<KvtxWatchRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const KvtxWatchRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const KvtxWatchRequest& from) { KvtxWatchRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(KvtxWatchRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "kvtx.rpc.KvtxWatchRequest"; }
+
+  explicit KvtxWatchRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  KvtxWatchRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const KvtxWatchRequest& from);
+  KvtxWatchRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, KvtxWatchRequest&& from) noexcept
+      : KvtxWatchRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kPrefixFieldNumber = 1,
+    kOnlyKeysFieldNumber = 2,
+  };
+  // bytes prefix = 1;
+  void clear_prefix() ;
+  const ::std::string& prefix() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_prefix(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_prefix();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_prefix();
+  void set_allocated_prefix(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_prefix() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_prefix(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_prefix();
+
+  public:
+  // bool only_keys = 2;
+  void clear_only_keys() ;
+  bool only_keys() const;
+  void set_only_keys(bool value);
+
+  private:
+  bool _internal_only_keys() const;
+  void _internal_set_only_keys(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:kvtx.rpc.KvtxWatchRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const KvtxWatchRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr prefix_;
+    bool only_keys_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull KvtxWatchRequest_class_data_;
+// -------------------------------------------------------------------
+
+class KvtxWatchEntry final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:kvtx.rpc.KvtxWatchEntry) */ {
+ public:
+  inline KvtxWatchEntry() : KvtxWatchEntry(nullptr) {}
+  ~KvtxWatchEntry() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(KvtxWatchEntry* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(KvtxWatchEntry));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR KvtxWatchEntry(::google::protobuf::internal::ConstantInitialized);
+
+  inline KvtxWatchEntry(const KvtxWatchEntry& from) : KvtxWatchEntry(nullptr, from) {}
+  inline KvtxWatchEntry(KvtxWatchEntry&& from) noexcept
+      : KvtxWatchEntry(nullptr, ::std::move(from)) {}
+  inline KvtxWatchEntry& operator=(const KvtxWatchEntry& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline KvtxWatchEntry& operator=(KvtxWatchEntry&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const KvtxWatchEntry& default_instance() {
+    return *reinterpret_cast<const KvtxWatchEntry*>(
+        &_KvtxWatchEntry_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 17;
+  friend void swap(KvtxWatchEntry& a, KvtxWatchEntry& b) { a.Swap(&b); }
+  inline void Swap(KvtxWatchEntry* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(KvtxWatchEntry* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  KvtxWatchEntry* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<KvtxWatchEntry>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const KvtxWatchEntry& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const KvtxWatchEntry& from) { KvtxWatchEntry::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(KvtxWatchEntry* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "kvtx.rpc.KvtxWatchEntry"; }
+
+  explicit KvtxWatchEntry(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  KvtxWatchEntry(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const KvtxWatchEntry& from);
+  KvtxWatchEntry(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, KvtxWatchEntry&& from) noexcept
+      : KvtxWatchEntry(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kKeyFieldNumber = 1,
+    kValueFieldNumber = 2,
+  };
+  // bytes key = 1;
+  void clear_key() ;
+  const ::std::string& key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_key();
+  void set_allocated_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_key();
+
+  public:
+  // bytes value = 2;
+  void clear_value() ;
+  const ::std::string& value() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_value(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_value();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_value();
+  void set_allocated_value(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_value() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_value(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_value();
+
+  public:
+  // @@protoc_insertion_point(class_scope:kvtx.rpc.KvtxWatchEntry)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const KvtxWatchEntry& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr key_;
+    ::google::protobuf::internal::ArenaStringPtr value_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull KvtxWatchEntry_class_data_;
 // -------------------------------------------------------------------
 
 class KvtxTransactionInit final : public ::google::protobuf::Message
@@ -2298,7 +2729,7 @@ class KvtxIterateStatus final : public ::google::protobuf::Message
     return *reinterpret_cast<const KvtxIterateStatus*>(
         &_KvtxIterateStatus_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 19;
+  static constexpr int kIndexInFileMessages = 22;
   friend void swap(KvtxIterateStatus& a, KvtxIterateStatus& b) { a.Swap(&b); }
   inline void Swap(KvtxIterateStatus* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2522,7 +2953,7 @@ class KvtxIterateInit final : public ::google::protobuf::Message
     return *reinterpret_cast<const KvtxIterateInit*>(
         &_KvtxIterateInit_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 17;
+  static constexpr int kIndexInFileMessages = 20;
   friend void swap(KvtxIterateInit& a, KvtxIterateInit& b) { a.Swap(&b); }
   inline void Swap(KvtxIterateInit* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3400,6 +3831,220 @@ class KeyCountRequest final : public ::google::protobuf::internal::ZeroFieldsBas
 extern const ::google::protobuf::internal::ClassDataFull KeyCountRequest_class_data_;
 // -------------------------------------------------------------------
 
+class KvtxWatchResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:kvtx.rpc.KvtxWatchResponse) */ {
+ public:
+  inline KvtxWatchResponse() : KvtxWatchResponse(nullptr) {}
+  ~KvtxWatchResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(KvtxWatchResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(KvtxWatchResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR KvtxWatchResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline KvtxWatchResponse(const KvtxWatchResponse& from) : KvtxWatchResponse(nullptr, from) {}
+  inline KvtxWatchResponse(KvtxWatchResponse&& from) noexcept
+      : KvtxWatchResponse(nullptr, ::std::move(from)) {}
+  inline KvtxWatchResponse& operator=(const KvtxWatchResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline KvtxWatchResponse& operator=(KvtxWatchResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const KvtxWatchResponse& default_instance() {
+    return *reinterpret_cast<const KvtxWatchResponse*>(
+        &_KvtxWatchResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 18;
+  friend void swap(KvtxWatchResponse& a, KvtxWatchResponse& b) { a.Swap(&b); }
+  inline void Swap(KvtxWatchResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(KvtxWatchResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  KvtxWatchResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<KvtxWatchResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const KvtxWatchResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const KvtxWatchResponse& from) { KvtxWatchResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(KvtxWatchResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "kvtx.rpc.KvtxWatchResponse"; }
+
+  explicit KvtxWatchResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  KvtxWatchResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const KvtxWatchResponse& from);
+  KvtxWatchResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, KvtxWatchResponse&& from) noexcept
+      : KvtxWatchResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kEntriesFieldNumber = 2,
+    kErrorFieldNumber = 1,
+  };
+  // repeated .kvtx.rpc.KvtxWatchEntry entries = 2;
+  int entries_size() const;
+  private:
+  int _internal_entries_size() const;
+
+  public:
+  void clear_entries() ;
+  ::kvtx::rpc::KvtxWatchEntry* PROTOBUF_NONNULL mutable_entries(int index);
+  ::google::protobuf::RepeatedPtrField<::kvtx::rpc::KvtxWatchEntry>* PROTOBUF_NONNULL mutable_entries();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::kvtx::rpc::KvtxWatchEntry>& _internal_entries() const;
+  ::google::protobuf::RepeatedPtrField<::kvtx::rpc::KvtxWatchEntry>* PROTOBUF_NONNULL _internal_mutable_entries();
+  public:
+  const ::kvtx::rpc::KvtxWatchEntry& entries(int index) const;
+  ::kvtx::rpc::KvtxWatchEntry* PROTOBUF_NONNULL add_entries();
+  const ::google::protobuf::RepeatedPtrField<::kvtx::rpc::KvtxWatchEntry>& entries() const;
+  // string error = 1;
+  void clear_error() ;
+  const ::std::string& error() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_error(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_error();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_error();
+  void set_allocated_error(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_error() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_error(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_error();
+
+  public:
+  // @@protoc_insertion_point(class_scope:kvtx.rpc.KvtxWatchResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 40,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const KvtxWatchResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::kvtx::rpc::KvtxWatchEntry > entries_;
+    ::google::protobuf::internal::ArenaStringPtr error_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fkvtx_2frpc_2fkvtx_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull KvtxWatchResponse_class_data_;
+// -------------------------------------------------------------------
+
 class KvtxTransactionResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:kvtx.rpc.KvtxTransactionResponse) */ {
  public:
@@ -3940,7 +4585,7 @@ class KvtxIterateResponse final : public ::google::protobuf::Message
     kClosed = 5,
     BODY_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 18;
+  static constexpr int kIndexInFileMessages = 21;
   friend void swap(KvtxIterateResponse& a, KvtxIterateResponse& b) { a.Swap(&b); }
   inline void Swap(KvtxIterateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4223,7 +4868,7 @@ class KvtxIterateRequest final : public ::google::protobuf::Message
     kClose = 6,
     BODY_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 16;
+  static constexpr int kIndexInFileMessages = 19;
   friend void swap(KvtxIterateRequest& a, KvtxIterateRequest& b) { a.Swap(&b); }
   inline void Swap(KvtxIterateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6069,6 +6714,359 @@ inline void KvtxScanPrefixResponse::set_allocated_value(::std::string* PROTOBUF_
     _impl_.value_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:kvtx.rpc.KvtxScanPrefixResponse.value)
+}
+
+// -------------------------------------------------------------------
+
+// KvtxWatchRequest
+
+// bytes prefix = 1;
+inline void KvtxWatchRequest::clear_prefix() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.prefix_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& KvtxWatchRequest::prefix() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:kvtx.rpc.KvtxWatchRequest.prefix)
+  return _internal_prefix();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void KvtxWatchRequest::set_prefix(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.prefix_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:kvtx.rpc.KvtxWatchRequest.prefix)
+}
+inline ::std::string* PROTOBUF_NONNULL KvtxWatchRequest::mutable_prefix()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_prefix();
+  // @@protoc_insertion_point(field_mutable:kvtx.rpc.KvtxWatchRequest.prefix)
+  return _s;
+}
+inline const ::std::string& KvtxWatchRequest::_internal_prefix() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.prefix_.Get();
+}
+inline void KvtxWatchRequest::_internal_set_prefix(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.prefix_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL KvtxWatchRequest::_internal_mutable_prefix() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.prefix_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE KvtxWatchRequest::release_prefix() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:kvtx.rpc.KvtxWatchRequest.prefix)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.prefix_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.prefix_.Set("", GetArena());
+  }
+  return released;
+}
+inline void KvtxWatchRequest::set_allocated_prefix(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.prefix_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.prefix_.IsDefault()) {
+    _impl_.prefix_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:kvtx.rpc.KvtxWatchRequest.prefix)
+}
+
+// bool only_keys = 2;
+inline void KvtxWatchRequest::clear_only_keys() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.only_keys_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline bool KvtxWatchRequest::only_keys() const {
+  // @@protoc_insertion_point(field_get:kvtx.rpc.KvtxWatchRequest.only_keys)
+  return _internal_only_keys();
+}
+inline void KvtxWatchRequest::set_only_keys(bool value) {
+  _internal_set_only_keys(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:kvtx.rpc.KvtxWatchRequest.only_keys)
+}
+inline bool KvtxWatchRequest::_internal_only_keys() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.only_keys_;
+}
+inline void KvtxWatchRequest::_internal_set_only_keys(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.only_keys_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// KvtxWatchEntry
+
+// bytes key = 1;
+inline void KvtxWatchEntry::clear_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& KvtxWatchEntry::key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:kvtx.rpc.KvtxWatchEntry.key)
+  return _internal_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void KvtxWatchEntry::set_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.key_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:kvtx.rpc.KvtxWatchEntry.key)
+}
+inline ::std::string* PROTOBUF_NONNULL KvtxWatchEntry::mutable_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_key();
+  // @@protoc_insertion_point(field_mutable:kvtx.rpc.KvtxWatchEntry.key)
+  return _s;
+}
+inline const ::std::string& KvtxWatchEntry::_internal_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.key_.Get();
+}
+inline void KvtxWatchEntry::_internal_set_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL KvtxWatchEntry::_internal_mutable_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE KvtxWatchEntry::release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:kvtx.rpc.KvtxWatchEntry.key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void KvtxWatchEntry::set_allocated_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.key_.IsDefault()) {
+    _impl_.key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:kvtx.rpc.KvtxWatchEntry.key)
+}
+
+// bytes value = 2;
+inline void KvtxWatchEntry::clear_value() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.value_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& KvtxWatchEntry::value() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:kvtx.rpc.KvtxWatchEntry.value)
+  return _internal_value();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void KvtxWatchEntry::set_value(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.value_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:kvtx.rpc.KvtxWatchEntry.value)
+}
+inline ::std::string* PROTOBUF_NONNULL KvtxWatchEntry::mutable_value()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_value();
+  // @@protoc_insertion_point(field_mutable:kvtx.rpc.KvtxWatchEntry.value)
+  return _s;
+}
+inline const ::std::string& KvtxWatchEntry::_internal_value() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.value_.Get();
+}
+inline void KvtxWatchEntry::_internal_set_value(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.value_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL KvtxWatchEntry::_internal_mutable_value() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.value_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE KvtxWatchEntry::release_value() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:kvtx.rpc.KvtxWatchEntry.value)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.value_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.value_.Set("", GetArena());
+  }
+  return released;
+}
+inline void KvtxWatchEntry::set_allocated_value(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.value_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.value_.IsDefault()) {
+    _impl_.value_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:kvtx.rpc.KvtxWatchEntry.value)
+}
+
+// -------------------------------------------------------------------
+
+// KvtxWatchResponse
+
+// string error = 1;
+inline void KvtxWatchResponse::clear_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& KvtxWatchResponse::error() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:kvtx.rpc.KvtxWatchResponse.error)
+  return _internal_error();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void KvtxWatchResponse::set_error(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.error_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:kvtx.rpc.KvtxWatchResponse.error)
+}
+inline ::std::string* PROTOBUF_NONNULL KvtxWatchResponse::mutable_error()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_error();
+  // @@protoc_insertion_point(field_mutable:kvtx.rpc.KvtxWatchResponse.error)
+  return _s;
+}
+inline const ::std::string& KvtxWatchResponse::_internal_error() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.error_.Get();
+}
+inline void KvtxWatchResponse::_internal_set_error(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL KvtxWatchResponse::_internal_mutable_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.error_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE KvtxWatchResponse::release_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:kvtx.rpc.KvtxWatchResponse.error)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.error_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.error_.Set("", GetArena());
+  }
+  return released;
+}
+inline void KvtxWatchResponse::set_allocated_error(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.error_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.error_.IsDefault()) {
+    _impl_.error_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:kvtx.rpc.KvtxWatchResponse.error)
+}
+
+// repeated .kvtx.rpc.KvtxWatchEntry entries = 2;
+inline int KvtxWatchResponse::_internal_entries_size() const {
+  return _internal_entries().size();
+}
+inline int KvtxWatchResponse::entries_size() const {
+  return _internal_entries_size();
+}
+inline void KvtxWatchResponse::clear_entries() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.entries_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::kvtx::rpc::KvtxWatchEntry* PROTOBUF_NONNULL KvtxWatchResponse::mutable_entries(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:kvtx.rpc.KvtxWatchResponse.entries)
+  return _internal_mutable_entries()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::kvtx::rpc::KvtxWatchEntry>* PROTOBUF_NONNULL KvtxWatchResponse::mutable_entries()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:kvtx.rpc.KvtxWatchResponse.entries)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_entries();
+}
+inline const ::kvtx::rpc::KvtxWatchEntry& KvtxWatchResponse::entries(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:kvtx.rpc.KvtxWatchResponse.entries)
+  return _internal_entries().Get(index);
+}
+inline ::kvtx::rpc::KvtxWatchEntry* PROTOBUF_NONNULL KvtxWatchResponse::add_entries()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::kvtx::rpc::KvtxWatchEntry* _add =
+      _internal_mutable_entries()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:kvtx.rpc.KvtxWatchResponse.entries)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::kvtx::rpc::KvtxWatchEntry>& KvtxWatchResponse::entries() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:kvtx.rpc.KvtxWatchResponse.entries)
+  return _internal_entries();
+}
+inline const ::google::protobuf::RepeatedPtrField<::kvtx::rpc::KvtxWatchEntry>&
+KvtxWatchResponse::_internal_entries() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.entries_;
+}
+inline ::google::protobuf::RepeatedPtrField<::kvtx::rpc::KvtxWatchEntry>* PROTOBUF_NONNULL
+KvtxWatchResponse::_internal_mutable_entries() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.entries_;
 }
 
 // -------------------------------------------------------------------

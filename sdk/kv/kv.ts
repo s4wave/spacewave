@@ -25,6 +25,10 @@ export interface KvKeyEntry {
 export interface IKvStore {
   keyCount(abortSignal?: AbortSignal): Promise<bigint>
   scanKeys(prefix: Uint8Array, abortSignal?: AbortSignal): Promise<KvKeyEntry[]>
+  watchKeys(
+    prefix: Uint8Array,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<KvKeyEntry[]>
   get(
     key: Uint8Array,
     abortSignal?: AbortSignal,
@@ -67,6 +71,21 @@ export class KvStore extends Resource implements IKvStore {
       async (tx) => tx.scanKeys(prefix, abortSignal),
       abortSignal,
     )
+  }
+
+  // watchKeys streams every key with the given prefix after committed changes.
+  public async *watchKeys(
+    prefix: Uint8Array,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<KvKeyEntry[]> {
+    const stream = this.service.Watch({ prefix, onlyKeys: false }, abortSignal)
+    for await (const resp of stream) {
+      if (resp.error) throw new Error(resp.error)
+      yield (resp.entries ?? []).map((entry) => ({
+        key: entry.key ?? new Uint8Array(),
+        byteLength: entry.value?.length ?? 0,
+      }))
+    }
   }
 
   // get returns a key value, if present.

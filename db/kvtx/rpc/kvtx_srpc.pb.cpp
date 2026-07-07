@@ -24,10 +24,23 @@ std::pair<std::unique_ptr<SRPCKvtx_KvtxTransactionRpcClient>, starpc::Error> SRP
   return {std::make_unique<SRPCKvtx_KvtxTransactionRpcClient>(std::move(strm)), starpc::Error::OK};
 }
 
+std::pair<std::unique_ptr<SRPCKvtx_WatchClient>, starpc::Error> SRPCKvtxClientImpl::Watch(const kvtx::rpc::KvtxWatchRequest& in) {
+  auto [strm, err] = cc_->NewStream(service_id_, "Watch", &in);
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  err = strm->CloseSend();
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::make_unique<SRPCKvtx_WatchClient>(std::move(strm)), starpc::Error::OK};
+}
+
 std::vector<std::string> SRPCKvtxHandler::GetMethodIDs() const {
   return {
     "KvtxTransaction",
     "KvtxTransactionRpc",
+    "Watch",
   };
 }
 
@@ -45,6 +58,12 @@ std::pair<bool, starpc::Error> SRPCKvtxHandler::InvokeMethod(
   } else if (method_id == "KvtxTransactionRpc") {
     SRPCKvtx_KvtxTransactionRpcStream bidiStrm(strm);
     return {true, impl_->KvtxTransactionRpc(&bidiStrm)};
+  } else if (method_id == "Watch") {
+    kvtx::rpc::KvtxWatchRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    SRPCKvtx_WatchStream serverStrm(strm);
+    return {true, impl_->Watch(req, &serverStrm)};
   }
 
   return {false, starpc::Error::OK};
