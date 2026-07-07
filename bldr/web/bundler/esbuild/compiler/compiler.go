@@ -304,6 +304,19 @@ func (c *Controller) BuildManifest(
 		// Filter out excluded web packages (another plugin provides these).
 		excludedIDs := bldr_web_bundler.ExcludedWebPkgIDs(buildCtrlConf.GetWebPkgs())
 		buildableWebPkgRefs := web_pkg.WebPkgRefSlice(webPkgRefs).FilterExcluded(excludedIDs)
+		resolvedConfigWebPkgRefs, err := web_pkg.ResolveWebPkgRefsFromConfig(
+			sourcePath,
+			bldr_web_bundler.WebPkgResolveConfigs(buildCtrlConf.GetWebPkgs()),
+			webPkgRefs,
+			excludedIDs,
+		)
+		if err != nil {
+			return nil, err
+		}
+		for _, ref := range resolvedConfigWebPkgRefs {
+			buildableWebPkgRefs, _ = buildableWebPkgRefs.AppendWebPkgRefValue(ref)
+		}
+		buildableWebPkgRefs = bldr_web_bundler.MergeWebPkgRefConfigImports(buildableWebPkgRefs, buildCtrlConf.GetWebPkgs())
 		outWebPkgsPath := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir)
 		var webPkgSrcFiles []string
 		if len(buildableWebPkgRefs) != 0 {

@@ -462,7 +462,7 @@ func (c *Controller) BundleSaucerHook(
 	webPkgWorkDir := filepath.Join(buildDir, "web-pkgs")
 	webPkgOutDir := filepath.Join(buildDir, "web-pkgs-out")
 	_, _, importMapEntries, err := bldr_plugin_compiler.BuildDirectWebPkgs(
-		ctx, le, distSrcDir, sourcePath, webPkgWorkDir, webPkgOutDir, minify, jsMinification, jsSourcemaps,
+		ctx, le, distSrcDir, sourcePath, webPkgWorkDir, webPkgOutDir, minify, jsMinification, jsSourcemaps, bldr_web_bundler.GetBldrDistWebPkgRefConfigs(),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "build web packages for import map")

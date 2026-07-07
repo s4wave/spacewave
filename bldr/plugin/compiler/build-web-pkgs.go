@@ -10,6 +10,7 @@ import (
 	bldr "github.com/s4wave/spacewave/bldr"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/bldr/util/npm"
+	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
@@ -33,6 +34,7 @@ func BuildDirectWebPkgs(
 	isRelease bool,
 	jsMinification bool,
 	jsSourcemaps bool,
+	webPkgConfigs []*bldr_web_bundler.WebPkgRefConfig,
 ) (web_pkg.WebPkgRefSlice, []string, []web_pkg_vite.ImportMapEntry, error) {
 	var err error
 	workingPath, err = filepath.Abs(workingPath)
@@ -52,6 +54,7 @@ func BuildDirectWebPkgs(
 
 	// Get web package refs with resolved source paths.
 	refs := web_pkg_external.GetBldrDistWebPkgRefs(buildPkgsDir, distSourcePath)
+	refs = bldr_web_bundler.MergeWebPkgRefConfigImports(refs, webPkgConfigs)
 
 	// Build web packages with Vite via a one-shot process.
 	le.Debug("building web packages with vite")

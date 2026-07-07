@@ -112,6 +112,13 @@ func TestPluginCompilerJs(t *testing.T) {
 	}
 	buildWorkingPath := filepath.Join(testDir, ".test")
 	distSrcPath := filepath.Join(testDir, "../../../..")
+	staleEntryPath := filepath.Join(buildWorkingPath, "dist", "plugin-stale.mjs")
+	if err := os.MkdirAll(filepath.Dir(staleEntryPath), 0o755); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := os.WriteFile(staleEntryPath, []byte("stale"), 0o644); err != nil {
+		t.Fatal(err.Error())
+	}
 
 	// start the manifest builder controller
 	engineID := tb.GetWorldEngineID()
@@ -153,6 +160,9 @@ func TestPluginCompilerJs(t *testing.T) {
 	buildResult, err := builderCtrl.GetResultPromise().Await(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+	if _, err := os.Stat(staleEntryPath); !os.IsNotExist(err) {
+		t.Fatalf("stale plugin entrypoint survived rebuild: %v", err)
 	}
 	jdat, err := buildResult.GetManifest().MarshalJSON()
 	if err != nil {

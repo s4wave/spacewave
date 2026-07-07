@@ -3,6 +3,8 @@ package bldr_web_bundler
 import (
 	"slices"
 	"strings"
+
+	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 )
 
 // WebPkgRefConfigSlice is a slice of WebPkgRefConfig.
@@ -50,6 +52,33 @@ func (sl WebPkgRefConfigSlice) AppendWebPkgRefConfig(addConf *WebPkgRefConfig) (
 	}
 
 	return sl, dirty
+}
+
+// MergeWebPkgRefConfigImports merges declared config imports into resolved web
+// package refs. Config imports are package-root-relative entry files and apply
+// everywhere a WebPkgRefConfig is consumed; callers that already resolved package
+// roots use this owner helper instead of rebuilding the merge policy locally.
+func MergeWebPkgRefConfigImports(refs web_pkg.WebPkgRefSlice, configs []*WebPkgRefConfig) web_pkg.WebPkgRefSlice {
+	if len(refs) == 0 || len(configs) == 0 {
+		return refs
+	}
+
+	for _, conf := range CompactWebPkgRefConfigs(slices.Clone(configs)) {
+		if conf.GetId() == "" || conf.GetExclude() || len(conf.GetImports()) == 0 {
+			continue
+		}
+
+		ref, _ := web_pkg.FindWebPkgRef(refs, conf.GetId())
+		if ref == nil {
+			continue
+		}
+
+		for _, imp := range conf.GetImports() {
+			refs, _ = refs.AppendWebPkgRef(conf.GetId(), ref.GetWebPkgRoot(), imp)
+		}
+	}
+
+	return refs
 }
 
 // ToIdList converts the list to the esbuild externalize list.

@@ -845,7 +845,7 @@ func (c *Controller) BuildPlugin(
 	if len(webPkgRefs) == 0 && len(bundleWebPkgs) != 0 {
 		le.Debug("building web packages directly (no esbuild/vite sub-manifests)")
 		directRefs, directSrcFiles, _, err := bldr_plugin_compiler.BuildDirectWebPkgs(
-			ctx, le, distSourcePath, sourcePath, workingPath, outAssetsPath, isRelease, jsMinification, jsSourcemaps,
+			ctx, le, distSourcePath, sourcePath, workingPath, outAssetsPath, isRelease, jsMinification, jsSourcemaps, bundleWebPkgs,
 		)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "build direct web packages")

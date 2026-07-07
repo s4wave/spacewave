@@ -3,6 +3,8 @@ package bldr_web_bundler
 import (
 	"reflect"
 	"testing"
+
+	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 )
 
 func TestCompactWebPkgRefConfigs(t *testing.T) {
@@ -134,5 +136,43 @@ func TestCompactWebPkgRefConfigs(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestMergeWebPkgRefConfigImports(t *testing.T) {
+	refs := MergeWebPkgRefConfigImports(
+		web_pkg.WebPkgRefSlice{{
+			WebPkgId:   "@spacewave/ui",
+			WebPkgRoot: "/repo/web/ui",
+			Imports:    []string{"Button.tsx"},
+		}, {
+			WebPkgId:   "react",
+			WebPkgRoot: "/repo/node_modules/react",
+			Imports:    []string{"index.js"},
+		}},
+		[]*WebPkgRefConfig{{
+			Id:      "@spacewave/ui",
+			Imports: []string{"Dialog.tsx", "Button.tsx"},
+		}, {
+			Id:      "react",
+			Imports: []string{"jsx-runtime.js"},
+		}, {
+			Id:      "sonner",
+			Imports: []string{"index.js"},
+		}, {
+			Id:      "ignored",
+			Exclude: true,
+			Imports: []string{"index.js"},
+		}},
+	)
+
+	if got, want := refs[0].GetImports(), []string{"Button.tsx", "Dialog.tsx"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("@spacewave/ui imports=%v want %v", got, want)
+	}
+	if got, want := refs[1].GetImports(), []string{"index.js", "jsx-runtime.js"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("react imports=%v want %v", got, want)
+	}
+	if len(refs) != 2 {
+		t.Fatalf("refs length=%d want 2: %v", len(refs), refs)
 	}
 }

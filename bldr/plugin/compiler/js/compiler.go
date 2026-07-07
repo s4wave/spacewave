@@ -170,8 +170,9 @@ func (c *Controller) BuildManifest(
 	// build output world engine
 	buildWorld := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
 
-	// create build directories if they don't exist
-	if err := fsutil.CreateDir(outDistPath); err != nil {
+	// The JS plugin compiler owns the dist tree; stale hashed plugin entrypoints
+	// can retain dead frontend asset hashes across rebuilds.
+	if err := fsutil.CleanCreateDir(outDistPath); err != nil {
 		return nil, err
 	}
 	if err := fsutil.CreateDir(outAssetsPath); err != nil {

@@ -751,7 +751,7 @@ func (c *Controller) performFullRebuild(
 	// Resolve entry points from config (entrypoints field or package.json exports)
 	// instead of using regex-discovered subpaths from the Vite build output.
 	excludedIDs := bldr_web_bundler.ExcludedWebPkgIDs(buildCtrlConf.GetWebPkgs())
-	pkgConfigs := webPkgConfigsToResolveConfigs(buildCtrlConf.GetWebPkgs())
+	pkgConfigs := bldr_web_bundler.WebPkgResolveConfigs(buildCtrlConf.GetWebPkgs())
 	buildableWebPkgRefs, err := web_pkg.ResolveWebPkgRefsFromConfig(
 		sourcePath,
 		pkgConfigs,
@@ -782,6 +782,7 @@ func (c *Controller) performFullRebuild(
 	for _, ref := range bldrDistRefs {
 		buildableWebPkgRefs, _ = web_pkg.WebPkgRefSlice(buildableWebPkgRefs).AppendWebPkgRefValue(ref)
 	}
+	buildableWebPkgRefs = bldr_web_bundler.MergeWebPkgRefConfigImports(buildableWebPkgRefs, buildCtrlConf.GetWebPkgs())
 
 	var webPkgSrcFiles []string
 	if len(buildableWebPkgRefs) != 0 {
@@ -866,24 +867,6 @@ func (c *Controller) stopViteBundlers(
 // Returns nil because vite is a sub-manifest builder that produces platform-agnostic JS bundles.
 func (c *Controller) GetSupportedPlatforms() []string {
 	return nil
-}
-
-// webPkgConfigsToResolveConfigs converts WebPkgRefConfig protos to the
-// cycle-free WebPkgResolveConfig type used by the web/pkg package.
-func webPkgConfigsToResolveConfigs(configs []*bldr_web_bundler.WebPkgRefConfig) []web_pkg.WebPkgResolveConfig {
-	out := make([]web_pkg.WebPkgResolveConfig, len(configs))
-	for i, c := range configs {
-		var eps []web_pkg.WebPkgEntrypointConfig
-		for _, ep := range c.GetEntrypoints() {
-			eps = append(eps, web_pkg.WebPkgEntrypointConfig{Path: ep.GetPath()})
-		}
-		out[i] = web_pkg.WebPkgResolveConfig{
-			ID:          c.GetId(),
-			Exclude:     c.GetExclude(),
-			Entrypoints: eps,
-		}
-	}
-	return out
 }
 
 func resolveBldrDistWebPkgRefs(
