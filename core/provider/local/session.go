@@ -577,6 +577,36 @@ func (a *ProviderAccount) MountSession(ctx context.Context, ref *session.Session
 	return ws, tkrRef.Release, nil
 }
 
+// GetPINSessionRecoveryState reports whether the local PIN reset path has a
+// recovery envelope to unlock with a password or backup key.
+func (a *ProviderAccount) GetPINSessionRecoveryState(ctx context.Context, ref *session.SessionRef) (session.SessionRecoveryState, error) {
+	if err := ref.Validate(); err != nil {
+		return session.SessionRecoveryState_SESSION_RECOVERY_STATE_UNKNOWN, err
+	}
+
+	provRef := ref.GetProviderResourceRef()
+	providerID := provRef.GetProviderId()
+	providerAccountID := provRef.GetProviderAccountId()
+	sessionID := provRef.GetId()
+
+	volID := a.vol.GetID()
+	objectStoreID := SessionObjectStoreID(providerID, providerAccountID)
+	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(ctx, a.t.p.b, false, objectStoreID, volID, nil)
+	if err != nil {
+		return session.SessionRecoveryState_SESSION_RECOVERY_STATE_UNKNOWN, errors.Wrap(err, "mount session object store for recovery status")
+	}
+	defer diRef.Release()
+
+	hasEnvelope, err := HasSessionEnvelope(ctx, objStoreHandle.GetObjectStore(), sessionID)
+	if err != nil {
+		return session.SessionRecoveryState_SESSION_RECOVERY_STATE_UNKNOWN, err
+	}
+	if hasEnvelope {
+		return session.SessionRecoveryState_SESSION_RECOVERY_STATE_AVAILABLE, nil
+	}
+	return session.SessionRecoveryState_SESSION_RECOVERY_STATE_UNAVAILABLE, nil
+}
+
 // ResetPINSession resets a PIN-locked session via envelope recovery.
 // Derives the entity key from the credential, recovers the session
 // private key from the envelope, re-encrypts it in auto-unlock mode,

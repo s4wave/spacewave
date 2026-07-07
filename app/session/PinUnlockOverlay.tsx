@@ -8,9 +8,10 @@ import { BackButton } from '@s4wave/web/ui/BackButton.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 import { CredentialProofInput } from '@s4wave/web/ui/credential/CredentialProofInput.js'
 import { useCredentialProof } from '@s4wave/web/ui/credential/useCredentialProof.js'
-import type {
-  SessionMetadata,
-  EntityCredential,
+import {
+  SessionRecoveryState,
+  type EntityCredential,
+  type SessionMetadata,
 } from '@s4wave/core/session/session.pb.js'
 
 export interface PinUnlockOverlayProps {
@@ -38,6 +39,9 @@ export function PinUnlockOverlay({
   const handlePinInputRef = useCallback((node: HTMLInputElement | null) => {
     node?.focus()
   }, [])
+  const recoveryUnavailable =
+    metadata.providerId === 'local' &&
+    metadata.recoveryState === SessionRecoveryState.UNAVAILABLE
 
   const handleUnlock = useCallback(async () => {
     if (pin.length === 0) {
@@ -172,6 +176,27 @@ export function PinUnlockOverlay({
                   className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors"
                 >
                   Forgot PIN?
+                </button>
+              </>
+            ) : recoveryUnavailable ? (
+              <>
+                <div className="space-y-2">
+                  <p className="text-foreground-alt text-xs leading-relaxed">
+                    This local session has no recovery password or backup key.
+                  </p>
+                  <p className="text-foreground-alt text-xs leading-relaxed">
+                    Your PIN is the only unlock method. Try the PIN again, or
+                    return to Sessions and remove this local session to create a
+                    new one. Local-only data that only this session can access
+                    may not be recoverable.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setShowRecovery(false)}
+                  className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors"
+                >
+                  Back to PIN entry
                 </button>
               </>
             ) : (

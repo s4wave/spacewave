@@ -21,7 +21,7 @@ pub struct SessionListEntry {
     #[prost(message, optional, tag="2")]
     pub session_ref: ::core::option::Option<SessionRef>,
 }
-/// SessionMetadata contains display information for a session.
+/// SessionMetadata contains display and pre-mount lock information for a session.
 /// Stored in the session controller ObjectStore at sessions/meta/{sessionID}.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SessionMetadata {
@@ -52,6 +52,9 @@ pub struct SessionMetadata {
     /// ProviderId is the provider type identifier (e.g. "spacewave", "local").
     #[prost(string, tag="10")]
     pub provider_id: ::prost::alloc::string::String,
+    /// RecoveryState reports whether the PIN reset path can recover this session.
+    #[prost(enumeration="SessionRecoveryState", tag="11")]
+    pub recovery_state: i32,
 }
 /// EntityKeypair is a keypair associated with an entity for authentication.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -148,6 +151,39 @@ impl SessionLockMode {
         match value {
             "SESSION_LOCK_MODE_AUTO_UNLOCK" => Some(Self::AutoUnlock),
             "SESSION_LOCK_MODE_PIN_ENCRYPTED" => Some(Self::PinEncrypted),
+            _ => None,
+        }
+    }
+}
+/// SessionRecoveryState identifies whether a PIN-locked session has a reset path.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SessionRecoveryState {
+    /// SESSION_RECOVERY_STATE_UNKNOWN means the reset path has not been inspected.
+    Unknown = 0,
+    /// SESSION_RECOVERY_STATE_AVAILABLE means ResetSession can recover without the current PIN.
+    Available = 1,
+    /// SESSION_RECOVERY_STATE_UNAVAILABLE means the current PIN is the only unlock method.
+    Unavailable = 2,
+}
+impl SessionRecoveryState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unknown => "SESSION_RECOVERY_STATE_UNKNOWN",
+            Self::Available => "SESSION_RECOVERY_STATE_AVAILABLE",
+            Self::Unavailable => "SESSION_RECOVERY_STATE_UNAVAILABLE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SESSION_RECOVERY_STATE_UNKNOWN" => Some(Self::Unknown),
+            "SESSION_RECOVERY_STATE_AVAILABLE" => Some(Self::Available),
+            "SESSION_RECOVERY_STATE_UNAVAILABLE" => Some(Self::Unavailable),
             _ => None,
         }
     }

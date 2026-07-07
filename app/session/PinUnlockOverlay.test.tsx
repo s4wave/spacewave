@@ -8,7 +8,10 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { PinUnlockOverlay } from './PinUnlockOverlay.js'
-import type { SessionMetadata } from '@s4wave/core/session/session.pb.js'
+import {
+  SessionRecoveryState,
+  type SessionMetadata,
+} from '@s4wave/core/session/session.pb.js'
 
 vi.mock('@s4wave/web/router/router.js', () => ({
   useNavigate: () => vi.fn(),
@@ -207,6 +210,35 @@ describe('PinUnlockOverlay', () => {
         /Re-authenticate with your account password or backup key/,
       ),
     ).toBeDefined()
+  })
+
+  it('shows local no-recovery guidance instead of the credential form', () => {
+    render(
+      <PinUnlockOverlay
+        metadata={{
+          ...baseMetadata,
+          providerId: 'local',
+          recoveryState: SessionRecoveryState.UNAVAILABLE,
+        }}
+        onUnlock={vi.fn()}
+        onReset={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByText('Forgot PIN?'))
+
+    expect(
+      screen.getByText(/no recovery password or backup key/i),
+    ).toBeDefined()
+    expect(screen.getByText(/PIN is the only unlock method/i)).toBeDefined()
+    expect(
+      screen.queryByText(
+        /Re-authenticate with your account password or backup key/,
+      ),
+    ).toBeNull()
+    expect(screen.queryByPlaceholderText('Enter your password')).toBeNull()
+    expect(screen.getByText('Back to PIN entry')).toBeDefined()
+    expect(screen.getByText('Sessions')).toBeDefined()
   })
 
   it('hides forgot PIN help text when "Back to PIN entry" is clicked', () => {

@@ -217,6 +217,21 @@ func UnlockSessionFromEnvelope(ctx context.Context, objStore object.ObjectStore,
 	return recoveredKey, nil
 }
 
+// HasSessionEnvelope reports whether a local session recovery envelope exists.
+func HasSessionEnvelope(ctx context.Context, objStore object.ObjectStore, sessionID string) (bool, error) {
+	otx, err := objStore.NewTransaction(ctx, false)
+	if err != nil {
+		return false, errors.Wrap(err, "open transaction")
+	}
+	defer otx.Discard()
+
+	envData, found, err := otx.Get(ctx, session_lock.MakeKey(sessionID, session_lock.SuffixEnvelope))
+	if err != nil {
+		return false, errors.Wrap(err, "read envelope")
+	}
+	return found && len(envData) > 0, nil
+}
+
 // ReadEnvelope reads the Shamir envelope bytes from the ObjectStore.
 func ReadEnvelope(ctx context.Context, objStore object.ObjectStore, sessionID string) ([]byte, error) {
 	otx, err := objStore.NewTransaction(ctx, false)

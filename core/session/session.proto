@@ -42,7 +42,17 @@ enum SessionLockMode {
   SESSION_LOCK_MODE_PIN_ENCRYPTED = 1;
 }
 
-// SessionMetadata contains display information for a session.
+// SessionRecoveryState identifies whether a PIN-locked session has a reset path.
+enum SessionRecoveryState {
+  // SESSION_RECOVERY_STATE_UNKNOWN means the reset path has not been inspected.
+  SESSION_RECOVERY_STATE_UNKNOWN = 0;
+  // SESSION_RECOVERY_STATE_AVAILABLE means ResetSession can recover without the current PIN.
+  SESSION_RECOVERY_STATE_AVAILABLE = 1;
+  // SESSION_RECOVERY_STATE_UNAVAILABLE means the current PIN is the only unlock method.
+  SESSION_RECOVERY_STATE_UNAVAILABLE = 2;
+}
+
+// SessionMetadata contains display and pre-mount lock information for a session.
 // Stored in the session controller ObjectStore at sessions/meta/{sessionID}.
 message SessionMetadata {
   // DisplayName is the display name for the session (username/entity_id).
@@ -68,6 +78,8 @@ message SessionMetadata {
   reserved 9;
   // ProviderId is the provider type identifier (e.g. "spacewave", "local").
   string provider_id = 10;
+  // RecoveryState reports whether the PIN reset path can recover this session.
+  SessionRecoveryState recovery_state = 11;
 }
 
 // EntityKeypair is a keypair associated with an entity for authentication.

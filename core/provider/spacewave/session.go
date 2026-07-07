@@ -646,6 +646,15 @@ func (a *ProviderAccount) UnlockPINSession(ctx context.Context, ref *session.Ses
 	return nil
 }
 
+// GetPINSessionRecoveryState reports that cloud PIN reset can use the account
+// credential recovery path.
+func (a *ProviderAccount) GetPINSessionRecoveryState(ctx context.Context, ref *session.SessionRef) (session.SessionRecoveryState, error) {
+	if err := ref.Validate(); err != nil {
+		return session.SessionRecoveryState_SESSION_RECOVERY_STATE_UNKNOWN, err
+	}
+	return session.SessionRecoveryState_SESSION_RECOVERY_STATE_AVAILABLE, nil
+}
+
 // ResetPINSession resets a PIN-locked session by deleting all lock files
 // and the stored key. The session tracker will generate a fresh key on
 // next mount.

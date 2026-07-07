@@ -59,6 +59,8 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 namespace session {
 enum SessionLockMode : int;
 extern const uint32_t SessionLockMode_internal_data_[];
+enum SessionRecoveryState : int;
+extern const uint32_t SessionRecoveryState_internal_data_[];
 enum SessionType : int;
 extern const uint32_t SessionType_internal_data_[];
 class EntityCredential;
@@ -87,6 +89,9 @@ namespace protobuf {
 template <>
 internal::EnumTraitsT<::session::SessionLockMode_internal_data_>
     internal::EnumTraitsImpl::value<::session::SessionLockMode>;
+template <>
+internal::EnumTraitsT<::session::SessionRecoveryState_internal_data_>
+    internal::EnumTraitsImpl::value<::session::SessionRecoveryState>;
 template <>
 internal::EnumTraitsT<::session::SessionType_internal_data_>
     internal::EnumTraitsImpl::value<::session::SessionType>;
@@ -166,6 +171,43 @@ inline const ::std::string& SessionLockMode_Name(SessionLockMode value) {
 inline bool SessionLockMode_Parse(
     ::absl::string_view name, SessionLockMode* PROTOBUF_NONNULL value) {
   return ::google::protobuf::internal::ParseNamedEnum<SessionLockMode>(SessionLockMode_descriptor(), name,
+                                           value);
+}
+enum SessionRecoveryState : int {
+  SESSION_RECOVERY_STATE_UNKNOWN = 0,
+  SESSION_RECOVERY_STATE_AVAILABLE = 1,
+  SESSION_RECOVERY_STATE_UNAVAILABLE = 2,
+  SessionRecoveryState_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  SessionRecoveryState_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t SessionRecoveryState_internal_data_[];
+inline constexpr SessionRecoveryState SessionRecoveryState_MIN =
+    static_cast<SessionRecoveryState>(0);
+inline constexpr SessionRecoveryState SessionRecoveryState_MAX =
+    static_cast<SessionRecoveryState>(2);
+inline bool SessionRecoveryState_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int SessionRecoveryState_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SessionRecoveryState_descriptor();
+template <typename T>
+const ::std::string& SessionRecoveryState_Name(T value) {
+  static_assert(::std::is_same<T, SessionRecoveryState>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to SessionRecoveryState_Name().");
+  return SessionRecoveryState_Name(static_cast<SessionRecoveryState>(value));
+}
+template <>
+inline const ::std::string& SessionRecoveryState_Name(SessionRecoveryState value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<SessionRecoveryState_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool SessionRecoveryState_Parse(
+    ::absl::string_view name, SessionRecoveryState* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<SessionRecoveryState>(SessionRecoveryState_descriptor(), name,
                                            value);
 }
 
@@ -324,6 +366,7 @@ class SessionMetadata final : public ::google::protobuf::Message
     kProviderIdFieldNumber = 10,
     kCreatedAtFieldNumber = 5,
     kLockModeFieldNumber = 4,
+    kRecoveryStateFieldNumber = 11,
   };
   // string display_name = 1;
   void clear_display_name() ;
@@ -435,11 +478,21 @@ class SessionMetadata final : public ::google::protobuf::Message
   void _internal_set_lock_mode(::session::SessionLockMode value);
 
   public:
+  // .session.SessionRecoveryState recovery_state = 11;
+  void clear_recovery_state() ;
+  ::session::SessionRecoveryState recovery_state() const;
+  void set_recovery_state(::session::SessionRecoveryState value);
+
+  private:
+  ::session::SessionRecoveryState _internal_recovery_state() const;
+  void _internal_set_recovery_state(::session::SessionRecoveryState value);
+
+  public:
   // @@protoc_insertion_point(class_scope:session.SessionMetadata)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 8,
+  static const ::google::protobuf::internal::TcParseTable<4, 9,
                                    0, 134,
                                    2>
       _table_;
@@ -469,6 +522,7 @@ class SessionMetadata final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr provider_id_;
     ::int64_t created_at_;
     int lock_mode_;
+    int recovery_state_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -2018,6 +2072,31 @@ inline void SessionMetadata::set_allocated_provider_id(::std::string* PROTOBUF_N
   // @@protoc_insertion_point(field_set_allocated:session.SessionMetadata.provider_id)
 }
 
+// .session.SessionRecoveryState recovery_state = 11;
+inline void SessionMetadata::clear_recovery_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.recovery_state_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline ::session::SessionRecoveryState SessionMetadata::recovery_state() const {
+  // @@protoc_insertion_point(field_get:session.SessionMetadata.recovery_state)
+  return _internal_recovery_state();
+}
+inline void SessionMetadata::set_recovery_state(::session::SessionRecoveryState value) {
+  _internal_set_recovery_state(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  // @@protoc_insertion_point(field_set:session.SessionMetadata.recovery_state)
+}
+inline ::session::SessionRecoveryState SessionMetadata::_internal_recovery_state() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::session::SessionRecoveryState>(_impl_.recovery_state_);
+}
+inline void SessionMetadata::_internal_set_recovery_state(::session::SessionRecoveryState value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.recovery_state_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // EntityKeypair
@@ -2410,6 +2489,12 @@ struct is_proto_enum<::session::SessionLockMode> : std::true_type {};
 template <>
 inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::session::SessionLockMode>() {
   return ::session::SessionLockMode_descriptor();
+}
+template <>
+struct is_proto_enum<::session::SessionRecoveryState> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::session::SessionRecoveryState>() {
+  return ::session::SessionRecoveryState_descriptor();
 }
 
 }  // namespace protobuf

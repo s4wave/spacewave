@@ -86,6 +86,43 @@ export const SessionLockMode_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * SessionRecoveryState identifies whether a PIN-locked session has a reset path.
+ *
+ * @generated from enum session.SessionRecoveryState
+ */
+export enum SessionRecoveryState {
+  /**
+   * SESSION_RECOVERY_STATE_UNKNOWN means the reset path has not been inspected.
+   *
+   * @generated from enum value: SESSION_RECOVERY_STATE_UNKNOWN = 0;
+   */
+  UNKNOWN = 0,
+
+  /**
+   * SESSION_RECOVERY_STATE_AVAILABLE means ResetSession can recover without the current PIN.
+   *
+   * @generated from enum value: SESSION_RECOVERY_STATE_AVAILABLE = 1;
+   */
+  AVAILABLE = 1,
+
+  /**
+   * SESSION_RECOVERY_STATE_UNAVAILABLE means the current PIN is the only unlock method.
+   *
+   * @generated from enum value: SESSION_RECOVERY_STATE_UNAVAILABLE = 2;
+   */
+  UNAVAILABLE = 2,
+}
+
+export const SessionRecoveryState_Enum = /* @__PURE__ */ createEnumType(
+  'session.SessionRecoveryState',
+  [
+    [0, 'SESSION_RECOVERY_STATE_UNKNOWN'],
+    [1, 'SESSION_RECOVERY_STATE_AVAILABLE'],
+    [2, 'SESSION_RECOVERY_STATE_UNAVAILABLE'],
+  ],
+)
+
+/**
  * SessionRef is a reference to a session managed by a provider.
  *
  * @generated from message session.SessionRef
@@ -148,7 +185,7 @@ export const SessionListEntry: MessageType<SessionListEntry> =
   })
 
 /**
- * SessionMetadata contains display information for a session.
+ * SessionMetadata contains display and pre-mount lock information for a session.
  * Stored in the session controller ObjectStore at sessions/meta/{sessionID}.
  *
  * @generated from message session.SessionMetadata
@@ -205,6 +242,12 @@ export interface SessionMetadata {
    * @generated from field: string provider_id = 10;
    */
   providerId?: string
+  /**
+   * RecoveryState reports whether the PIN reset path can recover this session.
+   *
+   * @generated from field: session.SessionRecoveryState recovery_state = 11;
+   */
+  recoveryState?: SessionRecoveryState
 }
 
 export const SessionMetadata: MessageType<SessionMetadata> =
@@ -229,6 +272,12 @@ export const SessionMetadata: MessageType<SessionMetadata> =
       { no: 7, name: 'cloud_account_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 8, name: 'cloud_entity_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 10, name: 'provider_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 11,
+        name: 'recovery_state',
+        kind: 'enum',
+        T: SessionRecoveryState_Enum,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

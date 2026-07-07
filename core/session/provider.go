@@ -21,6 +21,10 @@ type SessionProvider interface {
 	// and unblocks the session tracker so mounting can proceed.
 	UnlockPINSession(ctx context.Context, ref *SessionRef, pin []byte) error
 
+	// GetPINSessionRecoveryState reports whether ResetPINSession can recover
+	// the session without the current PIN.
+	GetPINSessionRecoveryState(ctx context.Context, ref *SessionRef) (SessionRecoveryState, error)
+
 	// ResetPINSession resets a PIN-locked session according to the provider's
 	// recovery model. Local providers require a credential and preserve the
 	// session identity through envelope recovery; cloud providers may clear the

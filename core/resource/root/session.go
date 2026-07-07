@@ -145,7 +145,7 @@ func (s *CoreRootServer) GetSessionMetadata(
 	}
 	defer sessionCtrlRef.Release()
 
-	meta, err := sessionCtrl.GetSessionMetadata(ctx, req.GetSessionIdx())
+	meta, err := s.sessionMetadata(ctx, sessionCtrl, req.GetSessionIdx())
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +176,7 @@ func (s *CoreRootServer) WatchSessionMetadata(
 			ch = getWaitCh()
 		})
 
-		meta, err := sessionCtrl.GetSessionMetadata(ctx, req.GetSessionIdx())
+		meta, err := s.sessionMetadata(ctx, sessionCtrl, req.GetSessionIdx())
 		if err != nil {
 			return err
 		}
@@ -197,6 +197,45 @@ func (s *CoreRootServer) WatchSessionMetadata(
 		case <-ch:
 		}
 	}
+}
+
+func (s *CoreRootServer) sessionMetadata(ctx context.Context, sessionCtrl session.SessionController, sessionIdx uint32) (*session.SessionMetadata, error) {
+	meta, err := sessionCtrl.GetSessionMetadata(ctx, sessionIdx)
+	if err != nil || meta == nil {
+		return meta, err
+	}
+	meta = meta.CloneVT()
+	if meta.GetLockMode() != session.SessionLockMode_SESSION_LOCK_MODE_PIN_ENCRYPTED {
+		return meta, nil
+	}
+
+	sessInfo, err := sessionCtrl.GetSessionByIdx(ctx, sessionIdx)
+	if err != nil || sessInfo == nil {
+		return meta, err
+	}
+	ref := sessInfo.GetSessionRef()
+	provRef := ref.GetProviderResourceRef()
+	provAcc, provAccRef, err := provider.ExAccessProviderAccount(
+		ctx, s.b,
+		provRef.GetProviderId(),
+		provRef.GetProviderAccountId(),
+		false, nil,
+	)
+	if err != nil {
+		return meta, nil
+	}
+	defer provAccRef.Release()
+
+	sessFeature, err := session.GetSessionProviderAccountFeature(ctx, provAcc)
+	if err != nil {
+		return meta, nil
+	}
+	recoveryState, err := sessFeature.GetPINSessionRecoveryState(ctx, ref)
+	if err != nil {
+		return meta, nil
+	}
+	meta.RecoveryState = recoveryState
+	return meta, nil
 }
 
 // UnlockSession unlocks a PIN-locked session before mounting.
