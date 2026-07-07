@@ -62,31 +62,43 @@ async function capture(name: string) {
 }
 
 describe('intro wizard overlay', () => {
-  it('draws region-anchored callouts and the control panel over the frame', async () => {
+  it('steps through region-anchored callouts one at a time over the frame', async () => {
     await render(<IntroWizardSurface finishing={false} />)
 
+    // The tour opens on the first callout with the control panel; the later
+    // callouts appear only as the user advances, one region at a time.
     await expect
       .element(page.getByText('Welcome to your Drive'))
       .toBeInTheDocument()
     await expect.element(page.getByText('Add files')).toBeInTheDocument()
     await expect
       .element(page.getByText('Your files', { exact: true }))
+      .not.toBeInTheDocument()
+    await capture('overlay-step-1')
+
+    await page.getByRole('button', { name: 'Next' }).click()
+    await expect
+      .element(page.getByText('Your files', { exact: true }))
       .toBeInTheDocument()
+    await capture('overlay-step-2')
+
+    await page.getByRole('button', { name: 'Next' }).click()
     await expect.element(page.getByText('Upload progress')).toBeInTheDocument()
     await expect
       .element(page.getByRole('button', { name: 'Got it, start exploring' }))
       .toBeInTheDocument()
+    await capture('overlay-step-3')
 
-    await capture('overlay')
     await cleanup()
   })
 
-  it('shows the finishing state on the control panel button', async () => {
-    await render(<IntroWizardSurface finishing={true} />)
+  it('shows the finishing state after the final step is confirmed', async () => {
+    await render(<IntroWizardSurface finishing={false} />)
 
-    await expect
-      .element(page.getByText('Welcome to your Drive'))
-      .toBeInTheDocument()
+    await page.getByRole('button', { name: 'Next' }).click()
+    await page.getByRole('button', { name: 'Next' }).click()
+    await page.getByRole('button', { name: 'Got it, start exploring' }).click()
+
     await expect
       .element(page.getByRole('button', { name: 'Opening...' }))
       .toBeInTheDocument()

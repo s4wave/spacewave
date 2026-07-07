@@ -79,6 +79,17 @@ const viewerProps = {
   },
 } as unknown as ObjectViewerComponentProps
 
+// advanceToFinish walks the ordered tour to its last step, where the finish
+// control appears, then clicks it. driveIntroConfig supplies three callouts, so
+// the finish action is two Next steps away from the opening callout.
+async function advanceToFinish(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: 'Next' }))
+  await user.click(screen.getByRole('button', { name: 'Next' }))
+  await user.click(
+    screen.getByRole('button', { name: /got it, start exploring/i }),
+  )
+}
+
 function expectAppliedIndexPath(indexPath: string) {
   expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
   expect(h.applyWorldOp.mock.calls[0]?.[0]).toBe(SET_SPACE_SETTINGS_OP_ID)
@@ -109,8 +120,9 @@ describe('IntroWizardViewer', () => {
 
     expect(screen.getByTestId('object-viewer')).toBeTruthy()
     expect(screen.getByText('Welcome to your Drive')).toBeTruthy()
+    // The tour opens on the first callout only; later callouts stay hidden.
     expect(screen.getByText('Add files')).toBeTruthy()
-    expect(screen.getByText('Upload progress')).toBeTruthy()
+    expect(screen.queryByText('Upload progress')).toBeNull()
   })
 
   it('sets the index to the introduced object, deletes the wizard, and navigates', async () => {
@@ -118,9 +130,7 @@ describe('IntroWizardViewer', () => {
 
     render(<IntroWizardViewer {...viewerProps} />)
 
-    await user.click(
-      screen.getByRole('button', { name: /got it, start exploring/i }),
-    )
+    await advanceToFinish(user)
 
     expectAppliedIndexPath('files')
     expect(h.deleteObject).toHaveBeenCalledWith('wizard/welcome-1')
@@ -134,9 +144,7 @@ describe('IntroWizardViewer', () => {
 
     render(<IntroWizardViewer {...viewerProps} />)
 
-    await user.click(
-      screen.getByRole('button', { name: /got it, start exploring/i }),
-    )
+    await advanceToFinish(user)
 
     await waitFor(() =>
       expect(h.navigateToObjects).toHaveBeenCalledWith(['files']),
@@ -153,9 +161,7 @@ describe('IntroWizardViewer', () => {
 
     render(<IntroWizardViewer {...viewerProps} />)
 
-    await user.click(
-      screen.getByRole('button', { name: /got it, start exploring/i }),
-    )
+    await advanceToFinish(user)
 
     await waitFor(() =>
       expect(h.navigateToObjects).toHaveBeenCalledWith(['files']),
@@ -171,9 +177,7 @@ describe('IntroWizardViewer', () => {
 
     render(<IntroWizardViewer {...viewerProps} />)
 
-    await user.click(
-      screen.getByRole('button', { name: /got it, start exploring/i }),
-    )
+    await advanceToFinish(user)
 
     await waitFor(() =>
       expect(h.toastError).toHaveBeenCalledWith('delete failed'),
