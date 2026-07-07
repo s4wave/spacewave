@@ -1618,7 +1618,7 @@ async function initDeviceQuickstart(
   await createSpaceSettingsObject(
     setup.spaceWorld,
     abortSignal,
-    wizardKey,
+    DEVICE_QUICKSTART_DASHBOARD_KEY,
     undefined,
     timing,
     'create-device-settings',

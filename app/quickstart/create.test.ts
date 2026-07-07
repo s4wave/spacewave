@@ -1613,7 +1613,7 @@ to try first.
     if (!settings) {
       throw new Error('expected settings')
     }
-    expect(settings.indexPath).toBe(wizardOp.objectKey)
+    expect(settings.indexPath).toBe('computers')
   })
 
   it('seeds the git quickstart as a persistent create/clone wizard', async () => {
