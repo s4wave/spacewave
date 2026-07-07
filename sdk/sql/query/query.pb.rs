@@ -20,8 +20,8 @@ pub struct Query {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetQueryTextRequest {
 }
-/// GetQueryTextResponse contains query text and target metadata.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+/// GetQueryTextResponse contains query text, target metadata, and bind arguments.
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetQueryTextResponse {
     /// SqlText is the SQL text executed by Run.
     #[prost(string, tag="1")]
@@ -32,6 +32,9 @@ pub struct GetQueryTextResponse {
     /// TargetDbObjectKey is the sql/db object this query runs against.
     #[prost(string, tag="3")]
     pub target_db_object_key: ::prost::alloc::string::String,
+    /// Parameters are positional SQL bind arguments.
+    #[prost(message, repeated, tag="4")]
+    pub parameters: ::prost::alloc::vec::Vec<super::super::super::sql::SqlValue>,
 }
 /// SetQueryTextRequest updates query text and target metadata.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

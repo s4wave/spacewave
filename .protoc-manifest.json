@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "e6a53425502a74527585280f88486be9f2a38ee5a9390d0adc9d27b56ae34c38",
+  "protocFlagsHash": "cdef2dbd90b01e21215b14f4720e9e54113a7da09c146f60ab926477232cd7e5",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.15.0,starpc=v0.49.18,protobuf-es-lite=1.1.0",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -4973,7 +4973,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/sql/query": {
-      "hash": "929ac43bd42d53b8c8acc1aa37425291d471cea1b765a04e2b686e0852f87b65",
+      "hash": "18ac70b50bf9bb531184f48c988aca6515a2eba0fccc4e367e88b238de59a8f3",
       "generatedFiles": [
         "sdk/sql/query/query.pb.cc",
         "sdk/sql/query/query.pb.go",
@@ -5066,7 +5066,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/sql/table-view": {
-      "hash": "ad1b6801587406e490d2bbf326b1f178c233e162c6f479324a85adcf8ab8f2ab",
+      "hash": "2f3da559eccff52e59eac6686b07e9625610747bf094645eaa639310e0d7f3e0",
       "generatedFiles": [
         "sdk/sql/table-view/table-view.pb.cc",
         "sdk/sql/table-view/table-view.pb.go",

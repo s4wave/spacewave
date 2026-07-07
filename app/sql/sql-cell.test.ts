@@ -19,6 +19,9 @@ const intVal = (n: bigint): SqlValue => ({
 const strVal = (s: string): SqlValue => ({
   value: { case: 'strValue', value: s },
 })
+const blobVal = (bytes: number[]): SqlValue => ({
+  value: { case: 'blobValue', value: new Uint8Array(bytes) },
+})
 const nullVal: SqlValue = {}
 
 describe('formatCell', () => {
@@ -28,11 +31,7 @@ describe('formatCell', () => {
       '1.5',
     )
     expect(formatCell(strVal('hello'))).toBe('hello')
-    expect(
-      formatCell({
-        value: { case: 'blobValue', value: new Uint8Array([0, 255]) },
-      }),
-    ).toBe('0x00ff')
+    expect(formatCell(blobVal([0, 255]))).toBe('0x00ff')
   })
 
   it('renders an unset oneof as NULL', () => {
@@ -78,9 +77,11 @@ describe('parameters', () => {
   it('classifies and renders stored parameters', () => {
     expect(paramKind(intVal(3n))).toBe('int')
     expect(paramKind(strVal('s'))).toBe('text')
+    expect(paramKind(blobVal([10, 11]))).toBe('blob')
     expect(paramKind(nullVal)).toBe('null')
     expect(paramText(intVal(3n))).toBe('3')
     expect(paramText(strVal('s'))).toBe('s')
+    expect(paramText(blobVal([10, 11]))).toBe('0x0a0b')
     expect(paramText(nullVal)).toBe('')
   })
 
@@ -91,7 +92,10 @@ describe('parameters', () => {
     expect(buildParam('float', '2.5')).toEqual({
       value: { case: 'floatValue', value: 2.5 },
     })
+    expect(buildParam('blob', '0x0a0b')).toEqual(blobVal([10, 11]))
+    expect(buildParam('blob', '0A0B')).toEqual(blobVal([10, 11]))
     expect(() => buildParam('int', '1.2')).toThrow()
     expect(() => buildParam('float', 'abc')).toThrow()
+    expect(() => buildParam('blob', 'abc')).toThrow()
   })
 })

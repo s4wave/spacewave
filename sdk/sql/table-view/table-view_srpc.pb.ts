@@ -5,8 +5,12 @@
 import {
   FetchRowsRequest,
   FetchRowsResponse,
+  GetDriverCapabilityRequest,
+  GetDriverCapabilityResponse,
   GetTableViewRequest,
   GetTableViewResponse,
+  UpdateRowRequest,
+  UpdateRowResponse,
 } from './table-view.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
 import { ProtoRpc } from 'starpc'
@@ -31,6 +35,17 @@ export const SqlTableViewResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * GetDriverCapability returns SQL driver operations available to this view.
+     *
+     * @generated from rpc s4wave.sql.table_view.SqlTableViewResourceService.GetDriverCapability
+     */
+    GetDriverCapability: {
+      name: 'GetDriverCapability',
+      I: GetDriverCapabilityRequest,
+      O: GetDriverCapabilityResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * FetchRows executes the table view SELECT.
      *
      * @generated from rpc s4wave.sql.table_view.SqlTableViewResourceService.FetchRows
@@ -39,6 +54,17 @@ export const SqlTableViewResourceServiceDefinition = {
       name: 'FetchRows',
       I: FetchRowsRequest,
       O: FetchRowsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * UpdateRow applies a typed UPDATE against rows matching the supplied row values.
+     *
+     * @generated from rpc s4wave.sql.table_view.SqlTableViewResourceService.UpdateRow
+     */
+    UpdateRow: {
+      name: 'UpdateRow',
+      I: UpdateRowRequest,
+      O: UpdateRowResponse,
       kind: MethodKind.Unary,
     },
   },
@@ -61,6 +87,16 @@ export interface SqlTableViewResourceService {
   ): Promise<GetTableViewResponse>
 
   /**
+   * GetDriverCapability returns SQL driver operations available to this view.
+   *
+   * @generated from rpc s4wave.sql.table_view.SqlTableViewResourceService.GetDriverCapability
+   */
+  GetDriverCapability(
+    request: GetDriverCapabilityRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetDriverCapabilityResponse>
+
+  /**
    * FetchRows executes the table view SELECT.
    *
    * @generated from rpc s4wave.sql.table_view.SqlTableViewResourceService.FetchRows
@@ -69,6 +105,16 @@ export interface SqlTableViewResourceService {
     request: FetchRowsRequest,
     abortSignal?: AbortSignal,
   ): Promise<FetchRowsResponse>
+
+  /**
+   * UpdateRow applies a typed UPDATE against rows matching the supplied row values.
+   *
+   * @generated from rpc s4wave.sql.table_view.SqlTableViewResourceService.UpdateRow
+   */
+  UpdateRow(
+    request: UpdateRowRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<UpdateRowResponse>
 }
 
 export const SqlTableViewResourceServiceServiceName =
@@ -81,7 +127,9 @@ export class SqlTableViewResourceServiceClient implements SqlTableViewResourceSe
     this.service = opts?.service || SqlTableViewResourceServiceServiceName
     this.rpc = rpc
     this.GetTableView = this.GetTableView.bind(this)
+    this.GetDriverCapability = this.GetDriverCapability.bind(this)
     this.FetchRows = this.FetchRows.bind(this)
+    this.UpdateRow = this.UpdateRow.bind(this)
   }
   /**
    * GetTableView returns the table view metadata.
@@ -103,6 +151,25 @@ export class SqlTableViewResourceServiceClient implements SqlTableViewResourceSe
   }
 
   /**
+   * GetDriverCapability returns SQL driver operations available to this view.
+   *
+   * @generated from rpc s4wave.sql.table_view.SqlTableViewResourceService.GetDriverCapability
+   */
+  async GetDriverCapability(
+    request: GetDriverCapabilityRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetDriverCapabilityResponse> {
+    const requestMsg = GetDriverCapabilityRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SqlTableViewResourceServiceDefinition.methods.GetDriverCapability.name,
+      GetDriverCapabilityRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return GetDriverCapabilityResponse.fromBinary(result)
+  }
+
+  /**
    * FetchRows executes the table view SELECT.
    *
    * @generated from rpc s4wave.sql.table_view.SqlTableViewResourceService.FetchRows
@@ -119,5 +186,24 @@ export class SqlTableViewResourceServiceClient implements SqlTableViewResourceSe
       abortSignal || undefined,
     )
     return FetchRowsResponse.fromBinary(result)
+  }
+
+  /**
+   * UpdateRow applies a typed UPDATE against rows matching the supplied row values.
+   *
+   * @generated from rpc s4wave.sql.table_view.SqlTableViewResourceService.UpdateRow
+   */
+  async UpdateRow(
+    request: UpdateRowRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<UpdateRowResponse> {
+    const requestMsg = UpdateRowRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SqlTableViewResourceServiceDefinition.methods.UpdateRow.name,
+      UpdateRowRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return UpdateRowResponse.fromBinary(result)
   }
 }

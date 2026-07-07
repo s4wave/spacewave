@@ -187,6 +187,77 @@ export const GetTableViewResponse: MessageType<GetTableViewResponse> =
   })
 
 /**
+ * GetDriverCapabilityRequest is a request for driver operation support.
+ *
+ * @generated from message s4wave.sql.table_view.GetDriverCapabilityRequest
+ */
+export interface GetDriverCapabilityRequest {}
+
+export const GetDriverCapabilityRequest: MessageType<GetDriverCapabilityRequest> =
+  /* @__PURE__ */ createEmptyMessageType<GetDriverCapabilityRequest>(
+    's4wave.sql.table_view.GetDriverCapabilityRequest',
+    true,
+  )
+
+/**
+ * DriverCapability describes SQL driver operations exposed by this table view.
+ *
+ * @generated from message s4wave.sql.table_view.DriverCapability
+ */
+export interface DriverCapability {
+  /**
+   * UpdateRow is true when typed row updates can be attempted.
+   *
+   * @generated from field: bool update_row = 1;
+   */
+  updateRow?: boolean
+  /**
+   * UpdateRowUnsupportedReason explains why UpdateRow is unavailable.
+   *
+   * @generated from field: string update_row_unsupported_reason = 2;
+   */
+  updateRowUnsupportedReason?: string
+}
+
+export const DriverCapability: MessageType<DriverCapability> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.sql.table_view.DriverCapability',
+    fields: [
+      { no: 1, name: 'update_row', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 2,
+        name: 'update_row_unsupported_reason',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GetDriverCapabilityResponse contains update support reported by the target driver.
+ *
+ * @generated from message s4wave.sql.table_view.GetDriverCapabilityResponse
+ */
+export interface GetDriverCapabilityResponse {
+  /**
+   * Capability describes SQL operations available through the target driver.
+   *
+   * @generated from field: s4wave.sql.table_view.DriverCapability capability = 1;
+   */
+  capability?: DriverCapability
+}
+
+export const GetDriverCapabilityResponse: MessageType<GetDriverCapabilityResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.sql.table_view.GetDriverCapabilityResponse',
+    fields: [
+      { no: 1, name: 'capability', kind: 'message', T: () => DriverCapability },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * FetchRowsRequest executes the saved table view.
  *
  * @generated from message s4wave.sql.table_view.FetchRowsRequest
@@ -251,6 +322,97 @@ export const FetchRowsResponse: MessageType<FetchRowsResponse> =
       },
       { no: 3, name: 'row_count', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'truncated', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * UpdateRowRequest updates table rows selected by typed match values.
+ *
+ * @generated from message s4wave.sql.table_view.UpdateRowRequest
+ */
+export interface UpdateRowRequest {
+  /**
+   * MatchColumns names columns used in the WHERE clause.
+   *
+   * @generated from field: repeated string match_columns = 1;
+   */
+  matchColumns?: string[]
+  /**
+   * MatchValues are compared with MatchColumns in order.
+   *
+   * @generated from field: repeated sql.SqlValue match_values = 2;
+   */
+  matchValues?: SqlValue[]
+  /**
+   * SetColumns names columns updated by the SET clause.
+   *
+   * @generated from field: repeated string set_columns = 3;
+   */
+  setColumns?: string[]
+  /**
+   * SetValues are assigned to SetColumns in order.
+   *
+   * @generated from field: repeated sql.SqlValue set_values = 4;
+   */
+  setValues?: SqlValue[]
+}
+
+export const UpdateRowRequest: MessageType<UpdateRowRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.sql.table_view.UpdateRowRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'match_columns',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 2,
+        name: 'match_values',
+        kind: 'message',
+        T: () => SqlValue,
+        repeated: true,
+      },
+      {
+        no: 3,
+        name: 'set_columns',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 4,
+        name: 'set_values',
+        kind: 'message',
+        T: () => SqlValue,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * UpdateRowResponse is returned after a typed row update.
+ *
+ * @generated from message s4wave.sql.table_view.UpdateRowResponse
+ */
+export interface UpdateRowResponse {
+  /**
+   * RowsAffected is the number of rows updated by the driver.
+   *
+   * @generated from field: uint64 rows_affected = 1;
+   */
+  rowsAffected?: bigint
+}
+
+export const UpdateRowResponse: MessageType<UpdateRowResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.sql.table_view.UpdateRowResponse',
+    fields: [
+      { no: 1, name: 'rows_affected', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

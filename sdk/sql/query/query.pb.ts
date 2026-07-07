@@ -81,7 +81,7 @@ export const GetQueryTextRequest: MessageType<GetQueryTextRequest> =
   )
 
 /**
- * GetQueryTextResponse contains query text and target metadata.
+ * GetQueryTextResponse contains query text, target metadata, and bind arguments.
  *
  * @generated from message s4wave.sql.query.GetQueryTextResponse
  */
@@ -104,6 +104,12 @@ export interface GetQueryTextResponse {
    * @generated from field: string target_db_object_key = 3;
    */
   targetDbObjectKey?: string
+  /**
+   * Parameters are positional SQL bind arguments.
+   *
+   * @generated from field: repeated sql.SqlValue parameters = 4;
+   */
+  parameters?: SqlValue[]
 }
 
 export const GetQueryTextResponse: MessageType<GetQueryTextResponse> =
@@ -117,6 +123,13 @@ export const GetQueryTextResponse: MessageType<GetQueryTextResponse> =
         name: 'target_db_object_key',
         kind: 'scalar',
         T: ScalarType.STRING,
+      },
+      {
+        no: 4,
+        name: 'parameters',
+        kind: 'message',
+        T: () => SqlValue,
+        repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,

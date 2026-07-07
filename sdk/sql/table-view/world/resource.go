@@ -65,6 +65,37 @@ func (r *SqlTableViewResource) GetTableView(
 	return &s4wave_sql_table_view.GetTableViewResponse{TableView: tableView.CloneVT()}, nil
 }
 
+// GetDriverCapability returns SQL driver operations available to this view.
+func (r *SqlTableViewResource) GetDriverCapability(
+	ctx context.Context,
+	_ *s4wave_sql_table_view.GetDriverCapabilityRequest,
+) (*s4wave_sql_table_view.GetDriverCapabilityResponse, error) {
+	tableView, err := r.readTableView(ctx)
+	if err != nil {
+		return nil, err
+	}
+	schema, err := r.readTargetSchema(ctx, tableView.GetTargetSchemaObjectKey())
+	if err != nil {
+		return nil, err
+	}
+	if err := world_types.CheckObjectType(ctx, r.ws, schema.GetTargetDbObjectKey(), s4wave_sql_world.SqlDbTypeID); err != nil {
+		return nil, err
+	}
+	store, tx, _, err := r.openTargetSqlOps(ctx, schema.GetTargetDbObjectKey(), true)
+	if err != nil {
+		return &s4wave_sql_table_view.GetDriverCapabilityResponse{
+			Capability: &s4wave_sql_table_view.DriverCapability{
+				UpdateRowUnsupportedReason: err.Error(),
+			},
+		}, nil
+	}
+	tx.Discard()
+	store.Close()
+	return &s4wave_sql_table_view.GetDriverCapabilityResponse{
+		Capability: &s4wave_sql_table_view.DriverCapability{UpdateRow: true},
+	}, nil
+}
+
 // FetchRows executes the table view SELECT.
 func (r *SqlTableViewResource) FetchRows(
 	ctx context.Context,
@@ -91,6 +122,64 @@ func (r *SqlTableViewResource) FetchRows(
 	}
 	defer cleanup()
 	return readFetchRows(rows, maxRows)
+}
+
+// UpdateRow applies a typed UPDATE against rows matching the supplied row values.
+func (r *SqlTableViewResource) UpdateRow(
+	ctx context.Context,
+	req *s4wave_sql_table_view.UpdateRowRequest,
+) (*s4wave_sql_table_view.UpdateRowResponse, error) {
+	tableView, err := r.readTableView(ctx)
+	if err != nil {
+		return nil, err
+	}
+	schema, err := r.readTargetSchema(ctx, tableView.GetTargetSchemaObjectKey())
+	if err != nil {
+		return nil, err
+	}
+	if err := world_types.CheckObjectType(ctx, r.ws, schema.GetTargetDbObjectKey(), s4wave_sql_world.SqlDbTypeID); err != nil {
+		return nil, err
+	}
+	query, args, err := compileTableViewUpdate(schema, tableView, req)
+	if err != nil {
+		return nil, err
+	}
+	store, tx, ops, err := r.openTargetSqlOps(ctx, schema.GetTargetDbObjectKey(), true)
+	if err != nil {
+		return nil, err
+	}
+	res, err := ops.ExecContext(ctx, query, args)
+	if std_errors.Is(err, driver.ErrSkip) {
+		res, err = ops.Exec(query, sql_rpc.NamedValuesToValues(args))
+	}
+	if err != nil {
+		tx.Discard()
+		store.Close()
+		return nil, err
+	}
+	if res == nil {
+		tx.Discard()
+		store.Close()
+		return nil, errors.New("sql/table-view: update returned nil result")
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		tx.Discard()
+		store.Close()
+		return nil, err
+	}
+	if rowsAffected < 0 {
+		tx.Discard()
+		store.Close()
+		return nil, errors.Errorf("sql/table-view: update returned negative row count %d", rowsAffected)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		tx.Discard()
+		store.Close()
+		return nil, err
+	}
+	store.Close()
+	return &s4wave_sql_table_view.UpdateRowResponse{RowsAffected: uint64(rowsAffected)}, nil
 }
 
 func (r *SqlTableViewResource) readTableView(ctx context.Context) (*s4wave_sql_table_view.TableView, error) {
@@ -129,27 +218,8 @@ func (r *SqlTableViewResource) openTargetRows(
 	query string,
 	args []driver.NamedValue,
 ) (driver.Rows, func(), error) {
-	obj, err := world.MustGetObject(ctx, r.ws, targetKey)
+	store, tx, ops, err := r.openTargetSqlOps(ctx, targetKey, false)
 	if err != nil {
-		return nil, nil, err
-	}
-	var store *s4wave_sql_world.WorldBackedSql
-	if err := obj.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
-		var err error
-		store, err = s4wave_sql_world.NewWorldBackedSql(ctx, root.Clone(), r.ws, targetKey)
-		return err
-	}); err != nil {
-		return nil, nil, err
-	}
-	tx, err := store.NewSqlTransaction(ctx, false, "")
-	if err != nil {
-		store.Close()
-		return nil, nil, err
-	}
-	ops, err := tx.GetSqlOps(ctx)
-	if err != nil {
-		tx.Discard()
-		store.Close()
 		return nil, nil, err
 	}
 	rows, err := ops.QueryContext(ctx, query, args)
@@ -172,6 +242,37 @@ func (r *SqlTableViewResource) openTargetRows(
 		store.Close()
 	}
 	return rows, cleanup, nil
+}
+
+func (r *SqlTableViewResource) openTargetSqlOps(
+	ctx context.Context,
+	targetKey string,
+	write bool,
+) (*s4wave_sql_world.WorldBackedSql, hydra_sql.SqlTransaction, hydra_sql.SqlOps, error) {
+	obj, err := world.MustGetObject(ctx, r.ws, targetKey)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	var store *s4wave_sql_world.WorldBackedSql
+	if err := obj.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
+		var err error
+		store, err = s4wave_sql_world.NewWorldBackedSql(ctx, root.Clone(), r.ws, targetKey)
+		return err
+	}); err != nil {
+		return nil, nil, nil, err
+	}
+	tx, err := store.NewSqlTransaction(ctx, write, "")
+	if err != nil {
+		store.Close()
+		return nil, nil, nil, err
+	}
+	ops, err := tx.GetSqlOps(ctx)
+	if err != nil {
+		tx.Discard()
+		store.Close()
+		return nil, nil, nil, err
+	}
+	return store, tx, ops, nil
 }
 
 func readFetchRows(rows driver.Rows, maxRows uint32) (*s4wave_sql_table_view.FetchRowsResponse, error) {

@@ -12,14 +12,24 @@ starpc::Error SRPCSqlTableViewResourceServiceClientImpl::GetTableView(const s4wa
   return cc_->ExecCall(service_id_, "GetTableView", in, out);
 }
 
+starpc::Error SRPCSqlTableViewResourceServiceClientImpl::GetDriverCapability(const s4wave::sql::table_view::GetDriverCapabilityRequest& in, s4wave::sql::table_view::GetDriverCapabilityResponse* out) {
+  return cc_->ExecCall(service_id_, "GetDriverCapability", in, out);
+}
+
 starpc::Error SRPCSqlTableViewResourceServiceClientImpl::FetchRows(const s4wave::sql::table_view::FetchRowsRequest& in, s4wave::sql::table_view::FetchRowsResponse* out) {
   return cc_->ExecCall(service_id_, "FetchRows", in, out);
+}
+
+starpc::Error SRPCSqlTableViewResourceServiceClientImpl::UpdateRow(const s4wave::sql::table_view::UpdateRowRequest& in, s4wave::sql::table_view::UpdateRowResponse* out) {
+  return cc_->ExecCall(service_id_, "UpdateRow", in, out);
 }
 
 std::vector<std::string> SRPCSqlTableViewResourceServiceHandler::GetMethodIDs() const {
   return {
     "GetTableView",
+    "GetDriverCapability",
     "FetchRows",
+    "UpdateRow",
   };
 }
 
@@ -39,12 +49,28 @@ std::pair<bool, starpc::Error> SRPCSqlTableViewResourceServiceHandler::InvokeMet
     err = impl_->GetTableView(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
+  } else if (method_id == "GetDriverCapability") {
+    s4wave::sql::table_view::GetDriverCapabilityRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::sql::table_view::GetDriverCapabilityResponse resp;
+    err = impl_->GetDriverCapability(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
   } else if (method_id == "FetchRows") {
     s4wave::sql::table_view::FetchRowsRequest req;
     starpc::Error err = strm->MsgRecv(&req);
     if (err != starpc::Error::OK) return {true, err};
     s4wave::sql::table_view::FetchRowsResponse resp;
     err = impl_->FetchRows(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "UpdateRow") {
+    s4wave::sql::table_view::UpdateRowRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::sql::table_view::UpdateRowResponse resp;
+    err = impl_->UpdateRow(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   }

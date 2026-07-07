@@ -13,8 +13,12 @@ pub const SQL_TABLE_VIEW_RESOURCE_SERVICE_SERVICE_ID: &str = "s4wave.sql.table_v
 pub trait SqlTableViewResourceServiceClient: Send + Sync {
     /// GetTableView.
     async fn get_table_view(&self, request: &GetTableViewRequest) -> starpc::Result<GetTableViewResponse>;
+    /// GetDriverCapability.
+    async fn get_driver_capability(&self, request: &GetDriverCapabilityRequest) -> starpc::Result<GetDriverCapabilityResponse>;
     /// FetchRows.
     async fn fetch_rows(&self, request: &FetchRowsRequest) -> starpc::Result<FetchRowsResponse>;
+    /// UpdateRow.
+    async fn update_row(&self, request: &UpdateRowRequest) -> starpc::Result<UpdateRowResponse>;
 }
 
 /// Client implementation for SqlTableViewResourceService.
@@ -34,8 +38,14 @@ impl<C: starpc::Client + 'static> SqlTableViewResourceServiceClient for SqlTable
     async fn get_table_view(&self, request: &GetTableViewRequest) -> starpc::Result<GetTableViewResponse> {
         self.client.exec_call("s4wave.sql.table_view.SqlTableViewResourceService", "GetTableView", request).await
     }
+    async fn get_driver_capability(&self, request: &GetDriverCapabilityRequest) -> starpc::Result<GetDriverCapabilityResponse> {
+        self.client.exec_call("s4wave.sql.table_view.SqlTableViewResourceService", "GetDriverCapability", request).await
+    }
     async fn fetch_rows(&self, request: &FetchRowsRequest) -> starpc::Result<FetchRowsResponse> {
         self.client.exec_call("s4wave.sql.table_view.SqlTableViewResourceService", "FetchRows", request).await
+    }
+    async fn update_row(&self, request: &UpdateRowRequest) -> starpc::Result<UpdateRowResponse> {
+        self.client.exec_call("s4wave.sql.table_view.SqlTableViewResourceService", "UpdateRow", request).await
     }
 }
 
@@ -44,13 +54,19 @@ impl<C: starpc::Client + 'static> SqlTableViewResourceServiceClient for SqlTable
 pub trait SqlTableViewResourceServiceServer: Send + Sync {
     /// GetTableView.
     async fn get_table_view(&self, request: GetTableViewRequest) -> starpc::Result<GetTableViewResponse>;
+    /// GetDriverCapability.
+    async fn get_driver_capability(&self, request: GetDriverCapabilityRequest) -> starpc::Result<GetDriverCapabilityResponse>;
     /// FetchRows.
     async fn fetch_rows(&self, request: FetchRowsRequest) -> starpc::Result<FetchRowsResponse>;
+    /// UpdateRow.
+    async fn update_row(&self, request: UpdateRowRequest) -> starpc::Result<UpdateRowResponse>;
 }
 
 const SQL_TABLE_VIEW_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "GetTableView",
+    "GetDriverCapability",
     "FetchRows",
+    "UpdateRow",
 ];
 
 /// Handler for SqlTableViewResourceService.
@@ -94,12 +110,42 @@ impl<S: SqlTableViewResourceServiceServer + 'static> starpc::Invoker for SqlTabl
                     Err(e) => (true, Err(e)),
                 }
             }
+            "GetDriverCapability" => {
+                let request: GetDriverCapabilityRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.get_driver_capability(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
             "FetchRows" => {
                 let request: FetchRowsRequest = match stream.msg_recv().await {
                     Ok(r) => r,
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.fetch_rows(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "UpdateRow" => {
+                let request: UpdateRowRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.update_row(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

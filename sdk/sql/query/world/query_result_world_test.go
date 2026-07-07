@@ -62,6 +62,14 @@ func TestSqlQueryRunCreatesLinkedQueryResult(t *testing.T) {
 	if queryText.GetTargetDbObjectKey() != dbKey {
 		t.Fatalf("target db = %q, want %q", queryText.GetTargetDbObjectKey(), dbKey)
 	}
+	params := queryText.GetParameters()
+	if len(params) != 1 {
+		t.Fatalf("parameters = %d, want 1", len(params))
+	}
+	param, ok := params[0].GetValue().(*hydra_sql.SqlValue_IntValue)
+	if !ok || param.IntValue != 1 {
+		t.Fatalf("parameter[0] = %#v, want int 1", params[0])
+	}
 	assertGraphQuad(t, ctx, tb.WorldState, queryKey, s4wave_sql.PredSqlQueryAgainst.String(), dbKey)
 
 	runResp, err := queryClient.Run(ctx, &s4wave_sql_query.RunQueryRequest{MaxRows: 16})

@@ -1011,235 +1011,6 @@ class RunQueryRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull RunQueryRequest_class_data_;
 // -------------------------------------------------------------------
 
-class GetQueryTextResponse final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:s4wave.sql.query.GetQueryTextResponse) */ {
- public:
-  inline GetQueryTextResponse() : GetQueryTextResponse(nullptr) {}
-  ~GetQueryTextResponse() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(GetQueryTextResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(GetQueryTextResponse));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR GetQueryTextResponse(::google::protobuf::internal::ConstantInitialized);
-
-  inline GetQueryTextResponse(const GetQueryTextResponse& from) : GetQueryTextResponse(nullptr, from) {}
-  inline GetQueryTextResponse(GetQueryTextResponse&& from) noexcept
-      : GetQueryTextResponse(nullptr, ::std::move(from)) {}
-  inline GetQueryTextResponse& operator=(const GetQueryTextResponse& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline GetQueryTextResponse& operator=(GetQueryTextResponse&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const GetQueryTextResponse& default_instance() {
-    return *reinterpret_cast<const GetQueryTextResponse*>(
-        &_GetQueryTextResponse_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 2;
-  friend void swap(GetQueryTextResponse& a, GetQueryTextResponse& b) { a.Swap(&b); }
-  inline void Swap(GetQueryTextResponse* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(GetQueryTextResponse* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  GetQueryTextResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<GetQueryTextResponse>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const GetQueryTextResponse& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const GetQueryTextResponse& from) { GetQueryTextResponse::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(GetQueryTextResponse* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "s4wave.sql.query.GetQueryTextResponse"; }
-
-  explicit GetQueryTextResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  GetQueryTextResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GetQueryTextResponse& from);
-  GetQueryTextResponse(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GetQueryTextResponse&& from) noexcept
-      : GetQueryTextResponse(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kSqlTextFieldNumber = 1,
-    kDialectHintFieldNumber = 2,
-    kTargetDbObjectKeyFieldNumber = 3,
-  };
-  // string sql_text = 1;
-  void clear_sql_text() ;
-  const ::std::string& sql_text() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_sql_text(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_sql_text();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_sql_text();
-  void set_allocated_sql_text(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_sql_text() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_sql_text(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_sql_text();
-
-  public:
-  // string dialect_hint = 2;
-  void clear_dialect_hint() ;
-  const ::std::string& dialect_hint() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_dialect_hint(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_dialect_hint();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_dialect_hint();
-  void set_allocated_dialect_hint(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_dialect_hint() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_dialect_hint(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_dialect_hint();
-
-  public:
-  // string target_db_object_key = 3;
-  void clear_target_db_object_key() ;
-  const ::std::string& target_db_object_key() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_target_db_object_key(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_target_db_object_key();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_target_db_object_key();
-  void set_allocated_target_db_object_key(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_target_db_object_key() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_target_db_object_key(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_target_db_object_key();
-
-  public:
-  // @@protoc_insertion_point(class_scope:s4wave.sql.query.GetQueryTextResponse)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 3,
-                                   0, 86,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const GetQueryTextResponse& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::internal::ArenaStringPtr sql_text_;
-    ::google::protobuf::internal::ArenaStringPtr dialect_hint_;
-    ::google::protobuf::internal::ArenaStringPtr target_db_object_key_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2fquery_2fquery_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull GetQueryTextResponse_class_data_;
-// -------------------------------------------------------------------
-
 class GetQueryTextRequest final : public ::google::protobuf::internal::ZeroFieldsBase
 /* @@protoc_insertion_point(class_definition:s4wave.sql.query.GetQueryTextRequest) */ {
  public:
@@ -1817,6 +1588,254 @@ class Query final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull Query_class_data_;
+// -------------------------------------------------------------------
+
+class GetQueryTextResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.sql.query.GetQueryTextResponse) */ {
+ public:
+  inline GetQueryTextResponse() : GetQueryTextResponse(nullptr) {}
+  ~GetQueryTextResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GetQueryTextResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GetQueryTextResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GetQueryTextResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline GetQueryTextResponse(const GetQueryTextResponse& from) : GetQueryTextResponse(nullptr, from) {}
+  inline GetQueryTextResponse(GetQueryTextResponse&& from) noexcept
+      : GetQueryTextResponse(nullptr, ::std::move(from)) {}
+  inline GetQueryTextResponse& operator=(const GetQueryTextResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GetQueryTextResponse& operator=(GetQueryTextResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GetQueryTextResponse& default_instance() {
+    return *reinterpret_cast<const GetQueryTextResponse*>(
+        &_GetQueryTextResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 2;
+  friend void swap(GetQueryTextResponse& a, GetQueryTextResponse& b) { a.Swap(&b); }
+  inline void Swap(GetQueryTextResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GetQueryTextResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GetQueryTextResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GetQueryTextResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GetQueryTextResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GetQueryTextResponse& from) { GetQueryTextResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GetQueryTextResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.sql.query.GetQueryTextResponse"; }
+
+  explicit GetQueryTextResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GetQueryTextResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GetQueryTextResponse& from);
+  GetQueryTextResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GetQueryTextResponse&& from) noexcept
+      : GetQueryTextResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kParametersFieldNumber = 4,
+    kSqlTextFieldNumber = 1,
+    kDialectHintFieldNumber = 2,
+    kTargetDbObjectKeyFieldNumber = 3,
+  };
+  // repeated .sql.SqlValue parameters = 4;
+  int parameters_size() const;
+  private:
+  int _internal_parameters_size() const;
+
+  public:
+  void clear_parameters() ;
+  ::sql::SqlValue* PROTOBUF_NONNULL mutable_parameters(int index);
+  ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL mutable_parameters();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>& _internal_parameters() const;
+  ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL _internal_mutable_parameters();
+  public:
+  const ::sql::SqlValue& parameters(int index) const;
+  ::sql::SqlValue* PROTOBUF_NONNULL add_parameters();
+  const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>& parameters() const;
+  // string sql_text = 1;
+  void clear_sql_text() ;
+  const ::std::string& sql_text() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_sql_text(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_sql_text();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_sql_text();
+  void set_allocated_sql_text(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_sql_text() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_sql_text(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_sql_text();
+
+  public:
+  // string dialect_hint = 2;
+  void clear_dialect_hint() ;
+  const ::std::string& dialect_hint() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_dialect_hint(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_dialect_hint();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_dialect_hint();
+  void set_allocated_dialect_hint(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_dialect_hint() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_dialect_hint(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_dialect_hint();
+
+  public:
+  // string target_db_object_key = 3;
+  void clear_target_db_object_key() ;
+  const ::std::string& target_db_object_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_target_db_object_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_target_db_object_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_target_db_object_key();
+  void set_allocated_target_db_object_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_target_db_object_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_target_db_object_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_target_db_object_key();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.sql.query.GetQueryTextResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   1, 86,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GetQueryTextResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::sql::SqlValue > parameters_;
+    ::google::protobuf::internal::ArenaStringPtr sql_text_;
+    ::google::protobuf::internal::ArenaStringPtr dialect_hint_;
+    ::google::protobuf::internal::ArenaStringPtr target_db_object_key_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2fquery_2fquery_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GetQueryTextResponse_class_data_;
 
 // ===================================================================
 
@@ -2092,7 +2111,7 @@ inline void GetQueryTextResponse::clear_sql_text() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.sql_text_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
+                  0x00000002U);
 }
 inline const ::std::string& GetQueryTextResponse::sql_text() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -2102,13 +2121,13 @@ inline const ::std::string& GetQueryTextResponse::sql_text() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void GetQueryTextResponse::set_sql_text(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   _impl_.sql_text_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:s4wave.sql.query.GetQueryTextResponse.sql_text)
 }
 inline ::std::string* PROTOBUF_NONNULL GetQueryTextResponse::mutable_sql_text()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::std::string* _s = _internal_mutable_sql_text();
   // @@protoc_insertion_point(field_mutable:s4wave.sql.query.GetQueryTextResponse.sql_text)
   return _s;
@@ -2128,10 +2147,10 @@ inline ::std::string* PROTOBUF_NONNULL GetQueryTextResponse::_internal_mutable_s
 inline ::std::string* PROTOBUF_NULLABLE GetQueryTextResponse::release_sql_text() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:s4wave.sql.query.GetQueryTextResponse.sql_text)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   auto* released = _impl_.sql_text_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.sql_text_.Set("", GetArena());
@@ -2141,9 +2160,9 @@ inline ::std::string* PROTOBUF_NULLABLE GetQueryTextResponse::release_sql_text()
 inline void GetQueryTextResponse::set_allocated_sql_text(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
   _impl_.sql_text_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.sql_text_.IsDefault()) {
@@ -2157,7 +2176,7 @@ inline void GetQueryTextResponse::clear_dialect_hint() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.dialect_hint_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000004U);
 }
 inline const ::std::string& GetQueryTextResponse::dialect_hint() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -2167,13 +2186,13 @@ inline const ::std::string& GetQueryTextResponse::dialect_hint() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void GetQueryTextResponse::set_dialect_hint(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   _impl_.dialect_hint_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:s4wave.sql.query.GetQueryTextResponse.dialect_hint)
 }
 inline ::std::string* PROTOBUF_NONNULL GetQueryTextResponse::mutable_dialect_hint()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::std::string* _s = _internal_mutable_dialect_hint();
   // @@protoc_insertion_point(field_mutable:s4wave.sql.query.GetQueryTextResponse.dialect_hint)
   return _s;
@@ -2193,10 +2212,10 @@ inline ::std::string* PROTOBUF_NONNULL GetQueryTextResponse::_internal_mutable_d
 inline ::std::string* PROTOBUF_NULLABLE GetQueryTextResponse::release_dialect_hint() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:s4wave.sql.query.GetQueryTextResponse.dialect_hint)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   auto* released = _impl_.dialect_hint_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.dialect_hint_.Set("", GetArena());
@@ -2206,9 +2225,9 @@ inline ::std::string* PROTOBUF_NULLABLE GetQueryTextResponse::release_dialect_hi
 inline void GetQueryTextResponse::set_allocated_dialect_hint(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
   _impl_.dialect_hint_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.dialect_hint_.IsDefault()) {
@@ -2222,7 +2241,7 @@ inline void GetQueryTextResponse::clear_target_db_object_key() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.target_db_object_key_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000008U);
 }
 inline const ::std::string& GetQueryTextResponse::target_db_object_key() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -2232,13 +2251,13 @@ inline const ::std::string& GetQueryTextResponse::target_db_object_key() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void GetQueryTextResponse::set_target_db_object_key(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   _impl_.target_db_object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:s4wave.sql.query.GetQueryTextResponse.target_db_object_key)
 }
 inline ::std::string* PROTOBUF_NONNULL GetQueryTextResponse::mutable_target_db_object_key()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::std::string* _s = _internal_mutable_target_db_object_key();
   // @@protoc_insertion_point(field_mutable:s4wave.sql.query.GetQueryTextResponse.target_db_object_key)
   return _s;
@@ -2258,10 +2277,10 @@ inline ::std::string* PROTOBUF_NONNULL GetQueryTextResponse::_internal_mutable_t
 inline ::std::string* PROTOBUF_NULLABLE GetQueryTextResponse::release_target_db_object_key() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:s4wave.sql.query.GetQueryTextResponse.target_db_object_key)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   auto* released = _impl_.target_db_object_key_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.target_db_object_key_.Set("", GetArena());
@@ -2271,15 +2290,65 @@ inline ::std::string* PROTOBUF_NULLABLE GetQueryTextResponse::release_target_db_
 inline void GetQueryTextResponse::set_allocated_target_db_object_key(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   }
   _impl_.target_db_object_key_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.target_db_object_key_.IsDefault()) {
     _impl_.target_db_object_key_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:s4wave.sql.query.GetQueryTextResponse.target_db_object_key)
+}
+
+// repeated .sql.SqlValue parameters = 4;
+inline int GetQueryTextResponse::_internal_parameters_size() const {
+  return _internal_parameters().size();
+}
+inline int GetQueryTextResponse::parameters_size() const {
+  return _internal_parameters_size();
+}
+inline ::sql::SqlValue* PROTOBUF_NONNULL GetQueryTextResponse::mutable_parameters(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.sql.query.GetQueryTextResponse.parameters)
+  return _internal_mutable_parameters()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL GetQueryTextResponse::mutable_parameters()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.sql.query.GetQueryTextResponse.parameters)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_parameters();
+}
+inline const ::sql::SqlValue& GetQueryTextResponse::parameters(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.sql.query.GetQueryTextResponse.parameters)
+  return _internal_parameters().Get(index);
+}
+inline ::sql::SqlValue* PROTOBUF_NONNULL GetQueryTextResponse::add_parameters()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::sql::SqlValue* _add =
+      _internal_mutable_parameters()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.sql.query.GetQueryTextResponse.parameters)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>& GetQueryTextResponse::parameters() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.sql.query.GetQueryTextResponse.parameters)
+  return _internal_parameters();
+}
+inline const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>&
+GetQueryTextResponse::_internal_parameters() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.parameters_;
+}
+inline ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL
+GetQueryTextResponse::_internal_mutable_parameters() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.parameters_;
 }
 
 // -------------------------------------------------------------------

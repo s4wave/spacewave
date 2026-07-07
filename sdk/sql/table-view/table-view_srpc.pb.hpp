@@ -31,8 +31,12 @@ class SRPCSqlTableViewResourceServiceClient {
 
   // GetTableView
   virtual starpc::Error GetTableView(const s4wave::sql::table_view::GetTableViewRequest& in, s4wave::sql::table_view::GetTableViewResponse* out) = 0;
+  // GetDriverCapability
+  virtual starpc::Error GetDriverCapability(const s4wave::sql::table_view::GetDriverCapabilityRequest& in, s4wave::sql::table_view::GetDriverCapabilityResponse* out) = 0;
   // FetchRows
   virtual starpc::Error FetchRows(const s4wave::sql::table_view::FetchRowsRequest& in, s4wave::sql::table_view::FetchRowsResponse* out) = 0;
+  // UpdateRow
+  virtual starpc::Error UpdateRow(const s4wave::sql::table_view::UpdateRowRequest& in, s4wave::sql::table_view::UpdateRowResponse* out) = 0;
 };
 
 // SRPCSqlTableViewResourceServiceClientImpl implements SRPCSqlTableViewResourceServiceClient.
@@ -45,8 +49,12 @@ class SRPCSqlTableViewResourceServiceClientImpl : public SRPCSqlTableViewResourc
 
   // GetTableView
   virtual starpc::Error GetTableView(const s4wave::sql::table_view::GetTableViewRequest& in, s4wave::sql::table_view::GetTableViewResponse* out) override;
+  // GetDriverCapability
+  virtual starpc::Error GetDriverCapability(const s4wave::sql::table_view::GetDriverCapabilityRequest& in, s4wave::sql::table_view::GetDriverCapabilityResponse* out) override;
   // FetchRows
   virtual starpc::Error FetchRows(const s4wave::sql::table_view::FetchRowsRequest& in, s4wave::sql::table_view::FetchRowsResponse* out) override;
+  // UpdateRow
+  virtual starpc::Error UpdateRow(const s4wave::sql::table_view::UpdateRowRequest& in, s4wave::sql::table_view::UpdateRowResponse* out) override;
 
  private:
   starpc::Client* cc_;
@@ -65,8 +73,12 @@ class SRPCSqlTableViewResourceServiceServer {
 
   // GetTableView
   virtual starpc::Error GetTableView(const s4wave::sql::table_view::GetTableViewRequest& req, s4wave::sql::table_view::GetTableViewResponse* resp) = 0;
+  // GetDriverCapability
+  virtual starpc::Error GetDriverCapability(const s4wave::sql::table_view::GetDriverCapabilityRequest& req, s4wave::sql::table_view::GetDriverCapabilityResponse* resp) = 0;
   // FetchRows
   virtual starpc::Error FetchRows(const s4wave::sql::table_view::FetchRowsRequest& req, s4wave::sql::table_view::FetchRowsResponse* resp) = 0;
+  // UpdateRow
+  virtual starpc::Error UpdateRow(const s4wave::sql::table_view::UpdateRowRequest& req, s4wave::sql::table_view::UpdateRowResponse* resp) = 0;
 };
 
 // SRPCSqlTableViewResourceServiceHandler implements starpc::Handler for SqlTableViewResourceService.

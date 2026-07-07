@@ -91,6 +91,94 @@ func TestSqlSchemaListTablesAndTableViewFetchRows(t *testing.T) {
 	assertGraphQuad(t, ctx, tb.WorldState, viewKey, s4wave_sql.PredSqlTableViewAgainstSchema.String(), schemaKey)
 }
 
+func TestSqlTableViewUpdateRowPersistsTypedValue(t *testing.T) {
+	ctx := context.Background()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+
+	dbKey := "sql/schema-view-update-test/db"
+	createSqlDbObject(t, ctx, tb.WorldState, dbKey)
+	seedSqlDb(t, ctx, tb, dbKey)
+
+	schemaKey := "sql/schema-view-update-test/schema"
+	createSqlSchemaObject(t, ctx, tb.WorldState, schemaKey, &s4wave_sql_schema.Schema{
+		SchemaName:        "alpha",
+		TargetDbObjectKey: dbKey,
+		DisplayName:       "Alpha",
+	})
+
+	viewKey := "sql/schema-view-update-test/table-view"
+	createSqlTableViewObject(t, ctx, tb.WorldState, viewKey, &s4wave_sql_table_view.TableView{
+		TargetSchemaObjectKey: schemaKey,
+		TargetTableName:       "people",
+		WhereExpression:       "id = ?",
+		ProjectedColumns:      []string{"age"},
+		RowLimit:              10,
+		WhereParameters: []*hydra_sql.SqlValue{
+			{Value: &hydra_sql.SqlValue_IntValue{IntValue: 1}},
+		},
+		DisplayName: "Person age",
+	})
+	viewClient, viewCleanup := openSqlTableViewClient(t, ctx, tb, viewKey)
+	defer viewCleanup()
+
+	capability, err := viewClient.GetDriverCapability(ctx, &s4wave_sql_table_view.GetDriverCapabilityRequest{})
+	if err != nil {
+		t.Fatalf("GetDriverCapability: %v", err)
+	}
+	if got := capability.GetCapability().GetUpdateRow(); !got {
+		t.Fatalf("update row capability = %v, reason = %q", got, capability.GetCapability().GetUpdateRowUnsupportedReason())
+	}
+
+	updateResp, err := viewClient.UpdateRow(ctx, &s4wave_sql_table_view.UpdateRowRequest{
+		MatchColumns: []string{"id"},
+		MatchValues: []*hydra_sql.SqlValue{
+			{Value: &hydra_sql.SqlValue_IntValue{IntValue: 1}},
+		},
+		SetColumns: []string{"age"},
+		SetValues: []*hydra_sql.SqlValue{
+			{Value: &hydra_sql.SqlValue_IntValue{IntValue: 37}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("UpdateRow: %v", err)
+	}
+	if updateResp.GetRowsAffected() != 1 {
+		t.Fatalf("rows affected = %d, want 1", updateResp.GetRowsAffected())
+	}
+
+	blockedResp, err := viewClient.UpdateRow(ctx, &s4wave_sql_table_view.UpdateRowRequest{
+		MatchColumns: []string{"id"},
+		MatchValues: []*hydra_sql.SqlValue{
+			{Value: &hydra_sql.SqlValue_IntValue{IntValue: 2}},
+		},
+		SetColumns: []string{"age"},
+		SetValues: []*hydra_sql.SqlValue{
+			{Value: &hydra_sql.SqlValue_IntValue{IntValue: 99}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("UpdateRow outside view filter: %v", err)
+	}
+	if blockedResp.GetRowsAffected() != 0 {
+		t.Fatalf("outside-filter rows affected = %d, want 0", blockedResp.GetRowsAffected())
+	}
+
+	rows, err := viewClient.FetchRows(ctx, &s4wave_sql_table_view.FetchRowsRequest{})
+	if err != nil {
+		t.Fatalf("FetchRows: %v", err)
+	}
+	if rows.GetRowCount() != 1 {
+		t.Fatalf("row count = %d, want 1", rows.GetRowCount())
+	}
+	if value := singleIntValue(t, rows.GetRowBatches()); value != 37 {
+		t.Fatalf("updated age = %d, want 37", value)
+	}
+}
+
 func createSqlDbObject(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string) {
 	t.Helper()
 	_, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
@@ -299,6 +387,26 @@ func singleStringValue(t *testing.T, batches []*hydra_sql.RowBatch) string {
 		t.Fatalf("value = %#v, want string/blob", values[0])
 	}
 	return ""
+}
+
+func singleIntValue(t *testing.T, batches []*hydra_sql.RowBatch) int64 {
+	t.Helper()
+	if len(batches) != 1 {
+		t.Fatalf("row batches = %d, want 1", len(batches))
+	}
+	rows := batches[0].GetRows()
+	if len(rows) != 1 {
+		t.Fatalf("rows = %d, want 1", len(rows))
+	}
+	values := rows[0].GetValues()
+	if len(values) != 1 {
+		t.Fatalf("values = %d, want 1", len(values))
+	}
+	value, ok := values[0].GetValue().(*hydra_sql.SqlValue_IntValue)
+	if !ok {
+		t.Fatalf("value = %#v, want int", values[0])
+	}
+	return value.IntValue
 }
 
 func assertGraphQuad(

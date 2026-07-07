@@ -153,39 +153,6 @@ struct RunQueryRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RunQueryRequestDefaultTypeInternal _RunQueryRequest_default_instance_;
-
-inline constexpr GetQueryTextResponse::Impl_::Impl_(
-    ::_pbi::ConstantInitialized) noexcept
-      : _cached_size_{0},
-        sql_text_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        dialect_hint_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        target_db_object_key_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()) {}
-
-template <typename>
-PROTOBUF_CONSTEXPR GetQueryTextResponse::GetQueryTextResponse(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(GetQueryTextResponse_class_data_.base()),
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(),
-#endif  // PROTOBUF_CUSTOM_VTABLE
-      _impl_(::_pbi::ConstantInitialized()) {
-}
-struct GetQueryTextResponseDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR GetQueryTextResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~GetQueryTextResponseDefaultTypeInternal() {}
-  union {
-    GetQueryTextResponse _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetQueryTextResponseDefaultTypeInternal _GetQueryTextResponse_default_instance_;
 template <typename>
 PROTOBUF_CONSTEXPR GetQueryTextRequest::GetQueryTextRequest(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -263,6 +230,40 @@ struct QueryDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 QueryDefaultTypeInternal _Query_default_instance_;
+
+inline constexpr GetQueryTextResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        parameters_{},
+        sql_text_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        dialect_hint_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        target_db_object_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR GetQueryTextResponse::GetQueryTextResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(GetQueryTextResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct GetQueryTextResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR GetQueryTextResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~GetQueryTextResponseDefaultTypeInternal() {}
+  union {
+    GetQueryTextResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetQueryTextResponseDefaultTypeInternal _GetQueryTextResponse_default_instance_;
 }  // namespace query
 }  // namespace sql
 }  // namespace s4wave
@@ -287,13 +288,15 @@ const ::uint32_t
         0x000, // bitmap
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::sql::query::GetQueryTextResponse, _impl_._has_bits_),
-        6, // hasbit index offset
+        7, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::sql::query::GetQueryTextResponse, _impl_.sql_text_),
         PROTOBUF_FIELD_OFFSET(::s4wave::sql::query::GetQueryTextResponse, _impl_.dialect_hint_),
         PROTOBUF_FIELD_OFFSET(::s4wave::sql::query::GetQueryTextResponse, _impl_.target_db_object_key_),
-        0,
+        PROTOBUF_FIELD_OFFSET(::s4wave::sql::query::GetQueryTextResponse, _impl_.parameters_),
         1,
         2,
+        3,
+        0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::sql::query::SetQueryTextRequest, _impl_._has_bits_),
         6, // hasbit index offset
@@ -329,12 +332,12 @@ static const ::_pbi::MigrationSchema
         {0, sizeof(::s4wave::sql::query::Query)},
         {11, sizeof(::s4wave::sql::query::GetQueryTextRequest)},
         {12, sizeof(::s4wave::sql::query::GetQueryTextResponse)},
-        {21, sizeof(::s4wave::sql::query::SetQueryTextRequest)},
-        {30, sizeof(::s4wave::sql::query::SetQueryTextResponse)},
-        {31, sizeof(::s4wave::sql::query::SetParametersRequest)},
-        {36, sizeof(::s4wave::sql::query::SetParametersResponse)},
-        {37, sizeof(::s4wave::sql::query::RunQueryRequest)},
-        {42, sizeof(::s4wave::sql::query::RunQueryResponse)},
+        {23, sizeof(::s4wave::sql::query::SetQueryTextRequest)},
+        {32, sizeof(::s4wave::sql::query::SetQueryTextResponse)},
+        {33, sizeof(::s4wave::sql::query::SetParametersRequest)},
+        {38, sizeof(::s4wave::sql::query::SetParametersResponse)},
+        {39, sizeof(::s4wave::sql::query::RunQueryRequest)},
+        {44, sizeof(::s4wave::sql::query::RunQueryResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::sql::query::_Query_default_instance_._instance,
@@ -355,28 +358,29 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fs
     "p\n\005Query\022\020\n\010sql_text\030\001 \001(\t\022!\n\nparameters"
     "\030\002 \003(\0132\r.sql.SqlValue\022\024\n\014dialect_hint\030\003 "
     "\001(\t\022\034\n\024target_db_object_key\030\004 \001(\t\"\025\n\023Get"
-    "QueryTextRequest\"\\\n\024GetQueryTextResponse"
+    "QueryTextRequest\"\177\n\024GetQueryTextResponse"
     "\022\020\n\010sql_text\030\001 \001(\t\022\024\n\014dialect_hint\030\002 \001(\t"
-    "\022\034\n\024target_db_object_key\030\003 \001(\t\"[\n\023SetQue"
-    "ryTextRequest\022\020\n\010sql_text\030\001 \001(\t\022\024\n\014diale"
-    "ct_hint\030\002 \001(\t\022\034\n\024target_db_object_key\030\003 "
-    "\001(\t\"\026\n\024SetQueryTextResponse\"9\n\024SetParame"
-    "tersRequest\022!\n\nparameters\030\001 \003(\0132\r.sql.Sq"
-    "lValue\"\027\n\025SetParametersResponse\"#\n\017RunQu"
-    "eryRequest\022\020\n\010max_rows\030\001 \001(\r\"<\n\020RunQuery"
-    "Response\022\031\n\021result_object_key\030\001 \001(\t\022\r\n\005e"
-    "rror\030\002 \001(\t2\207\003\n\027SqlQueryResourceService\022]"
-    "\n\014GetQueryText\022%.s4wave.sql.query.GetQue"
-    "ryTextRequest\032&.s4wave.sql.query.GetQuer"
-    "yTextResponse\022]\n\014SetQueryText\022%.s4wave.s"
-    "ql.query.SetQueryTextRequest\032&.s4wave.sq"
-    "l.query.SetQueryTextResponse\022`\n\rSetParam"
-    "eters\022&.s4wave.sql.query.SetParametersRe"
-    "quest\032\'.s4wave.sql.query.SetParametersRe"
-    "sponse\022L\n\003Run\022!.s4wave.sql.query.RunQuer"
-    "yRequest\032\".s4wave.sql.query.RunQueryResp"
-    "onseB<Z:github.com/s4wave/spacewave/sdk/"
-    "sql/query;s4wave_sql_queryb\006proto3"
+    "\022\034\n\024target_db_object_key\030\003 \001(\t\022!\n\nparame"
+    "ters\030\004 \003(\0132\r.sql.SqlValue\"[\n\023SetQueryTex"
+    "tRequest\022\020\n\010sql_text\030\001 \001(\t\022\024\n\014dialect_hi"
+    "nt\030\002 \001(\t\022\034\n\024target_db_object_key\030\003 \001(\t\"\026"
+    "\n\024SetQueryTextResponse\"9\n\024SetParametersR"
+    "equest\022!\n\nparameters\030\001 \003(\0132\r.sql.SqlValu"
+    "e\"\027\n\025SetParametersResponse\"#\n\017RunQueryRe"
+    "quest\022\020\n\010max_rows\030\001 \001(\r\"<\n\020RunQueryRespo"
+    "nse\022\031\n\021result_object_key\030\001 \001(\t\022\r\n\005error\030"
+    "\002 \001(\t2\207\003\n\027SqlQueryResourceService\022]\n\014Get"
+    "QueryText\022%.s4wave.sql.query.GetQueryTex"
+    "tRequest\032&.s4wave.sql.query.GetQueryText"
+    "Response\022]\n\014SetQueryText\022%.s4wave.sql.qu"
+    "ery.SetQueryTextRequest\032&.s4wave.sql.que"
+    "ry.SetQueryTextResponse\022`\n\rSetParameters"
+    "\022&.s4wave.sql.query.SetParametersRequest"
+    "\032\'.s4wave.sql.query.SetParametersRespons"
+    "e\022L\n\003Run\022!.s4wave.sql.query.RunQueryRequ"
+    "est\032\".s4wave.sql.query.RunQueryResponseB"
+    "<Z:github.com/s4wave/spacewave/sdk/sql/q"
+    "uery;s4wave_sql_queryb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2fquery_2fquery_2eproto_deps[1] = {
@@ -386,7 +390,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2fquery_2fquery_2eproto = {
     false,
     false,
-    1114,
+    1149,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2fquery_2fquery_2eproto,
     "github.com/s4wave/spacewave/sdk/sql/query/query.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2fquery_2fquery_2eproto_once,
@@ -939,6 +943,12 @@ class GetQueryTextResponse::_Internal {
       8 * PROTOBUF_FIELD_OFFSET(GetQueryTextResponse, _impl_._has_bits_);
 };
 
+void GetQueryTextResponse::clear_parameters() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.parameters_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
 GetQueryTextResponse::GetQueryTextResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::Message(arena, GetQueryTextResponse_class_data_.base()) {
@@ -954,6 +964,7 @@ PROTOBUF_NDEBUG_INLINE GetQueryTextResponse::Impl_::Impl_(
     [[maybe_unused]] const ::s4wave::sql::query::GetQueryTextResponse& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
+        parameters_{visibility, arena, from.parameters_},
         sql_text_(arena, from.sql_text_),
         dialect_hint_(arena, from.dialect_hint_),
         target_db_object_key_(arena, from.target_db_object_key_) {}
@@ -978,6 +989,7 @@ PROTOBUF_NDEBUG_INLINE GetQueryTextResponse::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
+        parameters_{visibility, arena},
         sql_text_(arena),
         dialect_hint_(arena),
         target_db_object_key_(arena) {}
@@ -1008,8 +1020,20 @@ inline void* PROTOBUF_NONNULL GetQueryTextResponse::PlacementNew_(
   return ::new (mem) GetQueryTextResponse(arena);
 }
 constexpr auto GetQueryTextResponse::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(GetQueryTextResponse),
-                                            alignof(GetQueryTextResponse));
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(GetQueryTextResponse, _impl_.parameters_) +
+          decltype(GetQueryTextResponse::_impl_.parameters_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(GetQueryTextResponse), alignof(GetQueryTextResponse), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&GetQueryTextResponse::PlacementNew_,
+                                 sizeof(GetQueryTextResponse),
+                                 alignof(GetQueryTextResponse));
+  }
 }
 constexpr auto GetQueryTextResponse::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
@@ -1045,18 +1069,18 @@ GetQueryTextResponse::GetClassData() const {
   return GetQueryTextResponse_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 3, 0, 86, 2>
+const ::_pbi::TcParseTable<2, 4, 1, 86, 2>
 GetQueryTextResponse::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(GetQueryTextResponse, _impl_._has_bits_),
     0, // no _extensions_
-    3, 24,  // max_field_number, fast_idx_mask
+    4, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967288,  // skipmap
+    4294967280,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    3,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
+    4,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
     GetQueryTextResponse_class_data_.base(),
     nullptr,  // post_loop_handler
     ::_pbi::TcParser::GenericFallback,  // fallback
@@ -1064,30 +1088,37 @@ GetQueryTextResponse::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::sql::query::GetQueryTextResponse>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    {::_pbi::TcParser::MiniParse, {}},
+    // repeated .sql.SqlValue parameters = 4;
+    {::_pbi::TcParser::FastMtR1,
+     {34, 0, 0,
+      PROTOBUF_FIELD_OFFSET(GetQueryTextResponse, _impl_.parameters_)}},
     // string sql_text = 1;
     {::_pbi::TcParser::FastUS1,
-     {10, 0, 0,
+     {10, 1, 0,
       PROTOBUF_FIELD_OFFSET(GetQueryTextResponse, _impl_.sql_text_)}},
     // string dialect_hint = 2;
     {::_pbi::TcParser::FastUS1,
-     {18, 1, 0,
+     {18, 2, 0,
       PROTOBUF_FIELD_OFFSET(GetQueryTextResponse, _impl_.dialect_hint_)}},
     // string target_db_object_key = 3;
     {::_pbi::TcParser::FastUS1,
-     {26, 2, 0,
+     {26, 3, 0,
       PROTOBUF_FIELD_OFFSET(GetQueryTextResponse, _impl_.target_db_object_key_)}},
   }}, {{
     65535, 65535
   }}, {{
     // string sql_text = 1;
-    {PROTOBUF_FIELD_OFFSET(GetQueryTextResponse, _impl_.sql_text_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(GetQueryTextResponse, _impl_.sql_text_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string dialect_hint = 2;
-    {PROTOBUF_FIELD_OFFSET(GetQueryTextResponse, _impl_.dialect_hint_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(GetQueryTextResponse, _impl_.dialect_hint_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string target_db_object_key = 3;
-    {PROTOBUF_FIELD_OFFSET(GetQueryTextResponse, _impl_.target_db_object_key_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(GetQueryTextResponse, _impl_.target_db_object_key_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated .sql.SqlValue parameters = 4;
+    {PROTOBUF_FIELD_OFFSET(GetQueryTextResponse, _impl_.parameters_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
-  // no aux_entries
+  {{
+      {::_pbi::TcParser::GetTable<::sql::SqlValue>()},
+  }},
   {{
     "\45\10\14\24\0\0\0\0"
     "s4wave.sql.query.GetQueryTextResponse"
@@ -1104,14 +1135,17 @@ PROTOBUF_NOINLINE void GetQueryTextResponse::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      _impl_.sql_text_.ClearNonDefaultToEmpty();
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.parameters_.Clear();
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      _impl_.dialect_hint_.ClearNonDefaultToEmpty();
+      _impl_.sql_text_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.dialect_hint_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       _impl_.target_db_object_key_.ClearNonDefaultToEmpty();
     }
   }
@@ -1139,7 +1173,7 @@ PROTOBUF_NOINLINE void GetQueryTextResponse::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // string sql_text = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     if (!this_._internal_sql_text().empty()) {
       const ::std::string& _s = this_._internal_sql_text();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
@@ -1149,7 +1183,7 @@ PROTOBUF_NOINLINE void GetQueryTextResponse::Clear() {
   }
 
   // string dialect_hint = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     if (!this_._internal_dialect_hint().empty()) {
       const ::std::string& _s = this_._internal_dialect_hint();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
@@ -1159,12 +1193,25 @@ PROTOBUF_NOINLINE void GetQueryTextResponse::Clear() {
   }
 
   // string target_db_object_key = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
     if (!this_._internal_target_db_object_key().empty()) {
       const ::std::string& _s = this_._internal_target_db_object_key();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
           _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.sql.query.GetQueryTextResponse.target_db_object_key");
       target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // repeated .sql.SqlValue parameters = 4;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_parameters_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_parameters().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              4, repfield, repfield.GetCachedSize(),
+              target, stream);
     }
   }
 
@@ -1193,23 +1240,30 @@ PROTOBUF_NOINLINE void GetQueryTextResponse::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // repeated .sql.SqlValue parameters = 4;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_parameters_size();
+      for (const auto& msg : this_._internal_parameters()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
     // string sql_text = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       if (!this_._internal_sql_text().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_sql_text());
       }
     }
     // string dialect_hint = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (!this_._internal_dialect_hint().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_dialect_hint());
       }
     }
     // string target_db_object_key = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (!this_._internal_target_db_object_key().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_target_db_object_key());
@@ -1228,14 +1282,20 @@ void GetQueryTextResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
   if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
     from.CheckHasBitConsistency();
   }
+  ::google::protobuf::Arena* arena = _this->GetArena();
   // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.sql.query.GetQueryTextResponse)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_parameters()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_parameters());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       if (!from._internal_sql_text().empty()) {
         _this->_internal_set_sql_text(from._internal_sql_text());
       } else {
@@ -1244,7 +1304,7 @@ void GetQueryTextResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (!from._internal_dialect_hint().empty()) {
         _this->_internal_set_dialect_hint(from._internal_dialect_hint());
       } else {
@@ -1253,7 +1313,7 @@ void GetQueryTextResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (!from._internal_target_db_object_key().empty()) {
         _this->_internal_set_target_db_object_key(from._internal_target_db_object_key());
       } else {
@@ -1282,6 +1342,7 @@ void GetQueryTextResponse::InternalSwap(GetQueryTextResponse* PROTOBUF_RESTRICT 
   ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.parameters_.InternalSwap(&other->_impl_.parameters_);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.sql_text_, &other->_impl_.sql_text_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.dialect_hint_, &other->_impl_.dialect_hint_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.target_db_object_key_, &other->_impl_.target_db_object_key_, arena);

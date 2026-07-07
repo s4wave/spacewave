@@ -19,6 +19,7 @@ class FakeQuery {
     public sqlText: string,
     public dialectHint: string,
     public targetDbObjectKey: string,
+    public parameters: SqlValue[] = [],
   ) {}
 
   async getQueryText() {
@@ -26,6 +27,7 @@ class FakeQuery {
       sqlText: this.sqlText,
       dialectHint: this.dialectHint,
       targetDbObjectKey: this.targetDbObjectKey,
+      parameters: this.parameters,
     }
   }
 
@@ -139,6 +141,51 @@ describe('SqlQueryViewer', () => {
     expect(
       (screen.getByLabelText('Dialect hint') as HTMLInputElement).value,
     ).toBe('mysql')
+  })
+
+  it('hydrates persisted parameters without marking them dirty until edited', async () => {
+    fakeQuery = new FakeQuery(
+      'SELECT name FROM people WHERE id = ?',
+      'mysql',
+      'sql/db',
+      [
+        { value: { case: 'intValue', value: 7n } },
+        { value: { case: 'blobValue', value: new Uint8Array([10, 11]) } },
+      ],
+    )
+    const user = userEvent.setup()
+    renderViewer()
+
+    await waitFor(() =>
+      expect(
+        (screen.getByLabelText('Parameter 1 value') as HTMLInputElement).value,
+      ).toBe('7'),
+    )
+    expect(
+      (screen.getByLabelText('Parameter 1 type') as HTMLSelectElement).value,
+    ).toBe('int')
+    expect(
+      (screen.getByLabelText('Parameter 2 type') as HTMLSelectElement).value,
+    ).toBe('blob')
+    expect(
+      (screen.getByLabelText('Parameter 2 value') as HTMLInputElement).value,
+    ).toBe('0x0a0b')
+    expect((screen.getByText('Save') as HTMLButtonElement).disabled).toBe(true)
+    expect(fakeQuery.savedParams).toBeUndefined()
+
+    await user.clear(screen.getByLabelText('Parameter 1 value'))
+    await user.type(screen.getByLabelText('Parameter 1 value'), '8')
+
+    expect((screen.getByText('Save') as HTMLButtonElement).disabled).toBe(false)
+    await user.click(screen.getByText('Save'))
+
+    await waitFor(() =>
+      expect(fakeQuery.savedParams).toEqual([
+        { value: { case: 'intValue', value: 8n } },
+        { value: { case: 'blobValue', value: new Uint8Array([10, 11]) } },
+      ]),
+    )
+    expect(fakeQuery.savedText).toBeUndefined()
   })
 
   it('persists edited text and runs, routing to the result', async () => {

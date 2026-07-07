@@ -75,6 +75,7 @@ func (r *SqlQueryResource) GetQueryText(
 		SqlText:           query.GetSqlText(),
 		DialectHint:       query.GetDialectHint(),
 		TargetDbObjectKey: query.GetTargetDbObjectKey(),
+		Parameters:        cloneSqlValues(query.GetParameters()),
 	}, nil
 }
 

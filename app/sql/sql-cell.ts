@@ -6,7 +6,7 @@ import type {
 } from '@go/github.com/s4wave/spacewave/db/sql/sql.pb.js'
 
 // SqlParamKind names the SqlValue oneof branch a parameter edits.
-export type SqlParamKind = 'text' | 'int' | 'float' | 'null'
+export type SqlParamKind = 'text' | 'int' | 'float' | 'blob' | 'null'
 
 // SqlGridData is the normalized shape consumed by SqlResultGrid: column headers
 // plus flattened rows, decoupled from the per-RPC response envelope.
@@ -64,6 +64,18 @@ function blobToHex(bytes: Uint8Array): string {
   return hex
 }
 
+function blobFromHex(text: string): Uint8Array {
+  const hex = text.trim().replace(/^0x/i, '')
+  if (hex.length % 2 !== 0 || /[^0-9a-f]/i.test(hex)) {
+    throw new Error(`invalid blob parameter: ${text}`)
+  }
+  const bytes = new Uint8Array(hex.length / 2)
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16)
+  }
+  return bytes
+}
+
 // columnName resolves a column header label, falling back to a positional name
 // when the driver did not report one.
 export function columnName(
@@ -109,6 +121,8 @@ export function paramKind(value: SqlValue | undefined): SqlParamKind {
       return 'float'
     case 'strValue':
       return 'text'
+    case 'blobValue':
+      return 'blob'
     default:
       return 'null'
   }
@@ -133,7 +147,7 @@ export function paramText(value: SqlValue | undefined): string {
 }
 
 // buildParam constructs a SqlValue from an editable kind and text, throwing on a
-// malformed numeric literal so the editor can surface the parse error.
+// malformed numeric or blob literal so the editor can surface the parse error.
 export function buildParam(kind: SqlParamKind, text: string): SqlValue {
   switch (kind) {
     case 'null':
@@ -154,5 +168,7 @@ export function buildParam(kind: SqlParamKind, text: string): SqlValue {
       }
       return { value: { case: 'floatValue', value: parsed } }
     }
+    case 'blob':
+      return { value: { case: 'blobValue', value: blobFromHex(text) } }
   }
 }

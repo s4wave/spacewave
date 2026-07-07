@@ -30,6 +30,31 @@ namespace s4wave {
 namespace sql {
 namespace table_view {
 
+inline constexpr UpdateRowResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        rows_affected_{::uint64_t{0u}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR UpdateRowResponse::UpdateRowResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(UpdateRowResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct UpdateRowResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR UpdateRowResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~UpdateRowResponseDefaultTypeInternal() {}
+  union {
+    UpdateRowResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 UpdateRowResponseDefaultTypeInternal _UpdateRowResponse_default_instance_;
+
 inline constexpr SortOrder::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -76,6 +101,24 @@ struct GetTableViewRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetTableViewRequestDefaultTypeInternal _GetTableViewRequest_default_instance_;
 template <typename>
+PROTOBUF_CONSTEXPR GetDriverCapabilityRequest::GetDriverCapabilityRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(GetDriverCapabilityRequest_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct GetDriverCapabilityRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR GetDriverCapabilityRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~GetDriverCapabilityRequestDefaultTypeInternal() {}
+  union {
+    GetDriverCapabilityRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetDriverCapabilityRequestDefaultTypeInternal _GetDriverCapabilityRequest_default_instance_;
+template <typename>
 PROTOBUF_CONSTEXPR FetchRowsRequest::FetchRowsRequest(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::internal::ZeroFieldsBase(FetchRowsRequest_class_data_.base()){}
@@ -93,6 +136,62 @@ struct FetchRowsRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 FetchRowsRequestDefaultTypeInternal _FetchRowsRequest_default_instance_;
+
+inline constexpr DriverCapability::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        update_row_unsupported_reason_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        update_row_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DriverCapability::DriverCapability(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(DriverCapability_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DriverCapabilityDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DriverCapabilityDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DriverCapabilityDefaultTypeInternal() {}
+  union {
+    DriverCapability _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DriverCapabilityDefaultTypeInternal _DriverCapability_default_instance_;
+
+inline constexpr UpdateRowRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        match_columns_{},
+        match_values_{},
+        set_columns_{},
+        set_values_{} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR UpdateRowRequest::UpdateRowRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(UpdateRowRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct UpdateRowRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR UpdateRowRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~UpdateRowRequestDefaultTypeInternal() {}
+  union {
+    UpdateRowRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 UpdateRowRequestDefaultTypeInternal _UpdateRowRequest_default_instance_;
 
 inline constexpr TableView::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -136,6 +235,31 @@ struct TableViewDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TableViewDefaultTypeInternal _TableView_default_instance_;
+
+inline constexpr GetDriverCapabilityResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        capability_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR GetDriverCapabilityResponse::GetDriverCapabilityResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(GetDriverCapabilityResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct GetDriverCapabilityResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR GetDriverCapabilityResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~GetDriverCapabilityResponseDefaultTypeInternal() {}
+  union {
+    GetDriverCapabilityResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetDriverCapabilityResponseDefaultTypeInternal _GetDriverCapabilityResponse_default_instance_;
 
 inline constexpr GetTableViewResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -235,6 +359,19 @@ const ::uint32_t
         0,
         0x000, // bitmap
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::sql::table_view::GetDriverCapabilityResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::sql::table_view::GetDriverCapabilityResponse, _impl_.capability_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::sql::table_view::DriverCapability, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::sql::table_view::DriverCapability, _impl_.update_row_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::sql::table_view::DriverCapability, _impl_.update_row_unsupported_reason_),
+        1,
+        0,
+        0x000, // bitmap
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::sql::table_view::FetchRowsResponse, _impl_._has_bits_),
         7, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::sql::table_view::FetchRowsResponse, _impl_.columns_),
@@ -245,6 +382,22 @@ const ::uint32_t
         1,
         2,
         3,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::sql::table_view::UpdateRowRequest, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::sql::table_view::UpdateRowRequest, _impl_.match_columns_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::sql::table_view::UpdateRowRequest, _impl_.match_values_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::sql::table_view::UpdateRowRequest, _impl_.set_columns_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::sql::table_view::UpdateRowRequest, _impl_.set_values_),
+        0,
+        1,
+        2,
+        3,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::sql::table_view::UpdateRowResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::sql::table_view::UpdateRowResponse, _impl_.rows_affected_),
+        0,
 };
 
 static const ::_pbi::MigrationSchema
@@ -253,16 +406,26 @@ static const ::_pbi::MigrationSchema
         {21, sizeof(::s4wave::sql::table_view::SortOrder)},
         {28, sizeof(::s4wave::sql::table_view::GetTableViewRequest)},
         {29, sizeof(::s4wave::sql::table_view::GetTableViewResponse)},
-        {34, sizeof(::s4wave::sql::table_view::FetchRowsRequest)},
-        {35, sizeof(::s4wave::sql::table_view::FetchRowsResponse)},
+        {34, sizeof(::s4wave::sql::table_view::GetDriverCapabilityRequest)},
+        {35, sizeof(::s4wave::sql::table_view::GetDriverCapabilityResponse)},
+        {40, sizeof(::s4wave::sql::table_view::DriverCapability)},
+        {47, sizeof(::s4wave::sql::table_view::FetchRowsRequest)},
+        {48, sizeof(::s4wave::sql::table_view::FetchRowsResponse)},
+        {59, sizeof(::s4wave::sql::table_view::UpdateRowRequest)},
+        {70, sizeof(::s4wave::sql::table_view::UpdateRowResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::sql::table_view::_TableView_default_instance_._instance,
     &::s4wave::sql::table_view::_SortOrder_default_instance_._instance,
     &::s4wave::sql::table_view::_GetTableViewRequest_default_instance_._instance,
     &::s4wave::sql::table_view::_GetTableViewResponse_default_instance_._instance,
+    &::s4wave::sql::table_view::_GetDriverCapabilityRequest_default_instance_._instance,
+    &::s4wave::sql::table_view::_GetDriverCapabilityResponse_default_instance_._instance,
+    &::s4wave::sql::table_view::_DriverCapability_default_instance_._instance,
     &::s4wave::sql::table_view::_FetchRowsRequest_default_instance_._instance,
     &::s4wave::sql::table_view::_FetchRowsResponse_default_instance_._instance,
+    &::s4wave::sql::table_view::_UpdateRowRequest_default_instance_._instance,
+    &::s4wave::sql::table_view::_UpdateRowResponse_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2ftable_2dview_2ftable_2dview_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -280,18 +443,34 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fs
     "mn_name\030\001 \001(\t\022\022\n\ndescending\030\002 \001(\010\"\025\n\023Get"
     "TableViewRequest\"L\n\024GetTableViewResponse"
     "\0224\n\ntable_view\030\001 \001(\0132 .s4wave.sql.table_"
-    "view.TableView\"\022\n\020FetchRowsRequest\"\201\001\n\021F"
-    "etchRowsResponse\022\"\n\007columns\030\001 \003(\0132\021.sql."
-    "ColumnSchema\022\"\n\013row_batches\030\002 \003(\0132\r.sql."
-    "RowBatch\022\021\n\trow_count\030\003 \001(\004\022\021\n\ttruncated"
-    "\030\004 \001(\0102\346\001\n\033SqlTableViewResourceService\022g"
-    "\n\014GetTableView\022*.s4wave.sql.table_view.G"
-    "etTableViewRequest\032+.s4wave.sql.table_vi"
-    "ew.GetTableViewResponse\022^\n\tFetchRows\022\'.s"
-    "4wave.sql.table_view.FetchRowsRequest\032(."
-    "s4wave.sql.table_view.FetchRowsResponseB"
-    "FZDgithub.com/s4wave/spacewave/sdk/sql/t"
-    "able-view;s4wave_sql_table_viewb\006proto3"
+    "view.TableView\"\034\n\032GetDriverCapabilityReq"
+    "uest\"Z\n\033GetDriverCapabilityResponse\022;\n\nc"
+    "apability\030\001 \001(\0132\'.s4wave.sql.table_view."
+    "DriverCapability\"M\n\020DriverCapability\022\022\n\n"
+    "update_row\030\001 \001(\010\022%\n\035update_row_unsupport"
+    "ed_reason\030\002 \001(\t\"\022\n\020FetchRowsRequest\"\201\001\n\021"
+    "FetchRowsResponse\022\"\n\007columns\030\001 \003(\0132\021.sql"
+    ".ColumnSchema\022\"\n\013row_batches\030\002 \003(\0132\r.sql"
+    ".RowBatch\022\021\n\trow_count\030\003 \001(\004\022\021\n\ttruncate"
+    "d\030\004 \001(\010\"\206\001\n\020UpdateRowRequest\022\025\n\rmatch_co"
+    "lumns\030\001 \003(\t\022#\n\014match_values\030\002 \003(\0132\r.sql."
+    "SqlValue\022\023\n\013set_columns\030\003 \003(\t\022!\n\nset_val"
+    "ues\030\004 \003(\0132\r.sql.SqlValue\"*\n\021UpdateRowRes"
+    "ponse\022\025\n\rrows_affected\030\001 \001(\0042\304\003\n\033SqlTabl"
+    "eViewResourceService\022g\n\014GetTableView\022*.s"
+    "4wave.sql.table_view.GetTableViewRequest"
+    "\032+.s4wave.sql.table_view.GetTableViewRes"
+    "ponse\022|\n\023GetDriverCapability\0221.s4wave.sq"
+    "l.table_view.GetDriverCapabilityRequest\032"
+    "2.s4wave.sql.table_view.GetDriverCapabil"
+    "ityResponse\022^\n\tFetchRows\022\'.s4wave.sql.ta"
+    "ble_view.FetchRowsRequest\032(.s4wave.sql.t"
+    "able_view.FetchRowsResponse\022^\n\tUpdateRow"
+    "\022\'.s4wave.sql.table_view.UpdateRowReques"
+    "t\032(.s4wave.sql.table_view.UpdateRowRespo"
+    "nseBFZDgithub.com/s4wave/spacewave/sdk/s"
+    "ql/table-view;s4wave_sql_table_viewb\006pro"
+    "to3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2ftable_2dview_2ftable_2dview_2eproto_deps[1] = {
@@ -301,13 +480,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2ftable_2dview_2ftable_2dview_2eproto = {
     false,
     false,
-    1039,
+    1643,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2ftable_2dview_2ftable_2dview_2eproto,
     "github.com/s4wave/spacewave/sdk/sql/table-view/table-view.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2ftable_2dview_2ftable_2dview_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2ftable_2dview_2ftable_2dview_2eproto_deps,
     1,
-    6,
+    11,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2ftable_2dview_2ftable_2dview_2eproto::offsets,
@@ -1628,6 +1807,694 @@ void GetTableViewResponse::InternalSwap(GetTableViewResponse* PROTOBUF_RESTRICT 
 }
 // ===================================================================
 
+class GetDriverCapabilityRequest::_Internal {
+ public:
+};
+
+GetDriverCapabilityRequest::GetDriverCapabilityRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, GetDriverCapabilityRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:s4wave.sql.table_view.GetDriverCapabilityRequest)
+}
+GetDriverCapabilityRequest::GetDriverCapabilityRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const GetDriverCapabilityRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, GetDriverCapabilityRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  GetDriverCapabilityRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.sql.table_view.GetDriverCapabilityRequest)
+}
+
+inline void* PROTOBUF_NONNULL GetDriverCapabilityRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) GetDriverCapabilityRequest(arena);
+}
+constexpr auto GetDriverCapabilityRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(GetDriverCapabilityRequest),
+                                            alignof(GetDriverCapabilityRequest));
+}
+constexpr auto GetDriverCapabilityRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_GetDriverCapabilityRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &GetDriverCapabilityRequest::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<GetDriverCapabilityRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &GetDriverCapabilityRequest::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<GetDriverCapabilityRequest>(), &GetDriverCapabilityRequest::ByteSizeLong,
+              &GetDriverCapabilityRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(GetDriverCapabilityRequest, _impl_._cached_size_),
+          false,
+      },
+      &GetDriverCapabilityRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2ftable_2dview_2ftable_2dview_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull GetDriverCapabilityRequest_class_data_ =
+        GetDriverCapabilityRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+GetDriverCapabilityRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&GetDriverCapabilityRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(GetDriverCapabilityRequest_class_data_.tc_table);
+  return GetDriverCapabilityRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+GetDriverCapabilityRequest::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    GetDriverCapabilityRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::sql::table_view::GetDriverCapabilityRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata GetDriverCapabilityRequest::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class GetDriverCapabilityResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<GetDriverCapabilityResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(GetDriverCapabilityResponse, _impl_._has_bits_);
+};
+
+GetDriverCapabilityResponse::GetDriverCapabilityResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetDriverCapabilityResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.sql.table_view.GetDriverCapabilityResponse)
+}
+PROTOBUF_NDEBUG_INLINE GetDriverCapabilityResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::sql::table_view::GetDriverCapabilityResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0} {}
+
+GetDriverCapabilityResponse::GetDriverCapabilityResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const GetDriverCapabilityResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetDriverCapabilityResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  GetDriverCapabilityResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.capability_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.capability_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.sql.table_view.GetDriverCapabilityResponse)
+}
+PROTOBUF_NDEBUG_INLINE GetDriverCapabilityResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void GetDriverCapabilityResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.capability_ = {};
+}
+GetDriverCapabilityResponse::~GetDriverCapabilityResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.sql.table_view.GetDriverCapabilityResponse)
+  SharedDtor(*this);
+}
+inline void GetDriverCapabilityResponse::SharedDtor(MessageLite& self) {
+  GetDriverCapabilityResponse& this_ = static_cast<GetDriverCapabilityResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.capability_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL GetDriverCapabilityResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) GetDriverCapabilityResponse(arena);
+}
+constexpr auto GetDriverCapabilityResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(GetDriverCapabilityResponse),
+                                            alignof(GetDriverCapabilityResponse));
+}
+constexpr auto GetDriverCapabilityResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_GetDriverCapabilityResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &GetDriverCapabilityResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<GetDriverCapabilityResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &GetDriverCapabilityResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<GetDriverCapabilityResponse>(), &GetDriverCapabilityResponse::ByteSizeLong,
+              &GetDriverCapabilityResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(GetDriverCapabilityResponse, _impl_._cached_size_),
+          false,
+      },
+      &GetDriverCapabilityResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2ftable_2dview_2ftable_2dview_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull GetDriverCapabilityResponse_class_data_ =
+        GetDriverCapabilityResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+GetDriverCapabilityResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&GetDriverCapabilityResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(GetDriverCapabilityResponse_class_data_.tc_table);
+  return GetDriverCapabilityResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+GetDriverCapabilityResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(GetDriverCapabilityResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    GetDriverCapabilityResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::sql::table_view::GetDriverCapabilityResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .s4wave.sql.table_view.DriverCapability capability = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(GetDriverCapabilityResponse, _impl_.capability_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .s4wave.sql.table_view.DriverCapability capability = 1;
+    {PROTOBUF_FIELD_OFFSET(GetDriverCapabilityResponse, _impl_.capability_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::sql::table_view::DriverCapability>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void GetDriverCapabilityResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.sql.table_view.GetDriverCapabilityResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(_impl_.capability_ != nullptr);
+    _impl_.capability_->Clear();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL GetDriverCapabilityResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const GetDriverCapabilityResponse& this_ = static_cast<const GetDriverCapabilityResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL GetDriverCapabilityResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const GetDriverCapabilityResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.sql.table_view.GetDriverCapabilityResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.sql.table_view.DriverCapability capability = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.capability_, this_._impl_.capability_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.sql.table_view.GetDriverCapabilityResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t GetDriverCapabilityResponse::ByteSizeLong(const MessageLite& base) {
+  const GetDriverCapabilityResponse& this_ = static_cast<const GetDriverCapabilityResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t GetDriverCapabilityResponse::ByteSizeLong() const {
+  const GetDriverCapabilityResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.sql.table_view.GetDriverCapabilityResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .s4wave.sql.table_view.DriverCapability capability = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.capability_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void GetDriverCapabilityResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<GetDriverCapabilityResponse*>(&to_msg);
+  auto& from = static_cast<const GetDriverCapabilityResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.sql.table_view.GetDriverCapabilityResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(from._impl_.capability_ != nullptr);
+    if (_this->_impl_.capability_ == nullptr) {
+      _this->_impl_.capability_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.capability_);
+    } else {
+      _this->_impl_.capability_->MergeFrom(*from._impl_.capability_);
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void GetDriverCapabilityResponse::CopyFrom(const GetDriverCapabilityResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.sql.table_view.GetDriverCapabilityResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void GetDriverCapabilityResponse::InternalSwap(GetDriverCapabilityResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.capability_, other->_impl_.capability_);
+}
+
+::google::protobuf::Metadata GetDriverCapabilityResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DriverCapability::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<DriverCapability>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(DriverCapability, _impl_._has_bits_);
+};
+
+DriverCapability::DriverCapability(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DriverCapability_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.sql.table_view.DriverCapability)
+}
+PROTOBUF_NDEBUG_INLINE DriverCapability::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::sql::table_view::DriverCapability& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        update_row_unsupported_reason_(arena, from.update_row_unsupported_reason_) {}
+
+DriverCapability::DriverCapability(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const DriverCapability& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DriverCapability_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  DriverCapability* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.update_row_ = from._impl_.update_row_;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.sql.table_view.DriverCapability)
+}
+PROTOBUF_NDEBUG_INLINE DriverCapability::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        update_row_unsupported_reason_(arena) {}
+
+inline void DriverCapability::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.update_row_ = {};
+}
+DriverCapability::~DriverCapability() {
+  // @@protoc_insertion_point(destructor:s4wave.sql.table_view.DriverCapability)
+  SharedDtor(*this);
+}
+inline void DriverCapability::SharedDtor(MessageLite& self) {
+  DriverCapability& this_ = static_cast<DriverCapability&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.update_row_unsupported_reason_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL DriverCapability::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) DriverCapability(arena);
+}
+constexpr auto DriverCapability::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DriverCapability),
+                                            alignof(DriverCapability));
+}
+constexpr auto DriverCapability::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_DriverCapability_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &DriverCapability::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DriverCapability>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &DriverCapability::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DriverCapability>(), &DriverCapability::ByteSizeLong,
+              &DriverCapability::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(DriverCapability, _impl_._cached_size_),
+          false,
+      },
+      &DriverCapability::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2ftable_2dview_2ftable_2dview_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull DriverCapability_class_data_ =
+        DriverCapability::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+DriverCapability::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DriverCapability_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DriverCapability_class_data_.tc_table);
+  return DriverCapability_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 76, 2>
+DriverCapability::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(DriverCapability, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    DriverCapability_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::sql::table_view::DriverCapability>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string update_row_unsupported_reason = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(DriverCapability, _impl_.update_row_unsupported_reason_)}},
+    // bool update_row = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(DriverCapability, _impl_.update_row_), 1>(),
+     {8, 1, 0,
+      PROTOBUF_FIELD_OFFSET(DriverCapability, _impl_.update_row_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // bool update_row = 1;
+    {PROTOBUF_FIELD_OFFSET(DriverCapability, _impl_.update_row_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string update_row_unsupported_reason = 2;
+    {PROTOBUF_FIELD_OFFSET(DriverCapability, _impl_.update_row_unsupported_reason_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\46\0\35\0\0\0\0\0"
+    "s4wave.sql.table_view.DriverCapability"
+    "update_row_unsupported_reason"
+  }},
+};
+PROTOBUF_NOINLINE void DriverCapability::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.sql.table_view.DriverCapability)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.update_row_unsupported_reason_.ClearNonDefaultToEmpty();
+  }
+  _impl_.update_row_ = false;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL DriverCapability::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const DriverCapability& this_ = static_cast<const DriverCapability&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL DriverCapability::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const DriverCapability& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.sql.table_view.DriverCapability)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // bool update_row = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (this_._internal_update_row() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          1, this_._internal_update_row(), target);
+    }
+  }
+
+  // string update_row_unsupported_reason = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_update_row_unsupported_reason().empty()) {
+      const ::std::string& _s = this_._internal_update_row_unsupported_reason();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.sql.table_view.DriverCapability.update_row_unsupported_reason");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.sql.table_view.DriverCapability)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t DriverCapability::ByteSizeLong(const MessageLite& base) {
+  const DriverCapability& this_ = static_cast<const DriverCapability&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t DriverCapability::ByteSizeLong() const {
+  const DriverCapability& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.sql.table_view.DriverCapability)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // string update_row_unsupported_reason = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_update_row_unsupported_reason().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_update_row_unsupported_reason());
+      }
+    }
+    // bool update_row = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (this_._internal_update_row() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void DriverCapability::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<DriverCapability*>(&to_msg);
+  auto& from = static_cast<const DriverCapability&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.sql.table_view.DriverCapability)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_update_row_unsupported_reason().empty()) {
+        _this->_internal_set_update_row_unsupported_reason(from._internal_update_row_unsupported_reason());
+      } else {
+        if (_this->_impl_.update_row_unsupported_reason_.IsDefault()) {
+          _this->_internal_set_update_row_unsupported_reason("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (from._internal_update_row() != 0) {
+        _this->_impl_.update_row_ = from._impl_.update_row_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void DriverCapability::CopyFrom(const DriverCapability& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.sql.table_view.DriverCapability)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DriverCapability::InternalSwap(DriverCapability* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.update_row_unsupported_reason_, &other->_impl_.update_row_unsupported_reason_, arena);
+  swap(_impl_.update_row_, other->_impl_.update_row_);
+}
+
+::google::protobuf::Metadata DriverCapability::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
 class FetchRowsRequest::_Internal {
  public:
 };
@@ -2152,6 +3019,680 @@ void FetchRowsResponse::InternalSwap(FetchRowsResponse* PROTOBUF_RESTRICT PROTOB
 }
 
 ::google::protobuf::Metadata FetchRowsResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class UpdateRowRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<UpdateRowRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(UpdateRowRequest, _impl_._has_bits_);
+};
+
+void UpdateRowRequest::clear_match_values() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.match_values_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+void UpdateRowRequest::clear_set_values() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.set_values_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+UpdateRowRequest::UpdateRowRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, UpdateRowRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.sql.table_view.UpdateRowRequest)
+}
+PROTOBUF_NDEBUG_INLINE UpdateRowRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::sql::table_view::UpdateRowRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        match_columns_{visibility, arena, from.match_columns_},
+        match_values_{visibility, arena, from.match_values_},
+        set_columns_{visibility, arena, from.set_columns_},
+        set_values_{visibility, arena, from.set_values_} {}
+
+UpdateRowRequest::UpdateRowRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const UpdateRowRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, UpdateRowRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  UpdateRowRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.sql.table_view.UpdateRowRequest)
+}
+PROTOBUF_NDEBUG_INLINE UpdateRowRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        match_columns_{visibility, arena},
+        match_values_{visibility, arena},
+        set_columns_{visibility, arena},
+        set_values_{visibility, arena} {}
+
+inline void UpdateRowRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+UpdateRowRequest::~UpdateRowRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.sql.table_view.UpdateRowRequest)
+  SharedDtor(*this);
+}
+inline void UpdateRowRequest::SharedDtor(MessageLite& self) {
+  UpdateRowRequest& this_ = static_cast<UpdateRowRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL UpdateRowRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) UpdateRowRequest(arena);
+}
+constexpr auto UpdateRowRequest::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(UpdateRowRequest, _impl_.match_columns_) +
+          decltype(UpdateRowRequest::_impl_.match_columns_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(UpdateRowRequest, _impl_.match_values_) +
+          decltype(UpdateRowRequest::_impl_.match_values_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(UpdateRowRequest, _impl_.set_columns_) +
+          decltype(UpdateRowRequest::_impl_.set_columns_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+      PROTOBUF_FIELD_OFFSET(UpdateRowRequest, _impl_.set_values_) +
+          decltype(UpdateRowRequest::_impl_.set_values_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(UpdateRowRequest), alignof(UpdateRowRequest), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&UpdateRowRequest::PlacementNew_,
+                                 sizeof(UpdateRowRequest),
+                                 alignof(UpdateRowRequest));
+  }
+}
+constexpr auto UpdateRowRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_UpdateRowRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &UpdateRowRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<UpdateRowRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &UpdateRowRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<UpdateRowRequest>(), &UpdateRowRequest::ByteSizeLong,
+              &UpdateRowRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(UpdateRowRequest, _impl_._cached_size_),
+          false,
+      },
+      &UpdateRowRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2ftable_2dview_2ftable_2dview_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull UpdateRowRequest_class_data_ =
+        UpdateRowRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+UpdateRowRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&UpdateRowRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(UpdateRowRequest_class_data_.tc_table);
+  return UpdateRowRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 2, 71, 2>
+UpdateRowRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(UpdateRowRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    2,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    UpdateRowRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::sql::table_view::UpdateRowRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // repeated .sql.SqlValue set_values = 4;
+    {::_pbi::TcParser::FastMtR1,
+     {34, 3, 1,
+      PROTOBUF_FIELD_OFFSET(UpdateRowRequest, _impl_.set_values_)}},
+    // repeated string match_columns = 1;
+    {::_pbi::TcParser::FastUR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(UpdateRowRequest, _impl_.match_columns_)}},
+    // repeated .sql.SqlValue match_values = 2;
+    {::_pbi::TcParser::FastMtR1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(UpdateRowRequest, _impl_.match_values_)}},
+    // repeated string set_columns = 3;
+    {::_pbi::TcParser::FastUR1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(UpdateRowRequest, _impl_.set_columns_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated string match_columns = 1;
+    {PROTOBUF_FIELD_OFFSET(UpdateRowRequest, _impl_.match_columns_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // repeated .sql.SqlValue match_values = 2;
+    {PROTOBUF_FIELD_OFFSET(UpdateRowRequest, _impl_.match_values_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // repeated string set_columns = 3;
+    {PROTOBUF_FIELD_OFFSET(UpdateRowRequest, _impl_.set_columns_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // repeated .sql.SqlValue set_values = 4;
+    {PROTOBUF_FIELD_OFFSET(UpdateRowRequest, _impl_.set_values_), _Internal::kHasBitsOffset + 3, 1, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::sql::SqlValue>()},
+      {::_pbi::TcParser::GetTable<::sql::SqlValue>()},
+  }},
+  {{
+    "\46\15\0\13\0\0\0\0"
+    "s4wave.sql.table_view.UpdateRowRequest"
+    "match_columns"
+    "set_columns"
+  }},
+};
+PROTOBUF_NOINLINE void UpdateRowRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.sql.table_view.UpdateRowRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.match_columns_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _impl_.match_values_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      _impl_.set_columns_.Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      _impl_.set_values_.Clear();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL UpdateRowRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const UpdateRowRequest& this_ = static_cast<const UpdateRowRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL UpdateRowRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const UpdateRowRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.sql.table_view.UpdateRowRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated string match_columns = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (int i = 0, n = this_._internal_match_columns_size(); i < n; ++i) {
+      const auto& s = this_._internal_match_columns().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.sql.table_view.UpdateRowRequest.match_columns");
+      target = stream->WriteString(1, s, target);
+    }
+  }
+
+  // repeated .sql.SqlValue match_values = 2;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_match_values_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_match_values().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              2, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // repeated string set_columns = 3;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+    for (int i = 0, n = this_._internal_set_columns_size(); i < n; ++i) {
+      const auto& s = this_._internal_set_columns().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.sql.table_view.UpdateRowRequest.set_columns");
+      target = stream->WriteString(3, s, target);
+    }
+  }
+
+  // repeated .sql.SqlValue set_values = 4;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_set_values_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_set_values().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              4, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.sql.table_view.UpdateRowRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t UpdateRowRequest::ByteSizeLong(const MessageLite& base) {
+  const UpdateRowRequest& this_ = static_cast<const UpdateRowRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t UpdateRowRequest::ByteSizeLong() const {
+  const UpdateRowRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.sql.table_view.UpdateRowRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // repeated string match_columns = 1;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_match_columns().size());
+      for (int i = 0, n = this_._internal_match_columns().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_match_columns().Get(i));
+      }
+    }
+    // repeated .sql.SqlValue match_values = 2;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      total_size += 1UL * this_._internal_match_values_size();
+      for (const auto& msg : this_._internal_match_values()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // repeated string set_columns = 3;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_set_columns().size());
+      for (int i = 0, n = this_._internal_set_columns().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_set_columns().Get(i));
+      }
+    }
+    // repeated .sql.SqlValue set_values = 4;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      total_size += 1UL * this_._internal_set_values_size();
+      for (const auto& msg : this_._internal_set_values()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void UpdateRowRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<UpdateRowRequest*>(&to_msg);
+  auto& from = static_cast<const UpdateRowRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.sql.table_view.UpdateRowRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_match_columns()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_match_columns());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+      _this->_internal_mutable_match_values()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_match_values());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
+      _this->_internal_mutable_set_columns()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_set_columns());
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      _this->_internal_mutable_set_values()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_set_values());
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void UpdateRowRequest::CopyFrom(const UpdateRowRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.sql.table_view.UpdateRowRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void UpdateRowRequest::InternalSwap(UpdateRowRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.match_columns_.InternalSwap(&other->_impl_.match_columns_);
+  _impl_.match_values_.InternalSwap(&other->_impl_.match_values_);
+  _impl_.set_columns_.InternalSwap(&other->_impl_.set_columns_);
+  _impl_.set_values_.InternalSwap(&other->_impl_.set_values_);
+}
+
+::google::protobuf::Metadata UpdateRowRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class UpdateRowResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<UpdateRowResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(UpdateRowResponse, _impl_._has_bits_);
+};
+
+UpdateRowResponse::UpdateRowResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, UpdateRowResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.sql.table_view.UpdateRowResponse)
+}
+UpdateRowResponse::UpdateRowResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const UpdateRowResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, UpdateRowResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(from._impl_) {
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE UpdateRowResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void UpdateRowResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.rows_affected_ = {};
+}
+UpdateRowResponse::~UpdateRowResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.sql.table_view.UpdateRowResponse)
+  SharedDtor(*this);
+}
+inline void UpdateRowResponse::SharedDtor(MessageLite& self) {
+  UpdateRowResponse& this_ = static_cast<UpdateRowResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL UpdateRowResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) UpdateRowResponse(arena);
+}
+constexpr auto UpdateRowResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(UpdateRowResponse),
+                                            alignof(UpdateRowResponse));
+}
+constexpr auto UpdateRowResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_UpdateRowResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &UpdateRowResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<UpdateRowResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &UpdateRowResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<UpdateRowResponse>(), &UpdateRowResponse::ByteSizeLong,
+              &UpdateRowResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(UpdateRowResponse, _impl_._cached_size_),
+          false,
+      },
+      &UpdateRowResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2ftable_2dview_2ftable_2dview_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull UpdateRowResponse_class_data_ =
+        UpdateRowResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+UpdateRowResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&UpdateRowResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(UpdateRowResponse_class_data_.tc_table);
+  return UpdateRowResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
+UpdateRowResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(UpdateRowResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    UpdateRowResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::sql::table_view::UpdateRowResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // uint64 rows_affected = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(UpdateRowResponse, _impl_.rows_affected_), 0>(),
+     {8, 0, 0,
+      PROTOBUF_FIELD_OFFSET(UpdateRowResponse, _impl_.rows_affected_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // uint64 rows_affected = 1;
+    {PROTOBUF_FIELD_OFFSET(UpdateRowResponse, _impl_.rows_affected_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void UpdateRowResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.sql.table_view.UpdateRowResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.rows_affected_ = ::uint64_t{0u};
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL UpdateRowResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const UpdateRowResponse& this_ = static_cast<const UpdateRowResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL UpdateRowResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const UpdateRowResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.sql.table_view.UpdateRowResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // uint64 rows_affected = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (this_._internal_rows_affected() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          1, this_._internal_rows_affected(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.sql.table_view.UpdateRowResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t UpdateRowResponse::ByteSizeLong(const MessageLite& base) {
+  const UpdateRowResponse& this_ = static_cast<const UpdateRowResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t UpdateRowResponse::ByteSizeLong() const {
+  const UpdateRowResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.sql.table_view.UpdateRowResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // uint64 rows_affected = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (this_._internal_rows_affected() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_rows_affected());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void UpdateRowResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<UpdateRowResponse*>(&to_msg);
+  auto& from = static_cast<const UpdateRowResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.sql.table_view.UpdateRowResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (from._internal_rows_affected() != 0) {
+      _this->_impl_.rows_affected_ = from._impl_.rows_affected_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void UpdateRowResponse::CopyFrom(const UpdateRowResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.sql.table_view.UpdateRowResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void UpdateRowResponse::InternalSwap(UpdateRowResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.rows_affected_, other->_impl_.rows_affected_);
+}
+
+::google::protobuf::Metadata UpdateRowResponse::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

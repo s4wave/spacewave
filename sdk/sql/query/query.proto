@@ -32,7 +32,7 @@ service SqlQueryResourceService {
 // GetQueryTextRequest is a request for query text.
 message GetQueryTextRequest {}
 
-// GetQueryTextResponse contains query text and target metadata.
+// GetQueryTextResponse contains query text, target metadata, and bind arguments.
 message GetQueryTextResponse {
   // SqlText is the SQL text executed by Run.
   string sql_text = 1;
@@ -40,6 +40,8 @@ message GetQueryTextResponse {
   string dialect_hint = 2;
   // TargetDbObjectKey is the sql/db object this query runs against.
   string target_db_object_key = 3;
+  // Parameters are positional SQL bind arguments.
+  repeated .sql.SqlValue parameters = 4;
 }
 
 // SetQueryTextRequest updates query text and target metadata.

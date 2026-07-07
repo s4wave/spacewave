@@ -59,6 +59,10 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 namespace s4wave {
 namespace sql {
 namespace table_view {
+class DriverCapability;
+struct DriverCapabilityDefaultTypeInternal;
+extern DriverCapabilityDefaultTypeInternal _DriverCapability_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DriverCapability_class_data_;
 class FetchRowsRequest;
 struct FetchRowsRequestDefaultTypeInternal;
 extern FetchRowsRequestDefaultTypeInternal _FetchRowsRequest_default_instance_;
@@ -67,6 +71,14 @@ class FetchRowsResponse;
 struct FetchRowsResponseDefaultTypeInternal;
 extern FetchRowsResponseDefaultTypeInternal _FetchRowsResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull FetchRowsResponse_class_data_;
+class GetDriverCapabilityRequest;
+struct GetDriverCapabilityRequestDefaultTypeInternal;
+extern GetDriverCapabilityRequestDefaultTypeInternal _GetDriverCapabilityRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GetDriverCapabilityRequest_class_data_;
+class GetDriverCapabilityResponse;
+struct GetDriverCapabilityResponseDefaultTypeInternal;
+extern GetDriverCapabilityResponseDefaultTypeInternal _GetDriverCapabilityResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GetDriverCapabilityResponse_class_data_;
 class GetTableViewRequest;
 struct GetTableViewRequestDefaultTypeInternal;
 extern GetTableViewRequestDefaultTypeInternal _GetTableViewRequest_default_instance_;
@@ -83,6 +95,14 @@ class TableView;
 struct TableViewDefaultTypeInternal;
 extern TableViewDefaultTypeInternal _TableView_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull TableView_class_data_;
+class UpdateRowRequest;
+struct UpdateRowRequestDefaultTypeInternal;
+extern UpdateRowRequestDefaultTypeInternal _UpdateRowRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull UpdateRowRequest_class_data_;
+class UpdateRowResponse;
+struct UpdateRowResponseDefaultTypeInternal;
+extern UpdateRowResponseDefaultTypeInternal _UpdateRowResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull UpdateRowResponse_class_data_;
 }  // namespace table_view
 }  // namespace sql
 }  // namespace s4wave
@@ -98,6 +118,196 @@ namespace table_view {
 // ===================================================================
 
 
+// -------------------------------------------------------------------
+
+class UpdateRowResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.sql.table_view.UpdateRowResponse) */ {
+ public:
+  inline UpdateRowResponse() : UpdateRowResponse(nullptr) {}
+  ~UpdateRowResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(UpdateRowResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(UpdateRowResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR UpdateRowResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline UpdateRowResponse(const UpdateRowResponse& from) : UpdateRowResponse(nullptr, from) {}
+  inline UpdateRowResponse(UpdateRowResponse&& from) noexcept
+      : UpdateRowResponse(nullptr, ::std::move(from)) {}
+  inline UpdateRowResponse& operator=(const UpdateRowResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline UpdateRowResponse& operator=(UpdateRowResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const UpdateRowResponse& default_instance() {
+    return *reinterpret_cast<const UpdateRowResponse*>(
+        &_UpdateRowResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 10;
+  friend void swap(UpdateRowResponse& a, UpdateRowResponse& b) { a.Swap(&b); }
+  inline void Swap(UpdateRowResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(UpdateRowResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  UpdateRowResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<UpdateRowResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const UpdateRowResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const UpdateRowResponse& from) { UpdateRowResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(UpdateRowResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.sql.table_view.UpdateRowResponse"; }
+
+  explicit UpdateRowResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  UpdateRowResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const UpdateRowResponse& from);
+  UpdateRowResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, UpdateRowResponse&& from) noexcept
+      : UpdateRowResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kRowsAffectedFieldNumber = 1,
+  };
+  // uint64 rows_affected = 1;
+  void clear_rows_affected() ;
+  ::uint64_t rows_affected() const;
+  void set_rows_affected(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_rows_affected() const;
+  void _internal_set_rows_affected(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.sql.table_view.UpdateRowResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const UpdateRowResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::uint64_t rows_affected_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2ftable_2dview_2ftable_2dview_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull UpdateRowResponse_class_data_;
 // -------------------------------------------------------------------
 
 class SortOrder final : public ::google::protobuf::Message
@@ -441,6 +651,140 @@ class GetTableViewRequest final : public ::google::protobuf::internal::ZeroField
 extern const ::google::protobuf::internal::ClassDataFull GetTableViewRequest_class_data_;
 // -------------------------------------------------------------------
 
+class GetDriverCapabilityRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:s4wave.sql.table_view.GetDriverCapabilityRequest) */ {
+ public:
+  inline GetDriverCapabilityRequest() : GetDriverCapabilityRequest(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GetDriverCapabilityRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GetDriverCapabilityRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GetDriverCapabilityRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline GetDriverCapabilityRequest(const GetDriverCapabilityRequest& from) : GetDriverCapabilityRequest(nullptr, from) {}
+  inline GetDriverCapabilityRequest(GetDriverCapabilityRequest&& from) noexcept
+      : GetDriverCapabilityRequest(nullptr, ::std::move(from)) {}
+  inline GetDriverCapabilityRequest& operator=(const GetDriverCapabilityRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GetDriverCapabilityRequest& operator=(GetDriverCapabilityRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GetDriverCapabilityRequest& default_instance() {
+    return *reinterpret_cast<const GetDriverCapabilityRequest*>(
+        &_GetDriverCapabilityRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 4;
+  friend void swap(GetDriverCapabilityRequest& a, GetDriverCapabilityRequest& b) { a.Swap(&b); }
+  inline void Swap(GetDriverCapabilityRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GetDriverCapabilityRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GetDriverCapabilityRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<GetDriverCapabilityRequest>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const GetDriverCapabilityRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const GetDriverCapabilityRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.sql.table_view.GetDriverCapabilityRequest"; }
+
+  explicit GetDriverCapabilityRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GetDriverCapabilityRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GetDriverCapabilityRequest& from);
+  GetDriverCapabilityRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GetDriverCapabilityRequest&& from) noexcept
+      : GetDriverCapabilityRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:s4wave.sql.table_view.GetDriverCapabilityRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2ftable_2dview_2ftable_2dview_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GetDriverCapabilityRequest_class_data_;
+// -------------------------------------------------------------------
+
 class FetchRowsRequest final : public ::google::protobuf::internal::ZeroFieldsBase
 /* @@protoc_insertion_point(class_definition:s4wave.sql.table_view.FetchRowsRequest) */ {
  public:
@@ -495,7 +839,7 @@ class FetchRowsRequest final : public ::google::protobuf::internal::ZeroFieldsBa
     return *reinterpret_cast<const FetchRowsRequest*>(
         &_FetchRowsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 7;
   friend void swap(FetchRowsRequest& a, FetchRowsRequest& b) { a.Swap(&b); }
   inline void Swap(FetchRowsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -573,6 +917,477 @@ class FetchRowsRequest final : public ::google::protobuf::internal::ZeroFieldsBa
 };
 
 extern const ::google::protobuf::internal::ClassDataFull FetchRowsRequest_class_data_;
+// -------------------------------------------------------------------
+
+class DriverCapability final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.sql.table_view.DriverCapability) */ {
+ public:
+  inline DriverCapability() : DriverCapability(nullptr) {}
+  ~DriverCapability() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(DriverCapability* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DriverCapability));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR DriverCapability(::google::protobuf::internal::ConstantInitialized);
+
+  inline DriverCapability(const DriverCapability& from) : DriverCapability(nullptr, from) {}
+  inline DriverCapability(DriverCapability&& from) noexcept
+      : DriverCapability(nullptr, ::std::move(from)) {}
+  inline DriverCapability& operator=(const DriverCapability& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DriverCapability& operator=(DriverCapability&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DriverCapability& default_instance() {
+    return *reinterpret_cast<const DriverCapability*>(
+        &_DriverCapability_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 6;
+  friend void swap(DriverCapability& a, DriverCapability& b) { a.Swap(&b); }
+  inline void Swap(DriverCapability* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DriverCapability* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DriverCapability* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DriverCapability>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const DriverCapability& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const DriverCapability& from) { DriverCapability::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(DriverCapability* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.sql.table_view.DriverCapability"; }
+
+  explicit DriverCapability(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DriverCapability(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DriverCapability& from);
+  DriverCapability(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DriverCapability&& from) noexcept
+      : DriverCapability(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kUpdateRowUnsupportedReasonFieldNumber = 2,
+    kUpdateRowFieldNumber = 1,
+  };
+  // string update_row_unsupported_reason = 2;
+  void clear_update_row_unsupported_reason() ;
+  const ::std::string& update_row_unsupported_reason() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_update_row_unsupported_reason(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_update_row_unsupported_reason();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_update_row_unsupported_reason();
+  void set_allocated_update_row_unsupported_reason(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_update_row_unsupported_reason() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_update_row_unsupported_reason(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_update_row_unsupported_reason();
+
+  public:
+  // bool update_row = 1;
+  void clear_update_row() ;
+  bool update_row() const;
+  void set_update_row(bool value);
+
+  private:
+  bool _internal_update_row() const;
+  void _internal_set_update_row(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.sql.table_view.DriverCapability)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 76,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const DriverCapability& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr update_row_unsupported_reason_;
+    bool update_row_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2ftable_2dview_2ftable_2dview_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull DriverCapability_class_data_;
+// -------------------------------------------------------------------
+
+class UpdateRowRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.sql.table_view.UpdateRowRequest) */ {
+ public:
+  inline UpdateRowRequest() : UpdateRowRequest(nullptr) {}
+  ~UpdateRowRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(UpdateRowRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(UpdateRowRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR UpdateRowRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline UpdateRowRequest(const UpdateRowRequest& from) : UpdateRowRequest(nullptr, from) {}
+  inline UpdateRowRequest(UpdateRowRequest&& from) noexcept
+      : UpdateRowRequest(nullptr, ::std::move(from)) {}
+  inline UpdateRowRequest& operator=(const UpdateRowRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline UpdateRowRequest& operator=(UpdateRowRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const UpdateRowRequest& default_instance() {
+    return *reinterpret_cast<const UpdateRowRequest*>(
+        &_UpdateRowRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 9;
+  friend void swap(UpdateRowRequest& a, UpdateRowRequest& b) { a.Swap(&b); }
+  inline void Swap(UpdateRowRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(UpdateRowRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  UpdateRowRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<UpdateRowRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const UpdateRowRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const UpdateRowRequest& from) { UpdateRowRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(UpdateRowRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.sql.table_view.UpdateRowRequest"; }
+
+  explicit UpdateRowRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  UpdateRowRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const UpdateRowRequest& from);
+  UpdateRowRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, UpdateRowRequest&& from) noexcept
+      : UpdateRowRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kMatchColumnsFieldNumber = 1,
+    kMatchValuesFieldNumber = 2,
+    kSetColumnsFieldNumber = 3,
+    kSetValuesFieldNumber = 4,
+  };
+  // repeated string match_columns = 1;
+  int match_columns_size() const;
+  private:
+  int _internal_match_columns_size() const;
+
+  public:
+  void clear_match_columns() ;
+  const ::std::string& match_columns(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_match_columns(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_match_columns(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_match_columns();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_match_columns(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& match_columns() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_match_columns();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_match_columns() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_match_columns();
+
+  public:
+  // repeated .sql.SqlValue match_values = 2;
+  int match_values_size() const;
+  private:
+  int _internal_match_values_size() const;
+
+  public:
+  void clear_match_values() ;
+  ::sql::SqlValue* PROTOBUF_NONNULL mutable_match_values(int index);
+  ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL mutable_match_values();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>& _internal_match_values() const;
+  ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL _internal_mutable_match_values();
+  public:
+  const ::sql::SqlValue& match_values(int index) const;
+  ::sql::SqlValue* PROTOBUF_NONNULL add_match_values();
+  const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>& match_values() const;
+  // repeated string set_columns = 3;
+  int set_columns_size() const;
+  private:
+  int _internal_set_columns_size() const;
+
+  public:
+  void clear_set_columns() ;
+  const ::std::string& set_columns(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_set_columns(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_set_columns(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_set_columns();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_set_columns(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& set_columns() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_set_columns();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_set_columns() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_set_columns();
+
+  public:
+  // repeated .sql.SqlValue set_values = 4;
+  int set_values_size() const;
+  private:
+  int _internal_set_values_size() const;
+
+  public:
+  void clear_set_values() ;
+  ::sql::SqlValue* PROTOBUF_NONNULL mutable_set_values(int index);
+  ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL mutable_set_values();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>& _internal_set_values() const;
+  ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL _internal_mutable_set_values();
+  public:
+  const ::sql::SqlValue& set_values(int index) const;
+  ::sql::SqlValue* PROTOBUF_NONNULL add_set_values();
+  const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>& set_values() const;
+  // @@protoc_insertion_point(class_scope:s4wave.sql.table_view.UpdateRowRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   2, 71,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const UpdateRowRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> match_columns_;
+    ::google::protobuf::RepeatedPtrField< ::sql::SqlValue > match_values_;
+    ::google::protobuf::RepeatedPtrField<::std::string> set_columns_;
+    ::google::protobuf::RepeatedPtrField< ::sql::SqlValue > set_values_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2ftable_2dview_2ftable_2dview_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull UpdateRowRequest_class_data_;
 // -------------------------------------------------------------------
 
 class TableView final : public ::google::protobuf::Message
@@ -912,6 +1727,201 @@ class TableView final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull TableView_class_data_;
 // -------------------------------------------------------------------
 
+class GetDriverCapabilityResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.sql.table_view.GetDriverCapabilityResponse) */ {
+ public:
+  inline GetDriverCapabilityResponse() : GetDriverCapabilityResponse(nullptr) {}
+  ~GetDriverCapabilityResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GetDriverCapabilityResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GetDriverCapabilityResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GetDriverCapabilityResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline GetDriverCapabilityResponse(const GetDriverCapabilityResponse& from) : GetDriverCapabilityResponse(nullptr, from) {}
+  inline GetDriverCapabilityResponse(GetDriverCapabilityResponse&& from) noexcept
+      : GetDriverCapabilityResponse(nullptr, ::std::move(from)) {}
+  inline GetDriverCapabilityResponse& operator=(const GetDriverCapabilityResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GetDriverCapabilityResponse& operator=(GetDriverCapabilityResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GetDriverCapabilityResponse& default_instance() {
+    return *reinterpret_cast<const GetDriverCapabilityResponse*>(
+        &_GetDriverCapabilityResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 5;
+  friend void swap(GetDriverCapabilityResponse& a, GetDriverCapabilityResponse& b) { a.Swap(&b); }
+  inline void Swap(GetDriverCapabilityResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GetDriverCapabilityResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GetDriverCapabilityResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GetDriverCapabilityResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GetDriverCapabilityResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GetDriverCapabilityResponse& from) { GetDriverCapabilityResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GetDriverCapabilityResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.sql.table_view.GetDriverCapabilityResponse"; }
+
+  explicit GetDriverCapabilityResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GetDriverCapabilityResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GetDriverCapabilityResponse& from);
+  GetDriverCapabilityResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GetDriverCapabilityResponse&& from) noexcept
+      : GetDriverCapabilityResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kCapabilityFieldNumber = 1,
+  };
+  // .s4wave.sql.table_view.DriverCapability capability = 1;
+  bool has_capability() const;
+  void clear_capability() ;
+  const ::s4wave::sql::table_view::DriverCapability& capability() const;
+  [[nodiscard]] ::s4wave::sql::table_view::DriverCapability* PROTOBUF_NULLABLE release_capability();
+  ::s4wave::sql::table_view::DriverCapability* PROTOBUF_NONNULL mutable_capability();
+  void set_allocated_capability(::s4wave::sql::table_view::DriverCapability* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_capability(::s4wave::sql::table_view::DriverCapability* PROTOBUF_NULLABLE value);
+  ::s4wave::sql::table_view::DriverCapability* PROTOBUF_NULLABLE unsafe_arena_release_capability();
+
+  private:
+  const ::s4wave::sql::table_view::DriverCapability& _internal_capability() const;
+  ::s4wave::sql::table_view::DriverCapability* PROTOBUF_NONNULL _internal_mutable_capability();
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.sql.table_view.GetDriverCapabilityResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GetDriverCapabilityResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::s4wave::sql::table_view::DriverCapability* PROTOBUF_NULLABLE capability_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsql_2ftable_2dview_2ftable_2dview_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GetDriverCapabilityResponse_class_data_;
+// -------------------------------------------------------------------
+
 class GetTableViewResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.sql.table_view.GetTableViewResponse) */ {
  public:
@@ -1162,7 +2172,7 @@ class FetchRowsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const FetchRowsResponse*>(
         &_FetchRowsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 8;
   friend void swap(FetchRowsResponse& a, FetchRowsResponse& b) { a.Swap(&b); }
   inline void Swap(FetchRowsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2093,6 +3103,207 @@ inline void GetTableViewResponse::set_allocated_table_view(::s4wave::sql::table_
 
 // -------------------------------------------------------------------
 
+// GetDriverCapabilityRequest
+
+// -------------------------------------------------------------------
+
+// GetDriverCapabilityResponse
+
+// .s4wave.sql.table_view.DriverCapability capability = 1;
+inline bool GetDriverCapabilityResponse::has_capability() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.capability_ != nullptr);
+  return value;
+}
+inline void GetDriverCapabilityResponse::clear_capability() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.capability_ != nullptr) _impl_.capability_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::s4wave::sql::table_view::DriverCapability& GetDriverCapabilityResponse::_internal_capability() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::s4wave::sql::table_view::DriverCapability* p = _impl_.capability_;
+  return p != nullptr ? *p : reinterpret_cast<const ::s4wave::sql::table_view::DriverCapability&>(::s4wave::sql::table_view::_DriverCapability_default_instance_);
+}
+inline const ::s4wave::sql::table_view::DriverCapability& GetDriverCapabilityResponse::capability() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.sql.table_view.GetDriverCapabilityResponse.capability)
+  return _internal_capability();
+}
+inline void GetDriverCapabilityResponse::unsafe_arena_set_allocated_capability(
+    ::s4wave::sql::table_view::DriverCapability* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.capability_);
+  }
+  _impl_.capability_ = reinterpret_cast<::s4wave::sql::table_view::DriverCapability*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:s4wave.sql.table_view.GetDriverCapabilityResponse.capability)
+}
+inline ::s4wave::sql::table_view::DriverCapability* PROTOBUF_NULLABLE GetDriverCapabilityResponse::release_capability() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::sql::table_view::DriverCapability* released = _impl_.capability_;
+  _impl_.capability_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::s4wave::sql::table_view::DriverCapability* PROTOBUF_NULLABLE GetDriverCapabilityResponse::unsafe_arena_release_capability() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.sql.table_view.GetDriverCapabilityResponse.capability)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::sql::table_view::DriverCapability* temp = _impl_.capability_;
+  _impl_.capability_ = nullptr;
+  return temp;
+}
+inline ::s4wave::sql::table_view::DriverCapability* PROTOBUF_NONNULL GetDriverCapabilityResponse::_internal_mutable_capability() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.capability_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::s4wave::sql::table_view::DriverCapability>(GetArena());
+    _impl_.capability_ = reinterpret_cast<::s4wave::sql::table_view::DriverCapability*>(p);
+  }
+  return _impl_.capability_;
+}
+inline ::s4wave::sql::table_view::DriverCapability* PROTOBUF_NONNULL GetDriverCapabilityResponse::mutable_capability()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::s4wave::sql::table_view::DriverCapability* _msg = _internal_mutable_capability();
+  // @@protoc_insertion_point(field_mutable:s4wave.sql.table_view.GetDriverCapabilityResponse.capability)
+  return _msg;
+}
+inline void GetDriverCapabilityResponse::set_allocated_capability(::s4wave::sql::table_view::DriverCapability* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.capability_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.capability_ = reinterpret_cast<::s4wave::sql::table_view::DriverCapability*>(value);
+  // @@protoc_insertion_point(field_set_allocated:s4wave.sql.table_view.GetDriverCapabilityResponse.capability)
+}
+
+// -------------------------------------------------------------------
+
+// DriverCapability
+
+// bool update_row = 1;
+inline void DriverCapability::clear_update_row() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.update_row_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline bool DriverCapability::update_row() const {
+  // @@protoc_insertion_point(field_get:s4wave.sql.table_view.DriverCapability.update_row)
+  return _internal_update_row();
+}
+inline void DriverCapability::set_update_row(bool value) {
+  _internal_set_update_row(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:s4wave.sql.table_view.DriverCapability.update_row)
+}
+inline bool DriverCapability::_internal_update_row() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.update_row_;
+}
+inline void DriverCapability::_internal_set_update_row(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.update_row_ = value;
+}
+
+// string update_row_unsupported_reason = 2;
+inline void DriverCapability::clear_update_row_unsupported_reason() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.update_row_unsupported_reason_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& DriverCapability::update_row_unsupported_reason() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.sql.table_view.DriverCapability.update_row_unsupported_reason)
+  return _internal_update_row_unsupported_reason();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DriverCapability::set_update_row_unsupported_reason(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.update_row_unsupported_reason_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.sql.table_view.DriverCapability.update_row_unsupported_reason)
+}
+inline ::std::string* PROTOBUF_NONNULL DriverCapability::mutable_update_row_unsupported_reason()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_update_row_unsupported_reason();
+  // @@protoc_insertion_point(field_mutable:s4wave.sql.table_view.DriverCapability.update_row_unsupported_reason)
+  return _s;
+}
+inline const ::std::string& DriverCapability::_internal_update_row_unsupported_reason() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.update_row_unsupported_reason_.Get();
+}
+inline void DriverCapability::_internal_set_update_row_unsupported_reason(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.update_row_unsupported_reason_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DriverCapability::_internal_mutable_update_row_unsupported_reason() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.update_row_unsupported_reason_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DriverCapability::release_update_row_unsupported_reason() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.sql.table_view.DriverCapability.update_row_unsupported_reason)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.update_row_unsupported_reason_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.update_row_unsupported_reason_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DriverCapability::set_allocated_update_row_unsupported_reason(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.update_row_unsupported_reason_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.update_row_unsupported_reason_.IsDefault()) {
+    _impl_.update_row_unsupported_reason_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.sql.table_view.DriverCapability.update_row_unsupported_reason)
+}
+
+// -------------------------------------------------------------------
+
 // FetchRowsRequest
 
 // -------------------------------------------------------------------
@@ -2247,6 +3458,283 @@ inline bool FetchRowsResponse::_internal_truncated() const {
 inline void FetchRowsResponse::_internal_set_truncated(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.truncated_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// UpdateRowRequest
+
+// repeated string match_columns = 1;
+inline int UpdateRowRequest::_internal_match_columns_size() const {
+  return _internal_match_columns().size();
+}
+inline int UpdateRowRequest::match_columns_size() const {
+  return _internal_match_columns_size();
+}
+inline void UpdateRowRequest::clear_match_columns() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.match_columns_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL UpdateRowRequest::add_match_columns()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_match_columns()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:s4wave.sql.table_view.UpdateRowRequest.match_columns)
+  return _s;
+}
+inline const ::std::string& UpdateRowRequest::match_columns(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.sql.table_view.UpdateRowRequest.match_columns)
+  return _internal_match_columns().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL UpdateRowRequest::mutable_match_columns(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.sql.table_view.UpdateRowRequest.match_columns)
+  return _internal_mutable_match_columns()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void UpdateRowRequest::set_match_columns(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_match_columns()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:s4wave.sql.table_view.UpdateRowRequest.match_columns)
+}
+template <typename Arg_, typename... Args_>
+inline void UpdateRowRequest::add_match_columns(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_match_columns(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.sql.table_view.UpdateRowRequest.match_columns)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& UpdateRowRequest::match_columns()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.sql.table_view.UpdateRowRequest.match_columns)
+  return _internal_match_columns();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+UpdateRowRequest::mutable_match_columns() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.sql.table_view.UpdateRowRequest.match_columns)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_match_columns();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+UpdateRowRequest::_internal_match_columns() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.match_columns_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+UpdateRowRequest::_internal_mutable_match_columns() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.match_columns_;
+}
+
+// repeated .sql.SqlValue match_values = 2;
+inline int UpdateRowRequest::_internal_match_values_size() const {
+  return _internal_match_values().size();
+}
+inline int UpdateRowRequest::match_values_size() const {
+  return _internal_match_values_size();
+}
+inline ::sql::SqlValue* PROTOBUF_NONNULL UpdateRowRequest::mutable_match_values(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.sql.table_view.UpdateRowRequest.match_values)
+  return _internal_mutable_match_values()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL UpdateRowRequest::mutable_match_values()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.sql.table_view.UpdateRowRequest.match_values)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_match_values();
+}
+inline const ::sql::SqlValue& UpdateRowRequest::match_values(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.sql.table_view.UpdateRowRequest.match_values)
+  return _internal_match_values().Get(index);
+}
+inline ::sql::SqlValue* PROTOBUF_NONNULL UpdateRowRequest::add_match_values()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::sql::SqlValue* _add =
+      _internal_mutable_match_values()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:s4wave.sql.table_view.UpdateRowRequest.match_values)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>& UpdateRowRequest::match_values() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.sql.table_view.UpdateRowRequest.match_values)
+  return _internal_match_values();
+}
+inline const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>&
+UpdateRowRequest::_internal_match_values() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.match_values_;
+}
+inline ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL
+UpdateRowRequest::_internal_mutable_match_values() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.match_values_;
+}
+
+// repeated string set_columns = 3;
+inline int UpdateRowRequest::_internal_set_columns_size() const {
+  return _internal_set_columns().size();
+}
+inline int UpdateRowRequest::set_columns_size() const {
+  return _internal_set_columns_size();
+}
+inline void UpdateRowRequest::clear_set_columns() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.set_columns_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::std::string* PROTOBUF_NONNULL UpdateRowRequest::add_set_columns()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_set_columns()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_add_mutable:s4wave.sql.table_view.UpdateRowRequest.set_columns)
+  return _s;
+}
+inline const ::std::string& UpdateRowRequest::set_columns(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.sql.table_view.UpdateRowRequest.set_columns)
+  return _internal_set_columns().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL UpdateRowRequest::mutable_set_columns(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.sql.table_view.UpdateRowRequest.set_columns)
+  return _internal_mutable_set_columns()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void UpdateRowRequest::set_set_columns(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_set_columns()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:s4wave.sql.table_view.UpdateRowRequest.set_columns)
+}
+template <typename Arg_, typename... Args_>
+inline void UpdateRowRequest::add_set_columns(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_set_columns(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_add:s4wave.sql.table_view.UpdateRowRequest.set_columns)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& UpdateRowRequest::set_columns()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.sql.table_view.UpdateRowRequest.set_columns)
+  return _internal_set_columns();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+UpdateRowRequest::mutable_set_columns() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.sql.table_view.UpdateRowRequest.set_columns)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_set_columns();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+UpdateRowRequest::_internal_set_columns() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.set_columns_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+UpdateRowRequest::_internal_mutable_set_columns() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.set_columns_;
+}
+
+// repeated .sql.SqlValue set_values = 4;
+inline int UpdateRowRequest::_internal_set_values_size() const {
+  return _internal_set_values().size();
+}
+inline int UpdateRowRequest::set_values_size() const {
+  return _internal_set_values_size();
+}
+inline ::sql::SqlValue* PROTOBUF_NONNULL UpdateRowRequest::mutable_set_values(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.sql.table_view.UpdateRowRequest.set_values)
+  return _internal_mutable_set_values()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL UpdateRowRequest::mutable_set_values()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.sql.table_view.UpdateRowRequest.set_values)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_set_values();
+}
+inline const ::sql::SqlValue& UpdateRowRequest::set_values(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.sql.table_view.UpdateRowRequest.set_values)
+  return _internal_set_values().Get(index);
+}
+inline ::sql::SqlValue* PROTOBUF_NONNULL UpdateRowRequest::add_set_values()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::sql::SqlValue* _add =
+      _internal_mutable_set_values()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_add:s4wave.sql.table_view.UpdateRowRequest.set_values)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>& UpdateRowRequest::set_values() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.sql.table_view.UpdateRowRequest.set_values)
+  return _internal_set_values();
+}
+inline const ::google::protobuf::RepeatedPtrField<::sql::SqlValue>&
+UpdateRowRequest::_internal_set_values() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.set_values_;
+}
+inline ::google::protobuf::RepeatedPtrField<::sql::SqlValue>* PROTOBUF_NONNULL
+UpdateRowRequest::_internal_mutable_set_values() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.set_values_;
+}
+
+// -------------------------------------------------------------------
+
+// UpdateRowResponse
+
+// uint64 rows_affected = 1;
+inline void UpdateRowResponse::clear_rows_affected() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.rows_affected_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::uint64_t UpdateRowResponse::rows_affected() const {
+  // @@protoc_insertion_point(field_get:s4wave.sql.table_view.UpdateRowResponse.rows_affected)
+  return _internal_rows_affected();
+}
+inline void UpdateRowResponse::set_rows_affected(::uint64_t value) {
+  _internal_set_rows_affected(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_set:s4wave.sql.table_view.UpdateRowResponse.rows_affected)
+}
+inline ::uint64_t UpdateRowResponse::_internal_rows_affected() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.rows_affected_;
+}
+inline void UpdateRowResponse::_internal_set_rows_affected(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.rows_affected_ = value;
 }
 
 #ifdef __GNUC__

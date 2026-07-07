@@ -16,8 +16,12 @@ type SRPCSqlTableViewResourceServiceClient interface {
 
 	// GetTableView returns the table view metadata.
 	GetTableView(ctx context.Context, in *GetTableViewRequest) (*GetTableViewResponse, error)
+	// GetDriverCapability returns SQL driver operations available to this view.
+	GetDriverCapability(ctx context.Context, in *GetDriverCapabilityRequest) (*GetDriverCapabilityResponse, error)
 	// FetchRows executes the table view SELECT.
 	FetchRows(ctx context.Context, in *FetchRowsRequest) (*FetchRowsResponse, error)
+	// UpdateRow applies a typed UPDATE against rows matching the supplied row values.
+	UpdateRow(ctx context.Context, in *UpdateRowRequest) (*UpdateRowResponse, error)
 }
 
 type srpcSqlTableViewResourceServiceClient struct {
@@ -47,6 +51,15 @@ func (c *srpcSqlTableViewResourceServiceClient) GetTableView(ctx context.Context
 	return out, nil
 }
 
+func (c *srpcSqlTableViewResourceServiceClient) GetDriverCapability(ctx context.Context, in *GetDriverCapabilityRequest) (*GetDriverCapabilityResponse, error) {
+	out := new(GetDriverCapabilityResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "GetDriverCapability", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcSqlTableViewResourceServiceClient) FetchRows(ctx context.Context, in *FetchRowsRequest) (*FetchRowsResponse, error) {
 	out := new(FetchRowsResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "FetchRows", in, out)
@@ -56,11 +69,24 @@ func (c *srpcSqlTableViewResourceServiceClient) FetchRows(ctx context.Context, i
 	return out, nil
 }
 
+func (c *srpcSqlTableViewResourceServiceClient) UpdateRow(ctx context.Context, in *UpdateRowRequest) (*UpdateRowResponse, error) {
+	out := new(UpdateRowResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "UpdateRow", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCSqlTableViewResourceServiceServer interface {
 	// GetTableView returns the table view metadata.
 	GetTableView(context.Context, *GetTableViewRequest) (*GetTableViewResponse, error)
+	// GetDriverCapability returns SQL driver operations available to this view.
+	GetDriverCapability(context.Context, *GetDriverCapabilityRequest) (*GetDriverCapabilityResponse, error)
 	// FetchRows executes the table view SELECT.
 	FetchRows(context.Context, *FetchRowsRequest) (*FetchRowsResponse, error)
+	// UpdateRow applies a typed UPDATE against rows matching the supplied row values.
+	UpdateRow(context.Context, *UpdateRowRequest) (*UpdateRowResponse, error)
 }
 
 const SRPCSqlTableViewResourceServiceServiceID = "s4wave.sql.table_view.SqlTableViewResourceService"
@@ -90,7 +116,9 @@ func (d *SRPCSqlTableViewResourceServiceHandler) GetServiceID() string { return 
 func (SRPCSqlTableViewResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"GetTableView",
+		"GetDriverCapability",
 		"FetchRows",
+		"UpdateRow",
 	}
 }
 
@@ -105,8 +133,12 @@ func (d *SRPCSqlTableViewResourceServiceHandler) InvokeMethod(
 	switch methodID {
 	case "GetTableView":
 		return true, d.InvokeMethod_GetTableView(d.impl, strm)
+	case "GetDriverCapability":
+		return true, d.InvokeMethod_GetDriverCapability(d.impl, strm)
 	case "FetchRows":
 		return true, d.InvokeMethod_FetchRows(d.impl, strm)
+	case "UpdateRow":
+		return true, d.InvokeMethod_UpdateRow(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -118,6 +150,18 @@ func (SRPCSqlTableViewResourceServiceHandler) InvokeMethod_GetTableView(impl SRP
 		return err
 	}
 	out, err := impl.GetTableView(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSqlTableViewResourceServiceHandler) InvokeMethod_GetDriverCapability(impl SRPCSqlTableViewResourceServiceServer, strm srpc.Stream) error {
+	req := new(GetDriverCapabilityRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.GetDriverCapability(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -136,6 +180,18 @@ func (SRPCSqlTableViewResourceServiceHandler) InvokeMethod_FetchRows(impl SRPCSq
 	return strm.MsgSend(out)
 }
 
+func (SRPCSqlTableViewResourceServiceHandler) InvokeMethod_UpdateRow(impl SRPCSqlTableViewResourceServiceServer, strm srpc.Stream) error {
+	req := new(UpdateRowRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.UpdateRow(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 type SRPCSqlTableViewResourceService_GetTableViewStream interface {
 	srpc.Stream
 }
@@ -144,10 +200,26 @@ type srpcSqlTableViewResourceService_GetTableViewStream struct {
 	srpc.Stream
 }
 
+type SRPCSqlTableViewResourceService_GetDriverCapabilityStream interface {
+	srpc.Stream
+}
+
+type srpcSqlTableViewResourceService_GetDriverCapabilityStream struct {
+	srpc.Stream
+}
+
 type SRPCSqlTableViewResourceService_FetchRowsStream interface {
 	srpc.Stream
 }
 
 type srpcSqlTableViewResourceService_FetchRowsStream struct {
+	srpc.Stream
+}
+
+type SRPCSqlTableViewResourceService_UpdateRowStream interface {
+	srpc.Stream
+}
+
+type srpcSqlTableViewResourceService_UpdateRowStream struct {
 	srpc.Stream
 }

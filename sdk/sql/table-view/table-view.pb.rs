@@ -52,6 +52,27 @@ pub struct GetTableViewResponse {
     #[prost(message, optional, tag="1")]
     pub table_view: ::core::option::Option<TableView>,
 }
+/// GetDriverCapabilityRequest is a request for driver operation support.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetDriverCapabilityRequest {
+}
+/// GetDriverCapabilityResponse contains update support reported by the target driver.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetDriverCapabilityResponse {
+    /// Capability describes SQL operations available through the target driver.
+    #[prost(message, optional, tag="1")]
+    pub capability: ::core::option::Option<DriverCapability>,
+}
+/// DriverCapability describes SQL driver operations exposed by this table view.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DriverCapability {
+    /// UpdateRow is true when typed row updates can be attempted.
+    #[prost(bool, tag="1")]
+    pub update_row: bool,
+    /// UpdateRowUnsupportedReason explains why UpdateRow is unavailable.
+    #[prost(string, tag="2")]
+    pub update_row_unsupported_reason: ::prost::alloc::string::String,
+}
 /// FetchRowsRequest executes the saved table view.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct FetchRowsRequest {
@@ -71,5 +92,28 @@ pub struct FetchRowsResponse {
     /// Truncated indicates rows were omitted by the view row limit.
     #[prost(bool, tag="4")]
     pub truncated: bool,
+}
+/// UpdateRowRequest updates table rows selected by typed match values.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateRowRequest {
+    /// MatchColumns names columns used in the WHERE clause.
+    #[prost(string, repeated, tag="1")]
+    pub match_columns: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// MatchValues are compared with MatchColumns in order.
+    #[prost(message, repeated, tag="2")]
+    pub match_values: ::prost::alloc::vec::Vec<super::super::super::sql::SqlValue>,
+    /// SetColumns names columns updated by the SET clause.
+    #[prost(string, repeated, tag="3")]
+    pub set_columns: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// SetValues are assigned to SetColumns in order.
+    #[prost(message, repeated, tag="4")]
+    pub set_values: ::prost::alloc::vec::Vec<super::super::super::sql::SqlValue>,
+}
+/// UpdateRowResponse is returned after a typed row update.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UpdateRowResponse {
+    /// RowsAffected is the number of rows updated by the driver.
+    #[prost(uint64, tag="1")]
+    pub rows_affected: u64,
 }
 // @@protoc_insertion_point(module)

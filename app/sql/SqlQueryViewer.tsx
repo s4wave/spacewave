@@ -23,7 +23,12 @@ import { SqlDbTypeID } from '@s4wave/sdk/sql/sql.js'
 import { SqlQuery, SqlQueryTypeID } from '@s4wave/sdk/sql/query/query.js'
 import { listObjectsWithType } from '@s4wave/sdk/world/types/types.js'
 
-import { buildParam, type SqlParamKind } from './sql-cell.js'
+import {
+  buildParam,
+  paramKind,
+  paramText,
+  type SqlParamKind,
+} from './sql-cell.js'
 import { SqlWorkbenchTargetDbContext } from './sql-workbench-context.js'
 
 export { SqlQueryTypeID }
@@ -154,6 +159,7 @@ export function SqlQueryViewer({
             }
             persistedTargetDbObjectKey={loaded.targetDbObjectKey ?? ''}
             targetDbHint={targetResolution.hint}
+            parameters={loaded.parameters ?? []}
             onOpenTargetDb={
               container
                 ? (targetDbObjectKey) =>
@@ -179,6 +185,7 @@ interface SqlQueryEditorProps {
   targetDbObjectKey: string
   persistedTargetDbObjectKey: string
   targetDbHint: string
+  parameters: SqlValue[]
   onOpenTargetDb?: (targetDbObjectKey: string) => void
   onResult?: (resultObjectKey: string) => void
 }
@@ -192,6 +199,7 @@ function SqlQueryEditor({
   targetDbObjectKey: savedTargetDb,
   persistedTargetDbObjectKey: persistedTargetDb,
   targetDbHint,
+  parameters: savedParameters,
   onOpenTargetDb,
   onResult,
 }: SqlQueryEditorProps) {
@@ -202,10 +210,10 @@ function SqlQueryEditor({
   const [sql, setSql] = useState(savedSql)
   const [dialect, setDialect] = useState(savedDialect)
   const [targetDb, setTargetDb] = useState(savedTargetDb)
+  const [params, setParams] = useState<ParamRow[]>(() =>
+    paramRowsFromValues(savedParameters),
+  )
   /* eslint-enable react-doctor/no-derived-useState */
-  // Parameters are not exposed by GetQueryText, so the editor starts each
-  // session with an empty list; saving persists the current rows.
-  const [params, setParams] = useState<ParamRow[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -213,11 +221,16 @@ function SqlQueryEditor({
     sql !== savedSql ||
     dialect !== savedDialect ||
     targetDb !== persistedTargetDb
-  const paramsTouched = params.length > 0
-
   const buildParams = useCallback((): SqlValue[] => {
     return params.map((row) => buildParam(row.kind, row.text))
   }, [params])
+  const paramsDirty = useMemo(() => {
+    try {
+      return !sqlValuesEqual(buildParams(), savedParameters)
+    } catch {
+      return true
+    }
+  }, [buildParams, savedParameters])
 
   const paramError = useMemo(() => {
     try {
@@ -233,11 +246,11 @@ function SqlQueryEditor({
       if (textDirty) {
         await query.setQueryText(sql, dialect, targetDb)
       }
-      if (paramsTouched) {
+      if (paramsDirty) {
         await query.setParameters(buildParams())
       }
     },
-    [buildParams, dialect, paramsTouched, sql, targetDb, textDirty],
+    [buildParams, dialect, paramsDirty, sql, targetDb, textDirty],
   )
 
   const handleSave = useCallback(async () => {
@@ -279,9 +292,9 @@ function SqlQueryEditor({
     setSql(savedSql)
     setDialect(savedDialect)
     setTargetDb(savedTargetDb)
-    setParams([])
+    setParams(paramRowsFromValues(savedParameters))
     setError(null)
-  }, [savedDialect, savedSql, savedTargetDb])
+  }, [savedDialect, savedParameters, savedSql, savedTargetDb])
 
   const addParam = useCallback(() => {
     setParams((rows) => [
@@ -320,7 +333,7 @@ function SqlQueryEditor({
           variant="outline"
           size="sm"
           onClick={handleSave}
-          disabled={busy || paramError != null || !(textDirty || paramsTouched)}
+          disabled={busy || paramError != null || !(textDirty || paramsDirty)}
           className="h-7 gap-1 text-xs"
         >
           <LuSave className="size-3.5" />
@@ -330,7 +343,7 @@ function SqlQueryEditor({
           variant="ghost"
           size="sm"
           onClick={handleDiscard}
-          disabled={busy || !(textDirty || paramsTouched)}
+          disabled={busy || !(textDirty || paramsDirty)}
           className="h-7 gap-1 text-xs"
         >
           <LuUndo2 className="size-3.5" />
@@ -447,6 +460,78 @@ function SqlQueryEditor({
   )
 }
 
+function paramRowsFromValues(values: SqlValue[]): ParamRow[] {
+  const rows: ParamRow[] = []
+  for (const value of values) {
+    rows.push({
+      id: nextParamId++,
+      kind: paramKind(value),
+      text: paramText(value),
+    })
+  }
+  return rows
+}
+
+function sqlValuesEqual(left: SqlValue[], right: SqlValue[]): boolean {
+  if (left.length !== right.length) return false
+  for (let i = 0; i < left.length; i++) {
+    if (!sqlValueEqual(left[i], right[i])) return false
+  }
+  return true
+}
+
+function sqlValueEqual(
+  left: SqlValue | undefined,
+  right: SqlValue | undefined,
+): boolean {
+  const leftValue = left?.value
+  const rightValue = right?.value
+  if (leftValue?.case !== rightValue?.case) return false
+  switch (leftValue?.case) {
+    case undefined:
+      return true
+    case 'intValue':
+      return (
+        rightValue?.case === 'intValue' && leftValue.value === rightValue.value
+      )
+    case 'floatValue':
+      return (
+        rightValue?.case === 'floatValue' &&
+        leftValue.value === rightValue.value
+      )
+    case 'strValue':
+      return (
+        rightValue?.case === 'strValue' && leftValue.value === rightValue.value
+      )
+    case 'blobValue':
+      return (
+        rightValue?.case === 'blobValue' &&
+        bytesEqual(leftValue.value, rightValue.value)
+      )
+  }
+}
+
+function bytesEqual(left: Uint8Array, right: Uint8Array | undefined): boolean {
+  if (!right || left.length !== right.length) return false
+  for (let i = 0; i < left.length; i++) {
+    if (left[i] !== right[i]) return false
+  }
+  return true
+}
+
+function paramKindFromInput(value: string): SqlParamKind {
+  switch (value) {
+    case 'text':
+    case 'int':
+    case 'float':
+    case 'blob':
+    case 'null':
+      return value
+    default:
+      return 'text'
+  }
+}
+
 interface ParamEditorRowProps {
   index: number
   row: ParamRow
@@ -471,7 +556,7 @@ function ParamEditorRow({
         aria-label={`Parameter ${index + 1} type`}
         value={row.kind}
         onChange={(e) =>
-          onChange(row.id, { kind: e.target.value as SqlParamKind })
+          onChange(row.id, { kind: paramKindFromInput(e.target.value) })
         }
         disabled={disabled}
         className="border-foreground/10 bg-background-primary text-foreground shrink-0 rounded border px-2 py-1 text-xs"
@@ -479,6 +564,7 @@ function ParamEditorRow({
         <option value="text">text</option>
         <option value="int">int</option>
         <option value="float">float</option>
+        <option value="blob">blob</option>
         <option value="null">null</option>
       </select>
       <input
