@@ -9,6 +9,13 @@ export const APP_SCHEME = 'app'
 const app = electron.app
 const distPath = app.getAppPath()
 
+type ElectronRuntimeFetchSource = 'plugin-assets' | 'plugin-dist'
+
+const pluginAssetsPathPrefix = '/b/pa/'
+const pluginDistPathPrefix = '/b/pd/'
+const fetchSourceHeader = 'X-Bldr-Fetch-Source'
+const pluginAssetFetchResultHeader = 'X-Bldr-Plugin-Asset-Fetch-Result'
+
 // extractWebDocumentClientId recovers the owning WebDocument ID from a request.
 export function extractWebDocumentClientId(
   req: GlobalRequest,
@@ -30,7 +37,7 @@ export function extractWebDocumentClientId(
   }
 }
 
-// appRequestHandler handles requests for distribution files.
+// appRequestHandler handles requests for distribution and Bldr runtime files.
 export async function appRequestHandler(
   swFetch: (req: GlobalRequest, clientId?: string) => Promise<GlobalResponse>,
   req: GlobalRequest,
@@ -41,19 +48,18 @@ export async function appRequestHandler(
     reqPath = path.sep + 'index.html'
   }
 
-  // If reqPath starts with /p/ or /b/, forward to ServiceWorker.
-  const matchPrefixes = BLDR_URI_PREFIXES
-  for (const matchPrefix of matchPrefixes) {
+  // Forward Bldr runtime requests to the Go runtime fetch service.
+  const runtimeFetchSource: ElectronRuntimeFetchSource | undefined =
+    reqPath.startsWith(pluginAssetsPathPrefix)
+      ? 'plugin-assets'
+      : reqPath.startsWith(pluginDistPathPrefix)
+        ? 'plugin-dist'
+        : undefined
+  for (const matchPrefix of BLDR_URI_PREFIXES) {
     if (reqPath.startsWith(matchPrefix)) {
-      // This request should have been intercepted by the ServiceWorker.
-      // If it got here: it must be a SourceMap file (.map).
-      // See: https://stackoverflow.com/q/77706210/431369
-      // See: https://bugs.chromium.org/p/chromium/issues/detail?id=1513959 (merged into ->)
-      // See: https://bugs.chromium.org/p/chromium/issues/detail?id=1206431
-      console.log(
-        `appRequestHandler: forwarding ServiceWorker request: ${reqPath}`,
-      )
-      return swFetch(req, extractWebDocumentClientId(req))
+      console.log(`appRequestHandler: forwarding Bldr request: ${reqPath}`)
+      const response = await swFetch(req, extractWebDocumentClientId(req))
+      return annotateElectronRuntimeFetchResponse(response, runtimeFetchSource)
     }
   }
 
@@ -103,6 +109,25 @@ export async function appRequestHandler(
       headers: { Location: baseUrl },
     })
   }
+}
+
+function annotateElectronRuntimeFetchResponse(
+  response: GlobalResponse,
+  source?: ElectronRuntimeFetchSource,
+): GlobalResponse {
+  if (!source) {
+    return response
+  }
+  const headers = new Headers(response.headers)
+  headers.set(fetchSourceHeader, source)
+  if (response.ok && !headers.has(pluginAssetFetchResultHeader)) {
+    headers.set(pluginAssetFetchResultHeader, 'live')
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  }) as GlobalResponse
 }
 
 // The app:// scheme stays fetch-capable for protocol handlers, but Electron

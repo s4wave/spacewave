@@ -52,6 +52,7 @@ describe('electron protocol', () => {
   })
 
   it('extracts the WebDocument id from the referrer query string', async () => {
+    // Dynamic import re-evaluates Electron scheme registration after vi.resetModules().
     const { extractWebDocumentClientId } = await import('./protocol.js')
     const req = buildRequestLike(
       'app://index.html/b/pa/plugin/v/b/fe/app/App.mjs',
@@ -61,9 +62,14 @@ describe('electron protocol', () => {
     expect(extractWebDocumentClientId(req)).toBe('electron-init')
   })
 
-  it('forwards ServiceWorker-owned requests with the extracted client id', async () => {
+  it('forwards plugin asset requests with the extracted client id and live headers', async () => {
+    // Dynamic import re-evaluates Electron scheme registration after vi.resetModules().
     const { appRequestHandler } = await import('./protocol.js')
-    const swFetch = vi.fn().mockResolvedValue(new Response('ok'))
+    const swFetch = vi.fn().mockResolvedValue(
+      new Response('ok', {
+        headers: { 'content-type': 'application/javascript' },
+      }),
+    )
     const req = buildRequestLike(
       'app://index.html/b/pa/plugin/v/b/fe/app/App.mjs',
       'app://index.html?webDocumentId=electron-init',
@@ -72,10 +78,30 @@ describe('electron protocol', () => {
     const resp = await appRequestHandler(swFetch, req)
 
     expect(await resp.text()).toBe('ok')
+    expect(resp.headers.get('X-Bldr-Fetch-Source')).toBe('plugin-assets')
+    expect(resp.headers.get('X-Bldr-Plugin-Asset-Fetch-Result')).toBe('live')
+    expect(swFetch).toHaveBeenCalledWith(req, 'electron-init')
+  })
+
+  it('leaves non-plugin Bldr runtime responses unclassified', async () => {
+    // Dynamic import re-evaluates Electron scheme registration after vi.resetModules().
+    const { appRequestHandler } = await import('./protocol.js')
+    const swFetch = vi.fn().mockResolvedValue(new Response('ok'))
+    const req = buildRequestLike(
+      'app://index.html/b/pkg/@aptre/bldr/index.js',
+      'app://index.html?webDocumentId=electron-init',
+    )
+
+    const resp = await appRequestHandler(swFetch, req)
+
+    expect(await resp.text()).toBe('ok')
+    expect(resp.headers.get('X-Bldr-Fetch-Source')).toBeNull()
+    expect(resp.headers.get('X-Bldr-Plugin-Asset-Fetch-Result')).toBeNull()
     expect(swFetch).toHaveBeenCalledWith(req, 'electron-init')
   })
 
   it('falls back to the request url when the referrer is absent', async () => {
+    // Dynamic import re-evaluates Electron scheme registration after vi.resetModules().
     const { extractWebDocumentClientId } = await import('./protocol.js')
     const req = buildRequestLike(
       'app://index.html/b/pd/plugin/plugin.mjs?webDocumentId=popout-1',
