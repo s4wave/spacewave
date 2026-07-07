@@ -365,14 +365,10 @@ func (s *BufferedStore) drainForCapacity(ctx context.Context) error {
 	}
 	defer release()
 
-	drained, err := s.drainNextBatch(ctx)
-	if err != nil {
-		return err
-	}
-	if !drained {
-		return ErrBufferedStoreFull
-	}
-	return nil
+	// Another writer may have drained while we waited for drainMu. A missing
+	// batch is not terminal; the caller retries the enqueue path.
+	_, err = s.drainNextBatch(ctx)
+	return err
 }
 
 func (s *BufferedStore) drainAll(ctx context.Context) error {

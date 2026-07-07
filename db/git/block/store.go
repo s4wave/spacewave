@@ -29,15 +29,15 @@ type Store struct {
 	packTree  kvtx.BlockTx
 	packCache map[plumbing.Hash]*storePackCacheEntry
 
-	// Bulk mode state: objects are written to KV via per-object
-	// mini-transactions, then IAVL trees are built bottom-up at Commit.
-	// Active when storeOps is non-nil (i.e., write mode).
+	// Bulk mode writes loose object blocks through a bounded buffer, then builds
+	// the object IAVL tree bottom-up at Commit. Active when storeOps is non-nil.
+	// The buffer is drained before the root Repo transaction writes refs to it.
 
-	// storeOps is the block store for creating mini-transactions.
+	// storeOps is the buffered block store for bulk object/tree writes.
 	storeOps block.StoreOps
-	// bulkXfrm is the block transformer for mini-transactions.
+	// bulkXfrm is the block transformer for bulk object/tree writes.
 	bulkXfrm block.Transformer
-	// bulkPutOpts is the put options for mini-transactions.
+	// bulkPutOpts is the put options for bulk object/tree writes.
 	bulkPutOpts *block.PutOpts
 	// objIndex maps git hash -> persisted BlockRef for bulk-written objects.
 	objIndex map[plumbing.Hash]*block.BlockRef
