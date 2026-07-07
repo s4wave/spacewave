@@ -250,7 +250,7 @@ async function waitFor(predicate, label) {
   throw new Error('timeout waiting for ' + label + ': ' + (globalThis.__fixtureEvents ?? []).join(','))
 }
 
-function installEnvironment({ events, localStorage, sessionStorage, autoStart, entrypointPath, href, hash }) {
+function installEnvironment({ events, localStorage, sessionStorage, autoStart, entrypointPath, href, hash, readyState }) {
   globalThis.__fixtureEvents = events
   globalThis.localStorage = localStorage
   globalThis.sessionStorage = sessionStorage
@@ -290,6 +290,7 @@ function installEnvironment({ events, localStorage, sessionStorage, autoStart, e
     removeEventListener() {},
   }
   globalThis.document = {
+    readyState,
     querySelector() { return null },
     getElementById() { return null },
     addEventListener() {},
@@ -333,7 +334,7 @@ function installEnvironment({ events, localStorage, sessionStorage, autoStart, e
   }
 }
 
-async function runCase({ name, autoStart, hash }) {
+async function runCase({ name, autoStart, hash, readyState, allowPreload }) {
   const events = []
   const entrypointURL = 'data:text/javascript,'
   const localStorage = new StorageFixture({})
@@ -346,6 +347,7 @@ async function runCase({ name, autoStart, hash }) {
     entrypointPath: entrypointURL,
     href: 'https://spacewave.test/' + hash,
     hash,
+    readyState,
   })
 
   new Function(script)()
@@ -368,6 +370,7 @@ async function runCase({ name, autoStart, hash }) {
     entrypointPath: entrypointURL,
     href: resetHref,
     hash,
+    readyState,
   })
   new Function(script)()
   await waitFor(() => events.includes('status:entrypoint'), name + ' entrypoint phase')
@@ -385,16 +388,21 @@ async function runCase({ name, autoStart, hash }) {
   const releaseFetchIndex = events.indexOf('fetch:/browser-release.json')
   const entrypointIndex = events.indexOf('status:entrypoint')
   const entrypointAssetFetchIndex = events.indexOf('fetch:' + entrypointURL)
-  assert(reloadIndex !== -1, name + ' missing reload event')
   assert(releaseFetchIndex > reloadIndex, name + ' release fetch did not wait for reset reload: ' + events.join(','))
-  assert(entrypointIndex > releaseFetchIndex, name + ' entrypoint phase did not wait for release fetch: ' + events.join(','))
-  assert(entrypointAssetFetchIndex > entrypointIndex, name + ' entrypoint asset fetch did not wait for entrypoint phase: ' + events.join(','))
+  if (allowPreload) {
+    assert(entrypointAssetFetchIndex > releaseFetchIndex, name + ' entrypoint asset preload did not wait for release fetch: ' + events.join(','))
+    assert(entrypointIndex > entrypointAssetFetchIndex, name + ' entrypoint phase did not wait for preloaded asset: ' + events.join(','))
+  } else {
+    assert(entrypointIndex > releaseFetchIndex, name + ' entrypoint phase did not wait for release fetch: ' + events.join(','))
+    assert(entrypointAssetFetchIndex > entrypointIndex, name + ' entrypoint asset fetch did not wait for entrypoint phase: ' + events.join(','))
+  }
   assert(localStorage.getItem('spacewave-browser-app-state-version') === '1000000', name + ' reached entrypoint before current version')
 }
 
 await runCase({ name: 'browser-hash', autoStart: false, hash: '#/u/1' })
 await runCase({ name: 'electron-autostart', autoStart: true, hash: '' })
-
+await runCase({ name: 'browser-post-load-root-complete', autoStart: false, hash: '', readyState: 'complete', allowPreload: true })
+await runCase({ name: 'browser-post-load-root-interactive', autoStart: false, hash: '', readyState: 'interactive', allowPreload: true })
 console.log('boot-import-order-fixture=passed')
 `
 

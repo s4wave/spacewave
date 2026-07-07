@@ -598,7 +598,8 @@ function startBoot(){
       document.addEventListener('click',onInteract);
       document.addEventListener('scroll',onInteract,{passive:true});
       document.addEventListener('keydown',onInteract);
-      window.addEventListener('load',function(){setTimeout(doImport,1000)});
+      if(document.readyState==='loading')window.addEventListener('load',function(){setTimeout(doImport,1000)},{once:true});
+      else setTimeout(doImport,1000);
     })
     .catch(function(err){setBootError('manifest-error',err);console.error('boot.mjs: failed to load release manifest',err)});
 }
