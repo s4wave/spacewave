@@ -12,28 +12,30 @@ export interface ViteManifestEntry {
 export type ViteManifest = Record<string, ViteManifestEntry>
 
 export function selectAppCssFile(manifest: ViteManifest): string | undefined {
-  const appEntry = Object.entries(manifest).find(([key, entry]) => {
-    if (!entry.isEntry) {
-      return false
+  let fallbackCssFile: string | undefined
+  let fallbackCssCount = 0
+
+  for (const [key, entry] of Object.entries(manifest)) {
+    if (
+      entry.isEntry &&
+      (key === 'app/App.tsx' ||
+        entry.src === 'app/App.tsx' ||
+        entry.name === 'app')
+    ) {
+      const [cssFile] = entry.css ?? []
+      if (cssFile) return cssFile
     }
-    if (key === 'app/App.tsx' || entry.src === 'app/App.tsx') {
-      return true
+
+    for (const cssFile of entry.css ?? []) {
+      if (!basename(cssFile).startsWith('app-')) continue
+      fallbackCssCount++
+      if (fallbackCssCount === 1) {
+        fallbackCssFile = cssFile
+      }
     }
-    return entry.name === 'app'
-  })?.[1]
-  if (appEntry?.css?.length) {
-    return appEntry.css[0]
   }
 
-  const appCssFiles = Object.values(manifest)
-    .flatMap((entry) => entry.css ?? [])
-    .filter((cssFile) => basename(cssFile).startsWith('app-'))
-
-  if (appCssFiles.length === 1) {
-    return appCssFiles[0]
-  }
-
-  return undefined
+  return fallbackCssCount === 1 ? fallbackCssFile : undefined
 }
 const requiredStaticExtensions = new Set([
   '.css',

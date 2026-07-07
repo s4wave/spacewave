@@ -329,8 +329,9 @@ async function main() {
   const blogPaths = collectBlogPaths(includeDrafts)
   const ctx = buildPrerenderContext(verbose, blogPaths)
 
-  // Prerender each static page.
-  for (const page of STATIC_PAGES) {
+  async function buildStaticPage(
+    page: (typeof STATIC_PAGES)[number],
+  ): Promise<void> {
     const Component = page.component
     const meta = { ...getMetadata(page.path) }
 
@@ -371,6 +372,13 @@ async function main() {
     writeFileSync(outputPath, pageHtml)
     ctx.log(`Wrote ${outputPath} (${pageHtml.length} bytes)`)
   }
+
+  // Prerender each static page in route order so logs and failure ordering stay stable.
+  let staticPageSequence = Promise.resolve()
+  for (const page of STATIC_PAGES) {
+    staticPageSequence = staticPageSequence.then(() => buildStaticPage(page))
+  }
+  await staticPageSequence
 
   // Build root path special template.
   ctx.log('Building root template (/)...')

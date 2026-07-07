@@ -126,19 +126,24 @@ async function collectUnixFSDirectories(
     .filter((entry) => (entry.isDir ?? false) && !!entry.name)
     .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))
 
-  for (const entry of entries) {
-    const name = entry.name
-    if (!name) continue
-    const childPath = joinUnixFSDisplayPath(currentPath, name)
-    using childHandle = await handle.lookup(name, abortSignal)
-    await collectUnixFSDirectories(
-      childHandle,
-      childPath,
-      depth + 1,
-      dirs,
-      abortSignal,
-    )
-  }
+  const childDirectories = await Promise.all(
+    entries.map(async (entry) => {
+      const name = entry.name
+      if (!name) return []
+      const childPath = joinUnixFSDisplayPath(currentPath, name)
+      const childDirs: UnixFSDirectoryOption[] = []
+      using childHandle = await handle.lookup(name, abortSignal)
+      await collectUnixFSDirectories(
+        childHandle,
+        childPath,
+        depth + 1,
+        childDirs,
+        abortSignal,
+      )
+      return childDirs
+    }),
+  )
+  dirs.push(...childDirectories.flat())
 }
 
 // listUnixFSDirectories returns the root and all descendant directories for move selection.
@@ -194,21 +199,29 @@ export async function moveUnixFSItems(
     itemsByParent.set(parentPath, [item])
   }
 
+  let moveSequence = Promise.resolve()
   for (const [parentPath, parentItems] of itemsByParent) {
-    using sourceParentHandle = await lookupUnixFSMoveHandle(
-      rootHandle,
-      parentPath,
-      abortSignal,
-    )
-    for (const item of parentItems) {
-      await sourceParentHandle.rename(
-        item.name,
-        item.name,
-        destinationHandle.id,
+    moveSequence = moveSequence.then(async () => {
+      using sourceParentHandle = await lookupUnixFSMoveHandle(
+        rootHandle,
+        parentPath,
         abortSignal,
       )
-    }
+      let parentMoveSequence = Promise.resolve()
+      for (const item of parentItems) {
+        parentMoveSequence = parentMoveSequence.then(() =>
+          sourceParentHandle.rename(
+            item.name,
+            item.name,
+            destinationHandle.id,
+            abortSignal,
+          ),
+        )
+      }
+      await parentMoveSequence
+    })
   }
+  await moveSequence
 }
 
 // moveUnixFSItemsFromDirectory moves current-directory items through the watched
@@ -240,12 +253,16 @@ export async function moveUnixFSItemsFromDirectory(
     abortSignal,
   )
 
+  let moveSequence = Promise.resolve()
   for (const item of items) {
-    await sourceParentHandle.rename(
-      item.name,
-      item.name,
-      destinationHandle.id,
-      abortSignal,
+    moveSequence = moveSequence.then(() =>
+      sourceParentHandle.rename(
+        item.name,
+        item.name,
+        destinationHandle.id,
+        abortSignal,
+      ),
     )
   }
+  await moveSequence
 }

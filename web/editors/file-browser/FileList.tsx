@@ -1,8 +1,11 @@
-import React, {
+import {
   createContext,
+  type CSSProperties,
   type DragEvent,
+  type MouseEvent,
+  type ReactNode,
+  use,
   useCallback,
-  useContext,
   useMemo,
 } from 'react'
 import { LuChevronDown, LuChevronUp } from 'react-icons/lu'
@@ -31,13 +34,13 @@ interface FileListProps {
   entries: FileEntry[]
   getEntryDetails?: GetFileEntryDetailsCallback
   onOpen?: (entries: FileEntry[]) => void
-  onContextMenu?: (item: ListItem<FileEntry>, event: React.MouseEvent) => void
+  onContextMenu?: (item: ListItem<FileEntry>, event: MouseEvent) => void
   onStateChange?: (state: ListState) => void
   rowHeight?: number
-  headerStyle?: React.CSSProperties
+  headerStyle?: CSSProperties
   loadingId?: string | null
   autoHeight?: boolean
-  placeholder?: React.ReactNode
+  placeholder?: ReactNode
   renderEntry?: RenderEntryCallback
   currentPath?: string
   getDragEnvelope?: (
@@ -79,7 +82,7 @@ const FileListRowConfigContext = createContext<FileListRowConfig | null>(null)
 // FileListRow keeps the rendered row component identity stable while hover and
 // drag-drop props change during native drag sessions.
 function FileListRow(props: RowComponentProps<FileEntry>) {
-  const config = useContext(FileListRowConfigContext)
+  const config = use(FileListRowConfigContext)
   if (!config) {
     throw new Error('FileListRow must be rendered inside FileList')
   }
