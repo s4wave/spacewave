@@ -95,7 +95,7 @@ var ObjectWizards = []*ObjectWizard{
 	},
 	{
 		TypeId:             "spacewave/device",
-		DisplayName:        "Device",
+		DisplayName:        "Add Device",
 		Category:           "Devices",
 		IconName:           "LuHardDrive",
 		CreateOpId:         "spacewave/wizard/create",
@@ -103,7 +103,6 @@ var ObjectWizards = []*ObjectWizard{
 		KeyPrefix:          "devices/",
 		Persistent:         true,
 		WizardTypeId:       "wizard/device/add",
-		Experimental:       true,
 	},
 	{
 		TypeId:             "forge/cluster",

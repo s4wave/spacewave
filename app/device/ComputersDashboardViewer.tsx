@@ -43,10 +43,21 @@ export function ComputersDashboardViewer(_props: ObjectViewerComponentProps) {
     () => objects.map((obj) => obj.objectKey ?? ''),
     [objects],
   )
-  const canAddDevice = visibleWizardTypeSet.has(DeviceTypeID)
+  const seededAddDeviceWizardKey = useMemo(
+    () =>
+      objects.find((obj) => obj.objectType === AddDeviceWizardTypeID)
+        ?.objectKey ?? '',
+    [objects],
+  )
+  const canCreateAddDeviceWizard = visibleWizardTypeSet.has(DeviceTypeID)
+  const canAddDevice = !!seededAddDeviceWizardKey || canCreateAddDeviceWizard
 
   const handleAddDevice = useCallback(async () => {
-    if (!canAddDevice) return
+    if (seededAddDeviceWizardKey) {
+      navigateToObjects([seededAddDeviceWizardKey])
+      return
+    }
+    if (!canCreateAddDeviceWizard) return
     const wizardKey = buildWizardObjectKey(
       AddDeviceDefaultName,
       existingObjectKeys,
@@ -67,7 +78,13 @@ export function ComputersDashboardViewer(_props: ObjectViewerComponentProps) {
         err instanceof Error ? err.message : 'Failed to open Add Device',
       )
     }
-  }, [canAddDevice, existingObjectKeys, navigateToObjects, spaceWorld])
+  }, [
+    canCreateAddDeviceWizard,
+    existingObjectKeys,
+    navigateToObjects,
+    seededAddDeviceWizardKey,
+    spaceWorld,
+  ])
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
@@ -99,6 +116,16 @@ export function ComputersDashboardViewer(_props: ObjectViewerComponentProps) {
               entries={devices.map((obj) => obj.objectKey ?? '')}
               empty="No Device objects yet"
               onOpen={(objectKey) => navigateToObjects([objectKey])}
+              emptyAction={
+                canAddDevice ? (
+                  <DashboardButton
+                    icon={<LuPlus className="size-3.5" />}
+                    onClick={() => void handleAddDevice()}
+                  >
+                    Add Device
+                  </DashboardButton>
+                ) : undefined
+              }
             />
             <InventoryPanel
               title="Hosts"
@@ -130,12 +157,14 @@ function InventoryPanel({
   icon,
   entries,
   empty,
+  emptyAction,
   onOpen,
 }: {
   title: string
   icon: ReactNode
   entries: string[]
   empty: string
+  emptyAction?: ReactNode
   onOpen: (objectKey: string) => void
 }) {
   return (
@@ -145,7 +174,10 @@ function InventoryPanel({
         <span className="text-foreground text-sm font-medium">{title}</span>
       </div>
       {entries.length === 0 ? (
-        <div className="text-muted-foreground px-3 py-6 text-sm">{empty}</div>
+        <div className="text-muted-foreground flex flex-col items-start gap-3 px-3 py-6 text-sm">
+          <span>{empty}</span>
+          {emptyAction}
+        </div>
       ) : (
         <div className="divide-foreground/8 divide-y">
           {entries.map((objectKey) => (

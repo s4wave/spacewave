@@ -6,6 +6,7 @@ import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
 import { InitObjectLayoutOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { INIT_OBJECT_LAYOUT_OP_ID } from '@s4wave/core/space/world/ops/init-object-layout.js'
+import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import type { SubItemsCallback } from '@s4wave/web/command/CommandContext.js'
 import {
   SharedObjectContext,
@@ -16,6 +17,11 @@ import {
   EXPERIMENTAL_CREATORS_STORAGE_KEY,
   setExperimentalCreatorsEnabled,
 } from '../creator-visibility.js'
+import {
+  AddDeviceDefaultName,
+  AddDeviceWizardTargetKeyPrefix,
+  AddDeviceWizardTypeID,
+} from '../device/add-device-wizard.js'
 import { SpaceCommands } from './SpaceCommands.js'
 
 interface RegisteredCommand {
@@ -434,6 +440,49 @@ describe('SpaceCommands', () => {
     expect(decoded.targetTypeId).toBe('git/repo')
     expect(decoded.targetKeyPrefix).toBe('git/repo/')
     expect(decoded.name).toBe('Repository')
+    expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
+  })
+
+  it('lists and launches the Add Device wizard from release-visible registry data', async () => {
+    vi.stubEnv('DEV', false)
+    h.wizards = [
+      {
+        typeId: DeviceTypeID,
+        displayName: 'Add Device',
+        category: 'Devices',
+        persistent: true,
+        wizardTypeId: AddDeviceWizardTypeID,
+        keyPrefix: AddDeviceWizardTargetKeyPrefix,
+        defaultNamePattern: AddDeviceDefaultName,
+      },
+    ]
+    renderCommands()
+
+    const { subItems, handler } = getCreateObjectCommandHandlers()
+    const items = await subItems('device', new AbortController().signal)
+    expect(items).toEqual([
+      {
+        id: DeviceTypeID,
+        label: 'Add Device',
+        description: 'Devices',
+      },
+    ])
+
+    handler({ subItemId: DeviceTypeID })
+
+    await waitFor(() => {
+      expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+    })
+
+    const [opTypeId, opData] = h.applyWorldOp.mock.calls[0]
+    expect(opTypeId).toBe(CREATE_WIZARD_OBJECT_OP_ID)
+
+    const decoded = CreateWizardObjectOp.fromBinary(opData)
+    expect(decoded.objectKey).toBe('wizard/device-1')
+    expect(decoded.wizardTypeId).toBe(AddDeviceWizardTypeID)
+    expect(decoded.targetTypeId).toBe(DeviceTypeID)
+    expect(decoded.targetKeyPrefix).toBe(AddDeviceWizardTargetKeyPrefix)
+    expect(decoded.name).toBe(AddDeviceDefaultName)
     expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
   })
 

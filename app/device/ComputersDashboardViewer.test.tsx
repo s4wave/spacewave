@@ -6,6 +6,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react'
 
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
@@ -72,6 +73,18 @@ describe('ComputersDashboardViewer', () => {
     vi.clearAllMocks()
   })
 
+  function getDeviceEmptyStateAddButton() {
+    const emptyState = screen.getByText('No Device objects yet').closest('div')
+    if (!emptyState) {
+      throw new Error('expected Device empty state')
+    }
+    const buttons = within(emptyState).getAllByRole('button', {
+      name: /add device/i,
+    })
+    expect(buttons).toHaveLength(1)
+    return buttons[0]
+  }
+
   it('lists Device objects and future host entries without hiding empty sections', () => {
     render(
       <ComputersDashboardViewer
@@ -91,7 +104,14 @@ describe('ComputersDashboardViewer', () => {
     expect(screen.getAllByText('1')).toHaveLength(2)
   })
 
-  it('launches the Add Device wizard through the persistent wizard op', async () => {
+  it('opens the seeded Add Device wizard instead of creating another one', async () => {
+    h.objects = [
+      {
+        objectKey: 'wizard/add-device-seeded',
+        objectType: AddDeviceWizardTypeID,
+      },
+    ]
+
     render(
       <ComputersDashboardViewer
         objectInfo={{}}
@@ -104,7 +124,31 @@ describe('ComputersDashboardViewer', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /add device/i }))
+    fireEvent.click(getDeviceEmptyStateAddButton())
+
+    await waitFor(() =>
+      expect(h.navigateToObjects).toHaveBeenCalledWith([
+        'wizard/add-device-seeded',
+      ]),
+    )
+    expect(h.applyWorldOp).not.toHaveBeenCalled()
+  })
+
+  it('creates the Add Device wizard when no seeded wizard exists', async () => {
+    h.objects = []
+    render(
+      <ComputersDashboardViewer
+        objectInfo={{}}
+        worldState={{
+          value: null,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    fireEvent.click(getDeviceEmptyStateAddButton())
 
     expect(h.applyWorldOp).toHaveBeenCalledWith(
       CREATE_WIZARD_OBJECT_OP_ID,
